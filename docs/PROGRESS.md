@@ -16,7 +16,9 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - [ ] Phase 3 — Unreal adapter *(requires the physical machine — UE editor
       cannot run in the cloud container)*
 - [ ] Phase 4 — Cross-cutting friction killers
-- [ ] Phase 5 — Benchmarks
+- [ ] Phase 5 — Benchmarks *(Blender scenarios done in cloud: 87.7% total
+      saving measured — see benchmarks/RESULTS.md; UE scenarios need the
+      physical machine)*
 - [ ] Phase 6 — Packaging and handoff
 
 ## Machine facts

@@ -21,6 +21,21 @@ AI models interfacing with Unreal Engine and Blender burn tokens on:
 TEE attacks each of these at the protocol layer, so any MCP-capable model gets
 the benefit without prompt engineering.
 
+**Measured** (real headless Blender 5.2, same wire, TEE interface vs the
+naive per-op-code + full-scene-dump pattern of existing bridges —
+[benchmarks/RESULTS.md](benchmarks/RESULTS.md)):
+
+| Scenario | Naive | TEE | Saving |
+|---|---|---|---|
+| donut-class modelling | 4,431 tok / 9 calls | 349 tok / 3 calls | 92.1% |
+| 100 objects + what-changed | 49,283 tok / 23 calls | 6,585 tok / 3 calls | 86.6% |
+| material pass, 10 objects | 11,590 tok / 22 calls | 1,420 tok / 2 calls | 87.7% |
+| layout verification | 2,926 tok / 2 calls | 36 tok / 1 call | 98.8% |
+| **total** | **68,230** | **8,390** | **87.7%** |
+
+The always-loaded MCP surface (14 tools) costs ~2.3K tokens of definitions —
+about the price of 3 typical MCP tools in the wild.
+
 ## Scope
 
 | Surface | Languages | Interfacing targets |

@@ -1,0 +1,424 @@
+#!/usr/bin/env python3
+"""Tokens-per-task benchmark: TEE vs the naive bridge pattern.
+
+Both harnesses drive the SAME live headless Blender through the SAME wire
+protocol; what differs is the interface style:
+
+- naive: one Python-code request per operation and a full scene dump after
+  every mutation (the dominant pattern in existing DCC bridges: an
+  execute_code tool plus a get_scene_info tool), full-res PNG screenshots.
+- tee:   typed batches (N ops = 1 round-trip) with diff responses, compact
+  paged summaries, geometric assertions before pixels, budgeted small JPEG.
+
+The metric is context cost: estimated tokens of every request + response
+that would enter the model's context (chars/3.5 for text - the same
+estimator the server budget uses - and ceil(w/28)*ceil(h/28) for images,
+Anthropic's visual token formula). Run:
+
+    cd server && uv run python ../benchmarks/run_benchmarks.py
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import textwrap
+import time
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "server" / "src"))
+
+from tee.adapters.blender.adapter import BlenderAdapter  # noqa: E402
+from tee.adapters.blender.tools import register_blender_tools  # noqa: E402
+from tee.adapters.blender.wire import BlenderWire  # noqa: E402
+from tee.app import TeeApp  # noqa: E402
+from tee.kernel.budget import estimate_tokens  # noqa: E402
+
+BLENDER_CANDIDATES = (
+    shutil.which("blender"),
+    "/home/user/blender-5.2.0-linux-x64/blender",
+)
+TEE_BRIDGE_DIR = REPO / "adapters" / "blender" / "tee_bridge"
+
+
+def image_tokens(width: int, height: int) -> int:
+    return math.ceil(width / 28) * math.ceil(height / 28)
+
+
+class Meter:
+    """Counts request+response tokens the way a model's context would."""
+
+    def __init__(self) -> None:
+        self.tokens = 0
+        self.round_trips = 0
+
+    def text(self, payload) -> None:
+        self.tokens += estimate_tokens(payload)
+
+    def call(self, request, response) -> None:
+        self.round_trips += 1
+        self.text(request)
+        self.text(response)
+
+    def image(self, width: int, height: int) -> None:
+        self.tokens += image_tokens(width, height)
+
+
+# --------------------------------------------------------------------------
+# Naive harness: emulates the dominant existing-bridge interface faithfully
+# (execute_code per op + get_scene_info full dump after each mutation).
+# --------------------------------------------------------------------------
+
+SCENE_DUMP_CODE = textwrap.dedent(
+    """
+    import bpy
+    objs = []
+    for o in bpy.data.objects:
+        objs.append({
+            "name": o.name, "type": o.type,
+            "location": list(o.location), "rotation": list(o.rotation_euler),
+            "scale": list(o.scale), "dimensions": list(o.dimensions),
+            "visible": not o.hide_viewport,
+            "parent": o.parent.name if o.parent else None,
+            "materials": [m.name for m in o.data.materials if m]
+                          if hasattr(o.data, "materials") and o.data else [],
+            "vertices": len(o.data.vertices) if o.type == "MESH" else None,
+            "polygons": len(o.data.polygons) if o.type == "MESH" else None,
+        })
+    result = {"objects": objs, "frame": bpy.context.scene.frame_current,
+              "engine": bpy.context.scene.render.engine}
+    """
+)
+
+
+class Naive:
+    def __init__(self, wire: BlenderWire, meter: Meter):
+        self.wire = wire
+        self.meter = meter
+
+    def exec_op(self, code: str) -> dict:
+        response = self.wire.execute(code, strict_json=False)
+        self.meter.call(code, response)
+        # after every mutation the model re-reads the scene (it has no diffs)
+        dump = self.wire.execute(SCENE_DUMP_CODE, strict_json=False)
+        self.meter.call(SCENE_DUMP_CODE, dump)
+        return response
+
+    def query(self, code: str) -> dict:
+        response = self.wire.execute(code, strict_json=False)
+        self.meter.call(code, response)
+        return response
+
+    def screenshot(self) -> None:
+        # existing bridges default to full-res viewport PNG
+        self.meter.round_trips += 1
+        self.meter.image(1920, 1080)
+
+
+# --------------------------------------------------------------------------
+# TEE harness: the real TeeApp driving the same Blender.
+# --------------------------------------------------------------------------
+
+
+class Tee:
+    def __init__(self, app: TeeApp, meter: Meter):
+        self.app = app
+        self.meter = meter
+
+    def batch(self, ops: list[dict]) -> dict:
+        out = self.app.run_batch("blender", ops)
+        self.meter.call({"tool": "tee_batch", "ops": ops}, out)
+        return out
+
+    def summary(self, **kwargs) -> dict:
+        out = self.app.cache("blender").summary(**kwargs)
+        self.meter.call({"tool": "tee_scene_summary", **kwargs}, out)
+        return out
+
+    def diff(self, stamp: dict) -> dict:
+        out = self.app.cache("blender").diff_since(stamp["epoch"], stamp["revision"])
+        self.meter.call({"tool": "tee_diff", **stamp}, out)
+        return out
+
+    def stats(self) -> dict:
+        out = self.app.registry.call("bl_scene_stats", {})
+        self.meter.call({"tool": "tee_call", "name": "bl_scene_stats"}, out)
+        return out
+
+    def capture(self) -> None:
+        self.meter.round_trips += 1
+        self.meter.image(512, 288)  # budgeted default
+
+
+# --------------------------------------------------------------------------
+# Scenarios (each returns nothing; both harnesses must COMPLETE the task)
+# --------------------------------------------------------------------------
+
+
+def scenario_donut(naive: Naive | None, tee: Tee | None) -> None:
+    """Model a donut on a plate with a light and check the framing."""
+    if naive:
+        naive.exec_op(
+            "import bpy\nbpy.ops.mesh.primitive_torus_add(major_radius=1, minor_radius=0.4)\n"
+            "bpy.context.active_object.name = 'Donut'\nresult={'ok':True}"
+        )
+        naive.exec_op(
+            "import bpy\nbpy.ops.mesh.primitive_cylinder_add(radius=1.8, depth=0.08,"
+            " location=(0,0,-0.25))\nbpy.context.active_object.name = 'Plate'\nresult={'ok':True}"
+        )
+        naive.exec_op(
+            "import bpy\nmat = bpy.data.materials.new('Icing')\nmat.use_nodes = True\n"
+            "bsdf = next(n for n in mat.node_tree.nodes if n.type=='BSDF_PRINCIPLED')\n"
+            "bsdf.inputs['Base Color'].default_value = (0.9,0.4,0.6,1)\n"
+            "bpy.data.objects['Donut'].data.materials.append(mat)\nresult={'ok':True}"
+        )
+        naive.exec_op(
+            "import bpy\nlight = bpy.data.lights.new('Key','SUN')\n"
+            "obj = bpy.data.objects.new('Key', light)\n"
+            "bpy.context.scene.collection.objects.link(obj)\nresult={'ok':True}"
+        )
+        naive.screenshot()  # verify by looking
+    if tee:
+        out = tee.batch(
+            [
+                {"op": "create", "kind": "torus", "name": "Donut",
+                 "props": {"radius": 1, "minor_radius": 0.4}},
+                {"op": "create", "kind": "cylinder", "name": "Plate",
+                 "props": {"radius": 1.8, "depth": 0.08, "location": [0, 0, -0.25]}},
+                {"op": "create", "kind": "light", "name": "Key",
+                 "props": {"light_type": "SUN"}},
+            ]
+        )
+        donut = out["created"][0]
+        result = tee.app.registry.call(
+            "bl_assign_material",
+            {"entity_id": donut, "material": "Icing", "base_color": [0.9, 0.4, 0.6],
+             "roughness": 0.4},
+        )
+        tee.meter.call({"tool": "bl_assign_material"}, result)
+        tee.stats()  # geometric verification instead of pixels
+
+
+def scenario_hundred_objects(naive: Naive | None, tee: Tee | None) -> None:
+    """Populate 100 objects, then find out what changed after 3 edits."""
+    if naive:
+        for i in range(0, 100, 10):  # a model would batch ~10 per code block
+            lines = ["import bpy"]
+            for j in range(i, i + 10):
+                lines.append(
+                    f"bpy.ops.mesh.primitive_cube_add(size=0.5,"
+                    f" location=({j % 10}, {j // 10}, 0))\n"
+                    f"bpy.context.active_object.name = 'Block{j}'"
+                )
+            lines.append("result={'ok':True}")
+            naive.exec_op("\n".join(lines))
+        naive.exec_op(
+            "import bpy\n"
+            "for n in ('Block3','Block47','Block91'):\n"
+            "    bpy.data.objects[n].location.z = 2\n"
+            "result={'ok':True}"
+        )
+        naive.query(SCENE_DUMP_CODE)  # "what does the scene look like now?"
+    if tee:
+        ops = [
+            {"op": "create", "kind": "cube", "name": f"Block{j}",
+             "props": {"size": 0.5, "location": [j % 10, j // 10, 0]}}
+            for j in range(100)
+        ]
+        out = tee.batch(ops)
+        ids = out["created"]
+        stamp = {"epoch": out["epoch"], "revision": out["revision"]}
+        tee.batch(
+            [{"op": "set", "id": ids[k], "props": {"location": [k % 10, k // 10, 2]}}
+             for k in (3, 47, 91)]
+        )
+        tee.diff(stamp)  # "what changed?" costs a diff, not a dump
+
+
+def scenario_material_pass(naive: Naive | None, tee: Tee | None) -> None:
+    """Assign a distinct material to each of 10 objects."""
+    if naive:
+        lines = ["import bpy"]
+        for i in range(10):
+            lines.append(
+                f"bpy.ops.mesh.primitive_uv_sphere_add(radius=0.4, location=({i},0,0))\n"
+                f"bpy.context.active_object.name = 'Ball{i}'"
+            )
+        lines.append("result={'ok':True}")
+        naive.exec_op("\n".join(lines))
+        for i in range(10):
+            naive.exec_op(
+                f"import bpy\nmat = bpy.data.materials.new('M{i}')\nmat.use_nodes=True\n"
+                f"bsdf = next(n for n in mat.node_tree.nodes if n.type=='BSDF_PRINCIPLED')\n"
+                f"bsdf.inputs['Base Color'].default_value = ({i / 10},0.2,0.5,1)\n"
+                f"bpy.data.objects['Ball{i}'].data.materials.append(mat)\nresult={{'ok':True}}"
+            )
+    if tee:
+        out = tee.batch(
+            [{"op": "create", "kind": "uv_sphere", "name": f"Ball{i}",
+              "props": {"radius": 0.4, "location": [i, 0, 0]}}
+             for i in range(10)]
+        )
+        ops = [
+            {"op": "assign_material", "id": eid,
+             "props": {"material": f"M{i}", "base_color": [i / 10, 0.2, 0.5]}}
+            for i, eid in enumerate(out["created"])
+        ]
+        tee.batch(ops)
+
+
+def scenario_verify(naive: Naive | None, tee: Tee | None) -> None:
+    """Check a layout for overlaps/placement problems."""
+    if naive:
+        naive.screenshot()  # look at it
+        naive.query(SCENE_DUMP_CODE)  # and read everything
+    if tee:
+        tee.stats()  # text-first geometric checks
+
+
+SCENARIOS = [
+    ("donut-class modelling", scenario_donut),
+    ("100-object populate + what-changed", scenario_hundred_objects),
+    ("material pass over 10 objects", scenario_material_pass),
+    ("layout verification", scenario_verify),
+]
+
+
+# --------------------------------------------------------------------------
+# Runner
+# --------------------------------------------------------------------------
+
+
+def find_blender() -> str:
+    for candidate in BLENDER_CANDIDATES:
+        if candidate and Path(candidate).exists():
+            return candidate
+    raise SystemExit("no Blender binary found")
+
+
+def launch_bridge(blender: str, port: int) -> subprocess.Popen:
+    boot = Path(tempfile.mkdtemp(prefix="tee-bench-")) / "boot.py"
+    boot.write_text(
+        f"import sys\nsys.path.insert(0, {str(TEE_BRIDGE_DIR)!r})\n"
+        f"import bridge_server\nbridge_server.run_blocking('127.0.0.1', {port})\n"
+    )
+    return subprocess.Popen(
+        [blender, "--background", "--factory-startup", "--python", str(boot)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def free_port() -> int:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+def clear_scene(wire: BlenderWire) -> None:
+    wire.execute(
+        "import bpy\n"
+        "for o in list(bpy.data.objects): bpy.data.objects.remove(o, do_unlink=True)\n"
+        "for m in list(bpy.data.materials): bpy.data.materials.remove(m)\n"
+        "result={'ok':True}"
+    )
+
+
+def main() -> None:
+    blender = find_blender()
+    port = free_port()
+    proc = launch_bridge(blender, port)
+    wire = BlenderWire(port=port)
+    deadline = time.time() + 60
+    while time.time() < deadline and not wire.probe():
+        time.sleep(0.5)
+    if not wire.probe():
+        proc.kill()
+        raise SystemExit("bridge never came up")
+
+    rows = []
+    try:
+        for name, scenario in SCENARIOS:
+            # naive run
+            clear_scene(wire)
+            naive_meter = Meter()
+            scenario(Naive(wire, naive_meter), None)
+
+            # tee run (fresh app per scenario)
+            clear_scene(wire)
+            adapter = BlenderAdapter(wire)
+            app = TeeApp({"blender": adapter}, project_root=tempfile.mkdtemp(),
+                         allow_code_exec=True)
+            register_blender_tools(app, adapter)
+            app.warm("blender")
+            tee_meter = Meter()
+            try:
+                scenario(None, Tee(app, tee_meter))
+            finally:
+                app.shutdown()
+
+            saving = 100.0 * (1 - tee_meter.tokens / naive_meter.tokens)
+            rows.append(
+                (name, naive_meter.tokens, naive_meter.round_trips,
+                 tee_meter.tokens, tee_meter.round_trips, saving)
+            )
+            print(
+                f"{name}: naive {naive_meter.tokens} tok / {naive_meter.round_trips} calls"
+                f" -> tee {tee_meter.tokens} tok / {tee_meter.round_trips} calls"
+                f" ({saving:.1f}% saved)"
+            )
+    finally:
+        proc.terminate()
+
+    write_results(rows)
+
+
+def write_results(rows) -> None:
+    out = Path(__file__).parent / "RESULTS.md"
+    lines = [
+        "# Token benchmark results",
+        "",
+        "Same live headless Blender, same wire protocol, two interface styles:",
+        "**naive** (one code request per op + full scene dump after every",
+        "mutation + full-res screenshots - the dominant existing-bridge",
+        "pattern) vs **TEE** (typed batches, diffs, compact summaries,",
+        "geometric assertions, budgeted capture). Metric: estimated context",
+        "tokens of all requests + responses (chars/3.5; images",
+        "ceil(w/28)*ceil(h/28)).",
+        "",
+        "| Scenario | Naive tokens | Naive calls | TEE tokens | TEE calls | Saving |",
+        "|---|---|---|---|---|---|",
+    ]
+    total_naive = total_tee = 0
+    for name, ntok, ncalls, ttok, tcalls, saving in rows:
+        total_naive += ntok
+        total_tee += ttok
+        lines.append(f"| {name} | {ntok:,} | {ncalls} | {ttok:,} | {tcalls} | {saving:.1f}% |")
+    total_saving = 100.0 * (1 - total_tee / total_naive)
+    lines.append(
+        f"| **total** | **{total_naive:,}** | | **{total_tee:,}** | | **{total_saving:.1f}%** |"
+    )
+    lines += [
+        "",
+        f"*Generated by `benchmarks/run_benchmarks.py` against Blender "
+        f"{_blender_version()} (headless, TEE bridge).*",
+    ]
+    out.write_text("\n".join(lines) + "\n")
+    print(f"\nwrote {out}")
+
+
+def _blender_version() -> str:
+    blender = find_blender()
+    out = subprocess.run([blender, "--version"], capture_output=True, text=True, timeout=30)
+    first = out.stdout.splitlines()[0] if out.stdout else "unknown"
+    return first.replace("Blender ", "")
+
+
+if __name__ == "__main__":
+    main()
