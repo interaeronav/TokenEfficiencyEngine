@@ -18,17 +18,32 @@ def _build_fake_app(project: str):
     return TeeApp({"fake": FakeAdapter()}, project_root=Path(project))
 
 
+def _build_blender_app(project: str, host: str, port: int):
+    from tee.adapters.blender.adapter import BlenderAdapter
+    from tee.adapters.blender.tools import register_blender_tools
+    from tee.adapters.blender.wire import BlenderWire
+    from tee.app import TeeApp
+
+    adapter = BlenderAdapter(BlenderWire(host=host, port=port))
+    app = TeeApp({"blender": adapter}, project_root=Path(project))
+    register_blender_tools(app, adapter)
+    return app
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.server import build_server
 
-    if args.adapter != "fake":
+    if args.adapter == "fake":
+        app = _build_fake_app(args.project)
+    elif args.adapter == "blender":
+        app = _build_blender_app(args.project, args.blender_host, args.blender_port)
+    else:
         print(
-            f"adapter '{args.adapter}' is not wired yet (Phase 2/3); "
-            "only 'fake' is available in Phase 1",
+            f"adapter '{args.adapter}' is not wired yet (unreal arrives in "
+            "Phase 3); available: fake, blender",
             file=sys.stderr,
         )
         return 2
-    app = _build_fake_app(args.project)
     server = build_server(app)
     try:
         server.run()  # stdio transport
@@ -60,6 +75,8 @@ def main(argv: list[str] | None = None) -> int:
     serve = sub.add_parser("serve", help="run the MCP server on stdio")
     serve.add_argument("--adapter", default="fake", help="adapter to serve (fake|blender|unreal)")
     serve.add_argument("--project", default=".", help="project root for .tee/ memory")
+    serve.add_argument("--blender-host", default="127.0.0.1", help="Blender bridge host")
+    serve.add_argument("--blender-port", type=int, default=9876, help="Blender bridge port")
     serve.set_defaults(fn=cmd_serve)
 
     doctor = sub.add_parser("doctor", help="environment diagnostics")
