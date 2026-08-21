@@ -15,7 +15,8 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       parts; live-GUI validation needs the physical machine)*
 - [ ] Phase 3 — Unreal adapter *(requires the physical machine — UE editor
       cannot run in the cloud container)*
-- [ ] Phase 4 — Cross-cutting friction killers
+- [x] Phase 4 — Cross-cutting friction killers *(cloud, 2026-08-21; doctor
+      re-run on the physical machine will extend the evidence)*
 - [ ] Phase 5 — Benchmarks *(Blender scenarios done in cloud: 87.7% total
       saving measured — see benchmarks/RESULTS.md; UE scenarios need the
       physical machine)*
@@ -94,3 +95,29 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   **20 passed** (both bridge flavors, real Blender 5.2); ruff clean.
 - Follow-up for next session: adversarial review round over the fix diff +
   bridge add-on; GUI-mode bridge validation needs the physical machine.
+
+### 2026-08-21 — Phase 4 (cloud)
+- **Docs search:** `bl_search_docs` / `bl_api_detail` — the API index is
+  introspected from the LIVE Blender over the bridge (`bl_rna` reflection),
+  version-matched by construction, cached per version on disk. Live test:
+  4,000+ symbols indexed; `shade_smooth_by_angle` found with correct params.
+- **Doctor:** real checks (python, uv, Blender binary+version, bridge
+  socket round-trip with protocol probe, bpy wheel ABI, Unreal/Epic MCP
+  endpoint), each failure with a one-line fix; `--json`; `--emit
+  claude-code|claude-desktop|cursor` prints working MCP client configs.
+  Evidence: all checks OK on this container with a live bridge (exit 0;
+  Unreal correctly a warning).
+- **Transport hardening:** oversized-frame rejection completes the
+  kill-test set (bridge down / severed mid-response / garbage frame /
+  oversized frame — all structured errors, never hangs); advisory
+  `.tee/server.pid` notice for double-serve.
+- **Tool profiles:** `.tee/config.toml` — `[tools].disabled` (hidden from
+  search, calls answer `tool_disabled` naming the config), `[server]
+  .allow_code_exec`, `[blender].port`; malformed config degrades with a
+  warning in `tee_status`, never bricks the session.
+- **Client-compat canaries:** expected-tool-count assertion (catches silent
+  catalog drops), every-tool model-visible-content canary, and a real
+  stdio-subprocess end-to-end test (spawn `tee serve`, initialize,
+  tools/list, tool call through the SDK client).
+- Evidence: `uv run pytest` → **107 passed**; `-m dcc` → **22 passed**
+  (both bridge flavors); ruff clean; doctor exit 0 with bridge up.

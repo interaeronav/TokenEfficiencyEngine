@@ -202,3 +202,78 @@ def test_responses_are_compact_json_not_pretty_printed():
         json.loads(text)
 
     run_session(scenario)
+
+
+MINIMAL_ARGS = {
+    "tee_status": {},
+    "tee_recall": {},
+    "tee_remember": {"note": "canary"},
+    "tee_scene_summary": {},
+    "tee_entity_detail": {"entity_id": "e999"},
+    "tee_diff": {"epoch": 0, "revision": 0},
+    "tee_batch": {"ops": [{"op": "create", "kind": "mesh", "name": "X"}]},
+    "tee_checkpoint": {"label": "canary"},
+    "tee_rollback": {"ref": "cp1"},
+    "tee_job": {"job_id": "job999"},
+    "tee_search_tools": {"query": "demo"},
+    "tee_describe_tool": {"name": "bl_demo_tool"},
+    "tee_call": {"name": "bl_demo_tool", "args": {"n": 1}},
+}
+
+
+def test_every_tool_answers_with_model_visible_content():
+    """Silent-content-drop canary: every tool must return content a model
+    can read - either parseable JSON or an image block - never nothing."""
+    from mcp.types import ImageContent
+
+    async def scenario(client):
+        listed = (await client.list_tools()).tools
+        for tool in listed:
+            if tool.name == "tee_capture":
+                result = await client.call_tool("tee_capture", {"max_kb": 8})
+                assert isinstance(result.content[0], (ImageContent, TextContent))
+                continue
+            args = MINIMAL_ARGS[tool.name]
+            result = await client.call_tool(tool.name, args)
+            assert result.content, tool.name
+            parsed = payload(result)
+            assert "ok" in parsed, tool.name
+
+    run_session(scenario)
+
+
+def test_stdio_subprocess_end_to_end(tmp_path):
+    """The real transport: spawn `tee serve` as a subprocess over stdio and
+    drive initialize + tools/list + a call through the SDK client."""
+    import sys
+    from pathlib import Path
+
+    import anyio
+    from mcp.client.session import ClientSession
+    from mcp.client.stdio import StdioServerParameters, stdio_client
+
+    server_dir = Path(__file__).resolve().parents[1]
+    params = StdioServerParameters(
+        command=sys.executable,
+        args=["-m", "tee.cli", "serve", "--adapter", "fake", "--project", str(tmp_path)],
+        cwd=str(server_dir),
+        env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(server_dir / "src")},
+    )
+
+    async def main():
+        async with (
+            stdio_client(params) as (read, write),
+            ClientSession(read, write) as session,
+        ):
+            await session.initialize()
+            tools = await session.list_tools()
+            assert any(t.name == "tee_status" for t in tools.tools)
+            result = await session.call_tool(
+                "tee_batch",
+                {"ops": [{"op": "create", "kind": "mesh", "name": "Stdio"}]},
+            )
+            parsed = json.loads(result.content[0].text)
+            assert parsed["ok"] is True
+            assert parsed["created"] == ["e1"]
+
+    anyio.run(main)

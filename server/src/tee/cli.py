@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import platform
-import shutil
+import json
 import sys
 from pathlib import Path
 
@@ -31,13 +30,19 @@ def _build_blender_app(project: str, host: str, port: int, allow_code_exec: bool
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
+    from tee.config import ProjectConfig
     from tee.server import build_server
+
+    config = ProjectConfig.load(args.project)
+    blender_port = args.blender_port
+    if blender_port == 9876 and config.blender_port:
+        blender_port = config.blender_port
 
     if args.adapter == "fake":
         app = _build_fake_app(args.project)
     elif args.adapter == "blender":
         app = _build_blender_app(
-            args.project, args.blender_host, args.blender_port, args.allow_code_exec
+            args.project, args.blender_host, blender_port, args.allow_code_exec
         )
     else:
         print(
@@ -46,27 +51,60 @@ def cmd_serve(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
+    pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:
         server.run()  # stdio transport
     finally:
         app.shutdown()
+        if pid_file is not None:
+            pid_file.unlink(missing_ok=True)
     return 0
+
+
+def _pid_notice(project: str) -> Path | None:
+    """Advisory single-instance notice: two servers on one project are legal
+    (two MCP clients) but worth a warning - they share .tee/ state."""
+    import os
+
+    pid_file = Path(project) / ".tee" / "server.pid"
+    try:
+        if pid_file.exists():
+            old = int(pid_file.read_text().strip())
+            try:
+                os.kill(old, 0)
+            except (OSError, ProcessLookupError):
+                pass  # stale
+            else:
+                print(
+                    f"note: another tee server (pid {old}) already serves this "
+                    "project; both will share .tee/ memory and checkpoints",
+                    file=sys.stderr,
+                )
+        pid_file.parent.mkdir(parents=True, exist_ok=True)
+        pid_file.write_text(str(os.getpid()))
+        return pid_file
+    except (OSError, ValueError):
+        return None
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    """Environment diagnostics. Phase 1 scope: interpreter + DCC discovery;
-    the full doctor (ports, plugins, wheel ABI) lands in Phase 4."""
-    print(f"tee {__version__}")
-    print(f"python {platform.python_version()} on {platform.system().lower()}")
-    blender = shutil.which("blender")
-    print(f"blender on PATH: {blender or 'not found'}")
-    for name in ("UnrealEditor", "UnrealEditor-Cmd"):
-        found = shutil.which(name)
-        if found:
-            print(f"{name}: {found}")
-    print("note: full diagnostics (sockets, plugins, versions) arrive in Phase 4")
-    return 0
+    from tee import doctor
+
+    if args.emit:
+        try:
+            print(doctor.emit_config(args.emit, port=args.blender_port))
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        return 0
+    checks = doctor.run_checks(bridge_port=args.blender_port)
+    if args.json:
+        print(json.dumps([c.to_payload() for c in checks], indent=1))
+        return 1 if any(c.status == "fail" and c.required for c in checks) else 0
+    text, code = doctor.render(checks)
+    print(text)
+    return code
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -86,7 +124,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     serve.set_defaults(fn=cmd_serve)
 
-    doctor = sub.add_parser("doctor", help="environment diagnostics")
+    doctor = sub.add_parser("doctor", help="environment diagnostics with fixes")
+    doctor.add_argument("--json", action="store_true", help="machine-readable output")
+    doctor.add_argument(
+        "--emit",
+        metavar="CLIENT",
+        help="print MCP client config (claude-code|claude-desktop|cursor) and exit",
+    )
+    doctor.add_argument("--blender-port", type=int, default=9876, help="Blender bridge port")
     doctor.set_defaults(fn=cmd_doctor)
 
     args = parser.parse_args(argv)

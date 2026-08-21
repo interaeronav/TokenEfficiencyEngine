@@ -141,7 +141,7 @@ def build_server(app: TeeApp) -> MCPServer:
     @mcp.tool(structured_output=False, description=_DESC["tee_status"])
     @_tool(app, "tee_status")
     def tee_status():
-        return app.status()
+        return {"ok": True, **app.status()}
 
     @mcp.tool(structured_output=False, description=_DESC["tee_recall"])
     @_tool(app, "tee_recall")

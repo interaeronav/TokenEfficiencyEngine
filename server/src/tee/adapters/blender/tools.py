@@ -5,10 +5,12 @@ tee_search_tools; invoked via tee_call."""
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any
 
 from tee.adapters.blender import codegen
 from tee.adapters.blender.adapter import BlenderAdapter
+from tee.adapters.blender.docs import BlenderDocs
 from tee.app import TeeApp
 from tee.kernel.adapter import Diff
 from tee.kernel.registry import VirtualTool
@@ -51,8 +53,13 @@ result = {
 )
 
 
-def register_blender_tools(app: TeeApp, adapter: BlenderAdapter) -> None:
+def register_blender_tools(
+    app: TeeApp,
+    adapter: BlenderAdapter,
+    docs_cache_dir: Path | str | None = None,
+) -> None:
     reg = app.registry
+    docs = BlenderDocs(adapter, cache_dir=docs_cache_dir)
 
     def execute_python(args: dict[str, Any]) -> dict[str, Any]:
         # Auto-checkpoint, then report a REAL diff (before/after entity
@@ -202,5 +209,55 @@ def register_blender_tools(app: TeeApp, adapter: BlenderAdapter) -> None:
             },
             handler=render,
             tags=["blender", "render", "image", "job"],
+        )
+    )
+
+    def search_docs(args: dict[str, Any]) -> dict[str, Any]:
+        return docs.search(args["query"], int(args.get("limit") or 10))
+
+    reg.register(
+        VirtualTool(
+            name="bl_search_docs",
+            description=(
+                "Search the CONNECTED Blender's API by keywords - the index "
+                "is introspected from the live runtime, so results match "
+                "this exact version (no training-data drift). Returns "
+                "symbol paths with one-line docs and parameter names; use "
+                "bl_api_detail for full detail on one symbol. Always check "
+                "here before writing bpy code from memory."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["query"],
+            },
+            handler=search_docs,
+            tags=["blender", "docs", "api", "reference", "signature"],
+            examples=[{"query": "smooth by angle modifier"}, {"query": "subdivision surface"}],
+        )
+    )
+
+    def api_detail(args: dict[str, Any]) -> dict[str, Any]:
+        return docs.detail(args["path"])
+
+    reg.register(
+        VirtualTool(
+            name="bl_api_detail",
+            description=(
+                "Full live detail for one bpy symbol (from bl_search_docs): "
+                "properties with types, docs, enum items and read-only "
+                "flags, straight from the running Blender's RNA."
+            ),
+            schema={
+                "type": "object",
+                "properties": {"path": {"type": "string"}},
+                "required": ["path"],
+            },
+            handler=api_detail,
+            tags=["blender", "docs", "api", "detail", "properties"],
+            examples=[{"path": "bpy.ops.object.shade_smooth_by_angle"}],
         )
     )

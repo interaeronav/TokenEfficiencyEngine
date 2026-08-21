@@ -42,6 +42,7 @@ class VirtualTool:
 class ToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, VirtualTool] = {}
+        self.disabled: set[str] = set()  # per-project profile (.tee/config.toml)
 
     def register(self, tool: VirtualTool) -> None:
         if tool.name in self._tools:
@@ -70,6 +71,8 @@ class ToolRegistry:
         words = [w for w in re.split(r"[^a-z0-9]+", query.lower()) if w]
         scored: list[tuple[float, str]] = []
         for name, tool in self._tools.items():
+            if name in self.disabled:
+                continue
             haystacks = (
                 (name.lower(), 3.0),
                 (" ".join(tool.tags).lower(), 2.0),
@@ -105,6 +108,12 @@ class ToolRegistry:
     # -- internals ---------------------------------------------------------
 
     def _require(self, name: str) -> VirtualTool:
+        if name in self.disabled:
+            raise TeeError(
+                "tool_disabled",
+                f"'{name}' is disabled for this project.",
+                fix="Remove it from [tools].disabled in .tee/config.toml to re-enable.",
+            )
         tool = self._tools.get(name)
         if tool is None:
             suggestions = self.search(name, limit=3)

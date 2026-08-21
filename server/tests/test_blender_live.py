@@ -22,7 +22,7 @@ def adapter(blender_bridge, tmp_path):
 @pytest.fixture()
 def app(adapter, tmp_path):
     application = TeeApp({"blender": adapter}, project_root=tmp_path, allow_code_exec=True)
-    register_blender_tools(application, adapter)
+    register_blender_tools(application, adapter, docs_cache_dir=tmp_path / "docs-cache")
     # factory scene contains Cube/Camera/Light; start every test from empty
     adapter.execute_python(
         "import bpy\n"
@@ -182,3 +182,19 @@ def test_user_edit_outside_batches_detected_on_resync(app):
     app.cache("blender").resync(adapter)
     ent = next(iter(app.cache("blender").entities.values()))
     assert ent.summary["location"][0] == 5
+
+
+def test_docs_search_and_detail_live(app):
+    out = app.registry.call("bl_search_docs", {"query": "shade smooth angle"})
+    assert out["indexed_symbols"] > 1000  # real index from the live runtime
+    paths = [r["path"] for r in out["results"]]
+    assert "bpy.ops.object.shade_smooth_by_angle" in paths
+
+    detail = app.registry.call("bl_api_detail", {"path": "bpy.ops.object.shade_smooth_by_angle"})
+    assert detail["found"] is True
+    prop_names = {p["name"] for p in detail["properties"]}
+    assert "angle" in prop_names
+
+    with pytest.raises(TeeError) as err:
+        app.registry.call("bl_api_detail", {"path": "bpy.ops.object.made_up_operator"})
+    assert err.value.code == "unknown_api_symbol"

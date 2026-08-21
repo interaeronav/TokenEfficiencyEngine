@@ -111,11 +111,11 @@ class BlenderWire:
                     fix="Retry; check that Blender did not crash (tee_status).",
                 )
             buf.extend(chunk)
-            if buf.endswith(b"\0"):
-                return bytes(buf[:-1])
             if len(buf) > _MAX_RESPONSE_BYTES:
                 raise TeeError(
                     "blender_response_too_large",
                     f"Bridge response exceeded {_MAX_RESPONSE_BYTES // 1024 // 1024}MB.",
                     fix="Narrow the query; never return bulk data through the bridge.",
                 )
+            if buf.endswith(b"\0"):
+                return bytes(buf[:-1])

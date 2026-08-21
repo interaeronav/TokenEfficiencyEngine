@@ -99,3 +99,46 @@ def blender_bridge(request, tmp_path_factory):
         proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
         proc.kill()
+
+
+# -- shared stub bridge (official wire protocol shape) -----------------------
+
+import json as _json  # noqa: E402
+import threading as _threading  # noqa: E402
+
+
+class StubBridge:
+    """Minimal null-delimited JSON execute server (official protocol shape)."""
+
+    def __init__(self, responder):
+        self.responder = responder
+        self.sock = socket.socket()
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(("127.0.0.1", 0))
+        self.port = self.sock.getsockname()[1]
+        self.sock.listen(2)
+        self.thread = _threading.Thread(target=self._serve, daemon=True)
+        self.thread.start()
+
+    def _serve(self):
+        while True:
+            try:
+                conn, _ = self.sock.accept()
+            except OSError:
+                return
+            with conn:
+                buf = b""
+                while not buf.endswith(b"\0"):
+                    chunk = conn.recv(65536)
+                    if not chunk:
+                        break
+                    buf += chunk
+                if not buf.endswith(b"\0"):
+                    continue
+                request = _json.loads(buf[:-1])
+                reply = self.responder(request)
+                if reply is not None:
+                    conn.sendall(reply)
+
+    def close(self):
+        self.sock.close()

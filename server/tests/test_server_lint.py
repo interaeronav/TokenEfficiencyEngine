@@ -77,3 +77,12 @@ def test_total_definition_budget(tools):
 def test_tool_names_are_prefixed_and_stable(tools):
     for tool in tools:
         assert tool.name.startswith("tee_"), tool.name
+
+
+EXPECTED_TOOL_COUNT = 14
+
+
+def test_tool_count_matches_expectation(tools):
+    # silent whole-catalog drops are the failure mode this canary catches;
+    # update the constant deliberately when adding/removing a tool
+    assert len(tools) == EXPECTED_TOOL_COUNT

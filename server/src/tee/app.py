@@ -19,6 +19,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from tee.config import ProjectConfig
 from tee.kernel.adapter import Adapter
 from tee.kernel.budget import ResponseLog
 from tee.kernel.checkpoints import CheckpointManager
@@ -44,7 +45,10 @@ class TeeApp:
         self.memory = ProjectMemory(Path(project_root))
         self.registry = ToolRegistry()
         self.response_log = ResponseLog()
-        self.allow_code_exec = allow_code_exec
+        self.config = ProjectConfig.load(project_root)
+        self.registry.disabled = set(self.config.disabled_tools)
+        # an explicit CLI flag enables; otherwise the project config decides
+        self.allow_code_exec = allow_code_exec or bool(self.config.allow_code_exec)
         self.lock = threading.RLock()
 
     # -- helpers -----------------------------------------------------------
@@ -143,6 +147,10 @@ class TeeApp:
             "virtual_tools": len(self.registry),
             "code_exec_enabled": self.allow_code_exec,
         }
+        if self.registry.disabled:
+            payload["disabled_tools"] = sorted(self.registry.disabled)
+        if self.config.warning:
+            payload["config_warning"] = self.config.warning
         alerts = {
             tool: entry["alert"]
             for tool, entry in self.response_log.report().items()
