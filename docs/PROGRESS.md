@@ -8,17 +8,33 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 
 - [x] Bootstrap — repo scaffold, research corpus, execution script (built in
       Claude cloud session, 2026-08-21)
-- [ ] Phase 0 — Environment discovery *(requires the physical machine)*
-- [ ] Phase 1 — Server core and token kernel
-- [ ] Phase 2 — Blender adapter
-- [ ] Phase 3 — Unreal adapter
+- [x] Phase 0 — Environment discovery *(cloud container; re-run on the
+      physical machine when it joins)*
+- [x] Phase 1 — Server core and token kernel *(cloud container, 2026-08-21)*
+- [ ] Phase 2 — Blender adapter *(in progress in cloud: headless-testable
+      parts; live-GUI validation needs the physical machine)*
+- [ ] Phase 3 — Unreal adapter *(requires the physical machine — UE editor
+      cannot run in the cloud container)*
 - [ ] Phase 4 — Cross-cutting friction killers
 - [ ] Phase 5 — Benchmarks
 - [ ] Phase 6 — Packaging and handoff
 
 ## Machine facts
 
-*(filled in by Phase 0 on the physical machine)*
+### Cloud build container (Claude Code on the web, 2026-08-21)
+
+- OS: Linux x64 (ephemeral container; work persists only via git push)
+- Python: 3.11.15 (default), 3.12, 3.13 available; `uv` installed
+- Blender: 5.2.0 LTS extracted at `/home/user/blender-5.2.0-linux-x64/`
+  (headless verified: `bpy OK (5, 2, 0) py 3.13.13`); official Blender MCP
+  extension NOT installed; no GUI/display
+- Unreal: not installed, not installable here (size + EULA + editor GUI)
+- MCP Python SDK: 2.0.0 (see DECISIONS 2026-08-21 — `MCPServer` API)
+- Adapter tiers: Blender primary (5.2 LTS headless); UE n/a in cloud
+
+### Physical machine
+
+*(filled in by Phase 0 when the repo is first opened there)*
 
 - OS:
 - Python interpreters / uv:
@@ -39,3 +55,18 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   under `docs/research/` (10 digests + index).
 - Execution script authored from the corpus; architecture decisions A1–A7
   recorded in `docs/research/00-index.md`.
+
+### 2026-08-21 — Phase 0 + Phase 1 (cloud)
+- `server/` scaffolded with uv; `make check` = ruff + pytest.
+- Kernel implemented: adapter contract + fake adapter, differential scene
+  cache (epoch/revision stamps, net-diff merging, bounded log), response
+  budgeter + per-tool size log, progressive-disclosure registry
+  (search/describe/call with argument validation), checkpoint manager with
+  auto-checkpoint per batch, async job manager, project memory (.tee/).
+- MCP surface: 14 always-loaded tools on `mcp` SDK 2.0 `MCPServer`,
+  `structured_output=False` everywhere (A6), inline-JPEG capture tool.
+- Evidence: `uv run pytest` → **50 passed** (units + A6 lint suite + 6
+  end-to-end in-memory MCP client scenarios); `ruff check` clean.
+- Measured: full 14-tool definition surface ≈ **2,307 tokens** (budget 8K;
+  wild-average is ~710 tokens/tool, so the whole surface costs ~3 tools).
+- `tee serve` (stdio, fake adapter) and `tee doctor` (stub) run.
