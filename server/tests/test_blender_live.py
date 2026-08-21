@@ -21,7 +21,7 @@ def adapter(blender_bridge, tmp_path):
 
 @pytest.fixture()
 def app(adapter, tmp_path):
-    application = TeeApp({"blender": adapter}, project_root=tmp_path)
+    application = TeeApp({"blender": adapter}, project_root=tmp_path, allow_code_exec=True)
     register_blender_tools(application, adapter)
     # factory scene contains Cube/Camera/Light; start every test from empty
     adapter.execute_python(

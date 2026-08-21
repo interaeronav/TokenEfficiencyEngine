@@ -21,11 +21,46 @@ def test_over_budget_trims_largest_list_and_names_the_narrowing():
     assert estimate_tokens(out) <= 1_000
 
 
-def test_over_budget_without_lists_hard_truncates():
-    payload = {"ok": True, "blob": "z" * 100_000}
+def test_over_budget_without_collections_returns_parseable_skeleton():
+    payload = {"ok": True, "checkpoint": "cp7", "revision": 12, "blob": "z" * 100_000}
     out = enforce_budget(payload, max_tokens=500)
-    assert "preview" in out
-    assert estimate_tokens(out) <= 600  # preview + notice fit near the cap
+    # scalars survive (checkpoint ids and stamps must never be lost)
+    assert out["ok"] is True
+    assert out["checkpoint"] == "cp7"
+    assert out["revision"] == 12
+    assert len(out["blob"]) < 1_000  # long strings clipped
+    assert "truncated" in out
+    assert estimate_tokens(out) <= 600
+
+
+def test_over_budget_dict_fields_are_trimmed():
+    payload = {
+        "ok": True,
+        "checkpoint": "cp1",
+        "details": {f"e{i}": {"x": "y" * 60} for i in range(600)},
+    }
+    out = enforce_budget(payload, max_tokens=1_000, narrow_hint="fetch via tee_entity_detail")
+    assert estimate_tokens(out) <= 1_000
+    assert out["checkpoint"] == "cp1"
+    assert 0 < len(out["details"]) < 600
+    assert "details" in out["truncated"]
+    assert "tee_entity_detail" in out["truncated"]
+
+
+def test_truncation_notice_reports_every_trimmed_field():
+    payload = {
+        "ok": True,
+        "alpha": [{"x": "y" * 50} for _ in range(400)],
+        "beta": [{"x": "y" * 50} for _ in range(300)],
+    }
+    out = enforce_budget(payload, max_tokens=800)
+    dropped_alpha = 400 - len(out["alpha"])
+    dropped_beta = 300 - len(out["beta"])
+    if dropped_alpha:
+        assert f"{dropped_alpha} from 'alpha'" in out["truncated"]
+    if dropped_beta:
+        assert f"{dropped_beta} from 'beta'" in out["truncated"]
+    assert estimate_tokens(out) <= 800
 
 
 def test_response_log_alerts_on_fat_medians():

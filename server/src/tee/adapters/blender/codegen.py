@@ -265,7 +265,14 @@ def program_list_entities() -> str:
 
 
 def program_batch(ops: list[dict[str, Any]], undo_label: str) -> str:
-    header = f"_OPS = {json.dumps(ops)}\n_UNDO_LABEL = {json.dumps(undo_label)}\n"
+    # Ops are embedded as a JSON string parsed at runtime: inlining
+    # json.dumps output as Python source would turn true/false/null into
+    # NameErrors (json and Python literals differ).
+    header = (
+        "import json as _tee_json\n"
+        f"_OPS = _tee_json.loads({json.dumps(ops)!r})\n"
+        f"_UNDO_LABEL = {undo_label!r}\n"
+    )
     return PRELUDE + header + BATCH_INTERPRETER
 
 
@@ -286,13 +293,17 @@ def program_restore(path: str) -> str:
 
 
 def program_capture(path: str, width: int, height: int, quality: int, samples: int) -> str:
+    """Render a small JPEG, leaving the scene EXACTLY as found: render/cycles
+    settings, scene.camera, and any temp camera are all restored/removed."""
     return f"""
 import bpy
 scene = bpy.context.scene
 render = scene.render
 prev = (render.engine, render.resolution_x, render.resolution_y,
         render.resolution_percentage, render.filepath,
-        render.image_settings.file_format, render.image_settings.quality)
+        render.image_settings.file_format, render.image_settings.quality,
+        scene.cycles.samples, scene.cycles.use_denoising, scene.camera)
+temp_cam = None
 try:
     render.engine = 'CYCLES'
     scene.cycles.samples = {samples}
@@ -304,17 +315,26 @@ try:
     render.image_settings.file_format = 'JPEG'
     render.image_settings.quality = {quality}
     if not any(o.type == 'CAMERA' for o in bpy.data.objects):
-        cam = bpy.data.objects.new('TEE_Camera', bpy.data.cameras.new('TEE_Camera'))
-        bpy.context.scene.collection.objects.link(cam)
-        scene.camera = cam
-        cam.location = (8, -8, 6)
-        cam.rotation_euler = (1.1, 0.0, 0.785)
+        cam_data = bpy.data.cameras.new('TEE_TempCamera')
+        temp_cam = bpy.data.objects.new('TEE_TempCamera', cam_data)
+        bpy.context.scene.collection.objects.link(temp_cam)
+        scene.camera = temp_cam
+        temp_cam.location = (8, -8, 6)
+        temp_cam.rotation_euler = (1.1, 0.0, 0.785)
     elif scene.camera is None:
         scene.camera = next(o for o in bpy.data.objects if o.type == 'CAMERA')
     bpy.ops.render.render(write_still=True)
 finally:
     (render.engine, render.resolution_x, render.resolution_y,
      render.resolution_percentage, render.filepath,
-     render.image_settings.file_format, render.image_settings.quality) = prev
+     render.image_settings.file_format, render.image_settings.quality,
+     scene.cycles.samples, scene.cycles.use_denoising, prev_camera) = prev
+    if temp_cam is not None:
+        cam_data = temp_cam.data
+        bpy.data.objects.remove(temp_cam, do_unlink=True)
+        bpy.data.cameras.remove(cam_data)
+        scene.camera = prev_camera
+    else:
+        scene.camera = prev_camera
 result = {{'path': {json.dumps(path)}}}
 """

@@ -18,14 +18,14 @@ def _build_fake_app(project: str):
     return TeeApp({"fake": FakeAdapter()}, project_root=Path(project))
 
 
-def _build_blender_app(project: str, host: str, port: int):
+def _build_blender_app(project: str, host: str, port: int, allow_code_exec: bool):
     from tee.adapters.blender.adapter import BlenderAdapter
     from tee.adapters.blender.tools import register_blender_tools
     from tee.adapters.blender.wire import BlenderWire
     from tee.app import TeeApp
 
     adapter = BlenderAdapter(BlenderWire(host=host, port=port))
-    app = TeeApp({"blender": adapter}, project_root=Path(project))
+    app = TeeApp({"blender": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
     register_blender_tools(app, adapter)
     return app
 
@@ -36,7 +36,9 @@ def cmd_serve(args: argparse.Namespace) -> int:
     if args.adapter == "fake":
         app = _build_fake_app(args.project)
     elif args.adapter == "blender":
-        app = _build_blender_app(args.project, args.blender_host, args.blender_port)
+        app = _build_blender_app(
+            args.project, args.blender_host, args.blender_port, args.allow_code_exec
+        )
     else:
         print(
             f"adapter '{args.adapter}' is not wired yet (unreal arrives in "
@@ -77,6 +79,11 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--project", default=".", help="project root for .tee/ memory")
     serve.add_argument("--blender-host", default="127.0.0.1", help="Blender bridge host")
     serve.add_argument("--blender-port", type=int, default=9876, help="Blender bridge port")
+    serve.add_argument(
+        "--allow-code-exec",
+        action="store_true",
+        help="enable the bl_execute_python escape hatch (off by default, A7)",
+    )
     serve.set_defaults(fn=cmd_serve)
 
     doctor = sub.add_parser("doctor", help="environment diagnostics")

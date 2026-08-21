@@ -53,3 +53,48 @@ def test_status_reports_adapters_and_checkpoints(app):
     assert status["adapters"]["fake"]["scene"]["revision"] >= 1
     assert status["checkpoints"][-1]["label"].startswith("auto:batch")
     assert status["active_jobs"] == []
+
+
+def test_failed_batch_is_atomic_and_cache_stays_truthful(app):
+    app.run_batch("fake", [{"op": "create", "kind": "mesh", "name": "A"}])
+    stamp = app.cache("fake").stamp()
+    with pytest.raises(TeeError) as err:
+        app.run_batch(
+            "fake",
+            [
+                {"op": "create", "kind": "mesh", "name": "Orphan"},
+                {"op": "set", "id": "no-such-id", "props": {}},
+            ],
+        )
+    assert "rolled back" in (err.value.fix or "")
+    # adapter and cache agree: the orphan never happened
+    names = [e.name for e in app.adapters["fake"].list_entities()]
+    assert names == ["A"]
+    assert app.cache("fake").summary()["total"] == 1
+    delta = app.cache("fake").diff_since(stamp["epoch"], stamp["revision"])
+    assert delta.get("resync_required") is None
+    assert delta.get("created") is None
+
+
+def test_cold_cache_with_prepopulated_adapter_is_warmed(tmp_path):
+    fake = FakeAdapter()
+    fake.execute(
+        [
+            {"op": "create", "kind": "mesh", "name": "PreA"},
+            {"op": "create", "kind": "mesh", "name": "PreB"},
+        ]
+    )
+    application = TeeApp({"fake": fake}, project_root=tmp_path)
+    try:
+        stamp = application.status()["adapters"]["fake"]["scene"]
+        out = application.run_batch("fake", [{"op": "create", "kind": "mesh", "name": "New"}])
+        delta = application.cache("fake").diff_since(stamp["epoch"], stamp["revision"])
+        assert delta.get("resync_required") is None
+        assert delta["created"] == out["created"]
+        assert application.cache("fake").summary()["total"] == 3
+    finally:
+        application.shutdown()
+
+
+def test_status_reports_code_exec_flag(app):
+    assert app.status()["code_exec_enabled"] is False

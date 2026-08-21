@@ -76,3 +76,20 @@ def test_unknown_tool_suggests_closest():
         reg.call("bl_create_cub", {"size": 1})
     assert err.value.code == "unknown_tool"
     assert "bl_create_cube" in (err.value.fix or "")
+
+
+def test_register_rejects_required_keys_missing_from_properties():
+    reg = ToolRegistry()
+    with pytest.raises(ValueError, match="permanently uncallable"):
+        reg.register(
+            VirtualTool(
+                name="broken",
+                description="x",
+                schema={
+                    "type": "object",
+                    "properties": {"frames": {"type": "integer"}},
+                    "required": ["target"],
+                },
+                handler=lambda a: {},
+            )
+        )

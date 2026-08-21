@@ -172,7 +172,7 @@ class FakeAdapter:
                 _upsert(diff, ent)
             elif kind == "set":
                 ent = self._require(op, i)
-                props = op.get("props") or {}
+                props = dict(op.get("props") or {})  # never mutate the caller's op
                 if "name" in props:
                     ent.name = props.pop("name")
                 ent.summary.update(props)
@@ -183,7 +183,12 @@ class FakeAdapter:
             elif kind == "delete":
                 ent = self._require(op, i)
                 del self._store[ent.id]
-                diff.deleted.append(ent.id)
+                if ent.id in diff.created:
+                    diff.created.remove(ent.id)  # created+deleted nets to nothing
+                else:
+                    diff.deleted.append(ent.id)
+                if ent.id in diff.modified:
+                    diff.modified.remove(ent.id)
                 diff.details.pop(ent.id, None)
                 diff.upserts = [u for u in diff.upserts if u.id != ent.id]
             else:

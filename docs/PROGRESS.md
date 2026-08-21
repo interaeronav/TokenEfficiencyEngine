@@ -70,3 +70,25 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - Measured: full 14-tool definition surface ≈ **2,307 tokens** (budget 8K;
   wild-average is ~710 tokens/tool, so the whole surface costs ~3 tools).
 - `tee serve` (stdio, fake adapter) and `tee doctor` (stub) run.
+
+### 2026-08-21 — Phase 2 (cloud-testable parts) + adversarial review
+- Blender adapter over the official Blender Lab MCP add-on wire protocol
+  (verified against the real add-on source and live headless Blender 5.2);
+  generic batch interpreter (N ops = 1 round-trip), `session_uid` entity
+  ids, API firewall over the ten catalogued 4.x/5.x fault lines,
+  snapshot/rollback, byte-budgeted JPEG capture, `bl_*` virtual tools.
+- TEE bridge add-on (`adapters/blender/tee_bridge/`): same protocol,
+  hardened threading (I/O thread + single persistent timers pump / blocking
+  background loop), 5.1+ extension manifest, denylist guard. Live suite runs
+  against BOTH bridge flavors.
+- **Adversarial review workflow** (32 agents, ~2.2M tokens): 28 findings
+  confirmed empirically, 0 refuted — including three majors: the mcp 2.0
+  SDK dispatches tool calls concurrently on worker threads (torn state), the
+  SDK pretty-prints dict returns (≈2x wire size; fixed by returning compact
+  JSON strings), and mid-batch failures left the DCC and scene cache
+  silently divergent (fixed: batches are atomic — auto-restore to the
+  checkpoint on failure). All 28 fixed with regression tests.
+- Evidence: `uv run pytest` → **85 passed**; `uv run pytest -m dcc` →
+  **20 passed** (both bridge flavors, real Blender 5.2); ruff clean.
+- Follow-up for next session: adversarial review round over the fix diff +
+  bridge add-on; GUI-mode bridge validation needs the physical machine.

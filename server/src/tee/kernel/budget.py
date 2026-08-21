@@ -2,9 +2,12 @@
 
 Every read tool's payload passes through `enforce_budget` before leaving the
 server. Token counts are estimated conservatively (~1 token per 3.5 chars of
-JSON); when a payload exceeds its budget the budgeter trims list fields and
-attaches a truncation notice that names the narrowing parameter, so the model
-learns to ask smaller questions instead of retrying blind.
+compact JSON - matching the wire format, which is also compact JSON); when a
+payload exceeds its budget the budgeter trims its largest collection fields
+(lists AND dicts) and attaches one truncation notice naming everything that
+was dropped plus the narrowing parameter, so the model learns to ask smaller
+questions instead of retrying blind. The result is always parseable JSON that
+keeps the payload's scalar fields (ok, checkpoint ids, scene stamps).
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ from typing import Any
 
 DEFAULT_MAX_TOKENS = 20_000
 CHARS_PER_TOKEN = 3.5
+_SCALAR_STR_LIMIT = 300
 
 
 def estimate_tokens(obj: Any) -> int:
@@ -27,38 +31,68 @@ def enforce_budget(
     max_tokens: int = DEFAULT_MAX_TOKENS,
     narrow_hint: str = "use limit=/offset= or a filter to narrow the query",
 ) -> dict[str, Any]:
-    """Return `payload` unchanged if within budget; otherwise trim its largest
-    list field until it fits and attach a `truncated` notice."""
+    """Return `payload` unchanged if within budget; otherwise trim collection
+    fields until it fits, with one accurate cumulative truncation notice."""
     if estimate_tokens(payload) <= max_tokens:
         return payload
+
     trimmed = dict(payload)
-    # Repeatedly halve the largest list field until within budget.
-    for _ in range(32):
-        largest_key = None
-        largest_len = 1
-        for key, value in trimmed.items():
-            if isinstance(value, list) and len(value) > largest_len:
-                largest_key, largest_len = key, len(value)
-        if largest_key is None:
+    dropped: dict[str, int] = {}
+
+    def notice() -> str:
+        parts = ", ".join(f"{count} from '{key}'" for key, count in dropped.items())
+        return f"response exceeded {max_tokens} tokens; dropped {parts} - {narrow_hint}"
+
+    for _ in range(64):
+        key, size = _largest_collection(trimmed)
+        if key is None or size <= 1:
             break
-        kept = trimmed[largest_key][: max(1, largest_len // 2)]
-        dropped = largest_len - len(kept)
-        trimmed[largest_key] = kept
-        trimmed["truncated"] = (
-            f"response exceeded {max_tokens} tokens; dropped {dropped} items "
-            f"from '{largest_key}' - {narrow_hint}"
-        )
+        value = trimmed[key]
+        keep = max(1, size // 2)
+        if isinstance(value, list):
+            trimmed[key] = value[:keep]
+        else:  # dict
+            kept_keys = list(value)[:keep]
+            trimmed[key] = {k: value[k] for k in kept_keys}
+        dropped[key] = dropped.get(key, 0) + (size - keep)
+        trimmed["truncated"] = notice()
         if estimate_tokens(trimmed) <= max_tokens:
             return trimmed
-    # No list to trim (or still too large): hard-truncate the JSON text.
-    text = json.dumps(payload, separators=(",", ":"), default=str)
-    keep = int(max_tokens * CHARS_PER_TOKEN * 0.9)
-    return {
-        "truncated": (
-            f"response exceeded {max_tokens} tokens and had no trimmable list; {narrow_hint}"
-        ),
-        "preview": text[:keep] + "…",
-    }
+
+    # Still over budget: fall back to the scalar skeleton (never unparseable
+    # previews - checkpoint ids and scene stamps must survive).
+    skeleton: dict[str, Any] = {}
+    for key, value in payload.items():
+        if isinstance(value, str):
+            skeleton[key] = (
+                value if len(value) <= _SCALAR_STR_LIMIT else value[:_SCALAR_STR_LIMIT] + "…"
+            )
+        elif isinstance(value, (int, float, bool)) or value is None:
+            skeleton[key] = value
+        else:
+            dropped[key] = dropped.get(key, 0) + _collection_size(value)
+    skeleton["truncated"] = notice()
+    return skeleton
+
+
+def _largest_collection(payload: dict[str, Any]) -> tuple[str | None, int]:
+    best_key, best_cost = None, 0
+    for key, value in payload.items():
+        if key == "truncated" or not isinstance(value, (list, dict)):
+            continue
+        cost = len(json.dumps(value, separators=(",", ":"), default=str))
+        if cost > best_cost and _collection_size(value) > 1:
+            best_key, best_cost = key, cost
+    if best_key is None:
+        return None, 0
+    return best_key, _collection_size(payload[best_key])
+
+
+def _collection_size(value: Any) -> int:
+    try:
+        return len(value)
+    except TypeError:
+        return 1
 
 
 class ResponseLog:

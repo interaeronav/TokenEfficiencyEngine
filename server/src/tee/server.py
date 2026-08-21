@@ -94,22 +94,28 @@ _DESC = {
 
 
 def _tool(app: TeeApp, name: str) -> Callable:
-    """Wrap a tool body: TeeError -> compact payload, unexpected exception ->
-    compact internal error, dict results budgeted + size-logged."""
+    """Wrap a tool body: serialized on app.lock (the SDK dispatches tool
+    calls on concurrent worker threads; kernel state and the DCC bridges are
+    serial), TeeError -> compact payload, unexpected exception -> compact
+    internal error, results budgeted + size-logged, and returned as a compact
+    JSON *string* - the SDK pretty-prints dict returns (indent=2), roughly
+    doubling wire size, but passes strings through verbatim."""
 
     def deco(fn: Callable) -> Callable:
         @functools.wraps(fn)
         def wrapper(*args: Any, **kwargs: Any):
-            try:
-                result = fn(*args, **kwargs)
-            except TeeError as exc:
-                result = exc.to_payload()
-            except Exception as exc:
-                result = internal_error_payload(exc)
-            if isinstance(result, dict):
-                result = enforce_budget(result)
-                app.response_log.record(name, result)
-            return result
+            with app.lock:
+                try:
+                    result = fn(*args, **kwargs)
+                except TeeError as exc:
+                    result = exc.to_payload()
+                except Exception as exc:
+                    result = internal_error_payload(exc)
+                if isinstance(result, dict):
+                    result = enforce_budget(result)
+                    app.response_log.record(name, result)
+                    return json.dumps(result, separators=(",", ":"), default=str)
+                return result
 
         return wrapper
 
@@ -144,7 +150,11 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_remember"])
     @_tool(app, "tee_remember")
-    def tee_remember(key: str | None = None, value: str | None = None, note: str | None = None):
+    def tee_remember(
+        key: str | None = None,
+        value: str | float | int | bool | None = None,
+        note: str | None = None,
+    ):
         if key is not None:
             app.memory.remember(key, value)
         if note:
@@ -166,11 +176,13 @@ def build_server(app: TeeApp) -> MCPServer:
         refresh: bool = False,
         response_format: str = "concise",
     ):
-        cache = app.cache(adapter) if adapter in app.caches else None
-        if cache is None:
+        if adapter not in app.caches:
             app.adapter(adapter)  # raises with the known-adapter hint
-        if refresh or (cache.revision == 0 and not cache.entities):
+        cache = app.cache(adapter)
+        if refresh:
             cache.resync(app.adapter(adapter))
+        else:
+            app.warm(adapter)
         return {
             "ok": True,
             **cache.summary(
@@ -199,6 +211,7 @@ def build_server(app: TeeApp) -> MCPServer:
     @_tool(app, "tee_diff")
     def tee_diff(epoch: int, revision: int, adapter: str = "fake"):
         app.adapter(adapter)
+        app.warm(adapter)
         return {"ok": True, **app.cache(adapter).diff_since(epoch, revision)}
 
     # -- mutations ---------------------------------------------------------
@@ -236,15 +249,16 @@ def build_server(app: TeeApp) -> MCPServer:
     def tee_capture(
         adapter: str = "fake", view: str = "viewport", max_kb: int = _CAPTURE_DEFAULT_KB
     ):
-        try:
-            max_bytes = max(1, min(int(max_kb), _CAPTURE_MAX_KB)) * 1024
-            data = app.adapter(adapter).capture(view, max_bytes)
-        except TeeError as exc:
-            return json.dumps(exc.to_payload())
-        except Exception as exc:
-            return json.dumps(internal_error_payload(exc))
-        app.response_log.record("tee_capture", {"bytes": len(data)})
-        return Image(data=data, format="jpeg")
+        with app.lock:
+            try:
+                max_bytes = max(1, min(int(max_kb), _CAPTURE_MAX_KB)) * 1024
+                data = app.adapter(adapter).capture(view, max_bytes)
+            except TeeError as exc:
+                return json.dumps(exc.to_payload())
+            except Exception as exc:
+                return json.dumps(internal_error_payload(exc))
+            app.response_log.record("tee_capture", {"bytes": len(data)})
+            return Image(data=data, format="jpeg")
 
     # -- progressive disclosure (meta-tools) --------------------------------
 
@@ -264,6 +278,9 @@ def build_server(app: TeeApp) -> MCPServer:
         result = app.registry.call(name, args or {})
         if isinstance(result, dict) and "ok" not in result:
             result = {"ok": True, **result}
+        if isinstance(result, dict):
+            # per-virtual-tool size log so the median alert works per tool
+            app.response_log.record(f"virtual:{name}", result)
         return result
 
     return mcp

@@ -76,3 +76,49 @@ def test_unknown_job_error(jobs):
     with pytest.raises(TeeError) as err:
         jobs.status("job999")
     assert err.value.code == "unknown_job"
+
+
+def test_prune_does_not_evict_below_retention(jobs):
+    # regression: negative-excess slice used to evict at half the cap
+    mgr = JobManager(workers=2, keep_finished=10)
+    try:
+        ids = [mgr.submit(f"j{i}", lambda: {}) for i in range(8)]
+        for job_id in ids:
+            wait_for(mgr, job_id, "done")
+        mgr.submit("trigger-prune", lambda: {})
+        for job_id in ids:  # all 8 finished jobs must still be queryable
+            assert mgr.status(job_id)["state"] == "done"
+    finally:
+        mgr.shutdown()
+
+
+def test_cancelled_job_stays_cancelled_when_fn_raises(jobs):
+    import threading as _threading
+
+    entered = _threading.Event()
+    proceed = _threading.Event()
+
+    def fn():
+        entered.set()
+        proceed.wait(5)
+        raise RuntimeError("late failure")
+
+    job_id = jobs.submit("doomed", fn)
+    entered.wait(5)
+    jobs.cancel(job_id)
+    proceed.set()
+    deadline = time.time() + 5
+    while time.time() < deadline and jobs.status(job_id).get("elapsed_s") is not None:
+        time.sleep(0.01)
+    assert jobs.status(job_id)["state"] == "cancelled"
+    assert "error" not in jobs.status(job_id)
+
+
+def test_shutdown_does_not_wait_for_running_jobs():
+    gate = threading.Event()
+    mgr = JobManager(workers=1)
+    mgr.submit("stuck", lambda: (gate.wait(30), {})[1])
+    start = time.time()
+    mgr.shutdown()
+    assert time.time() - start < 1.0  # returns immediately, daemon threads
+    gate.set()

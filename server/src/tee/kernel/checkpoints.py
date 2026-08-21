@@ -8,6 +8,7 @@ the manager only bounds how many are retained).
 
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -56,7 +57,9 @@ class CheckpointManager:
         stack = self._by_adapter.setdefault(info.id, [])
         stack.append(cp)
         if len(stack) > self._keep:
+            evicted = stack[: len(stack) - self._keep]
             del stack[: len(stack) - self._keep]
+            _discard(adapter, evicted)
         return cp
 
     def rollback(self, adapter: Adapter, ref: str) -> Checkpoint:
@@ -78,8 +81,15 @@ class CheckpointManager:
             )
         cp = stack[index]
         adapter.restore(cp.payload)
+        dropped = stack[index + 1 :]
         del stack[index + 1 :]
+        _discard(adapter, dropped)
         return cp
+
+    def discard_all(self, adapter: Adapter) -> None:
+        """Release every checkpoint for this adapter (server shutdown)."""
+        stack = self._by_adapter.pop(adapter.info().id, [])
+        _discard(adapter, stack)
 
     def list(self, adapter_id: str | None = None) -> list[dict[str, Any]]:
         if adapter_id is not None:
@@ -90,3 +100,14 @@ class CheckpointManager:
         for stack in stacks:
             out.extend(cp.to_payload() for cp in stack)
         return out
+
+
+def _discard(adapter: Adapter, checkpoints: list[Checkpoint]) -> None:
+    """Let the adapter release snapshot resources (e.g. temp .blend files)
+    for checkpoints that can no longer be rolled back to."""
+    hook = getattr(adapter, "discard_snapshot", None)
+    if hook is None:
+        return
+    for cp in checkpoints:
+        with contextlib.suppress(Exception):
+            hook(cp.payload)

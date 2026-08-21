@@ -10,6 +10,7 @@ from typing import Any
 from tee.adapters.blender import codegen
 from tee.adapters.blender.adapter import BlenderAdapter
 from tee.app import TeeApp
+from tee.kernel.adapter import Diff
 from tee.kernel.registry import VirtualTool
 
 _STATS_PROGRAM = (
@@ -54,35 +55,55 @@ def register_blender_tools(app: TeeApp, adapter: BlenderAdapter) -> None:
     reg = app.registry
 
     def execute_python(args: dict[str, Any]) -> dict[str, Any]:
+        # Auto-checkpoint, then report a REAL diff (before/after entity
+        # compare) instead of invalidating the cache - the model keeps its
+        # (epoch, revision) continuity and sees exactly what the code did.
+        app.warm("blender")
         cache = app.cache("blender")
         cp = app.checkpoints.create(adapter, f"auto:exec-r{cache.revision + 1}", cache.revision)
+        before = {eid: ent.detailed() for eid, ent in cache.entities.items()}
         out = adapter.execute_python(args["code"], timeout=args.get("timeout") or 60.0)
-        cache.resync(adapter)  # arbitrary code may have changed anything
-        return {"checkpoint": cp.id, **out, **cache.stamp()}
+        after = {e.id: e for e in adapter.list_entities()}
+        diff = Diff()
+        for eid, ent in after.items():
+            detailed = ent.detailed()
+            if eid not in before:
+                diff.created.append(eid)
+            elif detailed != before[eid]:
+                diff.modified.append(eid)
+            else:
+                continue
+            diff.details[eid] = detailed
+            diff.upserts.append(ent)
+        diff.deleted = [eid for eid in before if eid not in after]
+        cache.apply_diff(diff, diff.upserts)
+        return {"checkpoint": cp.id, **out, **diff.to_payload(), **cache.stamp()}
 
-    reg.register(
-        VirtualTool(
-            name="bl_execute_python",
-            description=(
-                "Run arbitrary Python inside Blender (escape hatch). "
-                "Auto-checkpoints first; validates against known stale-API "
-                "idioms for the connected version; assign a dict to `result` "
-                "to return data. Prefer typed tee_batch ops when they cover "
-                "the task - they are cheaper and diff-tracked."
-            ),
-            schema={
-                "type": "object",
-                "properties": {
-                    "code": {"type": "string"},
-                    "timeout": {"type": "number"},
+    if app.allow_code_exec:
+        reg.register(
+            VirtualTool(
+                name="bl_execute_python",
+                description=(
+                    "Run arbitrary Python inside Blender (escape hatch; "
+                    "enabled via --allow-code-exec). Auto-checkpoints first; "
+                    "validates against known stale-API idioms for the "
+                    "connected version; assign a dict to `result` to return "
+                    "data; the response reports the resulting scene diff. "
+                    "Prefer typed tee_batch ops when they cover the task."
+                ),
+                schema={
+                    "type": "object",
+                    "properties": {
+                        "code": {"type": "string"},
+                        "timeout": {"type": "number"},
+                    },
+                    "required": ["code"],
                 },
-                "required": ["code"],
-            },
-            handler=execute_python,
-            tags=["blender", "python", "escape-hatch", "script"],
-            examples=[{"code": "import bpy\nresult = {'objects': len(bpy.data.objects)}"}],
+                handler=execute_python,
+                tags=["blender", "python", "escape-hatch", "script"],
+                examples=[{"code": "import bpy\nresult = {'objects': len(bpy.data.objects)}"}],
+            )
         )
-    )
 
     def scene_stats(args: dict[str, Any]) -> dict[str, Any]:
         return adapter._call(_STATS_PROGRAM, timeout=30.0)

@@ -17,6 +17,8 @@ from tee.kernel.budget import estimate_tokens
 
 _MAX_NOTES = 40
 _PREAMBLE_TOKENS = 500
+_FACT_VALUE_LIMIT = 500
+_FACT_KEY_LIMIT = 80
 
 
 class ProjectMemory:
@@ -27,17 +29,25 @@ class ProjectMemory:
 
     def _load(self) -> None:
         try:
-            self._data = json.loads(self.path.read_text())
+            loaded = json.loads(self.path.read_text())
         except FileNotFoundError:
-            pass
+            return
         except (json.JSONDecodeError, OSError):
-            # Corrupt memory must never break the session; start fresh but
-            # keep the corrupt file for inspection.
+            loaded = None
+        # Corrupt or wrong-shaped memory must never break the session: start
+        # fresh but keep the bad file for inspection.
+        if (
+            isinstance(loaded, dict)
+            and isinstance(loaded.get("facts", {}), dict)
+            and isinstance(loaded.get("notes", []), list)
+        ):
+            self._data = loaded
+            self._data.setdefault("facts", {})
+            self._data.setdefault("notes", [])
+        else:
             backup = self.path.with_suffix(".corrupt.json")
             with contextlib.suppress(OSError):
                 self.path.rename(backup)
-        self._data.setdefault("facts", {})
-        self._data.setdefault("notes", [])
 
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,8 +58,11 @@ class ProjectMemory:
     # -- API ---------------------------------------------------------------
 
     def remember(self, key: str, value: Any) -> None:
-        """Set one durable fact (dcc versions, naming conventions, paths...)."""
-        self._data["facts"][key] = value
+        """Set one durable fact (dcc versions, naming conventions, paths...).
+        Values are bounded - memory is a recap, not a data store."""
+        if isinstance(value, str) and len(value) > _FACT_VALUE_LIMIT:
+            value = value[:_FACT_VALUE_LIMIT] + "…"
+        self._data["facts"][str(key)[:_FACT_KEY_LIMIT]] = value
         self._save()
 
     def note(self, text: str) -> None:
@@ -61,11 +74,19 @@ class ProjectMemory:
         self._save()
 
     def preamble(self, max_tokens: int = _PREAMBLE_TOKENS) -> dict[str, Any]:
-        """Compact recap for session start; newest notes win under the cap."""
-        facts = self._data["facts"]
+        """Compact recap for session start; the cap always holds - newest
+        notes win, then newest facts."""
+        facts = dict(self._data["facts"])
         notes = list(self._data["notes"])
-        payload = {"facts": facts, "notes": notes}
+        payload: dict[str, Any] = {"facts": facts, "notes": notes}
+        truncated = False
         while notes and estimate_tokens(payload) > max_tokens:
             notes.pop(0)
-            payload = {"facts": facts, "notes": notes, "truncated": "older notes dropped"}
+            truncated = True
+        fact_keys = list(facts)
+        while fact_keys and estimate_tokens(payload) > max_tokens:
+            facts.pop(fact_keys.pop(0))  # oldest facts go first
+            truncated = True
+        if truncated:
+            payload["truncated"] = "older notes/facts dropped to fit the recap budget"
         return payload

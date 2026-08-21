@@ -60,3 +60,25 @@ def test_snapshot_restore_restores_store_and_id_counter():
     assert [e.name for e in ents] == ["A"]
     diff = fake.execute([{"op": "create", "kind": "mesh", "name": "C"}])
     assert diff.created == ["e2"]  # counter restored, no id reuse
+
+
+def test_set_does_not_mutate_caller_op():
+    fake = FakeAdapter()
+    fake.execute([{"op": "create", "kind": "mesh", "name": "A"}])
+    op = {"op": "set", "id": "e1", "props": {"name": "B", "x": 1}}
+    fake.execute([op])
+    assert op["props"] == {"name": "B", "x": 1}  # caller's dict untouched
+
+
+def test_create_then_delete_in_one_batch_nets_to_nothing():
+    fake = FakeAdapter()
+    diff = fake.execute(
+        [
+            {"op": "create", "kind": "mesh", "name": "Temp"},
+            {"op": "delete", "id": "e1"},
+        ]
+    )
+    assert diff.created == []
+    assert diff.deleted == []
+    assert diff.modified == []
+    assert fake.list_entities() == []

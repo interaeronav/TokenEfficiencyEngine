@@ -59,3 +59,19 @@ def test_compact_traceback_keeps_last_line_and_context():
     assert "use_auto_smooth = True" in out
     assert "Traceback" not in out
     assert len(out) <= 400
+
+
+def test_firewall_ignores_comments():
+    code = (
+        "import bpy\n"
+        "# use_auto_smooth was the old way; scene.node_tree too\n"
+        "scene = bpy.context.scene\n"
+        "result = {}\n"
+    )
+    assert codes(code, V52) == set()
+
+
+def test_firewall_still_catches_string_engine_ids():
+    assert "eevee_next_id_on_5x" in codes(
+        "scene.render.engine = 'BLENDER_EEVEE_NEXT'  # set engine", V52
+    )

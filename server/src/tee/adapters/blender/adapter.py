@@ -19,13 +19,13 @@ from tee.adapters.blender.wire import BlenderWire
 from tee.kernel.adapter import AdapterInfo, Diff, Entity
 from tee.kernel.errors import TeeError
 
-_CAPTURE_LADDER = (  # (width, height, jpeg quality) tried until under budget
-    (512, 288, 60),
-    (384, 216, 45),
-    (256, 144, 35),
-    (160, 90, 30),
-)
+_CAPTURE_FULL = (512, 288, 60)  # (width, height, jpeg quality)
+_CAPTURE_SMALL = (256, 144, 40)
+_CAPTURE_FLOOR = (160, 90, 30)
 _CAPTURE_SAMPLES = 8
+# Mirror of the bridge-side guard so the check also protects sessions that
+# run against the official add-on (whose sandbox is explicitly weak).
+_EXEC_DENYLIST = ("wm.quit_blender", "wm.read_factory_settings", "sys.exit(")
 _SNAPSHOT_TIMEOUT = 60.0
 _RESTORE_TIMEOUT = 120.0
 _CAPTURE_TIMEOUT = 180.0
@@ -92,9 +92,12 @@ class BlenderAdapter:
         self._call(codegen.program_restore(path), timeout=_RESTORE_TIMEOUT)
 
     def capture(self, view: str, max_bytes: int) -> bytes:
+        """At most two renders (P8): one at a rung picked from the budget,
+        one retry at the floor rung if the first came out over budget."""
         path = os.path.join(self.workdir, "capture.jpg")
+        first = _CAPTURE_FULL if max_bytes >= 12 * 1024 else _CAPTURE_SMALL
         last_size = 0
-        for width, height, quality in _CAPTURE_LADDER:
+        for width, height, quality in (first, _CAPTURE_FLOOR):
             self._call(
                 codegen.program_capture(path, width, height, quality, _CAPTURE_SAMPLES),
                 timeout=_CAPTURE_TIMEOUT,
@@ -114,6 +117,13 @@ class BlenderAdapter:
     def execute_python(self, code: str, timeout: float | None = None) -> dict[str, Any]:
         """Run arbitrary Python in Blender, guarded by the version firewall.
         The caller (virtual tool) is responsible for checkpointing first."""
+        for banned in _EXEC_DENYLIST:
+            if banned in code:
+                raise TeeError(
+                    "refused",
+                    f"'{banned}' is blocked by the TEE guard.",
+                    fix="Quitting Blender, factory resets and sys.exit are never allowed.",
+                )
         version = self._version or self._fetch_version()
         hits = firewall_check(code, version)
         if hits:
@@ -137,6 +147,21 @@ class BlenderAdapter:
             if response.get(stream):
                 out[stream] = str(response[stream])[-2000:]
         return out
+
+    # -- resource management -----------------------------------------------
+
+    def discard_snapshot(self, payload: dict[str, Any]) -> None:
+        """Called by the checkpoint manager when a checkpoint is evicted or
+        can no longer be rolled back to - releases its .blend file."""
+        path = payload.get("path")
+        if path and os.path.dirname(path) == self.workdir:
+            with _suppress_oserror():
+                os.remove(path)
+
+    def close(self) -> None:
+        import shutil
+
+        shutil.rmtree(self.workdir, ignore_errors=True)
 
     # -- internals ---------------------------------------------------------
 
@@ -173,6 +198,12 @@ def _to_entity(data: dict[str, Any]) -> Entity:
         parent=data.get("parent"),
         summary=summary,
     )
+
+
+def _suppress_oserror():
+    import contextlib
+
+    return contextlib.suppress(OSError)
 
 
 def _read_file(path: str) -> bytes:

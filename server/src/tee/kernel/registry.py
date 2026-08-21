@@ -48,6 +48,13 @@ class ToolRegistry:
             raise ValueError(f"duplicate virtual tool: {tool.name}")
         if tool.schema.get("type") != "object":
             raise ValueError(f"{tool.name}: schema must be a plain object schema (A6)")
+        props = tool.schema.get("properties", {})
+        missing = [key for key in tool.schema.get("required", []) if key not in props]
+        if missing:
+            raise ValueError(
+                f"{tool.name}: required keys {missing} are not in properties - "
+                "the tool would be permanently uncallable"
+            )
         self._tools[tool.name] = tool
 
     def __len__(self) -> int:

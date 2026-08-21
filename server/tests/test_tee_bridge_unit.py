@@ -55,9 +55,7 @@ def test_error_returns_traceback(bridge_server):
 
 
 def test_non_dict_result_rejected(bridge_server):
-    out = frame(
-        bridge_server, {"type": "execute", "code": "result = 42", "strict_json": True}
-    )
+    out = frame(bridge_server, {"type": "execute", "code": "result = 42", "strict_json": True})
     assert out["status"] == "error"
     assert "must be a dict" in out["message"]
 

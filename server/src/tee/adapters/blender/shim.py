@@ -109,12 +109,36 @@ _F = [
 ]
 
 
+def strip_comments(code: str) -> str:
+    """Blank out comment tokens so the firewall never fires on prose. String
+    literals stay - engine ids and subscript keys live inside strings. Falls
+    back to the raw code when tokenization fails (syntax errors reach Blender
+    and come back as compact errors anyway)."""
+    import io
+    import tokenize
+
+    lines = code.splitlines(keepends=True)
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(code).readline):
+            if tok.type == tokenize.COMMENT:
+                row = tok.start[0] - 1
+                line = lines[row]
+                lines[row] = (
+                    line[: tok.start[1]] + " " * (tok.end[1] - tok.start[1]) + line[tok.end[1] :]
+                )
+    except (tokenize.TokenError, IndentationError, SyntaxError, IndexError):
+        return code
+    return "".join(lines)
+
+
 def firewall_check(code: str, version: Version) -> list[dict[str, str]]:
     """Return one {code, hint} entry per stale idiom found in `code` for the
-    connected Blender `version`. Empty list = clean."""
+    connected Blender `version`. Empty list = clean. Comments are ignored;
+    string literals are screened (that is where engine ids live)."""
+    stripped = strip_comments(code)
     hits: list[dict[str, str]] = []
     for fault in _F:
-        if fault.applies(version) and fault.pattern.search(code):
+        if fault.applies(version) and fault.pattern.search(stripped):
             hits.append({"code": fault.code, "hint": fault.hint})
     return hits
 

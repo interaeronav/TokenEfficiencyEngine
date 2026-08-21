@@ -165,3 +165,40 @@ def test_memory_roundtrip(tmp_path):
         assert recalled["facts"]["engine"] == "blender 5.2"
 
     run_session(scenario, project_root=tmp_path)
+
+
+def test_concurrent_tool_calls_are_serialized_and_all_succeed():
+    async def scenario(client):
+        import anyio as _anyio
+
+        outcomes = []
+
+        async def one_batch(i):
+            result = payload(
+                await client.call_tool(
+                    "tee_batch",
+                    {"ops": [{"op": "create", "kind": "mesh", "name": f"Obj{i}"}]},
+                )
+            )
+            outcomes.append(result)
+
+        async with _anyio.create_task_group() as tg:
+            for i in range(24):
+                tg.start_soon(one_batch, i)
+
+        assert len(outcomes) == 24
+        assert all(o["ok"] is True for o in outcomes), [o for o in outcomes if not o.get("ok")]
+        summary = payload(await client.call_tool("tee_scene_summary", {"limit": 50}))
+        assert summary["total"] == 24
+
+    run_session(scenario)
+
+
+def test_responses_are_compact_json_not_pretty_printed():
+    async def scenario(client):
+        result = await client.call_tool("tee_status", {})
+        text = result.content[0].text
+        assert "\n" not in text  # compact separators, no indent
+        json.loads(text)
+
+    run_session(scenario)
