@@ -1,0 +1,20 @@
+schema_version = "1.0.0"
+
+id = "tee_bridge"
+version = "0.1.0"
+name = "TEE Bridge"
+tagline = "Token Efficiency Engine bridge socket for AI-driven editing"
+maintainer = "interaeronav"
+type = "add-on"
+website = "https://github.com/interaeronav/TokenEfficiencyEngine"
+
+# bpy-linked code is GPL; the out-of-process TEE server stays MIT and only
+# speaks the wire protocol.
+license = ["SPDX:GPL-3.0-or-later"]
+
+blender_version_min = "5.1.0"
+
+tags = ["Development"]
+
+[permissions]
+network = "Runs a localhost TCP socket server for the TEE MCP bridge"
