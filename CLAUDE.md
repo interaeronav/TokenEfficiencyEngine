@@ -1,0 +1,54 @@
+# CLAUDE.md — Token Efficiency Engine
+
+## What this project is
+
+TEE is an MCP server + API layer between AI models and Unreal Engine / Blender.
+Its core metric is **tokens per completed user task**. Every design decision is
+judged by that metric first.
+
+## How to work in this repo
+
+- The build is driven by `CLAUDE_EXECUTION_SCRIPT.md`. Do not improvise a
+  different plan while it exists; amend the script instead, then follow it.
+- Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
+  it (check items off, note blockers) before ending any session.
+- Research grounding lives in `docs/research/`. Consult it before designing or
+  claiming facts about UE/Blender APIs — both APIs drift between versions, and
+  hallucinated calls are the #1 friction point this project exists to fix.
+  Verify any API you are unsure of against local docs or a smoke test, never
+  from memory.
+
+## Hard rules (token-efficiency dogma)
+
+1. **Never return full scene dumps by default.** Tools return compact summaries
+   with stable IDs; detail is opt-in via explicit query tools.
+2. **Diffs over snapshots.** After a mutation, report what changed, not the new
+   world state.
+3. **Batch over chatter.** Prefer one macro-command / one code-execution call
+   over N single-op tool calls.
+4. **Text over pixels.** Screenshots are a last resort; structured text state
+   is the default evidence.
+5. **Small tool surface, progressive disclosure.** Keep the always-loaded tool
+   schemas minimal; expose long-tail capability through a `run_python` /
+   `run_console` escape hatch and searchable docs, not hundreds of tools.
+6. **Fail loud and cheap.** Validation errors must come back in one short
+   message with the exact fix, not a stack-trace novel.
+
+## Conventions
+
+- Python 3.11+, `ruff` for lint/format, `pytest` for tests.
+- MCP server uses the official Python SDK (`mcp` package, FastMCP style)
+  unless the script says otherwise.
+- Type hints everywhere in `server/`; adapters may relax where DCC-embedded
+  interpreters (Blender's bundled Python, UE's) constrain versions.
+- Commit style: imperative subject, body explains the *why*. Small commits per
+  script step.
+
+## Testing
+
+- `pytest` for the server core (runs anywhere, no DCC needed — DCC calls are
+  faked behind adapter interfaces).
+- Adapter smoke tests require a machine with Blender / Unreal installed; they
+  are marked and skipped otherwise (`-m "not dcc"` in CI).
+- `benchmarks/` measures tokens-per-task on scripted scenarios; run before and
+  after any change to state representation or tool schemas.
