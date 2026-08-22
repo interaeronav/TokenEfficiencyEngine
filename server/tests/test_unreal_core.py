@@ -133,3 +133,66 @@ def test_wire_rejects_a_non_json_body():
     with pytest.raises(TeeError) as err:
         UnrealWire._decode(b"<html>not me</html>", "text/html")
     assert err.value.code == "ue_bad_response"
+
+
+# -- batch codegen -----------------------------------------------------------
+
+
+def test_batch_embeds_ops_as_parsed_json_not_python_source():
+    """JSON null/true/false are not Python literals. Emitting the ops array
+    straight into the script source NameErrors inside Epic's sandbox the
+    moment an optional field is absent (hit live on 5.8.1)."""
+    from tee.adapters.unreal import codegen
+
+    script = codegen.program_batch(
+        [{"op": "create", "name": "X", "props": {"asset_path": "/Engine/BasicShapes/Cube"}}], {}
+    )
+    ops_line = next(line for line in script.splitlines() if line.startswith("_OPS"))
+    assert ops_line.startswith("_OPS = json.loads(")
+    # the null lives inside a quoted JSON string, never as a bare name
+    assert "actor_type" in ops_line
+    for line in script.splitlines():
+        assert not line.strip().startswith("_OPS = [")
+
+
+def test_batch_program_defines_run_and_uses_no_get_default():
+    """Sandbox constraints verified live: the script must define run(), and
+    tool results are _StrictDict, which rejects .get(key, default)."""
+    from tee.adapters.unreal import codegen
+
+    script = codegen.program_batch(
+        [{"op": "create", "name": "X", "props": {"asset_path": "/Engine/BasicShapes/Cube"}}], {}
+    )
+    assert "\ndef run():" in script
+    assert '.get("location", {})' not in script
+    assert '.get("refPath")' not in script
+
+
+def test_unknown_op_is_rejected_before_touching_the_editor():
+    from tee.adapters.unreal import codegen
+
+    with pytest.raises(ValueError) as err:
+        codegen.normalize_batch([{"op": "levitate", "id": "u1"}])
+    assert "levitate" in str(err.value)
+    with pytest.raises(ValueError) as err:
+        codegen.normalize_batch([{"op": "create", "name": "X"}])
+    assert "asset_path" in str(err.value)
+
+
+def test_transform_props_map_to_epics_optional_converter():
+    from tee.adapters.unreal import codegen
+
+    [op] = codegen.normalize_batch(
+        [
+            {
+                "op": "create",
+                "name": "X",
+                "props": {"asset_path": "/E/C", "location": [1, 2, 3], "scale": [2, 2, 2]},
+            }
+        ]
+    )
+    assert op["xform"] == {
+        "location": {"x": 1.0, "y": 2.0, "z": 3.0},
+        "scale": {"x": 2.0, "y": 2.0, "z": 2.0},
+    }
+    assert "rotation" not in op["xform"]  # omitted = unchanged, never guessed

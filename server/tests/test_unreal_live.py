@@ -98,3 +98,88 @@ def test_toolset_summary_is_cached_across_calls(catalog):
     catalog.summary("ActorTools")
     catalog.describe_tool("ActorTools", "get_actor_bounds")
     assert catalog.fetches == 1
+
+
+# -- adapter (mutating; each test restores what it changed) ------------------
+
+
+@pytest.fixture()
+def adapter(unreal_wire):
+    from tee.adapters.unreal.adapter import UnrealAdapter
+
+    ad = UnrealAdapter(wire=unreal_wire)
+    snapshot = ad.snapshot("test-guard")
+    yield ad
+    ad.restore(snapshot)
+
+
+def test_batch_spawns_and_configures_in_one_round_trip(adapter):
+    """Phase 3 acceptance: 'spawn + configure actors via one macro call'."""
+    diff = adapter.execute(
+        [
+            {
+                "op": "create",
+                "name": "TeeA",
+                "props": {"asset_path": "/Engine/BasicShapes/Cube", "location": [0, 500, 100]},
+            },
+            {
+                "op": "create",
+                "name": "TeeB",
+                "props": {
+                    "asset_path": "/Engine/BasicShapes/Sphere",
+                    "location": [300, 500, 100],
+                    "scale": [2, 2, 2],
+                },
+            },
+        ]
+    )
+    assert len(diff.created) == 2
+    assert diff.deleted == []
+    # the response is a diff, not a scene dump (P2)
+    payload = json.dumps({"created": diff.created, "details": diff.details})
+    assert estimate_tokens(payload) < 250, payload
+
+    # refPaths stay server-side; the model addresses actors by short id
+    assert all(eid.startswith("u") for eid in diff.created)
+
+
+def test_set_by_short_id_never_needs_a_refpath(adapter):
+    diff = adapter.execute(
+        [
+            {
+                "op": "create",
+                "name": "TeeMove",
+                "props": {"asset_path": "/Engine/BasicShapes/Cube", "location": [0, 700, 100]},
+            }
+        ]
+    )
+    eid = diff.created[0]
+    moved = adapter.execute([{"op": "set", "id": eid, "props": {"location": [0, 900, 250]}}])
+    assert moved.modified == [eid]
+    assert moved.details[eid]["location"] == [0, 900, 250]
+
+
+def test_snapshot_restore_removes_actors_added_since(adapter):
+    before = len(adapter.list_entities())
+    snap = adapter.snapshot("rollback")
+    adapter.execute(
+        [
+            {
+                "op": "create",
+                "name": "TeeDoomed",
+                "props": {"asset_path": "/Engine/BasicShapes/Cone", "location": [900, 500, 100]},
+            }
+        ]
+    )
+    assert len(adapter.list_entities()) == before + 1
+    adapter.restore(snap)
+    assert len(adapter.list_entities()) == before
+
+
+def test_unknown_entity_id_fails_with_a_fix(adapter):
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        adapter.execute([{"op": "set", "id": "u9999", "props": {"location": [0, 0, 0]}}])
+    assert err.value.code == "unknown_entity"
+    assert "tee_scene_summary" in (err.value.fix or "")
