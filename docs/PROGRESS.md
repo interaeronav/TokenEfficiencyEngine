@@ -79,8 +79,11 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       export/report/metrics/cache/jobs/CLI + 4-tool MCP server, TEE
       voxkiln driver registered first; 43 product tests + 395 server
       tests green, license lint clean, clean-venv rehearsal passed.
-      Mac still owed (13.6.3): weights fetch, first live generation,
-      stock-vs-ours battery, FlexAttention tuning, own-repo decision)*
+      Mac 2026-08-22: env + weights (15.12 GB) + TEE integration done
+      and three vendored defects found and fixed; live generation,
+      determinism and the battery BLOCKED on gated DINOv3 access —
+      owner must request it at huggingface.co/facebook/dinov3-vitl16-
+      pretrain-lvd1689m)*
 
 ## Machine facts
 
@@ -1276,4 +1279,107 @@ cloud session:
 - Mac hand-off (script 13.6.3): `docs/setup-voxkiln.md` — install
   `[model]` extras, `voxkiln fetch-weights`, first live generation, the
   stock-vs-ours battery on `voxkiln/eval_images/` (frozen SHA256s),
+  FlexAttention-MPS tuning, and the own-repo extraction decision.
+
+### 2026-08-22 — Phase 13 Mac session (13.6.3): partly done, partly BLOCKED
+
+Worked the seven-step Mac hand-off. Steps 1, 2, 6 done; step 3 got far
+enough to prove three real defects and then hit an external blocker; steps
+4 and 5 could not run at all. Nothing below is claimed that was not run.
+
+**1. Environment — DONE.** `voxkiln/.venv` on CPython 3.13,
+`[model,manifold,mcp,dev]` installed, torch **2.13.0** with MPS available
+(the FlexAttention-MPS floor). `voxkiln doctor` exit 0: backend `mps`,
+upstream commit `75fbf018…` recorded, all five in-process deps present.
+
+Suite: **43 → 48 passed**. Two tests had to be fixed first — both asserted
+`probe()["backend"] is None`, i.e. "this host has no GPU", which was true
+only of the cloud container they were written in. That is a property of
+the machine, not of the refusal they claim to test; they stub the probe
+now. (Same defect class as the TEE-side one fixed earlier today.)
+
+**2. Weights — DONE.** 1.3 TiB free beforehand. `voxkiln fetch-weights`
+pulled 22 files in 2 min 38 s; `voxkiln doctor` reports
+**`weights_cached_gb: 15.12`**.
+
+**3. First live generation — THREE DEFECTS FOUND, THEN BLOCKED.**
+The run failed, and each failure was real:
+
+- **The vendored inference path was broken.** `structured_latent_flow.py`
+  imported `sparse_elastic_mixin` at module scope → `utils.elastic_utils`,
+  which the licence surgery dropped with the training tree. So importing
+  the module raised `ModuleNotFoundError`. `ElasticSLatFlowModel` exists
+  only for training with low VRAM (its own docstring says so) and the
+  shipped configs use `SLatFlowModel`, so it is now built lazily via module
+  `__getattr__`. **The cloud could not have caught this**: with no weights,
+  no model was ever constructed.
+- **The real error was masked.** `pipelines/base.py` wrapped model loading
+  in a bare `except Exception` and retried the relative path as a Hub repo
+  id, so a missing module surfaced as a 404 for a repo
+  `ckpts/slat_flow_img2shape_dit_1_3B_512_bf16` that was never meant to
+  exist. Replaced with the three cases decided explicitly (local snapshot /
+  other owner-repo / repo-id + relative). My first attempt fixed one case
+  and broke another — caught by re-running, not by reasoning.
+- **Gated weights fail late and expensively.** All 15 GB download and every
+  model loads before the image tower 403s, minutes in.
+
+After the fixes, under the engine's real configuration
+(`conv: none, attn: sdpa`), **all 8 TRELLIS pipeline models load in 68 s**
+and construction proceeds to the image-conditioning model — where it stops:
+
+```
+GatedRepoError: 403 — Access to model
+facebook/dinov3-vitl16-pretrain-lvd1689m is restricted and you are not in
+the authorized list.
+```
+
+**This is an access-control blocker, not a code one.** `gated: manual` —
+approval is granted by hand by the model owner. **Owner action required:**
+request access at
+<https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m>, then
+`hf auth login`.
+
+Two intermediate "failures" I chased were **artifacts of my own ad-hoc
+probe**, not product defects (missing `o_voxel` / `flex_gemm` came from
+hand-rolling `sys.path` instead of using the engine's `add_vendor_to_path`).
+Verified before reporting; recorded so nobody re-files them.
+
+**4. Determinism — NOT RUN.** Blocked by the same gate. No same-seed
+comparison exists; nothing is claimed about determinism on this machine.
+
+**5. Stock-vs-ours battery — NOT RUN.** `voxkiln/BENCHMARKS.md` created
+with the protocol and frontmatter (commits, torch, macOS, machine, thermal
+protocol) and **zero measured rows**, stating the blocker and what was
+established instead. The one real number in it is the 68 s cold load of all
+eight models — a load timing, not a generation.
+
+**6. TEE integration — DONE.** voxkiln installed into the server venv.
+`probe_local_gpu` reports lanes **[1,2,3]** on MPS; `build_drivers`
+registers **voxkiln first**, so `as_generate` defaults to it — proven by
+calling `as_generate` with a real eval image, which routed into the
+pipeline and failed only at the gate.
+
+Two honesty gaps fixed while proving it:
+- `tee doctor` had **no voxkiln check at all**, though `setup-voxkiln.md`
+  promises it is picked up automatically. It now reports version, backend,
+  cached weight size **and the gated-model state** — because 15 GB cached
+  is not sufficient to generate, and silence implied readiness.
+- voxkiln answered a gated-repo failure with *"inspect params; if this
+  repeats, run voxkiln doctor"*. No parameter grants access to a manually
+  approved repo. Failures now map to the resolving action (gated → request
+  URL + `hf auth login`; 401 → authenticate; ENOSPC → free disk), fixed in
+  voxkiln's job handler so CLI, MCP server and TEE all benefit.
+
+Also extended the licence lint to banned model **weights** (repo ids are
+strings in configs, invisible to the AST import lint). I first read a hit
+as a live RMBG-2.0 violation — **it is not**: `BiRefNet.py` already
+substitutes the MIT weights and names RMBG only in the branch that rejects
+it. The rule stays, allowlisted at the substitution site, so a new
+reference cannot creep in as a string.
+
+- Evidence: voxkiln **49 passed**, server **394 passed / 2 skipped**, ruff
+  clean both trees, `voxkiln doctor` exit 0, `tee doctor` exit 0 with the
+  voxkiln line naming the blocker.
+- **Still owed on this machine, once access is granted:** first live
+  generation, same-seed determinism, the stock-vs-ours battery,
   FlexAttention-MPS tuning, and the own-repo extraction decision.
