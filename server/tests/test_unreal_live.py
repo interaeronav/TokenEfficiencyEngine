@@ -243,3 +243,39 @@ def test_toolset_listing_has_no_phantom_entries(catalog):
     assert all(" " not in n for n in names), [n for n in names if " " in n]
     # every advertised name must actually resolve and describe
     assert catalog.resolve(sorted(names)[0])
+
+
+# -- editor state, text-first checks, budgeted vision ------------------------
+
+
+def test_editor_state_probe(unreal_wire):
+    from tee.adapters.unreal.adapter import UnrealAdapter
+
+    state = UnrealAdapter(wire=unreal_wire).busy_state()
+    assert state["reachable"] is True
+    assert state["pie_running"] in (True, False)
+
+
+def test_scene_checks_are_text_and_bounded(adapter):
+    checks = adapter.scene_checks()
+    assert checks["actors_total"] >= checks["actors_in_view"]
+    assert len(checks["offscreen"]) <= 25
+    assert estimate_tokens(json.dumps(checks)) < 600
+
+
+def test_capture_is_budgeted_and_uses_the_real_camera(adapter):
+    """captureTransform is documented optional but required in practice, and a
+    zero-filled default silently photographs the world origin."""
+    camera = json.loads(
+        adapter.catalog.call("EditorAppToolset", "GetCameraTransform", {}, timeout=60)
+    )["returnValue"]["location"]
+    data, meta = adapter.capture_with_metadata(16 * 1024)
+    assert len(data) <= 16 * 1024
+    assert data[:2] == b"\xff\xd8"
+    assert meta["cameraLocation"]["x"] == pytest.approx(camera["x"], abs=1.0)
+
+
+def test_optional_object_params_are_defaulted_from_their_schema(adapter):
+    adapter.capture_with_metadata(16 * 1024)
+    defaulted = adapter.catalog.defaulted_params.get("EditorAppToolset.CaptureViewport")
+    assert defaulted == ["annotations"], defaulted

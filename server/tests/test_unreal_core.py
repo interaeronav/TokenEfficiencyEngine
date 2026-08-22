@@ -251,3 +251,89 @@ def test_description_bullets_are_not_mistaken_for_toolsets(catalog):
     assert all(" " not in n for n in names)
     listing = catalog.list_summary()
     assert listing["total"] == 1
+
+
+# -- schema-driven defaults + vision budget ----------------------------------
+
+
+def test_default_for_builds_the_smallest_valid_value():
+    """Epic rejects omitted object params with 'needs a default value' even
+    when their own description says optional, so callers must materialise
+    one."""
+    from tee.adapters.unreal.summarize import default_for
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "location": {
+                "type": "object",
+                "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                "required": ["x", "y"],
+            },
+            "label": {"type": "string"},
+            "mode": {"type": "string", "enum": ["A", "B"]},
+            "flags": {"type": "array"},
+            "on": {"type": "boolean"},
+        },
+        "required": ["location", "label", "mode", "flags", "on"],
+    }
+    assert default_for(schema) == {
+        "location": {"x": 0, "y": 0},
+        "label": "",
+        "mode": "A",
+        "flags": [],
+        "on": False,
+    }
+
+
+def test_missing_default_param_is_read_from_the_servers_own_message():
+    from tee.adapters.unreal.summarize import missing_default_param
+
+    msg = 'Function "CaptureViewport", input param "annotations" needs a default value.'
+    assert missing_default_param(msg) == "annotations"
+    assert missing_default_param("some other failure") is None
+
+
+def test_capture_shrinks_until_it_fits_the_budget():
+    """CaptureViewport has no resolution parameter and returns whatever the
+    viewport is, so the budget has to be enforced client-side."""
+    import base64
+    import io
+
+    from PIL import Image
+
+    from tee.adapters.unreal.vision import encode_within_budget
+
+    big = Image.new("RGB", (2744, 1820))
+    for x in range(0, 2744, 7):  # noise so it does not compress to nothing
+        for y in range(0, 1820, 7):
+            big.putpixel((x, y), (x % 256, y % 256, (x + y) % 256))
+    buf = io.BytesIO()
+    big.save(buf, format="PNG")
+    png_b64 = base64.b64encode(buf.getvalue()).decode()
+
+    data, meta = encode_within_budget(png_b64, 16 * 1024)
+    assert len(data) <= 16 * 1024
+    assert data[:2] == b"\xff\xd8"  # JPEG
+    assert meta["source_px"] == [2744, 1820]
+    assert meta["sent_px"][0] <= 1024
+
+
+def test_capture_refuses_rather_than_blowing_the_budget():
+    import base64
+    import io
+
+    from PIL import Image
+
+    from tee.adapters.unreal.vision import encode_within_budget
+    from tee.kernel.errors import TeeError
+
+    img = Image.new("RGB", (2000, 2000))
+    for x in range(0, 2000, 3):
+        for y in range(0, 2000, 3):
+            img.putpixel((x, y), (x % 256, y % 256, (x * y) % 256))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    with pytest.raises(TeeError) as err:
+        encode_within_budget(base64.b64encode(buf.getvalue()).decode(), 200)
+    assert err.value.code == "capture_over_budget"

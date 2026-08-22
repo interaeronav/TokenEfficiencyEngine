@@ -311,3 +311,26 @@ def run():
             "readback": readback, "reused": reused,
             "compile": "clean"}
 """
+
+
+EDITOR_APP = "EditorToolset.EditorAppToolset"
+
+SCENE_CHECKS = f'''
+import json
+
+def run():
+    # Three dispatches total, not O(actors): the frustum test and the bounds
+    # come from tools that already work on whole sets.
+    visible = execute_tool("{EDITOR_APP}.GetVisibleActors", "{{}}")["returnValue"]
+    all_actors = execute_tool("{SCENE}.find_actors", json.dumps(
+        {{"name": "", "tag": "", "collision_channels": []}}))["returnValue"]
+    cam = execute_tool("{EDITOR_APP}.GetCameraTransform", "{{}}")["returnValue"]
+    visible_refs = [a["refPath"] for a in visible]
+    all_refs = [a["refPath"] for a in all_actors]
+    return {{
+        "actors_total": len(all_refs),
+        "actors_in_view": len(visible_refs),
+        "offscreen": [r for r in all_refs if r not in visible_refs][:25],
+        "camera": cam["location"],
+    }}
+'''

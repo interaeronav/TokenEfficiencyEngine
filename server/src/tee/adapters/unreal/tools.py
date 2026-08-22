@@ -95,6 +95,19 @@ def register_unreal_tools(app: TeeApp, adapter: UnrealAdapter) -> None:
             )
         return {"actors": [e.detailed() for e in adapter.entity_details([str(i) for i in ids])]}
 
+    def ue_scene_checks(args: dict[str, Any]) -> dict[str, Any]:
+        return adapter.scene_checks()
+
+    def ue_editor_state(args: dict[str, Any]) -> dict[str, Any]:
+        return adapter.busy_state()
+
+    def ue_capture(args: dict[str, Any]) -> dict[str, Any]:
+        max_bytes = int(float(args.get("max_kb", 16)) * 1024)
+        data, meta = adapter.capture_with_metadata(max_bytes, show_ui=bool(args.get("show_ui")))
+        import base64
+
+        return {"image_base64": base64.b64encode(data).decode("ascii"), **meta}
+
     tools = [
         VirtualTool(
             name="ue_toolsets",
@@ -233,6 +246,52 @@ def register_unreal_tools(app: TeeApp, adapter: UnrealAdapter) -> None:
             examples=[{"ids": ["u1", "u2"]}],
         ),
     ]
+
+    tools.extend(
+        [
+            VirtualTool(
+                name="ue_scene_checks",
+                description=(
+                    "Text-first scene evidence (P4: text before pixels): actor "
+                    "count, how many are inside the viewport frustum, which are "
+                    "offscreen, and the camera position. Three dispatches total, "
+                    "not one per actor. Try this before ue_capture."
+                ),
+                schema={"type": "object", "properties": {}},
+                handler=ue_scene_checks,
+                tags=["unreal", "scene", "assertions", "verify"],
+            ),
+            VirtualTool(
+                name="ue_editor_state",
+                description=(
+                    "Is the editor reachable and is a Play-In-Editor session "
+                    "running? Level edits made during PIE are discarded when it "
+                    "stops, so check this when a mutation seems not to stick."
+                ),
+                schema={"type": "object", "properties": {}},
+                handler=ue_editor_state,
+                tags=["unreal", "state", "pie"],
+            ),
+            VirtualTool(
+                name="ue_capture",
+                description=(
+                    "Viewport screenshot as budgeted JPEG (default 16 KB), "
+                    "captured from the CURRENT editor camera, plus the free text "
+                    "metadata. Last resort: ue_scene_checks and "
+                    "tee_scene_summary answer most questions in far fewer tokens."
+                ),
+                schema={
+                    "type": "object",
+                    "properties": {
+                        "max_kb": {"type": "number"},
+                        "show_ui": {"type": "boolean"},
+                    },
+                },
+                handler=ue_capture,
+                tags=["unreal", "vision", "screenshot"],
+            ),
+        ]
+    )
 
     if app.allow_code_exec:
         tools.append(

@@ -28,6 +28,7 @@ class ToolsetCatalog:
         self._descriptions: dict[str, str] = {}
         self._raw: dict[str, dict[str, Any]] = {}  # qualified -> parsed payload
         self.fetches = 0  # describe_toolset round-trips actually spent
+        self.defaulted_params: dict[str, list[str]] = {}
 
     # -- toolset names -----------------------------------------------------
 
@@ -107,13 +108,37 @@ class ToolsetCatalog:
         self, toolset: str, tool: str, arguments: dict[str, Any] | None = None, **kw: Any
     ) -> str:
         """Dispatch through Epic's `call_tool` meta-tool, which wants the
-        toolset's qualified name and the tool name UNPREFIXED."""
-        return self.wire.call_text(
-            "call_tool",
-            {
-                "toolset_name": self.resolve(toolset),
+        toolset's qualified name and the tool name UNPREFIXED.
+
+        Self-heals the "needs a default value" rejection: the server demands a
+        materialised value for object-typed parameters even when their own
+        description calls them optional, and it names the offending parameter,
+        so the missing one is built from its schema and the call retried
+        rather than handed back to the caller as a dead end.
+        """
+        qualified = self.resolve(toolset)
+        args = dict(arguments or {})
+        defaulted: list[str] = []
+        for _attempt in range(6):
+            payload = {
+                "toolset_name": qualified,
                 "tool_name": S.short_name(tool),
-                "arguments": arguments or {},
-            },
-            **kw,
-        )
+                "arguments": args,
+            }
+            result = self.wire.call_text("call_tool", payload, **kw)
+            missing = S.missing_default_param(result)
+            if missing is None or missing in args:
+                self.defaulted_params[f"{S.short_name(toolset)}.{S.short_name(tool)}"] = defaulted
+                return result
+            schema = self._param_schema(qualified, tool, missing)
+            args[missing] = S.default_for(schema)
+            defaulted.append(missing)
+        return result
+
+    def _param_schema(self, toolset: str, tool: str, param: str) -> dict[str, Any] | None:
+        try:
+            expanded = self.describe_tool(toolset, tool)
+        except TeeError:
+            return None
+        props = (expanded.get("input_schema") or {}).get("properties") or {}
+        return props.get(param)

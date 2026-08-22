@@ -22,7 +22,7 @@ from tee.kernel.adapter import AdapterInfo, Diff, Entity
 from tee.kernel.errors import TeeError
 
 from . import blueprint as bp_verify
-from . import codegen
+from . import codegen, vision
 from .catalog import ToolsetCatalog
 from .wire import UnrealWire
 
@@ -282,13 +282,71 @@ class UnrealAdapter:
             )
         return result
 
+    # -- editor state ------------------------------------------------------
+
+    def busy_state(self) -> dict[str, Any]:
+        """Cheap pre-dispatch probe. Epic's server runs tools serially on the
+        game thread, so a mutation issued during PIE lands in a world that is
+        about to be thrown away."""
+        try:
+            running = self.catalog.call("EditorAppToolset", "IsPIERunning", {}, timeout=30)
+        except TeeError as exc:
+            return {"reachable": False, "why": exc.message[:200]}
+        value = json.loads(running).get("returnValue") if running.startswith("{") else running
+        return {"reachable": True, "pie_running": bool(value)}
+
+    def require_idle(self) -> None:
+        state = self.busy_state()
+        if state.get("pie_running"):
+            raise TeeError(
+                "ue_editor_busy",
+                "A Play-In-Editor session is running; level edits made now are "
+                "discarded when it stops.",
+                fix="Call ue_call EditorAppToolset StopPIE first, or re-run "
+                "this after the session ends.",
+            )
+
+    # -- vision ------------------------------------------------------------
+
     def capture(self, view: str, max_bytes: int) -> bytes:
-        raise TeeError(
-            "capture_unsupported",
-            "Viewport capture is not wired for Unreal yet.",
-            fix="Use tee_scene_summary / ue_call with EditorAppToolset "
-            "screenshot tools; text state is the default evidence (P4).",
+        data, _meta = self.capture_with_metadata(max_bytes)
+        return data
+
+    def capture_with_metadata(
+        self, max_bytes: int, *, show_ui: bool = False
+    ) -> tuple[bytes, dict[str, Any]]:
+        # captureTransform must be passed EXPLICITLY. It is documented as
+        # optional ("If unset, uses the viewport's current camera") but the
+        # server rejects the call without it, and letting the generic
+        # default-filler supply a zeroed transform silently photographs the
+        # world origin instead of the viewport (verified: cameraLocation came
+        # back 0,0,0). Fetch the real camera pose first.
+        camera = json.loads(
+            self.catalog.call("EditorAppToolset", "GetCameraTransform", {}, timeout=60)
+        )["returnValue"]
+        raw = self.catalog.call(
+            "EditorAppToolset",
+            "CaptureViewport",
+            {"bShowUI": show_ui, "captureTransform": camera},
+            timeout=180,
         )
+        payload = json.loads(raw).get("returnValue") or {}
+        image = payload.get("image") or {}
+        if not image.get("data"):
+            raise TeeError(
+                "capture_failed",
+                "The editor returned an empty viewport capture.",
+                fix="Make sure a level viewport is open and the editor is not mid-level-load.",
+            )
+        data, meta = vision.encode_within_budget(image["data"], max_bytes)
+        meta.update(vision.summarize_capture(payload))
+        return data, meta
+
+    def scene_checks(self) -> dict[str, Any]:
+        """Text-first geometric evidence (P4): what the camera can actually
+        see, and which actors overlap or sit below the ground plane."""
+        data = self._run_script(codegen.SCENE_CHECKS)
+        return data
 
     def close(self) -> None:
         self.wire.close()

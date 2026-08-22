@@ -174,3 +174,46 @@ def expand_tool(parsed: dict[str, Any], tool_name: str) -> dict[str, Any]:
         f"No tool {short_name(tool_name)!r} in {parsed.get('name')}.",
         fix=f"Available: {listed}",
     )
+
+
+def default_for(schema: dict[str, Any] | None) -> Any:
+    """Build a minimal valid value from a JSON Schema node.
+
+    Epic's server rejects an omitted object-typed parameter with
+    `Function "X", input param "Y" needs a default value` even when the
+    parameter's own description says it is optional (verified live on 5.8.1
+    for CaptureViewport's `captureTransform` and `annotations`). Callers
+    therefore have to materialise a value; this builds the smallest one the
+    schema allows.
+    """
+    if not isinstance(schema, dict):
+        return None
+    if schema.get("enum"):
+        return schema["enum"][0]
+    kind = schema.get("type")
+    if kind == "object":
+        props = schema.get("properties") or {}
+        required = schema.get("required") or list(props)
+        return {name: default_for(props.get(name)) for name in required}
+    if kind == "array":
+        return []
+    if kind == "string":
+        return ""
+    if kind == "boolean":
+        return False
+    if kind in ("number", "integer"):
+        return 0
+    return None
+
+
+MISSING_DEFAULT_MARKER = "needs a default value"
+
+
+def missing_default_param(message: str) -> str | None:
+    """Pull the parameter name out of the server's own complaint."""
+    if MISSING_DEFAULT_MARKER not in message:
+        return None
+    parts = message.split('input param "')
+    if len(parts) < 2:
+        return None
+    return parts[1].split('"')[0] or None
