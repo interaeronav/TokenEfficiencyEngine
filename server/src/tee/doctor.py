@@ -234,23 +234,37 @@ def server_dir() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def emit_config(client: str, *, adapter: str = "blender", port: int = BRIDGE_PORT) -> str:
-    args = [
-        "--directory",
-        str(server_dir()),
-        "run",
-        "tee",
-        "serve",
-        "--adapter",
-        adapter,
-    ]
+def _dev_checkout() -> bool:
+    """True when running from the repo (uv sync layout: src/tee under a
+    directory holding pyproject.toml); False for an installed wheel."""
+    return (server_dir() / "pyproject.toml").exists()
+
+
+def serve_command(*, adapter: str = "blender", port: int = BRIDGE_PORT) -> list[str]:
+    """The command a client config should launch: the installed `tee`
+    binary when this is an installed package, the uv-run form for a dev
+    checkout."""
+    tail = ["serve", "--adapter", adapter]
     if adapter == "blender" and port != BRIDGE_PORT:
-        args += ["--blender-port", str(port)]
-    entry = {"command": "uv", "args": args}
+        tail += ["--blender-port", str(port)]
+    if _dev_checkout():
+        return ["uv", "--directory", str(server_dir()), "run", "tee", *tail]
+    # a plain `tee` on PATH is usually coreutils tee - only trust a
+    # sibling of this interpreter (venv/pipx layout; no resolve(): the
+    # venv python is a symlink out of the venv)
+    candidate = Path(sys.executable).parent / "tee"
+    if candidate.exists():
+        return [str(candidate), *tail]
+    return ["uvx", "--from", "tee-engine", "tee", *tail]
+
+
+def emit_config(client: str, *, adapter: str = "blender", port: int = BRIDGE_PORT) -> str:
+    command = serve_command(adapter=adapter, port=port)
+    entry = {"command": command[0], "args": command[1:]}
     if client == "claude-code":
         return (
             "# add to Claude Code:\n"
-            f"claude mcp add tee -- uv {' '.join(args)}\n"
+            f"claude mcp add tee -- {' '.join(command)}\n"
             "# or in .mcp.json:\n" + json.dumps({"mcpServers": {"tee": entry}}, indent=2)
         )
     if client in ("claude-desktop", "cursor"):

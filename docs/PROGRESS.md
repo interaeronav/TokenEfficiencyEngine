@@ -20,7 +20,14 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - [ ] Phase 5 — Benchmarks *(Blender scenarios done in cloud: 87.7% total
       saving measured — see benchmarks/RESULTS.md; UE scenarios need the
       physical machine)*
-- [ ] Phase 6 — Packaging and handoff
+- [x] Phase 6 — Packaging and handoff *(built in cloud, 2026-08-22:
+      tee-engine wheel + clean-venv install rehearsal w/ MCP stdio
+      round-trip, Blender extension zip built+validated with real
+      Blender, doctor --emit fixed for installed layouts, docs set
+      (quickstart, per-DCC setup, troubleshooting, security), tee-usage
+      skill, v0.1.0 tagged. Physical machine still owed: UE
+      content-plugin zip (Phase 3), .mcpb bundle where a client wants
+      it, clean-WINDOWS-machine rehearsal)*
 - [x] Phase 7 — TEE Extract: media extraction module *(built in cloud,
       2026-08-22: all lanes + store + frames + handoff + IFC export; 144
       non-DCC tests, 26 live-Blender tests, extraction benchmark 92.6%
@@ -541,3 +548,36 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   built in cloud, one session. Physical-machine ledger unchanged
   elsewhere: Phase 3 (UE), Phase 6 packaging, GUI Blender validation,
   GPU generation lanes, UE physics, live UEFN proxy.
+
+### 2026-08-22 — Phase 6 build (cloud)
+- Packaging: distribution renamed `tee-engine` (PyPI-safe; module and
+  CLI stay `tee`); `make -C server dist` builds wheel + sdist + the
+  Blender extension zip (built AND validated with real Blender 5.2:
+  `--command extension build/validate`). Wheel audited: all 12 data
+  files (assets/design/physical/uefn) ship.
+- Clean-machine rehearsal (acceptance): fresh venv → pip install the
+  wheel → `tee 0.1.0` → MCP stdio round-trip with a real mcp client
+  against the installed binary: **16 tools listed, 68 virtual tools
+  registered, tee_status ok, tee_search_tools found as_search,
+  tee_call ran gd_benchmark with its source string** — the whole
+  five-module registration chain works from the wheel.
+- Real bug found+fixed by the rehearsal: `tee doctor --emit` assumed a
+  dev checkout (uv --directory … run) and, second bug, resolved the
+  venv python symlink so the emitted command became coreutils
+  /usr/bin/tee. Now: dev checkout → uv-run form; installed → the
+  venv's own `tee` binary; neither → `uvx --from tee-engine tee`.
+  Verified emitted configs for claude-code/desktop/cursor in BOTH
+  layouts.
+- Docs shipped: docs/quickstart.md, setup-blender.md (3 bridge
+  options), setup-unreal.md (A4 route + UEFN beta gating, honest
+  physical-machine framing), troubleshooting.md (doctor-derived +
+  budgeter/firewall/gate behaviors), security.md (A7 floor: never
+  port-forward DCC sockets, code-exec gating, script-lane
+  non-capability, data-handling posture). README rewritten with
+  user-facing install, module table, measured numbers updated
+  (16 tools ≈ 2,757 tokens by the canonical model_dump measure);
+  server README updated; `tee-usage` skill packages the operating
+  procedure (macro-first, diffs, text-before-pixels, trust-the-gates).
+- Evidence: `uv run pytest` → **341 passed, 1 skipped**; ruff clean;
+  `make dist` artifacts listed; rehearsal transcript above; tagged
+  **v0.1.0**.

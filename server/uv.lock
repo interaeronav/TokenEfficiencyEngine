@@ -2499,7 +2499,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tee"
+name = "tee-engine"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

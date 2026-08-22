@@ -1,5 +1,6 @@
 [project]
-name = "tee"
+# distribution name (PyPI-safe); the import package and CLI stay `tee`
+name = "tee-engine"
 version = "0.1.0"
 description = "Token Efficiency Engine - MCP server + API layer between AI models and Unreal Engine / Blender"
 readme = "README.md"

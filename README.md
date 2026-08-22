@@ -33,8 +33,15 @@ naive per-op-code + full-scene-dump pattern of existing bridges —
 | layout verification | 2,926 tok / 2 calls | 36 tok / 1 call | 98.8% |
 | **total** | **68,230** | **8,390** | **87.7%** |
 
-The always-loaded MCP surface (14 tools) costs ~2.3K tokens of definitions —
-about the price of 3 typical MCP tools in the wild.
+Later phases added an extraction module (92.6% saved vs re-attaching media),
+an app-side script lane (63–76% saved on fix loops), an asset module (93.5%
+saved on find-select-place), plus design, physics/modeling, and UEFN/Verse
+modules — see [benchmarks/RESULTS.md](benchmarks/RESULTS.md) for all measured
+rows.
+
+The always-loaded MCP surface (16 tools) costs ~2.8K tokens of definitions —
+about the price of 4 typical MCP tools in the wild; ~68 further virtual tools
+load progressively through `tee_search_tools`.
 
 ## Scope
 
@@ -56,12 +63,45 @@ benchmarks/                   Token-consumption benchmarks (built by the script)
 testbeds/                     Throwaway UE/Blender test projects (gitignored builds)
 ```
 
-## Getting started
+## Getting started (use TEE)
 
-The project is built *by Claude, in Claude Code*, on the physical machine where
-Unreal Engine and/or Blender are installed. To start (or resume) the build:
+See **[docs/quickstart.md](docs/quickstart.md)**. Short version:
 
-1. Clone this repo on the target machine and open it in Claude Code.
+```bash
+cd server
+uv sync --extra extract --extra assets --extra physical
+uv run tee doctor                    # diagnostics, every failure with a fix
+uv run tee doctor --emit claude-code # ready-to-paste MCP client config
+uv run tee serve --adapter fake      # explore with no DCC attached
+```
+
+Blender: [docs/setup-blender.md](docs/setup-blender.md) ·
+Unreal: [docs/setup-unreal.md](docs/setup-unreal.md) ·
+Problems: [docs/troubleshooting.md](docs/troubleshooting.md) ·
+Security model: [docs/security.md](docs/security.md)
+
+Packaged artifacts (`make -C server dist`): a pip/uv-installable wheel
+(`tee-engine`; the CLI and module stay `tee`) and the Blender bridge
+extension zip. Skills for Claude live under `skills/` (`tee-usage`,
+`context-aware-assets`, `game-design`, `uefn`).
+
+## Modules
+
+| Module | Tools | What it does |
+|---|---|---|
+| kernel | `tee_*` | batches+diffs, checkpoints, script lane, budgets, memory, progressive disclosure |
+| extract | `ex_*` | plans/photos/video/audio → content-addressed facts; ingest once, query forever |
+| assets | `as_*` | license-gated free-asset search/import, scale policy, placement + sun, verification |
+| design | `gd_*` | tee-design/1 spec, evidence tables, economy sim, ethics gates |
+| physical | `sim_*`, `wall_*`… | tier-2 modeling ops, material facts, settle physics, plausibility findings |
+| uefn | `uefn_*` | Verse digest facts + lint, Scene Graph vocabulary, Blender→UEFN export lane |
+
+## Continuing the build (Claude)
+
+The project is built *by Claude, in Claude Code*, driven by
+`CLAUDE_EXECUTION_SCRIPT.md`. On the physical machine with Unreal/Blender:
+
+1. Clone this repo and open it in Claude Code.
 2. Tell Claude:
 
    > Read `CLAUDE_EXECUTION_SCRIPT.md` and execute it. Start from the first
@@ -69,4 +109,5 @@ Unreal Engine and/or Blender are installed. To start (or resume) the build:
 
 The script is phased, resumable, and records progress, so sessions can stop and
 continue without losing state — that is itself one of the friction points TEE
-exists to fix.
+exists to fix. `docs/PROGRESS.md` carries the physical-machine ledger (Unreal
+adapter, GPU generation lanes, GUI Blender validation, live UEFN proxy).
