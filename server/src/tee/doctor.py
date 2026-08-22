@@ -206,7 +206,39 @@ def check_unreal() -> Check:
             "plugins and set bAutoStartServer=True (Phase 3 docs).",
         )
     if epic_mcp:
-        return Check("unreal", "ok", f"MCP endpoint listening on 127.0.0.1:{EPIC_MCP_PORT}")
+        # A listening port is not proof the endpoint is Unreal's, so do the
+        # handshake and count the catalog - the same probe the adapter runs.
+        try:
+            from tee.adapters.unreal.catalog import ToolsetCatalog
+            from tee.adapters.unreal.wire import UnrealWire
+
+            wire = UnrealWire(port=EPIC_MCP_PORT, connect_timeout=3.0, call_timeout=30.0)
+            wire.connect()
+            catalog = ToolsetCatalog(wire)
+            toolsets = catalog.load_toolsets()
+        except Exception as exc:  # any failure is one actionable line
+            return Check(
+                "unreal",
+                "warn",
+                f"something is listening on :{EPIC_MCP_PORT} but it did not "
+                f"answer as Unreal's MCP server ({type(exc).__name__})",
+                fix="Check nothing else holds that port, and that the "
+                "ModelContextProtocol plugin is enabled in the open project.",
+            )
+        if not toolsets:
+            return Check(
+                "unreal",
+                "warn",
+                "Unreal MCP answered but advertises no toolsets",
+                fix="Enable the AllToolsets plugin in the project (it is off "
+                "by default) and restart the editor.",
+            )
+        extra = " + TEE toolset" if "TeeEditorTools" in toolsets else ""
+        return Check(
+            "unreal",
+            "ok",
+            f"MCP on 127.0.0.1:{EPIC_MCP_PORT}, {len(toolsets)} toolsets{extra}",
+        )
     return Check(
         "unreal",
         "warn",

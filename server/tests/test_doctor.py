@@ -60,3 +60,32 @@ def test_emit_config_shapes():
         json_part = out[out.index("{") :]
         parsed = json.loads(json_part)
         assert parsed["mcpServers"]["tee"]["command"] == "uv"
+
+
+def test_unreal_check_rejects_a_stranger_on_the_port(monkeypatch):
+    """A listening port is not proof the endpoint is Unreal's MCP server, so
+    the check does the handshake and says so when it fails."""
+    import socket
+
+    from tee import doctor
+
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        sock.listen(1)
+        port = sock.getsockname()[1]
+        monkeypatch.setattr(doctor, "EPIC_MCP_PORT", port)
+        monkeypatch.setattr(doctor, "find_unreal", lambda: None)
+        check = doctor.check_unreal()
+    assert check.status == "warn"
+    assert "did not answer as Unreal" in check.detail
+    assert "holds that port" in (check.fix or "")
+
+
+def test_unreal_check_warns_when_nothing_is_there(monkeypatch):
+    from tee import doctor
+
+    monkeypatch.setattr(doctor, "EPIC_MCP_PORT", 9)
+    monkeypatch.setattr(doctor, "find_unreal", lambda: None)
+    check = doctor.check_unreal()
+    assert check.status == "warn"
+    assert "AllToolsets" in (check.fix or "") or "ModelContextProtocol" in (check.fix or "")
