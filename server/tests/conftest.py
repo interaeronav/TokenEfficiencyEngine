@@ -22,8 +22,40 @@ BLENDER_CANDIDATES = (
     shutil.which("blender"),
     "/home/user/blender-5.2.0-linux-x64/blender",
 )
-ADDON_DIR = os.environ.get("TEE_BLENDER_MCP_ADDON", "/home/user/blender_mcp_official/addon")
 TEE_BRIDGE_DIR = Path(__file__).resolve().parents[2] / "adapters" / "blender" / "tee_bridge"
+
+# The official Blender Lab MCP add-on appears in two shapes: a source checkout
+# (a `blender_mcp_addon` package inside some directory) and an *installed*
+# extension (the package directory itself, named `mcp`, under Blender's
+# extensions dir). The cloud container only ever saw the first; the physical
+# machine only has the second, and hardcoding the checkout layout silently
+# skipped half the live matrix there. Discover both.
+_ADDON_ENV = os.environ.get("TEE_BLENDER_MCP_ADDON")
+_EXTENSION_GLOBS = (
+    "~/Library/Application Support/Blender/*/extensions/*/mcp",   # macOS
+    "~/.config/blender/*/extensions/*/mcp",                       # Linux
+    "~/AppData/Roaming/Blender Foundation/Blender/*/extensions/*/mcp",  # Windows
+)
+
+
+def find_official_addon() -> tuple[str, str] | None:
+    """Return (sys.path entry, package name) for the official add-on, or None."""
+    if _ADDON_ENV:
+        # An explicit override is authoritative: if it is wrong the operator
+        # must hear about it, not silently get some other install.
+        candidates = [Path(_ADDON_ENV).expanduser()]
+    else:
+        candidates = [Path("/home/user/blender_mcp_official/addon")]
+        for pattern in _EXTENSION_GLOBS:
+            expanded = Path(pattern).expanduser()
+            anchor = Path(expanded.parts[0]).joinpath()
+            candidates.extend(sorted(anchor.glob(str(Path(*expanded.parts[1:])))))
+    for candidate in candidates:
+        if (candidate / "blender_mcp_addon" / "cli.py").exists():
+            return str(candidate), "blender_mcp_addon"     # checkout layout
+        if (candidate / "cli.py").exists():
+            return str(candidate.parent), candidate.name   # installed extension
+    return None
 
 
 def find_blender() -> str | None:
@@ -40,11 +72,14 @@ def free_port() -> int:
 
 
 def _official_boot(port: int) -> str:
+    located = find_official_addon()
+    assert located is not None  # guarded by the fixture's skip
+    path_entry, package = located
     return textwrap.dedent(
         f"""
         import sys
-        sys.path.insert(0, {ADDON_DIR!r})
-        from blender_mcp_addon import cli
+        sys.path.insert(0, {path_entry!r})
+        from {package} import cli
         sys.exit(cli.cli_execute(["--port", "{port}"]))
         """
     )
@@ -67,8 +102,8 @@ def blender_bridge(request, tmp_path_factory):
     blender = find_blender()
     if blender is None:
         pytest.skip("no Blender binary (set TEE_BLENDER)")
-    if request.param == "official" and not Path(ADDON_DIR, "blender_mcp_addon").exists():
-        pytest.skip(f"official blender_mcp add-on not found at {ADDON_DIR}")
+    if request.param == "official" and find_official_addon() is None:
+        pytest.skip("official blender_mcp add-on not found (set TEE_BLENDER_MCP_ADDON)")
 
     port = free_port()
     boot = tmp_path_factory.mktemp("bridge") / f"boot_{request.param}.py"
