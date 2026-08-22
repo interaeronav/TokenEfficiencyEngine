@@ -41,6 +41,11 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       2026-08-22; build not started. Modeling ops, material facts,
       Blender physics lane and plausibility checks are cloud-buildable;
       UE physics needs the physical machine)*
+- [ ] Phase 12 — TEE UEFN (bonus) *(research complete + phase scripted
+      2026-08-22; build not started. Digest lane, Verse linting, export
+      validator, adapter fakes and the version firewall are
+      cloud-buildable; live UEFN lanes need the physical Windows
+      machine with UEFN + Beta Access)*
 
 ## Machine facts
 
@@ -356,3 +361,36 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   11.1–11.6 with acceptance criteria incl. seeded-defect plausibility
   fixtures and a determinism variance-floor benchmark); build not
   started.
+
+### 2026-08-22 — Phase 12 research + script (cloud)
+- Deep-research pass for TEE UEFN + version trajectories (5 agents):
+  corpus digests 38–42 committed; decisions A22–A24 recorded. This
+  closes the queued four-pass research sequence (Phases 9–12).
+- Load-bearing findings: Epic shipped its MCP inside UEFN on
+  2026-08-20 (v42.00, beta — Toolset Registry + Verse compile + Scene
+  Graph entities + Creative devices + Play-in-Client sessions,
+  loopback 8000/mcp) and named MCP a UE6 pillar, with UE5 ending at
+  5.8 and UE6 EA "end of 2027-ish" — A4's proxy-and-extend posture is
+  validated as the only shape that rides the curve; the community
+  bridge graveyard (uefn-verse-mcp archived three days before Epic
+  shipped) buries from-scratch adapters; there is NO public Verse
+  compiler, so digest-grounded symbol linting is the honest offline
+  check and kills the documented hallucination classes (`<varies>`
+  died in v30.00; digests are per-install, Epic-copyrighted, never
+  redistributable — tests use a synthetic fixture); NO Blender→UEFN
+  export tool exists despite published Fortnite-Ready budget tables
+  (LOD0 caps, 3 LODs at −50%, ≤2K power-of-two textures, Spec/Metal/
+  Rough packing, UCX rules) — a pure-Python validator is TEE's
+  uncontested wedge; 5.8.1 disabled transaction bundling during tool
+  scripts so TEE must own checkpointing; StartPIE exists in 5.8 final
+  (doc 07's preview-era gap list flagged stale); Blender 5.3/6.0
+  fault lines published and shim-able now (all_ids order change,
+  use_nodes 6.0 hard removal, Vulkan default, @b5_3 asset naming);
+  legacy Blender physics shows no deprecation signals (Phase 11 bet
+  confirmed); Blender Lab's first 2026 experiment is its own Blender
+  MCP server (watch lane).
+- Phase 12 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections
+  12.1–12.7 with acceptance criteria incl. seeded-hallucination lint
+  fixtures, budget-violation fixtures, LUF↔XYZ property test, and a
+  license lint proving no AGPL code and no Epic digest text);
+  Standing rules renumbered to section 16; build not started.

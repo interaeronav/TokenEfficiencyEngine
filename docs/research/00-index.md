@@ -47,6 +47,11 @@ empirically and record it in `docs/PROGRESS.md`.*
 | [35-structural-plausibility.md](35-structural-plausibility.md) | Findings-not-approvals framing, CODE/STD/HEUR/CONV severity, cited span/pitch/stair tables, load-path graph check per IRC R301.1, IDS/ifctester prior art |
 | [36-parametric-modeling.md](36-parametric-modeling.md) | LOCAL-verified: 5.2 NodesModifier API break, MANIFOLD booleans, tessellate+solidify wall pattern, py-slvs server-side constraints, tier-2 op vocabulary, UE Geometry Script portability |
 | [37-sim-verification.md](37-sim-verification.md) | Settle-test thresholds (BlenderProc/Isaac), static-first evidence, SimReady Foundation Apache-2.0 precedent, CoACD proxies, determinism practice, honest sim boundaries |
+| [38-uefn-platform.md](38-uefn-platform.md) | UEFN 2026: MCP-in-UEFN toolsets + gating caveats, Lore VCS, automation verdicts (drivable/partial/human-only), memory budgets, creator-economy numbers |
+| [39-verse-language.md](39-verse-language.md) | Verse design (failure-as-control-flow, effects, STM, concurrency), the v30.00 `<varies>` break, digest-as-API-surface, no-public-compiler reality, digest-grounded linting verdict |
+| [40-ue-trajectory.md](40-ue-trajectory.md) | UE 5.8-as-terminal-baseline, UE6 merge plan (Verse gameplay model, Scene Graph, MCP as pillar), 5.8.1 transaction change, StartPIE correction, unclaimed TEE differentiators |
+| [41-blender-trajectory.md](41-blender-trajectory.md) | Blender 5.3 landed content (all_ids order, asset tokens/@b5_3, Vulkan default), 6.0 removal list (use_nodes hard target), legacy-physics no-deprecation evidence, shim-table distillate |
+| [42-uefn-module-design.md](42-uefn-module-design.md) | UEFN prior-art inventory with licenses, digest-diff precedent, Blender→UEFN budget tables, the three-shape verdict (docs+codegen core, proxy, skill), Scene-Graph-first vocabulary |
 
 ## Architecture decisions (ADR)
 
@@ -240,6 +245,57 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   and parameterized pre-built PCG graphs; Infinigen (BSD-3) is the
   mined parameter-schema source. param_set is the token-efficiency
   payoff: one group, N three-scalar diffs. (36, 32)
+
+- **A22 — UEFN module shape (`tee-uefn`):** the core is a docs+codegen
+  module — Verse digest ingestion from the user's local install
+  (digests are Epic-copyrighted: parse locally, never redistribute)
+  into version-keyed API facts plus digest DIFFING as the version
+  firewall (the 23.20 / 30.00 / 42.00 breaks are the precedents);
+  a validated Verse template corpus seeded from MIT/Apache sources
+  only, compile-checked through Epic's UEFN MCP Verse toolset when a
+  live editor is detected and digest-symbol-validated offline;
+  a compiler-error → one-line-fix map; verselang/book (CC0) bundled as
+  the offline language reference with unreleased features masked.
+  Around it: a thin proxy of Epic's UEFN toolsets behind capability
+  detection (typed batch/diff/checkpoint contract, server-side LUF↔XYZ
+  normalization, device catalog answered from a local index — never
+  forwarded dumps, Beta-Access detection with remediation), a Blender
+  `export_for_uefn` op (pure-Python budget validator over the encoded
+  Fortnite-Ready tables, LOD1/2 autogen, shader bake + Spec/Metal/
+  Rough packing, UCX naming, exact-fix report — no such tool exists
+  anywhere), and a `uefn` skill for judgment content. AGPL tooling is
+  reference-only, never reused. Publish/cook/moderation stay
+  human-gated — never promise closed-loop publish. (38, 39, 42)
+- **A23 — UE trajectory posture:** treat 5.8.1 as a long-lived
+  baseline (UE5 is maintenance-only; gap-fillers are durable);
+  version-gate Epic-MCP toolsets keyed on (engine version,
+  list_toolsets catalog hash, per-toolset schema hash); TEE owns
+  checkpoint/rollback — 5.8.1 disabled transaction bundling during
+  tool scripts, so Epic's undo cannot be leaned on; abstract stable
+  IDs so one contract maps Actor refPath (UE5) OR Scene Graph entity
+  (UEFN/UE6) and prototype against the UEFN Entity toolset now (the
+  shipping UE6 preview); build the UEFN vocabulary Scene-Graph-first
+  with Creative devices as a parallel eventually-legacy family; favor
+  the Verse-as-text lane over Blueprint-specific machinery; keep UE
+  and UEFN adapters behind one interface for the UE6 merge
+  (~end-2027). Re-probe the 5.8-final MCP gap list before building
+  fillers (StartPIE exists — doc 07's preview-era list is stale).
+  (40, 42, 38)
+- **A24 — Blender 5.3/6.0 firewall:** ban `use_nodes` writes in
+  codegen now (6.0 hard-removal target #140111, harmless ≥5.0);
+  session_uid-only identity gets a shuffle regression test
+  (`all_ids` order changed in 5.3 and is documented internal); the
+  Phase 9 listing generator emits per-version entries with min/max
+  windows (`@b5_3` replacement naming, access-token auth); probe the
+  GPU backend and fall back `--gpu-backend opengl` (Vulkan default in
+  5.3); GN inputs go through a single `set_gn_input()` chokepoint with
+  a central enum-translation table and `bl_rna` pre-flight; float32
+  mathutils → 1e-5 tolerances, never hash float bytes; Phase 11 ops
+  declare `backend: legacy | gn_physics` (legacy physics has no
+  deprecation signals — the 5.3-churn is on the XPBD side). Watch
+  lanes: `wm.undo_stack` read access for diff bracketing; Blender
+  Lab's own MCP experiment (interop/benchmark posture, same as
+  Epic's). (41, 32, 36)
 
 ## Headline numbers worth remembering
 

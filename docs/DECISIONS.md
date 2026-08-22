@@ -4,6 +4,50 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Phase 12 (TEE UEFN + trajectory firewall) researched; decisions A22–A24
+
+A five-agent deep-research pass (docs/research/38–42) grounded the
+bonus module: Fortnite/UEFN + Verse, anticipating upcoming Unreal and
+Blender versions. New settled decisions:
+
+- **A22 — UEFN module shape:** docs+codegen core (local Verse digest
+  ingestion → version-keyed API facts + digest-diff firewall;
+  MIT/Apache-seeded template corpus, compile-checked via Epic's UEFN
+  MCP when an editor is live, digest-symbol-linted offline) + a thin
+  capability-probed proxy of Epic's UEFN toolsets (typed
+  batch/diff/checkpoint, server-side LUF↔XYZ fix, local device-catalog
+  index) + a Blender `export_for_uefn` op (budget validator, LOD
+  autogen, bake + channel packing, exact-fix report — no such tool
+  exists) + a `uefn` skill. AGPL reference-only; publish stays
+  human-gated, never promised.
+- **A23 — UE trajectory posture:** 5.8.1 as long-lived baseline; TEE
+  owns checkpointing (5.8.1 disabled transaction bundling in tool
+  scripts); toolset probing keyed on catalog/schema hashes; stable IDs
+  abstracted over Actor refPath vs Scene Graph entity;
+  Scene-Graph-first UEFN vocabulary with devices as an
+  eventually-legacy family; one interface over UE + UEFN adapters for
+  the UE6 merge.
+- **A24 — Blender 5.3/6.0 firewall:** `use_nodes` writes banned now;
+  session_uid shuffle test; per-version asset listings (`@b5_3`);
+  Vulkan probe + OpenGL fallback; `set_gn_input()` chokepoint +
+  enum pre-flight; float32 tolerances; physics ops declare
+  `backend: legacy | gn_physics`.
+
+Load-bearing evidence: Epic shipped its MCP inside UEFN (v42.00,
+2026-08-20, beta — five toolsets incl. Verse compile and Scene Graph)
+and named MCP a UE6 pillar, validating A4's proxy-and-extend posture as
+the only one that rides the curve; the community bridge graveyard
+(uefn-verse-mcp archived three days before Epic shipped) buries the
+from-scratch adapter option; there is no public Verse compiler, so
+digest-grounded symbol linting is the only authoritative-adjacent
+offline check and kills the dominant hallucination class (`<varies>`
+died in v30.00; digests are per-install and non-redistributable); no
+Blender→UEFN export tool exists despite published Fortnite-Ready budget
+tables — a pure-Python validator is TEE's uncontested wedge; Blender
+5.3/6.0 fault lines (all_ids order, `use_nodes` removal, Vulkan
+default) are published and shim-able now; legacy physics shows no
+deprecation signals, confirming Phase 11's bet.
+
 ## 2026-08-22 — Phase 11 (TEE Physical) researched; decisions A19–A21
 
 A six-agent deep-research pass (docs/research/32–37) grounded the

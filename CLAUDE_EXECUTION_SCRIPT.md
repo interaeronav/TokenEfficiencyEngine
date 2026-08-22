@@ -1129,7 +1129,136 @@ Benchmarks gain the variance-floor measurement and a settle-cost row.
 
 ---
 
-## 15. Standing rules (all phases)
+## 15. Phase 12 — TEE UEFN: Fortnite, Verse, and the road to UE6/Blender 6
+
+**Goal:** ride the platform curve instead of being broken by it. Four
+capabilities: a Verse lane that makes codegen digest-grounded (the
+hallucination classes documented in 39 become lint failures, not
+runtime surprises); a UEFN adapter that wraps Epic's own MCP toolsets
+in TEE's token contract; the Blender→UEFN export lane nobody has
+built; and the version-trajectory firewall that encodes the announced
+UE6 / Blender 5.3–6.0 fault lines as tests and shims now.
+
+**Grounding:** `docs/research/38`–`42` (five-agent pass, 2026-08-22).
+Decisions A22–A24 settled — amend via `docs/DECISIONS.md` only.
+Anti-goals: no from-scratch UEFN bridge (the graveyard is documented);
+no digest redistribution (Epic-copyrighted — parse the user's local
+install); no AGPL code reuse (reference only); no closed-loop publish
+promise (cook/memory/publish/moderation are human-gated); no claim of
+full Verse type/effect checking offline (symbol/signature linting is
+the honest boundary).
+
+### 12.1 Verse digest facts lane (A22)
+
+1. Digest parser for `*.digest.verse` files (plain Verse declarations:
+   modules, classes, members, effect specifiers, `listenable` events)
+   → version-keyed API facts in the docs-search lane. Digests load
+   from the user's install (`%LOCALAPPDATA%\UnrealEditorFortnite\
+   Saved\VerseProject\...` + per-project `Assets.digest.verse`);
+   tests use a small SYNTHETIC digest fixture, never Epic's text.
+2. Digest diffing between versions emits drift facts (added/removed/
+   renamed members, changed effects) — the firewall rows for the
+   23.20 / 30.00 / 42.00 class of breaks.
+3. Bundle verselang/book (CC0) chapters as the offline language
+   reference, with a per-target-version mask for unreleased features
+   (live variables, `dictates`/`predicts`).
+
+### 12.2 Verse codegen + validation ladder (A22)
+
+1. Template corpus seeded from MIT/Apache sources only (uefncentral
+   examples MIT, OsirionGG Apache-2.0), keyed to digest version:
+   device subscription, `weak_map` + `<persistable>` persistence,
+   Scene Graph component, UI canvas, sync/race patterns.
+2. Offline validator: every identifier, member access, effect
+   specifier and event subscription in emitted Verse is checked
+   against the loaded digest — catches stale-API hallucinations
+   (`<varies>`, `GetPassengers`, invented device methods) without
+   claiming type checking.
+3. Compiler-error → one-line-fix mapping (fail loud and cheap),
+   including the stale-validation false-positive class; live compile
+   lane through Epic's MCP Verse toolset when an editor is present.
+
+### 12.3 UEFN adapter as capability-probed proxy (A22, A23)
+
+1. Adapter interface + fakes now; the live proxy lands with/after the
+   UE 5.8 proxy (same `127.0.0.1:8000/mcp` shape, shared plumbing).
+   Capability probe detects editor presence, Beta-Access state
+   (missing toggles → remediation message), and the toolset catalog
+   keyed on (version, catalog hash, schema hash).
+2. Typed wrappers over Epic's toolsets under TEE's batch/diff/
+   checkpoint contract; server-side LUF↔XYZ normalization (known bug
+   class, property-tested round-trip); device catalog answered from a
+   local index — Epic's lists are never forwarded raw.
+3. Scene-Graph-first vocabulary: entity/component CRUD is the primary
+   op family (the UE6 object model); Creative devices wrap as a
+   parallel, eventually-legacy family. Stable IDs abstract over Actor
+   refPath (UE5) vs Scene Graph entity (UEFN/UE6).
+4. Session lane: Play-in-Client launch/stop, hot Verse push, compact
+   client-log extraction. Publish/cook/memory: report-only guidance,
+   never automated.
+
+### 12.4 Blender `export_for_uefn` op (A22)
+
+1. Pure-Python preflight validator over the encoded Fortnite-Ready
+   budget tables (LOD0 tri caps by asset class, three-LOD presence,
+   power-of-two ≤2K textures, material-section count, `UCX_` naming
+   and ≤10-mesh cap, applied transforms, 1uu=1cm scale, pivot) —
+   compact report with the exact fix per violation.
+2. The op: LOD1/LOD2 autogeneration at −50% steps, procedural-shader
+   baking, Spec=R/Metal=G/Rough=B channel packing, FBX export config
+   (Face smoothing, cm scale). Optional auto-import via UEFN Python
+   when a live editor is present (physical machine).
+3. Optional compact analytics tool on the public Fortnite Data API
+   (minutes played / per-player; unauthenticated).
+
+### 12.5 Version-trajectory firewall (A23, A24)
+
+1. Blender rows, with a test each: `use_nodes` write ban in codegen;
+   session_uid shuffle regression test (`all_ids` order change);
+   Phase 9 listing generator emits per-version entries with min/max
+   windows (`@b5_3`); GPU backend probe + `--gpu-backend opengl`
+   fallback; `set_gn_input()` chokepoint + enum-translation
+   pre-flight; float32 tolerance policy (1e-5, never hash floats);
+   Phase 11 ops carry `backend: legacy | gn_physics`.
+2. UE rows: 5.8.1 treated as long-lived baseline; TEE-owned
+   checkpointing asserted in the proxy (transaction bundling is off
+   in tool scripts); re-probe the 5.8-final MCP gap list before
+   building fillers (StartPIE exists; doc 07's list is preview-era);
+   toolset probing keys recorded per hotfix.
+3. One interface over UE and UEFN adapters so the UE6 merge
+   (~end-2027) is an implementation swap, not a redesign. Watch
+   lanes, revisit at Blender 5.3 beta / UE6 EA: `wm.undo_stack` diff
+   bracketing, Jolt node, XPBD schemas, UMG toolset, Blender Lab MCP.
+
+### 12.6 `uefn` skill
+
+Judgment content per A15/A16 packaging: budget interpretation and
+memory triage procedure, device-vs-Verse-vs-SceneGraph choice, genre/
+economy context from 38 (single-genre rule, engagement-payout
+formula), Verse idioms (failure contexts, effect selection,
+structured concurrency), the honest automation boundary (what is
+drivable vs human-only).
+
+### 12.7 Acceptance
+
+Full suite green, no DCC or UEFN needed: the synthetic digest fixture
+parses into API facts; the symbol linter rejects seeded hallucinations
+(`<varies>` effect, a removed member, an invented device method) with
+exact-fix messages and passes a clean snippet; digest diff between two
+fixture versions emits the expected drift facts; the export validator
+flags each seeded budget violation (over-cap LOD0, missing LOD, non-
+power-of-two texture, bad UCX name, unapplied scale) with the exact
+fix and passes a conformant fixture; LUF↔XYZ normalization round-trips
+by property test; the capability probe degrades cleanly with no editor
+(clear remediation, no crash); license lint proves no AGPL-derived
+code and no Epic digest text in the repo. Live-editor lanes (compile
+loop, Scene Graph ops, sessions, auto-import) are interface-complete
+with fakes and marked for the physical Windows machine.
+`docs/PROGRESS.md` updated with evidence.
+
+---
+
+## 16. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.
