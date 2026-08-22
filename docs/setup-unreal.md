@@ -98,6 +98,30 @@ These contradict the documentation, so TEE handles them for you:
 - `tools/call` answered **plain JSON**, not SSE, on every call measured. TEE
   parses both.
 
+## Required for simulation: let the editor tick in the background
+
+`ue_settle` runs Simulate-In-Editor. **A backgrounded editor does not tick at
+all**, and the failure is silent: the play world reports
+`is_in_play_in_editor() == True` and bodies report
+`is_simulating_physics() == True`, while the world clock stays pinned at 0.0
+and nothing moves. Polling that looks exactly like "the scene settled
+instantly".
+
+Fix it once per project — add to
+`Saved/Config/<Platform>Editor/EditorPerProjectUserSettings.ini` and restart:
+
+```ini
+[/Script/UnrealEd.EditorPerformanceSettings]
+bThrottleCPUWhenNotForeground=False
+```
+
+(Equivalently: Editor Preferences → Performance → uncheck "Use Less CPU when
+in Background".) Keeping the editor window in the foreground also works.
+
+TEE does not rely on you remembering: `ue_settle` asserts that simulation time
+actually advances and fails with this exact remedy rather than returning a
+confident wrong answer.
+
 ## Fallback route: UE 5.3–5.7
 
 Remote Control API (HTTP `:30010` / WS `:30020`) + Python remote execution,

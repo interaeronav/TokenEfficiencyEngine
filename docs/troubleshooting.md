@@ -41,3 +41,37 @@ failures beyond it.
 | `license_blocked` | Working as intended: NC/ND/GPL/unknown licenses never enter the cache; pick another hit (SA needs `[assets] allow_sa=true`) |
 | `backend_unreachable` with no cache | First search needs the network once to seed the ETag/TTL catalog cache; afterwards searches run from disk |
 | `cost_confirmation_required` | Paid generation (Tripo/Meshy) and fluid bakes require `confirm_cost=true` after showing the estimate |
+
+## Unreal: `ue_settle` reports `ue_editor_not_ticking`
+
+Simulate-In-Editor started, but the world clock never advanced, so nothing
+was simulated. The editor does not tick while it is in the background.
+
+Add to `Saved/Config/<Platform>Editor/EditorPerProjectUserSettings.ini` and
+restart the editor:
+
+```ini
+[/Script/UnrealEd.EditorPerformanceSettings]
+bThrottleCPUWhenNotForeground=False
+```
+
+This error exists because the failure is otherwise invisible: the play world
+reports itself running and the bodies report themselves simulating, so a
+poll loop would conclude the scene settled instantly and adopt unmoved poses.
+
+## Unreal: a Blueprint compiled clean but the function does nothing
+
+`write_graph_dsl` silently drops statements it cannot resolve, and the
+Blueprint then compiles clean, so a wrong node type id looks like success.
+Use `ue_blueprint_function`, which reads the graph back and fails with the
+unresolved id, rather than calling `write_graph_dsl` directly. Node type ids
+can be checked with `ue_call BlueprintTools find_node_types`.
+
+## Unreal: a tool call fails with `input param "X" needs a default value`
+
+Object-typed parameters are required even when their own description calls
+them optional. TEE builds the missing value from the parameter's schema and
+retries automatically; if you are calling the engine directly, pass an
+explicit value. Note that a zero-filled transform is not always harmless —
+a defaulted `captureTransform`, for instance, photographs the world origin
+rather than the viewport.
