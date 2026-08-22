@@ -774,3 +774,60 @@ written against. Live-probed facts, several of which correct doc 07:
   TEE's entire always-loaded 16-tool surface (~2,757 tokens). This is
   the measured justification for the A4 summarizing/caching proxy, and
   the baseline any Phase 5 UE benchmark is measured against.
+
+### 2026-08-22 — Phase 3 build, part 1 (connector + proxy + batch lane)
+
+Built against the live editor, not the digest. Steps 3.1–3.4 of the script
+are done; 3.5 (TEE toolsets in a content plugin), 3.7 (vision/assertions)
+and the Blueprint-DSL acceptance bullet are still open.
+
+- **Connector** (`adapters/unreal/wire.py`): stdlib-only Streamable-HTTP MCP
+  client — handshake, `Mcp-Session-Id`, strictly serial dispatch, per-call
+  timeouts, one automatic re-handshake when a session is dropped. Parses
+  **both** plain-JSON and SSE bodies rather than betting on either.
+- **Catalog** (`catalog.py`): toolset names resolve by **suffix** against the
+  live `list_toolsets`, never hardcoded — Epic's module paths drift between
+  point builds. `describe_toolset` is fetched at most once per toolset per
+  session and the raw payload never leaves the server.
+- **Summarizer** (`summarize.py`): `BlueprintTools` **18,042 → 2,097 tokens
+  (88.4% saved)**. The script's flat "<10% of raw" acceptance was **not met
+  and was amended, not quietly missed** — see DECISIONS **A25**: the ratio
+  rewards bloat in the input (`AssetTools` costs the model 4× less than
+  `BlueprintTools` yet scores worse), and reaching 10% requires dropping the
+  doc lines, which costs more tokens than it saves (two `ue_describe_tool`
+  round-trips at ~390 tokens each already exceed the 806 tokens the docs cost
+  for all 53 tools).
+- **Batch lane** (`codegen.py`, `adapter.py`): one `execute_tool_script` per
+  batch. Live: 3 actors spawned + configured in **one call, 3.3s, 553-char
+  diff** — the "spawn + configure actors via one macro call" acceptance
+  bullet.
+
+**The load-bearing performance fact for this phase:** each in-editor
+`execute_tool` costs **~0.37s**, serialized on the game thread. Batching HTTP
+round-trips is therefore not sufficient — the number of *tool dispatches*
+inside a script matters just as much. The first listing did 2 dispatches per
+actor: 21 actors took **15.7s** and blew the 60s test timeout as the level
+filled. Redesigned to TEE's own progressive-disclosure rule: listing is **one
+dispatch regardless of scene size** (names fall back to the refPath's object
+name, which is free), labels and transforms are detail fetched only for
+entities actually asked about, and snapshots read transforms only for actors
+TEE itself moved. Measured after: **list_entities 15.7s → 1.52s**, snapshot
+0.67s, restore 0.99s, live suite **146s + timeout → 21.8s green**.
+
+**Undocumented sandbox constraints found by execution** (none of them in
+`get_execution_environment`'s own instructions):
+
+- tool results are `_StrictDict`: `.get(key, default)` is rejected, only
+  direct `[]` access works;
+- the ops array must be embedded as JSON text parsed in-script, never as
+  Python source — JSON `null` is not a Python literal and `NameError`s as
+  soon as an optional field is absent;
+- names guessed from the docs were wrong: it is `get_label` (not
+  `get_actor_label`), and `find_actors` requires `collision_channels` on top
+  of `name` and `tag`.
+
+- Scratch project for this work: `~/Documents/Unreal Projects/TeeProbe`,
+  level `/Temp/Untitled_1` (unsaved, so the test actors do not persist).
+- Evidence: 17 offline + 10 live UE tests; full suite **359 passed, 2
+  skipped**; `-m dcc` **65 passed** (Blender both flavors + Unreal);
+  `make check` green.
