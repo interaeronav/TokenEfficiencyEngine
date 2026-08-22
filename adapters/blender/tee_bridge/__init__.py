@@ -32,9 +32,30 @@ class TeeBridgePreferences(bpy.types.AddonPreferences):
         layout.prop(self, "auto_start")
         running = bool(bridge_server._gui_state)
         layout.label(text=f"Bridge: {'running' if running else 'stopped'}")
+        if _last_error["message"] and not running:
+            box = layout.box()
+            box.alert = True
+            for line in _wrap(_last_error["message"], 60):
+                box.label(text=line)
         row = layout.row()
         row.operator(TEE_OT_bridge_start.bl_idname)
         row.operator(TEE_OT_bridge_stop.bl_idname)
+
+
+_last_error = {"message": ""}
+
+
+def _wrap(text: str, width: int) -> list[str]:
+    words, lines, line = text.split(), [], ""
+    for word in words:
+        if line and len(line) + len(word) + 1 > width:
+            lines.append(line)
+            line = word
+        else:
+            line = f"{line} {word}".strip()
+    if line:
+        lines.append(line)
+    return lines
 
 
 class TEE_OT_bridge_start(bpy.types.Operator):
@@ -46,7 +67,13 @@ class TEE_OT_bridge_start(bpy.types.Operator):
             self.report({"INFO"}, "TEE bridge already running")
             return {"CANCELLED"}
         prefs = context.preferences.addons[__package__].preferences
-        port = bridge_server.start_gui(port=prefs.port)
+        try:
+            port = bridge_server.start_gui(port=prefs.port)
+        except RuntimeError as exc:
+            _last_error["message"] = str(exc)
+            self.report({"ERROR"}, f"TEE bridge: {exc}")
+            return {"CANCELLED"}
+        _last_error["message"] = ""
         self.report({"INFO"}, f"TEE bridge listening on 127.0.0.1:{port}")
         return {"FINISHED"}
 
@@ -69,7 +96,14 @@ def register() -> None:
         bpy.utils.register_class(cls)
     prefs = bpy.context.preferences.addons[__package__].preferences
     if prefs.auto_start and not bpy.app.background:
-        bridge_server.start_gui(port=prefs.port)
+        # a busy port must never break add-on enable: record the error,
+        # show it in preferences, let the user fix the port and press Start
+        try:
+            bridge_server.start_gui(port=prefs.port)
+            _last_error["message"] = ""
+        except RuntimeError as exc:
+            _last_error["message"] = str(exc)
+            print(f"TEE bridge did not start: {exc}")
 
 
 def unregister() -> None:

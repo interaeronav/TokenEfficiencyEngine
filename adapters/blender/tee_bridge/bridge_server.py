@@ -210,7 +210,19 @@ def start_gui(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> int:
     if _gui_state:
         raise RuntimeError("TEE bridge already running")
     pending: queue.Queue = queue.Queue()
-    loop = _IOLoop(host, port, lambda sock, frame: pending.put((sock, frame)))
+    try:
+        loop = _IOLoop(host, port, lambda sock, frame: pending.put((sock, frame)))
+    except OSError as exc:
+        # EADDRINUSE is the common first-run failure on real machines:
+        # a lingering Blender process, the official MCP add-on on the
+        # same port, or an unrelated app. Fail with the fix, not a trace.
+        raise RuntimeError(
+            f"port {port} is already in use - another Blender instance, the "
+            "official MCP add-on, or another app holds it. Quit other "
+            "Blender processes, or change Port in the TEE Bridge add-on "
+            "preferences (then start TEE with --blender-port "
+            f"<new port>). [{exc}]"
+        ) from exc
     thread = threading.Thread(target=loop.run, name="tee-bridge-io", daemon=True)
 
     def pump() -> float | None:
