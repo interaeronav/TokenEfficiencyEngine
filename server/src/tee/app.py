@@ -50,6 +50,9 @@ class TeeApp:
         # an explicit CLI flag enables; otherwise the project config decides
         self.allow_code_exec = allow_code_exec or bool(self.config.allow_code_exec)
         self.lock = threading.RLock()
+        # installed by the extract module: (source, region, timestamp, budget)
+        # -> (jpeg bytes, info) for the kernel tee_media tool
+        self.media_view = None
 
     # -- helpers -----------------------------------------------------------
 

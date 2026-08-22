@@ -176,12 +176,23 @@ def _apply_props(obj, props):
         ref = props["parent"]
         obj.parent = _find(ref) if ref else None
     if "dimensions" in props:
-        obj.dimensions = props["dimensions"]
+        # obj.dimensions writes scale from the bound_box, which is stale for
+        # meshes built this same batch - derive scale from real vertex extents
+        target = props["dimensions"]
+        verts = getattr(obj.data, "vertices", None)
+        if verts is not None and len(verts):
+            for axis in range(min(3, len(target))):
+                lo = min(v.co[axis] for v in verts)
+                hi = max(v.co[axis] for v in verts)
+                if hi - lo > 1e-9:
+                    obj.scale[axis] = float(target[axis]) / (hi - lo)
+        else:
+            obj.dimensions = target
 """
 
 BATCH_INTERPRETER = """
 _created, _modified, _deleted = [], [], []
-_details, _entities = {}, {}
+_touched = {}
 
 for _i, _op in enumerate(_OPS):
     _kind = _op.get("op")
@@ -189,8 +200,7 @@ for _i, _op in enumerate(_OPS):
         _obj = _create(_op)
         _eid = _uid(_obj)
         _created.append(_eid)
-        _entities[_eid] = _ent(_obj)
-        _details[_eid] = _entities[_eid]
+        _touched[_eid] = _obj
     elif _kind == "set":
         _obj = _find(_op.get("id"))
         if _obj is None:
@@ -199,8 +209,7 @@ for _i, _op in enumerate(_OPS):
         _eid = _uid(_obj)
         if _eid not in _created and _eid not in _modified:
             _modified.append(_eid)
-        _entities[_eid] = _ent(_obj)
-        _details[_eid] = _entities[_eid]
+        _touched[_eid] = _obj
     elif _kind == "assign_material":
         _obj = _find(_op.get("id"))
         if _obj is None:
@@ -209,8 +218,7 @@ for _i, _op in enumerate(_OPS):
         _eid = _uid(_obj)
         if _eid not in _created and _eid not in _modified:
             _modified.append(_eid)
-        _entities[_eid] = _ent(_obj)
-        _details[_eid] = _entities[_eid]
+        _touched[_eid] = _obj
     elif _kind == "delete":
         _obj = _find(_op.get("id"))
         if _obj is None:
@@ -218,8 +226,7 @@ for _i, _op in enumerate(_OPS):
         _eid = _uid(_obj)
         bpy.data.objects.remove(_obj, do_unlink=True)
         _deleted.append(_eid)
-        _details.pop(_eid, None)
-        _entities.pop(_eid, None)
+        _touched.pop(_eid, None)
         if _eid in _created:
             _created.remove(_eid)
         if _eid in _modified:
@@ -227,16 +234,22 @@ for _i, _op in enumerate(_OPS):
     else:
         raise ValueError("unknown op %r (batch index %d)" % (_kind, _i))
 
+# details are read AFTER one depsgraph update - dimensions/bounds of objects
+# built or scaled this batch are stale until then
 bpy.context.view_layer.update()
 if not bpy.app.background:
     bpy.ops.ed.undo_push(message=_UNDO_LABEL)
+
+_details = {}
+for _eid, _obj in _touched.items():
+    _details[_eid] = _ent(_obj)
 
 result = {
     "created": _created,
     "modified": _modified,
     "deleted": _deleted,
     "details": _details,
-    "entities": list(_entities.values()),
+    "entities": list(_details.values()),
 }
 """
 

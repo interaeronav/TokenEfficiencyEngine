@@ -215,6 +215,7 @@ MINIMAL_ARGS = {
     "tee_checkpoint": {"label": "canary"},
     "tee_rollback": {"ref": "cp1"},
     "tee_job": {"job_id": "job999"},
+    "tee_media": {"source": "nothing-ingested"},
     "tee_search_tools": {"query": "demo"},
     "tee_describe_tool": {"name": "bl_demo_tool"},
     "tee_call": {"name": "bl_demo_tool", "args": {"n": 1}},
@@ -229,6 +230,8 @@ def test_every_tool_answers_with_model_visible_content():
     async def scenario(client):
         listed = (await client.list_tools()).tools
         for tool in listed:
+            if tool.name in ("tee_capture", "tee_media"):
+                pass
             if tool.name == "tee_capture":
                 result = await client.call_tool("tee_capture", {"max_kb": 8})
                 assert isinstance(result.content[0], (ImageContent, TextContent))

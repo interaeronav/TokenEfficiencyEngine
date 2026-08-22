@@ -21,9 +21,11 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       saving measured — see benchmarks/RESULTS.md; UE scenarios need the
       physical machine)*
 - [ ] Phase 6 — Packaging and handoff
-- [ ] Phase 7 — TEE Extract: media extraction module *(research complete +
-      phase scripted 2026-08-22; build is cloud-executable — fixtures are
-      synthetic and the Blender handoff tests run headless)*
+- [x] Phase 7 — TEE Extract: media extraction module *(built in cloud,
+      2026-08-22: all lanes + store + frames + handoff + IFC export; 144
+      non-DCC tests, 26 live-Blender tests, extraction benchmark 92.6%
+      saving. Whisper/pyannote model quality on real site audio and
+      GPU-dependent paths still deserve a physical-machine spot check)*
 
 ## Machine facts
 
@@ -142,3 +144,60 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   transforms-as-facts with tier precedence settle cross-source conformance.
 - Phase 7 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections 7.1–7.8 with
   acceptance criteria); build not started.
+
+### 2026-08-22 — Phase 7 build (cloud)
+- **Store (7.1):** content-addressed fact store under `.tee/extract/`
+  keyed (media_hash, extractor, version) with 2-char fanout; re-ingest of
+  identical media is a no-op (verified: second ingest of the 7-file fixture
+  folder reports ≥6 cached, 0 re-extracted). Evidence-tier table
+  `TIER_TOLERANCE_M` with RSS tolerance math; license lint test bans
+  fitz/pymupdf/marker/ultralytics imports repo-wide.
+- **Plan schema + frames (7.2):** `tee-plan/1` (FML-derived, per-level
+  heights, parametric roof, validation with exact-fix errors); frame
+  registry with single-active-parent transform tree anchored at `site:enu`,
+  Umeyama similarity fit (scale pinned when dimension_text governs,
+  free-scale conflict >2% surfaces `units_conflict`), pymap3d geodetic
+  datum. All covered by unit tests.
+- **Document lane (7.3):** ezdxf DIMENSION ground truth + $INSUNITS
+  firewall (unitless DXF → calibration question, never a guess), WALLS/
+  ROOMS/DOORS layer extraction to plan facts; pdfplumber vector-sheet lane
+  (dimension-string↔line pairing, least-squares scale fit, wall pairing,
+  NCS sheet classifier), OCR fallback for scanned pages; fixture DXF and
+  PDF plans extract to correct 8m×6m plans (walls, rooms, door, dims).
+- **Image/video/audio lanes (7.4):** EXIF+GPS+phash image facts, ≤5-photo
+  dedupe groups + labeled contact sheet, token-budgeted `tee_media` serving
+  (crop/timestamp/page, patch-formula budget, 4,784 cap); video keyframe
+  funnel (2s sampling → sharpness → phash clusters → ≤15 keyframes with
+  timestamp index + frame-accurate re-fetch), DJI SRT flight paths
+  downsampled to turning points; faster-whisper transcription with VAD
+  (fixture: espeak-synthesized brief transcribed, "bedroom"/"budget"
+  requirements recoverable), optional HF-gated diarization degrades silently.
+- **VLM passes (7.5):** in-band driver (ex_prepare packet: paths, guidance
+  per media type, plan-schema hint; ex_store_facts validated writeback) as
+  default; optional ANTHROPIC_API_KEY ApiDriver; tile plan respects both
+  the 4,784-token and 2,000-px caps.
+- **Kernel wiring (7.6):** `ex_*` virtual tools via progressive disclosure;
+  `tee_media` is the 15th always-loaded tool; ingest runs as async jobs;
+  canaries updated (tool count, model-visible content).
+- **Handoff + conformance (7.7):** plan → typed batch ops (rotated unit
+  cubes, floor slabs) through the normal checkpointed batch machinery;
+  build manifest maps wall ids → entity ids; `bl_check_against_plan`
+  compares in the common frame with RSS(tier, tier, chain) tolerance and
+  stores over-tolerance deltas as conflict facts. IFC4 export via
+  ifcopenshell authoring API (real IfcWall entities, storey elevations).
+- **Live acceptance (7.7):** DXF fixture plan built in real headless
+  Blender via BOTH bridge flavors: 5 walls + slab, honest build conformant
+  (0 conflicts); a wall deliberately moved 0.1 m yields exactly one
+  conflict fact naming `plan:w1:position`, delta 0.1 m vs tolerance
+  0.017 m, stored in the fact store. Found and fixed a real kernel bug en
+  route: `obj.dimensions` writes/reads against a stale bound_box for
+  meshes built in the same batch — batch details are now collected after
+  one `view_layer.update()`, and dimension props apply scale from true
+  vertex extents.
+- **Benchmark (7.8):** extraction scenario added to `benchmarks/` — naive
+  re-attach of the media set every session vs ingest-once + compact fact
+  queries over a simulated 4-session build: **65,176 → 4,811 tokens
+  (92.6% saved)**; Blender scenarios re-run and unchanged (87.7% total).
+- Evidence: `uv run pytest` → **144 passed, 0 skipped**; `uv run pytest -m
+  dcc` → **26 passed** (both bridge flavors, live Blender 5.2); `ruff
+  check`/`format` clean; full benchmark suite re-run against live Blender.

@@ -76,6 +76,12 @@ _DESC = {
         "relative to text: prefer tee_scene_summary / geometric checks first "
         "(P3). max_kb caps the image budget (<=256)."
     ),
+    "tee_media": (
+        "Budgeted view of an ingested source (photo crop, video frame by "
+        "timestamp, PDF page): a small inline JPEG sized to max_tokens "
+        "(default 800, cap 4784). Facts (ex_facts/ex_search) are cheaper - "
+        "use pixels only when text cannot answer."
+    ),
     "tee_search_tools": (
         "Search the long tail of DCC-specific tools by keywords (e.g. 'blender "
         "material', 'bake physics'). Returns names + one-line summaries; then "
@@ -258,6 +264,33 @@ def build_server(app: TeeApp) -> MCPServer:
             except Exception as exc:
                 return json.dumps(internal_error_payload(exc))
             app.response_log.record("tee_capture", {"bytes": len(data)})
+            return Image(data=data, format="jpeg")
+
+    @mcp.tool(structured_output=False, description=_DESC["tee_media"])
+    def tee_media(
+        source: str,
+        region: list[int] | None = None,
+        timestamp: float | None = None,
+        max_tokens: int = 800,
+    ):
+        with app.lock:
+            if app.media_view is None:
+                return json.dumps(
+                    TeeError(
+                        "extract_inactive",
+                        "The extraction module is not active in this server.",
+                        fix="Serve with the extract module enabled (default "
+                        "when the tee[extract] extra is installed).",
+                    ).to_payload()
+                )
+            try:
+                budget = max(50, min(int(max_tokens), 4784))
+                data, info = app.media_view(source, region, timestamp, budget)
+            except TeeError as exc:
+                return json.dumps(exc.to_payload())
+            except Exception as exc:
+                return json.dumps(internal_error_payload(exc))
+            app.response_log.record("tee_media", {"bytes": len(data), **info})
             return Image(data=data, format="jpeg")
 
     # -- progressive disclosure (meta-tools) --------------------------------

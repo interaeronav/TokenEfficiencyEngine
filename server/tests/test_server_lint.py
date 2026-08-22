@@ -79,7 +79,7 @@ def test_tool_names_are_prefixed_and_stable(tools):
         assert tool.name.startswith("tee_"), tool.name
 
 
-EXPECTED_TOOL_COUNT = 14
+EXPECTED_TOOL_COUNT = 15
 
 
 def test_tool_count_matches_expectation(tools):

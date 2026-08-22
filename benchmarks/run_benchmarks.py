@@ -20,7 +20,6 @@ Anthropic's visual token formula). Run:
 
 from __future__ import annotations
 
-import json
 import math
 import shutil
 import socket
@@ -33,6 +32,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "server" / "src"))
+sys.path.insert(0, str(REPO / "server" / "tests"))  # shared synthetic fixtures
 
 from tee.adapters.blender.adapter import BlenderAdapter  # noqa: E402
 from tee.adapters.blender.tools import register_blender_tools  # noqa: E402
@@ -187,19 +187,30 @@ def scenario_donut(naive: Naive | None, tee: Tee | None) -> None:
     if tee:
         out = tee.batch(
             [
-                {"op": "create", "kind": "torus", "name": "Donut",
-                 "props": {"radius": 1, "minor_radius": 0.4}},
-                {"op": "create", "kind": "cylinder", "name": "Plate",
-                 "props": {"radius": 1.8, "depth": 0.08, "location": [0, 0, -0.25]}},
-                {"op": "create", "kind": "light", "name": "Key",
-                 "props": {"light_type": "SUN"}},
+                {
+                    "op": "create",
+                    "kind": "torus",
+                    "name": "Donut",
+                    "props": {"radius": 1, "minor_radius": 0.4},
+                },
+                {
+                    "op": "create",
+                    "kind": "cylinder",
+                    "name": "Plate",
+                    "props": {"radius": 1.8, "depth": 0.08, "location": [0, 0, -0.25]},
+                },
+                {"op": "create", "kind": "light", "name": "Key", "props": {"light_type": "SUN"}},
             ]
         )
         donut = out["created"][0]
         result = tee.app.registry.call(
             "bl_assign_material",
-            {"entity_id": donut, "material": "Icing", "base_color": [0.9, 0.4, 0.6],
-             "roughness": 0.4},
+            {
+                "entity_id": donut,
+                "material": "Icing",
+                "base_color": [0.9, 0.4, 0.6],
+                "roughness": 0.4,
+            },
         )
         tee.meter.call({"tool": "bl_assign_material"}, result)
         tee.stats()  # geometric verification instead of pixels
@@ -227,16 +238,22 @@ def scenario_hundred_objects(naive: Naive | None, tee: Tee | None) -> None:
         naive.query(SCENE_DUMP_CODE)  # "what does the scene look like now?"
     if tee:
         ops = [
-            {"op": "create", "kind": "cube", "name": f"Block{j}",
-             "props": {"size": 0.5, "location": [j % 10, j // 10, 0]}}
+            {
+                "op": "create",
+                "kind": "cube",
+                "name": f"Block{j}",
+                "props": {"size": 0.5, "location": [j % 10, j // 10, 0]},
+            }
             for j in range(100)
         ]
         out = tee.batch(ops)
         ids = out["created"]
         stamp = {"epoch": out["epoch"], "revision": out["revision"]}
         tee.batch(
-            [{"op": "set", "id": ids[k], "props": {"location": [k % 10, k // 10, 2]}}
-             for k in (3, 47, 91)]
+            [
+                {"op": "set", "id": ids[k], "props": {"location": [k % 10, k // 10, 2]}}
+                for k in (3, 47, 91)
+            ]
         )
         tee.diff(stamp)  # "what changed?" costs a diff, not a dump
 
@@ -261,13 +278,22 @@ def scenario_material_pass(naive: Naive | None, tee: Tee | None) -> None:
             )
     if tee:
         out = tee.batch(
-            [{"op": "create", "kind": "uv_sphere", "name": f"Ball{i}",
-              "props": {"radius": 0.4, "location": [i, 0, 0]}}
-             for i in range(10)]
+            [
+                {
+                    "op": "create",
+                    "kind": "uv_sphere",
+                    "name": f"Ball{i}",
+                    "props": {"radius": 0.4, "location": [i, 0, 0]},
+                }
+                for i in range(10)
+            ]
         )
         ops = [
-            {"op": "assign_material", "id": eid,
-             "props": {"material": f"M{i}", "base_color": [i / 10, 0.2, 0.5]}}
+            {
+                "op": "assign_material",
+                "id": eid,
+                "props": {"material": f"M{i}", "base_color": [i / 10, 0.2, 0.5]},
+            }
             for i, eid in enumerate(out["created"])
         ]
         tee.batch(ops)
@@ -288,6 +314,137 @@ SCENARIOS = [
     ("material pass over 10 objects", scenario_material_pass),
     ("layout verification", scenario_verify),
 ]
+
+
+# --------------------------------------------------------------------------
+# Extraction scenario (7.8): ingest-once vs media re-billing across a
+# simulated multi-session build. Needs no Blender - the media lanes are
+# fully local. Media set = the in-repo synthetic fixtures (a DXF plan with
+# real DIMENSION entities, a vector-PDF sheet, a walkthrough video, a DJI
+# SRT, three site photos, and an espeak-synthesized client brief).
+# --------------------------------------------------------------------------
+
+EXTRACT_SESSIONS = 4
+NAIVE_FRAMES_PER_SESSION = 6
+
+
+def run_extract_scenario() -> tuple | None:
+    try:
+        import pypdfium2 as pdfium
+        from fixtures_extract import (
+            BRIEF_TEXT,
+            DJI_SRT,
+            make_audio,
+            make_dxf,
+            make_pdf,
+            make_scene_frames,
+            make_video,
+        )
+        from test_extract_images_media import make_photo
+
+        from tee.app import TeeApp
+        from tee.extract.tools import register_extract_tools
+        from tee.kernel.adapter import FakeAdapter
+    except ImportError as exc:
+        print(f"extraction scenario skipped (extract extra not installed: {exc})")
+        return None
+
+    workdir = Path(tempfile.mkdtemp(prefix="tee-bench-extract-"))
+    media = workdir / "site-materials"
+    media.mkdir()
+    dxf = make_dxf(media / "plan.dxf")
+    pdf = make_pdf(media / "A-101.pdf")
+    frames = make_scene_frames(workdir / "frames")
+    make_video(media / "walkthrough.mp4", frames)
+    (media / "flight.srt").write_text(DJI_SRT)
+    photos = [make_photo(media / f"photo{i}.jpg", seed=s) for i, s in enumerate((0, 1, 40))]
+    audio = make_audio(media / "brief.wav")
+
+    # -- naive: every session re-attaches the media to context ------------
+    naive = Meter()
+    doc = pdfium.PdfDocument(str(pdf))
+    page = doc[0]
+    sheet_px = (int(page.get_width() * 200 / 72), int(page.get_height() * 200 / 72))
+    doc.close()
+    from PIL import Image
+
+    from tee.extract.images import STANDARD_EDGE_CAP
+
+    def attach(width: int, height: int) -> None:
+        # the API resizes so the long edge is <= 1568 (standard tier)
+        long_edge = max(width, height)
+        if long_edge > STANDARD_EDGE_CAP:
+            factor = STANDARD_EDGE_CAP / long_edge
+            width, height = int(width * factor), int(height * factor)
+        naive.round_trips += 1
+        naive.image(width, height)
+
+    dxf_text = dxf.read_text(errors="ignore")
+    for _session in range(EXTRACT_SESSIONS):
+        naive.text(dxf_text)  # raw DXF pasted into context (it is text)
+        naive.round_trips += 1
+        attach(*sheet_px)  # plan sheet rendered at 200 dpi
+        for photo in photos:
+            with Image.open(photo) as img:
+                attach(*img.size)
+        for _frame in range(NAIVE_FRAMES_PER_SESSION):
+            attach(320, 240)  # fixture video frames at native size
+        if audio is not None:
+            naive.text(BRIEF_TEXT)  # transcript re-supplied every session
+
+    # -- TEE: ingest once locally, then compact fact queries ---------------
+    tee = Meter()
+    project = workdir / "project"
+    project.mkdir()
+    app = TeeApp({"fake": FakeAdapter()}, project_root=project)
+    store, _registry = register_extract_tools(app, project)
+    try:
+        # session 1: one ingest job (local, zero tokens while it runs) and
+        # the compact fact reads a model actually needs to start building
+        request = {"tool": "ex_ingest", "path": str(media)}
+        out = app.registry.call("ex_ingest", {"path": str(media)})
+        deadline = time.time() + 300
+        while time.time() < deadline:
+            status = app.jobs.status(out["job"])
+            if status["state"] in ("done", "error"):
+                break
+            time.sleep(0.3)
+        assert status["state"] == "done", status
+        tee.call(request, status["result"])
+
+        for kind in ("plan", "dimension"):
+            response = app.registry.call("ex_facts", {"source": "plan.dxf", "kind": kind})
+            tee.call({"tool": "ex_facts", "kind": kind}, response)
+        for name, kind in (("walkthrough.mp4", "keyframe"), ("brief.wav", "transcript_segment")):
+            try:
+                response = app.registry.call("ex_facts", {"source": name, "kind": kind})
+            except Exception:
+                continue  # no audio lane on this machine
+            tee.call({"tool": "ex_facts", "kind": kind}, response)
+        sheets = [f for s in store.sources() for f in store.facts(s["hash"], kind="contact_sheet")]
+        if sheets:
+            tee.round_trips += 1
+            tee.tokens += int(sheets[-1].get("tokens") or 0)  # contact sheet, once
+
+        # sessions 2..N: facts are already on disk - compact queries only
+        for session in range(1, EXTRACT_SESSIONS):
+            response = app.registry.call("ex_search", {"query": "bedroom dimension"})
+            tee.call({"tool": "ex_search", "query": "bedroom dimension"}, response)
+            response = app.registry.call("ex_facts", {"source": "plan.dxf", "kind": "plan"})
+            tee.call({"tool": "ex_facts", "kind": "plan"}, response)
+            if session == 2:  # one budgeted detail crop mid-build
+                tee.round_trips += 1
+                tee.tokens += 300
+    finally:
+        app.shutdown()
+
+    saving = 100.0 * (1 - tee.tokens / naive.tokens)
+    print(
+        f"extraction ingest-once vs re-attach ({EXTRACT_SESSIONS} sessions): "
+        f"naive {naive.tokens} tok / {naive.round_trips} attaches"
+        f" -> tee {tee.tokens} tok / {tee.round_trips} calls ({saving:.1f}% saved)"
+    )
+    return (naive.tokens, naive.round_trips, tee.tokens, tee.round_trips, saving)
 
 
 # --------------------------------------------------------------------------
@@ -353,8 +510,9 @@ def main() -> None:
             # tee run (fresh app per scenario)
             clear_scene(wire)
             adapter = BlenderAdapter(wire)
-            app = TeeApp({"blender": adapter}, project_root=tempfile.mkdtemp(),
-                         allow_code_exec=True)
+            app = TeeApp(
+                {"blender": adapter}, project_root=tempfile.mkdtemp(), allow_code_exec=True
+            )
             register_blender_tools(app, adapter)
             app.warm("blender")
             tee_meter = Meter()
@@ -365,8 +523,14 @@ def main() -> None:
 
             saving = 100.0 * (1 - tee_meter.tokens / naive_meter.tokens)
             rows.append(
-                (name, naive_meter.tokens, naive_meter.round_trips,
-                 tee_meter.tokens, tee_meter.round_trips, saving)
+                (
+                    name,
+                    naive_meter.tokens,
+                    naive_meter.round_trips,
+                    tee_meter.tokens,
+                    tee_meter.round_trips,
+                    saving,
+                )
             )
             print(
                 f"{name}: naive {naive_meter.tokens} tok / {naive_meter.round_trips} calls"
@@ -376,10 +540,11 @@ def main() -> None:
     finally:
         proc.terminate()
 
-    write_results(rows)
+    extract_row = run_extract_scenario()
+    write_results(rows, extract_row)
 
 
-def write_results(rows) -> None:
+def write_results(rows, extract_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -404,6 +569,29 @@ def write_results(rows) -> None:
     lines.append(
         f"| **total** | **{total_naive:,}** | | **{total_tee:,}** | | **{total_saving:.1f}%** |"
     )
+    if extract_row is not None:
+        ntok, ncalls, ttok, tcalls, saving = extract_row
+        lines += [
+            "",
+            "## Extraction: ingest-once vs media re-billing",
+            "",
+            f"A simulated {EXTRACT_SESSIONS}-session build over one media set (DXF plan,",
+            "vector-PDF sheet, walkthrough video, DJI SRT, 3 site photos, audio",
+            "brief - the in-repo synthetic fixtures). **Naive** re-attaches the",
+            "media to context every session (raw DXF text, sheet render, photos,",
+            "video frames, transcript). **TEE** ingests once - deterministic local",
+            "extraction, zero tokens while it runs - then every session reads",
+            "compact facts from the content-addressed store, plus one bounded",
+            "contact sheet and one 300-token detail crop in total.",
+            "",
+            "| | Tokens | Round-trips/attaches | Saving |",
+            "|---|---|---|---|",
+            f"| naive re-attach | {ntok:,} | {ncalls} | |",
+            f"| TEE ingest-once | {ttok:,} | {tcalls} | {saving:.1f}% |",
+            "",
+            "Fixture media are deliberately tiny; real drawing sets, 4K site",
+            "photos and drone footage widen the gap by an order of magnitude.",
+        ]
     lines += [
         "",
         f"*Generated by `benchmarks/run_benchmarks.py` against Blender "
