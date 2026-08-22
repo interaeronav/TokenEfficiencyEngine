@@ -1018,7 +1018,6 @@ Nothing further can be closed on this machine. The honest remainder:
 - hosted generation with real Tripo/Meshy keys; `[assets-embed]` embeddings.
 - Whisper/pyannote quality spot-check on real site audio (fixtures only so
   far).
-- live fluid-bake validation (Blender).
 
 **Data caveat still standing:** joist-span worst-grade values in
 `plaus_rules.json` are approximate pending edition verification, and
@@ -1149,3 +1148,37 @@ Verified live: a 2 m cube exported from Blender → ingested → published →
 with its licence, thumbnails generated, no stray `.py` in the folder.
 
 - Evidence: **379 passed, 2 skipped**; `-m dcc` **81 passed**.
+
+### 2026-08-22 — Fluid bake validated live (Phase 11 ledger item closed)
+
+The fluid lane was cost-gated, async and unit-tested but had never run
+against a real Blender. Now it has, with the assertion that actually matters:
+**the bake wrote real Mantaflow cache data**. A bake that silently does
+nothing still reports `done`, so counting output files is the only honest
+check.
+
+Measured: 12 frames at resolution 32 → **750 `.uni` cache files, 366 KB, in
+1.8 s**. The committed test uses 6 frames at resolution 24 to stay quick and
+also asserts the cache path is **absolute** — relative fluid cache dirs fail
+silently in Blender, a catalogued tracker landmine.
+
+- Evidence: **379 passed, 2 skipped**; `-m dcc` **83 passed**.
+
+## Ledger status after this session
+
+Everything reachable on this machine is now closed. What remains is blocked
+by hardware, by credentials, or by a decision that is the owner's:
+
+- **Descoped by the owner:** live UEFN (Windows-only).
+- **Needs CUDA:** lane 3 local 3D generation (TRELLIS.2 / nvdiffrast).
+  Lanes 1–2 now correctly report available on MPS.
+- **Needs an older engine:** the UE 5.3–5.7 fallback tier, unimplemented.
+- **Needs the owner's credentials:** hosted generation (Tripo / Meshy keys).
+- **Needs a multi-gigabyte download decision:** running diffusion end to end
+  on MPS, and the `[assets-embed]` embedding model. Detection and device
+  selection are fixed and tested; the weights are not mine to fetch.
+- **Needs real input data:** Whisper / pyannote quality on genuine site
+  audio — only synthetic fixtures exist.
+- **Data caveat:** joist-span worst-grade values in `plaus_rules.json` remain
+  approximate pending edition verification, and SANS 10400 is not yet added
+  for Okongo jurisdiction defaults.
