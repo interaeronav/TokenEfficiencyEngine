@@ -345,3 +345,44 @@ result = {{"ok": True}}
     assert out["preset"] == "cotton"
     assert out["frames"] >= 24
     assert "no pass/fail metric" in out["note"]
+
+
+def test_fluid_bake_runs_as_a_job_and_writes_a_real_cache(app, tmp_path):
+    """The fluid lane is cost-gated and async. Assert it produced actual
+    Mantaflow cache data - a bake that silently does nothing would still
+    report 'done'."""
+    import time
+    from pathlib import Path
+
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        app.registry.call("sim_fluid", {})
+    assert err.value.code == "cost_confirmation_required"
+
+    out = app.registry.call(
+        "sim_fluid",
+        {
+            "confirm_cost": True,
+            "resolution": 24,
+            "frames": 6,
+            "domain_size": [1.5, 1.5, 1.5],
+            "inflow": [0, 0, 1.0],
+        },
+    )
+    job = out["job"]
+    deadline = time.time() + 900
+    status = app.jobs.status(job)
+    while status["state"] in ("queued", "running") and time.time() < deadline:
+        time.sleep(1.0)
+        status = app.jobs.status(job)
+    assert status["state"] == "done", status
+
+    result = status["result"]
+    assert result["baked_frames"] == 6
+    cache = Path(result["cache_dir"])
+    assert cache.is_absolute(), "relative cache dirs fail silently in Blender"
+    assert cache.exists(), result
+    files = [f for f in cache.rglob("*") if f.is_file()]
+    assert len(files) > 10, f"cache holds only {len(files)} files"
+    assert sum(f.stat().st_size for f in files) > 10_000
