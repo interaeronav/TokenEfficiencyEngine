@@ -67,6 +67,14 @@ def _attach_physical(app, project: str) -> None:
     register_physical_tools(app, Path(project))
 
 
+def _attach_uefn(app, project: str) -> None:
+    """Register TEE UEFN tools (offline lanes always work; the live proxy
+    activates on machines with UEFN + Beta Access)."""
+    from tee.uefn.tools import register_uefn_tools
+
+    register_uefn_tools(app, Path(project))
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -93,6 +101,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_assets(app, args.project, extract_store)
     _attach_design(app, args.project)
     _attach_physical(app, args.project)
+    _attach_uefn(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

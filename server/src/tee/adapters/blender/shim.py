@@ -29,6 +29,14 @@ class FaultLine:
 
 _F = [
     FaultLine(
+        "use_nodes_write_banned",
+        re.compile(r"\.use_nodes\s*="),
+        lambda v: v >= (5, 0, 0),
+        "Writing use_nodes is banned (A24): nodes are always-on since 5.0 and "
+        "the property is a 6.0 hard-removal target (#140111) - just delete "
+        "the assignment.",
+    ),
+    FaultLine(
         "use_auto_smooth_removed",
         re.compile(r"\buse_auto_smooth\b"),
         lambda v: v >= (4, 1, 0),

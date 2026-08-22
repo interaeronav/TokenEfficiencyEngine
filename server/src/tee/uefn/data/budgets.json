@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "source": "Epic 'Fortnite-Ready assets' best practices + importing-assets docs + memory-management docs (2026-08, v42.00 era)",
+    "units": "tris = LOD0 triangles; textures px; sizes S/M/L by longest dimension <1m / 1-4m / >4m",
+    "as_of": "2026-08-22"
+  },
+  "lod0_tris": {
+    "simple": { "S": 400, "M": 900, "L": 2500 },
+    "medium": { "S": 700, "M": 2000, "L": 6000 },
+    "complex": { "S": 1200, "M": 4000, "L": 9000 },
+    "exemplars": { "tree": [1700, 5000, 15000], "rock": [600, 1200, 2500], "vehicle": [1200, 6000, 9000] },
+    "vert_warning": 20000
+  },
+  "lods": { "required": 3, "reduction_per_step": 0.5 },
+  "textures": {
+    "recommended_max_px": 2048,
+    "hard_max_px": 4096,
+    "mobile_preferred_px": 512,
+    "power_of_two": true,
+    "packed_utility": { "R": "specular", "G": "metallic", "B": "roughness" }
+  },
+  "materials": { "sections_per_mesh_ideal": 1 },
+  "collision": { "prefix": "UCX_", "case_sensitive": true, "max_meshes": 10 },
+  "scale": { "uu_per_m": 100, "player_height_uu": 192, "modular_grid_uu": 512 },
+  "island": { "memory_units_per_area": 100000, "deploy_cap_mb": { "value": 256, "verified": false } },
+  "formats": { "meshes": ["fbx", "obj", "gltf", "glb"], "no_usd": true }
+}

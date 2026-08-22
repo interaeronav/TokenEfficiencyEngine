@@ -140,7 +140,10 @@ def _assign_material(obj, params):
     mat = bpy.data.materials.get(name)
     if mat is None:
         mat = bpy.data.materials.new(name)
-    mat.use_nodes = True
+    if bpy.app.version < (5, 0, 0):
+        # nodes are always-on since 5.0; the property write is a 6.0
+        # hard-removal target (#140111, decision A24) - legacy 4.x only
+        mat.use_nodes = True
     bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
     if bsdf is None:
         bsdf = mat.node_tree.nodes.new("ShaderNodeBsdfPrincipled")
