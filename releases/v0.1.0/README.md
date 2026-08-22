@@ -1,6 +1,6 @@
 # TEE v0.1.0 release files
 
-- `tee_bridge-0.1.1.zip` — the Blender bridge extension (built and
+- `tee_bridge-0.1.2.zip` — the Blender bridge extension (built and
   validated with Blender 5.2). Install: Blender → Settings →
   Get Extensions → dropdown arrow (top right) → **Install from Disk…**
   → pick this zip → enable **TEE Bridge**. Needs Blender 5.1+.

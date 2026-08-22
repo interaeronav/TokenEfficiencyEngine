@@ -16,7 +16,7 @@ tee serve --adapter blender --blender-port 9876
 
 ## Option B — TEE bridge extension (GUI sessions)
 
-Install `dist/tee_bridge-0.1.1.zip` (built with
+Install `dist/tee_bridge-0.1.2.zip` (built with
 `make -C server dist`, or `blender --command extension build
 --source-dir adapters/blender/tee_bridge`):
 

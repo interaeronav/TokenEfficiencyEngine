@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "tee_bridge"
-version = "0.1.1"
+version = "0.1.2"
 name = "TEE Bridge"
 tagline = "Token Efficiency Engine bridge socket for AI-driven editing"
 maintainer = "interaeronav"
