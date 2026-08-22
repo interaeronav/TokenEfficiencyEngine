@@ -41,8 +41,6 @@ failures beyond it.
 | `license_blocked` | Working as intended: NC/ND/GPL/unknown licenses never enter the cache; pick another hit (SA needs `[assets] allow_sa=true`) |
 | `backend_unreachable` with no cache | First search needs the network once to seed the ETag/TTL catalog cache; afterwards searches run from disk |
 | `cost_confirmation_required` | Paid generation (Tripo/Meshy) and fluid bakes require `confirm_cost=true` after showing the estimate |
-| `no_backend` from voxkiln | Local 3D generation needs Apple Silicon or an NVIDIA GPU plus `pip install 'voxkiln[model]'` ([setup-voxkiln.md](setup-voxkiln.md)); hosted fallback: tripo/meshy with keys |
-| `image_required` from voxkiln | Voxkiln is image-to-3D only: render/pick a concept image (lane 1) and re-call with `kind="image_to_model"`, `prompt=<image path>` |
 
 ## Unreal: `ue_settle` reports `ue_editor_not_ticking`
 

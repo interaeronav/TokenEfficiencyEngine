@@ -92,8 +92,8 @@ class GenerationLane:
             state = status.get("state")
             if state == "done":
                 result = dict(status.get("result") or {})
-                # a driver that ships its own provenance (voxkiln: model
-                # revision, seed, input hash) wins; the lane fills gaps
+                # a driver that ships its own provenance wins; the lane
+                # fills gaps
                 lane_prov = self._provenance(driver_id, kind, prompt)
                 result["provenance"] = {**lane_prov, **(result.get("provenance") or {})}
                 return {"ok": True, "task": task_id, **result}
@@ -134,12 +134,9 @@ class GenerationLane:
 # -- driver probes ----------------------------------------------------------
 
 
-# Lane 3 runs locally through voxkiln (Phase 13): the TRELLIS.2 fork whose
-# license surgery removed the nvdiffrast/cumesh CUDA lock, so it targets
-# MPS and CUDA both. The diffusion lanes are plain diffusers on any torch
-# backend. On MPS, lane 3 availability therefore means "voxkiln installed",
-# checked in probe_local_gpu below.
-_CUDA_ONLY_LANES = (3,)
+# The local lanes are the diffusion ones (plain diffusers on any torch
+# backend). Generated-3D (lane 3) is hosted-only: the local product was
+# removed by owner decision 2026-08-22 (see docs/DECISIONS.md).
 _DIFFUSION_LANES = (1, 2)
 
 
@@ -159,35 +156,15 @@ def probe_local_gpu() -> dict[str, Any]:
             "backend": "cuda",
             "device": torch.cuda.get_device_name(0),
             "vram_gb": round(torch.cuda.get_device_properties(0).total_memory / 2**30, 1),
-            "lanes": list(_DIFFUSION_LANES + _CUDA_ONLY_LANES),
+            "lanes": list(_DIFFUSION_LANES),
         }
     if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
-        # lane 3 runs on MPS through voxkiln (Phase 13 removed the
-        # nvdiffrast/cumesh CUDA lock); without voxkiln installed it
-        # falls back to hosted generators.
-        lanes = list(_DIFFUSION_LANES)
-        note = None
-        try:
-            from tee.assets.gen_voxkiln import voxkiln_available
-
-            if voxkiln_available():
-                lanes = list(_DIFFUSION_LANES + _CUDA_ONLY_LANES)
-            else:
-                note = (
-                    "lane 3: install voxkiln (pip install "
-                    "'voxkiln[model]') or use a hosted 3D generator"
-                )
-        except ImportError:  # pragma: no cover
-            note = "lane 3: install voxkiln or use a hosted 3D generator"
-        out = {
+        return {
             "available": True,
             "backend": "mps",
             "device": "Apple Silicon (MPS)",
-            "lanes": lanes,
+            "lanes": list(_DIFFUSION_LANES),
         }
-        if note:
-            out["note"] = note
-        return out
     return {
         "available": False,
         "backend": "cpu",
@@ -217,15 +194,6 @@ def build_drivers(config: dict[str, Any] | None = None) -> dict[str, GenDriver]:
 
     drivers: dict[str, GenDriver] = {}
     config = config or {}
-
-    # Voxkiln registers FIRST so it is the as_generate default (Phase 13,
-    # A28): local, unpaid, provenance-complete. Hosted drivers stay as
-    # keyed fallbacks for text-to-3D and rigging/quad-retopo extras.
-    from tee.assets.gen_voxkiln import VoxkilnDriver, voxkiln_available
-
-    if voxkiln_available():
-        drivers["voxkiln"] = VoxkilnDriver()
-
     if os.environ.get("TEE_TRIPO_KEY"):
         from tee.assets.gen_hosted import TripoDriver
 

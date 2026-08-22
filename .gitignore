@@ -36,7 +36,3 @@ testbeds/**/*.sln
 
 # TEE per-project runtime state (project memory, extract store, checkpoints)
 .tee/
-voxkiln/.venv/
-voxkiln/voxkiln_out/
-voxkiln/**/__pycache__/
-voxkiln/src/voxkiln.egg-info/

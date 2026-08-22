@@ -4,6 +4,23 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Voxkiln removed; the out-of-the-box 3D-generation need is dropped (owner decision)
+
+Hours after the Phase 13 build and its Mac bring-up, the owner removed
+the requirement that TEE can generate 3D models out of the box and had
+Voxkiln deleted from the repository: the `voxkiln/` package, its setup
+doc, the TEE `gen_voxkiln` driver + tests, the lane-3 probe branch, and
+the `tee doctor` check. This amends A26–A28 (below): they remain the
+record of what was decided and built, but nothing in them is owed.
+
+What remains: generated-3D is hosted-only through the pre-existing keyed
+Tripo/Meshy drivers (dormant without keys, cost-gated, no longer an
+outstanding item); asset needs are covered by the curated library
+sources and the procedural lane. The research corpus (digests 43–48)
+stays as knowledge. Revival point: git history at the removal commit's
+parent — the product was test-green there, with live generation still
+blocked on gated DINOv3 access at the moment of removal.
+
 ## 2026-08-22 — Phase 13 (Voxkiln: TRELLIS.2-derived generation product) researched; decisions A26–A28
 
 Owner decision: "set the project to use trellis.2 source code for this

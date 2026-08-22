@@ -73,17 +73,13 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       tests, uefn skill, live Data API analytics; 26 tests + 2 live.
       Live-editor lanes DESCOPED 2026-08-22 — owner decision, no
       Windows machine; offline lanes shipped, interface+fakes kept)*
-- [x] Phase 13 — Voxkiln, cloud scope *(built in cloud, 2026-08-22:
-      vendored fork @75fbf01 with license surgery + defect fixes,
-      portable sparse ops unit-verified against references, repair/
-      export/report/metrics/cache/jobs/CLI + 4-tool MCP server, TEE
-      voxkiln driver registered first; 43 product tests + 395 server
-      tests green, license lint clean, clean-venv rehearsal passed.
-      Mac 2026-08-22: env + weights (15.12 GB) + TEE integration done
-      and three vendored defects found and fixed; live generation,
-      determinism and the battery BLOCKED on gated DINOv3 access —
-      owner must request it at huggingface.co/facebook/dinov3-vitl16-
-      pretrain-lvd1689m)*
+- [x] Phase 13 — Voxkiln *(built in cloud + Mac bring-up 2026-08-22,
+      then REMOVED the same day — owner decision: the out-of-the-box
+      3D-generation need is dropped. The `voxkiln/` package, setup doc,
+      TEE driver and tests are deleted; generated-3D is hosted-only
+      (keyed Tripo/Meshy, dormant) and OFF the outstanding ledger.
+      Research corpus 43–48 kept; revival point = git history at the
+      removal commit's parent + decisions A26–A28 as amended)*
 
 ## Machine facts
 
@@ -147,10 +143,12 @@ Platform split of the outstanding ledger (decided by the hardware):
   (digest/lint/templates/export preflight) are SHIPPED and supported
   everywhere; the adapter interface + fakes remain in the codebase so
   the live proxy could be revived by a future decision.
-- **Superseded 2026-08-22 (Phase 13 / A26–A28):** ~~local TRELLIS.2-4B
-  needs CUDA~~ — the Voxkiln product replaces the nvdiffrast/cumesh
-  CUDA-locked stages with license-clean portable code, so lane-3 local
-  generation targets this Mac's MPS directly (CUDA stays supported).
+- **REMOVED (owner decision, 2026-08-22):** local generated-3D
+  entirely. The former "needs CUDA" entry was first superseded by
+  Phase 13 (Voxkiln, MPS-capable), then the owner dropped the
+  out-of-the-box 3D-generation need and Voxkiln was deleted the same
+  day. Generated-3D is hosted-only (keyed Tripo/Meshy, dormant, not
+  owed); the curated library + procedural lanes cover asset needs.
 
 ## Blockers
 
@@ -1017,9 +1015,9 @@ Nothing further can be closed on this machine. The honest remainder:
   are tested; the adapter interface + fakes stay as the revival point.
 
 **Needs CUDA** — none left: the former entry (local TRELLIS.2-4B, nvdiffrast
-CUDA-bound) was superseded 2026-08-22 by Phase 13 (Voxkiln, decisions
-A26–A28): the product removes the CUDA-locked stages, so local generation
-targets MPS on this Mac.
+CUDA-bound) was superseded 2026-08-22 by Phase 13 (Voxkiln), and later that
+day the owner removed the local generated-3D need entirely (Voxkiln deleted;
+see the removal entry in DECISIONS).
 
 **Needs an older engine** (none installed):
 - the UE 5.3–5.7 Remote Control fallback tier is **unimplemented**, not
@@ -1185,11 +1183,14 @@ by hardware, by credentials, or by a decision that is the owner's:
 
 - **Descoped by the owner:** live UEFN (Windows-only).
 - ~~**Needs CUDA:** lane 3 local 3D generation (TRELLIS.2 / nvdiffrast).~~
-  Superseded later the same day by Phase 13 (Voxkiln, A26–A28): the
-  product removes the CUDA-locked stages, so lane 3 targets MPS here.
-  Lanes 1–2 now correctly report available on MPS.
+  Superseded later the same day by Phase 13 (Voxkiln), then REMOVED with
+  Voxkiln when the owner dropped the out-of-the-box 3D-generation need.
+  Lanes 1–2 correctly report available on MPS.
 - **Needs an older engine:** the UE 5.3–5.7 fallback tier, unimplemented.
-- **Needs the owner's credentials:** hosted generation (Tripo / Meshy keys).
+- ~~**Needs the owner's credentials:** hosted generation (Tripo / Meshy
+  keys).~~ Off the ledger 2026-08-22 with the generated-3D need removal:
+  the keyed hosted drivers stay in the code, dormant and optional, but
+  are no longer an outstanding item.
 - ~~Needs a multi-gigabyte download decision~~ — **done 2026-08-22**, see
   below: diffusion lane 1 and the embedder both run on this machine.
 - **Needs real input data:** Whisper / pyannote quality on genuine site
@@ -1380,6 +1381,20 @@ reference cannot creep in as a string.
 - Evidence: voxkiln **49 passed**, server **394 passed / 2 skipped**, ruff
   clean both trees, `voxkiln doctor` exit 0, `tee doctor` exit 0 with the
   voxkiln line naming the blocker.
-- **Still owed on this machine, once access is granted:** first live
+- ~~Still owed on this machine, once access is granted: first live
   generation, same-seed determinism, the stock-vs-ours battery,
-  FlexAttention-MPS tuning, and the own-repo extraction decision.
+  FlexAttention-MPS tuning, and the own-repo extraction decision.~~
+  Closed 2026-08-22 by the removal below — none of it is owed.
+
+### 2026-08-22 — Voxkiln REMOVED (owner decision)
+
+The owner dropped the out-of-the-box 3D-generation need and had Voxkiln
+deleted: `voxkiln/` (136 files), `docs/setup-voxkiln.md`,
+`server/src/tee/assets/gen_voxkiln.py`, `server/tests/test_assets_voxkiln.py`,
+plus the driver registration, the lane-3 probe branch, the `tee doctor`
+check, and the doc/skill references. Generated-3D is hosted-only (keyed
+Tripo/Meshy, dormant) and off the outstanding ledger. The DINOv3
+gated-access blocker dies with it — nothing to request. Research digests
+43–48 stay in the corpus; decisions A26–A28 are amended by the removal
+entry in DECISIONS. Server suite re-run after the removal — results in
+the removal commit.

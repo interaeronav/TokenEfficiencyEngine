@@ -1272,6 +1272,16 @@ with fakes and DESCOPED per the 2026-08-22 amendment above.
 
 ## 16. Phase 13 — Voxkiln: the TRELLIS.2-derived generation product
 
+**REMOVED (owner decision, 2026-08-22, same day):** the owner removed
+the out-of-the-box 3D-generation requirement and had Voxkiln deleted
+from the repository — the `voxkiln/` package, its setup doc, the TEE
+driver and tests. The phase text below stays as the record of what was
+built (it ran live on the M5 Mac before removal; see PROGRESS evidence
+log); the research corpus (43–48) stays as knowledge. Generated-3D in
+TEE is hosted-only (keyed Tripo/Meshy, dormant) and OFF the outstanding
+ledger. Revival point: git history at the removal commit's parent, plus
+decisions A26–A28 as amended in `docs/DECISIONS.md`.
+
 **Goal:** owner decision 2026-08-22 — take Microsoft's TRELLIS.2 source
 (MIT, code + weights), fix its known defects, and ship it as a SEPARATE
 PRODUCT whose primary user is an AI agent; TEE consumes it as the
