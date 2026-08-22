@@ -352,3 +352,42 @@ def test_editor_python_without_the_plugin_explains_how_to_install_it(catalog):
     assert err.value.code == "tee_toolset_missing"
     assert "TeeToolset" in (err.value.fix or "")
     assert "ue_script" in (err.value.fix or "")
+
+
+# -- SIE settle --------------------------------------------------------------
+
+
+def test_max_delta_treats_a_missing_actor_as_unknown_not_still():
+    """An empty or partial pose reading must never read as 'nothing moved',
+    or a scene is declared settled before the play world has spawned."""
+    from tee.adapters.unreal.simulate import max_delta
+
+    a = {"Box": [0.0, 0.0, 100.0, 0, 0, 0]}
+    assert max_delta(a, a) == 0.0
+    assert max_delta(a, {"Box": [0.0, 0.0, 95.0, 0, 0, 0]}) == 5.0
+    assert max_delta({}, {}) == float("inf")
+    assert max_delta(a, {}) == float("inf")
+    assert max_delta(a, {"Other": [0.0, 0.0, 100.0, 0, 0, 0]}) == float("inf")
+
+
+def test_settle_programs_are_self_contained():
+    """Programs run in the plugin's namespace, which provides only `unreal`
+    and `result` - anything else must be imported by the program itself."""
+    from tee.adapters.unreal import simulate
+
+    adopt = simulate.adopt_program({"Box": [1.0, 2.0, 3.0, 0.0, 0.0, 0.0]})
+    assert "import json" in adopt
+    assert "import unreal" in adopt
+    for program in (simulate.START, simulate.STOP, simulate.poll_program(["Box"])):
+        assert "import unreal" in program
+        assert "result =" in program
+
+
+def test_settle_poll_program_does_not_wait_inside_the_call():
+    """The editor cannot tick while a Python call runs, so a sleep or wait
+    loop inside the poll would freeze the simulation permanently."""
+    from tee.adapters.unreal import simulate
+
+    program = simulate.poll_program(["Box"])
+    for forbidden in ("time.sleep", "while ", "import time"):
+        assert forbidden not in program, forbidden

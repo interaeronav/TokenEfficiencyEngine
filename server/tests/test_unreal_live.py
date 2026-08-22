@@ -324,3 +324,58 @@ def test_non_dict_result_is_rejected(tee_plugin):
     with pytest.raises(TeeError) as err:
         tee_plugin.editor_python("result = 42", "TEE: bad result")
     assert "must be a dict" in err.value.message
+
+
+def test_settle_drops_actors_and_adopts_the_result(tee_plugin):
+    """Epic ships no simulation toolset and 'Keep Simulation Changes' has no
+    API; this macro replaces both."""
+    setup = """
+import unreal
+aes = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+for a in aes.get_all_level_actors():
+    if a.get_actor_label().startswith("PytestBox"):
+        aes.destroy_actor(a)
+mesh = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
+made = []
+for i in range(2):
+    # 200 cm apart: a cube is 100 cm, so they cannot interpenetrate
+    actor = aes.spawn_actor_from_object(mesh, unreal.Vector(-600, 1400 + i * 200, 300))
+    actor.set_actor_label("PytestBox%d" % i)
+    c = actor.static_mesh_component
+    c.set_mobility(unreal.ComponentMobility.MOVABLE)
+    c.set_simulate_physics(True)
+    c.set_collision_profile_name("PhysicsActor")
+    made.append(actor.get_actor_label())
+result = {"made": made}
+"""
+    labels = tee_plugin.editor_python(setup, "TEE: test settle setup")["made"]
+    report = tee_plugin.settle(labels, adopt=True)
+    assert report["settled"] is True
+    assert report["actors"] == 2
+    assert sorted(report["adopted"]) == sorted(labels)
+    # dropped from 300 cm onto a floor; a 100 cm cube rests near 50 cm
+    assert all(v > 200 for v in report["moved_cm"].values()), report
+
+    final = tee_plugin.editor_python(
+        "import unreal\n"
+        "aes = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)\n"
+        "result = {a.get_actor_label(): a.get_actor_location().z\n"
+        "          for a in aes.get_all_level_actors()\n"
+        "          if a.get_actor_label().startswith('PytestBox')}",
+        "TEE: verify settle",
+    )
+    for z in final.values():
+        assert 40 < z < 60, final
+
+    # already at rest: returns at the minimum, not the cap
+    again = tee_plugin.settle(labels)
+    assert again["settled"] is True
+    assert again["sim_seconds"] < 3.0, again
+
+
+def test_settle_rejects_an_unknown_actor_label(tee_plugin):
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        tee_plugin.settle(["NoSuchActorAnywhere"])
+    assert err.value.code == "unknown_actor"

@@ -22,7 +22,7 @@ from tee.kernel.adapter import AdapterInfo, Diff, Entity
 from tee.kernel.errors import TeeError
 
 from . import blueprint as bp_verify
-from . import codegen, vision
+from . import codegen, simulate, vision
 from .catalog import ToolsetCatalog
 from .wire import UnrealWire
 
@@ -351,6 +351,108 @@ class UnrealAdapter:
                 "transaction was still closed, so Ctrl+Z is safe.",
             )
         return data.get("result") or {}
+
+    # -- simulation --------------------------------------------------------
+
+    def settle(
+        self,
+        labels: list[str],
+        *,
+        adopt: bool = False,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Run Simulate-In-Editor until the named actors stop moving.
+
+        Epic ships no simulation toolset and "Keep Simulation Changes" has no
+        API, so this is TEE's own: SIE + polling across short calls + an
+        explicit adopt step.
+        """
+        import time as _time
+
+        if not labels:
+            raise TeeError(
+                "bad_arguments",
+                "settle needs at least one actor label.",
+                fix="Pass labels from tee_scene_summary(adapter='unreal').",
+            )
+        cfg = {**simulate.SETTLE_DEFAULTS, **(params or {})}
+        before = self.editor_python(simulate.read_editor_poses_program(labels), "TEE: settle read")[
+            "poses"
+        ]
+        missing = [name for name in labels if name not in before]
+        if missing:
+            raise TeeError(
+                "unknown_actor",
+                f"No actor labelled {', '.join(missing)} in the level.",
+                fix="Labels are the editor's own actor labels; list them with "
+                "tee_scene_summary(adapter='unreal', refresh=true).",
+            )
+
+        poll = simulate.poll_program(labels)
+        self.editor_python(simulate.START, "TEE: settle start")
+        samples: list[tuple[float, dict[str, list[float]]]] = []
+        settled_at: float | None = None
+        last: dict[str, Any] = {}
+        try:
+            for index in range(int(cfg["max_polls"])):
+                _time.sleep(float(cfg["poll_pause_s"]))
+                last = self.editor_python(poll, "TEE: settle poll")
+                if not last.get("in_pie") or "t" not in last:
+                    continue
+                now = float(last["t"])
+                samples.append((now, last.get("poses") or {}))
+                if index == 6 and now <= 0.0:
+                    # Nothing is ticking. Do not poll on for 240 rounds and
+                    # then report a confident "settled instantly".
+                    raise TeeError(
+                        "ue_editor_not_ticking",
+                        "Simulate-In-Editor is running but the world clock has "
+                        "not advanced, so nothing is being simulated.",
+                        fix="The editor does not tick while it is in the "
+                        "background. Set bThrottleCPUWhenNotForeground=False "
+                        "under [/Script/UnrealEd.EditorPerformanceSettings] in "
+                        "Saved/Config/<Platform>Editor/"
+                        "EditorPerProjectUserSettings.ini and restart the "
+                        "editor (or bring its window to the front).",
+                    )
+                if now < float(cfg["min_s"]):
+                    continue
+                window = [s for s in samples if now - s[0] <= float(cfg["window_s"])]
+                if len(window) >= 2 and simulate.max_delta(window[0][1], window[-1][1]) <= float(
+                    cfg["loc_eps_cm"]
+                ):
+                    settled_at = now
+                    break
+                if now >= float(cfg["max_s"]):
+                    break
+            final_poses = (last.get("poses") or {}) if last else {}
+        finally:
+            self.editor_python(simulate.STOP, "TEE: settle stop")
+
+        report: dict[str, Any] = {
+            "settled": settled_at is not None,
+            "sim_seconds": round(samples[-1][0], 2) if samples else 0.0,
+            "polls": len(samples),
+            "actors": len(final_poses),
+        }
+        if settled_at is None:
+            report["note"] = (
+                f"still moving at the {cfg['max_s']}s cap; raise max_s or check "
+                "for interpenetration"
+            )
+        if adopt and final_poses:
+            applied = self.editor_python(simulate.adopt_program(final_poses), "TEE: settle adopt")[
+                "applied"
+            ]
+            report["adopted"] = applied
+            report["moved_cm"] = {
+                label: round(
+                    max(abs(final_poses[label][i] - before[label][i]) for i in range(3)), 1
+                )
+                for label in applied
+                if label in before and label in final_poses
+            }
+        return report
 
     # -- vision ------------------------------------------------------------
 

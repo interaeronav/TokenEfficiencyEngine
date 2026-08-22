@@ -247,8 +247,38 @@ def register_unreal_tools(app: TeeApp, adapter: UnrealAdapter) -> None:
         ),
     ]
 
+    def ue_settle(args: dict[str, Any]) -> dict[str, Any]:
+        return adapter.settle(
+            [str(x) for x in (args.get("labels") or [])],
+            adopt=bool(args.get("adopt")),
+            params=args.get("params"),
+        )
+
     tools.extend(
         [
+            VirtualTool(
+                name="ue_settle",
+                description=(
+                    "Drop actors into a stable resting pose using "
+                    "Simulate-In-Editor, then optionally write the settled "
+                    "poses back onto the editor actors. Epic ships no "
+                    "simulation toolset and 'Keep Simulation Changes' has no "
+                    "API, so this is TEE's own. Needs the TEE content plugin. "
+                    "Actors must have physics enabled and simple collision."
+                ),
+                schema={
+                    "type": "object",
+                    "properties": {
+                        "labels": {"type": "array", "items": {"type": "string"}},
+                        "adopt": {"type": "boolean"},
+                        "params": {"type": "object"},
+                    },
+                    "required": ["labels"],
+                },
+                handler=ue_settle,
+                tags=["unreal", "physics", "simulate", "settle"],
+                examples=[{"labels": ["Crate1", "Crate2"], "adopt": True}],
+            ),
             VirtualTool(
                 name="ue_scene_checks",
                 description=(
