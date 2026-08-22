@@ -4,6 +4,25 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Phase 8 (context economics) added; decisions A11–A12
+
+A research + simulation pass (docs/research/19) measured where the
+remaining per-session spend lives after Phase 7. Two new settled decisions
+in `docs/research/00-index.md`:
+
+- **A11 — script lane:** `tee_script` runs bounded, AST-whitelisted
+  mini-Python over the existing typed virtual tools, atomic under one
+  auto-checkpoint, returning only the final result — the app-side
+  equivalent of programmatic tool calling (which excludes MCP tools).
+  Simulated: −86% context on the conformance fix loop; −61% session cost
+  combined with tool-result eviction.
+- **A12 — context-economics floor:** adaptive columnar responses (≥ 20
+  homogeneous rows), eviction-safe contract + `tee_status(recap=true)`,
+  caption-once media facts. Explicit non-decision: fact search stays
+  substring-count — a simulated BM25 swap regressed relevance (9/10 →
+  7/10 at 611 facts); recorded so it is not "improved" later without new
+  evidence.
+
 ## 2026-08-22 — Phase 7 (TEE Extract) added; decisions A8–A10
 
 A deep-research pass (9 agents, docs/research/11–18) grounded the media

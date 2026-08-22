@@ -72,3 +72,64 @@ def test_response_log_alerts_on_fat_medians():
     assert "alert" in report["fat_tool"]
     assert "alert" not in report["thin_tool"]
     assert report["fat_tool"]["calls"] == 3
+
+
+# -- columnar encoding (Phase 8, A12) ----------------------------------------
+
+from tee.kernel.budget import columnarize  # noqa: E402
+
+
+def _rows(n, extra_at=()):
+    out = []
+    for i in range(n):
+        row = {"id": f"b{i}", "name": f"Obj{i}", "kind": "mesh"}
+        if i in extra_at:
+            row["materials"] = ["m1"]
+        out.append(row)
+    return out
+
+
+def test_columnar_rewrites_homogeneous_lists_and_shrinks():
+    payload = {"ok": True, "entities": _rows(30)}
+    out = columnarize(payload)
+    assert out["columnar"] == ["entities"]
+    assert out["entities"]["cols"] == ["id", "kind", "name"]
+    assert len(out["entities"]["rows"]) == 30
+    assert estimate_tokens(out) < estimate_tokens(payload) * 0.8
+    # original payload untouched (no aliasing)
+    assert isinstance(payload["entities"], list)
+
+
+def test_columnar_keeps_sparse_extras_decodable():
+    out = columnarize({"entities": _rows(25, extra_at=(3,))})
+    rows = out["entities"]["rows"]
+    assert len(rows[3]) == 4 and rows[3][-1] == {"materials": ["m1"]}
+    assert len(rows[0]) == 3
+
+
+def test_columnar_skips_small_lists():
+    payload = {"entities": _rows(19)}
+    assert columnarize(payload) is payload
+
+
+def test_columnar_skips_heterogeneous_lists():
+    rows = [{f"k{i}": i, f"j{i}": i, f"l{i}": i} for i in range(25)]
+    payload = {"facts": rows}
+    assert columnarize(payload) is payload
+
+
+def test_columnar_skips_non_dict_lists():
+    payload = {"ids": [f"b{i}" for i in range(40)]}
+    assert columnarize(payload) is payload
+
+
+def test_columnar_roundtrip_decodes():
+    original = _rows(30, extra_at=(7,))
+    enc = columnarize({"entities": original})["entities"]
+    decoded = []
+    for row in enc["rows"]:
+        d = dict(zip(enc["cols"], row[: len(enc["cols"])], strict=True))
+        if len(row) > len(enc["cols"]):
+            d.update(row[-1])
+        decoded.append(d)
+    assert decoded == original

@@ -28,6 +28,7 @@ empirically and record it in `docs/PROGRESS.md`.*
 | [16-extraction-channels.md](16-extraction-channels.md) | VLM extraction channels: MCP sampling post-mortem, in-band vs API-key drivers, elicitation limits, honest cost framing |
 | [17-sheets-heights-roof-schema.md](17-sheets-heights-roof-schema.md) | Sheet classification (NCS metadata-first), elevation/section Z-extraction, FML height/roof schema extension before freeze |
 | [18-frames-and-registration.md](18-frames-and-registration.md) | Frame registry, transforms-as-facts, site ENU hub, tier ladder, footprint-fit registration, conformance tolerance math (USIBD LOA) |
+| [19-context-economics.md](19-context-economics.md) | Phase 8 grounding: app-side script lane (PTC pattern), tool-result eviction economics, columnar encodings, caption-once, the BM25 negative result |
 
 ## Architecture decisions (ADR)
 
@@ -87,6 +88,21 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   conformance report; EPSG:3857 fetch-only. *Why:* the AEC
   written-dimensions-govern rule, REP-105/GeoPose precedent, and scan-to-BIM
   tolerance practice all converge on this shape. (17, 18, 15)
+
+- **A11 — Script lane:** chatty tool loops run app-side as one
+  `tee_script` call: an AST-whitelisted mini-Python executor over the SAME
+  typed virtual tools (call/batch/facts helpers), auto-checkpointed and
+  atomic, hard-bounded (calls/nodes/wall-clock), returning only the final
+  result. *Why:* programmatic tool calling is the API-native shape for this
+  but excludes MCP tools; simulated 86% context cut on the conformance fix
+  loop and −61% session cost with eviction. Adds no capability beyond the
+  typed tools, so it is not code-exec-gated. (19)
+- **A12 — Context-economics floor:** adaptive columnar encoding in the
+  budgeter (list-of-dicts ≥ 20 rows, ≥ 60% shared keys → cols/rows, marked);
+  eviction-safe response contract + `tee_status(recap=true)` one-call
+  resume (≤ 500 tokens); caption-once media pass (`kind: "caption"` facts
+  gate re-attachment). Fact search stays substring-count: BM25 was
+  simulated and regressed (9/10 → 7/10 at 611 facts). (19)
 
 ## Headline numbers worth remembering
 

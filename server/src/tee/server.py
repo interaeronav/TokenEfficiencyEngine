@@ -4,7 +4,7 @@ Client-compatibility floor (decision A6):
 - every tool returns plain JSON-text content (no outputSchema is emitted -
   return annotations are deliberately absent from tool functions);
 - images are inline base64 JPEG only, never resource links;
-- the always-loaded surface stays small (<= 15 tools, enforced by test);
+- the always-loaded surface stays small (<= 16 tools, enforced by test);
 - descriptions stay under 2 KB each (enforced by test).
 """
 
@@ -18,7 +18,7 @@ from typing import Any
 from mcp.server.mcpserver import Image, MCPServer
 
 from tee.app import TeeApp
-from tee.kernel.budget import enforce_budget
+from tee.kernel.budget import columnarize, enforce_budget
 from tee.kernel.errors import TeeError, internal_error_payload
 
 _CAPTURE_DEFAULT_KB = 16
@@ -27,7 +27,11 @@ _CAPTURE_MAX_KB = 256
 _DESC = {
     "tee_status": (
         "Server, adapter and scene status: connected DCCs, scene revision stamps, "
-        "active jobs, recent checkpoints."
+        "active jobs, recent checkpoints. recap=true adds a compact project "
+        "recap (scene kind counts, last checkpoints, extract store shape, "
+        "project memory) rebuilt from server state - every TEE response is "
+        "re-derivable, so hosts may evict old tool results and catch up here "
+        "with one call."
     ),
     "tee_recall": (
         "Recall persistent project memory (versions, conventions, recent notes) "
@@ -82,6 +86,19 @@ _DESC = {
         "(default 800, cap 4784). Facts (ex_facts/ex_search) are cheaper - "
         "use pixels only when text cannot answer."
     ),
+    "tee_script": (
+        "Run a short bounded script that composes MANY tool calls into ONE "
+        "round-trip; only its `result` variable returns - intermediate tool "
+        "outputs never enter context. Helpers: call(name,args), "
+        "batch(ops,adapter=,label=), summary(adapter=), detail(id,adapter=), "
+        "diff(epoch,revision,adapter=), plus len/sum/min/max/sorted/range/"
+        "enumerate/zip/keys(d)/items(d)/get(d,k)/append(l,x). Python subset: "
+        "assignments, if/for, comprehensions, f-strings; no import, while, "
+        "def, or attribute access. Atomic: the touched adapter is "
+        "checkpointed first and fully rolled back on any error. Budgets: "
+        "200 calls, 10k steps, 120s. Prefer this over chains of separate "
+        "calls whose intermediate results you will not need again."
+    ),
     "tee_search_tools": (
         "Search the long tail of DCC-specific tools by keywords (e.g. 'blender "
         "material', 'bake physics'). Returns names + one-line summaries; then "
@@ -118,6 +135,7 @@ def _tool(app: TeeApp, name: str) -> Callable:
                 except Exception as exc:
                     result = internal_error_payload(exc)
                 if isinstance(result, dict):
+                    result = columnarize(result)
                     result = enforce_budget(result)
                     app.response_log.record(name, result)
                     return json.dumps(result, separators=(",", ":"), default=str)
@@ -146,8 +164,16 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_status"])
     @_tool(app, "tee_status")
-    def tee_status():
-        return {"ok": True, **app.status()}
+    def tee_status(recap: bool = False):
+        payload = {"ok": True, **app.status()}
+        if recap:
+            payload["recap"] = enforce_budget(
+                app.recap(),
+                max_tokens=500,
+                narrow_hint="query the dropped area directly (tee_scene_summary, "
+                "ex_sources, tee_recall)",
+            )
+        return payload
 
     @mcp.tool(structured_output=False, description=_DESC["tee_recall"])
     @_tool(app, "tee_recall")
@@ -292,6 +318,15 @@ def build_server(app: TeeApp) -> MCPServer:
                 return json.dumps(internal_error_payload(exc))
             app.response_log.record("tee_media", {"bytes": len(data), **info})
             return Image(data=data, format="jpeg")
+
+    # -- script lane (A11) --------------------------------------------------
+
+    @mcp.tool(structured_output=False, description=_DESC["tee_script"])
+    @_tool(app, "tee_script")
+    def tee_script(code: str, adapter: str = "fake"):
+        from tee.kernel.script import run_script
+
+        return run_script(app, code, default_adapter=adapter)
 
     # -- progressive disclosure (meta-tools) --------------------------------
 

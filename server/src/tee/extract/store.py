@@ -14,6 +14,7 @@ optionally `frame` (frame id, mandatory for geometric facts), `tier`
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import re
@@ -161,9 +162,18 @@ class ExtractStore:
         facts: list[dict[str, Any]],
         *,
         provenance: dict[str, Any] | None = None,
+        merge: bool = False,
     ) -> int:
+        """Store one extractor's facts. Default REPLACES the extractor's
+        prior output (deterministic extractors re-emit everything); merge=True
+        APPENDS to it - the right semantic for incremental in-band passes
+        (e.g. captioning keyframes across several sessions)."""
         for i, fact in enumerate(facts):
             self.validate_fact(fact, index=i)
+        path = self.facts_path(media_hash, extractor_id, version)
+        if merge and path.exists():
+            with contextlib.suppress(json.JSONDecodeError, OSError):
+                facts = json.loads(path.read_text()).get("facts", []) + facts
         payload = {
             "extractor": extractor_id,
             "version": version,
@@ -171,7 +181,6 @@ class ExtractStore:
             "provenance": provenance or {},
             "facts": facts,
         }
-        path = self.facts_path(media_hash, extractor_id, version)
         path.parent.mkdir(parents=True, exist_ok=True)
         _write_json(path, payload)
         return len(facts)

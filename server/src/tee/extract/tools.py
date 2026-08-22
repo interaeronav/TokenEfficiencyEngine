@@ -26,6 +26,20 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
     store = ExtractStore(project_root)
     registry = FrameRegistry(store.root)
     app.media_view = _media_view_backend(store)
+
+    def _extract_recap() -> dict[str, Any]:
+        kinds: dict[str, int] = {}
+        count = 0
+        for src in store.sources():
+            count += 1
+            for fact in store.facts(src["hash"]):
+                kinds[fact["kind"]] = kinds.get(fact["kind"], 0) + 1
+        out: dict[str, Any] = {"sources": count}
+        if kinds:
+            out["fact_kinds"] = dict(sorted(kinds.items()))
+        return out
+
+    app.extract_recap = _extract_recap
     reg = app.registry
 
     # -- ingest ------------------------------------------------------------
@@ -293,6 +307,7 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
             vlm.IN_BAND_EXTRACTOR_VERSION,
             facts,
             provenance={"channel": "in-band"},
+            merge=bool(args.get("merge")),
         )
         return {"stored": count, "source": source["hash"][:8]}
 
@@ -303,7 +318,9 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
                 "Write back structured facts you extracted from a source "
                 "(the in-band VLM channel). Facts are schema-validated; "
                 "plan facts must match " + SCHEMA_ID + ". Get the packet of "
-                "instructions from ex_prepare first."
+                "instructions from ex_prepare first. Default replaces this "
+                "extractor's prior facts; merge=true appends instead - use "
+                "it for incremental passes like captioning."
             ),
             schema={
                 "type": "object",
@@ -311,6 +328,7 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
                     "source": {"type": "string"},
                     "extractor": {"type": "string"},
                     "facts": {"type": "array"},
+                    "merge": {"type": "boolean"},
                 },
                 "required": ["source", "extractor", "facts"],
             },
@@ -321,7 +339,14 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
 
     def ex_prepare(args: dict[str, Any]) -> dict[str, Any]:
         source = store.resolve(args["source"])
-        packet = vlm.prepare_instructions(source, store.source_dir(source["hash"]))
+        captions = {
+            fact.get("ref")
+            for fact in store.facts(source["hash"], kind="caption")
+            if fact.get("ref")
+        }
+        packet = vlm.prepare_instructions(
+            source, store.source_dir(source["hash"]), captioned=captions
+        )
         if source["media_type"] == "audio":
             packet["guidance"] = audio_lane.REQUIREMENTS_PROMPT
         packet["api_driver"] = (

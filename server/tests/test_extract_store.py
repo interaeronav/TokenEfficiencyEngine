@@ -79,3 +79,24 @@ def test_license_lint_no_banned_imports():
         str(path) for path in src.rglob("*.py") if banned.search(path.read_text(errors="ignore"))
     ]
     assert offenders == []
+
+
+def test_store_facts_merge_appends(tmp_path):
+    from fixtures_extract import make_dxf
+
+    store = ExtractStore(tmp_path)
+    meta = store.register_source(make_dxf(tmp_path / "m.dxf"))
+    store.store_facts(meta["hash"], "vlm-video", "in-band-1", [{"kind": "caption", "ref": "k01"}])
+    store.store_facts(
+        meta["hash"],
+        "vlm-video",
+        "in-band-1",
+        [{"kind": "caption", "ref": "k02"}],
+        merge=True,
+    )
+    refs = {f["ref"] for f in store.facts(meta["hash"], kind="caption")}
+    assert refs == {"k01", "k02"}
+    # default (no merge) still replaces
+    store.store_facts(meta["hash"], "vlm-video", "in-band-1", [{"kind": "caption", "ref": "k09"}])
+    refs = {f["ref"] for f in store.facts(meta["hash"], kind="caption")}
+    assert refs == {"k09"}

@@ -604,7 +604,117 @@ conflict fact naming the delta; the conformance report costs < 500 tokens.
 
 ---
 
-## 11. Standing rules (all phases)
+## 11. Phase 8 — Context economics: script lane, columnar responses, recap
+
+**Goal:** cut the *per-turn context* cost of an already-TEE-optimized session.
+Phase 7 stopped media re-billing; Phase 8 attacks the remaining spend: chatty
+tool loops whose intermediate results live forever in the transcript, and
+list-heavy responses that repeat their keys. Target (simulated 2026-08-22,
+Fable-5 rates with caching): **-61% session cost** on a 120-turn build
+(script lane + eviction), on top of Phase 7's savings.
+
+**Grounding:** `docs/research/19` (API-mechanism research + simulation pass,
+2026-08-22). Decisions A11–A12 in `docs/research/00-index.md` are settled —
+amend via `docs/DECISIONS.md` only. Key facts: programmatic tool calling is
+the API-native pattern for keeping intermediate tool results out of model
+context but is incompatible with MCP tools, so TEE implements the pattern
+app-side; context editing (`clear_tool_uses`) makes old tool results
+evictable, which TEE can afford uniquely because all state is re-derivable
+from the scene cache and fact store; a naive BM25 swap for fact search was
+simulated and REGRESSED (7/10 vs 9/10 at 611 facts) — the search stays as
+is (A12).
+
+### 8.1 `tee_script` — the app-side script lane (A11)
+
+1. `kernel/script.py`: an AST-whitelisted mini-Python executor. Allowed:
+   literals, assignments, arithmetic/comparison/boolean ops, `if`/`for`
+   (bounded), list/dict literals and indexing, calls to an injected helper
+   namespace only — `call(name, args)` (virtual tools), `batch(adapter,
+   ops)`, `facts(source, kind=)`, `summary(adapter)`, `diff(adapter, epoch,
+   revision)`, plus `len/min/max/sum/round/abs/sorted/range/enumerate`.
+   Forbidden by construction: `import`, attribute access on results beyond
+   plain subscripts, dunder names, `while`, comprehension-free lambdas,
+   `exec`/`eval`. Hard bounds: ≤ 200 tool calls, ≤ 10k interpreted nodes,
+   ≤ 120 s wall clock — exceeding any raises one short `TeeError`.
+2. Atomicity: the script runs under one auto-checkpoint per touched adapter;
+   any uncaught error rolls every touched adapter back (same contract as a
+   failed batch). The response carries only the script's `result` variable
+   plus `{checkpoint, calls_made, epoch/revision per touched adapter}` —
+   intermediate tool results NEVER enter the response.
+3. `tee_script` joins the always-loaded surface (16th tool; update both
+   canaries). It is NOT gated by `allow_code_exec` — it can only invoke the
+   same typed tools the model could call anyway; the sandbox adds no new
+   capability, it removes round-trips.
+
+**Acceptance:** the Phase-7 conformance fix loop (check → fix N walls →
+recheck) runs as one `tee_script` call with only the final report in the
+response. The script's context cost is FLAT in loop length while
+round-based cost grows linearly — measured: 17.7% saved at 1 conflict,
+63.2% at 3, 76.3% at 5, approaching 100% asymptotically (the sim's 86%
+figure assumed a sketch-length script; the real ~110-token script code is
+a fixed cost that amortizes). Accept at ≥ 60% on the 3-conflict fixture
+loop. Sandbox tests prove `import`, dunder access, `while`, unbounded
+loops and over-cap call counts each fail with one short error and leave
+the scene rolled back.
+
+### 8.2 Adaptive columnar encoding (A12)
+
+1. `kernel/budget.py` gains `columnarize(payload, min_rows=20)`: any
+   list-of-dicts field with ≥ `min_rows` rows sharing ≥ 60% of their keys is
+   rewritten `[{...}, ...]` → `{"cols": [...], "rows": [[...], ...]}`; the
+   field name is recorded in a top-level `"columnar": [field, ...]` marker
+   so the model can decode. Small or heterogeneous lists are untouched
+   (simulated: 42% smaller at 100 rows, ~1% at 11 heterogeneous facts —
+   the threshold is the point).
+2. Wired into the server `_tool` pipeline before `enforce_budget`, so
+   trimming operates on the already-compact form.
+
+**Acceptance:** a 100-entity `tee_scene_summary` response measures ≥ 35%
+smaller than the row-of-objects form; sub-threshold payloads are
+byte-identical to today; the canary suite still passes on all 16 tools.
+
+### 8.3 Recap — eviction-safe resume (A12)
+
+1. `tee_status` gains `recap: boolean`. With it, the response adds a
+   `recap` object rebuilt entirely from server-side state: per-adapter scene
+   stamp + entity counts by kind, last 3 checkpoints, extract sources with
+   fact-kind counts, unresolved conflict count, and project-memory
+   highlights. Budget: ≤ 500 estimated tokens, enforced.
+2. Contract note in the tool description: every TEE response is re-derivable
+   (scene cache / fact store / checkpoints), so hosts that evict old tool
+   results lose nothing — `tee_status(recap=true)` is the one-call catch-up.
+
+**Acceptance:** recap present, ≤ 500 tokens on a project with 100+ entities
+and a full extract store, and sufficient to resume: a fresh in-memory client
+session given only the recap can find and call the right next tool without
+re-listing the scene.
+
+### 8.4 Caption-once media pass (A12)
+
+1. `ex_prepare` packets list `uncaptioned` keyframe/photo-group ids and
+   instruct the host model to store `{kind: "caption", ref, text ≤ 20
+   words}` facts alongside its normal pass; media with existing caption
+   facts are excluded from `prepared_images`, so a captioned keyframe is
+   never re-attached by default (re-view stays available via `tee_media`).
+2. Captions are plain facts: searchable via `ex_search`, no schema change.
+
+**Acceptance:** a stored caption removes its keyframe from the next
+`ex_prepare` packet and is findable via `ex_search`; arithmetic in the tool
+description states the break-even honestly (one avoided re-view of a
+1568-capped frame ≈ 2,200 tokens vs ~30 for the caption).
+
+### 8.5 Benchmark
+
+Add a fix-loop measurement to the extraction benchmark scenario: the same
+3-wall repair executed as individual tool rounds vs one `tee_script` call,
+published in `benchmarks/RESULTS.md` next to the Phase 7 numbers.
+
+**Acceptance:** full suite green (unit + dcc); benchmark re-run against live
+Blender and published; `docs/PROGRESS.md` updated with measured numbers.
+
+---
+
+## 12. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.

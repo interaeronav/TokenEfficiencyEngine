@@ -216,6 +216,7 @@ MINIMAL_ARGS = {
     "tee_rollback": {"ref": "cp1"},
     "tee_job": {"job_id": "job999"},
     "tee_media": {"source": "nothing-ingested"},
+    "tee_script": {"code": "result = 1 + 1"},
     "tee_search_tools": {"query": "demo"},
     "tee_describe_tool": {"name": "bl_demo_tool"},
     "tee_call": {"name": "bl_demo_tool", "args": {"n": 1}},
@@ -280,3 +281,33 @@ def test_stdio_subprocess_end_to_end(tmp_path):
             assert parsed["created"] == ["e1"]
 
     anyio.run(main)
+
+
+def test_columnar_encoding_on_large_summaries():
+    """Phase 8 acceptance (8.2): a 100-entity summary comes back columnar
+    and >= 35% smaller than the row-of-objects form; small summaries are
+    untouched."""
+
+    async def scenario(client):
+        ops = [{"op": "create", "kind": "cube", "name": f"B{i}"} for i in range(100)]
+        payload(await client.call_tool("tee_batch", {"ops": ops}))
+
+        out = payload(await client.call_tool("tee_scene_summary", {"limit": 100}))
+        assert out["columnar"] == ["entities"]
+        cols, rows = out["entities"]["cols"], out["entities"]["rows"]
+        assert len(rows) == 100
+        decoded = [dict(zip(cols, r[: len(cols)], strict=True)) for r in rows]
+        names = {d["name"] for d in decoded}
+        assert "B42" in names
+
+        from tee.kernel.budget import estimate_tokens
+
+        row_form = {**out, "entities": decoded}
+        row_form.pop("columnar")
+        assert estimate_tokens(out) <= estimate_tokens(row_form) * 0.65
+
+        small = payload(await client.call_tool("tee_scene_summary", {"limit": 5}))
+        assert "columnar" not in small
+        assert isinstance(small["entities"], list)
+
+    run_session(scenario)

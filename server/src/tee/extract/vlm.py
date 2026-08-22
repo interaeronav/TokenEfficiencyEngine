@@ -73,9 +73,28 @@ _GUIDANCE = {
 }
 
 
-def prepare_instructions(source: dict[str, Any], derived_root: Path) -> dict[str, Any]:
+_CAPTION_GUIDANCE = (
+    "While you have each image open, ALSO store one caption fact per image "
+    "(ex_store_facts with merge=true so earlier captions survive): "
+    "{kind:'caption', ref:<image stem, e.g. 'k03'>, text:<= 20 words}. "
+    "Captions make the frame text-searchable forever (~30 tokens once); a "
+    "re-view of a full-size frame costs ~2,200 tokens every time. Captioned "
+    "images are dropped from future packets - re-view via tee_media if "
+    "pixels are truly needed again."
+)
+
+
+def prepare_instructions(
+    source: dict[str, Any],
+    derived_root: Path,
+    *,
+    captioned: set[str] | None = None,
+) -> dict[str, Any]:
     """The in-band extraction packet: what to read, what to store, and the
-    schema. Text-only - the host model reads media with its own tools."""
+    schema. Text-only - the host model reads media with its own tools.
+    Caption-once (Phase 8, A12): images whose stem already has a caption
+    fact are excluded; the rest are listed as `uncaptioned` with guidance
+    to store caption facts alongside the normal pass."""
     media_type = source["media_type"]
     packet: dict[str, Any] = {
         "source": source["hash"][:8],
@@ -90,8 +109,17 @@ def prepare_instructions(source: dict[str, Any], derived_root: Path) -> dict[str
     if media_type == "document":
         packet["plan_schema_example"] = _PLAN_SCHEMA_HINT
     sheets = sorted(derived_root.glob("**/sheet*.jpg")) + sorted(derived_root.glob("**/k*.jpg"))
-    if sheets:
-        packet["prepared_images"] = [str(p) for p in sheets[:12]]
+    done = captioned or set()
+    fresh = [p for p in sheets if p.stem not in done]
+    if fresh:
+        packet["prepared_images"] = [str(p) for p in fresh[:12]]
+        packet["uncaptioned"] = [p.stem for p in fresh[:12]]
+        packet["caption_guidance"] = _CAPTION_GUIDANCE
+    elif sheets:
+        packet["note"] = (
+            f"All {len(sheets)} prepared images already have caption facts - "
+            "search them via ex_search; re-view via tee_media only if needed."
+        )
     return packet
 
 

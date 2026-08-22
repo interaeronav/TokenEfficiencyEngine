@@ -53,6 +53,8 @@ class TeeApp:
         # installed by the extract module: (source, region, timestamp, budget)
         # -> (jpeg bytes, info) for the kernel tee_media tool
         self.media_view = None
+        # installed by the extract module: () -> compact store recap dict
+        self.extract_recap = None
 
     # -- helpers -----------------------------------------------------------
 
@@ -162,6 +164,34 @@ class TeeApp:
         if alerts:
             payload["response_size_alerts"] = alerts
         return payload
+
+    def recap(self) -> dict[str, Any]:
+        """Eviction-safe resume (Phase 8, A12): a compact project recap
+        rebuilt entirely from server-side state - scene stamps and kind
+        counts, recent checkpoints, extract store shape, memory - so a host
+        that evicted old tool results catches up with one call."""
+        adapters: dict[str, Any] = {}
+        for name, cache in self.caches.items():
+            kinds: dict[str, int] = {}
+            for entity in cache.entities.values():
+                kinds[entity.kind] = kinds.get(entity.kind, 0) + 1
+            adapters[name] = {**cache.stamp(), "entities": len(cache.entities)}
+            if kinds:
+                adapters[name]["kinds"] = kinds
+        out: dict[str, Any] = {"adapters": adapters}
+        checkpoints = self.checkpoints.list()[-3:]
+        if checkpoints:
+            out["checkpoints"] = checkpoints
+        memory = self.memory.preamble()
+        if memory.get("facts") or memory.get("notes"):
+            out["memory"] = memory
+        if self.extract_recap is not None:
+            with contextlib.suppress(Exception):
+                out["extract"] = self.extract_recap()
+        active = [j for j in self.jobs.list() if j["state"] in ("queued", "running")]
+        if active:
+            out["active_jobs"] = active
+        return out
 
     def _busy_hint(self) -> str | None:
         """The serial bridge looks 'down' while a long job holds it."""

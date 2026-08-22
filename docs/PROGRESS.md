@@ -26,6 +26,10 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       non-DCC tests, 26 live-Blender tests, extraction benchmark 92.6%
       saving. Whisper/pyannote model quality on real site audio and
       GPU-dependent paths still deserve a physical-machine spot check)*
+- [x] Phase 8 — Context economics *(researched, simulated and built in
+      cloud, 2026-08-22: tee_script lane, columnar responses, recap,
+      caption-once; fix-loop benchmark 63.2% saved at 3 conflicts, flat
+      script cost vs linear rounds)*
 
 ## Machine facts
 
@@ -201,3 +205,45 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - Evidence: `uv run pytest` → **144 passed, 0 skipped**; `uv run pytest -m
   dcc` → **26 passed** (both bridge flavors, live Blender 5.2); `ruff
   check`/`format` clean; full benchmark suite re-run against live Blender.
+
+### 2026-08-22 — Phase 8 research + build (cloud)
+- **Research + simulation pass** (docs/research/19): verified current
+  API-side mechanisms (programmatic tool calling excludes MCP tools →
+  app-side lane; context editing makes tool results evictable — affordable
+  for TEE because all state is re-derivable; deferred tool schemas validate
+  the registry design). Four simulations against the real machinery; one
+  deliberate negative result: a BM25 swap for fact search REGRESSED
+  relevance (9/10 → 7/10 at 611 facts) — search left as is, recorded in
+  A12 so it is not "improved" later without new evidence.
+- **`tee_script` (A11):** AST-whitelisted, tree-walk-interpreted (never
+  exec'd) script lane over the existing typed tools - call/batch/summary/
+  detail/diff helpers, hard budgets (200 calls / 10k steps / 120s / 20k
+  chars), atomic via auto-checkpoint per touched adapter with full rollback
+  on any error, only `result` returned. 16th always-loaded tool (canaries
+  updated). 28 tests: sandbox rejections (import/while/def/lambda/dunder/
+  attribute/walrus/try/global), budget enforcement, rollback atomicity,
+  real composition over batches.
+- **Adaptive columnar encoding (A12):** list-of-dicts fields ≥ 20 rows with
+  ≥ 60% shared keys rewritten to cols/rows with a decode marker, wired into
+  the server pipeline before the budgeter; sub-threshold payloads
+  byte-identical. End-to-end acceptance: 100-entity summary ≥ 35% smaller
+  through the real MCP surface.
+- **Recap (A12):** `tee_status(recap=true)` rebuilds a ≤ 500-token project
+  recap from server state (scene stamps + kind counts, checkpoints, extract
+  store shape, memory) — the eviction-safe one-call resume; contract stated
+  in the tool description.
+- **Caption-once (A12):** `ex_prepare` lists uncaptioned image stems with
+  guidance to store ≤ 20-word caption facts (merge=true); captioned images
+  drop out of future packets; captions searchable via ex_search. En route
+  fixed a real store gap: `ex_store_facts` replaced the whole extractor
+  file per call, clobbering incremental writes — added merge semantics with
+  tests.
+- **Benchmark (8.5):** conformance fix loop as rounds vs one tee_script
+  call: script cost is FLAT (~173 tok) vs ~130 tok/conflict for rounds —
+  **17.7% / 63.2% / 76.3% saved at 1 / 3 / 5 conflicts**. Published next to
+  the Phase 7 numbers; the sim's 86% assumed a sketch-length script, and
+  the acceptance was amended to the honest measured curve. All prior
+  numbers reproduced (87.7% scenes, 92.6% extraction).
+- Evidence: `uv run pytest` → **186 passed** (1 deliberate skip); `-m dcc`
+  → **26 passed** (both bridge flavors, live Blender 5.2); ruff clean;
+  full benchmark suite re-run against live Blender.
