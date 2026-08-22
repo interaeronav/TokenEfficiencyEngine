@@ -73,6 +73,10 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       tests, uefn skill, live Data API analytics; 26 tests + 2 live.
       Live-editor lanes DESCOPED 2026-08-22 — owner decision, no
       Windows machine; offline lanes shipped, interface+fakes kept)*
+- [ ] Phase 13 — Voxkiln (TRELLIS.2-derived generation product, owner
+      decision 2026-08-22; script §16, decisions A26–A28, research
+      43–48; supersedes the "local TRELLIS.2 needs CUDA" ledger item —
+      the product targets MPS + CUDA)
 
 ## Machine facts
 
@@ -136,8 +140,10 @@ Platform split of the outstanding ledger (decided by the hardware):
   (digest/lint/templates/export preflight) are SHIPPED and supported
   everywhere; the adapter interface + fakes remain in the codebase so
   the live proxy could be revived by a future decision.
-- **Still needs CUDA:** local TRELLIS.2-4B (nvdiffrast is
-  CUDA-bound) - lane 3 local generation stays hosted-only on this Mac.
+- **Superseded 2026-08-22 (Phase 13 / A26–A28):** ~~local TRELLIS.2-4B
+  needs CUDA~~ — the Voxkiln product replaces the nvdiffrast/cumesh
+  CUDA-locked stages with license-clean portable code, so lane-3 local
+  generation targets this Mac's MPS directly (CUDA stays supported).
 
 ## Blockers
 
@@ -1003,9 +1009,10 @@ Nothing further can be closed on this machine. The honest remainder:
   (digest parsing, lint, templates, export preflight) work everywhere and
   are tested; the adapter interface + fakes stay as the revival point.
 
-**Needs CUDA** (Apple Silicon cannot run it):
-- local TRELLIS.2-4B generation — nvdiffrast is CUDA-bound. Lane 3 stays
-  hosted-only here.
+**Needs CUDA** — none left: the former entry (local TRELLIS.2-4B, nvdiffrast
+CUDA-bound) was superseded 2026-08-22 by Phase 13 (Voxkiln, decisions
+A26–A28): the product removes the CUDA-locked stages, so local generation
+targets MPS on this Mac.
 
 **Needs an older engine** (none installed):
 - the UE 5.3–5.7 Remote Control fallback tier is **unimplemented**, not
@@ -1170,7 +1177,9 @@ Everything reachable on this machine is now closed. What remains is blocked
 by hardware, by credentials, or by a decision that is the owner's:
 
 - **Descoped by the owner:** live UEFN (Windows-only).
-- **Needs CUDA:** lane 3 local 3D generation (TRELLIS.2 / nvdiffrast).
+- ~~**Needs CUDA:** lane 3 local 3D generation (TRELLIS.2 / nvdiffrast).~~
+  Superseded later the same day by Phase 13 (Voxkiln, A26–A28): the
+  product removes the CUDA-locked stages, so lane 3 targets MPS here.
   Lanes 1–2 now correctly report available on MPS.
 - **Needs an older engine:** the UE 5.3–5.7 fallback tier, unimplemented.
 - **Needs the owner's credentials:** hosted generation (Tripo / Meshy keys).

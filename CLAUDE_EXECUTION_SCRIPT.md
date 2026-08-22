@@ -1270,7 +1270,148 @@ with fakes and DESCOPED per the 2026-08-22 amendment above.
 
 ---
 
-## 16. Standing rules (all phases)
+## 16. Phase 13 — Voxkiln: the TRELLIS.2-derived generation product
+
+**Goal:** owner decision 2026-08-22 — take Microsoft's TRELLIS.2 source
+(MIT, code + weights), fix its known defects, and ship it as a SEPARATE
+PRODUCT whose primary user is an AI agent; TEE consumes it as the
+default generated-3D lane. Working name **Voxkiln** (rename is cheap;
+"TRELLIS" must stay out of the name).
+
+**Grounding:** `docs/research/43`–`48` (six-agent pass, 2026-08-22).
+Decisions A26–A28 settled — amend via `docs/DECISIONS.md` only.
+Anti-goals: no NVIDIA-non-commercial, GPL, or LGPL code in the runtime
+import path (nvdiffrast, nvdiffrec_render, cubvh, plyfile, easydict);
+no CC-BY-NC weights (RMBG-2.0); no vendored model weights (pinned HF
+snapshot_download only); no model-driven poll loops anywhere in the
+interface; no renders as evidence; no retraining (defect fixes are
+decode/postprocess-side); no bitwise cross-device determinism claims.
+
+### 13.1 Vendored fork + license surgery (A26)
+
+1. Vendor microsoft/trellis.2 @75fbf01 into `voxkiln/` as a
+   self-contained package (`voxkiln/vendor/trellis2`, `.../o_voxel`),
+   Microsoft copyright + MIT text retained, `UPSTREAM_COMMIT` recorded
+   and printed by `voxkiln doctor`. Drop training/data_toolkit and
+   windowed-attention code (no shipped config uses it).
+2. Import-chain surgery first: lazy-import `postprocess`/`io` out of
+   `o_voxel/__init__`, cumesh/flex_gemm out of
+   `representations/mesh/base.py`; replace easydict (~50-line MIT
+   attrdict) and plyfile (trimesh IO); excise nvdiffrec_render.
+   Acceptance: `import voxkiln` succeeds on a clean CPU-only venv and
+   a license lint over the runtime tree finds only
+   MIT/BSD/Apache/HPND (+ the vendored MPL-2.0 Eigen headers,
+   build-time only).
+3. Preprocessing without taint: RGBA inputs bypass matting (upstream
+   path exists); non-alpha inputs use MIT BiRefNet weights
+   (ZhengPeng7), never RMBG-2.0; DINOv3 fetched gated from HF with
+   "Built with DINOv3" attribution in README + report provenance.
+
+### 13.2 Defect-fix layer (A27; evidence in research 44)
+
+1. fp32 at every hard decode threshold (subdiv, quad-emission logits)
+   + configurable decision margin; per-stage `torch.Generator` seed
+   plumbing replacing global `manual_seed`; mesh content-hash in every
+   report.
+2. Export pipeline rebuilt (`voxkiln/export.py`) in the
+   repair-before-bake order: repair (full res) → freeze full-res
+   reference (BVH/KD-tree) → staged simplify (3x → target, re-clean
+   between) → xatlas UV → CPU bake (numpy UV rasterizer + cKDTree IDW
+   over the voxel attr volume) → TELEA seam inpaint → normals → GLB
+   with correct alphaMode (BLEND/MASK from alpha stats) and float
+   baseColorFactor. DC remesh capped at 512. texture_size clamped to
+   what attr resolution supports, with the clamp reported.
+3. `voxkiln/repair.py`: levels fast (dedup/degenerate/components/
+   winding + in-house boundary-loop fill, 3e-2 perimeter default) /
+   manifold (manifold3d Merge + validation) / rebuild (manifold3d SDF
+   level_set, pre-UV only). In-process deps exactly:
+   trimesh, manifold3d, fast-simplification, xatlas, numpy, scipy,
+   opencv. Escalation: structured handoff to TEE's Blender lane.
+4. Memory discipline from stableprojectorz: chunked norm/MLP/im2col,
+   sampler pred-list drop, spatial-cache clearing (also the batch-leak
+   fix); silent resolution downgrade becomes a reported field.
+
+### 13.3 Backends (A28; research 45)
+
+1. Device abstraction `cuda | mps` (no string-patching): the ~20
+   hard-coded `.cuda()` sites route through one helper; CUDA path kept
+   working (flash_attn/xformers/flex_gemm as upstream).
+2. MPS path: sparse varlen attention via FlexAttention-MPS
+   (torch ≥2.13) with SDPA fallback; sparse conv + grid_sample via
+   vendored, pinned mtlgemm (fallback: pure-PyTorch gather-scatter);
+   `o_voxel._C` hash kernels replaced with `torch.unique`/
+   `searchsorted` equivalents; pure-Python dual-grid mesh extraction
+   (trellis-mac lineage) as the portable baseline.
+3. Residency mode: no low_vram on ≥32 GB unified memory — all models
+   stay loaded; worker process + heartbeat so the server never blocks;
+   GPU-watchdog empty-output detection and thermal-throttle timing
+   are structured errors with fixes.
+
+### 13.4 AI-first surface (A28; research 47)
+
+1. Python API: `submit/wait/generate/query`. CLI: `voxkiln gen
+   input.png --seed N --max-tris N --watertight --json` (exit code =
+   verdict), `jobs`, `show`, `doctor`, `fetch-weights`.
+2. MCP server, exactly 4 tools: `gen3d_generate` (bounded wait,
+   checkpoint token on timeout), `gen3d_wait`, `gen3d_query`,
+   `gen3d_status`. Everything else lives in the params dict.
+3. The report: `{asset_id, files, stats{tris, verts, watertight,
+   bbox_m, materials, uv_coverage}, repairs[], verdict{accepted,
+   violations[{rule, got, limit, fix}]}, provenance{generator,
+   generator_version, upstream_commit, model_repo, model_revision,
+   input_image_sha256, seed, params, ai_generated: true}, timings,
+   peak_mem}`. Budget in → accept/reject + exact fix out, one message.
+4. Input-hash cache (sha256(image)+params+model revision) checked
+   before any GPU work; submit ack carries est_seconds /
+   est_peak_mem_gb / queue position; no capable backend → structured
+   refusal naming the hosted fallback.
+
+### 13.5 Eval harness (A27; research 48)
+
+1. CI (weightless): synthetic seeded-defect fixtures (holed sphere,
+   non-manifold fin, degenerate slivers, watertight-interpenetrating
+   concat) with exact-count assertions; the metric module doubles as
+   the product's report code. Metrics: watertightness, boundary
+   loops, non-manifold edges, degenerates, per-component Euler, UV
+   overlap %, texel-density CV, silhouette IoU (CPU raycast).
+2. Mac battery: upstream-canonical example images + owner photos
+   (frozen SHA256s), seeds {0,42,1234}, `512` + `1024_cascade`,
+   topology-expectation tags; stock-vs-ours deltas appended to
+   `voxkiln/BENCHMARKS.md` (frontmatter: commits, torch, macOS,
+   machine, thermal state). Determinism measured (same-seed ×3),
+   never assumed.
+
+### 13.6 TEE integration + handoff
+
+1. TEE gains a `voxkiln` GenDriver (unpaid, local) registered FIRST in
+   `build_drivers()` when the product import-probes clean —
+   `as_generate` therefore defaults to it; Tripo/Meshy stay as keyed
+   fallbacks. `probe_local_gpu` learns MPS. Fake driver mirrors the
+   report contract for tests.
+2. Generated assets flow into the existing as_import cleanup +
+   provenance path; the Voxkiln provenance manifest satisfies the
+   Phase 9 attribution rules (`ai-generated` flag + generator + input
+   hash).
+3. Mac-session steps recorded in PROGRESS: install `[voxkiln]` extras,
+   fetch weights, run the live battery stock-vs-ours, tune
+   FlexAttention, decide own-repo extraction.
+
+### 13.7 Acceptance
+
+Cloud: clean-venv `import voxkiln` (CPU-only) passes; license lint
+proves the runtime tree MIT/BSD/Apache-clean (no nvdiffrast/
+nvdiffrec/cubvh/plyfile/easydict imports reachable, no RMBG-2.0
+reference); repair/export/report/metric suites green on the seeded
+fixtures with exact counts; MCP surface serves 4 tools over stdio with
+the report schema; TEE's as_generate routes to the voxkiln driver by
+default with the fakes; cache hit returns without invoking the
+pipeline; structured refusal fires on a GPU-less box. Mac: the live
+battery runs stock-vs-ours and PROGRESS gets the numbers.
+`docs/PROGRESS.md` updated with evidence.
+
+---
+
+## 17. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.

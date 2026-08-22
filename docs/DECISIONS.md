@@ -4,6 +4,64 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Phase 13 (Voxkiln: TRELLIS.2-derived generation product) researched; decisions A26–A28
+
+Owner decision: "set the project to use trellis.2 source code for this
+task, deep research and improve it to cover known defects and integrate
+it as a separate product that is optimized for ai." A six-agent
+deep-research pass (docs/research/43–48) grounded it against the actual
+source (microsoft/trellis.2 @75fbf01, trellis-mac @d58628f,
+stableprojectorz @d5d38f1, ~170 upstream issues). New settled decisions
+in `docs/research/00-index.md`:
+
+- **A26 — product shape & fork strategy:** separate product (working
+  name Voxkiln; "TRELLIS" excluded from the name — MIT grants no
+  trademark rights), vendored hard fork pinned to upstream 75fbf01
+  (upstream dormant: 11 commits ever, zero external PRs merged),
+  weights via pinned HF snapshot_download (never vendored), license
+  surgery removes NVIDIA-non-commercial (nvdiffrast, nvdiffrec_render,
+  cubvh), GPL (plyfile), LGPL (easydict) from the runtime and replaces
+  CC-BY-NC RMBG-2.0 weights; DINOv3 accepted with attribution terms.
+  Lives in the TEE monorepo as a self-contained package for now;
+  own-repo extraction is a recorded physical-machine step.
+- **A27 — defect-fix + quality contract:** evidence-ranked fix list
+  (fp32 decode thresholds, CPU boundary-loop hole fill,
+  repair-before-bake with frozen full-res reference surface, staged
+  simplification, DC cap, memory discipline, GLB alpha fix, honest
+  resolution-downgrade reporting, per-stage seeded generators);
+  MIT/BSD/Apache-only in-process repair stack
+  (trimesh/manifold3d/fast-simplification/xatlas); topology-aware eval
+  battery — weightless exact-count CI fixtures + a stock-vs-ours Mac
+  battery; improvement claims exist only as results-file rows.
+- **A28 — AI-first interface + platform posture:** one bounded
+  generate call (server-side wait, poll loops banned), compact machine
+  report + budget verdict + provenance (`ai_generated: true`), ≤4 MCP
+  tools, input-hash cache, structured refusal over hangs; Apple
+  Silicon first-class (FlexAttention-MPS, vendored+pinned Metal stack,
+  full-residency on 128 GB, watchdog/thermal telemetry, worker
+  process); CUDA first-class; TEE consumes it as the default
+  GenDriver with hosted Tripo/Meshy demoted to keyed fallback.
+
+Load-bearing evidence: the license taint is confined to pre/post
+processing — all five neural stages are MIT code + MIT weights, so a
+commercial-clean fork needs no retraining (43); the worst geometry
+defects trace to hard fp16 logit thresholds and a crash-prone CUDA
+mesh library, both fixable in Python (44); textures do not exist until
+export, so repair-before-bake is free texture correctness (46); the
+Mac port's fidelity loss came from discarding the full-res bake
+reference, not from decimation itself (46); Tripo's own docstring
+instructs the model to poll ("you MUST repeatedly call the
+get_task_status tool") — the interface vacuum is real (47); upstream
+is dormant and unresponsive, which both forces the vendored fork and
+de-risks it (48); nothing released Jan–Aug 2026 beats TRELLIS.2-4B on
+open license + quality, so the base holds (48).
+
+Supersedes: A14's "TRELLIS.2 local (CUDA)" lane and the A14/PROGRESS
+"Still needs CUDA: local TRELLIS.2" ledger item — the product targets
+MPS + CUDA, so local generation is now IN scope for the Mac. Amends
+A22's export lane consumer list (Voxkiln output feeds the same
+cleanup/import path).
+
 ## 2026-08-22 — Live UEFN editor integration descoped (owner decision)
 
 UEFN runs on Windows only and the project's physical machine is a Mac

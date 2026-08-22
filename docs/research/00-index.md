@@ -52,6 +52,12 @@ empirically and record it in `docs/PROGRESS.md`.*
 | [40-ue-trajectory.md](40-ue-trajectory.md) | UE 5.8-as-terminal-baseline, UE6 merge plan (Verse gameplay model, Scene Graph, MCP as pillar), 5.8.1 transaction change, StartPIE correction, unclaimed TEE differentiators |
 | [41-blender-trajectory.md](41-blender-trajectory.md) | Blender 5.3 landed content (all_ids order, asset tokens/@b5_3, Vulkan default), 6.0 removal list (use_nodes hard target), legacy-physics no-deprecation evidence, shim-table distillate |
 | [42-uefn-module-design.md](42-uefn-module-design.md) | UEFN prior-art inventory with licenses, digest-diff precedent, Blender→UEFN budget tables, the three-shape verdict (docs+codegen core, proxy, skill), Scene-Graph-first vocabulary |
+| [43-trellis2-source-license.md](43-trellis2-source-license.md) | TRELLIS.2 @75fbf01 full anatomy: 8-stage pipeline file:line map, compiled-extension inventory, complete dependency/weights license audit, the minimal MIT-clean replacement set, v1 reuse |
+| [44-trellis2-defects.md](44-trellis2-defects.md) | Defect corpus from ~170 issues + two forks: threshold-logit hole scatter, fp16 spikes, memory-peak anatomy, batch leak, silent res downgrade, GLB alpha bug, ranked [pure-python]/[kernel]/[model] fix list |
+| [45-trellis2-apple-silicon.md](45-trellis2-apple-silicon.md) | MPS execution: trellis-mac patch-layer autopsy, pedronaugusto Metal stack (mtlgemm/mtldiffrast/mtlbvh/mtlmesh), torch 2.13 FlexAttention-MPS, unified-memory residency, watchdog/thermal traps, M5 Max levers |
+| [46-mesh-repair-toolchain.md](46-mesh-repair-toolchain.md) | License-clean repair stack (trimesh/manifold3d/fast-simplification/xatlas), voxel-attrs-until-export architecture fact, repair-before-bake chain with frozen full-res reference, in-process vs Blender-lane boundary |
+| [47-ai-first-gen-product.md](47-ai-first-gen-product.md) | Prior-art token pathologies (Tripo "MUST repeatedly call" polling, Meshy 24-tool surface), the 8 AI-first requirements, ≤4-tool MCP surface, packaging/versioning/MIT-trademark rules, name candidates |
+| [48-gen-product-eval.md](48-gen-product-eval.md) | Executed metric battery (trimesh/manifold3d/shapely, exact-count fixtures), topology-aware scoring, seed-plumbing autopsy, CI-vs-Mac split, stock-vs-ours protocol, upstream-dormant evidence → vendored fork |
 
 ## Architecture decisions (ADR)
 
@@ -296,6 +302,73 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   lanes: `wm.undo_stack` read access for diff bracketing; Blender
   Lab's own MCP experiment (interop/benchmark posture, same as
   Epic's). (41, 32, 36)
+- **A26 — Voxkiln product shape & fork strategy:** the generated-3D
+  lane becomes a SEPARATE PRODUCT (working name Voxkiln — no "TRELLIS"
+  in the name, MIT grants no trademark rights): a vendored hard fork
+  of microsoft/TRELLIS.2 @75fbf01 (upstream is dormant — 11 commits
+  ever, stale since 2026-06, zero external PRs merged — so
+  patch-overlay buys fragility for nothing), Microsoft copyright + MIT
+  text retained, product 0.x pinned to the upstream commit
+  (llama-cpp-python convention). Weights are never vendored: HF
+  `snapshot_download` with full pinned revision into the standard
+  cache. License surgery is the price of "product": nvdiffrast +
+  nvdiffrec_render + cumesh's cubvh (NVIDIA non-commercial), plyfile
+  (GPL), easydict (LGPL) leave the runtime path; RMBG-2.0 weights
+  (CC BY-NC) are replaced (MIT BiRefNet weights or mandatory-alpha
+  input); DINOv3 accepted under its license (gated fetch, "Built with
+  DINOv3" attribution — unswappable without retraining). Import-chain
+  surgery (`o_voxel/__init__`, `representations/mesh/base`) lands
+  first so the MIT core imports clean. Ships in the TEE monorepo as a
+  self-contained top-level package now (this session cannot create
+  repos); extraction to its own repo is a recorded Mac-session step.
+  (43, 47, 48)
+- **A27 — Defect-fix + quality contract:** the fork exists to fix
+  documented defects, each traceable to evidence and measured by the
+  eval battery: fp32 at every hard decode threshold + configurable
+  margin (kills fp16 spike/hole scatter, proven in stableprojectorz);
+  robust CPU boundary-loop hole fill replacing crash-prone
+  cumesh/mtlmesh (upstream's own 3e-2 perimeter default); repair
+  BEFORE bake with the full-res reference surface frozen for texel
+  projection (textures live in the voxel attr volume until export —
+  trellis-mac's fidelity loss came from dropping this); staged
+  simplify-clean-simplify; DC remesh capped ≤512 (removes the 41M-face
+  detour); the stableprojectorz memory discipline (chunked
+  norm/MLP/im2col, sampler pred-list drop, spatial-cache clearing =
+  the batch-leak fix); GLB alpha/baseColorFactor fix; texture_size
+  clamped to attr resolution; per-stage generators + mesh content-hash
+  (determinism as a measured deliverable, never an assumption);
+  loud resolution-downgrade reporting. In-process repair stack is
+  MIT/BSD/Apache only: trimesh + manifold3d + fast-simplification +
+  xatlas (+numpy/scipy/opencv), three levels fast/manifold/rebuild;
+  GPL tools (pymeshlab, MeshFix) eval- or subprocess-only; unfixable
+  residue escalates as a structured handoff to TEE's Blender lane.
+  Eval: topology-aware metric battery (O-Voxel makes open surfaces on
+  purpose — watertightness is scored only where "closed" is expected);
+  CI runs weightless on synthetic seeded-defect fixtures with
+  exact-count assertions; the Mac battery runs upstream-canonical
+  images + owner photos, seeds {0,42,1234}, stock-vs-ours deltas in a
+  RESULTS file — improvement claims exist only as rows there. (44, 46,
+  48)
+- **A28 — AI-first interface + platform posture:** the agent contract
+  is one bounded call: submit + server-side wait → compact machine
+  report (mesh stats, repair log, budget verdict with exact fix,
+  provenance manifest with `ai_generated: true`, pinned model
+  revision, input hash, seed) — never renders, thumbnails, or bare
+  URLs; model-driven poll loops are banned (Tripo's docstring orders
+  the model to poll; Meshy ships 24 tools — the anti-patterns are the
+  product's reason to exist). Input-hash cache before any GPU work.
+  MCP surface frozen at 4 tools (generate/wait/query/status); CLI
+  emits JSON + exit-code verdict; `doctor` + structured refusal when
+  no capable backend — never a hang. Apple Silicon is first-class:
+  FlexAttention-MPS (torch ≥2.13) replaces trellis-mac's padded SDPA
+  (also fixes its unmasked-padding wrinkle), the pedronaugusto Metal
+  stack is vendored and pinned (bus-factor-1 → own the bugs), models
+  stay resident on 128 GB unified memory (no low_vram ping-pong, no
+  103 s reload), GPU-watchdog and thermal telemetry are structured
+  errors; generation runs in a worker process with heartbeat. CUDA
+  stays a first-class target. TEE consumes the product as the default
+  GenDriver (hosted Tripo/Meshy demoted to keyed opt-in fallback).
+  (45, 47, 44, 22)
 
 ## Headline numbers worth remembering
 
