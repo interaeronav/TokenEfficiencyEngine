@@ -33,3 +33,6 @@ testbeds/**/*.sln
 *.log
 .env
 .claude/settings.local.json
+
+# TEE per-project runtime state (project memory, extract store, checkpoints)
+.tee/
