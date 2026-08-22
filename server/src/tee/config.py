@@ -12,6 +12,11 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
 
     [blender]
     port = 9876
+
+    [assets]
+    allow_sa = false          # opt into CC-BY-SA share-alike assets (A13)
+    sketchfab = false         # guarded backend opt-in
+    backends = ["polyhaven"]  # optional: restrict enabled backends
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -26,6 +32,7 @@ class ProjectConfig:
     disabled_tools: set[str] = field(default_factory=set)
     allow_code_exec: bool | None = None  # None = not set
     blender_port: int | None = None
+    assets: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -60,6 +67,12 @@ class ProjectConfig:
             config.blender_port = port
         elif port is not None:
             problems.append("[blender].port must be an integer in 1024-65535")
+
+        assets = data.get("assets", {})
+        if isinstance(assets, dict):
+            config.assets = assets
+        elif assets:
+            problems.append("[assets] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)

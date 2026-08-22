@@ -757,8 +757,9 @@ text-to-3D.
    `CC-BY-SA-*` behind a config flag) failing CLOSED on NC/ND/unknown/
    proprietary/GPL. A test proves an NC asset cannot enter the cache.
 4. Local library ingest: `as_ingest` indexes the user's own asset folders
-   (glTF header probe via pygltflib — tri counts and exact extents from
-   JSON, no DCC; map-set regex for texture packs; thumbnails rendered
+   (glTF/GLB header probe — tri counts and exact extents from the JSON
+   chunk with node-transform composition, stdlib only, no DCC and no
+   extra dependency; map-set regex for texture packs; thumbnails rendered
    once, phashed).
 
 ### 9.2 Search and selection (A15)

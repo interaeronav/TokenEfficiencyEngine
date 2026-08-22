@@ -59,5 +59,6 @@ testpaths = ["tests"]
 timeout = 60
 markers = [
     "dcc: requires a live DCC (Blender/Unreal) on this machine",
+    "network: requires outbound network access (skips cleanly offline)",
 ]
 addopts = "-m 'not dcc'"

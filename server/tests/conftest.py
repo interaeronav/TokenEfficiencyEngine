@@ -101,6 +101,26 @@ def blender_bridge(request, tmp_path_factory):
         proc.kill()
 
 
+# -- network fixture (Phase 9) -----------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def network():
+    """Skip network-marked tests cleanly when offline (acceptance 9.7)."""
+    import urllib.error
+    import urllib.request
+
+    try:
+        req = urllib.request.Request(
+            "https://api.polyhaven.com/types", headers={"User-Agent": "TEE-test/0.1"}
+        )
+        with urllib.request.urlopen(req, timeout=8):
+            pass
+    except (urllib.error.URLError, TimeoutError, OSError):
+        pytest.skip("no outbound network access")
+    return True
+
+
 # -- shared stub bridge (official wire protocol shape) -----------------------
 
 import json as _json  # noqa: E402
