@@ -1183,11 +1183,64 @@ by hardware, by credentials, or by a decision that is the owner's:
   Lanes 1–2 now correctly report available on MPS.
 - **Needs an older engine:** the UE 5.3–5.7 fallback tier, unimplemented.
 - **Needs the owner's credentials:** hosted generation (Tripo / Meshy keys).
-- **Needs a multi-gigabyte download decision:** running diffusion end to end
-  on MPS, and the `[assets-embed]` embedding model. Detection and device
-  selection are fixed and tested; the weights are not mine to fetch.
+- ~~Needs a multi-gigabyte download decision~~ — **done 2026-08-22**, see
+  below: diffusion lane 1 and the embedder both run on this machine.
 - **Needs real input data:** Whisper / pyannote quality on genuine site
   audio — only synthetic fixtures exist.
 - **Data caveat:** joist-span worst-grade values in `plaus_rules.json` remain
   approximate pending edition verification, and SANS 10400 is not yet added
   for Okongo jurisdiction defaults.
+
+### 2026-08-22 — [assets-embed] and [assets-gen] run for real on Apple Silicon
+
+Both were interfaces with nothing behind them: `search.py` accepted an
+`embedder` hook nobody implemented, and `build_drivers` only ever returned
+hosted shells. Owner authorised the downloads; both now exist and both have
+been run.
+
+**[assets-embed] — SigLIP 2** (`google/siglip2-base-patch16-224`,
+**Apache-2.0**, ungated). Explicitly *not* MobileCLIP: MIT repo, research-only
+**weights**, unusable in a tool whose asset story is licence hygiene.
+`AssetRow` carries no thumbnail, so the comparison is query text vs row text.
+**Measured** against plain keyword ranking on a 5-case synonym set:
+**keyword MRR 0.667 → semantic 1.0**, with an on-disk vector cache making the
+second pass free. Caveats stated plainly: the set is small and I wrote both
+the queries and the labels, so it is suggestive rather than authoritative.
+
+Scoring is batched **once per rank** — the original per-row hook would have
+re-run the model O(n log n) times inside the sort comparator — and weighted
+*below* an exact keyword hit, so it breaks ties and rescues synonyms without
+overriding literal name matches.
+
+**[assets-gen] lane 1 — Z-Image-Turbo** (`Tongyi-MAI/Z-Image-Turbo`,
+**Apache-2.0** for weights *and* outputs, ungated, ~31 GB). Generates 768 px
+on **MPS in 22.8 s**; the image was opened and visually confirmed to match its
+prompt, not merely non-black.
+
+**The finding worth keeping: dtype is not portable across backends.** My first
+version used fp16 on any GPU. On MPS that produces NaNs, which the image
+processor casts to a fully **black** frame — and the driver reported state
+`done` with a black PNG. Measured on this model:
+
+| dtype on MPS | result | time |
+|---|---|---|
+| float16 | **NaNs → black image, reported as success** | 61 s |
+| bfloat16 | correct | 19 s |
+| float32 | correct | 32 s |
+
+MPS now gets bfloat16, CUDA keeps fp16, CPU stays fp32, and a uniform-output
+guard refuses to save a degenerate frame instead of calling it success.
+
+Both extras are declared in `pyproject.toml` but **loosely pinned on purpose**
+— torch wheels are backend-specific, so an exact pin would break either CUDA
+or Apple Silicon. Model-backed tests carry a new **`ml` marker** so a normal
+run never pulls gigabytes (`addopts = -m 'not dcc and not ml'`).
+
+One test needed fixing en route: `test_as_generate_without_drivers_names_fix`
+asserted the "nothing configured" message while reading the *real* driver set,
+so it silently depended on the host having no GPU and broke as soon as a local
+lane could be built. It now stubs the driver set, and a mirror case asserts the
+local lane *is* offered when the probe reports it.
+
+- Evidence: **387 passed, 2 skipped**; `-m ml` **2 passed**; `-m dcc`
+  **83 passed**.
