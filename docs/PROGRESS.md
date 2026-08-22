@@ -11,8 +11,11 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - [x] Phase 0 — Environment discovery *(cloud container; re-run on the
       physical machine when it joins)*
 - [x] Phase 1 — Server core and token kernel *(cloud container, 2026-08-21)*
-- [ ] Phase 2 — Blender adapter *(in progress in cloud: headless-testable
-      parts; live-GUI validation needs the physical machine)*
+- [x] Phase 2 — Blender adapter *(cloud 2026-08-21 for the
+      headless-testable parts; closed out on the physical M5 Mac
+      2026-08-22 — GUI-mode bridge validated in a real windowed
+      Blender, the macOS teardown defect fixed, and the last three
+      acceptance bullets executed live)*
 - [ ] Phase 3 — Unreal adapter *(requires the physical machine — UE editor
       cannot run in the cloud container)*
 - [x] Phase 4 — Cross-cutting friction killers *(cloud, 2026-08-21; doctor
@@ -647,6 +650,85 @@ Platform split of the outstanding ledger (decided by the hardware):
   out of `kqueue.control()`. In GUI Blender `stop_gui()` runs on the
   main thread, so every add-on disable/reload on macOS would print an
   I/O-thread traceback into Blender's console. Surfaced here as
-  `PytestUnhandledThreadExceptionWarning` during the suite. Fix
-  pending: cooperative shutdown (wake socketpair + teardown performed
-  on the loop thread).
+  `PytestUnhandledThreadExceptionWarning` during the suite. **Fixed
+  2026-08-22** — see the Phase 2 close-out entry below.
+
+### 2026-08-22 — Phase 2 close-out on the physical machine (M5 Mac)
+
+- **macOS teardown defect fixed** (the "fix pending" item above).
+  `_IOLoop` now carries a wake socketpair; `run()` tears its own sockets
+  down in a `finally`; `close()` sets the stop event, wakes the loop,
+  joins the I/O thread, and only tears down inline once that thread has
+  exited. `start_gui` claims thread ownership *before* starting the
+  thread so `close()` cannot race a loop that has not yet entered
+  `run()`; teardown is idempotent under a lock, so `run_blocking()`'s
+  close-after-run stays correct.
+- **Quantified, not assumed.** A 25-run harness on this Mac, with the
+  I/O thread parked in `select()`: **pre-fix 25/25 runs raised**
+  `OSError(EBADF)` on the I/O thread, **fixed 0/25**. A first
+  single-shot GUI attempt did *not* reproduce, because it stopped the
+  bridge immediately after traffic — the one window where the thread is
+  not inside `select()`. Reproduced properly by stopping while idle,
+  which is what a user disabling the add-on actually does.
+- **GUI-mode validation (the Phase 2 gap this machine was owed).** A
+  real windowed Blender 5.2 (`background=False`), bridge served from the
+  working tree:
+  - batches execute through the main-thread `bpy.app.timers` pump;
+    two-object batch returned a 365-byte diff-only response;
+  - the **GUI-only `undo_push` path ran for the first time** — every
+    prior live test was `--background`, where that branch is skipped.
+    `ed.undo()` unwound exactly the batch (5 → 3 objects), the session
+    survived (probe still true), `ed.redo()` restored it. This is the
+    hard invariant from script step 4 (#77557) and it holds.
+  - side-by-side idle-disable in real GUI Blender, Blender's own Python
+    3.13: pre-fix printed `Exception in thread tee-bridge-io ...
+    OSError: [Errno 9] Bad file descriptor` from `kqueue.control()`
+    into the console; fixed printed nothing.
+- **Live matrix restored to both flavors.** The official Blender Lab MCP
+  add-on *is* installed on this machine, as an extension (package `mcp`
+  under the extensions dir) rather than the cloud's source-checkout
+  layout, so conftest's hardcoded path silently skipped all 25
+  official-flavor tests here. `find_official_addon()` now recognises
+  both shapes and globs the per-OS extension dirs;
+  `TEE_BLENDER_MCP_ADDON` is now authoritative when set (a wrong
+  override skips loudly instead of quietly using a different install).
+- **Last three acceptance bullets executed live**
+  (`tests/test_blender_acceptance.py`):
+  - 100-object scene summary measured on the bytes an MCP client
+    receives (in-memory `Client` → `TextContent`): **under the 500-token
+    bound**, and the call is recorded in the response-size log;
+  - **Blender exiting mid-session**: probe flips false, the next call
+    fails in well under 30s with `adapter_unavailable` + fix hint (never
+    hangs), and after relaunch on the same port a resync rebuilds the
+    cache from the fresh scene — the pre-restart entity is gone;
+  - **bake as an async job**: a real rigid-body world is configured
+    first (without one `ptcache.bake_all` returns instantly and the test
+    would be vacuous); job id returns immediately, polls to done, and
+    the cube is verified to have fallen 4.0 → 1.0 m, resting on its
+    half-height.
+- **Shipped, not just fixed.** The zip under `releases/` was still
+  0.1.1, built before the teardown fix — rebuilt and validated as
+  **0.1.2** with real Blender, then exercised as an *installed*
+  extension: enable → bridge starts → disable → silent. That run also
+  confirmed 0.1.1's busy-port fix live (auto-start hit :9876 held by
+  another Blender and reported the one-line remedy instead of breaking
+  enable).
+- Evidence: `uv run pytest` → **342 passed, 2 skipped**; `-m dcc` →
+  **55 passed** (25 official + 25 tee + 5 new acceptance, both flavors
+  live on this machine for the first time); `ruff check src tests`
+  clean.
+- Repo hygiene: `server/.tee/memory.json` was tracked while the suite
+  appends a record to it every run, so every session began with a dirty
+  tree. `.tee/` is now gitignored and untracked — it is per-machine
+  runtime state.
+
+**Still owed on this machine (not Phase 2):** Phase 3 (UE 5.8), Phase 5
+UE benchmark scenarios, GPU generation lanes, live UEFN (needs Windows).
+
+**Open, not fixed here:** `ruff format --check src tests` reports 46
+files would be reformatted. None are files touched this session and
+`ruff check` is clean — this is drift from a formatter version bump
+(this machine has ruff 0.16.4; the cloud sessions that recorded "ruff
+clean" used an older one). `make check` therefore fails at the lint
+step. Needs a decision: reformat the tree in one housekeeping commit, or
+pin ruff to the version the evidence log was written against.
