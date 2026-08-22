@@ -126,3 +126,24 @@ def test_as_credits_roundtrip(app, tmp_path):
     out = app.registry.call("as_credits", {"path": str(tmp_path / "CREDITS.md")})
     assert out["assets"] == 0
     assert (tmp_path / "CREDITS.md").exists()
+
+
+def test_as_sheet_local_material(app, tmp_path):
+    from PIL import Image
+
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    Image.new("RGB", (64, 64), (180, 60, 40)).save(lib / "Brick_diffuse.png")
+    Image.new("RGB", (64, 64), (128, 128, 255)).save(lib / "Brick_normal.png")
+    app.registry.call("as_ingest", {"directory": str(lib)})
+    out = app.registry.call("as_sheet", {"assets": ["local:Brick"], "cell": 128})
+    assert out["cells"] and out["tokens"] > 0
+    from pathlib import Path
+
+    assert Path(out["path"]).exists()
+
+
+def test_as_sheet_no_thumbs_errors(app):
+    with pytest.raises(TeeError) as err:
+        app.registry.call("as_sheet", {"assets": ["fakesource:sofa1"]})
+    assert err.value.code == "no_thumbnails"

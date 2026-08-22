@@ -79,6 +79,11 @@ class SourceBackend:
     def resolve(self, asset_id: str, *, quality: str = "1k") -> DownloadPlan:
         raise NotImplementedError
 
+    def thumbnail_url(self, asset_id: str) -> str | None:
+        """Small preview URL for the contact-sheet tie-breaker; None when
+        the backend has no cheap thumbnail endpoint."""
+        return None
+
     @staticmethod
     def keyword_score(text: str, words: list[str]) -> float:
         text = text.lower()

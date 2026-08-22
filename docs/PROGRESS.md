@@ -30,10 +30,14 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       cloud, 2026-08-22: tee_script lane, columnar responses, recap,
       caption-once; fix-loop benchmark 63.2% saved at 3 conflicts, flat
       script cost vs linear rounds)*
-- [ ] Phase 9 — TEE Assets *(research complete + phase scripted
-      2026-08-22; build not started. Asset acquisition/search lanes are
-      cloud-buildable against live free APIs; GPU generation lanes and UE
-      import need the physical machine)*
+- [x] Phase 9 — TEE Assets *(built in cloud, 2026-08-22: license-gated
+      store + attribution, 5 source backends (live-tested against Poly
+      Haven/ambientCG), four-band scale policy, 15 as_* tools, lane 0
+      materials + classical photo-PBR, placement validator, sun within
+      0.003° of NREL, verify battery, skill, benchmark 93.5% saved.
+      Physical machine still owed: GPU lanes 1-3 live (diffusion,
+      TRELLIS, hosted keys), [assets-embed] embeddings, UE import path,
+      Blender library authoring/asset_listing publishing)*
 - [ ] Phase 10 — TEE Design *(research complete + phase scripted
       2026-08-22; build not started. Fully cloud-buildable — reference
       tables, spec schema, checkers and skill need no DCC)*
@@ -394,3 +398,32 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   fixtures, budget-violation fixtures, LUF↔XYZ property test, and a
   license lint proving no AGPL code and no Epic digest text);
   Standing rules renumbered to section 16; build not started.
+
+### 2026-08-22 — Phase 9 build (cloud)
+- TEE Assets built per script 9.1–9.7: `server/src/tee/assets/` (license
+  gate, store+TASL manifests+CREDITS renderer, http ETag/TTL catalog
+  cache, 5 backends, stdlib glTF/GLB probe, local ingest, CIEDE2000 +
+  k-means color, envelopes + four-band scale policy, faceted search,
+  importer, lane-0 materials from the physicallybased.info CC0 snapshot
+  (86 materials incl. density), generation lane w/ cost-confirm +
+  server-side wait-poll, classical photo→PBR, style brief, astral sun,
+  placement solver+validator, verify battery) + 15 `as_*` virtual tools;
+  `import_file` op added to the Blender codegen; `assign_material` added
+  to FakeAdapter reference semantics; `context-aware-assets` skill
+  (SKILL.md + 4 references + 3 evals).
+- Evidence: `uv run pytest` → **268 passed, 1 skipped**; `-m dcc` →
+  **30 passed** incl. new live GLB import round-trip with scale applied
+  (2 m cube → 0.5 scale → dims [1,1,1] read back on both bridge
+  flavors); ruff clean. Live network tests (skip cleanly offline):
+  Poly Haven furniture search ≤200 tokens w/ ETag-cached catalog,
+  resolve names CC0 + md5-verified gltf files; ambientCG brick search.
+  Acceptance checks: NC asset refused before any byte cached (by test);
+  CC-BY CREDITS.md rendered; door snaps ×1.023 into the 0.9 m opening;
+  0.4 m "sofa" rejected one-line; sun vs NREL SPA reference: az diff
+  0.0023°, el diff 0.0030° (≤1° required); validator catches blocked
+  door swing (code) + sub-760 mm corridor via erosion connectivity.
+- Benchmark (live run, RESULTS.md): find-select-place 3 assets = 828
+  tokens / 6 calls vs 12,767 / 25 prior-art (**93.5% saved**); all
+  prior scenario numbers reproduced in the same run.
+- Deviation recorded: glTF probe is stdlib (JSON chunk + node-transform
+  composition), not pygltflib — script amended; no new dependency.

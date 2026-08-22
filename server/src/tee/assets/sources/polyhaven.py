@@ -67,6 +67,9 @@ class PolyHaven(SourceBackend):
         scored.sort(key=lambda pair: -pair[0])
         return [row for _, row in scored[:limit]]
 
+    def thumbnail_url(self, asset_id):
+        return f"https://cdn.polyhaven.com/asset_img/thumbs/{asset_id}.png?width=256&height=256"
+
     def resolve(self, asset_id, *, quality="1k"):
         files_doc, _info = self.store.catalogs.fetch_json(
             f"polyhaven-files-{asset_id}", f"{_API}/files/{asset_id}", ttl_s=7 * 86400

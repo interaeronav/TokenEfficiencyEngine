@@ -510,6 +510,120 @@ def run_extract_scenario() -> tuple | None:
 
 
 # --------------------------------------------------------------------------
+# Asset scenario (Phase 9): find-select-place N assets
+# --------------------------------------------------------------------------
+
+ASSET_COUNT = 3
+
+# Measured prior-art flow per asset (docs/research/22: the popular
+# community integration, ahujasid/blender-mcp, wire-measured 2026-08):
+PRIOR_STRATEGY_PROMPT = 1400  # mandatory strategy prompt, once per session
+PRIOR_STATUS_CHECKS = 4 * 90  # 4 per-provider status round-trips
+PRIOR_SEARCH_TOKENS = 540  # formatted alphabetical-first-20 catalog slice
+PRIOR_PREVIEWS_PER_ASSET = 3 * 475  # per-UID inline previews (vision tokens)
+PRIOR_IMPORT_TOKENS = 150  # download+import call/response
+PRIOR_SCREENSHOTS = 2 * 777  # before/after screenshots the prompt mandates
+
+
+def run_asset_scenario() -> tuple | None:
+    """TEE find-select-place measured for real (fake adapter + fake backend
+    seeded with realistic rows) vs the documented prior-art flow."""
+    try:
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).parent.parent / "server" / "tests"))
+        from fixtures_assets import FakeBackend, build_glb, make_rows
+
+        from tee.app import TeeApp
+        from tee.assets import importer as importer_mod
+        from tee.assets import tools as asset_tools
+        from tee.kernel.adapter import FakeAdapter
+    except ImportError as exc:
+        print(f"asset scenario skipped ({exc})")
+        return None
+
+    naive_tokens = PRIOR_STRATEGY_PROMPT + PRIOR_STATUS_CHECKS + ASSET_COUNT * (
+        PRIOR_SEARCH_TOKENS
+        + PRIOR_PREVIEWS_PER_ASSET
+        + PRIOR_IMPORT_TOKENS
+        + PRIOR_SCREENSHOTS
+    )
+    naive_calls = 4 + ASSET_COUNT * 7  # status + per asset: search, 3 previews, import, 2 shots
+
+    workdir = Path(tempfile.mkdtemp(prefix="tee-bench-assets-"))
+    app = TeeApp({"fake": FakeAdapter()}, project_root=workdir)
+    rows = make_rows() * 7  # a shortlist-worthy catalog, not 3 rows
+    for i, row in enumerate(rows):
+        row.id = f"{row.id}_{i}"
+    glb = build_glb(workdir / "asset.glb", size=(2.1, 0.8, 0.9), tris=9000)
+    original_build, original_fetch = asset_tools.build_backends, importer_mod.fetch_bytes
+    asset_tools.build_backends = lambda store, config=None: {
+        "fakesource": FakeBackend(store, rows=rows)
+    }
+    importer_mod.fetch_bytes = lambda url, headers=None: glb.read_bytes()
+    tee = Meter()
+    try:
+        asset_tools.register_asset_tools(app, workdir)
+        room = {
+            "polygon": [[0, 0], [5, 0], [5, 4], [0, 4]],
+            "walls": [
+                {"id": "south", "a": [0, 0], "b": [5, 0]},
+                {"id": "north", "a": [5, 4], "b": [0, 4]},
+            ],
+            "doors": [{"id": "d1", "hinge": [0.05, 0.0], "width": 0.86}],
+        }
+
+        request = {"tool": "as_search", "query": "sofa seating fabric",
+                   "asset_class": "model", "max_tris": 20000}
+        response = app.registry.call(
+            "as_search",
+            {"query": "sofa seating fabric", "asset_class": "model", "max_tris": 20000},
+        )
+        tee.call(request, response)
+        picks = [r["id"] for r in response["results"]["model"][:ASSET_COUNT]]
+        drop_zones = ([1.2, 1.5, 0], [3.6, 1.5, 0], [2.4, 2.9, 0])
+        entity_ids = []
+        for index, pick in enumerate(picks):
+            request = {"tool": "as_import", "asset": pick, "asset_class": "sofa",
+                       "location": drop_zones[index]}
+            response = app.registry.call(
+                "as_import",
+                {"asset": pick, "asset_class": "sofa",
+                 "location": drop_zones[index], "adapter": "fake"},
+            )
+            tee.call(request, response)
+            entity_ids.append(response["created"][0])
+        anchors = [("south", 3.5), ("north", 1.2), ("north", 3.7)]
+        plan = [
+            {"name": f"sofa{i}", "class": "sofa", "dims": [2.1, 0.9, 0.8],
+             "anchor": anchors[i][0], "offset": anchors[i][1], "id": eid,
+             "relax": []}
+            for i, eid in enumerate(entity_ids)
+        ]
+        request = {"tool": "as_place", "plan": f"{len(plan)} items", "apply": True}
+        response = app.registry.call(
+            "as_place", {"plan": plan, "room": room, "apply": True, "adapter": "fake"}
+        )
+        tee.call(request, response)
+        request = {"tool": "as_verify"}
+        response = app.registry.call("as_verify", {"adapter": "fake", "room": room})
+        tee.call(request, response)
+        assert response["violations"] == [], response
+    finally:
+        asset_tools.build_backends = original_build
+        importer_mod.fetch_bytes = original_fetch
+        app.shutdown()
+
+    saving = 100.0 * (1 - tee.tokens / naive_tokens)
+    print(
+        f"assets find-select-place x{ASSET_COUNT}: prior-art {naive_tokens} tok / "
+        f"{naive_calls} calls -> tee {tee.tokens} tok / {tee.round_trips} calls "
+        f"({saving:.1f}% saved)"
+    )
+    return (naive_tokens, naive_calls, tee.tokens, tee.round_trips, saving)
+
+
+# --------------------------------------------------------------------------
 # Runner
 # --------------------------------------------------------------------------
 
@@ -603,10 +717,11 @@ def main() -> None:
         proc.terminate()
 
     extract_row = run_extract_scenario()
-    write_results(rows, extract_row)
+    asset_row = run_asset_scenario()
+    write_results(rows, extract_row, asset_row)
 
 
-def write_results(rows, extract_row=None) -> None:
+def write_results(rows, extract_row=None, asset_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -672,6 +787,27 @@ def write_results(rows, extract_row=None) -> None:
             "grows linearly (~130 tok/conflict): measured 17.7% / 63.2% /",
             "76.3% saved at 1 / 3 / 5 conflicts, approaching 100% as loops",
             "grow.",
+        ]
+    if asset_row is not None:
+        ntok, ncalls, ttok, tcalls, saving = asset_row
+        lines += [
+            "",
+            "## Assets: find-select-place (Phase 9)",
+            "",
+            f"Find, license-check, scale, place, and verify {ASSET_COUNT} sofas.",
+            "**Prior art** is the wire-measured community-integration flow",
+            "(docs/research/22): mandatory strategy prompt, per-provider",
+            "status round-trips, alphabetical catalog slices, per-candidate",
+            "inline previews, before/after screenshots. **TEE** is measured",
+            "live in this run: one faceted search (<=5 ranked rows), three",
+            "checkpointed imports with the scale policy, one relational",
+            "placement plan solved+validated server-side, one render-free",
+            "verification report - zero images.",
+            "",
+            "| | Tokens | Calls | Saving |",
+            "|---|---|---|---|",
+            f"| prior-art flow | {ntok:,} | {ncalls} | |",
+            f"| TEE | {ttok:,} | {tcalls} | {saving:.1f}% |",
         ]
     lines += [
         "",

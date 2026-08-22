@@ -235,9 +235,95 @@ def register_asset_tools(
                 out["note"] = "no plan item carried an entity id to move"
         return out
 
+    def as_sheet(args):
+        from tee.assets.http import fetch_bytes
+
+        keys = [str(k) for k in args["assets"]]
+        entries = []
+        missing = []
+        thumbs_dir = store.root / "thumbs"
+        for key in keys:
+            source_name, _, source_id = key.partition(":")
+            path = None
+            entry = store.index().get(key)
+            if entry and (entry.get("maps") or {}).get("base_color"):
+                path = Path(entry["maps"]["base_color"])
+            else:
+                cached = thumbs_dir / f"{source_id}.png"
+                if cached.exists():
+                    path = cached
+                else:
+                    backend = backends.get(source_name)
+                    url = backend.thumbnail_url(source_id) if backend else None
+                    if url:
+                        try:
+                            cached.parent.mkdir(parents=True, exist_ok=True)
+                            cached.write_bytes(fetch_bytes(url, timeout_s=30))
+                            path = cached
+                        except TeeError:
+                            path = None
+            if path is not None and path.exists():
+                entries.append({"path": path, "label": key.split(":", 1)[-1][:24]})
+            else:
+                missing.append(key)
+        if not entries:
+            raise TeeError(
+                "no_thumbnails",
+                "None of the requested assets has a thumbnail available.",
+                fix="Sheet works for Poly Haven hits and local material sets; "
+                "judge others by their dims/tags rows.",
+            )
+        from tee.extract.images import contact_sheet
+
+        sheets_dir = store.root / "sheets"
+        sheets_dir.mkdir(parents=True, exist_ok=True)
+        out_path = sheets_dir / f"sheet_{abs(hash(tuple(keys))) % 10**8}.jpg"
+        sheet = contact_sheet(entries, out_path, cell=int(args.get("cell", 256)))
+        if extract_store is not None:
+            meta = extract_store.register_source(out_path)
+            sheet["media_ref"] = meta["hash"][:8]
+            sheet["view_with"] = f"tee_media(source='{meta['hash'][:8]}')"
+        if missing:
+            sheet["no_thumbnail"] = missing
+        return sheet
+
+    def as_verify(args):
+        from tee.assets.verify import verify_scene
+
+        style_palette = None
+        if args.get("match_style"):
+            brief = context_mod.style_brief(store, extract_store)
+            style_palette = [c["lab"] for c in brief.get("palette", [])] or None
+        return verify_scene(
+            app,
+            _adapter(args),
+            room=args.get("room"),
+            region=str(args.get("region", "US")),
+            style_palette=style_palette,
+        )
+
     # -- registration ------------------------------------------------------
 
     tools = [
+        VirtualTool(
+            "as_verify",
+            "Render-free verification battery over the current scene: scale "
+            "sanity vs class envelopes, AABB collisions (<=5 mm contact ok), "
+            "floating objects, room clearances (pass room=), palette-vs-brief "
+            "(match_style=true). One compact violations+fixes report; says "
+            "whether a single budgeted render is even warranted.",
+            {
+                "type": "object",
+                "properties": {
+                    "adapter": {"type": "string"},
+                    "room": {"type": "object"},
+                    "region": {"type": "string"},
+                    "match_style": {"type": "boolean"},
+                },
+            },
+            as_verify,
+            tags=["assets", "verify", "collision", "support", "check"],
+        ),
         VirtualTool(
             "as_sources",
             "List enabled asset backends with their license regime and site-ToS "
@@ -269,6 +355,22 @@ def register_asset_tools(
             as_search,
             tags=["assets", "search", "find", "model", "material", "hdri"],
             examples=[{"query": "wooden chair", "asset_class": "model", "max_tris": 20000}],
+        ),
+        VirtualTool(
+            "as_sheet",
+            "One labeled contact sheet for a shortlist (Poly Haven hits + "
+            "local material sets) as the selection tie-breaker; view it via "
+            "tee_media. Never the default - rows usually decide.",
+            {
+                "type": "object",
+                "properties": {
+                    "assets": {"type": "array"},
+                    "cell": {"type": "integer"},
+                },
+                "required": ["assets"],
+            },
+            as_sheet,
+            tags=["assets", "sheet", "preview", "thumbnails"],
         ),
         VirtualTool(
             "as_ingest",

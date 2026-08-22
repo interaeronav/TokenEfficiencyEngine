@@ -198,3 +198,46 @@ def test_docs_search_and_detail_live(app):
     with pytest.raises(TeeError) as err:
         app.registry.call("bl_api_detail", {"path": "bpy.ops.object.made_up_operator"})
     assert err.value.code == "unknown_api_symbol"
+
+
+def test_import_file_op_with_scale(app, adapter, tmp_path):
+    """Phase 9: the import_file batch op - a real GLB round-trip with the
+    scale policy's uniform factor applied and dims read back."""
+    app.run_batch(
+        "blender",
+        [{"op": "create", "kind": "cube", "name": "Exportee", "props": {"size": 2.0}}],
+    )
+    glb = tmp_path / "roundtrip.glb"
+    adapter.execute_python(
+        "import bpy\n"
+        f"bpy.ops.export_scene.gltf(filepath={str(glb)!r}, export_format='GLB')\n"
+        "for o in list(bpy.data.objects): bpy.data.objects.remove(o, do_unlink=True)\n"
+        "result = {'exported': True}"
+    )
+    app.cache("blender").resync(adapter)
+    assert glb.exists()
+
+    out = app.run_batch(
+        "blender",
+        [
+            {
+                "op": "import_file",
+                "path": str(glb),
+                "name": "Imported",
+                "props": {"scale": [0.5, 0.5, 0.5], "location": [1.0, 2.0, 0.0]},
+            }
+        ],
+    )
+    assert out["created"]
+    detail = next(iter(out["details"].values()))
+    # 2 m cube at scale 0.5 -> 1 m dims, at the requested location
+    assert detail["dimensions"] == pytest.approx([1.0, 1.0, 1.0], abs=0.01)
+    assert detail["location"] == pytest.approx([1.0, 2.0, 0.0], abs=0.01)
+
+
+def test_import_file_bad_format_is_one_line(app, tmp_path):
+    bad = tmp_path / "model.xyz"
+    bad.write_text("nope")
+    with pytest.raises(TeeError) as err:
+        app.run_batch("blender", [{"op": "import_file", "path": str(bad)}])
+    assert "unsupported import format" in err.value.message
