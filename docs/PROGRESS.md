@@ -16,8 +16,12 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       2026-08-22 — GUI-mode bridge validated in a real windowed
       Blender, the macOS teardown defect fixed, and the last three
       acceptance bullets executed live)*
-- [ ] Phase 3 — Unreal adapter *(requires the physical machine — UE editor
-      cannot run in the cloud container)*
+- [x] Phase 3 — Unreal adapter *(built and accepted on the physical M5 Mac
+      2026-08-22 against a live UE 5.8.1 editor: proxy over Epic's
+      official MCP, batch lane, Blueprint DSL authoring with readback
+      verification, text-first checks, budgeted capture, and TEE's own
+      content plugin for unsandboxed editor Python. The 5.3–5.7 fallback
+      tier is **n/a** — no such engine on this machine)*
 - [x] Phase 4 — Cross-cutting friction killers *(cloud, 2026-08-21; doctor
       re-run on the physical machine will extend the evidence)*
 - [ ] Phase 5 — Benchmarks *(Blender scenarios done in cloud: 87.7% total
@@ -889,3 +893,51 @@ and stays **n/a**.
 
 - Evidence: **364 passed, 2 skipped**; `-m dcc` **69 passed** (Blender both
   flavors + Unreal live); `make check` green.
+
+### 2026-08-22 — Phase 3 ACCEPTED (live UE 5.8.1, M5 Mac)
+
+Acceptance run end to end against the running editor
+(`5.8.1-56057345+++UE5+Release-5.8`):
+
+1. **spawn + configure actors via one macro call** — 3 actors, **3.3s, 152
+   tokens**, short ids returned (refPaths never leave the server);
+2. **Blueprint function authored and compiled with diagnostics via graph
+   DSL** — compile clean, **5/5 DSL forms verified present** by readback;
+3. **`describe_toolset` never forwarded raw** — worst ratio **17.1%**
+   (bound: 20%), largest summary **2,396 tokens** (bound: 2,500), and no
+   `refPath` / `inputSchema` text reaches the model (per DECISIONS A25);
+4. **text-first evidence** — 16/18 actors in frustum in **72 tokens**;
+   budgeted capture 13,434 B, 2744×1820 → 640×424;
+5. **rollback** — actor set restored to the snapshot;
+6. **fallback tier 5.3–5.7** — **n/a**, no such engine installed here.
+
+**TEE content plugin** (`adapters/unreal/TeeToolset`): content-only, no C++
+module to compile. Most of what the script planned for it is already shipped
+by Epic on 5.8.1 (StartPIE/StopPIE/IsPIERunning, viewport capture, frustum
+queries, Blueprint DSL) and the script says not to re-port those. The real
+gap is **unsandboxed editor Python** — Epic's script lane cannot import
+`unreal` at all — so the plugin exposes exactly that, inside a named
+`ScopedEditorTransaction`. Opt-in twice: the plugin ships disabled, and TEE
+refuses to call it without code exec allowed. Verified live: installing it
+took the catalog 55 → 56 toolsets.
+
+**Further doc-vs-reality corrections found by running it** (all now handled
+in code, none of them in doc 07):
+
+- object-typed parameters documented as *optional* are **required**; the
+  server answers `input param "X" needs a default value` and names the
+  parameter, so the catalog builds the missing value from that parameter's
+  own schema and retries;
+- that generic filler is **not** safe everywhere: a zero-filled
+  `captureTransform` silently photographed the **world origin** instead of
+  the viewport (`cameraLocation` came back 0,0,0). The capture path fetches
+  `GetCameraTransform` and passes it explicitly, with a test asserting the
+  image really came from the editor camera;
+- `CaptureViewport` has **no resolution parameter** and returns whatever the
+  viewport is (2744×1820 here), so the byte budget is enforced client-side by
+  re-encoding to JPEG down a rung ladder.
+
+- Evidence: **369 passed, 2 skipped**; `-m dcc` includes 21 live UE tests
+  alongside Blender's both flavors; `make check` green.
+- Scratch project: `~/Documents/Unreal Projects/TeeProbe` (plugin installed
+  under its `Plugins/`, assets under `/Game/TeeProbe`).
