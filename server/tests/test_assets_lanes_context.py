@@ -391,18 +391,26 @@ def test_probe_reports_cuda_with_all_three_lanes(monkeypatch):
 
 
 def test_probe_enables_the_diffusion_lanes_on_apple_silicon(monkeypatch):
-    """Lane 3 (TRELLIS.2) is CUDA-bound because nvdiffrast is, but the
-    diffusion lanes are plain diffusers. Treating 'no CUDA' as 'no local
-    generation' wrongly excluded Apple Silicon."""
-    from tee.assets import generation
+    """The diffusion lanes are plain diffusers and run on MPS. Lane 3 on
+    MPS depends on voxkiln (Phase 13 removed the nvdiffrast/cumesh CUDA
+    lock): absent -> lanes 1-2 plus an install hint; present -> lane 3
+    joins the list."""
+    from tee.assets import gen_voxkiln, generation
 
     _with_torch(monkeypatch, _FakeTorch(cuda=False, mps=True))
+
+    monkeypatch.setattr(gen_voxkiln, "voxkiln_available", lambda: False)
     out = generation.probe_local_gpu()
     assert out["available"] is True
     assert out["backend"] == "mps"
     assert out["lanes"] == [1, 2]
-    assert "nvdiffrast" in out["note"]
+    assert "voxkiln" in out["note"]
     assert generation.torch_device() == "mps"
+
+    monkeypatch.setattr(gen_voxkiln, "voxkiln_available", lambda: True)
+    out = generation.probe_local_gpu()
+    assert out["lanes"] == [1, 2, 3]
+    assert "note" not in out
 
 
 def test_probe_refuses_cpu_only_torch_with_a_reason(monkeypatch):

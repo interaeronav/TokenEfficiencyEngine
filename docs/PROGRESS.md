@@ -73,10 +73,14 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       tests, uefn skill, live Data API analytics; 26 tests + 2 live.
       Live-editor lanes DESCOPED 2026-08-22 — owner decision, no
       Windows machine; offline lanes shipped, interface+fakes kept)*
-- [ ] Phase 13 — Voxkiln (TRELLIS.2-derived generation product, owner
-      decision 2026-08-22; script §16, decisions A26–A28, research
-      43–48; supersedes the "local TRELLIS.2 needs CUDA" ledger item —
-      the product targets MPS + CUDA)
+- [x] Phase 13 — Voxkiln, cloud scope *(built in cloud, 2026-08-22:
+      vendored fork @75fbf01 with license surgery + defect fixes,
+      portable sparse ops unit-verified against references, repair/
+      export/report/metrics/cache/jobs/CLI + 4-tool MCP server, TEE
+      voxkiln driver registered first; 43 product tests + 395 server
+      tests green, license lint clean, clean-venv rehearsal passed.
+      Mac still owed (13.6.3): weights fetch, first live generation,
+      stock-vs-ours battery, FlexAttention tuning, own-repo decision)*
 
 ## Machine facts
 
@@ -1244,3 +1248,32 @@ local lane *is* offered when the probe reports it.
 
 - Evidence: **387 passed, 2 skipped**; `-m ml` **2 passed**; `-m dcc`
   **83 passed**.
+
+### 2026-08-22 — Phase 13 cloud build: Voxkiln 0.1.0 + TEE integration
+
+The owner's directive ("use TRELLIS.2 source, fix known defects, ship a
+separate AI-optimized product") executed through research + build in one
+cloud session:
+
+- Six-agent research pass (digests 43–48), decisions A26–A28, script §16.
+- `voxkiln/`: vendored microsoft/TRELLIS.2 @75fbf01 with license surgery
+  (NVIDIA-NC/GPL/LGPL/CC-BY-NC out of the runtime; `vendor/VENDOR.md`
+  logs every change) and the evidence-ranked defect fixes (fp32 decode
+  thresholds, sampler leak, CPU-generator seeds, loud resolution
+  downgrade, portable SDPA/conv/extraction/sampling fallbacks).
+- Product layer: 3-level repair with in-house boundary-loop hole fill,
+  repair-before-bake export with a frozen full-res projection reference,
+  topology-aware metrics, budget verdicts with exact fixes, provenance,
+  input-hash cache, bounded-wait jobs, CLI, 4-tool MCP server.
+- Evidence: **43 product tests green** (ports verified against dense/
+  manual references on CPU torch — sdpa vs softmax, conv_none vs
+  nn.Conv3d, dual-grid extraction without the CUDA hashmap, trilinear
+  torch-vs-numpy parity); ruff clean; **license lint clean**; clean-venv
+  rehearsal (torch-free import, packaged vendor tree, structured
+  `no_backend` refusal with the fix); **`make check` 395 passed** with
+  the new voxkiln driver registered first in `build_drivers` and the MPS
+  probe now reporting lane 3 through voxkiln.
+- Mac hand-off (script 13.6.3): `docs/setup-voxkiln.md` — install
+  `[model]` extras, `voxkiln fetch-weights`, first live generation, the
+  stock-vs-ours battery on `voxkiln/eval_images/` (frozen SHA256s),
+  FlexAttention-MPS tuning, and the own-repo extraction decision.
