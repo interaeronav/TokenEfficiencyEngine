@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from tee.assets import gltf
-from tee.assets.envelopes import scale_policy
+from tee.assets.envelopes import envelope_for, load_envelopes, scale_policy
 from tee.assets.http import fetch_bytes
 from tee.kernel.errors import TeeError
 
@@ -161,7 +161,23 @@ def import_asset(
             measured, asset_class=asset_class or entry.get("class"), target=target_dims
         )
         if policy["band"] == "reject":
-            raise TeeError("asset_rejected", f"{asset_ref}: {policy['note']}")
+            # A rejection with no envelope and no target is not a bad asset -
+            # it is a missing question. as_search labels every model hit
+            # "model", which has no envelope, so say what would answer it.
+            judged = asset_class or entry.get("class")
+            if envelope_for(judged) is None and not target_dims:
+                fix = (
+                    f"Nothing to judge scale against: asset_class {judged!r} has no "
+                    f"dimension envelope. Pass asset_class= one of "
+                    f"{', '.join(sorted(load_envelopes()))}, or target_dims=[x, y, z] "
+                    "in metres."
+                )
+            else:
+                fix = (
+                    "Check the asset's authored units, or pass target_dims=[x, y, z] "
+                    "in metres to state the size you want."
+                )
+            raise TeeError("asset_rejected", f"{asset_ref}: {policy['note']}", fix=fix)
         scale = policy["scale"]
 
     # 5. typed batch through the normal machinery

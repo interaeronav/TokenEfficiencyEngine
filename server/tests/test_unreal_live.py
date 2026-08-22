@@ -347,9 +347,19 @@ for i in range(2):
     c.set_simulate_physics(True)
     c.set_collision_profile_name("PhysicsActor")
     made.append(actor.get_actor_label())
-result = {"made": made}
+# The ground under the drop is whatever this project has there - an empty
+# level's floor sits at 0, a landscape does not. Measure it instead of
+# assuming (OkongoSim's terrain here is ~16 cm below zero).
+world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+hit = unreal.SystemLibrary.line_trace_single(
+    world, unreal.Vector(-600, 1500, 1000), unreal.Vector(-600, 1500, -1000),
+    unreal.TraceTypeQuery.TRACE_TYPE_QUERY1, True, [], unreal.DrawDebugTrace.NONE, True)
+# HitResult exposes nothing as attributes on 5.8.1 - to_dict() or bust.
+result = {"made": made, "ground_z": hit.to_dict()["location"].z if hit else 0.0}
 """
-    labels = tee_plugin.editor_python(setup, "TEE: test settle setup")["made"]
+    ready = tee_plugin.editor_python(setup, "TEE: test settle setup")
+    labels = ready["made"]
+    ground = ready["ground_z"]
     report = tee_plugin.settle(labels, adopt=True)
     assert report["settled"] is True
     assert report["actors"] == 2
@@ -365,8 +375,9 @@ result = {"made": made}
         "          if a.get_actor_label().startswith('PytestBox')}",
         "TEE: verify settle",
     )
+    # a 100 cm cube rests with its centre ~50 cm above whatever it landed on
     for z in final.values():
-        assert 40 < z < 60, final
+        assert ground + 40 < z < ground + 60, (final, ground)
 
     # already at rest: returns at the minimum, not the cap
     again = tee_plugin.settle(labels)

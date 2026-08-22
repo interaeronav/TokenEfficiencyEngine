@@ -37,10 +37,10 @@ judgment on the previous step's output.
 
 The 16 always-loaded tools are the kernel. Everything else (~68 virtual
 tools) is behind `tee_search_tools` → `tee_describe_tool` → `tee_call`:
-`ex_*` extraction, `as_*` assets, `gd_*` design, modeling/physics
-(`wall_with_openings`, `sim_settle`, `plaus_check`, `mat_assign`),
-`uefn_*`. Search by capability words ("bake physics", "asset search",
-"verse lint") — don't guess names.
+`ex_*` extraction, `as_*` assets, `gd_*` design, `pin_*` marker pins
+(Unreal), modeling/physics (`wall_with_openings`, `sim_settle`,
+`plaus_check`, `mat_assign`), `uefn_*`. Search by capability words ("bake
+physics", "asset search", "verse lint") — don't guess names.
 
 ## Text before pixels
 

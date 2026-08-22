@@ -115,10 +115,19 @@ memory** (macOS, Apple Silicon). Phase 0 re-run on the physical machine
 - Unreal installs: **UE 5.8** at `/Users/Shared/Epic Games/UE_5.8`,
   with Epic's first-party plugin present at
   `Engine/Plugins/Experimental/ModelContextProtocol/ModelContextProtocol.uplugin`.
-  Launcher at `/Applications/Epic Games Launcher.app`. An existing
-  project tree `OkongoSim` sits inside the engine dir;
-  `~/Documents/Unreal Projects/` is empty. Nothing listening on `:8000`
-  (editor not running / auto-start not yet enabled).
+  Launcher at `/Applications/Epic Games Launcher.app`.
+- **OkongoSim project root: `/Users/john/OkongoSim`** (git repo on `main`,
+  C++ project — `OkongoSim` + `OkongoSimEditor` modules, prebuilt Mac
+  editor binaries, `EngineAssociation` 5.8, description "Walkable digital
+  twin of House John P Nghiwete, Onheleiwa, Okongo, Namibia").
+  *(Corrected 2026-08-22: this entry previously said OkongoSim "sits
+  inside the engine dir". The engine-dir `OkongoSim/` is only a stray
+  `Intermediate/ShaderAutogen` leftover with no `.uproject` — the real
+  project has always been in the home directory. Anything that resolved
+  the project from the old line was pointing at an empty folder.)*
+- Scratch probe project: `~/Documents/Unreal Projects/TeeProbe`
+  (BP-only, empty Content, carries the optional `TeeToolset` content
+  plugin). Nothing listening on `:8000` when no editor is open.
 - Adapter tiers selected: **Blender primary** (5.2 LTS, TEE fallback
   bridge add-on — the official extension is absent here);
   **UE official tier** (5.8 + `ModelContextProtocol`, the A4 route). The
@@ -1418,3 +1427,142 @@ Still owed on the Mac: recreate the voxkiln venv + reinstall into the
 server venv, re-fetch weights if the cleanup removed them, verify the
 gated DINOv3 access now works, first live generation, same-seed
 determinism, the stock-vs-ours battery.
+
+### 2026-08-22 — OkongoSim wired for auto-start + Claude Desktop (M5 Mac)
+
+Owner moved TEE usage from the terminal to the **Claude desktop app** for
+day-to-day OkongoSim work. Changes made outside this repo:
+
+- `/Users/john/OkongoSim/OkongoSim.uproject` — enabled
+  `ModelContextProtocol` and `AllToolsets`, both with
+  `"TargetAllowList": ["Editor"]` so the unauthenticated loopback server
+  can never ship in a packaged Mac build (matches how the project already
+  gates `PythonScriptPlugin` / `EditorScriptingUtilities`).
+- `Saved/Config/MacEditor/EditorPerProjectUserSettings.ini` — added
+  `[/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]`
+  `bAutoStartServer=True`, and
+  `[/Script/UnrealEd.EditorPerformanceSettings]`
+  `bThrottleCPUWhenNotForeground=False` (setup-unreal.md requires the
+  latter for `ue_settle`; driving the editor from another app means it is
+  *always* backgrounded, so it is not optional in this workflow).
+- Setting names verified against engine source, not memory:
+  `UModelContextProtocolSettings` is `config=EditorPerProjectUserSettings`
+  with `bAutoStartServer = false`, `ServerPortNumber = 8000`,
+  `bEnableToolSearch = true` by default.
+- `~/Library/Application Support/Claude/claude_desktop_config.json` — added
+  `tee-unreal` and `tee-blender` entries beside the existing `unityMCP`.
+  Two deltas from `tee doctor --emit claude-desktop`: the `uv` command is
+  spelled absolutely (`/opt/homebrew/bin/uv`) because a GUI-launched app
+  does not inherit the shell `PATH`, and `--project /Users/john/OkongoSim`
+  is passed explicitly because `--project` defaults to `.` and a
+  Desktop-spawned server has no meaningful cwd. `.tee/` added to the
+  OkongoSim `.gitignore`.
+
+Evidence:
+
+- Freed `:8000` (the TeeProbe editor from the earlier session held it),
+  then opened OkongoSim the normal way — `open OkongoSim.uproject`, **no
+  launch flags**. `:8000` was listening ~10 s later, owned by the
+  OkongoSim editor pid.
+- `tee doctor` → exit 0, all six checks OK, including
+  `OK   unreal: MCP on 127.0.0.1:8000, 55 toolsets`. (55 and no
+  `+ TEE toolset`: the optional `TeeToolset` content plugin is installed
+  in TeeProbe, not in OkongoSim. Everything except unsandboxed editor
+  Python works without it.)
+- stdio handshake rehearsed under a stripped environment
+  (`env -i HOME=... PATH=/usr/bin:/bin`) against the exact configured
+  command: `initialize` returned the TEE server info and instructions, so
+  the Desktop entry does not depend on shell setup.
+
+### 2026-08-22 — Phase 14: pins, live in OkongoSim (owner request)
+
+The owner's pins work had been blocked on the missing content plugin.
+Unblocked and built end to end, all of it verified against the running
+UE 5.8.1 editor rather than asserted.
+
+**1. Plugin installed.** `adapters/unreal/TeeToolset` copied to
+`/Users/john/OkongoSim/Plugins/TeeToolset`; `TeeToolset` added to
+`OkongoSim.uproject` (`Enabled: true`, `TargetAllowList: ["Editor"]`,
+a 7-line diff — `PythonScriptPlugin` was already enabled). Editor
+restarted with `open OkongoSim.uproject`, no launch flags.
+
+```
+$ tee doctor
+OK   unreal: MCP on 127.0.0.1:8000, 56 toolsets + TEE toolset
+```
+
+**2. Import lane proved.** `as_search(query="wooden chair", asset_class=
+"model")` → 5 CC0 rows; `as_import(polyhaven:bar_chair_round_01,
+adapter="unreal", asset_class="chair", location=[10.717, 15.06, 0])` →
+`scale_band: accept`, read-back `[0.4832, 0.486, 0.7505]` m against the
+catalogue's `[0.483, 0.486, 0.751]`, actor at UE `(1071.7, 1506.0, 0.0)`
+with scale 1.0 and its base on the floor. Mesh landed in
+`/Game/TeeAssets/bar_chair_round_01/**` — nothing written to
+`Content/House/**`.
+
+**3. Pins.** `tee/pins/{model,program,tools}.py` + `tests/test_pins.py`
+(20 tests). Data lives in actor tags (decision A29); the OkongoSim
+namespace is `okongo_pin`, set in `/Users/john/OkongoSim/.tee/config.toml`,
+matching the level's existing `okongo_light` / `okongo_circuit` family.
+Marker: engine cone, 18 x 50 cm, base on the spot, collision off at spawn,
+`is_editor_only_actor`, outliner folder `TEE/Pins`, orange material
+instance.
+
+**4. Fill loop.** `pin_fill` with no pick searched the pin's three
+wishlist terms and returned nine model rows; on the owner's pick
+(`polyhaven:GreenChair_01`) it imported at the pin — `scale_band: accept`,
+read-back `[0.6731, 0.6644, 1.0585]` m — faced it along the pin's yaw, and
+wrote `okongo_pin_asset` + `okongo_pin_actor` back onto the marker.
+
+**5. Demo + conversion.** Two pins now stand in `/Game/Maps/OkongoSite`:
+
+```
+pin_list → count 2
+  open-plan-stool-01  "Open-plan stool"       chair  [10.717, 15.06, 0.0]   filled polyhaven:bar_chair_round_01
+  verandah-seat-01    "Verandah seating spot" chair  [24.07, 20.105, 0.0]   filled polyhaven:GreenChair_01
+```
+
+The step-2 lane-proof actor was retired and re-created as
+`open-plan-stool-01` so there is one system, not two. The level's other
+markers — `HouseDatum`, `PlayerStart_House`, `Veg_Scatter`,
+`Fauna_Spawner` — are functional actors, not decorative pins, and were
+left alone (the OkongoSim build session agreed independently). There were
+no pre-existing pins to migrate: the earlier attempt died on the missing
+plugin before it created anything. Level + `/Game/TeeAssets/**` saved;
+877 actors = the 873-actor baseline + 2 markers + 2 fills.
+
+**Defects found by running it, all fixed in this commit:**
+
+- `as_search` labels every model hit `"model"`, which has no dimension
+  envelope, so `as_import`'s default rejected every prop with "no envelope
+  or target to judge against" and no fix. The rejection now names the
+  envelope classes and `target_dims`.
+- Poly Haven's catalog filter is `?t=`, not `?types=`. TEE sent `types=`,
+  which the API ignores, so model searches ranked HDRIs and textures
+  alongside meshes (2361 rows instead of 521 — measured live). Fixed, with
+  the cache key carrying the parameter so a stale all-types body cannot be
+  revalidated into the filtered slot.
+- A partial transform in a `tee_batch` `set` op zeroes the fields it omits:
+  a rotation-only set teleported the imported chair to the world origin.
+  The batch interpreter now reads the transform back and fills the gaps.
+- `MaterialEditingLibrary.connect_material_property` returned True and
+  changed nothing (the material kept the default graph and rendered black);
+  the pin marker uses a parametrised `MaterialInstanceConstant` with a
+  read-back check instead.
+
+**Suites after the change:** `pytest -m "not dcc"` 410 passed, 2 skipped;
+`pytest -m dcc` 83 passed against the live editor + Blender; ruff clean.
+The live settle test needed fixing on the way: it assumed a floor at z=0,
+which is true of the scratch probe project and false of OkongoSim, whose
+terrain there sits 16.7 cm below zero (measured by line trace). It now
+measures the ground under the drop instead of assuming it. Two more 5.8.1
+API facts fell out: `SystemLibrary.line_trace_single` needs a real world
+context and returns `HitResult or None`, and `HitResult` exposes nothing
+as attributes — `to_dict()` or `get_editor_property()` only.
+
+**Hazard hit, worth remembering:** entity ids (`u1`, `u2`, …) are per
+session. Re-running a saved `tee_batch` file from an earlier session
+resolved `u881` to a different actor and deleted a pin marker. No project
+geometry was lost (every `/Game/House` mesh still has its actor; the
+873-actor baseline is intact) and the marker was rebuilt, but ids must be
+re-read in the session that acts on them. Documented in setup-unreal.md.

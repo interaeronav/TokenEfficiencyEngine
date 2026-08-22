@@ -1,6 +1,6 @@
 """Poly Haven backend: keyless, all CC0, the ideal first-class source.
 
-Catalog: api.polyhaven.com/assets?types=… (ETag-served; ~2.3 MB for all
+Catalog: api.polyhaven.com/assets?t=… (ETag-served; ~2.3 MB for all
 types - fetched once and revalidated, never per search). Files:
 api.polyhaven.com/files/<id> with direct CDN URLs + md5 per file.
 Model dimensions are millimeters in the catalog; TEE reports meters.
@@ -25,8 +25,14 @@ class PolyHaven(SourceBackend):
     credit_note = "Powered by Poly Haven (polyhaven.com)"
 
     def _catalog(self, types: str) -> dict:
+        # The type filter is `t=`, NOT `types=`. An unrecognised parameter is
+        # ignored and the API answers with EVERY asset, so a model search
+        # silently ranked HDRIs and textures alongside meshes (verified live
+        # 2026-08-22: ?types=models -> 2361 rows, 989 hdri + 851 texture +
+        # 521 model; ?t=models -> 521). The cache key carries the parameter so
+        # an old all-types body cannot be revalidated into the filtered slot.
         data, _info = self.store.catalogs.fetch_json(
-            f"polyhaven-{types}", f"{_API}/assets?types={types}"
+            f"polyhaven-t-{types}", f"{_API}/assets?t={types}"
         )
         return data
 

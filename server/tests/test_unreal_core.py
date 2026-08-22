@@ -168,6 +168,22 @@ def test_batch_program_defines_run_and_uses_no_get_default():
     assert '.get("refPath")' not in script
 
 
+def test_a_partial_set_reads_the_transform_back_before_writing_it():
+    """Epic's transform converter documents omitted fields as "unchanged" and
+    then writes them as ZERO: a rotation-only set teleported an imported chair
+    to the world origin (verified live on 5.8.1). The interpreter must fill the
+    gaps from the current transform."""
+    from tee.adapters.unreal import codegen
+
+    script = codegen.program_batch(
+        [{"op": "set", "id": "u1", "props": {"rotation": [0, 90, 0]}}],
+        {"u1": "/Game/X.X:PersistentLevel.A"},
+    )
+    compile(script, "<program>", "exec")
+    assert '_set_xform(ref, _complete(ref, op["xform"]))' in script
+    assert "def _complete(actor, xform):" in script
+
+
 def test_unknown_op_is_rejected_before_touching_the_editor():
     from tee.adapters.unreal import codegen
 

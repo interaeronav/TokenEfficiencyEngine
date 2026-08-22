@@ -1447,3 +1447,51 @@ battery runs stock-vs-ours and PROGRESS gets the numbers.
 - **Honest reporting:** acceptance criteria are checked by running the
   commands, not by asserting success in prose. Paste real output into
   `docs/PROGRESS.md` when checking off a phase.
+
+---
+
+## 18. Phase 14 — TEE Pins: introspectable marker actors (owner request, 2026-08-22)
+
+**Goal:** the owner asked for pins in OkongoSim — a small marker actor
+standing where something should eventually go, carrying its own record so
+it can be asked about ("list the pins", "what is pin market-03") and
+filled from the free asset sources without clicking anything in the
+editor. Decision **A29** in `docs/DECISIONS.md` settles the storage: the
+DCC's own actor tags, not a sidecar file.
+
+**Grounding:** the live editor. Every Unreal claim in this phase was
+verified against UE 5.8.1 on the M5 Mac, not against memory.
+
+### 14.1 Tag encoding (`tee/pins/model.py`)
+
+- One marker tag (`<ns>`), then `<ns>_<field>:<value>` for id, name, cat,
+  note, wish, class, dims, asset, actor. Values split on the FIRST colon,
+  so an asset key (`polyhaven:GreenChair_01`) round-trips.
+- Ids are lowercase slugs, enforced: Unreal compares FName tags
+  case-insensitively, so `Market-03` and `market-03` would silently be one
+  pin.
+- `|` separates list entries inside one tag and is rejected in free text.
+- Upsert semantics: fields not mentioned keep their value; an explicit
+  empty clears one.
+
+### 14.2 Editor programs (`tee/pins/program.py`)
+
+One dispatch each: read all pins, upsert one, remove one, clear a fill.
+The marker is the engine cone, scaled to 18 x 50 cm, base ON the spot,
+collision off AT SPAWN, `is_editor_only_actor` true, outliner folder
+`TEE/Pins`, and an orange instance of the engine's basic-shape material.
+
+### 14.3 Tools (`tee/pins/tools.py`)
+
+`pin_set`, `pin_list`, `pin_show`, `pin_fill`, `pin_remove` — registry
+tools (progressive disclosure), Unreal-only, refusing other adapters with
+the reason. `pin_fill` with no pick searches the pin's wishlist and
+returns a shortlist; with `pick=` it imports at the pin through the normal
+`as_import` machinery, applies the pin's yaw, and records the chosen key
+back onto the pin.
+
+### 14.4 Acceptance
+
+Live on OkongoSim: a pin created, read back through `pin_show`/`pin_list`,
+filled from Poly Haven on the owner's pick, before/after captures, and the
+level saved. Evidence in `docs/PROGRESS.md`.

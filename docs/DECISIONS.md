@@ -22,6 +22,37 @@ generated-3D is local-first once more, hosted Tripo/Meshy the keyed
 fallback. The Mac owes the live half again: reinstall, weights if
 cleaned, first live generation, determinism, the stock-vs-ours battery.
 
+## 2026-08-22 — A29: pins are actor tags, not a sidecar file (owner request)
+
+Owner request: markers that stand where something should eventually go,
+each carrying its own record — id, display name, category, notes, and a
+wishlist of what belongs there — readable back without clicking, and
+fillable from the free asset sources.
+
+Decision A29: **the storage is the DCC's own actor tags.** One marker tag
+plus `<namespace>_<field>:<value>` pairs on a small editor-only marker
+actor. Rejected alternatives: a JSON sidecar in the repo (drifts from the
+level the moment anyone moves a marker in the editor, and a level reload
+cannot repair it) and a custom Blueprint actor class (needs a C++ or BP
+asset in every host project, and Epic's toolsets cannot read custom
+properties back).
+
+Consequences:
+- Pins are Unreal-only for now; the lane fails loud on other adapters
+  rather than pretending. Blender's object custom properties are the
+  obvious port when it is asked for.
+- Reading and writing tags needs unsandboxed editor Python (Epic's
+  toolsets expose no Tags access), so the pin lane requires TEE's content
+  plugin and `--allow-code-exec` — the same gate as `ue_editor_python`.
+- The tag prefix is per-project config (`[pins] namespace`), so pins join
+  a project's existing tag family instead of inventing a second one. In
+  OkongoSim that is `okongo_pin`, beside `okongo_light` / `okongo_circuit`.
+- Pin markers are `is_editor_only_actor` with collision off: an authoring
+  aid must never ship inside, or obstruct, the walkable build.
+- What fills a pin is found by the label convention `PinFill_<id>`, not by
+  the pin's own record, so a re-created marker cannot leave two props
+  stacked on one spot.
+
 ## 2026-08-22 — Voxkiln removed; the out-of-the-box 3D-generation need is dropped (owner decision)
 
 Hours after the Phase 13 build and its Mac bring-up, the owner removed
