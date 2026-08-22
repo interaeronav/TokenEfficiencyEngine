@@ -42,13 +42,28 @@ physical = [
     "ifctester>=0.8.5",
     "py-slvs>=1.0.6",
 ]
-# assets-embed (optional, CPU-only): sentence-transformers with a SigLIP-2
-# (Apache) or CLIP ViT-B/32 (MIT) checkpoint for index-time thumbnail
-# embeddings; never MobileCLIP (research-only weights). Deliberately not
-# pinned here - GPU-adjacent stacks are machine-specific (physical box).
-# assets-gen (optional, GPU): torch + diffusers for lanes 1-3 local
-# generation (Z-Image/SDXL-tileable/Marigold-IID, TRELLIS.2) - physical
-# machine only; see docs/research/23-24.
+# assets-embed / assets-gen are declared below but stay loosely pinned on
+# purpose: torch wheels are backend- and machine-specific (CUDA build vs the
+# Apple-Silicon build), so pinning an exact version here would break one of
+# them. Verified working on 2026-08-22 with torch 2.13 / diffusers 0.40 /
+# transformers 5.15 on an Apple M5 (MPS).
+#   assets-embed: SigLIP 2 (Apache-2.0) text embeddings for asset search.
+#     Never MobileCLIP - MIT repo, research-only WEIGHTS.
+#   assets-gen: lane 1 local text->image (Z-Image-Turbo, Apache-2.0).
+#     Lane 3 (TRELLIS.2 image->3D) additionally needs CUDA: nvdiffrast is
+#     CUDA-bound, so it is unavailable on Apple Silicon.
+
+assets-embed = [
+    "torch>=2.4",
+    "transformers>=4.50",
+    "sentencepiece>=0.2",
+]
+assets-gen = [
+    "torch>=2.4",
+    "diffusers>=0.35",
+    "transformers>=4.50",
+    "accelerate>=1.0",
+]
 
 [dependency-groups]
 dev = [
@@ -78,5 +93,6 @@ timeout = 60
 markers = [
     "dcc: requires a live DCC (Blender/Unreal) on this machine",
     "network: requires outbound network access (skips cleanly offline)",
+    "ml: needs multi-gigabyte model weights ([assets-embed] / [assets-gen])",
 ]
-addopts = "-m 'not dcc'"
+addopts = "-m 'not dcc and not ml'"

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import time
+from pathlib import Path
 from typing import Any, Protocol
 
 from tee.kernel.errors import TeeError
@@ -202,4 +203,13 @@ def build_drivers(config: dict[str, Any] | None = None) -> dict[str, GenDriver]:
         from tee.assets.gen_hosted import MeshyDriver
 
         drivers["meshy"] = MeshyDriver(os.environ["TEE_MESHY_KEY"])
+
+    # Local lanes appear only when the machine can actually run them, and the
+    # probe now answers per-lane rather than "CUDA or nothing".
+    probe = probe_local_gpu()
+    if probe.get("available") and 1 in (probe.get("lanes") or []):
+        from tee.assets.gen_local import LocalDiffusionDriver
+
+        out_dir = config.get("generated_dir") or Path.cwd() / ".tee" / "generated"
+        drivers["local-diffusion"] = LocalDiffusionDriver(out_dir)
     return drivers

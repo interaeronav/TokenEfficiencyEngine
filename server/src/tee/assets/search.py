@@ -20,7 +20,9 @@ class AssetSearch:
     def __init__(self, store, backends: dict[str, Any], *, embedder=None):
         self.store = store
         self.backends = backends
-        self.embedder = embedder  # optional [assets-embed] hook: (row) -> score
+        # optional [assets-embed] hook: an object with
+        # score_rows(query, rows) -> {row key: 0..1}
+        self.embedder = embedder
 
     def search(
         self,
@@ -122,6 +124,16 @@ class AssetSearch:
     ) -> list[AssetRow]:
         words = [w for w in query.lower().split() if w]
 
+        # Semantic scores are computed ONCE for the whole result set, not per
+        # row: an embedding model wants one batched forward pass, and calling
+        # it inside the sort comparator would re-run it O(n log n) times.
+        semantic: dict[str, float] = {}
+        if self.embedder is not None:
+            try:
+                semantic = self.embedder.score_rows(query, rows)
+            except Exception:
+                semantic = {}
+
         def score(row: AssetRow) -> float:
             text = f"{row.name} {' '.join(row.tags)}".lower()
             keyword = sum(1.0 for w in words if w in text)
@@ -131,12 +143,10 @@ class AssetSearch:
                 if labs:
                     distance = palette_distance(labs, [tuple(p) for p in style_palette])
                     palette_bonus = max(0.0, (40.0 - distance) / 40.0)  # ΔE00 40 = unrelated
-            embed_bonus = 0.0
-            if self.embedder is not None:
-                try:
-                    embed_bonus = float(self.embedder(row))
-                except Exception:
-                    embed_bonus = 0.0
+            # Weighted BELOW an exact keyword hit on purpose: semantic
+            # similarity should break ties and rescue synonym queries, not
+            # override a literal name match.
+            embed_bonus = 1.5 * semantic.get(f"{row.source}:{row.id}", 0.0)
             return keyword * 2.0 + palette_bonus + embed_bonus
 
         return sorted(rows, key=lambda r: (-score(r), r.source, r.id))
