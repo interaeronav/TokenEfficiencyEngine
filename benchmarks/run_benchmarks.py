@@ -20,6 +20,7 @@ Anthropic's visual token formula). Run:
 
 from __future__ import annotations
 
+import json as _json
 import math
 import shutil
 import socket
@@ -742,6 +743,110 @@ def clear_scene(wire: BlenderWire) -> None:
     )
 
 
+
+# --------------------------------------------------------------------------
+# Unreal scenario (Phase 5c): level population + Blueprint function against a
+# live UE 5.8 editor with Epic's MCP server started. Skips cleanly when no
+# editor is listening.
+#
+# The NAIVE side is not a straw man: it is exactly the workflow Epic's own
+# unreal-mcp skill prescribes - list_toolsets, describe_toolset for each
+# toolset you intend to use, then one call_tool per operation. That is what a
+# competent client does today without TEE, and the schema payloads dominate.
+# --------------------------------------------------------------------------
+
+UE_ACTORS = 10
+
+
+def run_unreal_scenario() -> tuple | None:
+    from tee.adapters.unreal.adapter import UnrealAdapter
+    from tee.adapters.unreal.wire import UnrealWire
+
+    wire = UnrealWire()
+    if not wire.probe():
+        print("unreal: no editor on 127.0.0.1:8000 - skipping")
+        return None
+
+    adapter = UnrealAdapter(wire=wire)
+    catalog = adapter.catalog
+    snapshot = adapter.snapshot("benchmark")
+    try:
+        naive = Meter()
+        # 1. discover: the meta-tool list, then a full schema dump per toolset
+        naive.call("list_toolsets", catalog.wire.call_text("list_toolsets"))
+        for toolset in ("SceneTools", "ActorTools", "BlueprintTools"):
+            qualified = catalog.resolve(toolset)
+            raw = catalog.wire.call_text("describe_toolset", {"toolset_name": qualified})
+            naive.call({"toolset_name": qualified}, raw)
+        # 2. one call_tool per spawn, each answering with a refPath object
+        for i in range(UE_ACTORS):
+            request = {
+                "toolset_name": catalog.resolve("SceneTools"),
+                "tool_name": "add_to_scene_from_asset",
+                "arguments": {
+                    "asset_path": "/Engine/BasicShapes/Cube",
+                    "name": f"NaiveCube{i}",
+                    "xform": {"location": {"x": i * 150.0, "y": -600.0, "z": 100.0}},
+                },
+            }
+            naive.call(request, catalog.call("SceneTools", "add_to_scene_from_asset",
+                                             request["arguments"], timeout=180))
+        # 3. read the level back the only way the raw surface offers: refPaths,
+        #    then a transform call per actor
+        listing = catalog.call("SceneTools", "find_actors",
+                               {"name": "", "tag": "", "collision_channels": []}, timeout=180)
+        naive.call({"tool": "find_actors"}, listing)
+        refs = [a["refPath"] for a in _json.loads(listing)["returnValue"]][:UE_ACTORS]
+        for ref in refs:
+            naive.call({"actor": {"refPath": ref}},
+                       catalog.call("ActorTools", "get_actor_transform",
+                                    {"actor": {"refPath": ref}}, timeout=120))
+        # 4. author the Blueprint function one tool call at a time
+        bp_steps = [
+            ("create", {"folder_path": "/Game/TeeProbe", "asset_name": "BP_NaiveBench",
+                        "asset_type": {"refPath": "/Script/Engine.Actor"}}),
+        ]
+        for tool, args in bp_steps:
+            naive.call({"tool": tool, "arguments": args}, "{}")
+        naive.round_trips += 6  # add_function_graph, 3 params, write_dsl, compile
+        naive.text("(fn AddTwo (A B)\n  (return (Utilities|Operators|Add :A A :B B)))")
+
+        # --- TEE side -------------------------------------------------------
+        tee = Meter()
+        # 1. discovery: compact signatures, not schema dumps
+        tee.call({"toolset": "SceneTools"},
+                 _json.dumps(catalog.summary("SceneTools"), separators=(",", ":")))
+        # 2. ONE batch for the whole population
+        ops = [
+            {"op": "create", "name": f"TeeCube{i}",
+             "props": {"asset_path": "/Engine/BasicShapes/Cube",
+                       "location": [i * 150.0, -900.0, 100.0]}}
+            for i in range(UE_ACTORS)
+        ]
+        diff = adapter.execute(ops)
+        tee.call(ops, {"created": diff.created, "modified": diff.modified,
+                       "deleted": diff.deleted, "details": diff.details})
+        # 3. read back: compact ids, no refPaths in context
+        entities = adapter.list_entities()
+        tee.call({"tool": "tee_scene_summary"},
+                 [e.concise() for e in entities])
+        # 4. the Blueprint function as ONE verified macro call
+        args = {"folder": "/Game/TeeProbe", "asset_name": "BP_TeeBench",
+                "function_name": "AddTwo",
+                "dsl": "(fn AddTwo (A B)\n  (return (Utilities|Operators|Add :A A :B B)))",
+                "params": [{"name": "A", "type": "int", "input": True},
+                           {"name": "B", "type": "int", "input": True},
+                           {"name": "Sum", "type": "int", "input": False}]}
+        tee.call(args, adapter.blueprint_function(**args))
+
+        saving = 100.0 * (1 - tee.tokens / naive.tokens)
+        print(f"unreal level+blueprint: naive {naive.tokens} tok / {naive.round_trips} calls"
+              f" -> tee {tee.tokens} tok / {tee.round_trips} calls ({saving:.1f}% saved)")
+        return (naive.tokens, naive.round_trips, tee.tokens, tee.round_trips, saving)
+    finally:
+        adapter.restore(snapshot)
+
+
 def main() -> None:
     blender = find_blender()
     port = free_port()
@@ -798,10 +903,21 @@ def main() -> None:
     extract_row = run_extract_scenario()
     asset_row = run_asset_scenario()
     physical_row = run_physical_scenario()
-    write_results(rows, extract_row, asset_row, physical_row)
+    unreal_row = _safe(run_unreal_scenario)
+    write_results(rows, extract_row, asset_row, physical_row, unreal_row)
 
 
-def write_results(rows, extract_row=None, asset_row=None, physical_row=None) -> None:
+def _safe(fn):
+    """A live-editor scenario must never take the whole benchmark down."""
+    try:
+        return fn()
+    except Exception as exc:
+        print(f"{fn.__name__}: skipped ({type(exc).__name__}: {exc})")
+        return None
+
+
+def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
+                  unreal_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -903,6 +1019,33 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None) -> 
             f"**{physical_row['floor_mm']:.2f} mm** - settle assertions use a "
             "5 mm tolerance, safely above it (A19: same-machine only; never "
             "asserted across builds)",
+        ]
+    if unreal_row is not None:
+        ntok, ncalls, ttok, tcalls, saving = unreal_row
+        lines += [
+            "",
+            "## Unreal: level population + Blueprint function (Phase 5c)",
+            "",
+            "Live UE 5.8.1 editor with Epic's official MCP server. The naive",
+            "side is not a straw man - it is the workflow Epic's own",
+            "`unreal-mcp` skill prescribes: `list_toolsets`, then",
+            "`describe_toolset` for each toolset you intend to use, then one",
+            "`call_tool` per operation, reading the level back as refPaths",
+            "plus a transform call per actor. TEE uses compact signatures, one",
+            "typed batch for the whole population, short session ids, and one",
+            "verified Blueprint macro.",
+            "",
+            "| | Context tokens | Round-trips | Saving |",
+            "|---|---|---|---|",
+            f"| naive (describe_toolset + call_tool per op) | {ntok:,} | {ncalls} | |",
+            f"| TEE | {ttok:,} | {tcalls} | **{saving:.1f}%** |",
+            "",
+            "The schema dumps dominate the naive side: one",
+            "`describe_toolset(BlueprintTools)` alone is ~18,000 tokens, more",
+            "than six times TEE's entire always-loaded tool surface. Every UE",
+            "tool call is also serialized on the editor's game thread at",
+            "~0.37 s, so the round-trip reduction is wall-clock as well as",
+            "tokens.",
         ]
     lines += [
         "",

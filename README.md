@@ -33,7 +33,18 @@ naive per-op-code + full-scene-dump pattern of existing bridges —
 | layout verification | 2,926 tok / 2 calls | 36 tok / 1 call | 98.8% |
 | **total** | **68,230** | **8,390** | **87.7%** |
 
-Later phases added an extraction module (92.6% saved vs re-attaching media),
+**Unreal** (live UE 5.8.1 editor, Epic's official MCP server; the naive side
+is the workflow Epic's own `unreal-mcp` skill prescribes — `describe_toolset`
+per toolset, then one `call_tool` per operation):
+
+| Scenario | Naive | TEE | Saving |
+|---|---|---|---|
+| level population + Blueprint function | 38,334 tok / 32 calls | 2,349 tok / 4 calls | **93.9%** |
+
+One `describe_toolset(BlueprintTools)` alone is ~18,000 tokens — more than six
+times TEE's entire always-loaded tool surface.
+
+Later phases added an extraction module (93.1% saved vs re-attaching media),
 an app-side script lane (63–76% saved on fix loops), an asset module (93.5%
 saved on find-select-place), plus design, physics/modeling, and UEFN/Verse
 modules — see [benchmarks/RESULTS.md](benchmarks/RESULTS.md) for all measured

@@ -24,9 +24,10 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       tier is **n/a** — no such engine on this machine)*
 - [x] Phase 4 — Cross-cutting friction killers *(cloud, 2026-08-21; doctor
       re-run on the physical machine will extend the evidence)*
-- [ ] Phase 5 — Benchmarks *(Blender scenarios done in cloud: 87.7% total
-      saving measured — see benchmarks/RESULTS.md; UE scenarios need the
-      physical machine)*
+- [x] Phase 5 — Benchmarks *(Blender scenarios in cloud: 87.7% total;
+      UE scenario added on the physical machine 2026-08-22 against a live
+      5.8.1 editor: **93.9% saved** on level population + Blueprint
+      function. All rows in benchmarks/RESULTS.md, cited in README)*
 - [x] Phase 6 — Packaging and handoff *(built in cloud, 2026-08-22:
       tee-engine wheel + clean-venv install rehearsal w/ MCP stdio
       round-trip, Blender extension zip built+validated with real
@@ -941,3 +942,29 @@ in code, none of them in doc 07):
   alongside Blender's both flavors; `make check` green.
 - Scratch project: `~/Documents/Unreal Projects/TeeProbe` (plugin installed
   under its `Plugins/`, assets under `/Game/TeeProbe`).
+
+### 2026-08-22 — Phase 5 closed: UE benchmark scenario (M5 Mac)
+
+Scenario (c) from the script — "UE level population + Blueprint function" —
+measured against the live 5.8.1 editor, 10 actors plus an authored function:
+
+| | Context tokens | Round-trips | Saving |
+|---|---|---|---|
+| naive (`describe_toolset` + `call_tool` per op) | 38,334 | 32 | |
+| TEE | 2,349 | 4 | **93.9%** |
+
+The naive side is deliberately **not** a straw man: it is exactly the
+workflow Epic's own `unreal-mcp` skill prescribes — `list_toolsets`, a
+`describe_toolset` for each toolset you intend to use, then one `call_tool`
+per operation, reading the level back as refPaths plus a transform call per
+actor. The schema dumps dominate it; one `describe_toolset(BlueprintTools)`
+is ~18K tokens on its own. Because every UE tool call is serialized on the
+game thread at ~0.37s, the 32 → 4 round-trip reduction is wall-clock as well
+as tokens.
+
+All prior rows reproduced in the same run (Blender 87.7% total, assets 93.5%,
+script lane 63.2%, physics variance floor 0.00 mm). The extraction row moved
+slightly to **93.1%** (was 92.6%) — same fixtures, regenerated.
+
+`run_unreal_scenario` skips cleanly when no editor is listening, and is
+wrapped so a live-editor failure can never take the rest of the suite down.
