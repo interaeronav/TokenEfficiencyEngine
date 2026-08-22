@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from tee.app import TeeApp
 from tee.assets.verify import verify_scene
 from tee.kernel.adapter import FakeAdapter
@@ -81,3 +83,75 @@ def test_palette_check(tmp_path):
     report = verify_scene(app, "fake", style_palette=brief)
     palette = [v for v in report["violations"] if v["check"] == "palette"]
     assert palette and palette[0]["delta_e"] > 28
+
+
+# -- library publishing -------------------------------------------------------
+
+
+def test_publish_library_refuses_an_empty_store(tmp_path):
+    from tee.assets.library import publish_library
+    from tee.assets.store import AssetStore
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        publish_library(AssetStore(tmp_path), tmp_path / "lib", blender="/nonexistent/blender")
+    assert err.value.code == "no_assets_cached"
+    assert "as_ingest" in (err.value.fix or "")
+
+
+@pytest.mark.dcc
+def test_publish_library_authors_marked_assets_and_indexes_them(tmp_path):
+    """Blender 5.2 can index a folder of .blend files into the JSON a remote
+    asset library serves - but only if the objects are marked assets, which
+    TEE's store (glTF + textures) has to author first."""
+    import json
+    import subprocess
+
+    from conftest import find_blender
+
+    from tee.assets.ingest import ingest_directory
+    from tee.assets.library import publish_library
+    from tee.assets.store import AssetStore
+
+    blender = find_blender()
+    if blender is None:
+        pytest.skip("no Blender binary (set TEE_BLENDER)")
+
+    source = tmp_path / "src"
+    source.mkdir()
+    script = tmp_path / "export.py"
+    script.write_text(
+        "import bpy, sys\n"
+        "for o in list(bpy.data.objects): bpy.data.objects.remove(o, do_unlink=True)\n"
+        "bpy.ops.mesh.primitive_cube_add(size=2.0)\n"
+        "bpy.context.active_object.name = 'LibCube'\n"
+        "bpy.ops.export_scene.gltf(filepath=sys.argv[-1], export_format='GLB')\n"
+    )
+    subprocess.run(
+        [
+            blender,
+            "--background",
+            "--factory-startup",
+            "--python",
+            str(script),
+            "--",
+            str(source / "lib_cube.glb"),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    store = AssetStore(tmp_path / "project")
+    ingest_directory(store, source)
+    out = tmp_path / "library"
+    report = publish_library(store, out, blender=blender, library_name="Pytest library")
+
+    assert report["authored"] == 1, report
+    assert report["indexed"] == 1, report
+    # the helper script must not be left inside something the user may serve
+    assert not list(out.glob("*.py"))
+    meta = json.loads((out / "_asset-library-meta.json").read_text())
+    assert meta["name"] == "Pytest library"  # not Blender's placeholder
+    index = json.loads((out / "_v1" / "asset-index.json").read_text())
+    assert index["asset_count"] == 1

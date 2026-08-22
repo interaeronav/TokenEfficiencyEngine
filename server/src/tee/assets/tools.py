@@ -66,6 +66,25 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
             backends=args.get("backends"),
         )
 
+    def as_publish_library(args):
+        from tee.assets.library import publish_library
+        from tee.doctor import find_blender
+
+        blender = args.get("blender") or find_blender()
+        if not blender:
+            raise TeeError(
+                "blender_not_found",
+                "Publishing a Blender asset library needs the Blender binary.",
+                fix="Pass blender=<path>, or set TEE_BLENDER.",
+            )
+        return publish_library(
+            store,
+            str(args["directory"]),
+            blender=str(blender),
+            limit=int(args["limit"]) if args.get("limit") else None,
+            library_name=args.get("name"),
+        )
+
     def as_ingest(args):
         directory = Path(str(args["directory"])).expanduser()
         if not directory.is_dir():
@@ -311,6 +330,27 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
             },
             as_verify,
             tags=["assets", "verify", "collision", "support", "check"],
+        ),
+        VirtualTool(
+            "as_publish_library",
+            "Publish the cached asset store as a Blender asset library: one "
+            "marked-asset .blend per model (licence and attribution travel "
+            "inside the file) plus Blender's own generated index, so the "
+            "folder can be added as a local library or served as a remote "
+            "one. Needs the Blender binary; does not touch the open scene.",
+            {
+                "type": "object",
+                "properties": {
+                    "directory": {"type": "string"},
+                    "name": {"type": "string"},
+                    "limit": {"type": "integer"},
+                    "blender": {"type": "string"},
+                },
+                "required": ["directory"],
+            },
+            as_publish_library,
+            tags=["assets", "library", "blender", "publish"],
+            examples=[{"directory": "~/tee-library", "name": "Okongo kit"}],
         ),
         VirtualTool(
             "as_sources",
