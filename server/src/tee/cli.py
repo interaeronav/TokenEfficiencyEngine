@@ -52,6 +52,13 @@ def _attach_assets(app, project: str, extract_store) -> None:
     register_asset_tools(app, Path(project), extract_store=extract_store)
 
 
+def _attach_design(app, project: str) -> None:
+    """Register TEE Design tools (pure stdlib - always on)."""
+    from tee.design.tools import register_design_tools
+
+    register_design_tools(app, Path(project))
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -76,6 +83,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         return 2
     extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
     _attach_assets(app, args.project, extract_store)
+    _attach_design(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

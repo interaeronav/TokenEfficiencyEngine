@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "model": "12 continuous dimensions in 6 pairs / 3 clusters (Quantic-Foundry-shaped; N=466k v2.3 2023-2025 is the citable base). Motivations are CONTINUOUS INDEPENDENT DIMENSIONS - discrete 'types' are presentation sugar (Yee 2006 refuted type suppression; every psychometric audit agrees). Trojan Player Typology (2015) is the behaviorally validated cross-check (N=18.6k LoL + 18.8k MMO telemetry).",
+    "instruments": "BANGS (2024, open access) for SDT needs incl. frustration; PXI for experience; PENS proprietary - never bundle; GEQ unvalidated - banned",
+    "as_of": "2026-08-22"
+  },
+  "dimensions": {
+    "destruction": { "cluster": "action", "pair": "action", "gloss": "guns, explosions, chaos, mayhem" },
+    "excitement": { "cluster": "action", "pair": "action", "gloss": "fast pace, surprises, thrills" },
+    "competition": { "cluster": "social", "pair": "social", "gloss": "duels, rankings, beating others" },
+    "community": { "cluster": "social", "pair": "social", "gloss": "co-op, chat, playing together" },
+    "challenge": { "cluster": "mastery", "pair": "mastery", "gloss": "practice, difficulty, mastery over time" },
+    "strategy": { "cluster": "mastery", "pair": "mastery", "gloss": "thinking ahead, decisions, planning" },
+    "completion": { "cluster": "achievement", "pair": "achievement", "gloss": "all collectibles, all missions" },
+    "power": { "cluster": "achievement", "pair": "achievement", "gloss": "strong character, strong gear, growth" },
+    "fantasy": { "cluster": "immersion", "pair": "immersion", "gloss": "being someone else, somewhere else" },
+    "story": { "cluster": "immersion", "pair": "immersion", "gloss": "narrative, characters, elaborate plots" },
+    "design": { "cluster": "creativity", "pair": "creativity", "gloss": "expression, customization, building" },
+    "discovery": { "cluster": "creativity", "pair": "creativity", "gloss": "explore, tinker, find secrets" }
+  },
+  "findings": [
+    { "finding": "competition declines most with age (steepest 13->35); age explains >2x gender's variance", "source": "Quantic Foundry aggregate, 2015-2025" },
+    { "finding": "strategy is the most age-stable motivation", "source": "Quantic Foundry aggregate" },
+    { "finding": "female share by genre spans Match-3 ~69% <-> tactical shooter ~4%", "source": "Quantic Foundry genre data" },
+    { "finding": "shooters trade competition <-> story along subgenre lines", "source": "Quantic Foundry" },
+    { "finding": "SDT: competence/autonomy/relatedness satisfaction predicts enjoyment and continued play; levers = masterable controls, clear feedback, goal/strategy choice, opt-in co-op", "source": "SDT games literature (open constructs)" },
+    { "finding": "social ties are the strongest multiplayer retention mechanism; retention drivers shift achievement-early -> social-late", "source": "telemetry-scale studies (research corpus 26)" },
+    { "finding": "purchases are predicted by unobstructed play + social interaction + economical rationale, not generic engagement", "source": "Hamari 2017" },
+    { "finding": "motivational QUALITY beats playtime for well-being", "source": "Vuorre 2022, N=38,935" },
+    { "finding": "players are overwhelmingly negative on gen-AI content, varying by profile", "source": "Quantic Foundry Dec 2025" }
+  ],
+  "demographics": {
+    "us_players_m": { "value": 205, "avg_age": 36, "adult_mf_split": [52, 47], "disability_share": 0.21, "source": "ESA 2025" },
+    "spender_tiers": { "whales_share_of_players": [0.01, 0.05], "whales_share_of_iap_revenue": [0.5, 0.7], "source": "industry ranges (estimated)" }
+  },
+  "personas_default": {
+    "casual": { "sessions_per_week": 8, "session_min": 15, "engagement": 0.7, "note": "mobile-cadence default" },
+    "core": { "sessions_per_week": 6, "session_min": 45, "engagement": 1.0 },
+    "dedicated": { "sessions_per_week": 12, "session_min": 90, "engagement": 1.5, "note": "top-decile playtime; also the binge-risk band - care, not upsells" }
+  }
+}

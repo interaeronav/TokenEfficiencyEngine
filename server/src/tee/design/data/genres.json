@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "hit_rate": "share of 2024-2026 releases reaching the success proxy per research corpus 29 (estimates)",
+    "as_of": "2026-08-22"
+  },
+  "genres": {
+    "coop_3d": {
+      "label": "3D co-op ('friendslop')",
+      "price_band_usd": [8, 25],
+      "session_shape": "30-90 min lobby-based runs, drop-in",
+      "camera": "third-person or first-person, physics-forward",
+      "loop_cadence_s": [300, 1200],
+      "evidence": "R.E.P.O. ~18M, Peak ~16M, Schedule I ~8M (estimated); eight new indies passed 100k CCU in 2025",
+      "notes": "proximity voice + emergent comedy + streamable moments; stylized not photoreal; EA-friendly",
+      "source": "research corpus 29, 2024-2026"
+    },
+    "survival_craft": {
+      "label": "survival-craft / sim / management",
+      "hit_rate": 0.208,
+      "price_band_usd": [15, 30],
+      "session_shape": "60-180 min base-building sessions",
+      "loop_cadence_s": [600, 1800],
+      "evidence": "20.8% hit rate per release - the best measured",
+      "source": "research corpus 29"
+    },
+    "horror": {
+      "label": "horror (small 3D teams)",
+      "price_band_usd": [5, 20],
+      "session_shape": "45-120 min, often streamed",
+      "evidence": "#3 genre by release count; best count-volume for small 3D teams",
+      "source": "research corpus 29"
+    },
+    "farming_sim": { "label": "farming", "hit_rate": 0.083, "source": "research corpus 29" },
+    "roguelike_deckbuilder": { "label": "roguelike deckbuilder", "hit_rate": 0.051, "source": "research corpus 29" },
+    "match_puzzle": {
+      "label": "match/puzzle (mobile)",
+      "session_shape": "3-5 min x ~4/day",
+      "evidence": "stickiest mobile genre (D30 7.2%)",
+      "source": "AppsFlyer Q3-2022 (stale-canonical)"
+    },
+    "platformer": {
+      "label": "platformer",
+      "hit_rate": 0.0018,
+      "avoid": true,
+      "evidence": "<=0.18% hit rate - lowest measured",
+      "source": "research corpus 29"
+    },
+    "pure_puzzle": {
+      "label": "pure puzzle (premium PC)",
+      "hit_rate": 0.0034,
+      "avoid": true,
+      "source": "research corpus 29"
+    },
+    "f2p_live_service": {
+      "label": "new F2P live-service",
+      "avoid": true,
+      "evidence": "graveyard: Concord dead in 2 weeks; XDefiant/MultiVersus/Dauntless shut; Sony cancelled 8 of 12",
+      "source": "research corpus 29, 2024-2026"
+    },
+    "extraction_shooter": {
+      "label": "extraction shooter",
+      "evidence": "ARC Raiders 16.3M by Q2 2026 - winners exist but head-to-head with them",
+      "source": "research corpus 29"
+    }
+  },
+  "opportunity_map": [
+    { "rank": 1, "what": "3D co-op $8-25, physics/proximity-voice emergent comedy, streamable moments, stylized, EA-friendly", "evidence": "best-evidenced niche of 2024-2026" },
+    { "rank": 2, "what": "survival-craft / sim / management", "evidence": "highest per-release hit rates (20.8%)" },
+    { "rank": 3, "what": "horror", "evidence": "best count-volume for small 3D teams" },
+    { "avoid": "platformers (0.18%), pure puzzle (0.34%), new F2P live-service, fighting the 60% back-catalog gravity well" },
+    { "strategy": "premium co-op with light post-launch (Helldivers 2 / ARC Raiders model) over F2P; EA launch IS the launch; >=7-10k wishlists before Next Fest" }
+  ],
+  "market_facts": {
+    "global_2025_usd_b": { "value": 188.8, "split": { "mobile": 103, "console": 45.9, "pc": 39.9 }, "source": "Newzoo 2025" },
+    "players_b": { "value": 3.578, "payers": 0.44, "arppu_usd_yr": 119.7, "source": "Newzoo 2025" },
+    "price_resistance": { "note": "$80 tier met resistance (Xbox reversed); sub-$30 PC +40% since 2022; small-team sweet spot $10-25", "source": "research corpus 29" },
+    "ai_disclosure": { "note": "~20% of 2025 Steam releases disclosed gen-AI; Valve disclosure required since Jan 2024; sentiment 85% negative (QF) but only ~25% say it reduces purchases (Circana) - backlash concentrates on visible sloppy assets and voice replication", "source": "research corpus 29" }
+  }
+}

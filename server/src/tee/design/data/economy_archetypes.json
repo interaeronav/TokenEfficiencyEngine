@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "math": "balance identity per currency per period: delta(supply) = sum(faucets) - sum(sinks); inflation = faucets outrunning sinks (EVE MER = best public corpus; PoE currency-as-consumable = intrinsic sinks; league resets = scheduled resets)",
+    "as_of": "2026-08-22"
+  },
+  "archetypes": {
+    "premium_session": {
+      "gloss": "premium co-op/session game, soft economy (cosmetics/meta only)",
+      "sink_faucet_ratio_band": [0.6, 1.1],
+      "inflation_tolerance": "supply may grow linearly with play; no paid faucets",
+      "reference": "Helldivers 2 model"
+    },
+    "linear_progression": {
+      "gloss": "single-player / co-op PvE progression economy",
+      "sink_faucet_ratio_band": [0.7, 1.05],
+      "curve_families": "linear / polynomial a*L^b (b~2-3) / exponential A*r^L; RuneScape 2^(n/7) doubling is the canonical worked example (L99=13,034,431 XP; L92 = halfway)"
+    },
+    "player_market": {
+      "gloss": "trading economy with player-to-player markets",
+      "sink_faucet_ratio_band": [0.9, 1.05],
+      "note": "needs intrinsic sinks (consumable currency) or scheduled resets; EVE MER-style accounting per currency"
+    },
+    "idle": {
+      "gloss": "idle/incremental",
+      "generator_cost_growth_r": [1.07, 1.15],
+      "note": "linear production vs exponential cost -> logarithmic real-time progress, reset by multiplicative prestige"
+    },
+    "gacha_pity": {
+      "gloss": "pity-hazard random rewards (ETHICS GATES APPLY - dark_patterns.json)",
+      "reference_params": { "base": 0.006, "soft_pity_start": 74, "increment_per_pull": 0.06, "hard_pity": 90, "consolidated": 0.01605, "expected_pulls": 62.5, "source": "Genshin published rates" }
+    }
+  },
+  "scope_weights": {
+    "_note": "effort in person-days per item, [solo-indie, small-team] bands, ESTIMATED from practitioner ranges; flags fire on totals vs team capacity",
+    "prop": [0.5, 1],
+    "hero_prop": [2, 5],
+    "modular_kit": [3, 8],
+    "character": [10, 30],
+    "creature": [15, 40],
+    "environment_set": [10, 25],
+    "material": [0.5, 1.5],
+    "vfx": [1, 3],
+    "sfx": [0.25, 0.5],
+    "music": [3, 7],
+    "ui_screen": [2, 5],
+    "level": [10, 30],
+    "mechanic_system": [5, 20],
+    "cinematic": [10, 30]
+  }
+}

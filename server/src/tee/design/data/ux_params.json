@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "split": "these rows are ENFORCED by checkers; juice/DDA/diegesis/difficulty-shape are JUDGED in the skill (research 28)",
+    "as_of": "2026-08-22"
+  },
+  "enforce": {
+    "text_min_px_1080p": { "console": 26, "pc": 18, "source": "platform accessibility guidance (research 28)" },
+    "text_scaling_max": { "value": 2.0, "source": "200% scaling support" },
+    "chars_per_line_max": { "value": 80, "source": "readability practice" },
+    "line_spacing_min": { "value": 1.5, "source": "readability practice" },
+    "contrast_ratio": { "text": 4.5, "large_text": 3.0, "source": "WCAG-derived game guidance" },
+    "subtitles": {
+      "min_px_1080p": 46, "chars_per_line_max": 38, "lines_max": 2,
+      "chars_per_sec": [15, 20], "default_on": true,
+      "source": "AC Odyssey default-on: 95% kept them; Division 2 default-off: 50% sampled (defaults dominate)"
+    },
+    "color_only_information": { "allowed": false, "source": "1 in 12 men colorblind" },
+    "flashes_per_sec_max": { "value": 3, "avoid_flicker_hz": [5, 30], "source": "photosensitivity guidance (WCAG 2.3)" },
+    "input_feedback_ms_max": { "value": 100, "source": "Swink game feel; aiming degrades from 41 ms local latency" },
+    "fov_default_deg": { "tv": 60, "monitor": 90, "pc_slider": true, "source": "comfort norms" },
+    "motion_toggles": { "blur": true, "shake": true, "bob": true, "source": "comfort norms" },
+    "vr": { "motion_to_photon_ms_max": 20, "refresh_hz_min": 90, "no_artificial_acceleration": true, "source": "VR comfort floor" },
+    "remapping": { "required": true, "source": "accessibility floor; CVAA applies when player-to-player comms exist (fines to ~$1.16M/violation; EAA enforceable since June 2025)" },
+    "input_cooldown_option_s": { "value": 0.5, "source": "motor accessibility" },
+    "respawn_in_failure_loops": { "max_s": 1.0, "retry_loop_max_s": 30, "source": "minimize failure cost (research 28)" }
+  },
+  "judge": {
+    "juice": "inverted-U (Kao 2020: medium beats none AND extreme) - cap it",
+    "dda": "player-controlled difficulty choice embedded in play; covert DDA never provable mid-session nor tied to monetization",
+    "difficulty_reality": "70-80% of players use the easiest difficulty (Bandai telemetry); AoW4 48% on easy; Celeste assist-mode is the model",
+    "hud_diegesis": "diegetic / non-diegetic / spatial / meta vs genre convention",
+    "instruments": "PXI/miniPXI default (validated); GEQ banned (never validated); PENS proprietary; UPEQ strongest survey->behavior link",
+    "methods": "5-user qualitative per iteration; RITE fix-between-participants; weekly playtests from week one"
+  }
+}

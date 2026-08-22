@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "rule": "percentile grids with sources or nothing - folk targets are banned (A18)",
+    "as_of": "2026-08-22"
+  },
+  "retention": {
+    "mobile": {
+      "d1": { "median": 0.22, "top_quartile": 0.30, "source": "GameAnalytics 2026 (16k+ games, 2025 data)" },
+      "d7": { "median": 0.04, "top_quartile": 0.065, "source": "GameAnalytics 2026" },
+      "d30": { "median": 0.007, "top_quartile": 0.017, "source": "GameAnalytics 2026" },
+      "note": "the folk 30/15/8 'healthy' targets describe the top DECILE"
+    },
+    "pc": {
+      "d1": { "median": 0.07, "source": "GameAnalytics 2026 (3,582 PC games - first large public set)" },
+      "d7": { "median": 0.012, "source": "GameAnalytics 2026" },
+      "d30": { "median": 0.002, "source": "GameAnalytics 2026" }
+    },
+    "genre_d30_mobile": {
+      "match_puzzle": { "value": 0.072, "source": "AppsFlyer Q3-2022 (stale-but-canonical)" },
+      "puzzle": { "value": 0.054, "source": "AppsFlyer Q3-2022 (stale-but-canonical)" },
+      "hyper_casual": { "value": 0.014, "source": "AppsFlyer Q3-2022 (stale-but-canonical)" },
+      "shooter": { "value": 0.018, "source": "AppsFlyer Q3-2022 (stale-but-canonical)" }
+    }
+  },
+  "sessions": {
+    "mobile": { "length_min": [3, 5], "per_day": 4, "source": "GameAnalytics 2026" },
+    "pc": { "length_min": [18, 18], "per_day": 1.7, "source": "GameAnalytics 2026; ~3x mobile total playtime" },
+    "day0_sessions_avg": { "value": 1.65, "source": "GameAnalytics 2026; ~70% of installs lost within 72h" }
+  },
+  "ftue": {
+    "tutorial_never_complete": { "value": 0.20, "source": "deltaDNA (stale-canonical)" },
+    "core_loop_lands_s": { "value": [60, 90], "source": "working heuristic (HEUR)", "grade": "heuristic" }
+  },
+  "steam_funnel": {
+    "wishlist_to_first_week": { "median_multiplier": 0.15, "above_10_usd": 0.10, "source": "GameDiscoverCo 2025" },
+    "refund_rate": { "mean": 0.108, "median": 0.095, "source": "GameDiscoverCo 2025" },
+    "review_success_rate_2025": { "value": 0.0299, "proxy": "1,000+ reviews (~$150k)", "source": "Zukowski 2026 - highest on record" },
+    "earned_over_100k": { "value": 0.08, "source": "2025 releases, estimated" },
+    "next_fest": { "note": "amplifies existing momentum; 68-88% of wishlists from people who never played the demo; bring >=7-10k wishlists", "source": "GameDiscoverCo" },
+    "early_access": { "note": "1.0 bump collapsed to ~40% of EA-launch revenue - EA launch IS the launch", "source": "GameDiscoverCo 2025-2026" }
+  },
+  "playtime_laws": {
+    "weibull_total_playtime": { "source": "Sifa/Drachen 2014 (6M players); most games get <10h per player" },
+    "regularity_beats_volume": { "source": "inter-session-interval entropy predicts churn better than hours; binge episodes independently predict harm (research corpus 27)" },
+    "attention": { "note": "new releases capture only 12-13% of PC/console playtime; ~60% goes to games 6+ years old", "source": "2025 platform data via research corpus 29" }
+  },
+  "liveops": {
+    "daily_reset_h": { "value": 24, "source": "convention" },
+    "weekly_reset": { "value": "Tuesday 17:00 UTC", "source": "Destiny convention" },
+    "season_weeks": { "casual": [1, 4], "midcore": [8, 13], "source": "Apex ~90 days verified; convention bands" },
+    "battle_pass_adoption": { "value": [0.51, 0.60], "source": "top-grossing mobile, research corpus 27" },
+    "streak_evidence": { "note": "Duolingo +14% D14 in A/B; in-game causal lifts unpublished - encode as convention with mechanism, not measured lift", "source": "Duolingo eng blog" }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "severity": "code = grounded in live enforcement/legislation, HARD failure, never relaxable by the model; guideline = responsible-design convention, relaxable with a recorded justification",
+    "as_of": "2026-08-22"
+  },
+  "rules": {
+    "loot_box_minors": {
+      "severity": "code",
+      "trigger": "paid random-reward mechanics reachable by players under 18 (under 16 without parental consent)",
+      "jurisdictions": [
+        "Belgium: paid loot boxes illegal",
+        "Brazil: U18 loot-box ban effective Mar 2026",
+        "FTC/Genshin 2025: no loot boxes to U16 without parental consent",
+        "Australia 2024: paid loot boxes => M minimum rating"
+      ],
+      "fix": "remove paid randomization, or age-gate 18+ with rating consequences stated"
+    },
+    "odds_disclosure": {
+      "severity": "code",
+      "trigger": "paid random rewards without disclosed odds",
+      "jurisdictions": ["FTC Epic/Fortnite $245M settlement lineage; platform policies (Apple/Google) require odds"],
+      "fix": "set monetization.odds_disclosed=true and surface exact probabilities in-game"
+    },
+    "multi_hop_currency": {
+      "severity": "code",
+      "trigger": "more than one premium-currency conversion between real money and the purchasable item",
+      "jurisdictions": ["FTC/Genshin 2025 order: no multi-hop currency price obscuring"],
+      "fix": "collapse to a single conversion; show real-money price at point of sale"
+    },
+    "real_price_display": {
+      "severity": "code",
+      "trigger": "virtual-currency prices without real-money equivalent display",
+      "jurisdictions": ["EU CPC 2025 virtual-currency principles (enforced, Star Stable)"],
+      "fix": "display real-currency price alongside virtual pricing"
+    },
+    "countdown_minors": {
+      "severity": "code",
+      "trigger": "countdown/pressure offers in a product whose audience includes minors",
+      "jurisdictions": ["EU CPC 2025: no pressure tactics on children"],
+      "fix": "remove countdown timers from offers, or age-gate the product 18+"
+    },
+    "streak_no_grace": {
+      "severity": "code",
+      "trigger": "streak mechanics without free repair/grace, or with paid-only repair",
+      "jurisdictions": ["module rule per A18 (FTC dark-pattern lineage); appointment mechanics reward presence, never punish absence"],
+      "fix": "add free grace (>=1 missed day) and never sell what lapsing deleted"
+    },
+    "absence_punishment": {
+      "severity": "code",
+      "trigger": "removing earned content/progress for not logging in",
+      "jurisdictions": ["module rule per A18"],
+      "fix": "reward presence instead; lapsing may pause, never delete"
+    },
+    "binge_upsell": {
+      "severity": "code",
+      "trigger": "monetization offers triggered by long-session/binge detection",
+      "jurisdictions": ["module rule per A18; binge episodes independently predict harm (meta-analytic evidence)"],
+      "fix": "binge detection triggers care messaging (breaks), never offers"
+    },
+    "gacha_pity_hidden": {
+      "severity": "guideline",
+      "trigger": "pity/hazard mechanics whose parameters are not player-visible",
+      "jurisdictions": ["convention (Genshin publishes consolidated rates)"],
+      "fix": "publish pity thresholds or at least consolidated rates"
+    },
+    "loot_box_spend_link": {
+      "severity": "guideline",
+      "trigger": "any paid loot box in a product aimed at a general audience",
+      "jurisdictions": ["evidence: loot-box spend <-> problem gambling meta-analytic r=0.26; the randomization itself is the risk factor (non-random IAP eta2=0.004)"],
+      "fix": "prefer direct purchase / battle-pass models; if kept, document the mitigation set"
+    }
+  }
+}
