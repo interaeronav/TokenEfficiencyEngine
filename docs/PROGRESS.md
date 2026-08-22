@@ -725,13 +725,17 @@ Platform split of the outstanding ledger (decided by the hardware):
 **Still owed on this machine (not Phase 2):** Phase 3 (UE 5.8), Phase 5
 UE benchmark scenarios, GPU generation lanes, live UEFN (needs Windows).
 
-**Open, not fixed here:** `ruff format --check src tests` reports 46
-files would be reformatted. None are files touched this session and
-`ruff check` is clean — this is drift from a formatter version bump
-(this machine has ruff 0.16.4; the cloud sessions that recorded "ruff
-clean" used an older one). `make check` therefore fails at the lint
-step. Needs a decision: reformat the tree in one housekeeping commit, or
-pin ruff to the version the evidence log was written against.
+**Resolved 2026-08-22:** `ruff format --check` failed on 47 files, so
+`make check` had never passed on a clean checkout. The first diagnosis
+here — formatter version drift — was WRONG: `uv.lock` pinned ruff
+0.16.4 as far back as the Phase 12 commit, so every cloud session ran
+the same formatter. `ruff format` had simply never been run across the
+tree, and every "ruff clean" in this log above means `ruff check`
+alone. Tree formatted in one mechanical commit; the codegen/physics/
+uefn program literals were verified byte-identical across the reformat
+(string constants compared directly, plus both live suites re-run,
+which execute those generated programs). `make check` now passes end to
+end and the format gate stays in `make lint`.
 
 ### 2026-08-22 — Phase 3 discovery: live UE 5.8.1 MCP server (M5 Mac)
 
