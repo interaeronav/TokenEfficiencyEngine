@@ -337,3 +337,18 @@ def test_capture_refuses_rather_than_blowing_the_budget():
     with pytest.raises(TeeError) as err:
         encode_within_budget(base64.b64encode(buf.getvalue()).decode(), 200)
     assert err.value.code == "capture_over_budget"
+
+
+def test_editor_python_without_the_plugin_explains_how_to_install_it(catalog):
+    """The escape hatch degrades to a one-line remediation, not a stack trace,
+    on the far more common case of the plugin not being installed."""
+    from tee.adapters.unreal.adapter import UnrealAdapter
+    from tee.kernel.errors import TeeError
+
+    adapter = UnrealAdapter(wire=catalog.wire)
+    assert adapter.has_tee_toolset() is False
+    with pytest.raises(TeeError) as err:
+        adapter.editor_python("result = {}")
+    assert err.value.code == "tee_toolset_missing"
+    assert "TeeToolset" in (err.value.fix or "")
+    assert "ue_script" in (err.value.fix or "")

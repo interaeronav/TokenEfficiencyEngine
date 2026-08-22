@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "TEE Toolset",
+	"Description": "Token Efficiency Engine: the few editor capabilities Epic's shipped toolsets do not cover. Content-only (Python), no C++ module to compile.",
+	"Category": "Scripting",
+	"CreatedBy": "interaeronav",
+	"CreatedByURL": "https://github.com/interaeronav/TokenEfficiencyEngine",
+	"EditorOnly": true,
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"EnabledByDefault": false,
+	"Plugins": [
+		{ "Name": "ToolsetRegistry", "Enabled": true },
+		{ "Name": "PythonScriptPlugin", "Enabled": true }
+	]
+}

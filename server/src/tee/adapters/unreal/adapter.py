@@ -306,6 +306,52 @@ class UnrealAdapter:
                 "this after the session ends.",
             )
 
+    # -- escape hatch (TEE's own content plugin) ---------------------------
+
+    TEE_TOOLSET = "TeeEditorTools"
+
+    def has_tee_toolset(self) -> bool:
+        """Is TEE's content plugin installed and enabled in this project?"""
+        try:
+            return self.TEE_TOOLSET in self.catalog.load_toolsets()
+        except TeeError:
+            return False
+
+    def editor_python(self, code: str, label: str = "TEE: editor python") -> dict[str, Any]:
+        """Unsandboxed editor Python, inside one undo transaction.
+
+        Epic's own script lane is sandboxed to orchestration - it can call
+        registered tools and import {json, math, datetime, copy, re, time},
+        with no access to the `unreal` module. This is the long-tail escape
+        hatch, and it requires TEE's content plugin.
+        """
+        if not self.has_tee_toolset():
+            raise TeeError(
+                "tee_toolset_missing",
+                "TEE's Unreal content plugin is not enabled in this project, "
+                "so unsandboxed editor Python is unavailable.",
+                fix="Copy adapters/unreal/TeeToolset into <project>/Plugins/, "
+                "enable TeeToolset (and PythonScriptPlugin) in the .uproject, "
+                "and restart the editor. Epic's sandboxed lane (ue_script) "
+                "needs no plugin and covers tool orchestration.",
+            )
+        raw = self.catalog.call(
+            self.TEE_TOOLSET,
+            "execute_editor_python",
+            {"code": code, "transaction_label": label},
+            timeout=600,
+        )
+        payload = json.loads(raw).get("returnValue")
+        data = json.loads(payload) if isinstance(payload, str) else payload
+        if not data.get("ok"):
+            raise TeeError(
+                "ue_editor_python_failed",
+                str(data.get("error", ""))[:600],
+                fix="The traceback above is from inside the editor; the undo "
+                "transaction was still closed, so Ctrl+Z is safe.",
+            )
+        return data.get("result") or {}
+
     # -- vision ------------------------------------------------------------
 
     def capture(self, view: str, max_bytes: int) -> bytes:

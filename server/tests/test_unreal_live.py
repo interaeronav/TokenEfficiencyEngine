@@ -279,3 +279,48 @@ def test_optional_object_params_are_defaulted_from_their_schema(adapter):
     adapter.capture_with_metadata(16 * 1024)
     defaulted = adapter.catalog.defaulted_params.get("EditorAppToolset.CaptureViewport")
     assert defaulted == ["annotations"], defaulted
+
+
+# -- TEE content plugin (skipped when it is not installed) -------------------
+
+
+@pytest.fixture()
+def tee_plugin(adapter):
+    if not adapter.has_tee_toolset():
+        pytest.skip(
+            "TEE's Unreal content plugin is not enabled in this project "
+            "(copy adapters/unreal/TeeToolset into <project>/Plugins/)"
+        )
+    return adapter
+
+
+def test_unsandboxed_editor_python_reaches_the_unreal_module(tee_plugin):
+    """Epic's script lane cannot import `unreal` at all - it is sandboxed to
+    tool orchestration plus {json, math, datetime, copy, re, time}. This is
+    the gap TEE's content plugin fills."""
+    out = tee_plugin.editor_python(
+        "import unreal\n"
+        "sub = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)\n"
+        "result = {'engine': unreal.SystemLibrary.get_engine_version(),\n"
+        "          'actors': len(sub.get_all_level_actors())}",
+        "TEE: test probe",
+    )
+    assert out["engine"].startswith("5.")
+    assert isinstance(out["actors"], int)
+
+
+def test_editor_python_failure_returns_the_traceback_not_a_dead_script(tee_plugin):
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        tee_plugin.editor_python("raise RuntimeError('boom')", "TEE: failing")
+    assert err.value.code == "ue_editor_python_failed"
+    assert "RuntimeError: boom" in err.value.message
+
+
+def test_non_dict_result_is_rejected(tee_plugin):
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        tee_plugin.editor_python("result = 42", "TEE: bad result")
+    assert "must be a dict" in err.value.message

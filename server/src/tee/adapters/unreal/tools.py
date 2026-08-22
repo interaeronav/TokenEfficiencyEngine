@@ -296,6 +296,34 @@ def register_unreal_tools(app: TeeApp, adapter: UnrealAdapter) -> None:
     if app.allow_code_exec:
         tools.append(
             VirtualTool(
+                name="ue_editor_python",
+                description=(
+                    "Run UNSANDBOXED Python inside the editor with the full "
+                    "`unreal` module, in one undo transaction (escape hatch; "
+                    "needs TEE's content plugin and --allow-code-exec). Epic's "
+                    "ue_script lane is sandboxed to tool orchestration and "
+                    "cannot import `unreal`; use this only for what the "
+                    "registered toolsets cannot express. Assign a dict to "
+                    "`result` to return data."
+                ),
+                schema={
+                    "type": "object",
+                    "properties": {
+                        "code": {"type": "string"},
+                        "label": {"type": "string"},
+                    },
+                    "required": ["code"],
+                },
+                handler=lambda args: {
+                    "result": adapter.editor_python(
+                        str(args["code"]), str(args.get("label", "TEE: editor python"))
+                    )
+                },
+                tags=["unreal", "python", "escape-hatch", "unsandboxed"],
+            )
+        )
+        tools.append(
+            VirtualTool(
                 name="ue_script",
                 description=(
                     "Run one sandboxed Python script inside the editor "
