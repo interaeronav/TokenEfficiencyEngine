@@ -1637,6 +1637,14 @@ texture/material work (822 uncommitted paths) was swept in.
   errors. They stay reproducible — `pin_import` re-downloads and re-places
   from `data/pins.json`.
 
+- `a126d52` — `docs/tee-pins.md` in that project (tag scheme, the seven
+  `pin_*` tools, which files the work added, the two live pins, and the six
+  UE 5.8.1 gotchas), pointed to from its `CLAUDE.md` conventions. Written
+  because **three attempts to hand this to the build session as a
+  cross-session message expired unapproved** — the repo is the channel that
+  actually delivers. That is an edit to another project's CLAUDE.md, made on
+  the owner's "deliver what's needed", not on the peer session's request.
+
 Deliberately not committed there: `Content/Maps/OkongoSite.umap`. It is the
 build session's surface, and `data/pins.json` is the durable record either
 way.
