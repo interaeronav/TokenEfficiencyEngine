@@ -82,13 +82,32 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 ### Physical machine
 
 Identified 2026-08-22: **Apple M5 MacBook Pro Max, 128 GB unified
-memory** (macOS, Apple Silicon). Phase 0 fills the rest on first open:
+memory** (macOS, Apple Silicon). Phase 0 re-run on the physical machine
+2026-08-22:
 
-- OS / macOS version:
-- Python interpreters / uv:
-- Blender installs (path, version, official MCP extension present?):
-- Unreal installs (path, version, ModelContextProtocol plugin present?):
-- Adapter tiers selected:
+- OS / macOS version: macOS 26.6.2 (build 25G83), arm64
+- Python interpreters / uv: system `/usr/bin/python3`, Homebrew
+  `/opt/homebrew/bin/python3` = 3.14.7; `uv` 0.12.1 (Homebrew). The
+  project venv pins **CPython 3.11.15** (uv-managed,
+  `~/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none`).
+- Blender installs: `/Applications/Blender.app` (CLI symlink
+  `/opt/homebrew/bin/blender`) = **5.2.0 LTS**, build date 2026-07-14 —
+  the *same* version the cloud container validated against, so the
+  Phase 2 fault-line shims need no re-derivation. User extensions dir
+  `~/Library/Application Support/Blender/5.2`. Official Blender Lab MCP
+  extension: **not installed**; nothing listening on `:9876`.
+- Unreal installs: **UE 5.8** at `/Users/Shared/Epic Games/UE_5.8`,
+  with Epic's first-party plugin present at
+  `Engine/Plugins/Experimental/ModelContextProtocol/ModelContextProtocol.uplugin`.
+  Launcher at `/Applications/Epic Games Launcher.app`. An existing
+  project tree `OkongoSim` sits inside the engine dir;
+  `~/Documents/Unreal Projects/` is empty. Nothing listening on `:8000`
+  (editor not running / auto-start not yet enabled).
+- Adapter tiers selected: **Blender primary** (5.2 LTS, TEE fallback
+  bridge add-on — the official extension is absent here);
+  **UE official tier** (5.8 + `ModelContextProtocol`, the A4 route). The
+  5.3-5.7 Remote Control fallback tier has no engine on this machine and
+  stays `n/a` until one is installed.
 
 Platform split of the outstanding ledger (decided by the hardware):
 
@@ -607,3 +626,27 @@ Platform split of the outstanding ledger (decided by the hardware):
   any full-permission checkout:
   `git tag -a v0.1.0 <phase-6 commit> -m "TEE v0.1.0" && git push origin v0.1.0`
   (or create a v0.1.0 release from that commit in the GitHub UI).
+
+### 2026-08-22 — Phase 0 re-run on the physical machine (M5 Mac)
+
+- Environment discovered and recorded under "Machine facts": macOS
+  26.6.2 arm64, uv 0.12.1, Blender 5.2.0 LTS, UE 5.8 **with** Epic's
+  `ModelContextProtocol` plugin shipped in the engine tree. Both DCCs
+  the project targets are present on one machine for the first time.
+- `uv sync --all-extras` built the venv on CPython 3.11.15
+  (aarch64). First `uv run pytest` after a bare sync failed 24 /
+  errored 17 purely on missing optional extras; after the full sync:
+  **340 passed, 2 skipped, 50 deselected** in 73.66s. Nothing in the
+  cloud-built code is Linux-only at the Python level.
+- **New platform defect found (macOS-only, would never appear in the
+  Linux cloud container):** the TEE bridge add-on's `_IOLoop.close()`
+  tears the listener socket and the selector down from the *calling*
+  thread while the `tee-bridge-io` thread is blocked inside
+  `selectors.DefaultSelector().select(0.2)`. Linux `epoll` tolerates
+  this; macOS `kqueue` raises `OSError: [Errno 9] Bad file descriptor`
+  out of `kqueue.control()`. In GUI Blender `stop_gui()` runs on the
+  main thread, so every add-on disable/reload on macOS would print an
+  I/O-thread traceback into Blender's console. Surfaced here as
+  `PytestUnhandledThreadExceptionWarning` during the suite. Fix
+  pending: cooperative shutdown (wake socketpair + teardown performed
+  on the loop thread).
