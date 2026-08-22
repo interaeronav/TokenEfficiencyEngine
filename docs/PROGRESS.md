@@ -302,3 +302,21 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - Phase 10 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections 10.1–10.6
   with acceptance criteria incl. seeded-defect lint tests and an ethics
   hard-fail); build not started.
+
+### 2026-08-22 — Parametric/procedural modeling research pass (cloud)
+- Deep-research pass on parametric/procedural/precision modeling surfaces
+  (typed-op vocabulary tier 2); digest returned to orchestrator (not yet a
+  numbered corpus doc). Key verified facts, all smoke-tested against local
+  Blender 5.2.0 LTS headless: GN modifier inputs are now real RNA
+  (`md.properties.inputs.<identifier>.value` — attribute access, not
+  subscript; ID-property access raises TypeError in 5.2); parameterized GN
+  wall-along-path group builds and evaluates headless incl. Object-pointer
+  inputs; boolean solvers are FLOAT/EXACT/MANIFOLD ('FAST' identifier gone);
+  MANIFOLD wall-with-openings boolean verified manifold-clean; BMesh hole
+  pattern via mathutils.geometry.tessellate_polygon + bmesh.ops.solidify
+  verified (bmesh.ops has NO boolean op); node tools flag `is_tool` writable,
+  tool inputs Python-assignable since 5.2; py-slvs (SolveSpace) pip wheel
+  imports headless for constraint solving. License scan: Infinigen BSD-3
+  (minable), Buildify free-but-proprietary graph (concepts only), CAD
+  Sketcher GPL-3, archipack GPL-3, BlenderKit royalty-free (no asset
+  redistribution).
