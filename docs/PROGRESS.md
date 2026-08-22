@@ -1018,7 +1018,6 @@ Nothing further can be closed on this machine. The honest remainder:
 - hosted generation with real Tripo/Meshy keys; `[assets-embed]` embeddings.
 - Whisper/pyannote quality spot-check on real site audio (fixtures only so
   far).
-- Blender library authoring / `asset_listing` publishing.
 - live fluid-bake validation (Blender).
 
 **Data caveat still standing:** joist-span worst-grade values in
@@ -1122,3 +1121,31 @@ is a multi-gigabyte decision left to the owner. The corpus claim that these
 lanes are CUDA-only is corrected to "lane 3 only".
 
 - Evidence: **378 passed, 2 skipped**.
+
+### 2026-08-22 — Asset-library publishing (Phase 9 ledger item closed)
+
+`as_publish_library` turns the cached asset store into a Blender asset
+library. Blender 5.2's `blender -c asset_listing generate` indexes a folder of
+`.blend` files into the JSON a *remote* library serves — but only if the
+objects inside are **marked assets**, and TEE's store holds glTF plus texture
+sets. So the tool does both halves: author one `.blend` per cached model with
+the object `asset_mark()`ed and its **licence and attribution written into the
+asset metadata**, then run Blender's own indexer.
+
+Provenance travelling *inside* the `.blend` is the point — the licence gate is
+worthless if the obligation is lost the moment an asset leaves TEE.
+
+Authoring runs in a throwaway headless Blender, not through the connected
+adapter: building a library is not an edit to the user's open scene.
+
+Two defects in the first working version, both found by inspecting the output
+folder rather than trusting the return value: the authoring script was written
+**into** the library folder (which the indexer walks and the user may serve),
+and the generated metadata kept Blender's placeholder identity *"Your Asset
+Library" / "Your Name"*. Fixed, and both are asserted by test.
+
+Verified live: a 2 m cube exported from Blender → ingested → published →
+`asset_count: 1` in the generated index, the `.blend` carrying a marked asset
+with its licence, thumbnails generated, no stray `.py` in the folder.
+
+- Evidence: **379 passed, 2 skipped**; `-m dcc` **81 passed**.
