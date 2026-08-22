@@ -228,3 +228,63 @@ def run():
         moved.append(ref)
     return {"removed": removed, "moved": moved}
 """.replace("{scene}", SCENE)
+
+
+BLUEPRINT = "editor_toolset.toolsets.blueprint.BlueprintTools"
+
+
+def blueprint_function_program(
+    folder: str,
+    asset_name: str,
+    function_name: str,
+    dsl: str,
+    params: list[dict[str, Any]],
+    parent_class: str,
+    warnings_as_errors: bool,
+) -> str:
+    """Create-or-reuse a Blueprint, add a typed function graph, write the DSL,
+    read it back, and compile - all in ONE round-trip."""
+    payload = {
+        "folder": folder,
+        "asset_name": asset_name,
+        "function_name": function_name,
+        "dsl": dsl,
+        "params": params,
+        "parent_class": parent_class,
+        "warnings_as_errors": warnings_as_errors,
+    }
+    return (
+        "import json\n\n"
+        f"_ARGS = json.loads({json.dumps(json.dumps(payload))})\n"
+        f'_BP = "{BLUEPRINT}"\n' + _BLUEPRINT_BODY
+    )
+
+
+_BLUEPRINT_BODY = """
+def _bp(tool, payload):
+    return execute_tool(_BP + "." + tool, json.dumps(payload))["returnValue"]
+
+def run():
+    blueprint = _bp("create", {
+        "folder_path": _ARGS["folder"],
+        "asset_name": _ARGS["asset_name"],
+        "asset_type": {"refPath": _ARGS["parent_class"]}})
+    graph = _bp("add_function_graph", {
+        "blueprint": blueprint, "graph_name": _ARGS["function_name"]})
+    for p in _ARGS["params"]:
+        _bp("add_function_param", {
+            "graph": graph, "param_name": p["name"],
+            "param_type": p["type"], "input_param": p["input"]})
+    _bp("write_graph_dsl", {"graph": graph, "code": _ARGS["dsl"]})
+    readback = _bp("read_graph_dsl", {"graph": graph})
+    out = {"blueprint": blueprint["refPath"], "graph": graph["refPath"],
+           "readback": readback}
+    try:
+        _bp("compile_blueprint", {"blueprint": blueprint,
+                                  "warnings_as_errors": _ARGS["warnings_as_errors"]})
+        out["compile"] = "clean"
+    except RuntimeError as exc:
+        out["compile"] = "failed"
+        out["compile_error"] = str(exc)[:800]
+    return out
+"""

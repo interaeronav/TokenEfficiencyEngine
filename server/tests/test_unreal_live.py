@@ -183,3 +183,56 @@ def test_unknown_entity_id_fails_with_a_fix(adapter):
         adapter.execute([{"op": "set", "id": "u9999", "props": {"location": [0, 0, 0]}}])
     assert err.value.code == "unknown_entity"
     assert "tee_scene_summary" in (err.value.fix or "")
+
+
+# -- blueprint authoring -----------------------------------------------------
+
+
+def test_blueprint_function_authored_and_compiled_via_dsl(adapter):
+    """Phase 3 acceptance: 'Blueprint function authored and compiled with
+    diagnostics via graph DSL'."""
+    out = adapter.blueprint_function(
+        folder="/Game/TeeProbe",
+        asset_name="BP_TeeLiveGood",
+        function_name="AddTwo",
+        dsl="(fn AddTwo (A B)\n  (return (Utilities|Operators|Add :A A :B B)))",
+        params=[
+            {"name": "A", "type": "int", "input": True},
+            {"name": "B", "type": "int", "input": True},
+            {"name": "Sum", "type": "int", "input": False},
+        ],
+    )
+    assert out["compile"] == "clean"
+    assert out["verified"] is True
+    assert out["forms_written"] == out["forms_requested"]
+
+
+def test_hallucinated_node_type_is_caught_not_reported_as_success(adapter):
+    """Epic's own signals all say success here: write_graph_dsl returns fine
+    and compile_blueprint(warnings_as_errors=True) reports the Blueprint
+    clean, while the function body is silently empty."""
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        adapter.blueprint_function(
+            folder="/Game/TeeProbe",
+            asset_name="BP_TeeLiveBad",
+            function_name="Broken",
+            dsl="(fn Broken ()\n  (return (NoSuch|Node|Here :A 1)))",
+        )
+    assert err.value.code == "ue_graph_incomplete"
+    assert "NoSuch|Node|Here" in err.value.message
+    assert "find_node_types" in (err.value.fix or "")
+
+
+def test_bad_dsl_syntax_fails_before_reaching_the_editor(adapter):
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        adapter.blueprint_function(
+            folder="/Game/TeeProbe",
+            asset_name="BP_TeeNeverMade",
+            function_name="Nope",
+            dsl="(fn Nope (",
+        )
+    assert err.value.code == "ue_dsl_syntax"

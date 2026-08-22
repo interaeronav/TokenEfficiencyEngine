@@ -21,6 +21,7 @@ from typing import Any
 from tee.kernel.adapter import AdapterInfo, Diff, Entity
 from tee.kernel.errors import TeeError
 
+from . import blueprint as bp_verify
 from . import codegen
 from .catalog import ToolsetCatalog
 from .wire import UnrealWire
@@ -196,6 +197,71 @@ class UnrealAdapter:
 
     def discard_snapshot(self, payload: dict[str, Any]) -> None:
         return None
+
+    # -- blueprint authoring ----------------------------------------------
+
+    def blueprint_function(
+        self,
+        *,
+        folder: str,
+        asset_name: str,
+        function_name: str,
+        dsl: str,
+        params: list[dict[str, Any]] | None = None,
+        parent_class: str = "/Script/Engine.Actor",
+        warnings_as_errors: bool = True,
+    ) -> dict[str, Any]:
+        """Author a Blueprint function from graph DSL and VERIFY it landed.
+
+        Epic's write_graph_dsl drops statements it cannot resolve without
+        error, and the Blueprint then compiles clean, so a hallucinated node
+        type looks like success from every signal the engine exposes. TEE
+        reads the graph back and compares structure before reporting success.
+        """
+        try:
+            bp_verify.parse_sexpr(dsl)  # fail on our side, before the editor
+        except bp_verify.DslSyntaxError as exc:
+            raise TeeError(
+                "ue_dsl_syntax",
+                f"Graph DSL does not parse: {exc}",
+                fix="Check bracket balance; ue_call BlueprintTools "
+                "get_graph_dsl_docs returns the full grammar.",
+            ) from exc
+
+        data = self._run_script(
+            codegen.blueprint_function_program(
+                folder,
+                asset_name,
+                function_name,
+                dsl,
+                list(params or []),
+                parent_class,
+                warnings_as_errors,
+            )
+        )
+        report = bp_verify.verify_written(dsl, data.get("readback", ""))
+        result = {
+            "blueprint": data.get("blueprint"),
+            "function": function_name,
+            "compile": data.get("compile"),
+            "verified": report["ok"],
+            "forms_requested": report["forms_requested"],
+            "forms_written": report["forms_written"],
+        }
+        if data.get("compile_error"):
+            result["compile_error"] = data["compile_error"]
+        if not report["ok"]:
+            raise TeeError(
+                "ue_graph_incomplete",
+                f"The editor kept only {report['forms_written']} of "
+                f"{report['forms_requested']} DSL forms in {function_name} - "
+                f"unresolved: {', '.join(report.get('likely_unresolved') or []) or 'unknown'}. "
+                "write_graph_dsl drops what it cannot resolve and still "
+                "compiles clean, so this would otherwise look like success.",
+                fix="Check the node type ids with BlueprintTools "
+                "find_node_types; the graph now holds: " + report["readback"][:200],
+            )
+        return result
 
     def capture(self, view: str, max_bytes: int) -> bytes:
         raise TeeError(

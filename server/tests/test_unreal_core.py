@@ -196,3 +196,47 @@ def test_transform_props_map_to_epics_optional_converter():
         "scale": {"x": 2.0, "y": 2.0, "z": 2.0},
     }
     assert "rotation" not in op["xform"]  # omitted = unchanged, never guessed
+
+
+# -- blueprint graph DSL verification ----------------------------------------
+
+
+def test_dsl_parser_handles_quoted_pins_and_comments():
+    from tee.adapters.unreal.blueprint import parse_sexpr
+
+    forms = parse_sexpr('(fn F ()\n  ; a comment\n  (:"Pin Name" (return)))')
+    assert forms[0][0] == "fn"
+    assert forms[0][3][0] == ':"Pin Name"'  # one atom, not ':' + '"Pin Name"'
+
+
+def test_dsl_parser_rejects_unbalanced_brackets():
+    from tee.adapters.unreal.blueprint import DslSyntaxError, parse_sexpr
+
+    with pytest.raises(DslSyntaxError):
+        parse_sexpr("(fn F (")
+    with pytest.raises(DslSyntaxError):
+        parse_sexpr("(fn F ()))")
+
+
+def test_verifier_tolerates_the_engines_own_normalization():
+    """write_graph_dsl rewrites as it writes: Utilities|Operators|Add reads
+    back as +. A textual compare would false-alarm on every graph."""
+    from tee.adapters.unreal.blueprint import verify_written
+
+    report = verify_written(
+        "(fn AddTwo (A B)\n  (return (Utilities|Operators|Add :A A :B B)))",
+        "(fn AddTwo (A B)\n  (return (+ A B)))",
+    )
+    assert report["ok"] is True
+    assert report["forms_requested"] == report["forms_written"] == 5
+
+
+def test_verifier_catches_silently_dropped_statements():
+    """The gap this closes: Epic's write_graph_dsl drops forms it cannot
+    resolve, returns success, and the Blueprint then compiles CLEAN."""
+    from tee.adapters.unreal.blueprint import verify_written
+
+    report = verify_written("(fn Broken ()\n  (return (NoSuch|Node|Here :A 1)))", "(fn Broken ())")
+    assert report["ok"] is False
+    assert report["dropped_forms"] == 2
+    assert "NoSuch|Node|Here" in report["likely_unresolved"]
