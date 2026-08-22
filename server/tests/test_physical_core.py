@@ -1,0 +1,365 @@
+"""Phase 11: sketch solving, material facts, plausibility, tier-0 checks."""
+
+from __future__ import annotations
+
+import pytest
+
+from tee.app import TeeApp
+from tee.kernel.adapter import FakeAdapter
+from tee.kernel.errors import TeeError
+from tee.physical import materials, plaus
+from tee.physical.sketch import solve_sketch
+from tee.physical.verify import sim_readiness, tier0
+
+# -- sketch_solve -----------------------------------------------------------
+
+RECT = {
+    "points": [
+        {"id": "a", "at": [0.1, 0.1], "fixed": True},
+        {"id": "b", "at": [3.9, 0.2]},
+        {"id": "c", "at": [4.1, 2.8]},
+        {"id": "d", "at": [-0.1, 3.1]},
+    ],
+    "lines": [
+        {"id": "ab", "from": "a", "to": "b"},
+        {"id": "bc", "from": "b", "to": "c"},
+        {"id": "cd", "from": "c", "to": "d"},
+        {"id": "da", "from": "d", "to": "a"},
+    ],
+    "constraints": [
+        {"kind": "distance", "a": "a", "b": "b", "value": 4.0},
+        {"kind": "distance", "a": "b", "b": "c", "value": 3.0},
+        {"kind": "horizontal", "line": "ab"},
+        {"kind": "vertical", "line": "bc"},
+        {"kind": "horizontal", "line": "cd"},
+        {"kind": "vertical", "line": "da"},
+    ],
+}
+
+
+def test_sketch_closes_dimensioned_rectangle():
+    out = solve_sketch(RECT)
+    assert out["ok"]
+    points = out["points"]
+    assert points["b"][0] - points["a"][0] == pytest.approx(4.0, abs=1e-4)
+    assert points["c"][1] - points["b"][1] == pytest.approx(3.0, abs=1e-4)
+    assert points["b"][1] == pytest.approx(points["a"][1], abs=1e-4)
+
+
+def test_sketch_over_constrained_names_conflict():
+    """Acceptance: over-constrained fixture answers with exact-fix errors."""
+    bad = {**RECT, "constraints": [
+        *RECT["constraints"],
+        {"kind": "distance", "a": "a", "b": "b", "value": 5.0},  # contradicts 4.0
+    ]}
+    with pytest.raises(TeeError) as err:
+        solve_sketch(bad)
+    assert err.value.code == "over_constrained"
+    assert "distance" in err.value.message  # names the constraint kind
+    assert "remove or correct" in (err.value.fix or "")
+
+
+def test_sketch_under_constrained_reports_dof():
+    loose = {
+        "points": RECT["points"],
+        "lines": RECT["lines"],
+        "constraints": [{"kind": "distance", "a": "a", "b": "b", "value": 4.0}],
+    }
+    out = solve_sketch(loose)
+    assert out["ok"] and "under_constrained" in out
+    assert "degrees of freedom" in out["under_constrained"]
+
+
+def test_sketch_polygon_output():
+    from tee.physical.sketch import polygon_from
+
+    out = solve_sketch(RECT)
+    polygon = polygon_from(out["points"], ["a", "b", "c", "d"])
+    assert len(polygon) == 4
+
+
+def test_sketch_unknown_point_reference():
+    bad = {**RECT, "constraints": [{"kind": "distance", "a": "a", "b": "zz", "value": 1}]}
+    with pytest.raises(TeeError) as err:
+        solve_sketch(bad)
+    assert err.value.code == "unknown_point"
+
+
+# -- material facts ---------------------------------------------------------
+
+
+def test_material_three_tiers_honesty_labeled():
+    facts = materials.facts("concrete")
+    assert facts["material"] == "concrete_c25"
+    density = facts["physics"]["density"]
+    assert density["value"] == 2400 and "EN 1991" in density["source"]
+    assert density["honesty"] == "standard_value"
+    assert facts["engineering"]["fck"]["value"] == 25
+    assert "bullet_friction" in facts["engine_caveats"]
+
+
+def test_material_render_tier_from_phase9():
+    facts = materials.facts("steel")
+    # the render tier rides the Phase 9 measured dataset
+    assert "render" in facts
+    assert facts["render"]["provenance"]["honesty"] == "measured"
+
+
+def test_mat_assign_ops_sqrt_friction_and_mass():
+    ops, fact = materials.assign_ops("e1", "timber", volume_m3=0.5)
+    props = ops[0]["props"]
+    assert props["physics_density_kg_m3"] == 420
+    # Bullet multiplies pair coefficients: bodies carry sqrt(mu)
+    assert props["physics_friction_body"] == pytest.approx(0.45**0.5, abs=1e-3)
+    assert fact["mass_kg"] == pytest.approx(210.0)
+    assert "Bullet multiplies" in fact["friction_note"]
+
+
+def test_banned_bulk_sources_stay_out():
+    """The banned list exists AND no data file cites a banned source."""
+    import json
+    from importlib import resources
+
+    banned = ("MatWeb", "MakeItFrom", "NIST SRD", "ArcSim")
+    assert all(any(b in s for s in materials.banned_sources()) for b in banned)
+    for pkg, name in (("tee.physical", "data/materials_eng.json"),):
+        data = json.loads(resources.files(pkg).joinpath(name).read_text())
+        for key, mat in data["materials"].items():
+            for tier in ("physics", "engineering"):
+                for leaf_name, leaf in mat.get(tier, {}).items():
+                    source = leaf.get("source", "")
+                    assert not any(b.lower() in source.lower() for b in banned), (
+                        f"{key}.{tier}.{leaf_name} cites a banned source"
+                    )
+
+
+def test_unknown_material_names_alternatives():
+    with pytest.raises(TeeError) as err:
+        materials.find("unobtanium")
+    assert "concrete" in (err.value.fix or "")
+
+
+# -- plausibility -----------------------------------------------------------
+
+
+def _clean_model():
+    return {
+        "elements": [
+            {"id": "f1", "class": "footing", "width_m": 0.5, "wall": "w1"},
+            {"id": "w1", "class": "wall", "bearing": True, "height_m": 2.7,
+             "thickness_m": 0.22, "material": "brick", "supports": ["f1"]},
+            {"id": "j1", "class": "joist", "size": "2x10", "span_m": 3.2,
+             "supports": ["w1"]},
+            {"id": "o1", "class": "opening", "wall": "w1", "width_m": 0.9,
+             "has_header": True},
+            {"id": "r1", "class": "roof", "covering": "concrete_tile",
+             "pitch_deg": 35.0},
+            {"id": "room1", "class": "room", "ceiling_m": 2.6, "habitable": True},
+            {"id": "s1", "class": "stair", "riser_mm": 180, "tread_mm": 280,
+             "headroom_mm": 2100, "width_mm": 950},
+        ]
+    }
+
+
+def test_plaus_clean_reports_rule_count_never_passes():
+    out = plaus.check(_clean_model())
+    assert out["findings"] == []
+    assert "no plausibility conflicts detected" in out["summary"]
+    assert "rules evaluated" in out["summary"]
+    assert "not an approval" in out["disclaimer"]
+    assert "passes" not in str(out).lower().replace("no plausibility", "")
+
+
+def test_plaus_flags_overspan_joist_citing_table():
+    """Acceptance: seeded over-span joist cites the table."""
+    model = _clean_model()
+    model["elements"][2]["span_m"] = 4.5  # 2x10 worst-grade envelope 3.35
+    out = plaus.check(model)
+    hits = [f for f in out["findings"] if f["rule"] == "joist_span_max_m"]
+    assert hits and "IRC R502.3.1" in hits[0]["source"]
+    assert "delta +1.15" in hits[0]["detail"]
+    assert hits[0]["severity"] == "CODE"
+
+
+def test_plaus_flags_low_tile_roof():
+    """Acceptance: tile roof below 30 deg - the Okongo check."""
+    model = _clean_model()
+    model["elements"][4]["pitch_deg"] = 20.0
+    out = plaus.check(model)
+    hits = [f for f in out["findings"] if f["rule"] == "roof_pitch_min_deg"]
+    assert hits and "BS 5534" in hits[0]["source"]
+    assert "20.0 deg < 30.0" in hits[0]["detail"]
+
+
+def test_plaus_flags_broken_load_path():
+    """Acceptance: broken load path anchored on IRC R301.1."""
+    model = _clean_model()
+    model["elements"][1]["supports"] = []  # wall floats structurally
+    out = plaus.check(model)
+    hits = [f for f in out["findings"] if f["rule"] == "load_path"]
+    assert hits and "LOAD_PATH_BROKEN" in hits[0]["detail"]
+    assert hits[0]["source"] == "IRC R301.1"
+    assert hits[0]["severity"] == "CODE"
+
+
+def test_plaus_missing_header_and_stairs():
+    model = _clean_model()
+    model["elements"][3]["has_header"] = False
+    model["elements"][6]["riser_mm"] = 210
+    out = plaus.check(model)
+    rules = {f["rule"] for f in out["findings"]}
+    assert "header_required" in rules
+    assert "stairs" in rules
+
+
+def test_plaus_never_emits_member_size():
+    model = _clean_model()
+    model["elements"][2]["span_m"] = 6.0
+    out = plaus.check(model)
+    text = str(out["findings"]).lower()
+    # findings state the delta, never prescribe a member
+    assert "use a 2x12" not in text and "increase to" not in text
+
+
+# -- tier 0 -----------------------------------------------------------------
+
+
+def _app_with(tmp_path, entities):
+    app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    ops = [
+        {"op": "create", "kind": "object", "name": name, "props": props}
+        for name, props in entities
+    ]
+    out = app.run_batch("fake", ops)
+    return app, out["created"]
+
+
+def test_tier0_floating_chair_caught(tmp_path):
+    """Acceptance: a seeded floating chair is caught by Tier 0."""
+    app, _ = _app_with(tmp_path, [
+        ("floor", {"location": [0, 0, -0.1], "dims_m": [10, 10, 0.1]}),
+        ("chair", {"location": [1, 1, 0.4], "dims_m": [0.5, 0.5, 0.9]}),
+    ])
+    out = tier0(app, "fake")
+    facts = [f for f in out["facts"] if f["kind"] == "floating"]
+    assert facts and facts[0]["gap_m"] == pytest.approx(0.4)
+
+
+def test_tier0_unsupported_com_stack_caught(tmp_path):
+    """Acceptance: an unsupported-CoM stack is caught cumulatively."""
+    app, _ = _app_with(tmp_path, [
+        ("base", {"location": [0, 0, 0], "dims_m": [0.4, 0.4, 0.4]}),
+        ("top", {"location": [0.35, 0, 0.4], "dims_m": [0.4, 0.4, 0.4]}),
+    ])
+    out = tier0(app, "fake")
+    facts = [f for f in out["facts"] if f["kind"] == "unsupported_com"]
+    assert facts, out
+    assert "CoM projection" in facts[0]["fix"]
+
+
+def test_tier0_clean_stack_passes(tmp_path):
+    app, _ = _app_with(tmp_path, [
+        ("base", {"location": [0, 0, 0], "dims_m": [0.6, 0.6, 0.4]}),
+        ("top", {"location": [0.05, 0, 0.4], "dims_m": [0.4, 0.4, 0.4]}),
+    ])
+    out = tier0(app, "fake")
+    assert out["facts"] == []
+    assert "no tier-0 physics conflicts" in out["summary"]
+
+
+def test_sim_readiness_gate():
+    ready = sim_readiness({
+        "dimensions": [1, 1, 1], "physics_density_kg_m3": 500, "collision": "convex",
+    })
+    assert ready["ready"] is True
+    not_ready = sim_readiness({"dimensions": [1, 1, 1]})
+    requirements = {f["requirement"] for f in not_ready["findings"]}
+    assert {"physical_material", "collision_proxy"} <= requirements
+    assert all("fix" in f for f in not_ready["findings"])
+
+
+# -- tools registration -----------------------------------------------------
+
+
+def test_physical_tools_register_and_guard(tmp_path):
+    from tee.physical.tools import register_physical_tools
+
+    app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    register_physical_tools(app, tmp_path)
+    names = app.registry.names()
+    for expected in ("sketch_solve", "mat_assign", "sim_settle", "phys_tier0",
+                     "plaus_check", "wall_with_openings", "param_set"):
+        assert expected in names
+    # tier-2 ops guard non-Blender adapters with the exact fix
+    with pytest.raises(TeeError) as err:
+        app.registry.call("wall_with_openings", {"props": {}})
+    assert err.value.code == "unsupported_adapter"
+    # mat_assign works on the fake adapter (assign_material parity)
+    created = app.run_batch("fake", [{"op": "create", "kind": "cube", "name": "Wall",
+                                      "props": {"dims_m": [4, 0.2, 2.7]}}])
+    out = app.registry.call("mat_assign", {"id": created["created"][0],
+                                           "query": "concrete", "adapter": "fake"})
+    assert out["fact"]["mass_kg"] == pytest.approx(4 * 0.2 * 2.7 * 2400, rel=0.01)
+
+
+def test_sim_fluid_cost_gate(tmp_path):
+    from tee.physical.tools import register_physical_tools
+
+    app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    register_physical_tools(app, tmp_path)
+    with pytest.raises(TeeError) as err:
+        app.registry.call("sim_fluid", {})
+    assert err.value.code == "cost_confirmation_required"
+    assert "tee_job" in (err.value.fix or "")
+
+
+def test_fluid_program_caps_resolution():
+    from tee.physical.physics import fluid_program
+
+    code = fluid_program([2, 2, 2], [0, 0, 1], resolution=999, cache_dir="/abs/cache")
+    assert "resolution_max = 64" in code
+    assert '"ALL"' in code
+    assert "/abs/cache" in code
+
+
+def test_ids_data_completeness_tier(tmp_path):
+    """IDS 1.0 spec via ifctester against a minimal IFC (both from the
+    installed toolchain - skips when the physical extra is absent)."""
+    pytest.importorskip("ifctester")
+    ifcopenshell_api = pytest.importorskip("ifcopenshell.api")
+
+    model = ifcopenshell_api.run("project.create_file", version="IFC4")
+    ifcopenshell_api.run("root.create_entity", model, ifc_class="IfcProject",
+                         name="Fixture")
+    ifcopenshell_api.run("root.create_entity", model, ifc_class="IfcWall",
+                         name="W1")
+    ifc_path = tmp_path / "fixture.ifc"
+    model.write(str(ifc_path))
+
+    ids_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<ids xmlns="http://standards.buildingsmart.org/IDS"
+     xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
+     xs:schemaLocation="http://standards.buildingsmart.org/IDS http://standards.buildingsmart.org/IDS/1.0/ids.xsd">
+  <info><title>Walls need names</title></info>
+  <specifications>
+    <specification name="wall-name" ifcVersion="IFC4">
+      <applicability minOccurs="0" maxOccurs="unbounded">
+        <entity><name><simpleValue>IFCWALL</simpleValue></name></entity>
+      </applicability>
+      <requirements>
+        <attribute><name><simpleValue>Name</simpleValue></name></attribute>
+      </requirements>
+    </specification>
+  </specifications>
+</ids>
+"""
+    ids_path = tmp_path / "spec.ids"
+    ids_path.write_text(ids_xml)
+
+    from tee.physical.tools import register_physical_tools
+
+    app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    register_physical_tools(app, tmp_path)
+    out = app.registry.call("plaus_ids", {"ifc": str(ifc_path), "ids": str(ids_path)})
+    assert out["specifications"] == 1
+    assert "no data-completeness conflicts" in out["summary"], out

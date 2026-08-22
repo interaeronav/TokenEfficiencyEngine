@@ -43,10 +43,14 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       battery (lint/scope/economy-sim/progression/ethics + self-play
       prepare-score), 11 gd_* tools, game-design skill; 24 tests, all
       seeded-defect acceptance cases caught)*
-- [ ] Phase 11 — TEE Physical *(research complete + phase scripted
-      2026-08-22; build not started. Modeling ops, material facts,
-      Blender physics lane and plausibility checks are cloud-buildable;
-      UE physics needs the physical machine)*
+- [x] Phase 11 — TEE Physical *(built in cloud, 2026-08-22: 8 tier-2
+      modeling ops live-verified watertight, py-slvs sketch_solve,
+      three-tier material facts, settle/cloth/bake physics lane with
+      0.00 mm measured variance floor, tier-0 CoM checks, plaus_check +
+      IDS tier; 18 live + 24 unit tests. Physical machine still owed:
+      UE physics/settle (SIE), fluid bake live validation, hip roof
+      pending straight-skeleton lib, CoACD proxy integration,
+      SANS 10400 before Okongo jurisdiction defaults)*
 - [ ] Phase 12 — TEE UEFN (bonus) *(research complete + phase scripted
       2026-08-22; build not started. Digest lane, Verse linting, export
       validator, adapter fakes and the version firewall are
@@ -456,3 +460,44 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - Bridge to build wired: content_list classes = Phase 9 ASSET_CLASSES
   (checked by test); design store lives under .tee/design/ with
   revision history.
+
+### 2026-08-22 — Phase 11 build (cloud)
+- TEE Physical built per script 11.1–11.6: `server/src/tee/physical/`
+  (py-slvs sketch_solve w/ exact-fix over/under-constrained errors;
+  three-tier honesty-labeled materials on EN-cited data + the Phase 9
+  CC0 render tier; settle/cloth/bake programs with sequential frame
+  stepping + BlenderProc-shaped quiescence; tier-0 CoM-over-support/
+  floating/penetrating checks; SimReady-style readiness gate;
+  plaus_check rule engine + IRC R301.1 load-path graph + ifctester IDS
+  tier; sim_fluid cost-gated as an async job) + tier-2 modeling ops in
+  `adapters/blender/modeling_codegen.py` (tessellate+solidify walls/
+  slabs/profiles, gable/shed/flat roofs, stairs, MANIFOLD boolean
+  opening_cut with 'FAST' guarded, array_along, param_set through the
+  single 5.2-shimmed set_gn_input chokepoint). 19 new virtual tools.
+- Evidence: `uv run pytest` → **316 passed, 1 skipped**; `-m dcc` →
+  **48 passed** (both bridge flavors). Acceptance by test: fixture wall
+  with two openings builds watertight (0 non-manifold edges, probed by
+  bmesh), same for slab-with-hole, profile extrude, all roof kinds,
+  and the boolean cut after apply; sketch_solve closes the dimensioned
+  rectangle and names the exact conflicting constraint when
+  over-constrained (result 1 + failed-handle mapping), reports DOF when
+  under-constrained; param_set round-trips a real GN group socket by
+  identifier (verified value 2.5 read back via the 5.2 RNA API); a
+  seeded floating chair and an off-center stack are caught by tier 0
+  (cumulative CoM criterion); sim_settle on stacked boxes settles,
+  adopts poses (box falls 1.2→0.2 m), and two rolled-back runs agree
+  to a **0.00 mm variance floor** (5 mm assertion sits safely above);
+  mat_assign gives the fixture wall EN 1991-cited 2400 kg/m³ with
+  standard_value honesty labels, computed mass echoed, and the Bullet
+  sqrt-friction caveat recorded; banned bulk sources (NIST SRD/MatWeb/
+  MakeItFrom/ArcSim) fail by test if ever cited; plaus_check flags the
+  seeded over-span joist (delta +1.15 m, IRC R502.3.1 cited), the 20°
+  tile roof (BS 5534), and the broken load path (LOAD_PATH_BROKEN, IRC
+  R301.1), while the clean fixture reports zero findings with the rule
+  count and the not-an-approval disclaimer; the IDS tier validates a
+  wall-name spec against a generated IFC via ifctester.
+- Benchmarks (live run): settle report ~222 tokens, variance floor
+  0.00 mm published in RESULTS.md alongside all prior rows reproduced.
+- Data caveat recorded: joist-span worst-grade values are approximate
+  pending edition verification on the physical machine (flagged in
+  plaus_rules.json _meta; findings still cite table + delta only).

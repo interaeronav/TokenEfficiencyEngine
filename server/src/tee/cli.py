@@ -59,6 +59,14 @@ def _attach_design(app, project: str) -> None:
     register_design_tools(app, Path(project))
 
 
+def _attach_physical(app, project: str) -> None:
+    """Register TEE Physical tools (sketch_solve degrades with an
+    actionable error when the [physical] extra is missing)."""
+    from tee.physical.tools import register_physical_tools
+
+    register_physical_tools(app, Path(project))
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -84,6 +92,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
     _attach_assets(app, args.project, extract_store)
     _attach_design(app, args.project)
+    _attach_physical(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

@@ -1,0 +1,98 @@
+{
+  "_meta": {
+    "tiers": "render (Principled/UE params - served from the Phase 9 physicallybased.info CC0 snapshot) / physics (density, friction, restitution) / engineering (strengths, moduli). Every leaf: value + unit + source + honesty in {measured, standard_value, typical_range, derived, game_plausible}.",
+    "engine_caveats": {
+      "bullet_friction": "Blender/Bullet MULTIPLIES the two bodies' friction coefficients - to realize pair coefficient mu, set each body to sqrt(mu)",
+      "ue_density": "UE physical materials take density in g/cm^3 and apply a mass power fudge; echo computed mass back after assignment"
+    },
+    "banned_bulk_sources": ["NIST SRD (15 USC 290e statute)", "MatWeb", "MakeItFrom", "ArcSim cloth data (non-profit-only)"],
+    "as_of": "2026-08-22"
+  },
+  "materials": {
+    "concrete_c25": {
+      "aliases": ["concrete", "rc concrete"],
+      "physics": {
+        "density": { "value": 2400, "unit": "kg/m3", "source": "EN 1991-1-1 Table A.1 (reinforced 2500)", "honesty": "standard_value" },
+        "friction": { "value": 0.7, "unit": "-", "source": "concrete-on-concrete typical", "honesty": "typical_range" },
+        "restitution": { "value": 0.1, "unit": "-", "source": "convention", "honesty": "game_plausible" }
+      },
+      "engineering": {
+        "fck": { "value": 25, "unit": "MPa", "source": "EN 206 / EC2 C25/30 characteristic cylinder", "honesty": "standard_value" },
+        "E": { "value": 31, "unit": "GPa", "source": "EC2 Table 3.1 Ecm for C25/30", "honesty": "standard_value" }
+      },
+      "render_ref": "Concrete"
+    },
+    "steel_s275": {
+      "aliases": ["steel", "structural steel"],
+      "physics": {
+        "density": { "value": 7850, "unit": "kg/m3", "source": "EN 1991-1-1 (steel)", "honesty": "standard_value" },
+        "friction": { "value": 0.4, "unit": "-", "source": "steel-on-steel dry typical", "honesty": "typical_range" },
+        "restitution": { "value": 0.3, "unit": "-", "source": "convention", "honesty": "game_plausible" }
+      },
+      "engineering": {
+        "fy": { "value": 275, "unit": "MPa", "source": "EN 10025-2 S275 yield (t<=16mm)", "honesty": "standard_value" },
+        "E": { "value": 210, "unit": "GPa", "source": "EC3 3.2.6", "honesty": "standard_value" }
+      },
+      "render_ref": "Iron"
+    },
+    "timber_c24": {
+      "aliases": ["timber", "softwood", "lumber", "wood framing"],
+      "physics": {
+        "density": { "value": 420, "unit": "kg/m3", "source": "EN 338 C24 mean density", "honesty": "standard_value" },
+        "friction": { "value": 0.45, "unit": "-", "source": "wood-on-wood typical", "honesty": "typical_range" },
+        "restitution": { "value": 0.2, "unit": "-", "source": "convention", "honesty": "game_plausible" }
+      },
+      "engineering": {
+        "fmk": { "value": 24, "unit": "MPa", "source": "EN 338 C24 bending characteristic", "honesty": "standard_value" },
+        "E": { "value": 11, "unit": "GPa", "source": "EN 338 C24 E0,mean", "honesty": "standard_value" }
+      },
+      "render_ref": "Wood"
+    },
+    "brick_masonry": {
+      "aliases": ["brick", "masonry", "clay brick"],
+      "physics": {
+        "density": { "value": [1600, 2000], "unit": "kg/m3", "source": "EN 1991-1-1 clay masonry range", "honesty": "typical_range" },
+        "friction": { "value": 0.6, "unit": "-", "source": "masonry typical", "honesty": "typical_range" },
+        "restitution": { "value": 0.1, "unit": "-", "source": "convention", "honesty": "game_plausible" }
+      },
+      "engineering": {
+        "fb": { "value": [5, 30], "unit": "MPa", "source": "EN 771-1 common units range", "honesty": "typical_range" }
+      },
+      "render_ref": "Brick"
+    },
+    "glass_soda": {
+      "aliases": ["glass", "window glass"],
+      "physics": {
+        "density": { "value": 2500, "unit": "kg/m3", "source": "EN 572-1 soda-lime", "honesty": "standard_value" },
+        "friction": { "value": 0.4, "unit": "-", "source": "typical", "honesty": "typical_range" },
+        "restitution": { "value": 0.4, "unit": "-", "source": "convention", "honesty": "game_plausible" }
+      },
+      "engineering": {
+        "fbk": { "value": 45, "unit": "MPa", "source": "EN 572-1 annealed characteristic bending", "honesty": "standard_value" }
+      },
+      "render_ref": "Glass"
+    },
+    "gypsum_board": {
+      "aliases": ["drywall", "plasterboard", "gypsum"],
+      "physics": {
+        "density": { "value": [700, 1000], "unit": "kg/m3", "source": "EN 520 board range", "honesty": "typical_range" },
+        "friction": { "value": 0.5, "unit": "-", "source": "typical", "honesty": "typical_range" },
+        "restitution": { "value": 0.1, "unit": "-", "source": "convention", "honesty": "game_plausible" }
+      },
+      "engineering": {},
+      "render_ref": "Plaster"
+    },
+    "soil_firm": {
+      "aliases": ["soil", "ground"],
+      "physics": {
+        "density": { "value": [1700, 2000], "unit": "kg/m3", "source": "EN 1997 typical granular", "honesty": "typical_range" },
+        "friction": { "value": 0.6, "unit": "-", "source": "typical", "honesty": "typical_range" },
+        "restitution": { "value": 0.0, "unit": "-", "source": "convention", "honesty": "game_plausible" }
+      },
+      "engineering": {
+        "bearing": { "value": 72, "unit": "kPa", "source": "IRC R401.4.1 minimum presumptive (1,500 psf) - below this, engineered design required", "honesty": "standard_value" }
+      },
+      "render_ref": null
+    }
+  }
+}

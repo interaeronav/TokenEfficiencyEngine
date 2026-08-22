@@ -1,0 +1,120 @@
+{
+  "_meta": {
+    "posture": "findings, never approvals; flag against cited prescriptive tables; never emit a member size; never a 'passes' state (A20). Severity: CODE (adopted prescriptive requirement; never relaxable) / STD (engineering-standard bound) / HEUR (published rule-of-thumb) / CONV (practice convention).",
+    "jurisdiction": "US-IRC defaults; region-parameterized like the placement rules. SANS 10400 (South Africa) research is a recorded follow-up BEFORE Okongo jurisdiction hardening.",
+    "edition_note": "span-table values are the WORST-CASE grade column (a span within them is legal under ANY grade - zero false positives); verify against the locally adopted edition before hardening (recorded follow-up)",
+    "as_of": "2026-08-22"
+  },
+  "joist_span_max_m": {
+    "severity": "CODE",
+    "source": "IRC R502.3.1(2) 40 psf live, worst-case grade column (edition-verify pending)",
+    "spans": { "2x6": 2.08, "2x8": 2.64, "2x10": 3.35, "2x12": 3.89 },
+    "finding": "modeled joist span exceeds the prescriptive envelope of IRC R502.3.1(2); verify with a licensed engineer"
+  },
+  "concrete_slab_min_depth": {
+    "severity": "STD",
+    "source": "ACI 318 Table 7.3.1.1 (min thickness unless deflections computed); most lenient column l/28 used as the flag line",
+    "ratio_flag_below": 28,
+    "finding": "slab thinner than span/28 - outside ACI 318's no-deflection-check envelope"
+  },
+  "concrete_beam_min_depth": {
+    "severity": "STD",
+    "source": "ACI 318 Table 9.3.1.1; most lenient column l/21",
+    "ratio_flag_below": 21,
+    "finding": "beam shallower than span/21 - outside ACI 318's no-deflection-check envelope"
+  },
+  "steel_beam_depth": {
+    "severity": "HEUR",
+    "source": "Ruddy/AISC economical-depth rule of thumb (~span/20); flag below span/30",
+    "ratio_flag_below": 30,
+    "finding": "steel member depth below span/30 - far outside the economical-depth rule of thumb"
+  },
+  "header_required": {
+    "severity": "CODE",
+    "source": "IRC R602.7 (headers required over openings in bearing walls) - existence check only, no sizing",
+    "finding": "opening in a bearing wall has no header member above it"
+  },
+  "lintel_bearing_min_mm": {
+    "severity": "STD",
+    "source": "masonry practice standards (bearing by span)",
+    "by_span_m": [[1.0, 100], [2.0, 150], [99.0, 200]],
+    "finding": "lintel end bearing below the standard minimum for its span"
+  },
+  "masonry_slenderness": {
+    "severity": "STD",
+    "source": "EN 1996 (EC6) slenderness limit h_ef/t_ef <= 27",
+    "ratio_max": 27,
+    "finding": "masonry wall slenderness exceeds the EC6 limit"
+  },
+  "masonry_min_thickness_mm": {
+    "severity": "CODE",
+    "source": "US empirical masonry provisions (6 in bearing walls one story / 8 in multi-story)",
+    "one_story": 152, "multi_story": 203,
+    "finding": "bearing masonry thinner than the empirical minimum"
+  },
+  "footing_width": {
+    "severity": "CODE",
+    "source": "IRC R403.1 (footing at least as wide as the wall; projections per table)",
+    "finding": "footing narrower than the wall it carries"
+  },
+  "soil_bearing_min_kpa": {
+    "severity": "CODE",
+    "source": "IRC R401.4.1 (presumptive 1,500 psf minimum; below => soils investigation / engineered design)",
+    "value": 72,
+    "finding": "declared soil bearing below the presumptive minimum - engineered design required (this is itself the flag)"
+  },
+  "rafter_tie_topology": {
+    "severity": "CODE",
+    "source": "IRC R802.4.1 / R802.3 (rafters require ceiling joists/rafter ties or a structural ridge)",
+    "finding": "rafters without rafter ties, ceiling joists, or a structural ridge member"
+  },
+  "roof_pitch_min_deg": {
+    "severity": "CODE",
+    "source_by_covering": {
+      "asphalt_shingle": { "min_deg": 9.46, "source": "IRC R905.2.2 (2:12 with double underlayment)" },
+      "concrete_tile": { "min_deg": 30.0, "source": "BS 5534 / manufacturer minima for plain+interlocking tile practice (the Okongo check)" },
+      "plain_tile": { "min_deg": 35.0, "source": "BS 5534 plain tiles" },
+      "metal_standing_seam": { "min_deg": 1.43, "source": "IRC R905.10.2 (1/4:12)" }
+    },
+    "finding": "roof pitch below the minimum for its covering"
+  },
+  "stairs": {
+    "severity": "CODE",
+    "source": "IRC R311.7 (riser <=196 mm, tread >=254 mm, headroom >=2032 mm, width >=914 mm)",
+    "riser_max_mm": 196, "tread_min_mm": 254, "headroom_min_mm": 2032, "width_min_mm": 914,
+    "blondel": { "severity": "CONV", "range_mm": [550, 700], "source": "Blondel 2R+G convention" }
+  },
+  "ceiling_min_mm": {
+    "severity": "CODE",
+    "source": "IRC R305.1 (habitable 7 ft = 2134 mm)",
+    "value": 2134,
+    "finding": "habitable ceiling below the IRC minimum"
+  },
+  "head_stack_geometry": {
+    "severity": "CODE",
+    "source": "pure geometry: opening head + lintel + structure depth must fit under floor-to-floor",
+    "finding": "opening head + structure exceeds the floor-to-floor height"
+  },
+  "window_fall_protection": {
+    "severity": "CODE",
+    "source": "IRC R312.2 (openable sill <610 mm above floor with >1830 mm drop outside requires guard/limiter)",
+    "sill_mm": 610, "drop_mm": 1830,
+    "finding": "low openable sill over a high drop without fall protection"
+  },
+  "wet_wall_stacking": {
+    "severity": "CONV",
+    "source": "plumbing practice (stack wet walls between floors; drains near stacks)",
+    "finding": "wet rooms on adjacent floors do not share a wall line - plumbing runs get long"
+  },
+  "cantilever_ratio": {
+    "severity": "HEUR",
+    "source": "practice rule: cantilever beyond support flagged over back-span/4 (or > member depth for joists)",
+    "back_span_ratio_max": 0.25,
+    "finding": "cantilever exceeds a quarter of its back-span"
+  },
+  "stacking_offset": {
+    "severity": "HEUR",
+    "source": "practice rule: bearing wall above offset from wall below by more than the joist depth",
+    "finding": "upper bearing wall offset from lower support beyond the joist depth"
+  }
+}

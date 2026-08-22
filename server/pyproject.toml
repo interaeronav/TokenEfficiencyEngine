@@ -37,6 +37,10 @@ assets = [
     "pillow>=12.3.0",
     "shapely>=2.1.2",
 ]
+physical = [
+    "ifctester>=0.8.5",
+    "py-slvs>=1.0.6",
+]
 # assets-embed (optional, CPU-only): sentence-transformers with a SigLIP-2
 # (Apache) or CLIP ViT-B/32 (MIT) checkpoint for index-time thumbnail
 # embeddings; never MobileCLIP (research-only weights). Deliberately not

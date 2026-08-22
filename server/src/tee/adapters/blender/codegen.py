@@ -313,6 +313,12 @@ def program_list_entities() -> str:
     return PRELUDE + LIST_ENTITIES
 
 
+_MODELING_OPS = (
+    "wall_with_openings", "slab", "roof", "stairs", "opening_cut",
+    "array_along", "profile_extrude", "param_set",
+)
+
+
 def program_batch(ops: list[dict[str, Any]], undo_label: str) -> str:
     # Ops are embedded as a JSON string parsed at runtime: inlining
     # json.dumps output as Python source would turn true/false/null into
@@ -322,7 +328,19 @@ def program_batch(ops: list[dict[str, Any]], undo_label: str) -> str:
         f"_OPS = _tee_json.loads({json.dumps(ops)!r})\n"
         f"_UNDO_LABEL = {undo_label!r}\n"
     )
-    return PRELUDE + header + BATCH_INTERPRETER
+    # tier-2 modeling lib travels only when a batch actually uses it
+    lib = ""
+    interpreter = BATCH_INTERPRETER
+    if any(op.get("op") in _MODELING_OPS for op in ops):
+        from tee.adapters.blender.modeling_codegen import (
+            MODELING_DISPATCH,
+            MODELING_LIB,
+        )
+
+        lib = MODELING_LIB
+        marker = '    else:\n        raise ValueError("unknown op'
+        interpreter = interpreter.replace(marker, MODELING_DISPATCH + marker)
+    return PRELUDE + lib + header + interpreter
 
 
 def program_snapshot(path: str) -> str:

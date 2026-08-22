@@ -624,6 +624,85 @@ def run_asset_scenario() -> tuple | None:
 
 
 # --------------------------------------------------------------------------
+# Physical scenario (Phase 11): settle cost + determinism variance floor
+# --------------------------------------------------------------------------
+
+
+def run_physical_scenario() -> dict | None:
+    try:
+        from tee.adapters.blender.adapter import BlenderAdapter
+        from tee.app import TeeApp
+        from tee.physical.tools import register_physical_tools
+    except ImportError as exc:
+        print(f"physical scenario skipped ({exc})")
+        return None
+    blender = find_blender()
+    port = free_port()
+    proc = launch_bridge(blender, port)
+    wire = BlenderWire(port=port)
+    deadline = time.time() + 60
+    while time.time() < deadline and not wire.probe():
+        time.sleep(0.5)
+    if not wire.probe():
+        proc.kill()
+        print("physical scenario skipped (bridge never came up)")
+        return None
+    try:
+        workdir = tempfile.mkdtemp(prefix="tee-bench-phys-")
+        adapter = BlenderAdapter(wire, workdir=workdir)
+        app = TeeApp({"blender": adapter}, project_root=workdir, allow_code_exec=True)
+        register_physical_tools(app, workdir)
+        clear_scene(wire)
+        app.cache("blender").resync(adapter)
+        ops = [
+            {"op": "create", "kind": "cube", "name": "Ground",
+             "props": {"size": 1.0, "scale": [10, 10, 0.1], "location": [0, 0, -0.05]}},
+        ] + [
+            {"op": "create", "kind": "cube", "name": f"Box{i}",
+             "props": {"size": 0.4, "location": [0.05 * i, 0.03 * i, 0.6 + 0.5 * i],
+                       "rotation_euler": [0.1 * i, 0.05 * i, 0.02 * i]}}
+            for i in range(4)
+        ]
+        app.run_batch("blender", ops)
+
+        def ids_by_name():
+            return {e.name: e.id for e in app.cache("blender").entities.values()}
+
+        runs = []
+        report_tokens = 0
+        wall = 0.0
+        for _ in range(2):
+            current = ids_by_name()
+            boxes = [current[f"Box{i}"] for i in range(4)]
+            out = app.registry.call(
+                "sim_settle",
+                {"ids": boxes, "passive_ids": [current["Ground"]],
+                 "adapter": "blender"},
+            )
+            import json as _json
+
+            report_tokens = estimate_tokens(
+                _json.dumps(out, separators=(",", ":"), default=str)
+            )
+            wall = out.get("wall_s", 0)
+            runs.append(out["final_by_name"])
+            app.rollback("blender", out["checkpoint"])
+        floor = 0.0
+        for name in runs[0]:
+            if name in runs[1]:
+                for a, b in zip(runs[0][name], runs[1][name], strict=True):
+                    floor = max(floor, abs(a - b))
+        app.shutdown()
+    finally:
+        proc.terminate()
+    print(
+        f"physics settle (4 bodies): report ~{report_tokens} tok, {wall:.1f}s wall; "
+        f"two-run variance floor {floor * 1000:.2f} mm"
+    )
+    return {"report_tokens": report_tokens, "wall_s": wall, "floor_mm": floor * 1000}
+
+
+# --------------------------------------------------------------------------
 # Runner
 # --------------------------------------------------------------------------
 
@@ -718,10 +797,11 @@ def main() -> None:
 
     extract_row = run_extract_scenario()
     asset_row = run_asset_scenario()
-    write_results(rows, extract_row, asset_row)
+    physical_row = run_physical_scenario()
+    write_results(rows, extract_row, asset_row, physical_row)
 
 
-def write_results(rows, extract_row=None, asset_row=None) -> None:
+def write_results(rows, extract_row=None, asset_row=None, physical_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -808,6 +888,21 @@ def write_results(rows, extract_row=None, asset_row=None) -> None:
             "|---|---|---|---|",
             f"| prior-art flow | {ntok:,} | {ncalls} | |",
             f"| TEE | {ttok:,} | {tcalls} | {saving:.1f}% |",
+        ]
+    if physical_row is not None:
+        lines += [
+            "",
+            "## Physics: settle cost + variance floor (Phase 11)",
+            "",
+            "A 4-body rigid settle (sequential frame stepping, quiescence",
+            "early-out) reports compact facts instead of per-frame data:",
+            "",
+            f"- settle report: ~{physical_row['report_tokens']} tokens "
+            f"({physical_row['wall_s']:.1f} s wall time, zero tokens while stepping)",
+            f"- two-run determinism variance floor on this machine: "
+            f"**{physical_row['floor_mm']:.2f} mm** - settle assertions use a "
+            "5 mm tolerance, safely above it (A19: same-machine only; never "
+            "asserted across builds)",
         ]
     lines += [
         "",
