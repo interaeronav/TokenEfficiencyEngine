@@ -732,3 +732,41 @@ files would be reformatted. None are files touched this session and
 clean" used an older one). `make check` therefore fails at the lint
 step. Needs a decision: reformat the tree in one housekeeping commit, or
 pin ruff to the version the evidence log was written against.
+
+### 2026-08-22 — Phase 3 discovery: live UE 5.8.1 MCP server (M5 Mac)
+
+Scratch project created at `~/Documents/Unreal Projects/TeeProbe` (hand-written
+BP-only `.uproject`, no modules, `ModelContextProtocol` + `AllToolsets`
+enabled — `OkongoSim` inside the engine tree is an empty `Intermediate/`
+leftover, not a project). Editor launched with
+`-ModelContextProtocolStartServer -ModelContextProtocolPort=8000`; the
+server came up with no sign-in or EULA dialog.
+
+Engine is **5.8.1** (Changelist 56057345), not the 5.8.0 the corpus was
+written against. Live-probed facts, several of which correct doc 07:
+
+- Handshake works exactly as documented: protocol `2025-06-18`,
+  `Mcp-Session-Id` returned on initialize.
+- **`serverInfo.name` is EMPTY** (`{"name":"","title":"","version":""}`),
+  not the `unreal-mcp` doc 07 says it "always" is. TEE must never
+  identify the server by `serverInfo.name` — capability-probe instead.
+- **`tools/call` answered plain JSON, not SSE.** Doc 07 states clients
+  must handle SSE frames on the `tools/call` POST (with
+  `Accept: application/json, text/event-stream`, which was sent). On
+  5.8.1 the server chose JSON for every call measured. The connector
+  must therefore handle **both** shapes and not assume either.
+- Tool-search mode confirmed on: `tools/list` returns only
+  `list_toolsets` / `describe_toolset` / `call_tool`, **1,719 bytes**.
+- **67 toolsets** advertised, not the 52 doc 07 recorded for 5.8.0.
+- `describe_toolset` cost, measured on this machine (inner text chars,
+  tokens at 4 chars/token):
+  - `BlueprintTools` — 79,713 wire bytes, 72,168 chars, **~18,042
+    tokens in a single call** (doc 07 predicted ~74,300 chars: confirmed)
+  - `ActorTools` — 19,204 bytes, 17,142 chars, ~4,285 tokens
+  - `ProgrammaticToolset` — 3,398 bytes, 3,091 chars, ~772 tokens
+  - `list_toolsets` — 13,286 bytes
+
+  One `describe_toolset(BlueprintTools)` costs **more than six times**
+  TEE's entire always-loaded 16-tool surface (~2,757 tokens). This is
+  the measured justification for the A4 summarizing/caching proxy, and
+  the baseline any Phase 5 UE benchmark is measured against.
