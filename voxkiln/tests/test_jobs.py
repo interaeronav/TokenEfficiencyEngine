@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from voxkiln.engine import EngineUnavailable, FakeEngine, probe
+from voxkiln.engine import EngineUnavailable, FakeEngine
 from voxkiln.jobs import JobStore
 
 
@@ -89,9 +89,19 @@ def test_missing_image_fails_loud(store):
         store.submit("no_such_image.png")
 
 
-def test_no_backend_is_a_structured_refusal(tmp_path, image):
-    # this container has neither CUDA nor MPS - the honest-degradation path
-    assert probe()["backend"] is None
+def test_no_backend_is_a_structured_refusal(tmp_path, image, monkeypatch):
+    """The honest-degradation path, asserted on ANY machine.
+
+    This originally read the real probe and asserted it was None, which only
+    held on the GPU-less cloud container it was written in - it failed the
+    moment the suite ran on a Mac with MPS. The refusal is what is under test,
+    so the absent backend is stubbed rather than assumed.
+    """
+    from voxkiln import engine
+
+    monkeypatch.setattr(
+        engine, "probe", lambda: {"backend": None, "fix": "install voxkiln[model]"}
+    )
     bare = JobStore(out_dir=tmp_path / "o")
     with pytest.raises(EngineUnavailable) as exc:
         bare.submit(image)

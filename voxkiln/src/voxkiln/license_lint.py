@@ -26,6 +26,21 @@ BANNED = {
 
 OPTIONAL_ACCELERATORS = {"cumesh", "flex_gemm"}
 
+# Banned MODEL WEIGHTS, referenced by repo id rather than by import - so the
+# import lint above could never see them. The upstream pipeline config names
+# briaai/RMBG-2.0 (CC-BY-NC) as its matting model; voxkiln substitutes MIT
+# BiRefNet at load time, and this rule exists so a NEW reference cannot creep
+# in unnoticed the way a string in a config would.
+BANNED_WEIGHTS = {
+    "briaai/RMBG-2.0": "CC-BY-NC 4.0 (non-commercial)",
+    "briaai/RMBG-1.4": "CC-BY-NC 4.0 (non-commercial)",
+}
+
+# Files that legitimately MENTION a banned repo id in order to REJECT or
+# replace it: this module (the rule table) and BiRefNet.py (the substitution
+# site, which matches on the name to swap in the MIT weights).
+WEIGHT_MENTION_ALLOWLIST = {"license_lint.py", "engine.py", "BiRefNet.py"}
+
 # Backend modules loaded ONLY by name through the conv dispatch
 # (importlib in sparse/conv/conv.py) - never imported unless that backend
 # is explicitly selected, so their unguarded imports are already lazy.
@@ -83,6 +98,33 @@ def lint_tree(*roots: str | Path) -> list[dict[str, str]]:
                                 "why": "optional CUDA accelerator must be try/except-guarded",
                             }
                         )
+    violations.extend(lint_weights(*roots))
+    return violations
+
+
+def lint_weights(*roots: str | Path) -> list[dict[str, str]]:
+    """Catch banned model repo ids anywhere in the tree, including configs.
+
+    Weights are named as STRINGS in json/py, so the AST import lint cannot see
+    them - a non-commercial matting model can ride along in a vendored config
+    with every import perfectly clean.
+    """
+    violations: list[dict[str, str]] = []
+    for root in roots:
+        for path in sorted(Path(root).rglob("*")):
+            if not path.is_file() or path.suffix not in (".py", ".json"):
+                continue
+            if path.name in WEIGHT_MENTION_ALLOWLIST:
+                continue
+            try:
+                text = path.read_text(errors="ignore")
+            except OSError:
+                continue
+            for repo, why in BANNED_WEIGHTS.items():
+                if repo in text:
+                    violations.append(
+                        {"file": str(path), "line": "-", "module": repo, "why": why}
+                    )
     return violations
 
 

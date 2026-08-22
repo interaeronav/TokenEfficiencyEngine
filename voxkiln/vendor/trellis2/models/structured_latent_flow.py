@@ -9,7 +9,6 @@ from ..modules.transformer import AbsolutePositionEmbedder
 from ..modules import sparse as sp
 from ..modules.sparse.transformer import ModulatedSparseTransformerCrossBlock
 from .sparse_structure_flow import TimestepEmbedder
-from .sparse_elastic_mixin import SparseTransformerElasticMixin
     
 
 class SLatFlowModel(nn.Module):
@@ -199,9 +198,23 @@ class SLatFlowModel(nn.Module):
         return h
 
 
-class ElasticSLatFlowModel(SparseTransformerElasticMixin, SLatFlowModel):
-    """
-    SLat Flow Model with elastic memory management.
-    Used for training with low VRAM.
-    """
-    pass
+# VOXKILN: ElasticSLatFlowModel is built lazily.
+#
+# It exists only for TRAINING with low VRAM (its own docstring says so) and it
+# derives from SparseTransformerElasticMixin -> utils.elastic_utils, which the
+# vendoring surgery drops along with the rest of the training tree. Importing
+# it at module scope made `import structured_latent_flow` raise
+# ModuleNotFoundError - and because pipelines/base.py wraps model loading in a
+# bare `except Exception` that retries the relative path as a Hub repo id, the
+# user saw a nonsense 404 for repo "ckpts/slat_flow_..." instead of the real
+# cause. The shipped inference configs use SLatFlowModel, not this class.
+def __getattr__(name):
+    if name == "ElasticSLatFlowModel":
+        from .sparse_elastic_mixin import SparseTransformerElasticMixin
+
+        class ElasticSLatFlowModel(SparseTransformerElasticMixin, SLatFlowModel):
+            """SLat Flow Model with elastic memory management (training only)."""
+
+        globals()[name] = ElasticSLatFlowModel
+        return ElasticSLatFlowModel
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

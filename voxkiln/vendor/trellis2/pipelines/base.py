@@ -40,10 +40,25 @@ class Pipeline:
         for k, v in args['models'].items():
             if hasattr(cls, 'model_names_to_load') and k not in cls.model_names_to_load:
                 continue
-            try:
-                _models[k] = models.from_pretrained(f"{path}/{v}")
-            except Exception as e:
+            # VOXKILN: upstream wrapped this in a bare `except Exception` that
+            # retried the BARE `v` as a Hub repo id. When the local load failed
+            # for any other reason (a dropped module, a bad config) the real
+            # cause was swallowed and the user got a 404 for a repo like
+            # "ckpts/slat_flow_..." that was never meant to exist - which is
+            # what a missing training util actually looked like from outside.
+            #
+            # Three real cases, decided explicitly instead of by exception:
+            #   1. `path` is a local snapshot dir -> load the file beside it
+            #   2. `v` is itself owner/repo/sub/path (a DIFFERENT repo) -> use v
+            #   3. `path` is a repo id + `v` is relative -> compose, and let
+            #      models.from_pretrained split it into repo + filename
+            local = f"{path}/{v}"
+            if os.path.exists(f"{local}.json") and os.path.exists(f"{local}.safetensors"):
+                _models[k] = models.from_pretrained(local)
+            elif v.count("/") >= 2:
                 _models[k] = models.from_pretrained(v)
+            else:
+                _models[k] = models.from_pretrained(local)
 
         new_pipeline = cls(_models)
         new_pipeline._pretrained_args = args

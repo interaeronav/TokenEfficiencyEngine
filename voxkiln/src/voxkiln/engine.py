@@ -115,6 +115,7 @@ def doctor() -> dict[str, Any]:
         checks["weights_cached_gb"] = repos.get(voxkiln.MODEL_REPO)
     except BaseException:
         checks["weights_cached_gb"] = None
+    checks["gated_weights"] = _gated_weight_check()
     deps = {}
     for name in ("trimesh", "fast_simplification", "xatlas", "cv2", "manifold3d"):
         try:
@@ -124,6 +125,34 @@ def doctor() -> dict[str, Any]:
             deps[name] = False
     checks["deps"] = deps
     return checks
+
+
+def _gated_weight_check() -> dict[str, Any]:
+    """Is the GATED image-conditioning tower actually reachable?
+
+    Learned the hard way on the first live run: the 15 GB of TRELLIS weights
+    download fine, the pipeline loads every one of them, and only then does
+    DINOv3 fail with a 403 - minutes in, after the expensive part. Access is
+    granted MANUALLY by the model owner, so no amount of retrying fixes it.
+    Doctor answers it up front, cheaply, with the exact URL.
+    """
+    repo = voxkiln.IMAGE_COND_REPO
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError:
+        return {"repo": repo, "accessible": None, "fix": "install voxkiln[model]"}
+    try:
+        hf_hub_download(repo, "config.json")
+    except Exception as exc:  # gated, offline, or unauthenticated
+        name = type(exc).__name__
+        fix = (
+            f"request access at https://huggingface.co/{repo} (it is gated and "
+            "approved manually), then `hf auth login`"
+            if "Gated" in name or "401" in str(exc) or "403" in str(exc)
+            else f"could not reach the Hub ({name}); check network or HF_TOKEN"
+        )
+        return {"repo": repo, "accessible": False, "reason": name, "fix": fix}
+    return {"repo": repo, "accessible": True}
 
 
 class Engine:
