@@ -579,5 +579,11 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   server README updated; `tee-usage` skill packages the operating
   procedure (macro-first, diffs, text-before-pixels, trust-the-gates).
 - Evidence: `uv run pytest` → **341 passed, 1 skipped**; ruff clean;
-  `make dist` artifacts listed; rehearsal transcript above; tagged
-  **v0.1.0**.
+  `make dist` artifacts listed; rehearsal transcript above. Annotated
+  tag **v0.1.0** created locally at the Phase 6 commit; the tag PUSH
+  was refused (HTTP 403 - this cloud session's git credentials are
+  scoped to the designated branch; tag refs are not pushable, and the
+  available GitHub tooling has no release/tag API). Maintainer step on
+  any full-permission checkout:
+  `git tag -a v0.1.0 <phase-6 commit> -m "TEE v0.1.0" && git push origin v0.1.0`
+  (or create a v0.1.0 release from that commit in the GitHub UI).
