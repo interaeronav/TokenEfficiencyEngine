@@ -164,6 +164,36 @@ def _assign_material(obj, params):
     else:
         obj.data.materials.append(mat)
 
+def _import_file(op):
+    path = str(op.get("path", ""))
+    name = op.get("name")
+    params = dict(op.get("props") or {})
+    ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+    before = set(o.session_uid for o in bpy.data.objects)
+    if ext in ("gltf", "glb"):
+        bpy.ops.import_scene.gltf(filepath=path)
+    elif ext == "obj":
+        bpy.ops.wm.obj_import(filepath=path)
+    elif ext == "fbx":
+        bpy.ops.import_scene.fbx(filepath=path)
+    else:
+        raise ValueError("unsupported import format: %r" % ext)
+    new = [o for o in bpy.data.objects if o.session_uid not in before]
+    if not new:
+        raise ValueError("import produced no objects: %s" % path)
+    roots = [o for o in new if o.parent is None or o.parent.session_uid in before]
+    if len(roots) == 1:
+        anchor = roots[0]
+    else:
+        anchor = _link(bpy.data.objects.new(name or "Asset", None))
+        for r in roots:
+            r.parent = anchor
+        new.append(anchor)
+    if name:
+        anchor.name = str(name)
+    _apply_props(anchor, params)
+    return anchor, new
+
 _SETTABLE = ("location", "rotation_euler", "scale", "hide_viewport", "hide_render")
 
 def _apply_props(obj, props):
@@ -219,6 +249,12 @@ for _i, _op in enumerate(_OPS):
         if _eid not in _created and _eid not in _modified:
             _modified.append(_eid)
         _touched[_eid] = _obj
+    elif _kind == "import_file":
+        _anchor, _new = _import_file(_op)
+        for _o in _new:
+            _eid = _uid(_o)
+            _created.append(_eid)
+            _touched[_eid] = _o  # cache needs every new entity, not just the anchor
     elif _kind == "delete":
         _obj = _find(_op.get("id"))
         if _obj is None:

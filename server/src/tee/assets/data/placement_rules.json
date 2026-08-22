@@ -1,0 +1,78 @@
+{
+  "_meta": {
+    "units": "mm unless noted",
+    "severity": "code = adopted building-code requirement (never relaxable); guideline = published planning guidance (relaxable with a recorded note)",
+    "regions": "US = IRC/NKBA/ADA; EU = Neufert/DIN 18040 flavored",
+    "as_of": "2026-08-22"
+  },
+  "rules": {
+    "hallway_min": {
+      "severity": "code",
+      "min_mm": { "US": 914, "EU": 900 },
+      "source": { "US": "IRC R311.6 (3 ft hallway width)", "EU": "DIN 18040-2" },
+      "applies": "primary circulation between rooms/doors"
+    },
+    "passage_min": {
+      "severity": "guideline",
+      "min_mm": { "US": 760, "EU": 750 },
+      "source": { "US": "NKBA/Neufert furniture passage", "EU": "Neufert" },
+      "applies": "clear passage between furniture within a room"
+    },
+    "door_swing_clear": {
+      "severity": "code",
+      "source": { "US": "IRC R311.2 egress operability", "EU": "EN 179 escape routes" },
+      "applies": "no furniture inside the door swing arc"
+    },
+    "door_front_clear": {
+      "severity": "guideline",
+      "min_mm": { "US": 914, "EU": 900 },
+      "source": { "US": "NKBA door approach", "EU": "Neufert" },
+      "applies": "clear floor beyond the swing on the pull side"
+    },
+    "bed_side_clear": {
+      "severity": "guideline",
+      "min_mm": { "US": 760, "EU": 700 },
+      "source": { "US": "NKBA bedroom planning", "EU": "Neufert" },
+      "applies": "at least one long side of a bed"
+    },
+    "dining_pullback": {
+      "severity": "guideline",
+      "min_mm": { "US": 900, "EU": 850 },
+      "source": { "US": "NKBA dining clearance 36in", "EU": "Neufert 850" },
+      "applies": "behind dining chairs to a wall or furniture"
+    },
+    "toilet_side_cc": {
+      "severity": "code",
+      "min_mm": { "US": 381, "EU": 400 },
+      "source": { "US": "IRC R307.1 (15 in center to side)", "EU": "DIN 18040-2" },
+      "applies": "toilet centerline to side wall/fixture"
+    },
+    "toilet_front": {
+      "severity": "code",
+      "min_mm": { "US": 533, "EU": 550 },
+      "source": { "US": "IRC R307.1 (21 in front clearance)", "EU": "Neufert" },
+      "applies": "clear floor in front of a toilet"
+    },
+    "kitchen_aisle": {
+      "severity": "guideline",
+      "min_mm": { "US": 1067, "EU": 1200 },
+      "source": { "US": "NKBA 42 in single-cook aisle", "EU": "Neufert" },
+      "applies": "between opposing kitchen runs/islands"
+    },
+    "work_triangle": {
+      "severity": "guideline",
+      "leg_min_m": 1.2,
+      "leg_max_m": 2.7,
+      "perimeter_max_m": 7.9,
+      "source": { "US": "NKBA work triangle", "EU": "same convention" },
+      "applies": "sink-stove-refrigerator triangle"
+    },
+    "back_to_wall": {
+      "severity": "guideline",
+      "max_gap_mm": { "US": 150, "EU": 150 },
+      "classes": ["sofa", "bed", "wardrobe", "bookshelf", "refrigerator", "stove"],
+      "source": { "US": "Merrell 2011 interior-layout terms", "EU": "same" },
+      "applies": "wall-backed furniture classes should sit near a wall"
+    }
+  }
+}

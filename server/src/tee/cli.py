@@ -29,18 +29,27 @@ def _build_blender_app(project: str, host: str, port: int, allow_code_exec: bool
     return app
 
 
-def _attach_extract(app, project: str, *, with_handoff: bool) -> None:
+def _attach_extract(app, project: str, *, with_handoff: bool):
     """Register TEE Extract tools when the extract extra is installed;
     silently skip otherwise (the kernel works without it)."""
     try:
         from tee.extract.tools import register_extract_tools
     except ImportError:
-        return
+        return None
     store, registry = register_extract_tools(app, Path(project))
     if with_handoff:
         from tee.extract.handoff import register_handoff_tools
 
         register_handoff_tools(app, store, registry)
+    return store
+
+
+def _attach_assets(app, project: str, extract_store) -> None:
+    """Register TEE Assets tools (stdlib core; astral/shapely lanes degrade
+    with actionable errors when their extra is missing)."""
+    from tee.assets.tools import register_asset_tools
+
+    register_asset_tools(app, Path(project), extract_store=extract_store)
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
@@ -65,7 +74,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
+    extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
+    _attach_assets(app, args.project, extract_store)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

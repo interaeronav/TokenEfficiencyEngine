@@ -180,6 +180,17 @@ class FakeAdapter:
                     diff.modified.append(ent.id)
                 diff.details[ent.id] = ent.detailed()
                 _upsert(diff, ent)
+            elif kind == "assign_material":
+                ent = self._require(op, i)
+                props = dict(op.get("props") or {})
+                ent.summary["material"] = props.get("material") or f"{ent.name}_mat"
+                for key in ("base_color", "metallic", "roughness"):
+                    if key in props:
+                        ent.summary[key] = props[key]
+                if ent.id not in diff.created and ent.id not in diff.modified:
+                    diff.modified.append(ent.id)
+                diff.details[ent.id] = ent.detailed()
+                _upsert(diff, ent)
             elif kind == "delete":
                 ent = self._require(op, i)
                 del self._store[ent.id]
@@ -195,7 +206,7 @@ class FakeAdapter:
                 raise TeeError(
                     "bad_op",
                     f"Unknown op '{kind}' at batch index {i}.",
-                    fix="Use one of: create, set, delete.",
+                    fix="Use one of: create, set, assign_material, delete.",
                 )
         return diff
 
