@@ -130,23 +130,60 @@ class GenerationLane:
 # -- driver probes ----------------------------------------------------------
 
 
+# Lane 3 (TRELLIS.2) renders through nvdiffrast, which is CUDA-bound; the
+# diffusion lanes are plain diffusers and run on any torch backend. Treating
+# "no CUDA" as "no local generation" wrongly excluded Apple Silicon, where
+# unified memory is often larger than a discrete card's VRAM.
+_CUDA_ONLY_LANES = (3,)
+_DIFFUSION_LANES = (1, 2)
+
+
 def probe_local_gpu() -> dict[str, Any]:
-    """Can lanes 1/3 run locally? One compact answer with the exact gap."""
+    """Which local lanes can run here? One compact answer with the exact gap."""
     try:
         import torch  # type: ignore[import-not-found]
     except ImportError:
         return {
             "available": False,
-            "fix": "install the [assets-gen] extra on a CUDA machine "
-            "(torch, diffusers); this container has no GPU stack",
+            "fix": "install the [assets-gen] extra (torch, diffusers); "
+            "CUDA or Apple-Silicon MPS both work for the diffusion lanes",
         }
-    if not torch.cuda.is_available():
-        return {"available": False, "fix": "torch present but no CUDA device"}
+    if torch.cuda.is_available():
+        return {
+            "available": True,
+            "backend": "cuda",
+            "device": torch.cuda.get_device_name(0),
+            "vram_gb": round(torch.cuda.get_device_properties(0).total_memory / 2**30, 1),
+            "lanes": list(_DIFFUSION_LANES + _CUDA_ONLY_LANES),
+        }
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return {
+            "available": True,
+            "backend": "mps",
+            "device": "Apple Silicon (MPS)",
+            "lanes": list(_DIFFUSION_LANES),
+            "note": "lane 3 (TRELLIS.2) needs CUDA - nvdiffrast is CUDA-bound; "
+            "use a hosted 3D generator instead",
+        }
     return {
-        "available": True,
-        "device": torch.cuda.get_device_name(0),
-        "vram_gb": round(torch.cuda.get_device_properties(0).total_memory / 2**30, 1),
+        "available": False,
+        "backend": "cpu",
+        "fix": "torch is present but has neither a CUDA device nor MPS; "
+        "diffusion on CPU is too slow to be useful here",
     }
+
+
+def torch_device() -> str:
+    """The device string local lanes should load onto."""
+    try:
+        import torch  # type: ignore[import-not-found]
+    except ImportError:
+        return "cpu"
+    if torch.cuda.is_available():
+        return "cuda"
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
 
 
 def build_drivers(config: dict[str, Any] | None = None) -> dict[str, GenDriver]:

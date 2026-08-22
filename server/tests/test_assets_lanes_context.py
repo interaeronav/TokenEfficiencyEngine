@@ -337,3 +337,97 @@ def test_guideline_relaxes_with_note_code_never():
     ]
     report = validate_placement(placements, ROOM)
     assert any(v["rule"] == "door_swing_clear" for v in report["violations"])
+
+
+# -- local GPU probe: backends, not just CUDA --------------------------------
+
+
+class _FakeCuda:
+    def __init__(self, available: bool):
+        self._available = available
+
+    def is_available(self) -> bool:
+        return self._available
+
+    def get_device_name(self, index: int) -> str:
+        return "FakeGPU"
+
+    def get_device_properties(self, index: int):
+        class _P:
+            total_memory = 24 * 2**30
+
+        return _P()
+
+
+class _FakeMps:
+    def __init__(self, available: bool):
+        self._available = available
+
+    def is_available(self) -> bool:
+        return self._available
+
+
+class _FakeTorch:
+    def __init__(self, cuda: bool, mps: bool):
+        self.cuda = _FakeCuda(cuda)
+        self.backends = type("B", (), {"mps": _FakeMps(mps)})()
+
+
+def _with_torch(monkeypatch, torch_module):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "torch", torch_module)
+
+
+def test_probe_reports_cuda_with_all_three_lanes(monkeypatch):
+    from tee.assets import generation
+
+    _with_torch(monkeypatch, _FakeTorch(cuda=True, mps=False))
+    out = generation.probe_local_gpu()
+    assert out["available"] is True
+    assert out["backend"] == "cuda"
+    assert out["lanes"] == [1, 2, 3]
+    assert generation.torch_device() == "cuda"
+
+
+def test_probe_enables_the_diffusion_lanes_on_apple_silicon(monkeypatch):
+    """Lane 3 (TRELLIS.2) is CUDA-bound because nvdiffrast is, but the
+    diffusion lanes are plain diffusers. Treating 'no CUDA' as 'no local
+    generation' wrongly excluded Apple Silicon."""
+    from tee.assets import generation
+
+    _with_torch(monkeypatch, _FakeTorch(cuda=False, mps=True))
+    out = generation.probe_local_gpu()
+    assert out["available"] is True
+    assert out["backend"] == "mps"
+    assert out["lanes"] == [1, 2]
+    assert "nvdiffrast" in out["note"]
+    assert generation.torch_device() == "mps"
+
+
+def test_probe_refuses_cpu_only_torch_with_a_reason(monkeypatch):
+    from tee.assets import generation
+
+    _with_torch(monkeypatch, _FakeTorch(cuda=False, mps=False))
+    out = generation.probe_local_gpu()
+    assert out["available"] is False
+    assert out["backend"] == "cpu"
+    assert "too slow" in out["fix"]
+
+
+def test_probe_without_torch_names_both_accelerators(monkeypatch):
+    import builtins
+
+    from tee.assets import generation
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "torch":
+            raise ImportError("no torch")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    out = generation.probe_local_gpu()
+    assert out["available"] is False
+    assert "MPS" in out["fix"] and "CUDA" in out["fix"]
