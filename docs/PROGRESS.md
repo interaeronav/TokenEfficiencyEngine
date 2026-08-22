@@ -1020,9 +1020,46 @@ Nothing further can be closed on this machine. The honest remainder:
   far).
 - Blender library authoring / `asset_listing` publishing; UE asset import
   path from the assets module.
-- UE physics/settle via Simulate-In-Editor, and live fluid-bake validation.
+- live fluid-bake validation (Blender).
 - `.mcpb` bundle, for clients that want one.
 
 **Data caveat still standing:** joist-span worst-grade values in
 `plaus_rules.json` are approximate pending edition verification, and
 SANS 10400 has not been added for Okongo jurisdiction defaults.
+
+### 2026-08-22 — UE settle via Simulate-In-Editor (ledger item closed)
+
+Phase 11 owed UE physics/settle and the live editor made it possible. Epic's
+official MCP ships **no simulation toolset** — `PhysicsAssetToolset` authors
+ragdolls, `DataflowAgentToolset` builds asset graphs, and nothing runs a sim
+or reads the result — and *"Keep Simulation Changes"* has **no scripting API**
+at all. `ue_settle` replaces both: start SIE, poll the play world across many
+short calls, stop, write the settled poses onto the editor actors.
+
+**The finding that makes this safe: a backgrounded editor does not tick.**
+With `bThrottleCPUWhenNotForeground` at its default and the editor window
+behind another app, the play world reports `is_in_play_in_editor() == True`
+and bodies report `is_simulating_physics() == True`, while
+`get_time_seconds()` stays pinned at **0.0** and nothing moves. An agent
+polling that would conclude the scene settled instantly and adopt unmoved
+poses. `ue_settle` asserts simulation time actually advances and fails with
+the exact ini remedy; setup-unreal.md and troubleshooting.md both carry it.
+
+The other engine constraint (from research 33, confirmed): the editor does
+not tick *while a Python call executes*, so the polling loop lives on the TEE
+side and the poll program contains no sleep or wait loop — asserted by test.
+
+Measured live: three cubes dropped 300 cm settle in **2.09 sim-seconds / 8
+polls / 2.2 s wall**; adopt writes them to the editor at z 49.5 (a 100 cm cube
+resting on the floor); the report is **56 tokens**. Re-settling actors already
+at rest returns at the 1.0 s floor, not the cap.
+
+Two corrections en route, both mine:
+- `max_delta` returned 0.0 for an empty or partial pose snapshot, so "we do
+  not know" read as "nothing moved" — it would have declared a scene settled
+  before the play world finished spawning. Now returns infinity.
+- an early 29-second settle was a bad fixture, not the macro: cubes spawned
+  40 cm apart are 100 cm wide, so they interpenetrated and slowly pushed each
+  other apart. Tests space them 200 cm.
+
+- Evidence: **374 passed, 2 skipped**; `-m dcc` **78 passed**.
