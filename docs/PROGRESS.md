@@ -1012,9 +1012,9 @@ Nothing further can be closed on this machine. The honest remainder:
   merely unverified. Stated plainly in `docs/setup-unreal.md`.
 
 **Possible here but not attempted this session** (no blocker beyond time):
-- GPU diffusion lanes 1–2 via torch **MPS** (Z-Image / SDXL-tileable /
-  Marigold-IID) — 128 GB unified memory is ample; the CUDA-only claims in
-  research 14 still need re-verifying against MPS.
+- GPU diffusion lanes 1–2 end-to-end on **MPS**: capability detection and
+  device selection are now fixed and verified (see below), but no diffusion
+  has actually been run — that needs multi-gigabyte model weights.
 - hosted generation with real Tripo/Meshy keys; `[assets-embed]` embeddings.
 - Whisper/pyannote quality spot-check on real site audio (fixtures only so
   far).
@@ -1096,3 +1096,29 @@ likely setup mistake). Both negative paths tested.
 
 - Evidence: **374 passed, 2 skipped**; `-m dcc` **80 passed**; `make check`
   green.
+
+### 2026-08-22 — Local generation lanes are no longer CUDA-gated
+
+`probe_local_gpu` treated "no CUDA device" as "no local generation", which
+wrote off Apple Silicon entirely on a one-line assumption. Only **lane 3**
+(TRELLIS.2) is genuinely CUDA-bound — nvdiffrast is — while **lanes 1–2** are
+plain diffusers and run on any torch backend.
+
+The probe now reports the backend and *which lanes it supports*:
+`cuda → [1,2,3]`; `mps → [1,2]` with an explicit note that lane 3 needs CUDA
+and to use a hosted 3D generator instead; CPU-only torch → unavailable,
+because diffusion on CPU is not useful. `torch_device()` added so loaders
+pick a device instead of assuming one.
+
+Verified on this machine with torch 2.13 in a **throwaway venv** (the project
+venv is untouched and the `[assets-gen]` extra stays deliberately unpinned —
+GPU stacks are machine-specific): probe returns backend `mps`, lanes `[1,2]`,
+and a real 2048×2048 matmul executes on the GPU. Four probe branches covered
+by unit tests with a faked torch.
+
+**Honest bound:** this fixes capability *detection* and device selection. No
+diffusion model has been run here — that needs the weights downloaded, which
+is a multi-gigabyte decision left to the owner. The corpus claim that these
+lanes are CUDA-only is corrected to "lane 3 only".
+
+- Evidence: **378 passed, 2 skipped**.
