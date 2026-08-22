@@ -19,9 +19,7 @@ from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
 
-def register_asset_tools(
-    app, project_root: Path | str, *, extract_store=None
-) -> AssetStore:
+def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -> AssetStore:
     config = app.config.assets if hasattr(app.config, "assets") else {}
     store = AssetStore(project_root, allow_sa=bool(config.get("allow_sa")))
     backends = build_backends(store, config)
@@ -95,15 +93,9 @@ def register_asset_tools(
         )
 
     def as_credits(args):
-        out_path = (
-            Path(str(args["path"])) if args.get("path") else None
-        )
+        out_path = Path(str(args["path"])) if args.get("path") else None
         path = store.write_credits(out_path)
-        required = sum(
-            1
-            for key in store.index()
-            if _manifest_requires(store, key)
-        )
+        required = sum(1 for key in store.index() if _manifest_requires(store, key))
         return {"path": str(path), "assets": len(store.index()), "required_credits": required}
 
     # -- creation lanes ----------------------------------------------------
@@ -154,13 +146,11 @@ def register_asset_tools(
                 height_m=float(args.get("height_m", 1.0)),
             )
             source = Path(rect["path"])
-        maps = photo_pbr.derive_maps(
-            source, out_dir, surface=str(args.get("surface", "generic"))
-        )
+        maps = photo_pbr.derive_maps(source, out_dir, surface=str(args.get("surface", "generic")))
         if args.get("tileable"):
-            maps["tiled"] = photo_pbr.make_tileable(
-                source, out_dir / f"{photo.stem}_tile.png"
-            )["path"]
+            maps["tiled"] = photo_pbr.make_tileable(source, out_dir / f"{photo.stem}_tile.png")[
+                "path"
+            ]
         return maps
 
     # -- context -----------------------------------------------------------
@@ -197,9 +187,7 @@ def register_asset_tools(
             placements, room, region=str(args.get("region", "US"))
         )
         out: dict[str, Any] = {"placements": placements, **report}
-        code_violations = [
-            v for v in report["violations"] if v["severity"] == "code"
-        ]
+        code_violations = [v for v in report["violations"] if v["severity"] == "code"]
         if args.get("apply"):
             if report["violations"]:
                 out["applied"] = False

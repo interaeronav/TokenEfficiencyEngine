@@ -28,7 +28,8 @@ _FILES = (
 def load(name: str) -> dict[str, Any]:
     if name not in _FILES:
         raise TeeError(
-            "unknown_table", f"No reference table '{name}'.",
+            "unknown_table",
+            f"No reference table '{name}'.",
             fix=f"Tables: {', '.join(_FILES)}.",
         )
     text = resources.files("tee.design").joinpath(f"data/{name}.json").read_text()
@@ -39,9 +40,7 @@ def as_of(name: str) -> str:
     return load(name).get("_meta", {}).get("as_of", "unknown")
 
 
-def benchmark(
-    metric: str, platform: str = "mobile", genre: str | None = None
-) -> dict[str, Any]:
+def benchmark(metric: str, platform: str = "mobile", genre: str | None = None) -> dict[str, Any]:
     """Answer 'what is a good D7 for mobile puzzle' with the grid value +
     source + year - the percentile grid, never folklore."""
     data = load("benchmarks")
@@ -52,7 +51,8 @@ def benchmark(
         grid = data["retention"].get(platform)
         if grid is None:
             raise TeeError(
-                "unknown_platform", f"No retention grid for '{platform}'.",
+                "unknown_platform",
+                f"No retention grid for '{platform}'.",
                 fix="Platforms: mobile, pc.",
             )
         out["grid"] = grid[metric]
@@ -75,7 +75,8 @@ def benchmark(
         out["grid"] = data["liveops"]
     else:
         raise TeeError(
-            "unknown_metric", f"No benchmark metric '{metric}'.",
+            "unknown_metric",
+            f"No benchmark metric '{metric}'.",
             fix="Metrics: d1, d7, d30, session, funnel, ftue, liveops.",
         )
     if genre and "genre_d30" not in out:
@@ -91,7 +92,8 @@ def genre_conventions(genre: str) -> dict[str, Any]:
     key = genre.lower().replace(" ", "_").replace("-", "_")
     if key not in genres:
         raise TeeError(
-            "unknown_genre", f"No convention template for '{genre}'.",
+            "unknown_genre",
+            f"No convention template for '{genre}'.",
             fix=f"Templates: {', '.join(sorted(genres))}.",
         )
     return {**genres[key], "as_of": as_of("genres")}
@@ -109,7 +111,8 @@ def archetype(name: str) -> dict[str, Any]:
     archetypes = load("economy_archetypes")["archetypes"]
     if name not in archetypes:
         raise TeeError(
-            "unknown_archetype", f"No economy archetype '{name}'.",
+            "unknown_archetype",
+            f"No economy archetype '{name}'.",
             fix=f"Archetypes: {', '.join(sorted(archetypes))}.",
         )
     return archetypes[name]

@@ -68,10 +68,7 @@ def verify_scene(
             continue
         checked += 1
         lo, hi = env["min"], env["max"]
-        bad = [
-            i for i in range(3)
-            if not (lo[i] * 0.5 <= float(dims[i]) <= hi[i] * 2.0)
-        ]
+        bad = [i for i in range(3) if not (lo[i] * 0.5 <= float(dims[i]) <= hi[i] * 2.0)]
         if bad:
             violations.append(
                 {
@@ -88,9 +85,7 @@ def verify_scene(
         for id_b in ids[i + 1 :]:
             checked += 1
             (a_lo, a_hi), (b_lo, b_hi) = boxes[id_a], boxes[id_b]
-            depths = [
-                _overlap_1d(a_lo[k], a_hi[k], b_lo[k], b_hi[k]) for k in range(3)
-            ]
+            depths = [_overlap_1d(a_lo[k], a_hi[k], b_lo[k], b_hi[k]) for k in range(3)]
             if all(d > _CONTACT_TOLERANCE for d in depths):
                 worst = min(depths)
                 violations.append(
@@ -121,8 +116,7 @@ def verify_scene(
                 {
                     "check": "support",
                     "objects": [entity_id],
-                    "fix": f"floats {base:.3f} m above support - drop to z=0 or onto "
-                    "a surface",
+                    "fix": f"floats {base:.3f} m above support - drop to z=0 or onto a surface",
                 }
             )
 
@@ -192,8 +186,19 @@ def _guess_class(entity) -> str | None:
     """Fallback class from the entity/asset name (import stores asset_key)."""
     name = (entity.summary.get("asset_key") or entity.name or "").lower()
     for cls in (
-        "sofa", "chair", "table", "bed", "wardrobe", "door", "window",
-        "toilet", "sink", "bathtub", "refrigerator", "stove", "rug",
+        "sofa",
+        "chair",
+        "table",
+        "bed",
+        "wardrobe",
+        "door",
+        "window",
+        "toilet",
+        "sink",
+        "bathtub",
+        "refrigerator",
+        "stove",
+        "rug",
     ):
         if cls in name:
             return cls

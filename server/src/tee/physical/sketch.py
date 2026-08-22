@@ -49,12 +49,17 @@ def solve_sketch(sketch: dict[str, Any]) -> dict[str, Any]:
 
     base_group = 1
     origin = system.addPoint3d(
-        add_param(base_group, 0), add_param(base_group, 0), add_param(base_group, 0),
+        add_param(base_group, 0),
+        add_param(base_group, 0),
+        add_param(base_group, 0),
         base_group,
     )
     normal = system.addNormal3d(
-        add_param(base_group, 1), add_param(base_group, 0),
-        add_param(base_group, 0), add_param(base_group, 0), base_group,
+        add_param(base_group, 1),
+        add_param(base_group, 0),
+        add_param(base_group, 0),
+        add_param(base_group, 0),
+        base_group,
     )
     workplane = system.addWorkplane(origin, normal, base_group)
     group = 2
@@ -66,7 +71,9 @@ def solve_sketch(sketch: dict[str, Any]) -> dict[str, Any]:
         x, y = (float(v) for v in spec.get("at", [0.0, 0.0]))
         target_group = base_group if spec.get("fixed") else group
         points[pid] = system.addPoint2d(
-            workplane, add_param(target_group, x), add_param(target_group, y),
+            workplane,
+            add_param(target_group, x),
+            add_param(target_group, y),
             target_group,
         )
         if spec.get("fixed"):
@@ -115,8 +122,11 @@ def solve_sketch(sketch: dict[str, Any]) -> dict[str, Any]:
         label = f"[{index}] {kind}"
         if kind == "distance":
             handle = system.addPointsDistance(
-                float(con["value"]), _point(con["a"], con), _point(con["b"], con),
-                workplane, group,
+                float(con["value"]),
+                _point(con["a"], con),
+                _point(con["b"], con),
+                workplane,
+                group,
             )
         elif kind == "horizontal":
             line = con.get("line")
@@ -136,8 +146,12 @@ def solve_sketch(sketch: dict[str, Any]) -> dict[str, Any]:
                 )
         elif kind == "angle":
             handle = system.addAngle(
-                float(con["value"]), False, _line(con["l1"], con),
-                _line(con["l2"], con), workplane, group,
+                float(con["value"]),
+                False,
+                _line(con["l1"], con),
+                _line(con["l2"], con),
+                workplane,
+                group,
             )
         elif kind == "parallel":
             handle = system.addParallel(
@@ -170,8 +184,7 @@ def solve_sketch(sketch: dict[str, Any]) -> dict[str, Any]:
         failing = [constraint_labels.get(int(f), f"handle {int(f)}") for f in system.Failed]
         raise TeeError(
             "over_constrained",
-            f"sketch is over-constrained ({status}): {', '.join(failing)} "
-            "cannot all hold.",
+            f"sketch is over-constrained ({status}): {', '.join(failing)} cannot all hold.",
             fix="remove or correct one of the named constraints "
             "(dimensions likely disagree with the topology)",
         )
@@ -207,7 +220,5 @@ def polygon_from(solved: dict[str, list[float]], order: list[str]) -> list[list[
     """Ordered closed polygon from solved points - feeds wall/slab ops."""
     missing = [p for p in order if p not in solved]
     if missing:
-        raise TeeError(
-            "unknown_point", f"polygon order references unsolved points {missing}."
-        )
+        raise TeeError("unknown_point", f"polygon order references unsolved points {missing}.")
     return [solved[p] for p in order]

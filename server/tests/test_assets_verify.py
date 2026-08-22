@@ -13,8 +13,7 @@ def _app(tmp_path):
 
 def _add(app, name, location, dims, **extra):
     props = {"location": location, "dims_m": dims, **extra}
-    out = app.run_batch("fake", [{"op": "create", "kind": "object", "name": name,
-                                  "props": props}])
+    out = app.run_batch("fake", [{"op": "create", "kind": "object", "name": name, "props": props}])
     return out["created"][0]
 
 
@@ -58,8 +57,7 @@ def test_stacked_object_is_supported(tmp_path):
 
 def test_scale_sanity_from_asset_key(tmp_path):
     app = _app(tmp_path)
-    _add(app, "minisofa", [0, 0, 0], [0.4, 0.18, 0.15],
-         asset_key="polyhaven:tiny_sofa")
+    _add(app, "minisofa", [0, 0, 0], [0.4, 0.18, 0.15], asset_key="polyhaven:tiny_sofa")
     report = verify_scene(app, "fake")
     sanity = [v for v in report["violations"] if v["check"] == "scale_sanity"]
     assert sanity and "envelope" in sanity[0]["fix"]

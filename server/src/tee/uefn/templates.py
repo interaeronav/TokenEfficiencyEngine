@@ -20,7 +20,7 @@ TEMPLATES: dict[str, dict[str, Any]] = {
     "device_subscribe": {
         "gloss": "creative device reacting to a button press",
         "requires": [("button_device", "InteractedWithEvent"), ("creative_device", None)],
-        "code": '''
+        "code": """
 using {{ /Fortnite.com/Devices }}
 using {{ /Verse.org/Simulation }}
 
@@ -32,12 +32,12 @@ using {{ /Verse.org/Simulation }}
 
     OnPressed(Agent : agent) : void =
         Print("pressed")
-''',
+""",
     },
     "persistence_weak_map": {
         "gloss": "per-player persistent score via weak_map",
         "requires": [("creative_device", None)],
-        "code": '''
+        "code": """
 using {{ /Fortnite.com/Devices }}
 using {{ /Verse.org/Simulation }}
 
@@ -55,24 +55,24 @@ var PlayerScores : weak_map(player, score_data) = map{{}}
         if (set PlayerScores[Player] = score_data{{
                 Version := Current.Version,
                 Score := Current.Score + Points}}) {{}}
-''',
+""",
     },
     "scene_graph_component": {
         "gloss": "custom Scene Graph component (the UE6 object model)",
         "requires": [("component", None)],
-        "code": '''
+        "code": """
 using {{ /Verse.org/SceneGraph }}
 using {{ /Verse.org/Simulation }}
 
 {name} := class(component):
     OnBegin<override>()<suspends> : void =
         Print("component up")
-''',
+""",
     },
     "concurrency_race": {
         "gloss": "structured concurrency: first branch wins, loser cancelled",
         "requires": [],
-        "code": '''
+        "code": """
 {name}(TimeoutSeconds : float)<suspends> : void =
     race:
         block:
@@ -81,7 +81,7 @@ using {{ /Verse.org/Simulation }}
         block:
             AwaitTheThing()
             Print("done first")
-''',
+""",
     },
 }
 

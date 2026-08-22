@@ -317,8 +317,14 @@ def program_list_entities() -> str:
 
 
 _MODELING_OPS = (
-    "wall_with_openings", "slab", "roof", "stairs", "opening_cut",
-    "array_along", "profile_extrude", "param_set",
+    "wall_with_openings",
+    "slab",
+    "roof",
+    "stairs",
+    "opening_cut",
+    "array_along",
+    "profile_extrude",
+    "param_set",
 )
 
 

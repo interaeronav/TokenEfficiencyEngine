@@ -36,9 +36,7 @@ _ACCEPT_SLACK = 1.02  # envelopes are bands, not gauges
 
 
 def load_envelopes() -> dict[str, Any]:
-    text = (
-        resources.files("tee.assets").joinpath("data/envelopes.json").read_text()
-    )
+    text = resources.files("tee.assets").joinpath("data/envelopes.json").read_text()
     data = json.loads(text)
     data.pop("_meta", None)
     return data
@@ -58,9 +56,7 @@ def envelope_for(asset_class: str | None) -> dict[str, Any] | None:
 
 def _fits(dims: list[float], env: dict[str, Any]) -> bool:
     lo, hi = env["min"], env["max"]
-    return all(
-        lo[i] / _ACCEPT_SLACK <= dims[i] <= hi[i] * _ACCEPT_SLACK for i in range(3)
-    )
+    return all(lo[i] / _ACCEPT_SLACK <= dims[i] <= hi[i] * _ACCEPT_SLACK for i in range(3))
 
 
 def _matches_target(dims: list[float], target: list[float], tol: float) -> bool:
@@ -118,9 +114,7 @@ def scale_policy(
                 "reason": label,
                 "measured": [round(v, 4) for v in measured],
             }
-            return result(
-                "fix", factor, f"unit correction {label} (x{factor:g}), recorded", fact
-            )
+            return result("fix", factor, f"unit correction {label} (x{factor:g}), recorded", fact)
 
     # band 3: snap within ±10% of the target (or the class typical size).
     # Uniform scale = geometric mean of the constrained-axis ratios; every
@@ -147,9 +141,7 @@ def scale_policy(
                     "target": [round(v, 4) for v in reference],
                     "measured": [round(v, 4) for v in measured],
                 }
-                return result(
-                    "snap", scale, f"snapped x{scale:.3f} to catalogue dims", fact
-                )
+                return result("snap", scale, f"snapped x{scale:.3f} to catalogue dims", fact)
 
     # band 4: reject, one line
     expected = (

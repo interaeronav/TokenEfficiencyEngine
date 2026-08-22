@@ -40,9 +40,7 @@ class AssetSearch:
             if backends and name not in backends:
                 continue
             try:
-                rows.extend(
-                    backend.search(query, asset_class=asset_class, limit=limit * 4)
-                )
+                rows.extend(backend.search(query, asset_class=asset_class, limit=limit * 4))
             except Exception as exc:  # one backend down must not kill the search
                 errors.append(f"{name}: {getattr(exc, 'message', exc)}")
         rows.extend(self._local_rows(query, asset_class))

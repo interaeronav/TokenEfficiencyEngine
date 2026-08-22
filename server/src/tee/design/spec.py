@@ -47,19 +47,36 @@ SECTIONS = (
 MOTIVATION_DIMS = (
     # Quantic Foundry-shaped 12 dimensions (6 pairs, 3 clusters) - see
     # data/motivations.json for definitions and encoded findings
-    "destruction", "excitement",  # Action
-    "competition", "community",  # Social
-    "challenge", "strategy",  # Mastery
-    "completion", "power",  # Achievement
-    "fantasy", "story",  # Immersion
-    "design", "discovery",  # Creativity
+    "destruction",
+    "excitement",  # Action
+    "competition",
+    "community",  # Social
+    "challenge",
+    "strategy",  # Mastery
+    "completion",
+    "power",  # Achievement
+    "fantasy",
+    "story",  # Immersion
+    "design",
+    "discovery",  # Creativity
 )
 
 ASSET_CLASSES = (
     # compatible with Phase 9 search/creation + scope weights
-    "prop", "hero_prop", "modular_kit", "character", "creature",
-    "environment_set", "material", "vfx", "sfx", "music", "ui_screen",
-    "level", "mechanic_system", "cinematic",
+    "prop",
+    "hero_prop",
+    "modular_kit",
+    "character",
+    "creature",
+    "environment_set",
+    "material",
+    "vfx",
+    "sfx",
+    "music",
+    "ui_screen",
+    "level",
+    "mechanic_system",
+    "cinematic",
 )
 
 
@@ -75,16 +92,15 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         raise _fail("$", "spec must be a JSON object", "wrap the spec in an object")
     if spec.get("spec") != SPEC_VERSION:
         raise _fail(
-            "spec", f"missing or wrong version tag (got {spec.get('spec')!r})",
+            "spec",
+            f"missing or wrong version tag (got {spec.get('spec')!r})",
             f'set "spec": "{SPEC_VERSION}"',
         )
-    unknown = [
-        k for k in spec
-        if k not in (*SECTIONS, "spec", "name") and not k.startswith("_")
-    ]
+    unknown = [k for k in spec if k not in (*SECTIONS, "spec", "name") and not k.startswith("_")]
     if unknown:
         raise _fail(
-            "$", f"unknown section(s) {unknown}",
+            "$",
+            f"unknown section(s) {unknown}",
             f"sections are: {', '.join(SECTIONS)}",
         )
     meta = spec.get("meta")
@@ -95,7 +111,8 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
     bad_dims = [d for d in vector if d not in MOTIVATION_DIMS]
     if bad_dims:
         raise _fail(
-            "meta.audience.motivations", f"unknown dimension(s) {bad_dims}",
+            "meta.audience.motivations",
+            f"unknown dimension(s) {bad_dims}",
             f"dimensions: {', '.join(MOTIVATION_DIMS)}",
         )
     for dim, value in vector.items():
@@ -111,7 +128,8 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
     for i, step in enumerate(core.get("steps", [])):
         if not isinstance(step, dict) or "action" not in step:
             raise _fail(
-                f"core_loop.steps[{i}]", "each step needs an 'action'",
+                f"core_loop.steps[{i}]",
+                "each step needs an 'action'",
                 'steps: [{"action": "scavenge", "target_s": 40}, …]',
             )
     economy = spec.get("economy") or {}
@@ -120,7 +138,8 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         kind = node.get("kind")
         if kind not in ("faucet", "sink", "converter"):
             raise _fail(
-                f"economy.nodes[{i}].kind", f"unknown kind {kind!r}",
+                f"economy.nodes[{i}].kind",
+                f"unknown kind {kind!r}",
                 "kinds: faucet, sink, converter",
             )
         for field in ("currency",) if kind != "converter" else ("from", "to"):
@@ -147,7 +166,8 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         cls = entry.get("class")
         if cls not in ASSET_CLASSES:
             raise _fail(
-                f"content_list[{i}].class", f"unknown asset class {cls!r}",
+                f"content_list[{i}].class",
+                f"unknown asset class {cls!r}",
                 f"classes (Phase 9-compatible): {', '.join(ASSET_CLASSES)}",
             )
     return {"ok": True, "sections": [s for s in SECTIONS if s in spec]}
@@ -166,14 +186,17 @@ def render_one_pager(spec: dict[str, Any]) -> str:
     lines += [f"*{positioning}*", ""]
     comparables = meta.get("comparables", [])
     if comparables:
-        lines.append("**Like** " + "; ".join(
-            f"{c['name']} — but {c.get('delta', '?')}" for c in comparables
-        ))
+        lines.append(
+            "**Like** " + "; ".join(f"{c['name']} — but {c.get('delta', '?')}" for c in comparables)
+        )
         lines.append("")
     verbs = core.get("verbs", [])
     if verbs:
-        lines.append(f"**You** {', '.join(verbs[:-1])} and {verbs[-1]}." if len(verbs) > 1
-                     else f"**You** {verbs[0]}.")
+        lines.append(
+            f"**You** {', '.join(verbs[:-1])} and {verbs[-1]}."
+            if len(verbs) > 1
+            else f"**You** {verbs[0]}."
+        )
     steps = core.get("steps", [])
     if steps:
         loop = " → ".join(s["action"] for s in steps)

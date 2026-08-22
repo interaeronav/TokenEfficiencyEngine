@@ -140,7 +140,7 @@ class AssetStore:
         text, text_origin = license_text, "backend"
         if text is None:
             text, text_origin = self._snapshot_license_text(decision.spdx)
-        credit = f"\"{name}\" by {author}"
+        credit = f'"{name}" by {author}'
         if source_url:
             credit += f" ({source_url})"
         credit += f", licensed {decision.spdx}"
@@ -168,9 +168,7 @@ class AssetStore:
         if not url:
             return None, "unavailable"
         try:
-            text = assets_http.fetch_bytes(url, timeout_s=15).decode(
-                "utf-8", errors="replace"
-            )
+            text = assets_http.fetch_bytes(url, timeout_s=15).decode("utf-8", errors="replace")
             return text, "snapshot"
         except TeeError:
             # Offline is not a reason to refuse a *gated* license; record

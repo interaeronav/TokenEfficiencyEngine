@@ -68,13 +68,13 @@ def test_lint_catches_seeded_hallucinations():
     by_symbol = {f["symbol"]: f for f in out["findings"]}
     varies = by_symbol.get("<varies>")
     assert varies and "v30.00" in varies["fix"]
-    passengers = next(
-        f for s, f in by_symbol.items() if "GetPassengers" in s
-    )
+    passengers = next(f for s, f in by_symbol.items() if "GetPassengers" in s)
     assert "GetOccupants" in passengers["fix"]
     explode = next(f for s, f in by_symbol.items() if "Explode" in s)
-    assert "not in the button_device digest entry" in explode["fix"] or \
-        "not on button_device" in explode["fix"]
+    assert (
+        "not in the button_device digest entry" in explode["fix"]
+        or "not on button_device" in explode["fix"]
+    )
     magic = next((f for s, f in by_symbol.items() if "MagicEvent" in s), None)
     assert magic and "listenable" in magic["fix"]
 
@@ -143,8 +143,14 @@ def test_capability_probe_degrades_cleanly():
 def test_scene_graph_batch_normalizes_coordinates():
     uefn = FakeUefn()
     out = uefn.entity_batch(
-        [{"op": "create_entity", "name": "Crate", "position_xyz": [512, 256, 128],
-          "components": ["Transform", "mesh_component"]}]
+        [
+            {
+                "op": "create_entity",
+                "name": "Crate",
+                "position_xyz": [512, 256, 128],
+                "components": ["Transform", "mesh_component"],
+            }
+        ]
     )
     eid = out["created"][0]
     entities = uefn.entities()
@@ -170,8 +176,10 @@ def _good_asset():
         "complexity": "medium",
         "dims_m": [0.8, 0.8, 0.8],  # S size class
         "lods": [{"tris": 650}, {"tris": 320}, {"tris": 160}],
-        "textures": [{"name": "crate_D", "px": [1024, 1024]},
-                     {"name": "crate_SRM", "px": [1024, 1024]}],
+        "textures": [
+            {"name": "crate_D", "px": [1024, 1024]},
+            {"name": "crate_SRM", "px": [1024, 1024]},
+        ],
         "material_sections": 1,
         "collision_meshes": ["UCX_crate_00"],
         "applied_transforms": True,
@@ -202,8 +210,14 @@ def test_export_flags_every_seeded_violation():
     out = validate_export(bad)
     assert out["export_ready"] is False
     checks = {v["check"] for v in out["violations"]}
-    assert {"lod0_tris", "lod_count", "power_of_two", "collision_prefix",
-            "transforms", "procedural_materials"} <= checks
+    assert {
+        "lod0_tris",
+        "lod_count",
+        "power_of_two",
+        "collision_prefix",
+        "transforms",
+        "procedural_materials",
+    } <= checks
     lod0 = next(v for v in out["violations"] if v["check"] == "lod0_tris")
     assert lod0["cap"] == 400 and "decimate" in lod0["fix"]
     ucx = next(v for v in out["violations"] if v["check"] == "collision_prefix")
@@ -231,23 +245,20 @@ def app(tmp_path):
 
 def test_uefn_tools_end_to_end(tmp_path, app):
     assert app.registry.call("uefn_status", {})["mode"] == "live"
-    loaded = app.registry.call(
-        "uefn_digest_load", {"text": DIGEST_V42, "version": "v42"}
-    )
+    loaded = app.registry.call("uefn_digest_load", {"text": DIGEST_V42, "version": "v42"})
     assert loaded["classes"] >= 4
     app.registry.call("uefn_digest_load", {"text": DIGEST_V41, "version": "v41"})
     diff = app.registry.call("uefn_digest_diff", {"from": "v41", "to": "v42"})
     assert diff["breaking"]
-    lint_out = app.registry.call("uefn_lint", {"code": HALLUCINATED_SNIPPET,
-                                               "version": "v42"})
+    lint_out = app.registry.call("uefn_lint", {"code": HALLUCINATED_SNIPPET, "version": "v42"})
     assert lint_out["findings"]
-    template = app.registry.call("uefn_template", {"template": "device_subscribe",
-                                                   "version": "v42"})
+    template = app.registry.call(
+        "uefn_template", {"template": "device_subscribe", "version": "v42"}
+    )
     assert "creative_device" in template["code"]
     batch = app.registry.call(
         "uefn_entity_batch",
-        {"ops": [{"op": "create_entity", "name": "Crate",
-                  "position_xyz": [100, 0, 50]}]},
+        {"ops": [{"op": "create_entity", "name": "Crate", "position_xyz": [100, 0, 50]}]},
     )
     assert batch["created"]
     coords = app.registry.call("uefn_coords", {"luf": [1, 2, 3]})
@@ -272,9 +283,7 @@ def test_pack_channels(tmp_path, app):
 
     rough = tmp_path / "rough.png"
     Image.new("L", (64, 64), 180).save(rough)
-    out = app.registry.call(
-        "uefn_pack_channels", {"roughness": str(rough), "size": 256}
-    )
+    out = app.registry.call("uefn_pack_channels", {"roughness": str(rough), "size": 256})
     assert out["channels"] == {"R": "specular", "G": "metallic", "B": "roughness"}
     with Image.open(out["path"]) as img:
         assert img.size == (256, 256)
@@ -308,9 +317,7 @@ def test_no_agpl_and_no_epic_digest_text_in_repo():
 @pytest.mark.network
 def test_uefn_analytics_live(tmp_path, app, network):
     """Public Fortnite Data API, unauthenticated (skips offline)."""
-    out = app.registry.call(
-        "uefn_analytics", {"island": "6560-2820-9190", "interval": "day"}
-    )
+    out = app.registry.call("uefn_analytics", {"island": "6560-2820-9190", "interval": "day"})
     assert out["island"] == "6560-2820-9190"
     # either aggregated metrics or the sparse-data note - both valid
     assert len(out) > 2 or "note" in out

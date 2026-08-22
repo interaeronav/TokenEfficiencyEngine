@@ -31,9 +31,7 @@ _RULES: dict[str, Any] | None = None
 def rules_table() -> dict[str, Any]:
     global _RULES
     if _RULES is None:
-        text = (
-            resources.files("tee.assets").joinpath("data/placement_rules.json").read_text()
-        )
+        text = resources.files("tee.assets").joinpath("data/placement_rules.json").read_text()
         _RULES = json.loads(text)["rules"]
     return _RULES
 
@@ -54,9 +52,7 @@ def _require_shapely():
 # -- solving ----------------------------------------------------------------
 
 
-def solve_plan(
-    plan: list[dict[str, Any]], room: dict[str, Any]
-) -> list[dict[str, Any]]:
+def solve_plan(plan: list[dict[str, Any]], room: dict[str, Any]) -> list[dict[str, Any]]:
     """Turn relational plan items into concrete placements
     {name, class, dims, location [x, y], rotation_deg, footprint}."""
     walls = {w["id"]: w for w in room.get("walls", [])}
@@ -147,9 +143,7 @@ def validate_placement(
             entry["measured_mm"] = int(measured)
         if required is not None:
             entry["required_mm"] = int(required)
-        waivers = {
-            r for p in placements if p["name"] in objects for r in p.get("relax", [])
-        }
+        waivers = {r for p in placements if p["name"] in objects for r in p.get("relax", [])}
         if severity == "guideline" and rule_id in waivers:
             entry["note"] = "guideline relaxed by plan (recorded)"
             relaxed.append(entry)
@@ -271,7 +265,8 @@ def validate_placement(
             if place.get("class") != class_a:
                 continue
             others = [
-                p for p in placements
+                p
+                for p in placements
                 if p is not place and (class_b is None or p.get("class") == class_b)
             ]
             for other in others:

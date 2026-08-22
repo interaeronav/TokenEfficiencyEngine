@@ -43,9 +43,7 @@ def rectify(
     source pixels) to a metric texture: px_per_m sets the output density."""
     cv2, np = _require_cv()
     if len(corners) != 4:
-        raise TeeError(
-            "bad_corners", "corners must be 4 [x, y] points, clockwise from top-left."
-        )
+        raise TeeError("bad_corners", "corners must be 4 [x, y] points, clockwise from top-left.")
     img = cv2.imread(str(photo))
     if img is None:
         raise TeeError("bad_image", f"Cannot read {photo}.")

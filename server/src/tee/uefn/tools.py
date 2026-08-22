@@ -14,9 +14,7 @@ from tee.uefn.digest import digest_diff, load_digest, parse_digest
 from tee.uefn.lint import explain_error, lint
 
 
-def register_uefn_tools(
-    app, project_root: Path | str, *, uefn: UefnAdapter | None = None
-) -> None:
+def register_uefn_tools(app, project_root: Path | str, *, uefn: UefnAdapter | None = None) -> None:
     reg = app.registry
     adapter = uefn or FakeUefn(editor_present=False)  # offline until probed live
     digests: dict[str, dict[str, Any]] = {}
@@ -47,9 +45,7 @@ def register_uefn_tools(
         state["current"] = digest["version"]
         classes = sum(len(m["classes"]) for m in digest["modules"].values())
         members = sum(
-            len(c["members"])
-            for m in digest["modules"].values()
-            for c in m["classes"].values()
+            len(c["members"]) for m in digest["modules"].values() for c in m["classes"].values()
         )
         return {
             "version": digest["version"],
@@ -89,8 +85,9 @@ def register_uefn_tools(
         return adapter.entity_batch(args["ops"])
 
     def uefn_devices(args):
-        return {"devices": adapter.device_catalog(str(args["query"]),
-                                                  limit=int(args.get("limit", 5)))}
+        return {
+            "devices": adapter.device_catalog(str(args["query"]), limit=int(args.get("limit", 5)))
+        }
 
     def uefn_place_device(args):
         return adapter.place_device(str(args["device"]), args.get("xyz") or [0, 0, 0])
@@ -104,8 +101,11 @@ def register_uefn_tools(
     def export_for_uefn(args):
         report = export_mod.validate_export(args["asset"]) if args.get("asset") else None
         if report is not None and not report["export_ready"]:
-            return {**report, "exported": False,
-                    "note": "fix the violations, then re-run with entity ids"}
+            return {
+                **report,
+                "exported": False,
+                "note": "fix the violations, then re-run with entity ids",
+            }
         if not args.get("ids"):
             return report or {"note": "pass asset (preflight) and/or ids (export)"}
         adapter_name = str(args.get("adapter") or "blender")
@@ -116,12 +116,12 @@ def register_uefn_tools(
                 f"Live export needs the Blender adapter (got '{adapter_name}').",
             )
         out_path = str(
-            Path(project_root).resolve() / ".tee" / "exports" /
-            f"{args.get('name', 'asset')}.fbx"
+            Path(project_root).resolve() / ".tee" / "exports" / f"{args.get('name', 'asset')}.fbx"
         )
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
         program = export_mod.export_program(
-            [str(i) for i in args["ids"]], out_path,
+            [str(i) for i in args["ids"]],
+            out_path,
             autogen_lods=bool(args.get("autogen_lods", True)),
         )
         result = blender.execute_python(program, timeout=300)
@@ -131,9 +131,7 @@ def register_uefn_tools(
         return payload
 
     def uefn_pack_channels(args):
-        out = Path(project_root) / ".tee" / "exports" / str(
-            args.get("name", "packed_srm.png")
-        )
+        out = Path(project_root) / ".tee" / "exports" / str(args.get("name", "packed_srm.png"))
         return export_mod.pack_channels(
             Path(args["specular"]) if args.get("specular") else None,
             Path(args["metallic"]) if args.get("metallic") else None,
@@ -195,7 +193,8 @@ def register_uefn_tools(
             {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string"}, "text": {"type": "string"},
+                    "path": {"type": "string"},
+                    "text": {"type": "string"},
                     "version": {"type": "string"},
                 },
             },
@@ -234,8 +233,7 @@ def register_uefn_tools(
             "uefn_error",
             "One-line fix for a Verse compiler error code (incl. the "
             "stale-validation false-positive class).",
-            {"type": "object", "properties": {"code": {"type": "string"}},
-             "required": ["code"]},
+            {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]},
             uefn_error,
             tags=["uefn", "verse", "error", "fix"],
         ),
@@ -248,7 +246,8 @@ def register_uefn_tools(
             {
                 "type": "object",
                 "properties": {
-                    "template": {"type": "string"}, "name": {"type": "string"},
+                    "template": {"type": "string"},
+                    "name": {"type": "string"},
                     "version": {"type": "string"},
                 },
             },
@@ -268,8 +267,7 @@ def register_uefn_tools(
             "uefn_entity_batch",
             "Typed Scene Graph batch: create_entity/set_transform/"
             "add_component/delete_entity, positions in UE XYZ.",
-            {"type": "object", "properties": {"ops": {"type": "array"}},
-             "required": ["ops"]},
+            {"type": "object", "properties": {"ops": {"type": "array"}}, "required": ["ops"]},
             uefn_entity_batch,
             tags=["uefn", "scene-graph", "batch", "create"],
         ),
@@ -277,9 +275,11 @@ def register_uefn_tools(
             "uefn_devices",
             "Device catalog search answered from the LOCAL index - never a "
             "forwarded 4,698-row dump.",
-            {"type": "object", "properties": {"query": {"type": "string"},
-                                              "limit": {"type": "integer"}},
-             "required": ["query"]},
+            {
+                "type": "object",
+                "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}},
+                "required": ["query"],
+            },
             uefn_devices,
             tags=["uefn", "devices", "catalog", "search"],
         ),
@@ -287,9 +287,11 @@ def register_uefn_tools(
             "uefn_place_device",
             "Place a Creative device (parallel, eventually-legacy family "
             "next to Scene Graph entities) at a UE XYZ position.",
-            {"type": "object", "properties": {"device": {"type": "string"},
-                                              "xyz": {"type": "array"}},
-             "required": ["device"]},
+            {
+                "type": "object",
+                "properties": {"device": {"type": "string"}, "xyz": {"type": "array"}},
+                "required": ["device"],
+            },
             uefn_place_device,
             tags=["uefn", "devices", "place"],
         ),
@@ -308,8 +310,7 @@ def register_uefn_tools(
             "at -50%, power-of-two <=2K textures, UCX collision naming, "
             "applied transforms, baked materials) - every violation with "
             "the exact fix.",
-            {"type": "object", "properties": {"asset": {"type": "object"}},
-             "required": ["asset"]},
+            {"type": "object", "properties": {"asset": {"type": "object"}}, "required": ["asset"]},
             export_preflight,
             tags=["uefn", "export", "preflight", "budget", "validate"],
         ),
@@ -321,8 +322,10 @@ def register_uefn_tools(
             {
                 "type": "object",
                 "properties": {
-                    "asset": {"type": "object"}, "ids": {"type": "array"},
-                    "name": {"type": "string"}, "autogen_lods": {"type": "boolean"},
+                    "asset": {"type": "object"},
+                    "ids": {"type": "array"},
+                    "name": {"type": "string"},
+                    "autogen_lods": {"type": "boolean"},
                     "adapter": {"type": "string"},
                 },
             },
@@ -331,13 +334,14 @@ def register_uefn_tools(
         ),
         VirtualTool(
             "uefn_pack_channels",
-            "Pack the UEFN utility map: Specular=R, Metallic=G, Roughness=B "
-            "(power-of-two output).",
+            "Pack the UEFN utility map: Specular=R, Metallic=G, Roughness=B (power-of-two output).",
             {
                 "type": "object",
                 "properties": {
-                    "specular": {"type": "string"}, "metallic": {"type": "string"},
-                    "roughness": {"type": "string"}, "size": {"type": "integer"},
+                    "specular": {"type": "string"},
+                    "metallic": {"type": "string"},
+                    "roughness": {"type": "string"},
+                    "size": {"type": "integer"},
                     "name": {"type": "string"},
                 },
             },
@@ -348,8 +352,7 @@ def register_uefn_tools(
             "uefn_coords",
             "LUF <-> UE XYZ conversion at the documented boundary (the UEFN "
             "MCP transform bug class, fixed server-side).",
-            {"type": "object", "properties": {"luf": {"type": "array"},
-                                              "xyz": {"type": "array"}}},
+            {"type": "object", "properties": {"luf": {"type": "array"}, "xyz": {"type": "array"}}},
             uefn_coords,
             tags=["uefn", "coordinates", "luf", "transform"],
         ),
@@ -358,9 +361,11 @@ def register_uefn_tools(
             "Island engagement from the public Fortnite Data API "
             "(unauthenticated): minutes played / per-player, compactly "
             "aggregated, TTL-cached.",
-            {"type": "object", "properties": {"island": {"type": "string"},
-                                              "interval": {"type": "string"}},
-             "required": ["island"]},
+            {
+                "type": "object",
+                "properties": {"island": {"type": "string"}, "interval": {"type": "string"}},
+                "required": ["island"],
+            },
             uefn_analytics,
             tags=["uefn", "analytics", "island", "metrics"],
         ),

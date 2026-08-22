@@ -25,9 +25,7 @@ _MATERIALS: list[dict[str, Any]] | None = None
 def _load() -> list[dict[str, Any]]:
     global _MATERIALS
     if _MATERIALS is None:
-        text = (
-            resources.files("tee.assets").joinpath("data/pbr_materials.json").read_text()
-        )
+        text = resources.files("tee.assets").joinpath("data/pbr_materials.json").read_text()
         _MATERIALS = json.loads(text)
     return _MATERIALS
 

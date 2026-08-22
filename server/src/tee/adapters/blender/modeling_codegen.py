@@ -276,7 +276,7 @@ def _param_set(op):
 '''
 
 # dispatch branches appended into the batch interpreter
-MODELING_DISPATCH = '''
+MODELING_DISPATCH = """
     elif _kind == "wall_with_openings":
         _obj = _wall_with_openings(_op)
         _eid = _uid(_obj)
@@ -323,4 +323,4 @@ MODELING_DISPATCH = '''
         if _eid not in _created and _eid not in _modified:
             _modified.append(_eid)
         _touched[_eid] = _obj
-'''
+"""

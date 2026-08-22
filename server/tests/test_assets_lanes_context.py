@@ -93,9 +93,7 @@ def test_generation_cost_gate():
 
 def test_generation_wait_polls_server_side():
     driver = FakeDriver(paid=True, polls_needed=3)
-    out = _lane(driver).generate(
-        "fakegen", "text_to_model", "a chair", confirm_cost=True
-    )
+    out = _lane(driver).generate("fakegen", "text_to_model", "a chair", confirm_cost=True)
     assert out["ok"] and driver.polls == 3  # polling happened HERE, not in context
     assert out["model_url"].endswith(".glb")
     prov = out["provenance"]
@@ -206,8 +204,15 @@ ROOM = {
 
 def test_solve_against_wall():
     placements = solve_plan(
-        [{"name": "sofa", "class": "sofa", "dims": [2.1, 0.9, 0.8], "anchor": "south",
-          "offset": 2.0}],
+        [
+            {
+                "name": "sofa",
+                "class": "sofa",
+                "dims": [2.1, 0.9, 0.8],
+                "anchor": "south",
+                "offset": 2.0,
+            }
+        ],
         ROOM,
     )
     x, y = placements[0]["location"]
@@ -218,8 +223,7 @@ def test_solve_against_wall():
 def test_validator_catches_blocked_door_swing():
     """Acceptance: blocked door swing (code severity)."""
     placements = solve_plan(
-        [{"name": "chair", "class": "chair", "dims": [0.5, 0.5, 0.9],
-          "location": [0.5, 0.4]}],
+        [{"name": "chair", "class": "chair", "dims": [0.5, 0.5, 0.9], "location": [0.5, 0.4]}],
         ROOM,
     )
     report = validate_placement(placements, ROOM)
@@ -232,10 +236,22 @@ def test_validator_catches_blocked_door_swing():
 def test_validator_catches_narrow_corridor():
     """Acceptance: sub-760 mm corridor between the two doors."""
     placements = [
-        {"name": "wardrobe1", "class": "wardrobe", "dims": [2.6, 1.3, 2.0],
-         "location": [1.35, 1.5], "rotation_deg": 0, "relax": []},
-        {"name": "wardrobe2", "class": "wardrobe", "dims": [1.0, 1.25, 2.0],
-         "location": [3.6, 1.5], "rotation_deg": 0, "relax": []},
+        {
+            "name": "wardrobe1",
+            "class": "wardrobe",
+            "dims": [2.6, 1.3, 2.0],
+            "location": [1.35, 1.5],
+            "rotation_deg": 0,
+            "relax": [],
+        },
+        {
+            "name": "wardrobe2",
+            "class": "wardrobe",
+            "dims": [1.0, 1.25, 2.0],
+            "location": [3.6, 1.5],
+            "rotation_deg": 0,
+            "relax": [],
+        },
     ]
     report = validate_placement(placements, ROOM)
     passage = [v for v in report["violations"] if v["rule"] == "passage_min"]
@@ -245,8 +261,15 @@ def test_validator_catches_narrow_corridor():
 
 def test_validator_clean_room_reports_check_count():
     placements = solve_plan(
-        [{"name": "sofa", "class": "sofa", "dims": [2.1, 0.9, 0.8], "anchor": "north",
-          "offset": 2.0}],
+        [
+            {
+                "name": "sofa",
+                "class": "sofa",
+                "dims": [2.1, 0.9, 0.8],
+                "anchor": "north",
+                "offset": 2.0,
+            }
+        ],
         ROOM,
     )
     report = validate_placement(placements, ROOM)
@@ -257,12 +280,30 @@ def test_validator_clean_room_reports_check_count():
 
 def test_work_triangle_trap():
     placements = [
-        {"name": "sink", "class": "sink", "dims": [0.6, 0.5, 0.9],
-         "location": [0.4, 2.6], "rotation_deg": 0, "relax": []},
-        {"name": "stove", "class": "stove", "dims": [0.76, 0.65, 0.91],
-         "location": [3.6, 2.6], "rotation_deg": 0, "relax": []},
-        {"name": "fridge", "class": "refrigerator", "dims": [0.75, 0.7, 1.75],
-         "location": [3.6, 0.6], "rotation_deg": 0, "relax": []},
+        {
+            "name": "sink",
+            "class": "sink",
+            "dims": [0.6, 0.5, 0.9],
+            "location": [0.4, 2.6],
+            "rotation_deg": 0,
+            "relax": [],
+        },
+        {
+            "name": "stove",
+            "class": "stove",
+            "dims": [0.76, 0.65, 0.91],
+            "location": [3.6, 2.6],
+            "rotation_deg": 0,
+            "relax": [],
+        },
+        {
+            "name": "fridge",
+            "class": "refrigerator",
+            "dims": [0.75, 0.7, 1.75],
+            "location": [3.6, 0.6],
+            "rotation_deg": 0,
+            "relax": [],
+        },
     ]
     report = validate_placement(placements, ROOM)
     tri = [v for v in report["violations"] if v["rule"] == "work_triangle"]
@@ -271,16 +312,28 @@ def test_work_triangle_trap():
 
 def test_guideline_relaxes_with_note_code_never():
     placements = [
-        {"name": "sofa", "class": "sofa", "dims": [2.0, 0.9, 0.8],
-         "location": [2.0, 1.5], "rotation_deg": 0, "relax": ["back_to_wall"]},
+        {
+            "name": "sofa",
+            "class": "sofa",
+            "dims": [2.0, 0.9, 0.8],
+            "location": [2.0, 1.5],
+            "rotation_deg": 0,
+            "relax": ["back_to_wall"],
+        },
     ]
     report = validate_placement(placements, ROOM)
     assert not any(v["rule"] == "back_to_wall" for v in report["violations"])
     assert any(v["rule"] == "back_to_wall" for v in report.get("relaxed", []))
     # code rules ignore relax
     placements = [
-        {"name": "chair", "class": "chair", "dims": [0.5, 0.5, 0.9],
-         "location": [0.5, 0.4], "rotation_deg": 0, "relax": ["door_swing_clear"]},
+        {
+            "name": "chair",
+            "class": "chair",
+            "dims": [0.5, 0.5, 0.9],
+            "location": [0.5, 0.4],
+            "rotation_deg": 0,
+            "relax": ["door_swing_clear"],
+        },
     ]
     report = validate_placement(placements, ROOM)
     assert any(v["rule"] == "door_swing_clear" for v in report["violations"])

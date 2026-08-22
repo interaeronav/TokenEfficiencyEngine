@@ -32,9 +32,18 @@ def test_tools_registered_and_searchable(app):
     assert any(h["name"] == "as_search" for h in hits)
     names = app.registry.names()
     for expected in (
-        "as_sources", "as_search", "as_import", "as_credits", "as_materials",
-        "as_material", "as_generate", "as_style_brief", "as_sun", "as_place",
-        "as_ingest", "as_photo_material",
+        "as_sources",
+        "as_search",
+        "as_import",
+        "as_credits",
+        "as_materials",
+        "as_material",
+        "as_generate",
+        "as_style_brief",
+        "as_sun",
+        "as_place",
+        "as_ingest",
+        "as_photo_material",
     ):
         assert expected in names
 
@@ -91,9 +100,7 @@ def test_as_place_refuses_apply_on_violation(app):
         "walls": [{"id": "south", "a": [0, 0], "b": [4, 0]}],
         "doors": [{"id": "d1", "hinge": [0.05, 0.0], "width": 0.86}],
     }
-    created = app.run_batch(
-        "fake", [{"op": "create", "kind": "chair", "name": "Chair"}]
-    )
+    created = app.run_batch("fake", [{"op": "create", "kind": "chair", "name": "Chair"}])
     plan = [
         {
             "name": "chair",

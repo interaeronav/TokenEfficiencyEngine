@@ -20,15 +20,20 @@ def coop_spec() -> dict[str, Any]:
             "team_size": 4,
             "audience": {
                 "motivations": {
-                    "community": 0.9, "excitement": 0.7, "discovery": 0.6,
-                    "competition": 0.2, "completion": 0.4,
+                    "community": 0.9,
+                    "excitement": 0.7,
+                    "discovery": 0.6,
+                    "competition": 0.2,
+                    "completion": 0.4,
                 },
                 "age_range": [16, 34],
             },
             "comparables": [
                 {"name": "R.E.P.O.", "delta": "underwater physics + air as the shared timer"},
-                {"name": "Lethal Company",
-                 "delta": "no quota death-spiral; wholesale co-op economy"},
+                {
+                    "name": "Lethal Company",
+                    "delta": "no quota death-spiral; wholesale co-op economy",
+                },
                 {"name": "Peak", "delta": "salvage crane co-op instead of climbing"},
             ],
         },
@@ -56,23 +61,51 @@ def coop_spec() -> dict[str, Any]:
         "progression": {
             "unlocks": [
                 {"id": "u_winch", "at": 1, "teaches": "winch", "difficulty": 1},
-                {"id": "u_cutter", "at": 2, "teaches": "cutter", "difficulty": 2,
-                 "requires": ["u_winch"]},
-                {"id": "u_sonar", "at": 3, "teaches": "sonar", "difficulty": 3,
-                 "requires": ["u_cutter"]},
+                {
+                    "id": "u_cutter",
+                    "at": 2,
+                    "teaches": "cutter",
+                    "difficulty": 2,
+                    "requires": ["u_winch"],
+                },
+                {
+                    "id": "u_sonar",
+                    "at": 3,
+                    "teaches": "sonar",
+                    "difficulty": 3,
+                    "requires": ["u_cutter"],
+                },
                 {"id": "u_deep", "at": 6, "difficulty": 4, "requires": ["u_sonar"]},
             ],
         },
         "level_macro": {
             "beats": [
-                {"space": "shallows", "mechanics": ["winch"], "intensity": 1,
-                 "content_classes": ["environment_set"]},
-                {"space": "reef wreck", "mechanics": ["winch", "cutter"], "intensity": 3,
-                 "exotics": ["moray den"], "content_classes": ["environment_set", "prop"]},
-                {"space": "trench", "mechanics": ["cutter", "sonar"], "intensity": 5,
-                 "content_classes": ["environment_set", "creature"]},
-                {"space": "the liner", "mechanics": ["winch", "cutter", "sonar"], "intensity": 7,
-                 "exotics": ["collapsing deck"], "content_classes": ["level"]},
+                {
+                    "space": "shallows",
+                    "mechanics": ["winch"],
+                    "intensity": 1,
+                    "content_classes": ["environment_set"],
+                },
+                {
+                    "space": "reef wreck",
+                    "mechanics": ["winch", "cutter"],
+                    "intensity": 3,
+                    "exotics": ["moray den"],
+                    "content_classes": ["environment_set", "prop"],
+                },
+                {
+                    "space": "trench",
+                    "mechanics": ["cutter", "sonar"],
+                    "intensity": 5,
+                    "content_classes": ["environment_set", "creature"],
+                },
+                {
+                    "space": "the liner",
+                    "mechanics": ["winch", "cutter", "sonar"],
+                    "intensity": 7,
+                    "exotics": ["collapsing deck"],
+                    "content_classes": ["level"],
+                },
             ],
         },
         "content_list": [

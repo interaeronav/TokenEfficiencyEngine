@@ -16,8 +16,7 @@ pytestmark = pytest.mark.dcc
 @pytest.fixture()
 def app(blender_bridge, tmp_path):
     adapter = BlenderAdapter(BlenderWire(port=blender_bridge), workdir=str(tmp_path))
-    application = TeeApp({"blender": adapter}, project_root=tmp_path,
-                         allow_code_exec=True)
+    application = TeeApp({"blender": adapter}, project_root=tmp_path, allow_code_exec=True)
     register_uefn_tools(application, tmp_path, uefn=FakeUefn())
     adapter.execute_python(
         "import bpy\n"
@@ -32,8 +31,14 @@ def app(blender_bridge, tmp_path):
 def test_export_for_uefn_generates_lods_and_fbx(app, tmp_path):
     created = app.run_batch(
         "blender",
-        [{"op": "create", "kind": "uv_sphere", "name": "Prop",
-          "props": {"radius": 0.4, "segments": 24}}],
+        [
+            {
+                "op": "create",
+                "kind": "uv_sphere",
+                "name": "Prop",
+                "props": {"radius": 0.4, "segments": 24},
+            }
+        ],
     )
     eid = created["created"][0]
     out = app.registry.call(

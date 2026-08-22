@@ -139,8 +139,7 @@ def download_file(
         if actual != expected_md5.lower():
             raise TeeError(
                 "checksum_mismatch",
-                f"MD5 mismatch for {dest.name}: expected {expected_md5[:12]}…, "
-                f"got {actual[:12]}….",
+                f"MD5 mismatch for {dest.name}: expected {expected_md5[:12]}…, got {actual[:12]}….",
                 fix="Retry the download; if it persists the backend catalog is stale.",
             )
     dest.parent.mkdir(parents=True, exist_ok=True)

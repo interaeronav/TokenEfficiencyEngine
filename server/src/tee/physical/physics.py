@@ -34,16 +34,41 @@ SETTLE_DEFAULTS = {
 
 # cloth presets: Blender's bundled parameter sets (5.2 values)
 CLOTH_PRESETS = {
-    "cotton": {"mass": 0.3, "tension_stiffness": 15, "compression_stiffness": 15,
-               "shear_stiffness": 15, "bending_stiffness": 0.5},
-    "denim": {"mass": 1.0, "tension_stiffness": 40, "compression_stiffness": 40,
-              "shear_stiffness": 40, "bending_stiffness": 10},
-    "leather": {"mass": 0.4, "tension_stiffness": 80, "compression_stiffness": 80,
-                "shear_stiffness": 80, "bending_stiffness": 150},
-    "silk": {"mass": 0.15, "tension_stiffness": 5, "compression_stiffness": 5,
-             "shear_stiffness": 5, "bending_stiffness": 0.05},
-    "rubber": {"mass": 3.0, "tension_stiffness": 15, "compression_stiffness": 15,
-               "shear_stiffness": 15, "bending_stiffness": 25},
+    "cotton": {
+        "mass": 0.3,
+        "tension_stiffness": 15,
+        "compression_stiffness": 15,
+        "shear_stiffness": 15,
+        "bending_stiffness": 0.5,
+    },
+    "denim": {
+        "mass": 1.0,
+        "tension_stiffness": 40,
+        "compression_stiffness": 40,
+        "shear_stiffness": 40,
+        "bending_stiffness": 10,
+    },
+    "leather": {
+        "mass": 0.4,
+        "tension_stiffness": 80,
+        "compression_stiffness": 80,
+        "shear_stiffness": 80,
+        "bending_stiffness": 150,
+    },
+    "silk": {
+        "mass": 0.15,
+        "tension_stiffness": 5,
+        "compression_stiffness": 5,
+        "shear_stiffness": 5,
+        "bending_stiffness": 0.05,
+    },
+    "rubber": {
+        "mass": 3.0,
+        "tension_stiffness": 15,
+        "compression_stiffness": 15,
+        "shear_stiffness": 15,
+        "bending_stiffness": 25,
+    },
 }
 
 DETERMINISM_NOTE = (
@@ -189,8 +214,12 @@ result = {{
 
 
 def cloth_program(
-    cloth_id: str, collision_ids: list[str] | None, *, preset: str = "cotton",
-    seconds: float = 3.0, apply_result: bool = False,
+    cloth_id: str,
+    collision_ids: list[str] | None,
+    *,
+    preset: str = "cotton",
+    seconds: float = 3.0,
+    apply_result: bool = False,
 ) -> str:
     if preset not in CLOTH_PRESETS:
         raise TeeError(
@@ -254,8 +283,12 @@ result = {{
 
 
 def fluid_program(
-    domain_size: list[float], inflow_location: list[float], *,
-    resolution: int = 64, frames: int = 48, cache_dir: str = "",
+    domain_size: list[float],
+    inflow_location: list[float],
+    *,
+    resolution: int = 64,
+    frames: int = 48,
+    cache_dir: str = "",
     fluid_type: str = "liquid",
 ) -> str:
     """Mantaflow setup + synchronous bake. Cost-gated at the tool layer:

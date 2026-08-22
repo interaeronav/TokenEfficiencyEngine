@@ -17,8 +17,7 @@ class ShuffledAdapter:
     def __init__(self, seed: int = 0):
         self.rng = random.Random(seed)
         self.rows = [
-            Entity(id=f"b{100 + i}", name=f"Obj{i}", kind="mesh",
-                   summary={"location": [i, 0, 0]})
+            Entity(id=f"b{100 + i}", name=f"Obj{i}", kind="mesh", summary={"location": [i, 0, 0]})
             for i in range(12)
         ]
         self._connected = True
@@ -66,9 +65,11 @@ def test_tee_codegen_is_use_nodes_clean_on_5x():
     from tee.adapters.blender import codegen
 
     program = codegen.program_batch(
-        [{"op": "create", "kind": "cube", "name": "C"},
-         {"op": "assign_material", "id": "b1", "props": {"base_color": [1, 0, 0]}},
-         {"op": "wall_with_openings", "props": {"start": [0, 0], "end": [2, 0]}}],
+        [
+            {"op": "create", "kind": "cube", "name": "C"},
+            {"op": "assign_material", "id": "b1", "props": {"base_color": [1, 0, 0]}},
+            {"op": "wall_with_openings", "props": {"start": [0, 0], "end": [2, 0]}},
+        ],
         "test",
     )
     # the only use_nodes write is inside the version guard

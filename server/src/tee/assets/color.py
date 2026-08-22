@@ -37,9 +37,7 @@ def srgb_to_lab(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
 # -- CIEDE2000 --------------------------------------------------------------
 
 
-def delta_e2000(
-    lab1: tuple[float, float, float], lab2: tuple[float, float, float]
-) -> float:
+def delta_e2000(lab1: tuple[float, float, float], lab2: tuple[float, float, float]) -> float:
     l1, a1, b1 = lab1
     l2, a2, b2 = lab2
     c1 = math.hypot(a1, b1)
@@ -92,10 +90,7 @@ def delta_e2000(
     s_h = 1 + 0.015 * c_bar_p * t
     r_t = -math.sin(math.radians(2 * d_theta)) * r_c
     return math.sqrt(
-        (dl / s_l) ** 2
-        + (dc / s_c) ** 2
-        + (dh / s_h) ** 2
-        + r_t * (dc / s_c) * (dh / s_h)
+        (dl / s_l) ** 2 + (dc / s_c) ** 2 + (dh / s_h) ** 2 + r_t * (dc / s_c) * (dh / s_h)
     )
 
 
@@ -120,9 +115,11 @@ def kmeans_palette(
         for i, lab in enumerate(labs):
             best = min(
                 range(k),
-                key=lambda c: (lab[0] - centers[c][0]) ** 2
-                + (lab[1] - centers[c][1]) ** 2
-                + (lab[2] - centers[c][2]) ** 2,
+                key=lambda c: (
+                    (lab[0] - centers[c][0]) ** 2
+                    + (lab[1] - centers[c][1]) ** 2
+                    + (lab[2] - centers[c][2]) ** 2
+                ),
             )
             if best != assign[i]:
                 assign[i] = best

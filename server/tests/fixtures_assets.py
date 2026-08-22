@@ -30,13 +30,7 @@ def build_glb(
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": [{"mesh": 0, "scale": [scale, scale, scale]}],
-        "meshes": [
-            {
-                "primitives": [
-                    {"attributes": {"POSITION": 0}, "indices": 1, "mode": 4}
-                ]
-            }
-        ],
+        "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1, "mode": 4}]}],
         "accessors": [
             {
                 "componentType": 5126,
@@ -105,18 +99,33 @@ class FakeBackend(SourceBackend):
 def make_rows() -> list[AssetRow]:
     return [
         AssetRow(
-            id="sofa1", name="Big Sofa", source="fakesource", license="CC0-1.0",
-            asset_class="model", tris=9000, dims_m=[2.1, 0.9, 0.8],
+            id="sofa1",
+            name="Big Sofa",
+            source="fakesource",
+            license="CC0-1.0",
+            asset_class="model",
+            tris=9000,
+            dims_m=[2.1, 0.9, 0.8],
             tags=["sofa", "seating", "fabric"],
         ),
         AssetRow(
-            id="chair1", name="Wood Chair", source="fakesource", license="CC-BY-4.0",
-            asset_class="model", tris=4000, dims_m=[0.5, 0.55, 0.9],
+            id="chair1",
+            name="Wood Chair",
+            source="fakesource",
+            license="CC-BY-4.0",
+            asset_class="model",
+            tris=4000,
+            dims_m=[0.5, 0.55, 0.9],
             tags=["chair", "seating", "wood"],
         ),
         AssetRow(
-            id="ncchair", name="NC Chair", source="fakesource", license="CC-BY-NC-4.0",
-            asset_class="model", tris=100, dims_m=[0.5, 0.5, 0.9],
+            id="ncchair",
+            name="NC Chair",
+            source="fakesource",
+            license="CC-BY-NC-4.0",
+            asset_class="model",
+            tris=100,
+            dims_m=[0.5, 0.5, 0.9],
             tags=["chair", "nc"],
         ),
     ]

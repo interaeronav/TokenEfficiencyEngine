@@ -64,11 +64,7 @@ class Smithsonian(SourceBackend):
                 fix="Only CC0-flagged records are usable; pick another hit.",
             )
         files: list[tuple[str, str, str | None]] = []
-        media = (
-            content.get("descriptiveNonRepeating", {})
-            .get("online_media", {})
-            .get("media", [])
-        )
+        media = content.get("descriptiveNonRepeating", {}).get("online_media", {}).get("media", [])
         for item in media:
             for resource in item.get("resources", []) or []:
                 url = resource.get("url", "")
@@ -82,7 +78,10 @@ class Smithsonian(SourceBackend):
             name=name,
             license_id="CC0-1.0",
             files=files,
-            attribution={"author": "Smithsonian Institution", "url": f"https://si.edu/object/{asset_id}"},
+            attribution={
+                "author": "Smithsonian Institution",
+                "url": f"https://si.edu/object/{asset_id}",
+            },
             meta={"class": "model"},
         )
 

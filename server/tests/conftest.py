@@ -32,8 +32,8 @@ TEE_BRIDGE_DIR = Path(__file__).resolve().parents[2] / "adapters" / "blender" / 
 # skipped half the live matrix there. Discover both.
 _ADDON_ENV = os.environ.get("TEE_BLENDER_MCP_ADDON")
 _EXTENSION_GLOBS = (
-    "~/Library/Application Support/Blender/*/extensions/*/mcp",   # macOS
-    "~/.config/blender/*/extensions/*/mcp",                       # Linux
+    "~/Library/Application Support/Blender/*/extensions/*/mcp",  # macOS
+    "~/.config/blender/*/extensions/*/mcp",  # Linux
     "~/AppData/Roaming/Blender Foundation/Blender/*/extensions/*/mcp",  # Windows
 )
 
@@ -52,9 +52,9 @@ def find_official_addon() -> tuple[str, str] | None:
             candidates.extend(sorted(anchor.glob(str(Path(*expanded.parts[1:])))))
     for candidate in candidates:
         if (candidate / "blender_mcp_addon" / "cli.py").exists():
-            return str(candidate), "blender_mcp_addon"     # checkout layout
+            return str(candidate), "blender_mcp_addon"  # checkout layout
         if (candidate / "cli.py").exists():
-            return str(candidate.parent), candidate.name   # installed extension
+            return str(candidate.parent), candidate.name  # installed extension
     return None
 
 

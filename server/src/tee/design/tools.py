@@ -75,8 +75,7 @@ def register_design_tools(app, project_root: Path | str) -> SpecStore:
             "gd_validate",
             "Structurally validate a tee-design/1 spec; errors name the "
             "exact fix. Quality problems are gd_check's job.",
-            {"type": "object", "properties": {"spec": {"type": "object"}},
-             "required": ["spec"]},
+            {"type": "object", "properties": {"spec": {"type": "object"}}, "required": ["spec"]},
             gd_validate,
             tags=["design", "spec", "validate"],
         ),
@@ -84,16 +83,14 @@ def register_design_tools(app, project_root: Path | str) -> SpecStore:
             "gd_store",
             "Validate and store a design spec (content-addressed revisions; "
             "a design change is a diff, not a new document).",
-            {"type": "object", "properties": {"spec": {"type": "object"}},
-             "required": ["spec"]},
+            {"type": "object", "properties": {"spec": {"type": "object"}}, "required": ["spec"]},
             gd_store,
             tags=["design", "spec", "store", "save"],
         ),
         VirtualTool(
             "gd_load",
             "Load a stored design spec by name.",
-            {"type": "object", "properties": {"name": {"type": "string"}},
-             "required": ["name"]},
+            {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]},
             gd_load,
             tags=["design", "spec", "load"],
         ),
@@ -136,8 +133,14 @@ def register_design_tools(app, project_root: Path | str) -> SpecStore:
             "gd_scope",
             "Content-list scope estimate in person-day bands; flags "
             "scope/capacity mismatches given team_size and weeks.",
-            {"type": "object", "properties": {**spec_arg,
-             "team_size": {"type": "integer"}, "weeks": {"type": "integer"}}},
+            {
+                "type": "object",
+                "properties": {
+                    **spec_arg,
+                    "team_size": {"type": "integer"},
+                    "weeks": {"type": "integer"},
+                },
+            },
             gd_scope,
             tags=["design", "scope", "estimate", "content"],
         ),
@@ -146,11 +149,15 @@ def register_design_tools(app, project_root: Path | str) -> SpecStore:
             "Percentile benchmarks with source+year, never folk targets: "
             "metric in (d1, d7, d30, session, funnel, ftue, liveops), "
             "platform mobile|pc, optional genre.",
-            {"type": "object", "properties": {
-                "metric": {"type": "string"},
-                "platform": {"type": "string"},
-                "genre": {"type": "string"},
-            }, "required": ["metric"]},
+            {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string"},
+                    "platform": {"type": "string"},
+                    "genre": {"type": "string"},
+                },
+                "required": ["metric"],
+            },
             gd_benchmark,
             tags=["design", "benchmark", "retention", "kpi"],
         ),
@@ -167,8 +174,14 @@ def register_design_tools(app, project_root: Path | str) -> SpecStore:
             "Bounded self-play: without transcript, returns the play "
             "instructions derived from the spec (the host model plays); with "
             "transcript, scores it deterministically (decision loop present?).",
-            {"type": "object", "properties": {**spec_arg,
-             "turns": {"type": "integer"}, "transcript": {"type": "array"}}},
+            {
+                "type": "object",
+                "properties": {
+                    **spec_arg,
+                    "turns": {"type": "integer"},
+                    "transcript": {"type": "array"},
+                },
+            },
             gd_selfplay,
             tags=["design", "selfplay", "playtest", "verify"],
         ),

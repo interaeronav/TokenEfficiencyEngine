@@ -24,13 +24,9 @@ KNOWN_DRIFT = {
         "use the granular effects: <transacts> (default) or "
         "<reads><writes><allocates>"
     ),
-    "GetPassengers": (
-        "fort_vehicle.GetPassengers() was deprecated in v42.00 - use "
-        "GetOccupants()"
-    ),
+    "GetPassengers": ("fort_vehicle.GetPassengers() was deprecated in v42.00 - use GetOccupants()"),
     "no_rollback": (
-        "<no_rollback> is deprecated head-of-development syntax - not valid "
-        "in shipped UEFN"
+        "<no_rollback> is deprecated head-of-development syntax - not valid in shipped UEFN"
     ),
 }
 
@@ -62,38 +58,46 @@ def lint(code: str, digest: dict[str, Any]) -> dict[str, Any]:
     for match in _EFFECT_USE_RE.finditer(code):
         effect = match.group(1)
         if effect in KNOWN_DRIFT:
-            findings.append({
-                "kind": "known_drift",
-                "symbol": f"<{effect}>",
-                "fix": KNOWN_DRIFT[effect],
-            })
+            findings.append(
+                {
+                    "kind": "known_drift",
+                    "symbol": f"<{effect}>",
+                    "fix": KNOWN_DRIFT[effect],
+                }
+            )
         elif effect.lower() not in KNOWN_EFFECTS and effect not in classes:
-            findings.append({
-                "kind": "unknown_effect",
-                "symbol": f"<{effect}>",
-                "fix": f"'{effect}' is not a known effect/specifier; known: "
-                "converges, computes, transacts, reads, writes, allocates, "
-                "suspends, decides",
-            })
+            findings.append(
+                {
+                    "kind": "unknown_effect",
+                    "symbol": f"<{effect}>",
+                    "fix": f"'{effect}' is not a known effect/specifier; known: "
+                    "converges, computes, transacts, reads, writes, allocates, "
+                    "suspends, decides",
+                }
+            )
 
     # 2. typed device/class member calls
     for match in _MEMBER_ACCESS_RE.finditer(code):
         owner, member = match.group(1), match.group(2)
         if member in KNOWN_DRIFT:
-            findings.append({
-                "kind": "known_drift",
-                "symbol": f"{owner}.{member}",
-                "fix": KNOWN_DRIFT[member],
-            })
+            findings.append(
+                {
+                    "kind": "known_drift",
+                    "symbol": f"{owner}.{member}",
+                    "fix": KNOWN_DRIFT[member],
+                }
+            )
             continue
         if owner in classes and find_member(digest, owner, member) is None:
             nearest = _nearest(member, classes[owner]["members"])
-            findings.append({
-                "kind": "unknown_member",
-                "symbol": f"{owner}.{member}",
-                "fix": f"'{member}' is not in the {owner} digest entry"
-                + (f"; nearest: {', '.join(nearest)}" if nearest else ""),
-            })
+            findings.append(
+                {
+                    "kind": "unknown_member",
+                    "symbol": f"{owner}.{member}",
+                    "fix": f"'{member}' is not in the {owner} digest entry"
+                    + (f"; nearest: {', '.join(nearest)}" if nearest else ""),
+                }
+            )
 
     # 3. variables typed as devices: resolve their member calls too
     var_types: dict[str, str] = {}
@@ -108,19 +112,23 @@ def lint(code: str, digest: dict[str, Any]) -> dict[str, Any]:
         cls = var_types.get(owner_var)
         if cls and cls in classes and member != "Subscribe":
             if member in KNOWN_DRIFT:
-                findings.append({
-                    "kind": "known_drift",
-                    "symbol": f"{owner_var}.{member}",
-                    "fix": KNOWN_DRIFT[member],
-                })
+                findings.append(
+                    {
+                        "kind": "known_drift",
+                        "symbol": f"{owner_var}.{member}",
+                        "fix": KNOWN_DRIFT[member],
+                    }
+                )
             elif find_member(digest, cls, member) is None:
                 nearest = _nearest(member, classes[cls]["members"])
-                findings.append({
-                    "kind": "unknown_member",
-                    "symbol": f"{owner_var}.{member} ({cls})",
-                    "fix": f"'{member}' is not on {cls} in the digest"
-                    + (f"; nearest: {', '.join(nearest)}" if nearest else ""),
-                })
+                findings.append(
+                    {
+                        "kind": "unknown_member",
+                        "symbol": f"{owner_var}.{member} ({cls})",
+                        "fix": f"'{member}' is not on {cls} in the digest"
+                        + (f"; nearest: {', '.join(nearest)}" if nearest else ""),
+                    }
+                )
 
     # 4. event subscriptions must target listenable members
     for match in _SUBSCRIBE_RE.finditer(code):
@@ -129,12 +137,14 @@ def lint(code: str, digest: dict[str, Any]) -> dict[str, Any]:
         if cls and cls in classes:
             member = find_member(digest, cls, event)
             if member is None or member.get("kind") != "event":
-                findings.append({
-                    "kind": "not_listenable",
-                    "symbol": f"{owner_var}.{event}.Subscribe",
-                    "fix": f"'{event}' is not a listenable event on {cls}; "
-                    f"events: {_events_of(digest, cls)}",
-                })
+                findings.append(
+                    {
+                        "kind": "not_listenable",
+                        "symbol": f"{owner_var}.{event}.Subscribe",
+                        "fix": f"'{event}' is not a listenable event on {cls}; "
+                        f"events: {_events_of(digest, cls)}",
+                    }
+                )
 
     deduped = []
     seen = set()

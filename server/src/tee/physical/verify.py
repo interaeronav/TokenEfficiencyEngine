@@ -54,7 +54,7 @@ def tier0(app, adapter: str) -> dict[str, Any]:
     app.warm(adapter)
     cache = app.caches.get(adapter)
     boxes = []
-    for entity in (cache.entities.values() if cache else []):
+    for entity in cache.entities.values() if cache else []:
         box = _box(entity)
         if box:
             boxes.append(box)
@@ -77,12 +77,14 @@ def tier0(app, adapter: str) -> dict[str, Any]:
         on_ground = base <= _CONTACT_TOL
         supporters = supported_by[box["id"]]
         if not on_ground and not supporters:
-            facts.append({
-                "kind": "floating",
-                "id": box["id"],
-                "gap_m": round(base, 4),
-                "fix": "drop to the ground or onto a support",
-            })
+            facts.append(
+                {
+                    "kind": "floating",
+                    "id": box["id"],
+                    "gap_m": round(base, 4),
+                    "fix": "drop to the ground or onto a support",
+                }
+            )
 
     # penetration (beyond contact tolerance in all three axes)
     for i, a in enumerate(boxes):
@@ -93,18 +95,18 @@ def tier0(app, adapter: str) -> dict[str, Any]:
             if overlap and z_pen > _CONTACT_TOL:
                 x0, x1, y0, y1 = overlap
                 if (x1 - x0) > _CONTACT_TOL and (y1 - y0) > _CONTACT_TOL:
-                    facts.append({
-                        "kind": "penetrating",
-                        "ids": [a["id"], b["id"]],
-                        "depth_m": round(z_pen, 4),
-                        "fix": "separate the volumes",
-                    })
+                    facts.append(
+                        {
+                            "kind": "penetrating",
+                            "ids": [a["id"], b["id"]],
+                            "depth_m": round(z_pen, 4),
+                            "fix": "separate the volumes",
+                        }
+                    )
 
     # cumulative CoM per support interface (stack criterion)
     boxes_by_id = {b["id"]: b for b in boxes}
-    supporter_ids = {
-        bid: [s["id"] for s in supporters] for bid, supporters in supported_by.items()
-    }
+    supporter_ids = {bid: [s["id"] for s in supporters] for bid, supporters in supported_by.items()}
     for support in boxes:
         above = _stack_above(support["id"], boxes_by_id, supporter_ids)
         if not above:
@@ -124,15 +126,17 @@ def tier0(app, adapter: str) -> dict[str, Any]:
         y0 = min(r[2] for r in regions) + _MARGIN
         y1 = max(r[3] for r in regions) - _MARGIN
         if not (x0 <= com_x <= x1 and y0 <= com_y <= y1):
-            facts.append({
-                "kind": "unsupported_com",
-                "id": direct[0]["id"] if len(direct) == 1 else [b["id"] for b in direct],
-                "over": support["id"],
-                "com_xy": [round(com_x, 3), round(com_y, 3)],
-                "support_region": [round(v, 3) for v in (x0, x1, y0, y1)],
-                "fix": "center the stack over its support (analytic criterion: "
-                "CoM projection outside the support polygon + margin)",
-            })
+            facts.append(
+                {
+                    "kind": "unsupported_com",
+                    "id": direct[0]["id"] if len(direct) == 1 else [b["id"] for b in direct],
+                    "over": support["id"],
+                    "com_xy": [round(com_x, 3), round(com_y, 3)],
+                    "support_region": [round(v, 3) for v in (x0, x1, y0, y1)],
+                    "fix": "center the stack over its support (analytic criterion: "
+                    "CoM projection outside the support polygon + margin)",
+                }
+            )
 
     out: dict[str, Any] = {"checked": checked, "facts": facts}
     if not facts:
@@ -172,30 +176,37 @@ def sim_readiness(entity_summary: dict[str, Any]) -> dict[str, Any]:
     omniverse-asset-validator's severity+location+fix shape."""
     findings = []
     if not entity_summary.get("dimensions") and not entity_summary.get("dims_m"):
-        findings.append({
-            "requirement": "extents",
-            "fix": "measure the asset (glTF probe or DCC read-back) before simulating",
-        })
+        findings.append(
+            {
+                "requirement": "extents",
+                "fix": "measure the asset (glTF probe or DCC read-back) before simulating",
+            }
+        )
     dims = entity_summary.get("dimensions") or entity_summary.get("dims_m") or []
     if dims and (max(dims) > 50 or min(dims) <= 0):
-        findings.append({
-            "requirement": "sane_scale",
-            "fix": "extents outside 0-50 m - run the four-band scale policy first",
-        })
+        findings.append(
+            {
+                "requirement": "sane_scale",
+                "fix": "extents outside 0-50 m - run the four-band scale policy first",
+            }
+        )
     if not entity_summary.get("physics_density_kg_m3"):
-        findings.append({
-            "requirement": "physical_material",
-            "fix": "assign one with mat_assign (density drives mass = volume x density)",
-        })
+        findings.append(
+            {
+                "requirement": "physical_material",
+                "fix": "assign one with mat_assign (density drives mass = volume x density)",
+            }
+        )
     if entity_summary.get("collision") in (None, "none"):
-        findings.append({
-            "requirement": "collision_proxy",
-            "fix": "convex default; CoACD decomposition for concave containers "
-            "(cached per asset hash)",
-        })
+        findings.append(
+            {
+                "requirement": "collision_proxy",
+                "fix": "convex default; CoACD decomposition for concave containers "
+                "(cached per asset hash)",
+            }
+        )
     return {
         "ready": not findings,
         "findings": findings,
-        "note": "sim-readiness is validated statically (SimReady pattern), "
-        "not by running sims",
+        "note": "sim-readiness is validated statically (SimReady pattern), not by running sims",
     }

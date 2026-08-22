@@ -45,11 +45,27 @@ _EFFECT_RE = re.compile(r"<(\w+)>")
 KNOWN_EFFECTS = {
     # exclusive (post-v30.00) + additive; <varies> died in the v30.00
     # redesign and is the canonical stale-codegen hallucination
-    "converges", "computes", "transacts",
-    "reads", "writes", "allocates", "suspends", "decides",
-    "public", "internal", "protected", "private", "native", "final",
-    "abstract", "concrete", "unique", "persistable", "epic_internal",
-    "override", "localizes",
+    "converges",
+    "computes",
+    "transacts",
+    "reads",
+    "writes",
+    "allocates",
+    "suspends",
+    "decides",
+    "public",
+    "internal",
+    "protected",
+    "private",
+    "native",
+    "final",
+    "abstract",
+    "concrete",
+    "unique",
+    "persistable",
+    "epic_internal",
+    "override",
+    "localizes",
 }
 
 
@@ -65,9 +81,7 @@ def parse_digest(text: str, *, version: str = "unknown") -> dict[str, Any]:
         return "/".join(name for _, name in module_stack) or "(root)"
 
     def current_module() -> dict[str, Any]:
-        return modules.setdefault(
-            module_path(), {"classes": {}, "functions": {}, "enums": []}
-        )
+        return modules.setdefault(module_path(), {"classes": {}, "functions": {}, "enums": []})
 
     for raw in text.splitlines():
         line = raw.rstrip()
@@ -86,9 +100,7 @@ def parse_digest(text: str, *, version: str = "unknown") -> dict[str, Any]:
             continue
         match = _CLASS_RE.match(line)
         if match:
-            parents = [
-                p.strip() for p in (match.group("parents") or "").split(",") if p.strip()
-            ]
+            parents = [p.strip() for p in (match.group("parents") or "").split(",") if p.strip()]
             current_module()["classes"][match.group("name")] = {
                 "parents": parents,
                 "members": {},
@@ -117,9 +129,9 @@ def parse_digest(text: str, *, version: str = "unknown") -> dict[str, Any]:
                 "type": match.group("rtype").strip(),
             }
             if class_stack:
-                current_module()["classes"][class_stack[-1][1]]["members"][
-                    match.group("name")
-                ] = member
+                current_module()["classes"][class_stack[-1][1]]["members"][match.group("name")] = (
+                    member
+                )
             else:
                 current_module()["functions"][match.group("name")] = member
             continue
@@ -144,9 +156,7 @@ def load_digest(path: Path, *, version: str | None = None) -> dict[str, Any]:
             "(%LOCALAPPDATA%/UnrealEditorFortnite/Saved/VerseProject/…); "
             "they are per-install and never redistributed.",
         )
-    return parse_digest(
-        path.read_text(errors="replace"), version=version or path.stem
-    )
+    return parse_digest(path.read_text(errors="replace"), version=version or path.stem)
 
 
 # -- lookup helpers ---------------------------------------------------------
@@ -159,9 +169,7 @@ def all_classes(digest: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return out
 
 
-def find_member(
-    digest: dict[str, Any], class_name: str, member: str
-) -> dict[str, Any] | None:
+def find_member(digest: dict[str, Any], class_name: str, member: str) -> dict[str, Any] | None:
     classes = all_classes(digest)
     seen = set()
     stack = [class_name]
@@ -192,27 +200,39 @@ def digest_diff(old: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
         old_members = old_classes[name]["members"]
         new_members = new_classes[name]["members"]
         for member in sorted(set(old_members) - set(new_members)):
-            facts.append({
-                "kind": "member_removed", "class": name, "member": member,
-            })
+            facts.append(
+                {
+                    "kind": "member_removed",
+                    "class": name,
+                    "member": member,
+                }
+            )
         for member in sorted(set(new_members) - set(old_members)):
-            facts.append({
-                "kind": "member_added", "class": name, "member": member,
-            })
+            facts.append(
+                {
+                    "kind": "member_added",
+                    "class": name,
+                    "member": member,
+                }
+            )
         for member in sorted(set(old_members) & set(new_members)):
             old_effects = old_members[member].get("effects")
             new_effects = new_members[member].get("effects")
             if old_effects != new_effects:
-                facts.append({
-                    "kind": "effects_changed", "class": name, "member": member,
-                    "from": old_effects, "to": new_effects,
-                })
+                facts.append(
+                    {
+                        "kind": "effects_changed",
+                        "class": name,
+                        "member": member,
+                        "from": old_effects,
+                        "to": new_effects,
+                    }
+                )
     return {
         "from": old.get("version"),
         "to": new.get("version"),
         "drift": facts,
         "breaking": [
-            f for f in facts
-            if f["kind"] in ("class_removed", "member_removed", "effects_changed")
+            f for f in facts if f["kind"] in ("class_removed", "member_removed", "effects_changed")
         ],
     }

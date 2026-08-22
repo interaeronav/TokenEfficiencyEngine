@@ -56,39 +56,47 @@ def validate_export(asset: dict[str, Any]) -> dict[str, Any]:
 
     checked += 1
     if not lods:
-        violations.append({
-            "check": "lods",
-            "fix": f"no LODs described - {table['lods']['required']} required "
-            "(LOD0-2, -50% steps); export_for_uefn autogenerates LOD1/2",
-        })
+        violations.append(
+            {
+                "check": "lods",
+                "fix": f"no LODs described - {table['lods']['required']} required "
+                "(LOD0-2, -50% steps); export_for_uefn autogenerates LOD1/2",
+            }
+        )
     else:
         lod0 = int(lods[0].get("tris", 0))
         checked += 1
         if lod0 > tri_cap:
-            violations.append({
-                "check": "lod0_tris",
-                "measured": lod0,
-                "cap": tri_cap,
-                "fix": f"LOD0 {lod0:,} tris > the {complexity}/{size} cap "
-                f"{tri_cap:,} - decimate or reclassify complexity",
-            })
+            violations.append(
+                {
+                    "check": "lod0_tris",
+                    "measured": lod0,
+                    "cap": tri_cap,
+                    "fix": f"LOD0 {lod0:,} tris > the {complexity}/{size} cap "
+                    f"{tri_cap:,} - decimate or reclassify complexity",
+                }
+            )
         checked += 1
         if len(lods) < table["lods"]["required"]:
-            violations.append({
-                "check": "lod_count",
-                "measured": len(lods),
-                "fix": f"{len(lods)} LOD(s) < required {table['lods']['required']} "
-                "- autogenerate LOD1/2 at -50% steps (export_for_uefn does this)",
-            })
+            violations.append(
+                {
+                    "check": "lod_count",
+                    "measured": len(lods),
+                    "fix": f"{len(lods)} LOD(s) < required {table['lods']['required']} "
+                    "- autogenerate LOD1/2 at -50% steps (export_for_uefn does this)",
+                }
+            )
         for i in range(1, len(lods)):
             checked += 1
             prev, cur = int(lods[i - 1].get("tris", 0)), int(lods[i].get("tris", 0))
             if prev and cur > prev * (table["lods"]["reduction_per_step"] + 0.15):
-                violations.append({
-                    "check": "lod_reduction",
-                    "fix": f"LOD{i} ({cur:,} tris) reduces less than ~50% from "
-                    f"LOD{i - 1} ({prev:,}) - decimate harder",
-                })
+                violations.append(
+                    {
+                        "check": "lod_reduction",
+                        "fix": f"LOD{i} ({cur:,} tris) reduces less than ~50% from "
+                        f"LOD{i - 1} ({prev:,}) - decimate harder",
+                    }
+                )
 
     tex_table = table["textures"]
     for texture in asset.get("textures", []):
@@ -96,74 +104,90 @@ def validate_export(asset: dict[str, Any]) -> dict[str, Any]:
         tex_name = texture.get("name", "?")
         checked += 1
         if max(w, h) > tex_table["hard_max_px"]:
-            violations.append({
-                "check": "texture_max",
-                "texture": tex_name,
-                "fix": f"{tex_name} is {w}x{h} - hard max is "
-                f"{tex_table['hard_max_px']} px; resize",
-            })
+            violations.append(
+                {
+                    "check": "texture_max",
+                    "texture": tex_name,
+                    "fix": f"{tex_name} is {w}x{h} - hard max is "
+                    f"{tex_table['hard_max_px']} px; resize",
+                }
+            )
         elif max(w, h) > tex_table["recommended_max_px"]:
-            violations.append({
-                "check": "texture_recommended",
-                "texture": tex_name,
-                "severity": "warning",
-                "fix": f"{tex_name} is {w}x{h} - above the recommended "
-                f"{tex_table['recommended_max_px']} px; consider resizing",
-            })
+            violations.append(
+                {
+                    "check": "texture_recommended",
+                    "texture": tex_name,
+                    "severity": "warning",
+                    "fix": f"{tex_name} is {w}x{h} - above the recommended "
+                    f"{tex_table['recommended_max_px']} px; consider resizing",
+                }
+            )
         checked += 1
         if not (_is_power_of_two(w) and _is_power_of_two(h)):
-            violations.append({
-                "check": "power_of_two",
-                "texture": tex_name,
-                "fix": f"{tex_name} is {w}x{h} - dimensions must be powers of "
-                "two (e.g. 1024, 2048)",
-            })
+            violations.append(
+                {
+                    "check": "power_of_two",
+                    "texture": tex_name,
+                    "fix": f"{tex_name} is {w}x{h} - dimensions must be powers of "
+                    "two (e.g. 1024, 2048)",
+                }
+            )
 
     checked += 1
     sections = int(asset.get("material_sections", 1))
     if sections > table["materials"]["sections_per_mesh_ideal"]:
-        violations.append({
-            "check": "material_sections",
-            "measured": sections,
-            "severity": "warning",
-            "fix": f"{sections} material sections - one per mesh is ideal "
-            "(merge materials / atlas textures)",
-        })
+        violations.append(
+            {
+                "check": "material_sections",
+                "measured": sections,
+                "severity": "warning",
+                "fix": f"{sections} material sections - one per mesh is ideal "
+                "(merge materials / atlas textures)",
+            }
+        )
 
     col = table["collision"]
     collision = asset.get("collision_meshes", [])
     checked += 1
     if len(collision) > col["max_meshes"]:
-        violations.append({
-            "check": "collision_count",
-            "fix": f"{len(collision)} collision meshes > max {col['max_meshes']}",
-        })
+        violations.append(
+            {
+                "check": "collision_count",
+                "fix": f"{len(collision)} collision meshes > max {col['max_meshes']}",
+            }
+        )
     for mesh_name in collision:
         checked += 1
         if not str(mesh_name).startswith(col["prefix"]):
-            violations.append({
-                "check": "collision_prefix",
-                "mesh": mesh_name,
-                "fix": f"'{mesh_name}' must start with '{col['prefix']}' "
-                "(case-sensitive) to import as collision",
-            })
+            violations.append(
+                {
+                    "check": "collision_prefix",
+                    "mesh": mesh_name,
+                    "fix": f"'{mesh_name}' must start with '{col['prefix']}' "
+                    "(case-sensitive) to import as collision",
+                }
+            )
 
     checked += 1
     if not asset.get("applied_transforms", True):
-        violations.append({
-            "check": "transforms",
-            "fix": "unapplied object transforms - apply rotation & scale "
-            "before export (1 uu = 1 cm; the x100 unit boundary is the top "
-            "import friction)",
-        })
+        violations.append(
+            {
+                "check": "transforms",
+                "fix": "unapplied object transforms - apply rotation & scale "
+                "before export (1 uu = 1 cm; the x100 unit boundary is the top "
+                "import friction)",
+            }
+        )
     checked += 1
     if asset.get("procedural_materials"):
-        violations.append({
-            "check": "procedural_materials",
-            "fix": "Blender procedural node graphs never transfer - bake to "
-            "textures first (as_photo_material / bake pipeline), then pack "
-            "Spec=R/Metal=G/Rough=B",
-        })
+        violations.append(
+            {
+                "check": "procedural_materials",
+                "fix": "Blender procedural node graphs never transfer - bake to "
+                "textures first (as_photo_material / bake pipeline), then pack "
+                "Spec=R/Metal=G/Rough=B",
+            }
+        )
 
     hard = [v for v in violations if v.get("severity") != "warning"]
     out: dict[str, Any] = {
@@ -180,8 +204,12 @@ def validate_export(asset: dict[str, Any]) -> dict[str, Any]:
 
 
 def pack_channels(
-    specular: Path | None, metallic: Path | None, roughness: Path | None,
-    out_path: Path, *, size: int = 1024,
+    specular: Path | None,
+    metallic: Path | None,
+    roughness: Path | None,
+    out_path: Path,
+    *,
+    size: int = 1024,
 ) -> dict[str, Any]:
     """Spec=R, Metal=G, Rough=B utility map (server-side PIL)."""
     try:
@@ -218,9 +246,7 @@ def pack_channels(
     }
 
 
-def export_program(
-    entity_ids: list[str], out_path: str, *, autogen_lods: bool = True
-) -> str:
+def export_program(entity_ids: list[str], out_path: str, *, autogen_lods: bool = True) -> str:
     """Blender-side program: duplicate to LOD1/2 via decimate at -50%
     steps, name for FBX LOD import, export at cm scale with Face
     smoothing - the documented Fortnite-ready FBX configuration."""

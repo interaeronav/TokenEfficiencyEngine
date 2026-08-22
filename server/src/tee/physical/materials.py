@@ -22,9 +22,7 @@ from tee.kernel.errors import TeeError
 
 @cache
 def _eng() -> dict[str, Any]:
-    text = (
-        resources.files("tee.physical").joinpath("data/materials_eng.json").read_text()
-    )
+    text = resources.files("tee.physical").joinpath("data/materials_eng.json").read_text()
     return json.loads(text)
 
 
@@ -100,11 +98,13 @@ def assign_ops(
             from tee.assets.materials import material_props
 
             render = material_props(mat["render_ref"])
-            props.update({
-                "base_color": render["props"]["base_color"],
-                "metallic": render["props"]["metallic"],
-                "roughness": render["props"]["roughness"],
-            })
+            props.update(
+                {
+                    "base_color": render["props"]["base_color"],
+                    "metallic": render["props"]["metallic"],
+                    "roughness": render["props"]["roughness"],
+                }
+            )
         except Exception:
             render = None
     ops = [{"op": "assign_material", "id": entity_id, "props": props}]

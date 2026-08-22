@@ -173,7 +173,11 @@ def test_import_caches_scales_and_verifies(tmp_path, monkeypatch):
         importer, "fetch_bytes", lambda *a, **k: (_ for _ in ()).throw(AssertionError)
     )
     out2 = importer.import_asset(
-        app, store, {"fakesource": backend}, "fakesource:sofa1", adapter="fake",
+        app,
+        store,
+        {"fakesource": backend},
+        "fakesource:sofa1",
+        adapter="fake",
         asset_class="sofa",
     )
     assert out2["ok"]
@@ -204,8 +208,12 @@ def test_import_rejects_bad_scale(tmp_path, monkeypatch):
     app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
     with pytest.raises(TeeError) as err:
         importer.import_asset(
-            app, store, {"fakesource": backend}, "fakesource:sofa1",
-            adapter="fake", asset_class="sofa",
+            app,
+            store,
+            {"fakesource": backend},
+            "fakesource:sofa1",
+            adapter="fake",
+            asset_class="sofa",
         )
     assert err.value.code == "asset_rejected"
 

@@ -97,8 +97,11 @@ def _unpack_zip(data: bytes, asset_ref: str) -> list[tuple[str, bytes]] | None:
     # primary first: prefer glTF/GLB, then anything model-ish
     out.sort(
         key=lambda pair: (
-            0 if pair[0].lower().endswith((".gltf", ".glb")) else
-            1 if pair[0].lower().endswith((".obj", ".fbx")) else 2
+            0
+            if pair[0].lower().endswith((".gltf", ".glb"))
+            else 1
+            if pair[0].lower().endswith((".obj", ".fbx"))
+            else 2
         )
     )
     return out or None
@@ -143,9 +146,7 @@ def import_asset(
     existing = []
     if cache is not None:
         existing = [
-            e.id
-            for e in cache.entities.values()
-            if e.summary.get("asset_key") == asset_ref
+            e.id for e in cache.entities.values() if e.summary.get("asset_key") == asset_ref
         ]
 
     # 2. cache-or-download

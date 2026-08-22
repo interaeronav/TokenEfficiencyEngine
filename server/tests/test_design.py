@@ -141,9 +141,7 @@ def test_economy_sim_flags_inflation():
 def test_progression_clean_and_spike():
     assert checks.progression_check(coop_spec())["findings"] == []
     spec = coop_spec()
-    spec["progression"]["unlocks"].append(
-        {"id": "u_wall", "at": 7, "difficulty": 9}
-    )
+    spec["progression"]["unlocks"].append({"id": "u_wall", "at": 7, "difficulty": 9})
     findings = checks.progression_check(spec)["findings"]
     assert any(f["code"] == "difficulty_spike" for f in findings)
 
@@ -151,8 +149,12 @@ def test_progression_clean_and_spike():
 def test_pity_hazard_math():
     spec = coop_spec()
     spec["progression"]["pity"] = {
-        "base": 0.006, "soft_start": 74, "increment": 0.06, "hard": 90,
-        "disclosed": True, "expected_pulls": 62.5,
+        "base": 0.006,
+        "soft_start": 74,
+        "increment": 0.06,
+        "hard": 90,
+        "disclosed": True,
+        "expected_pulls": 62.5,
     }
     findings = checks.progression_check(spec)["findings"]
     assert findings == []  # Genshin's published params are self-consistent
@@ -250,8 +252,16 @@ def test_gd_tools_end_to_end(tmp_path):
 
     app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
     register_design_tools(app, tmp_path)
-    for name in ("gd_validate", "gd_store", "gd_check", "gd_benchmark",
-                 "gd_genre", "gd_ethics", "gd_selfplay", "gd_render"):
+    for name in (
+        "gd_validate",
+        "gd_store",
+        "gd_check",
+        "gd_benchmark",
+        "gd_genre",
+        "gd_ethics",
+        "gd_selfplay",
+        "gd_render",
+    ):
         assert name in app.registry.names()
     app.registry.call("gd_store", {"spec": coop_spec()})
     out = app.registry.call("gd_check", {"name": "salvage_crew"})

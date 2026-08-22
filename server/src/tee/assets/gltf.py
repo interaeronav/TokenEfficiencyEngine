@@ -19,10 +19,22 @@ from tee.kernel.errors import TeeError
 Mat4 = list[float]  # column-major 16 floats, glTF convention
 
 _IDENTITY: Mat4 = [
-    1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
 ]
 
 
@@ -65,15 +77,33 @@ def _trs_matrix(node: dict[str, Any]) -> Mat4:
     x, y, z, w = r
     # rotation matrix from quaternion (row values), then scale columns
     rot = [
-        1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w),
-        2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w),
-        2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y),
+        1 - 2 * (y * y + z * z),
+        2 * (x * y + z * w),
+        2 * (x * z - y * w),
+        2 * (x * y - z * w),
+        1 - 2 * (x * x + z * z),
+        2 * (y * z + x * w),
+        2 * (x * z + y * w),
+        2 * (y * z - x * w),
+        1 - 2 * (x * x + y * y),
     ]
     return [
-        rot[0] * s[0], rot[1] * s[0], rot[2] * s[0], 0.0,
-        rot[3] * s[1], rot[4] * s[1], rot[5] * s[1], 0.0,
-        rot[6] * s[2], rot[7] * s[2], rot[8] * s[2], 0.0,
-        t[0], t[1], t[2], 1.0,
+        rot[0] * s[0],
+        rot[1] * s[0],
+        rot[2] * s[0],
+        0.0,
+        rot[3] * s[1],
+        rot[4] * s[1],
+        rot[5] * s[1],
+        0.0,
+        rot[6] * s[2],
+        rot[7] * s[2],
+        rot[8] * s[2],
+        0.0,
+        t[0],
+        t[1],
+        t[2],
+        1.0,
     ]
 
 

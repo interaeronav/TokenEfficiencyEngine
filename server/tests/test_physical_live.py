@@ -60,7 +60,10 @@ def test_wall_with_openings_watertight(app):
         {
             "name": "WallA",
             "props": {
-                "start": [0, 0], "end": [5, 0], "height": 2.7, "thickness": 0.22,
+                "start": [0, 0],
+                "end": [5, 0],
+                "height": 2.7,
+                "thickness": 0.22,
                 "openings": [
                     {"offset": 1.0, "width": 0.9, "sill": 0.0, "head": 2.03},
                     {"offset": 3.0, "width": 1.2, "sill": 0.9, "head": 2.1},
@@ -80,26 +83,33 @@ def test_wall_with_openings_watertight(app):
 def test_slab_and_profile_extrude_watertight(app):
     slab = app.registry.call(
         "slab",
-        {"name": "Slab", "props": {
-            "polygon": [[0, 0], [5, 0], [5, 4], [0, 4]],
-            "holes": [[[2, 1.5], [3, 1.5], [3, 2.5], [2, 2.5]]],
-            "thickness": 0.25,
-        }},
+        {
+            "name": "Slab",
+            "props": {
+                "polygon": [[0, 0], [5, 0], [5, 4], [0, 4]],
+                "holes": [[[2, 1.5], [3, 1.5], [3, 2.5], [2, 2.5]]],
+                "thickness": 0.25,
+            },
+        },
     )
-    probe = _adapter(app).execute_python(
-        NON_MANIFOLD_PROBE.format(eid=slab["created"][0])
-    )["result"]
+    probe = _adapter(app).execute_python(NON_MANIFOLD_PROBE.format(eid=slab["created"][0]))[
+        "result"
+    ]
     assert probe["non_manifold"] == 0, probe
 
     prof = app.registry.call(
         "profile_extrude",
-        {"name": "Beam", "props": {
-            "profile": [[0, 0], [0.3, 0], [0.3, 0.5], [0, 0.5]], "depth": 4.0,
-        }},
+        {
+            "name": "Beam",
+            "props": {
+                "profile": [[0, 0], [0.3, 0], [0.3, 0.5], [0, 0.5]],
+                "depth": 4.0,
+            },
+        },
     )
-    probe = _adapter(app).execute_python(
-        NON_MANIFOLD_PROBE.format(eid=prof["created"][0])
-    )["result"]
+    probe = _adapter(app).execute_python(NON_MANIFOLD_PROBE.format(eid=prof["created"][0]))[
+        "result"
+    ]
     assert probe["non_manifold"] == 0, probe
 
 
@@ -107,14 +117,19 @@ def test_roof_kinds_and_stairs(app):
     for kind in ("gable", "shed", "flat"):
         out = app.registry.call(
             "roof",
-            {"name": f"Roof_{kind}", "props": {
-                "kind": kind, "footprint": [0, 0, 6, 4], "pitch_deg": 35,
-                "base_z": 2.7,
-            }},
+            {
+                "name": f"Roof_{kind}",
+                "props": {
+                    "kind": kind,
+                    "footprint": [0, 0, 6, 4],
+                    "pitch_deg": 35,
+                    "base_z": 2.7,
+                },
+            },
         )
-        probe = _adapter(app).execute_python(
-            NON_MANIFOLD_PROBE.format(eid=out["created"][0])
-        )["result"]
+        probe = _adapter(app).execute_python(NON_MANIFOLD_PROBE.format(eid=out["created"][0]))[
+            "result"
+        ]
         assert probe["non_manifold"] == 0, (kind, probe)
     stairs = app.registry.call(
         "stairs", {"name": "Stairs", "props": {"rise_total": 2.7, "width": 0.95}}
@@ -134,14 +149,15 @@ def test_hip_roof_names_the_gap(app):
 def test_opening_cut_boolean_manifold(app):
     wall = app.registry.call(
         "wall_with_openings",
-        {"name": "WallB", "props": {"start": [0, 0], "end": [4, 0],
-                                    "height": 2.7, "thickness": 0.2}},
+        {
+            "name": "WallB",
+            "props": {"start": [0, 0], "end": [4, 0], "height": 2.7, "thickness": 0.2},
+        },
     )
     eid = wall["created"][0]
     cut = app.registry.call(
         "opening_cut",
-        {"id": eid, "props": {"center": [2.0, 0.0, 1.0], "size": [0.9, 1.0, 2.0],
-                              "apply": True}},
+        {"id": eid, "props": {"center": [2.0, 0.0, 1.0], "size": [0.9, 1.0, 2.0], "apply": True}},
     )
     assert eid in cut["modified"]
     probe = _adapter(app).execute_python(NON_MANIFOLD_PROBE.format(eid=eid))["result"]
@@ -153,8 +169,10 @@ def test_opening_cut_guards_fast_solver(app):
 
     wall = app.registry.call(
         "wall_with_openings",
-        {"name": "WallC", "props": {"start": [0, 0], "end": [2, 0],
-                                    "height": 2.0, "thickness": 0.2}},
+        {
+            "name": "WallC",
+            "props": {"start": [0, 0], "end": [2, 0], "height": 2.0, "thickness": 0.2},
+        },
     )
     with pytest.raises(TeeError) as err:
         app.registry.call(
@@ -194,8 +212,7 @@ result = {"id": "b%d" % obj.session_uid, "socket": iface_size.identifier}
     app.cache("blender").resync(adapter)
     out = app.registry.call(
         "param_set",
-        {"id": setup["id"], "props": {"modifier": "tee_gn",
-                                      "values": {setup["socket"]: 2.5}}},
+        {"id": setup["id"], "props": {"modifier": "tee_gn", "values": {setup["socket"]: 2.5}}},
     )
     assert setup["id"] in out["modified"]
     check_out = adapter.execute_python(
@@ -218,13 +235,24 @@ def test_settle_deterministic_and_adopts(app):
     """Acceptance: settle returns a compact report; two runs agree within
     the measured variance floor; adopt keeps poses."""
     ops = [
-        {"op": "create", "kind": "cube", "name": "Ground",
-         "props": {"size": 1.0, "scale": [10, 10, 0.1], "location": [0, 0, -0.05]}},
-        {"op": "create", "kind": "cube", "name": "BoxA",
-         "props": {"size": 0.4, "location": [0, 0, 1.2],
-                   "rotation_euler": [0.3, 0.2, 0.1]}},
-        {"op": "create", "kind": "cube", "name": "BoxB",
-         "props": {"size": 0.4, "location": [0.1, 0.05, 2.0]}},
+        {
+            "op": "create",
+            "kind": "cube",
+            "name": "Ground",
+            "props": {"size": 1.0, "scale": [10, 10, 0.1], "location": [0, 0, -0.05]},
+        },
+        {
+            "op": "create",
+            "kind": "cube",
+            "name": "BoxA",
+            "props": {"size": 0.4, "location": [0, 0, 1.2], "rotation_euler": [0.3, 0.2, 0.1]},
+        },
+        {
+            "op": "create",
+            "kind": "cube",
+            "name": "BoxB",
+            "props": {"size": 0.4, "location": [0.1, 0.05, 2.0]},
+        },
     ]
     app.run_batch("blender", ops)
 
@@ -237,8 +265,11 @@ def test_settle_deterministic_and_adopts(app):
         current = ids_by_name()  # rollback re-creates objects with new uids
         out = app.registry.call(
             "sim_settle",
-            {"ids": [current["BoxA"], current["BoxB"]],
-             "passive_ids": [current["Ground"]], "adapter": "blender"},
+            {
+                "ids": [current["BoxA"], current["BoxB"]],
+                "passive_ids": [current["Ground"]],
+                "adapter": "blender",
+            },
         )
         assert out["settled"] is True, out
         assert "final" in out and "checkpoint" in out
@@ -258,9 +289,12 @@ def test_settle_deterministic_and_adopts(app):
     by_name = ids_by_name()
     adopted = app.registry.call(
         "sim_settle",
-        {"ids": [by_name["BoxA"], by_name["BoxB"]],
-         "passive_ids": [by_name["Ground"]], "adopt": True,
-         "adapter": "blender"},
+        {
+            "ids": [by_name["BoxA"], by_name["BoxB"]],
+            "passive_ids": [by_name["Ground"]],
+            "adopt": True,
+            "adapter": "blender",
+        },
     )
     assert adopted["adopted"] is True
     detail = app.cache("blender").get(by_name["BoxA"])
@@ -269,10 +303,18 @@ def test_settle_deterministic_and_adopts(app):
 
 def test_cloth_drape_report(app):
     ops = [
-        {"op": "create", "kind": "cube", "name": "Table",
-         "props": {"size": 1.0, "location": [0, 0, 0.5]}},
-        {"op": "create", "kind": "plane", "name": "Cloth",
-         "props": {"size": 2.0, "location": [0, 0, 1.3]}},
+        {
+            "op": "create",
+            "kind": "cube",
+            "name": "Table",
+            "props": {"size": 1.0, "location": [0, 0, 0.5]},
+        },
+        {
+            "op": "create",
+            "kind": "plane",
+            "name": "Cloth",
+            "props": {"size": 2.0, "location": [0, 0, 1.3]},
+        },
     ]
     created = app.run_batch("blender", ops)
     table, cloth = created["created"]
@@ -292,8 +334,13 @@ result = {{"ok": True}}
     )
     out = app.registry.call(
         "sim_cloth_drape",
-        {"id": cloth, "collide_ids": [table], "preset": "cotton",
-         "seconds": 1.5, "adapter": "blender"},
+        {
+            "id": cloth,
+            "collide_ids": [table],
+            "preset": "cotton",
+            "seconds": 1.5,
+            "adapter": "blender",
+        },
     )
     assert out["preset"] == "cotton"
     assert out["frames"] >= 24

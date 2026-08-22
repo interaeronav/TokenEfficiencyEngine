@@ -56,8 +56,7 @@ def style_brief(store, extract_store=None, *, max_photos: int = 6) -> dict[str, 
                     brief["terms"].append(term)
     top = sorted(weights.items(), key=lambda pair: -pair[1])[:6]
     brief["palette"] = [
-        {"name": name, "lab": labs[name], "weight": round(w / max(photos, 1), 3)}
-        for name, w in top
+        {"name": name, "lab": labs[name], "weight": round(w / max(photos, 1), 3)} for name, w in top
     ]
     for source in extract_store.sources():
         for fact in extract_store.facts(source["hash"], kind="transcript"):
@@ -69,10 +68,32 @@ def style_brief(store, extract_store=None, *, max_photos: int = 6) -> dict[str, 
 
 
 _STYLE_WORDS = {
-    "modern", "minimal", "minimalist", "rustic", "industrial", "scandinavian",
-    "vintage", "victorian", "contemporary", "traditional", "bohemian",
-    "wood", "wooden", "concrete", "brick", "marble", "stone", "steel",
-    "brass", "linen", "leather", "thatch", "warm", "cozy", "bright", "dark",
+    "modern",
+    "minimal",
+    "minimalist",
+    "rustic",
+    "industrial",
+    "scandinavian",
+    "vintage",
+    "victorian",
+    "contemporary",
+    "traditional",
+    "bohemian",
+    "wood",
+    "wooden",
+    "concrete",
+    "brick",
+    "marble",
+    "stone",
+    "steel",
+    "brass",
+    "linen",
+    "leather",
+    "thatch",
+    "warm",
+    "cozy",
+    "bright",
+    "dark",
 }
 
 
@@ -98,9 +119,7 @@ def _avoid_terms(text: str) -> list[str]:
 # -- sun position -----------------------------------------------------------
 
 
-def sun_position(
-    lat: float, lon: float, when_iso: str, *, tz: str | None = None
-) -> dict[str, Any]:
+def sun_position(lat: float, lon: float, when_iso: str, *, tz: str | None = None) -> dict[str, Any]:
     """Solar azimuth (deg from north, CW) + elevation (deg) via astral.
     `when_iso` may carry an offset; else `tz` (IANA name) applies; else UTC.
     """
@@ -184,9 +203,7 @@ _HDRI_BANDS = [
 def hdri_query(elevation_deg: float, weather: str = "clear") -> dict[str, Any]:
     """Poly Haven search facets for a sun-matched HDRI + the world-rotation
     recipe (computed azimuth minus the HDRI's own detected sun azimuth)."""
-    band = next(
-        (name for lo, hi, name in _HDRI_BANDS if lo <= elevation_deg < hi), "midday"
-    )
+    band = next((name for lo, hi, name in _HDRI_BANDS if lo <= elevation_deg < hi), "midday")
     keywords = {
         "night": "night sky",
         "sunrise-sunset": "sunset golden hour",

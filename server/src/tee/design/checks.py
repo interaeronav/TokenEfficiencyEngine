@@ -27,51 +27,71 @@ def lint(spec: dict[str, Any]) -> dict[str, Any]:
     findings: list[Finding] = []
     core = spec.get("core_loop", {})
     if not core.get("verbs"):
-        findings.append(_finding(
-            "no_verbs", "core loop defines no player verbs",
-            "add core_loop.verbs (what does the player DO?)",
-        ))
+        findings.append(
+            _finding(
+                "no_verbs",
+                "core loop defines no player verbs",
+                "add core_loop.verbs (what does the player DO?)",
+            )
+        )
     if not core.get("steps"):
-        findings.append(_finding(
-            "no_loop_steps", "core loop has no steps",
-            "add core_loop.steps with target durations",
-        ))
+        findings.append(
+            _finding(
+                "no_loop_steps",
+                "core loop has no steps",
+                "add core_loop.steps with target durations",
+            )
+        )
     if not core.get("failure_state"):
-        findings.append(_finding(
-            "no_failure_state", "core loop lacks a failure state",
-            "state what failure means and what it costs (keep retry <30 s)",
-        ))
+        findings.append(
+            _finding(
+                "no_failure_state",
+                "core loop lacks a failure state",
+                "state what failure means and what it costs (keep retry <30 s)",
+            )
+        )
     if not core.get("session_end_hook"):
-        findings.append(_finding(
-            "no_session_end_hook", "no session-end hook",
-            "add core_loop.session_end_hook - the reason to come back "
-            "(the first session is the funnel: day-0 average is 1.65 sessions)",
-        ))
+        findings.append(
+            _finding(
+                "no_session_end_hook",
+                "no session-end hook",
+                "add core_loop.session_end_hook - the reason to come back "
+                "(the first session is the funnel: day-0 average is 1.65 sessions)",
+            )
+        )
 
     economy = spec.get("economy") or {}
     nodes = economy.get("nodes", [])
     for currency in economy.get("currencies", []):
         has_faucet = any(
-            n for n in nodes
+            n
+            for n in nodes
             if (n["kind"] == "faucet" and n.get("currency") == currency)
             or (n["kind"] == "converter" and n.get("to") == currency)
         )
         has_sink = any(
-            n for n in nodes
+            n
+            for n in nodes
             if (n["kind"] == "sink" and n.get("currency") == currency)
             or (n["kind"] == "converter" and n.get("from") == currency)
         )
         if has_faucet and not has_sink:
-            findings.append(_finding(
-                "dead_currency", f"currency '{currency}' has faucets but no sink",
-                f"add a sink for '{currency}' (consumables are intrinsic sinks) "
-                "or remove the currency",
-            ))
+            findings.append(
+                _finding(
+                    "dead_currency",
+                    f"currency '{currency}' has faucets but no sink",
+                    f"add a sink for '{currency}' (consumables are intrinsic sinks) "
+                    "or remove the currency",
+                )
+            )
         if has_sink and not has_faucet:
-            findings.append(_finding(
-                "starved_currency", f"currency '{currency}' has sinks but no faucet",
-                f"add a faucet for '{currency}' or remove it",
-            ))
+            findings.append(
+                _finding(
+                    "starved_currency",
+                    f"currency '{currency}' has sinks but no faucet",
+                    f"add a faucet for '{currency}' or remove it",
+                )
+            )
 
     taught, teach_order = _teach_map(spec)
     beats = (spec.get("level_macro") or {}).get("beats", [])
@@ -82,71 +102,85 @@ def lint(spec: dict[str, Any]) -> dict[str, Any]:
             composed.update(mechanics)
         for mechanic in mechanics:
             if mechanic in taught and teach_order[mechanic] > i + 1:
-                findings.append(_finding(
-                    "used_before_taught",
-                    f"beat {i + 1} uses '{mechanic}' taught only at unlock "
-                    f"position {teach_order[mechanic]}",
-                    f"move the '{mechanic}' unlock before beat {i + 1} or the "
-                    "beat later (teach-test-compose)",
-                ))
+                findings.append(
+                    _finding(
+                        "used_before_taught",
+                        f"beat {i + 1} uses '{mechanic}' taught only at unlock "
+                        f"position {teach_order[mechanic]}",
+                        f"move the '{mechanic}' unlock before beat {i + 1} or the "
+                        "beat later (teach-test-compose)",
+                    )
+                )
     for mechanic in sorted(taught - composed):
         if beats:
-            findings.append(_finding(
-                "taught_never_composed",
-                f"mechanic '{mechanic}' is taught but never composed with another",
-                f"add a beat combining '{mechanic}' with another mechanic "
-                "(isolate then combine - the Portal pattern)",
-            ))
+            findings.append(
+                _finding(
+                    "taught_never_composed",
+                    f"mechanic '{mechanic}' is taught but never composed with another",
+                    f"add a beat combining '{mechanic}' with another mechanic "
+                    "(isolate then combine - the Portal pattern)",
+                )
+            )
     for i in range(1, len(beats)):
         prev = float(beats[i - 1].get("intensity", 0) or 0)
         cur = float(beats[i].get("intensity", 0) or 0)
         if cur - prev > 3:
-            findings.append(_finding(
-                "intensity_spike",
-                f"intensity jumps {prev:g}->{cur:g} at beat {i + 1}",
-                "smooth the curve or insert a teaching/breather beat",
-            ))
+            findings.append(
+                _finding(
+                    "intensity_spike",
+                    f"intensity jumps {prev:g}->{cur:g} at beat {i + 1}",
+                    "smooth the curve or insert a teaching/breather beat",
+                )
+            )
     content_classes = {c.get("class") for c in spec.get("content_list", [])}
     for i, beat in enumerate(beats):
         for cls in beat.get("content_classes", []):
             if cls not in content_classes:
-                findings.append(_finding(
-                    "missing_content_class",
-                    f"beat {i + 1} references content class '{cls}' absent from "
-                    "content_list",
-                    f"add a content_list entry for '{cls}' or drop the reference",
-                ))
+                findings.append(
+                    _finding(
+                        "missing_content_class",
+                        f"beat {i + 1} references content class '{cls}' absent from content_list",
+                        f"add a content_list entry for '{cls}' or drop the reference",
+                    )
+                )
 
     meta = spec.get("meta", {})
     comparables = meta.get("comparables", [])
     if len(comparables) < 3:
-        findings.append(_finding(
-            "underdifferentiated",
-            f"only {len(comparables)} comparable(s) named (3 required)",
-            "name 3 comparables from the market tables and state each delta "
-            "(differentiation is forced, not hoped for)",
-        ))
+        findings.append(
+            _finding(
+                "underdifferentiated",
+                f"only {len(comparables)} comparable(s) named (3 required)",
+                "name 3 comparables from the market tables and state each delta "
+                "(differentiation is forced, not hoped for)",
+            )
+        )
     elif any(not c.get("delta") for c in comparables):
-        findings.append(_finding(
-            "comparable_without_delta",
-            "a comparable lacks its delta ('like X but ...')",
-            "state what this design does differently from each comparable",
-        ))
+        findings.append(
+            _finding(
+                "comparable_without_delta",
+                "a comparable lacks its delta ('like X but ...')",
+                "state what this design does differently from each comparable",
+            )
+        )
     motivations = meta.get("audience", {}).get("motivations", {})
     age = meta.get("audience", {}).get("age_range", [])
     if (
         motivations.get("competition", 0) >= 0.7
-        and age and age[0] >= 35
+        and age
+        and age[0] >= 35
         and not meta.get("audience", {}).get("depth_note")
     ):
-        findings.append(_finding(
-            "audience_contradiction",
-            "competitive core aimed at 35+ (competition declines steepest 13->35; "
-            "age explains >2x gender's variance)",
-            "lower the competition weight, target younger, or add "
-            "audience.depth_note explaining the age-tolerant depth "
-            "(strategy is the age-stable dimension)",
-        ))
+        findings.append(
+            _finding(
+                "audience_contradiction",
+                "competitive core aimed at 35+ (competition declines steepest 13->35; "
+                "age explains >2x gender's variance)",
+                "lower the competition weight, target younger, or add "
+                "audience.depth_note explaining the age-tolerant depth "
+                "(strategy is the age-stable dimension)",
+            )
+        )
     return {"findings": findings, "checked": True}
 
 
@@ -197,9 +231,7 @@ def scope_estimate(
                 f"({capacity} pd) - cut content_list or extend the schedule"
             )
         elif high > capacity * 1.5:
-            out["flag"] = (
-                f"HIGH estimate ({high:.0f} pd) is >1.5x capacity - scope risk"
-            )
+            out["flag"] = f"HIGH estimate ({high:.0f} pd) is >1.5x capacity - scope risk"
     return out
 
 
@@ -246,44 +278,43 @@ def economy_sim(spec: dict[str, Any], *, days: int = 90) -> dict[str, Any]:
                 total_sink += outflow
                 series.append(supply)
             series_by_persona[persona_name] = series
-            ratio_by_persona[persona_name] = (
-                total_sink / total_faucet if total_faucet > 0 else None
-            )
+            ratio_by_persona[persona_name] = total_sink / total_faucet if total_faucet > 0 else None
         # inflation: second-half accumulation rate vs first half
         for persona_name, series in series_by_persona.items():
             half = days // 2
             first = series[half - 1] - series[0]
             second = series[-1] - series[half]
             if second > 0 and first > 0 and second > first * 1.3:
-                flags.append(_finding(
-                    "inflation",
-                    f"'{currency}' supply accelerates for persona "
-                    f"'{persona_name}' ({first:.0f} -> {second:.0f} per half)",
-                    f"add or strengthen a '{currency}' sink (consumables, "
-                    "upkeep, resets) - faucets are outrunning sinks",
-                ))
+                flags.append(
+                    _finding(
+                        "inflation",
+                        f"'{currency}' supply accelerates for persona "
+                        f"'{persona_name}' ({first:.0f} -> {second:.0f} per half)",
+                        f"add or strengthen a '{currency}' sink (consumables, "
+                        "upkeep, resets) - faucets are outrunning sinks",
+                    )
+                )
                 break
         ratios = [r for r in ratio_by_persona.values() if r is not None]
         mean_ratio = sum(ratios) / len(ratios) if ratios else None
         if band and mean_ratio is not None and not (band[0] <= mean_ratio <= band[1]):
             direction = "below" if mean_ratio < band[0] else "above"
-            flags.append(_finding(
-                "archetype_band",
-                f"'{currency}' sink/faucet ratio {mean_ratio:.2f} is {direction} "
-                f"the {archetype_name} band {band}",
-                f"add/strengthen a '{currency}' sink or reduce its faucets "
-                f"toward the {archetype_name} band"
-                if direction == "below"
-                else f"loosen '{currency}' sinks or raise its faucets toward "
-                f"the {archetype_name} band",
-            ))
+            flags.append(
+                _finding(
+                    "archetype_band",
+                    f"'{currency}' sink/faucet ratio {mean_ratio:.2f} is {direction} "
+                    f"the {archetype_name} band {band}",
+                    f"add/strengthen a '{currency}' sink or reduce its faucets "
+                    f"toward the {archetype_name} band"
+                    if direction == "below"
+                    else f"loosen '{currency}' sinks or raise its faucets toward "
+                    f"the {archetype_name} band",
+                )
+            )
         per_currency[currency] = {
-            "final_supply": {
-                p: round(s[-1], 1) for p, s in series_by_persona.items()
-            },
+            "final_supply": {p: round(s[-1], 1) for p, s in series_by_persona.items()},
             "sink_faucet_ratio": {
-                p: round(r, 3) if r is not None else None
-                for p, r in ratio_by_persona.items()
+                p: round(r, 3) if r is not None else None for p, r in ratio_by_persona.items()
             },
         }
     return {"days": days, "currencies": per_currency, "flags": flags}
@@ -302,28 +333,34 @@ def progression_check(spec: dict[str, Any]) -> dict[str, Any]:
         d_prev = float(prev.get("difficulty", 0) or 0)
         d_cur = float(cur.get("difficulty", 0) or 0)
         if d_cur < d_prev - 1:
-            findings.append(_finding(
-                "difficulty_regression",
-                f"difficulty drops {d_prev:g}->{d_cur:g} at '{cur.get('id')}'",
-                "reorder unlocks or adjust difficulty (monotone within -1)",
-            ))
+            findings.append(
+                _finding(
+                    "difficulty_regression",
+                    f"difficulty drops {d_prev:g}->{d_cur:g} at '{cur.get('id')}'",
+                    "reorder unlocks or adjust difficulty (monotone within -1)",
+                )
+            )
         if d_cur - d_prev > 3:
-            findings.append(_finding(
-                "difficulty_spike",
-                f"difficulty jumps {d_prev:g}->{d_cur:g} at '{cur.get('id')}'",
-                "insert an intermediate unlock or smooth the ramp",
-            ))
+            findings.append(
+                _finding(
+                    "difficulty_spike",
+                    f"difficulty jumps {d_prev:g}->{d_cur:g} at '{cur.get('id')}'",
+                    "insert an intermediate unlock or smooth the ramp",
+                )
+            )
     gaps = [b["at"] - a["at"] for a, b in itertools.pairwise(ordered)]
     if gaps:
         median_gap = sorted(gaps)[len(gaps) // 2]
         for a, b, gap in zip(ordered, ordered[1:], gaps, strict=False):
             if median_gap > 0 and gap > 5 * median_gap:
-                findings.append(_finding(
-                    "unlock_desert",
-                    f"gap {gap:g} between '{a.get('id')}' and '{b.get('id')}' "
-                    f"is >5x the median gap ({median_gap:g})",
-                    "add an unlock/reward inside the desert",
-                ))
+                findings.append(
+                    _finding(
+                        "unlock_desert",
+                        f"gap {gap:g} between '{a.get('id')}' and '{b.get('id')}' "
+                        f"is >5x the median gap ({median_gap:g})",
+                        "add an unlock/reward inside the desert",
+                    )
+                )
     pity = progression.get("pity")
     if pity:
         expected = _pity_expected(pity)
@@ -354,26 +391,34 @@ def _pity_expected(pity: dict[str, Any]) -> float | None:
 def _pity_findings(pity: dict[str, Any], expected: float | None) -> list[Finding]:
     findings: list[Finding] = []
     if not pity.get("hard"):
-        findings.append(_finding(
-            "pity_no_hard", "pity system has no hard ceiling",
-            "add a hard pity (guaranteed at N) - unbounded bad-luck tails "
-            "are a documented harm vector",
-        ))
+        findings.append(
+            _finding(
+                "pity_no_hard",
+                "pity system has no hard ceiling",
+                "add a hard pity (guaranteed at N) - unbounded bad-luck tails "
+                "are a documented harm vector",
+            )
+        )
     if expected is not None:
         findings_note = pity.get("expected_pulls")
         if findings_note and abs(expected - float(findings_note)) > 0.2 * expected:
-            findings.append(_finding(
-                "pity_math",
-                f"declared expected_pulls {findings_note} vs computed "
-                f"{expected:.1f} from the hazard function",
-                "fix the parameters or the declaration",
-            ))
+            findings.append(
+                _finding(
+                    "pity_math",
+                    f"declared expected_pulls {findings_note} vs computed "
+                    f"{expected:.1f} from the hazard function",
+                    "fix the parameters or the declaration",
+                )
+            )
     if not pity.get("disclosed"):
-        findings.append(_finding(
-            "pity_undisclosed", "pity parameters not disclosed to players",
-            "set progression.pity.disclosed=true and publish rates "
-            "(guideline; odds disclosure itself is code-severity in ethics)",
-        ))
+        findings.append(
+            _finding(
+                "pity_undisclosed",
+                "pity parameters not disclosed to players",
+                "set progression.pity.disclosed=true and publish rates "
+                "(guideline; odds disclosure itself is code-severity in ethics)",
+            )
+        )
     return findings
 
 
@@ -394,8 +439,11 @@ def ethics_check(spec: dict[str, Any]) -> dict[str, Any]:
     def hit(rule_id: str, detail: str):
         rule = rules[rule_id]
         entry = _finding(
-            rule_id, detail, rule["fix"],
-            severity=rule["severity"], jurisdictions=rule["jurisdictions"],
+            rule_id,
+            detail,
+            rule["fix"],
+            severity=rule["severity"],
+            jurisdictions=rule["jurisdictions"],
         )
         (violations if rule["severity"] == "code" else warnings).append(entry)
 
@@ -472,25 +520,31 @@ def selfplay_score(spec: dict[str, Any], transcript: list[dict[str, Any]]) -> di
     decisions = sum(1 for t in transcript if t.get("decision"))
     findings: list[Finding] = []
     if len(distinct) < 2:
-        findings.append(_finding(
-            "no_decision_loop",
-            f"self-play used {len(distinct)} distinct spec verb(s) over "
-            f"{len(transcript)} turns",
-            "the loop offers no meaningful choice - add a second viable verb "
-            "or interleave loop steps with choices",
-        ))
+        findings.append(
+            _finding(
+                "no_decision_loop",
+                f"self-play used {len(distinct)} distinct spec verb(s) over "
+                f"{len(transcript)} turns",
+                "the loop offers no meaningful choice - add a second viable verb "
+                "or interleave loop steps with choices",
+            )
+        )
     if transcript and decisions < len(transcript) * 0.4:
-        findings.append(_finding(
-            "forced_moves",
-            f"only {decisions}/{len(transcript)} turns involved a real decision",
-            "add resource tension or alternative routes so turns are choices",
-        ))
+        findings.append(
+            _finding(
+                "forced_moves",
+                f"only {decisions}/{len(transcript)} turns involved a real decision",
+                "add resource tension or alternative routes so turns are choices",
+            )
+        )
     if off_spec:
-        findings.append(_finding(
-            "off_spec_verbs",
-            f"self-play invented verbs not in the spec: {off_spec}",
-            "either add them to core_loop.verbs or tighten the spec",
-        ))
+        findings.append(
+            _finding(
+                "off_spec_verbs",
+                f"self-play invented verbs not in the spec: {off_spec}",
+                "either add them to core_loop.verbs or tighten the spec",
+            )
+        )
     return {
         "turns": len(transcript),
         "distinct_verbs": sorted(distinct),
@@ -515,8 +569,10 @@ def run_battery(spec: dict[str, Any], *, days: int = 90) -> dict[str, Any]:
     progression = progression_check(spec)
     ethics = ethics_check(spec)
     total = (
-        len(lint_result["findings"]) + len(economy["flags"])
-        + len(progression["findings"]) + len(ethics["violations"])
+        len(lint_result["findings"])
+        + len(economy["flags"])
+        + len(progression["findings"])
+        + len(ethics["violations"])
         + len(ethics["warnings"])
     )
     return {
@@ -528,7 +584,10 @@ def run_battery(spec: dict[str, Any], *, days: int = 90) -> dict[str, Any]:
         "hard_fail": ethics["hard_fail"],
         "total_findings": total,
         "verdict": (
-            "HARD FAIL (code-severity ethics violations)" if ethics["hard_fail"]
-            else f"{total} finding(s)" if total else "all checkers pass"
+            "HARD FAIL (code-severity ethics violations)"
+            if ethics["hard_fail"]
+            else f"{total} finding(s)"
+            if total
+            else "all checkers pass"
         ),
     }

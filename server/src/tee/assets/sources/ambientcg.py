@@ -57,9 +57,7 @@ class AmbientCG(SourceBackend):
         match = next((a for a in assets if a["assetId"] == asset_id), None)
         if match is None:
             # targeted query (the cached listing may not contain the id)
-            match = next(
-                (a for a in self._catalog(asset_id) if a["assetId"] == asset_id), None
-            )
+            match = next((a for a in self._catalog(asset_id) if a["assetId"] == asset_id), None)
         files: list[tuple[str, str, str | None]] = []
         if match:
             folders = (match.get("downloadFolders") or {}).get("default", {})

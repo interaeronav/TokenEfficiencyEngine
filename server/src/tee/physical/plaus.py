@@ -63,13 +63,15 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
 
     def hit(rule_key: str, element_id: Any, detail: str, *, severity=None, source=None):
         rule = table[rule_key]
-        findings.append({
-            "rule": rule_key,
-            "severity": severity or rule["severity"],
-            "element": element_id,
-            "detail": detail,
-            "source": source or rule.get("source"),
-        })
+        findings.append(
+            {
+                "rule": rule_key,
+                "severity": severity or rule["severity"],
+                "element": element_id,
+                "detail": detail,
+                "source": source or rule.get("source"),
+            }
+        )
 
     for element in elements:
         cls = element.get("class")
@@ -84,13 +86,15 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             if limit is None:
                 if size:
                     hit(
-                        "joist_span_max_m", eid,
+                        "joist_span_max_m",
+                        eid,
                         f"size '{size}' not in the encoded table - not checkable",
                         severity="CONV",
                     )
             elif span > limit:
                 hit(
-                    "joist_span_max_m", eid,
+                    "joist_span_max_m",
+                    eid,
                     f"{size} spans {span:.2f} m; worst-grade envelope is "
                     f"{limit:.2f} m (delta +{span - limit:.2f} m) - "
                     f"{rule['finding']}",
@@ -102,7 +106,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             span, depth = float(element.get("span_m", 0)), float(element.get("depth_m", 0))
             if depth > 0 and span / depth > rule["ratio_flag_below"]:
                 hit(
-                    "concrete_slab_min_depth", eid,
+                    "concrete_slab_min_depth",
+                    eid,
                     f"span/depth = {span / depth:.0f} (> {rule['ratio_flag_below']}): "
                     f"{rule['finding']}",
                 )
@@ -115,7 +120,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             span, depth = float(element.get("span_m", 0)), float(element.get("depth_m", 0))
             if depth > 0 and span / depth > rule["ratio_flag_below"]:
                 hit(
-                    rule_key, eid,
+                    rule_key,
+                    eid,
                     f"span/depth = {span / depth:.0f} (> {rule['ratio_flag_below']}): "
                     f"{rule['finding']}",
                 )
@@ -128,7 +134,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 thickness = float(element.get("thickness_m", 0))
                 if thickness > 0 and height / thickness > rule["ratio_max"]:
                     hit(
-                        "masonry_slenderness", eid,
+                        "masonry_slenderness",
+                        eid,
                         f"h/t = {height / thickness:.0f} (> {rule['ratio_max']}): "
                         f"{rule['finding']}",
                     )
@@ -138,9 +145,9 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 minimum = rule["multi_story"] if stories > 1 else rule["one_story"]
                 if element.get("bearing") and thickness * 1000 < minimum:
                     hit(
-                        "masonry_min_thickness_mm", eid,
-                        f"{thickness * 1000:.0f} mm < {minimum} mm minimum: "
-                        f"{rule['finding']}",
+                        "masonry_min_thickness_mm",
+                        eid,
+                        f"{thickness * 1000:.0f} mm < {minimum} mm minimum: {rule['finding']}",
                     )
 
         elif cls == "opening":
@@ -149,7 +156,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 evaluated += 1
                 if not element.get("has_header"):
                     hit(
-                        "header_required", eid,
+                        "header_required",
+                        eid,
                         f"opening ({element.get('width_m', '?')} m) in bearing wall "
                         f"'{wall.get('id')}': {table['header_required']['finding']}",
                     )
@@ -160,7 +168,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 drop = float(element.get("drop_outside_m", 0)) * 1000
                 if sill < rule["sill_mm"] and drop > rule["drop_mm"]:
                     hit(
-                        "window_fall_protection", eid,
+                        "window_fall_protection",
+                        eid,
                         f"sill {sill:.0f} mm with {drop:.0f} mm drop: {rule['finding']}",
                     )
 
@@ -169,12 +178,11 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             rule = table["lintel_bearing_min_mm"]
             span = float(element.get("span_m", 0))
             bearing = float(element.get("bearing_mm", 0))
-            required = next(
-                (mm for max_span, mm in rule["by_span_m"] if span <= max_span), 200
-            )
+            required = next((mm for max_span, mm in rule["by_span_m"] if span <= max_span), 200)
             if bearing < required:
                 hit(
-                    "lintel_bearing_min_mm", eid,
+                    "lintel_bearing_min_mm",
+                    eid,
                     f"bearing {bearing:.0f} mm < {required} mm for a "
                     f"{span:.2f} m span: {rule['finding']}",
                 )
@@ -185,7 +193,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             wall_thickness = float(wall.get("thickness_m", 0))
             if wall_thickness and float(element.get("width_m", 0)) < wall_thickness:
                 hit(
-                    "footing_width", eid,
+                    "footing_width",
+                    eid,
                     f"footing {element.get('width_m')} m under a "
                     f"{wall_thickness} m wall: {table['footing_width']['finding']}",
                 )
@@ -195,7 +204,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 rule = table["soil_bearing_min_kpa"]
                 if float(soil) < rule["value"]:
                     hit(
-                        "soil_bearing_min_kpa", eid,
+                        "soil_bearing_min_kpa",
+                        eid,
                         f"declared {soil} kPa < {rule['value']} kPa: {rule['finding']}",
                     )
 
@@ -212,7 +222,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             pitch = float(element.get("pitch_deg", 0))
             if entry and pitch < entry["min_deg"]:
                 hit(
-                    "roof_pitch_min_deg", eid,
+                    "roof_pitch_min_deg",
+                    eid,
                     f"{covering} at {pitch:.1f} deg < {entry['min_deg']} deg "
                     f"minimum (delta -{entry['min_deg'] - pitch:.1f} deg): "
                     f"{rule['finding']}",
@@ -233,14 +244,20 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             if float(element.get("width_mm", 9999)) < rule["width_min_mm"]:
                 hit("stairs", eid, f"width < {rule['width_min_mm']} mm")
             blondel = 2 * riser + tread
-            if riser and tread and not (
-                rule["blondel"]["range_mm"][0] <= blondel <= rule["blondel"]["range_mm"][1]
+            if (
+                riser
+                and tread
+                and not (
+                    rule["blondel"]["range_mm"][0] <= blondel <= rule["blondel"]["range_mm"][1]
+                )
             ):
                 hit(
-                    "stairs", eid,
+                    "stairs",
+                    eid,
                     f"2R+G = {blondel:.0f} mm outside {rule['blondel']['range_mm']} "
                     "(Blondel comfort convention)",
-                    severity="CONV", source=rule["blondel"]["source"],
+                    severity="CONV",
+                    source=rule["blondel"]["source"],
                 )
 
         elif cls == "room":
@@ -250,7 +267,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 ceiling = float(element.get("ceiling_m", 99)) * 1000
                 if ceiling < rule["value"]:
                     hit(
-                        "ceiling_min_mm", eid,
+                        "ceiling_min_mm",
+                        eid,
                         f"ceiling {ceiling:.0f} mm < {rule['value']} mm: {rule['finding']}",
                     )
 
@@ -261,7 +279,8 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             back = float(element.get("back_span_m", 0))
             if back > 0 and length / back > rule["back_span_ratio_max"]:
                 hit(
-                    "cantilever_ratio", eid,
+                    "cantilever_ratio",
+                    eid,
                     f"cantilever {length:.2f} m over back-span {back:.2f} m "
                     f"(ratio {length / back:.2f} > {rule['back_span_ratio_max']}): "
                     f"{rule['finding']}",
@@ -288,11 +307,10 @@ def _load_path(
     """IRC R301.1 reachability: every bearing element must reach a footing
     through `supports` edges (who carries me)."""
     findings = []
-    foundations = {
-        e["id"] for e in elements if e.get("class") in ("footing", "foundation")
-    }
+    foundations = {e["id"] for e in elements if e.get("class") in ("footing", "foundation")}
     bearing = [
-        e for e in elements
+        e
+        for e in elements
         if e.get("class") in ("wall", "beam", "post", "joist", "rafter")
         and (e.get("bearing") or e.get("class") in ("beam", "post"))
     ]
@@ -313,9 +331,7 @@ def _load_path(
         # also: anything that supports this element (edges may be stated
         # from either side)
         if not reached:
-            carriers = [
-                e["id"] for e in elements if element["id"] in (e.get("carries") or [])
-            ]
+            carriers = [e["id"] for e in elements if element["id"] in (e.get("carries") or [])]
             stack = carriers
             while stack:
                 node = stack.pop()
@@ -325,19 +341,19 @@ def _load_path(
                 if node in foundations:
                     reached = True
                     break
-                stack.extend(
-                    e["id"] for e in elements if node in (e.get("carries") or [])
-                )
+                stack.extend(e["id"] for e in elements if node in (e.get("carries") or []))
         if not reached and foundations:
-            findings.append({
-                "rule": "load_path",
-                "severity": "CODE",
-                "element": element["id"],
-                "detail": "LOAD_PATH_BROKEN: no support chain reaches a "
-                "foundation (IRC R301.1 requires a complete load path to "
-                "the foundation)",
-                "source": "IRC R301.1",
-            })
+            findings.append(
+                {
+                    "rule": "load_path",
+                    "severity": "CODE",
+                    "element": element["id"],
+                    "detail": "LOAD_PATH_BROKEN: no support chain reaches a "
+                    "foundation (IRC R301.1 requires a complete load path to "
+                    "the foundation)",
+                    "source": "IRC R301.1",
+                }
+            )
     return findings
 
 
@@ -356,13 +372,15 @@ def _wet_walls(elements: list[dict[str, Any]], table: dict[str, Any]) -> list[di
                 for other in by_level[lower]
             )
             if not aligned:
-                findings.append({
-                    "rule": "wet_wall_stacking",
-                    "severity": "CONV",
-                    "element": room.get("id"),
-                    "detail": table["wet_wall_stacking"]["finding"],
-                    "source": table["wet_wall_stacking"]["source"],
-                })
+                findings.append(
+                    {
+                        "rule": "wet_wall_stacking",
+                        "severity": "CONV",
+                        "element": room.get("id"),
+                        "detail": table["wet_wall_stacking"]["finding"],
+                        "source": table["wet_wall_stacking"]["source"],
+                    }
+                )
     return findings
 
 

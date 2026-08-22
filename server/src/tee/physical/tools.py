@@ -15,8 +15,14 @@ from tee.physical import verify as verify_mod
 from tee.physical.sketch import solve_sketch
 
 _TIER2_OPS = (
-    "wall_with_openings", "slab", "roof", "stairs", "opening_cut",
-    "array_along", "profile_extrude", "param_set",
+    "wall_with_openings",
+    "slab",
+    "roof",
+    "stairs",
+    "opening_cut",
+    "array_along",
+    "profile_extrude",
+    "param_set",
 )
 
 _DETERMINISM = physics_mod.DETERMINISM_NOTE
@@ -35,8 +41,7 @@ def register_physical_tools(app, project_root: Path | str) -> None:
         if adapter is None or not hasattr(adapter, "execute_python"):
             raise TeeError(
                 "unsupported_adapter",
-                f"This op compiles to Blender-side patterns; adapter "
-                f"'{name}' cannot run it.",
+                f"This op compiles to Blender-side patterns; adapter '{name}' cannot run it.",
                 fix="Use the blender adapter (UE Geometry Script targets "
                 "arrive with the physical machine).",
             )
@@ -78,14 +83,11 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             dims = entity.summary.get("dimensions") or entity.summary.get("dims_m")
             if dims and all(d > 0 for d in dims[:3]):
                 volume = dims[0] * dims[1] * dims[2]
-        ops, fact = materials_mod.assign_ops(
-            entity_id, str(args["query"]), volume_m3=volume
-        )
+        ops, fact = materials_mod.assign_ops(entity_id, str(args["query"]), volume_m3=volume)
         batch = app.run_batch(adapter, ops, label=f"mat:{fact['material']}")
         out = {
             "fact": fact,
-            **{k: batch[k] for k in ("checkpoint", "modified", "epoch", "revision")
-               if k in batch},
+            **{k: batch[k] for k in ("checkpoint", "modified", "epoch", "revision") if k in batch},
         }
         if volume is not None:
             out["mass_note"] = "mass = AABB volume x density (box approximation)"
@@ -107,7 +109,8 @@ def register_physical_tools(app, project_root: Path | str) -> None:
 
     def sim_settle(args):
         program = physics_mod.settle_program(
-            args.get("ids"), args.get("passive_ids"),
+            args.get("ids"),
+            args.get("passive_ids"),
             adopt=bool(args.get("adopt")),
             params=args.get("params"),
         )
@@ -151,8 +154,11 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             "sim_fluid",
             lambda: physics_mod.run_program(app, adapter_name, program, timeout=3600),
         )
-        return {"job": job, "note": "poll with tee_job; bake is synchronous "
-                "in Blender - the bridge is busy until it finishes"}
+        return {
+            "job": job,
+            "note": "poll with tee_job; bake is synchronous "
+            "in Blender - the bridge is busy until it finishes",
+        }
 
     def plaus_ids(args):
         try:
@@ -215,7 +221,8 @@ def register_physical_tools(app, project_root: Path | str) -> None:
         entity = cache.get(str(args["id"])) if cache else None
         if entity is None:
             raise TeeError(
-                "unknown_entity", f"No entity '{args['id']}' in the {adapter} cache.",
+                "unknown_entity",
+                f"No entity '{args['id']}' in the {adapter} cache.",
                 fix="List ids with tee_scene_summary.",
             )
         return verify_mod.sim_readiness(entity.summary)
@@ -223,8 +230,7 @@ def register_physical_tools(app, project_root: Path | str) -> None:
     # -- plausibility ------------------------------------------------------
 
     def plaus_check(args):
-        return plaus_mod.check({"elements": args["elements"],
-                                "region": args.get("region", "US")})
+        return plaus_mod.check({"elements": args["elements"], "region": args.get("region", "US")})
 
     tier2_descs = {
         "wall_with_openings": (
@@ -295,7 +301,8 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             {
                 "type": "object",
                 "properties": {
-                    "id": {"type": "string"}, "query": {"type": "string"},
+                    "id": {"type": "string"},
+                    "query": {"type": "string"},
                     "adapter": {"type": "string"},
                 },
                 "required": ["id", "query"],
@@ -307,8 +314,7 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             "mat_facts",
             "Three-tier material facts (render/physics/engineering) for one "
             "material, honesty-labeled per value with sources.",
-            {"type": "object", "properties": {"query": {"type": "string"}},
-             "required": ["query"]},
+            {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
             mat_facts,
             tags=["physical", "material", "facts", "properties"],
         ),
@@ -321,8 +327,10 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             {
                 "type": "object",
                 "properties": {
-                    "ids": {"type": "array"}, "passive_ids": {"type": "array"},
-                    "adopt": {"type": "boolean"}, "params": {"type": "object"},
+                    "ids": {"type": "array"},
+                    "passive_ids": {"type": "array"},
+                    "adopt": {"type": "boolean"},
+                    "params": {"type": "object"},
                     "adapter": {"type": "string"},
                 },
             },
@@ -337,9 +345,12 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             {
                 "type": "object",
                 "properties": {
-                    "id": {"type": "string"}, "collide_ids": {"type": "array"},
-                    "preset": {"type": "string"}, "seconds": {"type": "number"},
-                    "apply": {"type": "boolean"}, "adapter": {"type": "string"},
+                    "id": {"type": "string"},
+                    "collide_ids": {"type": "array"},
+                    "preset": {"type": "string"},
+                    "seconds": {"type": "number"},
+                    "apply": {"type": "boolean"},
+                    "adapter": {"type": "string"},
                 },
                 "required": ["id"],
             },
@@ -424,7 +435,8 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             {
                 "type": "object",
                 "properties": {
-                    "elements": {"type": "array"}, "region": {"type": "string"},
+                    "elements": {"type": "array"},
+                    "region": {"type": "string"},
                 },
                 "required": ["elements"],
             },

@@ -48,10 +48,13 @@ def test_sketch_closes_dimensioned_rectangle():
 
 def test_sketch_over_constrained_names_conflict():
     """Acceptance: over-constrained fixture answers with exact-fix errors."""
-    bad = {**RECT, "constraints": [
-        *RECT["constraints"],
-        {"kind": "distance", "a": "a", "b": "b", "value": 5.0},  # contradicts 4.0
-    ]}
+    bad = {
+        **RECT,
+        "constraints": [
+            *RECT["constraints"],
+            {"kind": "distance", "a": "a", "b": "b", "value": 5.0},  # contradicts 4.0
+        ],
+    }
     with pytest.raises(TeeError) as err:
         solve_sketch(bad)
     assert err.value.code == "over_constrained"
@@ -146,17 +149,27 @@ def _clean_model():
     return {
         "elements": [
             {"id": "f1", "class": "footing", "width_m": 0.5, "wall": "w1"},
-            {"id": "w1", "class": "wall", "bearing": True, "height_m": 2.7,
-             "thickness_m": 0.22, "material": "brick", "supports": ["f1"]},
-            {"id": "j1", "class": "joist", "size": "2x10", "span_m": 3.2,
-             "supports": ["w1"]},
-            {"id": "o1", "class": "opening", "wall": "w1", "width_m": 0.9,
-             "has_header": True},
-            {"id": "r1", "class": "roof", "covering": "concrete_tile",
-             "pitch_deg": 35.0},
+            {
+                "id": "w1",
+                "class": "wall",
+                "bearing": True,
+                "height_m": 2.7,
+                "thickness_m": 0.22,
+                "material": "brick",
+                "supports": ["f1"],
+            },
+            {"id": "j1", "class": "joist", "size": "2x10", "span_m": 3.2, "supports": ["w1"]},
+            {"id": "o1", "class": "opening", "wall": "w1", "width_m": 0.9, "has_header": True},
+            {"id": "r1", "class": "roof", "covering": "concrete_tile", "pitch_deg": 35.0},
             {"id": "room1", "class": "room", "ceiling_m": 2.6, "habitable": True},
-            {"id": "s1", "class": "stair", "riser_mm": 180, "tread_mm": 280,
-             "headroom_mm": 2100, "width_mm": 950},
+            {
+                "id": "s1",
+                "class": "stair",
+                "riser_mm": 180,
+                "tread_mm": 280,
+                "headroom_mm": 2100,
+                "width_mm": 950,
+            },
         ]
     }
 
@@ -227,8 +240,7 @@ def test_plaus_never_emits_member_size():
 def _app_with(tmp_path, entities):
     app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
     ops = [
-        {"op": "create", "kind": "object", "name": name, "props": props}
-        for name, props in entities
+        {"op": "create", "kind": "object", "name": name, "props": props} for name, props in entities
     ]
     out = app.run_batch("fake", ops)
     return app, out["created"]
@@ -236,10 +248,13 @@ def _app_with(tmp_path, entities):
 
 def test_tier0_floating_chair_caught(tmp_path):
     """Acceptance: a seeded floating chair is caught by Tier 0."""
-    app, _ = _app_with(tmp_path, [
-        ("floor", {"location": [0, 0, -0.1], "dims_m": [10, 10, 0.1]}),
-        ("chair", {"location": [1, 1, 0.4], "dims_m": [0.5, 0.5, 0.9]}),
-    ])
+    app, _ = _app_with(
+        tmp_path,
+        [
+            ("floor", {"location": [0, 0, -0.1], "dims_m": [10, 10, 0.1]}),
+            ("chair", {"location": [1, 1, 0.4], "dims_m": [0.5, 0.5, 0.9]}),
+        ],
+    )
     out = tier0(app, "fake")
     facts = [f for f in out["facts"] if f["kind"] == "floating"]
     assert facts and facts[0]["gap_m"] == pytest.approx(0.4)
@@ -247,10 +262,13 @@ def test_tier0_floating_chair_caught(tmp_path):
 
 def test_tier0_unsupported_com_stack_caught(tmp_path):
     """Acceptance: an unsupported-CoM stack is caught cumulatively."""
-    app, _ = _app_with(tmp_path, [
-        ("base", {"location": [0, 0, 0], "dims_m": [0.4, 0.4, 0.4]}),
-        ("top", {"location": [0.35, 0, 0.4], "dims_m": [0.4, 0.4, 0.4]}),
-    ])
+    app, _ = _app_with(
+        tmp_path,
+        [
+            ("base", {"location": [0, 0, 0], "dims_m": [0.4, 0.4, 0.4]}),
+            ("top", {"location": [0.35, 0, 0.4], "dims_m": [0.4, 0.4, 0.4]}),
+        ],
+    )
     out = tier0(app, "fake")
     facts = [f for f in out["facts"] if f["kind"] == "unsupported_com"]
     assert facts, out
@@ -258,19 +276,26 @@ def test_tier0_unsupported_com_stack_caught(tmp_path):
 
 
 def test_tier0_clean_stack_passes(tmp_path):
-    app, _ = _app_with(tmp_path, [
-        ("base", {"location": [0, 0, 0], "dims_m": [0.6, 0.6, 0.4]}),
-        ("top", {"location": [0.05, 0, 0.4], "dims_m": [0.4, 0.4, 0.4]}),
-    ])
+    app, _ = _app_with(
+        tmp_path,
+        [
+            ("base", {"location": [0, 0, 0], "dims_m": [0.6, 0.6, 0.4]}),
+            ("top", {"location": [0.05, 0, 0.4], "dims_m": [0.4, 0.4, 0.4]}),
+        ],
+    )
     out = tier0(app, "fake")
     assert out["facts"] == []
     assert "no tier-0 physics conflicts" in out["summary"]
 
 
 def test_sim_readiness_gate():
-    ready = sim_readiness({
-        "dimensions": [1, 1, 1], "physics_density_kg_m3": 500, "collision": "convex",
-    })
+    ready = sim_readiness(
+        {
+            "dimensions": [1, 1, 1],
+            "physics_density_kg_m3": 500,
+            "collision": "convex",
+        }
+    )
     assert ready["ready"] is True
     not_ready = sim_readiness({"dimensions": [1, 1, 1]})
     requirements = {f["requirement"] for f in not_ready["findings"]}
@@ -287,18 +312,28 @@ def test_physical_tools_register_and_guard(tmp_path):
     app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
     register_physical_tools(app, tmp_path)
     names = app.registry.names()
-    for expected in ("sketch_solve", "mat_assign", "sim_settle", "phys_tier0",
-                     "plaus_check", "wall_with_openings", "param_set"):
+    for expected in (
+        "sketch_solve",
+        "mat_assign",
+        "sim_settle",
+        "phys_tier0",
+        "plaus_check",
+        "wall_with_openings",
+        "param_set",
+    ):
         assert expected in names
     # tier-2 ops guard non-Blender adapters with the exact fix
     with pytest.raises(TeeError) as err:
         app.registry.call("wall_with_openings", {"props": {}})
     assert err.value.code == "unsupported_adapter"
     # mat_assign works on the fake adapter (assign_material parity)
-    created = app.run_batch("fake", [{"op": "create", "kind": "cube", "name": "Wall",
-                                      "props": {"dims_m": [4, 0.2, 2.7]}}])
-    out = app.registry.call("mat_assign", {"id": created["created"][0],
-                                           "query": "concrete", "adapter": "fake"})
+    created = app.run_batch(
+        "fake",
+        [{"op": "create", "kind": "cube", "name": "Wall", "props": {"dims_m": [4, 0.2, 2.7]}}],
+    )
+    out = app.registry.call(
+        "mat_assign", {"id": created["created"][0], "query": "concrete", "adapter": "fake"}
+    )
     assert out["fact"]["mass_kg"] == pytest.approx(4 * 0.2 * 2.7 * 2400, rel=0.01)
 
 
@@ -329,10 +364,8 @@ def test_ids_data_completeness_tier(tmp_path):
     ifcopenshell_api = pytest.importorskip("ifcopenshell.api")
 
     model = ifcopenshell_api.run("project.create_file", version="IFC4")
-    ifcopenshell_api.run("root.create_entity", model, ifc_class="IfcProject",
-                         name="Fixture")
-    ifcopenshell_api.run("root.create_entity", model, ifc_class="IfcWall",
-                         name="W1")
+    ifcopenshell_api.run("root.create_entity", model, ifc_class="IfcProject", name="Fixture")
+    ifcopenshell_api.run("root.create_entity", model, ifc_class="IfcWall", name="W1")
     ifc_path = tmp_path / "fixture.ifc"
     model.write(str(ifc_path))
 

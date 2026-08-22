@@ -57,8 +57,11 @@ class UefnCapabilities:
                 "editor": False,
                 "mode": "offline",
                 "available_offline": [
-                    "digest facts + lint", "digest diff", "verse templates",
-                    "export_for_uefn preflight", "device catalog (cached index)",
+                    "digest facts + lint",
+                    "digest diff",
+                    "verse templates",
+                    "export_for_uefn preflight",
+                    "device catalog (cached index)",
                 ],
                 "fix": "live lanes need UEFN on Windows with 'Python Editor "
                 "Scripting' + 'UEFN MCP Toolsets' enabled under Beta Access "
@@ -152,8 +155,12 @@ class FakeUefn(UefnAdapter):
     def entities(self) -> list[dict[str, Any]]:
         self._require_live()
         return [
-            {"id": eid, "name": e["name"], "components": sorted(e["components"]),
-             "position_xyz": luf_to_xyz(e["position_luf"])}
+            {
+                "id": eid,
+                "name": e["name"],
+                "components": sorted(e["components"]),
+                "position_xyz": luf_to_xyz(e["position_luf"]),
+            }
             for eid, e in self._entities.items()
         ]
 
@@ -187,8 +194,7 @@ class FakeUefn(UefnAdapter):
                 raise TeeError(
                     "bad_op",
                     f"Unknown Scene Graph op '{kind}' at index {i}.",
-                    fix="Ops: create_entity, set_transform, add_component, "
-                    "delete_entity.",
+                    fix="Ops: create_entity, set_transform, add_component, delete_entity.",
                 )
         return {"created": created, "modified": modified, "deleted": deleted}
 
@@ -206,7 +212,8 @@ class FakeUefn(UefnAdapter):
         # answered from the LOCAL index - never a forwarded 4,698-row dump
         words = query.lower().split()
         hits = [
-            d for d in self.catalog
+            d
+            for d in self.catalog
             if any(w in d["device"] or w in " ".join(d["tags"]) for w in words)
         ]
         return hits[:limit]
@@ -241,8 +248,12 @@ class FakeUefn(UefnAdapter):
         diagnostics = []
         for path, code in self._verse.items():
             if "vErr" in code:  # test hook: seeded failures
-                diagnostics.append({
-                    "severity": "error", "file": path, "line": 1,
-                    "message": "seeded failure",
-                })
+                diagnostics.append(
+                    {
+                        "severity": "error",
+                        "file": path,
+                        "line": 1,
+                        "message": "seeded failure",
+                    }
+                )
         return {"ok": not diagnostics, "diagnostics": diagnostics}
