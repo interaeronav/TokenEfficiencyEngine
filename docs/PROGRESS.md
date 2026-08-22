@@ -81,13 +81,33 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 
 ### Physical machine
 
-*(filled in by Phase 0 when the repo is first opened there)*
+Identified 2026-08-22: **Apple M5 MacBook Pro Max, 128 GB unified
+memory** (macOS, Apple Silicon). Phase 0 fills the rest on first open:
 
-- OS:
+- OS / macOS version:
 - Python interpreters / uv:
 - Blender installs (path, version, official MCP extension present?):
 - Unreal installs (path, version, ModelContextProtocol plugin present?):
 - Adapter tiers selected:
+
+Platform split of the outstanding ledger (decided by the hardware):
+
+- **This Mac covers:** Phase 3 Unreal adapter (UE 5.8 macOS editor +
+  the first-party MCP plugin, A4 route), live-GUI Blender validation
+  (Phase 2 close-out), UE benchmark scenarios (Phase 5), clean-machine
+  install rehearsal on real user hardware (Phase 6 re-check + the
+  v0.1.0 tag push), Whisper/audio quality spot-check (Phase 7),
+  diffusion lanes 1-2 via torch **MPS** (Z-Image / SDXL-tileable /
+  Marigold-IID - 128 GB unified memory is ample; CUDA-only claims in
+  A14 get re-verified against MPS), hosted generation (Tripo/Meshy
+  keys), [assets-embed] embeddings (CPU/MPS).
+- **Still needs a Windows machine:** everything live-UEFN (editor,
+  Beta Access toggles, MCP toolsets, Verse compile lane, Scene Graph
+  ops against Epic's toolsets) - UEFN has no macOS build. The offline
+  UEFN lanes (digest/lint/templates/export preflight) already work
+  everywhere.
+- **Still needs CUDA:** local TRELLIS.2-4B (nvdiffrast is
+  CUDA-bound) - lane 3 local generation stays hosted-only on this Mac.
 
 ## Blockers
 
