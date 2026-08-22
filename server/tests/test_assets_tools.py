@@ -122,11 +122,34 @@ def test_as_place_refuses_apply_on_violation(app):
     assert ent.summary["location"][:2] == [2.0, 1.5]
 
 
-def test_as_generate_without_drivers_names_fix(app):
+def test_as_generate_without_drivers_names_fix(tmp_path, monkeypatch):
+    """Machine-independent by construction: this asserts the message shown
+    when NOTHING is configured, so it must not depend on whether the host
+    happens to have a GPU. It silently did until local lanes existed."""
+    import tee.assets.tools as assets_tools
+
+    monkeypatch.setattr(assets_tools, "build_drivers", lambda config: {})
+    empty = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    assets_tools.register_asset_tools(empty, tmp_path, extract_store=None)
     with pytest.raises(TeeError) as err:
-        app.registry.call("as_generate", {"prompt": "a chair"})
+        empty.registry.call("as_generate", {"prompt": "a chair"})
     assert err.value.code == "no_generators"
     assert "TEE_TRIPO_KEY" in (err.value.fix or "")
+
+
+def test_as_generate_offers_the_local_lane_when_the_gpu_supports_it(monkeypatch, tmp_path):
+    """The reverse: on a machine whose probe reports lane 1, the local
+    driver must actually be offered."""
+    from tee.assets import generation
+
+    monkeypatch.setattr(
+        generation,
+        "probe_local_gpu",
+        lambda: {"available": True, "backend": "mps", "lanes": [1, 2]},
+    )
+    drivers = generation.build_drivers({"generated_dir": tmp_path})
+    assert "local-diffusion" in drivers
+    assert drivers["local-diffusion"].paid is False
 
 
 def test_as_credits_roundtrip(app, tmp_path):
