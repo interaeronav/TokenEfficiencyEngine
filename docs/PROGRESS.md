@@ -73,13 +73,14 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       tests, uefn skill, live Data API analytics; 26 tests + 2 live.
       Live-editor lanes DESCOPED 2026-08-22 — owner decision, no
       Windows machine; offline lanes shipped, interface+fakes kept)*
-- [x] Phase 13 — Voxkiln *(built in cloud + Mac bring-up 2026-08-22,
-      then REMOVED the same day — owner decision: the out-of-the-box
-      3D-generation need is dropped. The `voxkiln/` package, setup doc,
-      TEE driver and tests are deleted; generated-3D is hosted-only
-      (keyed Tripo/Meshy, dormant) and OFF the outstanding ledger.
-      Research corpus 43–48 kept; revival point = git history at the
-      removal commit's parent + decisions A26–A28 as amended)*
+- [x] Phase 13 — Voxkiln *(built in cloud + Mac bring-up 2026-08-22;
+      REMOVED the same day, then RESTORED the same day — owner decision
+      after the pending access approval came through. Restored from the
+      removal commit's parent (exact test-green state incl. the three
+      Mac-found fixes) + networkx dependency fix + CPU-env test skips;
+      server 395 tests + voxkiln 41 tests green after restoration.
+      Mac owes the live half again: reinstall, weights if cleaned,
+      first live generation, determinism, stock-vs-ours battery)*
 
 ## Machine facts
 
@@ -143,12 +144,11 @@ Platform split of the outstanding ledger (decided by the hardware):
   (digest/lint/templates/export preflight) are SHIPPED and supported
   everywhere; the adapter interface + fakes remain in the codebase so
   the live proxy could be revived by a future decision.
-- **REMOVED (owner decision, 2026-08-22):** local generated-3D
-  entirely. The former "needs CUDA" entry was first superseded by
-  Phase 13 (Voxkiln, MPS-capable), then the owner dropped the
-  out-of-the-box 3D-generation need and Voxkiln was deleted the same
-  day. Generated-3D is hosted-only (keyed Tripo/Meshy, dormant, not
-  owed); the curated library + procedural lanes cover asset needs.
+- **RESTORED (owner decision, 2026-08-22, after approval):** local
+  generated-3D through Voxkiln (Phase 13, A26–A28) — removed earlier
+  the same day, restored when the gated-access approval came through.
+  Lane-3 local generation targets this Mac's MPS (CUDA stays
+  supported); hosted Tripo/Meshy are the keyed fallback.
 
 ## Blockers
 
@@ -1015,9 +1015,9 @@ Nothing further can be closed on this machine. The honest remainder:
   are tested; the adapter interface + fakes stay as the revival point.
 
 **Needs CUDA** — none left: the former entry (local TRELLIS.2-4B, nvdiffrast
-CUDA-bound) was superseded 2026-08-22 by Phase 13 (Voxkiln), and later that
-day the owner removed the local generated-3D need entirely (Voxkiln deleted;
-see the removal entry in DECISIONS).
+CUDA-bound) was superseded 2026-08-22 by Phase 13 (Voxkiln), removed with
+Voxkiln later that day, and restored with it the same day once the access
+approval arrived (see DECISIONS).
 
 **Needs an older engine** (none installed):
 - the UE 5.3–5.7 Remote Control fallback tier is **unimplemented**, not
@@ -1183,8 +1183,8 @@ by hardware, by credentials, or by a decision that is the owner's:
 
 - **Descoped by the owner:** live UEFN (Windows-only).
 - ~~**Needs CUDA:** lane 3 local 3D generation (TRELLIS.2 / nvdiffrast).~~
-  Superseded later the same day by Phase 13 (Voxkiln), then REMOVED with
-  Voxkiln when the owner dropped the out-of-the-box 3D-generation need.
+  Superseded by Phase 13 (Voxkiln), removed with it, then RESTORED with
+  it after the access approval. Lanes 1–3 all local on this Mac.
   Lanes 1–2 correctly report available on MPS.
 - **Needs an older engine:** the UE 5.3–5.7 fallback tier, unimplemented.
 - ~~**Needs the owner's credentials:** hosted generation (Tripo / Meshy
@@ -1398,3 +1398,23 @@ gated-access blocker dies with it — nothing to request. Research digests
 43–48 stay in the corpus; decisions A26–A28 are amended by the removal
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
+
+### 2026-08-22 — Voxkiln RESTORED (owner decision — approval received)
+
+The owner reports the pending approval (gated DINOv3 image-tower access,
+the blocker at removal time) has come through and directed the rebuild.
+Restored in the cloud from the removal commit's parent (619bfc5^): the
+`voxkiln/` package (136 files), setup doc, TEE driver + tests, driver
+registration, lane-3 probe, doctor check, and the doc/skill references —
+the exact state that was test-green on the Mac, three vendored-defect
+fixes included. Two restoration fixes: `networkx>=3.0` declared in
+voxkiln dependencies (trimesh hole-fill imports it; 7 tests failed
+without it in a fresh cloud venv — the original env had it only
+transitively), and the two gated-weights doctor tests skip via
+`pytest.importorskip("huggingface_hub")` on envs without `[model]`.
+Evidence after restoration (cloud): server **395 passed / 1 skipped**,
+voxkiln **41 passed / 2 skipped**, ruff clean on both trees.
+Still owed on the Mac: recreate the voxkiln venv + reinstall into the
+server venv, re-fetch weights if the cleanup removed them, verify the
+gated DINOv3 access now works, first live generation, same-seed
+determinism, the stock-vs-ours battery.

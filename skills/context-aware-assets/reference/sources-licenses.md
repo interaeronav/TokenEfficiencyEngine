@@ -25,6 +25,8 @@ before any delivery.
 Generated assets (as_generate) additionally carry `ai_generated`
 provenance: pure AI output is not copyrightable in the US (USCO 2025);
 set-dressing quality only — hero assets are curated, not generated.
-Generated-3D is hosted-only (tripo/meshy, keyed, behind the usual cost
-confirmation); prefer the curated library sources and the procedural
-lane before reaching for generation.
+The default driver is **voxkiln** (local, free, image-to-3D; installed
+per docs/setup-voxkiln.md) — its reports include the repair log and a
+budget verdict; pass `options.budget` so rejects come back with the
+exact fix. Hosted tripo/meshy remain the keyed fallback for text-to-3D
+and rigging, behind the usual cost confirmation.

@@ -379,29 +379,38 @@ def _with_torch(monkeypatch, torch_module):
     monkeypatch.setitem(sys.modules, "torch", torch_module)
 
 
-def test_probe_reports_cuda_with_the_diffusion_lanes(monkeypatch):
+def test_probe_reports_cuda_with_all_three_lanes(monkeypatch):
     from tee.assets import generation
 
     _with_torch(monkeypatch, _FakeTorch(cuda=True, mps=False))
     out = generation.probe_local_gpu()
     assert out["available"] is True
     assert out["backend"] == "cuda"
-    assert out["lanes"] == [1, 2]
+    assert out["lanes"] == [1, 2, 3]
     assert generation.torch_device() == "cuda"
 
 
 def test_probe_enables_the_diffusion_lanes_on_apple_silicon(monkeypatch):
-    """The diffusion lanes are plain diffusers and run on MPS. Generated-3D
-    is hosted-only (the local product was removed by owner decision)."""
-    from tee.assets import generation
+    """The diffusion lanes are plain diffusers and run on MPS. Lane 3 on
+    MPS depends on voxkiln (Phase 13 removed the nvdiffrast/cumesh CUDA
+    lock): absent -> lanes 1-2 plus an install hint; present -> lane 3
+    joins the list."""
+    from tee.assets import gen_voxkiln, generation
 
     _with_torch(monkeypatch, _FakeTorch(cuda=False, mps=True))
+
+    monkeypatch.setattr(gen_voxkiln, "voxkiln_available", lambda: False)
     out = generation.probe_local_gpu()
     assert out["available"] is True
     assert out["backend"] == "mps"
     assert out["lanes"] == [1, 2]
-    assert "note" not in out
+    assert "voxkiln" in out["note"]
     assert generation.torch_device() == "mps"
+
+    monkeypatch.setattr(gen_voxkiln, "voxkiln_available", lambda: True)
+    out = generation.probe_local_gpu()
+    assert out["lanes"] == [1, 2, 3]
+    assert "note" not in out
 
 
 def test_probe_refuses_cpu_only_torch_with_a_reason(monkeypatch):

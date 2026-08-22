@@ -1272,6 +1272,14 @@ with fakes and DESCOPED per the 2026-08-22 amendment above.
 
 ## 16. Phase 13 — Voxkiln: the TRELLIS.2-derived generation product
 
+**RESTORED (owner decision, 2026-08-22, after approval):** the
+pending access approval came through and the owner directed the
+rebuild; Voxkiln was restored from the removal commit's parent, plus
+a networkx dependency fix and CPU-env test skips. The removal record
+below stands as history. Phase 13 is in force again; the Mac owes
+the live half (weights if cleaned, live generation, determinism,
+battery).
+
 **REMOVED (owner decision, 2026-08-22, same day):** the owner removed
 the out-of-the-box 3D-generation requirement and had Voxkiln deleted
 from the repository — the `voxkiln/` package, its setup doc, the TEE

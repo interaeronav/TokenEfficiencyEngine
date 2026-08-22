@@ -4,6 +4,24 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Voxkiln RESTORED (owner decision — approval received)
+
+The owner reports the pending approval has come through (the gated
+DINOv3 image-tower access was the blocker at removal time) and directed
+that Voxkiln be rebuilt and reinstalled. Restored from git history at
+the removal commit's parent (619bfc5^) — the exact test-green state,
+including the three Mac-found vendored-defect fixes — rather than
+rebuilt from scratch. Two fixes landed during restoration: `networkx`
+declared as a runtime dependency (trimesh's hole-fill needs it; the
+original env had it only transitively), and the two gated-weights
+doctor tests now skip cleanly on environments without the `[model]`
+extra (split-execution rule). This amends the same-day removal entry
+below; A26–A28 are in force again. TEE integration (driver-first
+registration, lane-3 probe, doctor check) is restored with it;
+generated-3D is local-first once more, hosted Tripo/Meshy the keyed
+fallback. The Mac owes the live half again: reinstall, weights if
+cleaned, first live generation, determinism, the stock-vs-ours battery.
+
 ## 2026-08-22 — Voxkiln removed; the out-of-the-box 3D-generation need is dropped (owner decision)
 
 Hours after the Phase 13 build and its Mac bring-up, the owner removed
