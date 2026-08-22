@@ -1002,7 +1002,134 @@ classes. `docs/PROGRESS.md` updated with evidence.
 
 ---
 
-## 14. Standing rules (all phases)
+## 14. Phase 11 — TEE Physical: physics, material science, modeling
+
+**Goal:** the modeled world obeys physics and dimensions, cheaply. Three
+capabilities: a physics lane whose simulations are checkpoint-safe,
+deterministic-where-promised, and report compact facts; a material fact
+store whose values are measured or honestly labeled, spanning render,
+physics, and engineering tiers; and a tier-2 modeling vocabulary that
+builds real architectural elements (walls with openings, slabs, roofs,
+stairs) as parameterized, verifiable constructions instead of prop boxes.
+
+**Grounding:** `docs/research/32`–`37` (six-agent pass, 2026-08-22; two
+agents verified by execution against local Blender 5.2 and 5.2 sources).
+Decisions A19–A21 settled — amend via `docs/DECISIONS.md` only.
+Anti-goals: no physics theater (facts say "rest-stable under settle",
+never "structurally sound"); no unlabeled property values; no member
+sizing or "passes" verdicts in plausibility checks (findings only —
+the flagging-vs-approving line is the legal design input).
+
+### 11.1 Modeling tier-2 ops (A21)
+
+1. Typed ops `wall_with_openings`, `slab`, `roof`, `stairs`,
+   `opening_cut`, `array_along`, `profile_extrude`, `param_set` — each
+   compiling to the verified BMesh pattern (tessellate_polygon +
+   solidify; watertight by test) or a TEE-owned geometry-node group
+   addressed by socket identifier only. Boolean policy: MANIFOLD solver
+   default with over-penetrating manifold cutters, EXACT fallback,
+   'FAST' guarded out. Live modifier form is the default; `apply` is an
+   explicit checkpointed op; exports use glTF `export_apply`.
+2. Shim-table entries from the research: 5.2 NodesModifier RNA input
+   API (`properties.inputs.<id>.value` — ID-property access raises),
+   boolean solver identifier change, `gpu.init()` for background.
+3. `sketch_solve`: server-side py-slvs constraint solving
+   (distance/angle/parallel/equal) closes dimensioned 2D plans before
+   extrusion — no DCC involved; feeds wall/slab ops. Plan-extracted
+   walls (Phase 7) upgrade from prop boxes to wall_with_openings.
+4. Parameter schemas mined from Infinigen (BSD-3); UE compile targets:
+   Geometry Script (Python-scriptable) and parameterized pre-built PCG
+   graphs (physical machine).
+
+### 11.2 Material facts (A20)
+
+1. `materials/` reference data: three tiers per material — render
+   (Principled/UE params), physics (density, friction pair, restitution),
+   engineering (strength/moduli/thermal where relevant) — every leaf
+   value carrying source + license + as_of + honesty label (measured |
+   standard_value | typical_range | derived | game_plausible) and
+   per-engine caveats (Bullet multiplies friction — √μ note; UE g/cm³).
+2. Bulk imports from CC0/CC-BY sources only (physicallybased.info,
+   refractiveindex.info, RGL-EPFL, Wikidata; Eurocode numeric values as
+   cited facts). Banned by test: NIST SRD bulk, MatWeb/MakeItFrom
+   tables, ArcSim cloth data. UsdPhysics is the parameter vocabulary.
+3. `mat_assign` wires all applicable tiers at once: render nodes,
+   rigid-body/physical-material params, and an engineering fact for the
+   plausibility checker; Blender mass via volume × density.
+
+### 11.3 Physics lane (A19)
+
+1. Blender: `sim_drop` / `sim_settle` (sequential frame stepping,
+   early-out on transform-delta convergence, optional freeze),
+   `sim_cloth_drape` (embedded 5.2 preset table), cost-gated `sim_fluid`
+   (ALL cache, absolute directory, res ≤ 64 default), `sim_bake_all`
+   (checkpoint prep — memory caches persist in .blend snapshots).
+   Reports: resting poses, settled flag, AABB/max displacement,
+   solver_result, cache status, wall time — never per-frame data.
+   Tracker landmines encoded (bake before background renders; never
+   pip-bpy; invoke-only calculate-to-frame avoided).
+2. UE (physical machine): `physics.settle` — SIE + short-call polling +
+   all-asleep stop + transform diff (replaces the API-less "Keep
+   Simulation Changes"); physical-material ops echo computed mass;
+   ragdoll and Dataflow fracture proxied through the official MCP
+   toolsets; functional tests generated and run headless
+   (`-game -NullRHI`) as the sanctioned sim-verification route.
+3. Determinism contract in tool descriptions: reproducible on this
+   machine and build with pinned stepping; not across builds; fluids
+   approximate. Assertions tolerance-based above a measured variance
+   floor (add the variance-floor measurement to benchmarks/).
+
+### 11.4 Verification ladder (A19/A20)
+
+1. Tier 0 (always-on, ms): existing battery + CoM-over-support-polygon
+   with stability margin (cumulative for stacks) — floating /
+   penetrating / unsupported_com facts.
+2. Tier 1 (opt-in, s): settle test with CoACD (MIT) proxies cached per
+   asset hash; BlenderProc-style quiescence; compact delta report;
+   optional adopt-settled-poses repair.
+3. Tier 2: swept-range mechanism checks over joint limits (door swings
+   sampled statically); dynamic hinge sim on request only.
+4. Sim-readiness gate for Phase 9 imports: simple collision present,
+   complexity mode, physical material, mass sane — SimReady-style
+   requirements emitting conflict facts with callable fixes.
+
+### 11.5 Structural plausibility (A20)
+
+1. `plaus_check`: rule engine over plan facts + modeled geometry with
+   CODE/STD/HEUR/CONV severity (CODE never relaxable). Rule sets from
+   research 35: span envelopes (worst-case table columns — zero false
+   positives), header/lintel existence and bearing, masonry
+   slenderness, footing rules, roof pitch minima per covering, stairs,
+   ceiling heights, head-height geometry, wet-wall conventions.
+2. The load-path graph check (IRC R301.1 anchor): support-graph
+   reachability to foundations; missing headers; cantilever ratios;
+   stacking offsets; point loads to posts to footings.
+3. Output contract: findings with source + edition + jurisdiction +
+   exact delta; never a member size; never a "passes" state — "no
+   plausibility conflicts detected (N rules evaluated)". The disclaimer
+   text ships in the tool description and docs. Region-parameterized;
+   SANS 10400 researched before Okongo jurisdiction defaults.
+4. Data-completeness tier via IDS + ifctester on the exported IFC.
+
+### 11.6 Acceptance
+
+Full suite green. The fixture plan builds via wall_with_openings with
+watertight results (0 non-manifold edges, by test). sketch_solve closes
+an over/under-constrained fixture with exact-fix errors. A seeded
+floating chair and an unsupported-CoM stack are caught by Tier 0; a
+settle test on the furnished fixture room returns a compact report and
+adopted poses within thresholds; determinism: two settle runs on this
+machine agree within the measured variance floor. mat_assign gives the
+fixture wall EN-cited density and the renderer honest labels; a banned
+bulk-source import fails by test. plaus_check flags a seeded
+over-span joist citing the table, a tile roof below 30°, and a broken
+load path; the clean fixture reports zero findings with the rule count.
+Benchmarks gain the variance-floor measurement and a settle-cost row.
+`docs/PROGRESS.md` updated with evidence.
+
+---
+
+## 15. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.

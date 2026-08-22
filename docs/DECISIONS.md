@@ -4,6 +4,40 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Phase 11 (TEE Physical) researched; decisions A19–A21
+
+A six-agent deep-research pass (docs/research/32–37) grounded the
+physics, material-science and modeling module; two agents verified
+findings by execution (local Blender 5.2 smoke tests; source-level
+reading of 5.2 bake paths). New settled decisions:
+
+- **A19 — physics surface & determinism contract:** legacy Blender
+  RB/cloth as primary ops with bake-before-checkpoint; UE settle via
+  SIE + short-call cadence; static-first verification ladder
+  (CoM-over-support → settle → mechanism sweep); same-machine
+  determinism only, tolerance assertions above a measured variance
+  floor; honest fact wording ("rest-stable", never "structurally
+  sound").
+- **A20 — material facts & plausibility floor:** three-tier
+  honesty-labeled material schema on a CC0 backbone with UsdPhysics
+  vocabulary; structural checks are findings-not-approvals with
+  CODE/STD/HEUR/CONV severity and the IRC R301.1 load-path
+  reachability graph; no sizing, no "passes" state.
+- **A21 — modeling tier-2 ops:** wall/slab/roof/stairs/opening/array/
+  param_set/sketch_solve compiled to verified BMesh patterns or
+  socket-identifier-addressed GN groups; MANIFOLD boolean default;
+  py-slvs server-side constraint solving; Geometry Script/PCG as the
+  UE compile targets.
+
+Load-bearing evidence: 5.2 removed NodesModifier ID-properties (shim
+entry) and the legacy 'FAST' boolean identifier; ptcache/fluid/GN bake
+exec paths are synchronous headless (source-verified) while
+calculate-to-frame is invoke-only; Epic caps Chaos determinism at
+"close, but not perfect" cross-machine and ships no MCP simulation
+toolset (TEE's settle macro fills the gap); NIST SRD is
+statute-protected against bulk copying; the flagging-vs-sizing line
+keeps plausibility checks clear of engineering practice.
+
 ## 2026-08-22 — Phase 10 (TEE Design) researched; decisions A16–A18
 
 A six-agent deep-research pass (docs/research/26–31) grounded the expert

@@ -37,6 +37,10 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - [ ] Phase 10 — TEE Design *(research complete + phase scripted
       2026-08-22; build not started. Fully cloud-buildable — reference
       tables, spec schema, checkers and skill need no DCC)*
+- [ ] Phase 11 — TEE Physical *(research complete + phase scripted
+      2026-08-22; build not started. Modeling ops, material facts,
+      Blender physics lane and plausibility checks are cloud-buildable;
+      UE physics needs the physical machine)*
 
 ## Machine facts
 
@@ -320,3 +324,35 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   (minable), Buildify free-but-proprietary graph (concepts only), CAD
   Sketcher GPL-3, archipack GPL-3, BlenderKit royalty-free (no asset
   redistribution).
+
+### 2026-08-22 — Phase 11 research + script (cloud)
+- Deep-research pass for TEE Physical (6 agents, ~670K tokens): corpus
+  digests 32–37 committed; decisions A19–A21 recorded. Two agents
+  verified by EXECUTION: modeling findings smoke-tested against the
+  local Blender 5.2 (watertight wall patterns, MANIFOLD booleans, the
+  5.2 NodesModifier API break, py-slvs headless); physics bake paths
+  read at 5.2 source level (ptcache/fluid/GN bake exec synchronous;
+  calculate-to-frame invoke-only; tracker landmines catalogued).
+- Load-bearing findings: rigid-body stepping is strictly sequential
+  frame_set with fixed substeps — deterministic same-machine, bake
+  before checkpoint (memory caches persist in .blend snapshots); Epic
+  caps Chaos determinism at "close, but not perfect" cross-machine and
+  ships NO simulation toolset in the official MCP — TEE's settle macro
+  (SIE + short-call polling + transform diff) fills a real gap and the
+  editor-doesn't-tick-during-Python constraint matches TEE's cadence
+  natively; static checks carry most verification value
+  (CoM-over-support in pure Python; settle thresholds from BlenderProc/
+  Isaac; SimReady Foundation is Apache-2.0 with a static validator to
+  mirror; CoACD MIT for proxies); a CC0 backbone exists for material
+  data across render/physics/engineering tiers while NIST SRD is
+  statute-protected and ArcSim cloth non-profit-only — three-tier
+  honesty-labeled schema exceeds SimReady's no-provenance state of the
+  art; structural plausibility is legally safe as
+  findings-against-cited-tables (IRC is prescriptive by design; the
+  load-path graph check is anchored on R301.1's own words) and Solibri
+  runs no such rules — the layer has no commercial equivalent; SANS
+  10400 flagged for Okongo jurisdiction defaults.
+- Phase 11 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections
+  11.1–11.6 with acceptance criteria incl. seeded-defect plausibility
+  fixtures and a determinism variance-floor benchmark); build not
+  started.

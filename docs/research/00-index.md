@@ -41,6 +41,12 @@ empirically and record it in `docs/PROGRESS.md`.*
 | [29-market-trends.md](29-market-trends.md) | Market 2024-2026 with sourced numbers: Steam economics, genre winners/losers, UGC payouts, AI sentiment gap, small-team opportunity map |
 | [30-design-logic.md](30-design-logic.md) | Frameworks standing, encodable economy/progression/pity math, level-design patterns + procgen licenses, one-pager + Cerny macro chart artifacts |
 | [31-ai-design-module.md](31-ai-design-module.md) | Prior art verdicts, LLM design failure modes, LLM-proposes-formal-verifies pattern, three-layer knowledge encoding, tee-design/1 spec schema |
+| [32-blender-physics.md](32-blender-physics.md) | Blender 5.2 physics headless: sequential frame stepping, cloth presets, synchronous bake paths, cache/checkpoint rules, tracker landmines, sim op vocabulary |
+| [33-ue-chaos.md](33-ue-chaos.md) | UE 5.8 Chaos scriptable surface: PIE from Python + no-tick caveat, determinism statements, Dataflow destruction/cloth, MCP toolset gaps, functional-test headless route |
+| [34-material-data.md](34-material-data.md) | Material property sources + licenses: CC0 backbone, SRD/MatWeb/ArcSim traps, Eurocode facts, engine mapping caveats, three-tier honesty-labeled schema |
+| [35-structural-plausibility.md](35-structural-plausibility.md) | Findings-not-approvals framing, CODE/STD/HEUR/CONV severity, cited span/pitch/stair tables, load-path graph check per IRC R301.1, IDS/ifctester prior art |
+| [36-parametric-modeling.md](36-parametric-modeling.md) | LOCAL-verified: 5.2 NodesModifier API break, MANIFOLD booleans, tessellate+solidify wall pattern, py-slvs server-side constraints, tier-2 op vocabulary, UE Geometry Script portability |
+| [37-sim-verification.md](37-sim-verification.md) | Settle-test thresholds (BlenderProc/Isaac), static-first evidence, SimReady Foundation Apache-2.0 precedent, CoACD proxies, determinism practice, honest sim boundaries |
 
 ## Architecture decisions (ADR)
 
@@ -184,6 +190,56 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   Australia/Brazil enforcement; AI-content defaults: disclose, keep
   invisible-infra or clearly stylized, never voice/likeness without
   consent (SAG-AFTRA 2025). (27, 28, 29)
+
+- **A19 — Physics surface & determinism contract:** Blender legacy
+  rigid-body/cloth are the primary sim ops (sequential frame stepping,
+  fixed substeps, bake-before-checkpoint; memory caches persist in
+  .blend snapshots; drive full `blender --background`, never pip-bpy);
+  UE settle runs as SIE plus TEE's natural many-short-calls cadence
+  (the editor does not tick during a Python call) and replaces the
+  API-less "Keep Simulation Changes" with a transform diff. The
+  verification ladder is static-first: Tier 0 CoM-over-support +
+  penetration + support facts (pure Python, always on), Tier 1 settle
+  (BlenderProc-style quiescence, CoACD MIT proxies cached per asset,
+  compact delta report, optional adopt-settled-poses), Tier 2
+  swept-range mechanism checks. Determinism is same-machine/same-build
+  only (Epic: "close, but not perfect" cross-machine) — assertions are
+  tolerance-based above a measured variance floor, never golden values.
+  Fluids are cost-gated (Mantaflow ALL-cache + absolute dir; Niagara
+  Beta = pixels only); GN/XPBD physics is a watch-lane. Fact wording is
+  honest: "rest-stable under settle", never "structurally sound".
+  (32, 33, 37)
+- **A20 — Material facts & plausibility floor:** three-tier material
+  schema (render / physics / engineering) with per-value source +
+  license + as_of + honesty label (measured | standard_value |
+  typical_range | derived | game_plausible) and per-engine caveats
+  (Bullet multiplies friction; UE density g/cm³ + mass-power fudge);
+  UsdPhysics is the parameter vocabulary and SimReady-style static
+  validation with callable fixes the gating pattern. Bulk sources are
+  CC0/CC-BY only (physicallybased, refractiveindex.info, RGL-EPFL,
+  Wikidata, Eurocode numeric values as cited facts); banned: NIST SRD
+  bulk (15 USC 290e), MatWeb/MakeItFrom tables, ArcSim cloth
+  (non-profit-only). Structural plausibility is findings-not-approvals:
+  CODE/STD/HEUR/CONV severity (CODE never relaxable), cited
+  span/pitch/stair tables using worst-case columns, the load-path
+  reachability graph anchored on IRC R301.1, no member sizing, no
+  "passes" state, disclaimer posture per Autodesk/Solibri precedent;
+  region-parameterized (SANS 10400 follow-up before Okongo defaults);
+  IDS + ifctester for the data-completeness tier. (34, 35, 37)
+- **A21 — Modeling tier-2 ops:** the typed vocabulary grows to
+  wall_with_openings, slab, roof, stairs, opening_cut, array_along,
+  profile_extrude, param_set, and server-side sketch_solve (py-slvs
+  constraint solving before extrusion — no DCC involved); each op
+  compiles to verified BMesh patterns (tessellate_polygon + solidify,
+  watertight) or TEE-owned geometry-node groups addressed strictly by
+  socket identifier (5.2's NodesModifier RNA break lives in the shim
+  table; boolean solver default MANIFOLD with over-penetrating manifold
+  cutters, EXACT fallback, 'FAST' guarded). Live modifier form is the
+  default; `apply` is an explicit checkpointed op; glTF export uses
+  export_apply. UE portability via Geometry Script (Python-scriptable)
+  and parameterized pre-built PCG graphs; Infinigen (BSD-3) is the
+  mined parameter-schema source. param_set is the token-efficiency
+  payoff: one group, N three-scalar diffs. (36, 32)
 
 ## Headline numbers worth remembering
 
