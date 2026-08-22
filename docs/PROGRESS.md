@@ -38,9 +38,11 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       Physical machine still owed: GPU lanes 1-3 live (diffusion,
       TRELLIS, hosted keys), [assets-embed] embeddings, UE import path,
       Blender library authoring/asset_listing publishing)*
-- [ ] Phase 10 — TEE Design *(research complete + phase scripted
-      2026-08-22; build not started. Fully cloud-buildable — reference
-      tables, spec schema, checkers and skill need no DCC)*
+- [x] Phase 10 — TEE Design *(built in cloud, 2026-08-22: tee-design/1
+      spec + revision store, sourced reference tables, cost-ordered
+      battery (lint/scope/economy-sim/progression/ethics + self-play
+      prepare-score), 11 gd_* tools, game-design skill; 24 tests, all
+      seeded-defect acceptance cases caught)*
 - [ ] Phase 11 — TEE Physical *(research complete + phase scripted
       2026-08-22; build not started. Modeling ops, material facts,
       Blender physics lane and plausibility checks are cloud-buildable;
@@ -427,3 +429,30 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   prior scenario numbers reproduced in the same run.
 - Deviation recorded: glTF probe is stdlib (JSON chunk + node-transform
   composition), not pygltflib — script amended; no new dependency.
+
+### 2026-08-22 — Phase 10 build (cloud)
+- TEE Design built per script 10.1–10.6: `server/src/tee/design/`
+  (spec.py validate/render/SpecStore with diffable revisions; tables.py
+  query API; checks.py battery; tools.py 11 gd_* tools; 6 versioned
+  data files — benchmarks, genres, motivations, ux_params,
+  economy_archetypes, dark_patterns — every figure with source+as_of);
+  `game-design` skill (SKILL.md + 2 references + 3 evals).
+- Evidence: `uv run pytest` → **292 passed, 1 skipped** (24 new);
+  ruff clean. Acceptance checks all by test: spec round-trips
+  (validate → render → edit → re-validate, changed_sections=
+  ["core_loop"]); lint catches seeded dead currency ("gems", fix names
+  the two moves), missing session-end hook, sonar used-before-taught;
+  economy solver flags the seeded faucet spiral (ratio 0.036 vs
+  premium band 0.6–1.1) and passes the balanced fixture (ratios
+  0.6–1.1 across personas); ethics HARD-fails the under-16 loot-box
+  spec citing loot_box_minors severity=code with Belgium/Brazil/FTC
+  jurisdictions; gd_benchmark("d7","mobile","puzzle") answers median
+  4% + GameAnalytics 2026 + the top-decile folk-target warning +
+  AppsFlyer genre D30; the Salvage Crew co-op brief (opportunity-map
+  niche) names 3 comparables with deltas, passes the whole battery,
+  and its content_list resolves against Phase 9 asset classes; pity
+  hazard recomputation validates Genshin's published params and
+  catches a false expected_pulls declaration.
+- Bridge to build wired: content_list classes = Phase 9 ASSET_CLASSES
+  (checked by test); design store lives under .tee/design/ with
+  revision history.
