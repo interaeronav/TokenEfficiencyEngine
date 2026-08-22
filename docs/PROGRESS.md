@@ -761,7 +761,12 @@ written against. Live-probed facts, several of which correct doc 07:
   must therefore handle **both** shapes and not assume either.
 - Tool-search mode confirmed on: `tools/list` returns only
   `list_toolsets` / `describe_toolset` / `call_tool`, **1,719 bytes**.
-- **67 toolsets** advertised, not the 52 doc 07 recorded for 5.8.0.
+- **55 toolsets** advertised, not the 52 doc 07 recorded for 5.8.0.
+  *(Corrected later the same day: this line first said 67. The
+  count came from a naive `- ` line filter, and toolset
+  descriptions carry their own bullet lists — 12 of those were
+  being counted as toolsets, and were briefly offered to the
+  model as callable names. See the Phase 3.5 entry.)*
 - `describe_toolset` cost, measured on this machine (inner text chars,
   tokens at 4 chars/token):
   - `BlueprintTools` — 79,713 wire bytes, 72,168 chars, **~18,042
@@ -831,3 +836,56 @@ TEE itself moved. Measured after: **list_entities 15.7s → 1.52s**, snapshot
 - Evidence: 17 offline + 10 live UE tests; full suite **359 passed, 2
   skipped**; `-m dcc` **65 passed** (Blender both flavors + Unreal);
   `make check` green.
+
+### 2026-08-22 — Phase 3 build, part 2 (Blueprint authoring + ue_* surface)
+
+- **Blueprint DSL authoring with verification Epic does not do** — the
+  acceptance bullet "Blueprint function authored and compiled with
+  diagnostics via graph DSL", done in one round-trip (4.3s, compile clean).
+  The reason it needed more than a passthrough: **`write_graph_dsl` silently
+  drops statements it cannot resolve.** Writing
+  `(fn Broken () (return (NoSuch|Node|Here :A 1)))` returns success, reads
+  back as `(fn Broken ())` — body gone — and
+  `compile_blueprint(warnings_as_errors=True)` then reports the Blueprint
+  **clean**. Every signal Epic exposes says the authoring worked while the
+  function is empty; that is exactly the hallucinated-call failure this
+  project exists to remove. TEE writes, reads back, and compares *structure*
+  (textual comparison would false-alarm because the engine normalizes
+  `Utilities|Operators|Add` to `+`), failing with the unresolved node id and
+  what the graph actually holds.
+- **`ue_*` surface**: 8 virtual tools behind progressive disclosure
+  (`ue_toolsets`, `ue_toolset`, `ue_describe_tool`, `ue_call`,
+  `ue_blueprint_function`, `ue_graph_dsl_docs`, `ue_entity_detail`, plus
+  `ue_script` when code exec is enabled). `tee serve --adapter unreal` works.
+
+**Two defects of TEE's own, found by exercising the surface:**
+
+- `ue_toolsets` advertised **toolsets that do not exist**: descriptions in
+  `list_toolsets` contain their own `- ` bullet lists and the parser counted
+  them as entries (67 where there are **55**), handing the model names like
+  "FX-related operations in levels or blueprints" as callable. Fixed, with a
+  regression test whose fixture reproduces the interleaved bullets. The
+  earlier "67 toolsets" line above is corrected in place.
+- Blueprint authoring was not re-runnable (`create` raises when the asset
+  exists). Now idempotent, verified live: second run reports reused
+  blueprint + graph and still compiles clean.
+
+**Third finding, in Epic's sandbox rather than TEE:** a tool failure inside
+`execute_tool_script` is **not catchable** — neither `except RuntimeError`
+nor `except Exception` intercepts it; the sandbox aborts the whole script and
+returns the message as bare text. This contradicts
+`get_execution_environment`'s own instruction that `execute_tool` "raises
+RuntimeError on failure - no error checking is needed". Consequences now
+baked into the design: scripts achieve idempotency by **checking** before
+acting (`AssetTools.exists`, `list_graphs`), never by catching, and the
+Blueprint compile runs as a **separate call** so diagnostics come back
+instead of a dead script.
+
+**Phase 3 remaining:** busy-state probe (compiling / PIE / level load) and
+modal-dialog hang detection (3.2); TEE toolsets in a content plugin — PIE
+start/stop and the gated editor-Python escape hatch (3.5); vision +
+assertions (3.7). The 5.3–5.7 fallback tier has no engine on this machine
+and stays **n/a**.
+
+- Evidence: **364 passed, 2 skipped**; `-m dcc` **69 passed** (Blender both
+  flavors + Unreal live); `make check` green.
