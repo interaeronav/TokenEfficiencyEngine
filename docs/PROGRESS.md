@@ -21,6 +21,9 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       saving measured — see benchmarks/RESULTS.md; UE scenarios need the
       physical machine)*
 - [ ] Phase 6 — Packaging and handoff
+- [ ] Phase 7 — TEE Extract: media extraction module *(research complete +
+      phase scripted 2026-08-22; build is cloud-executable — fixtures are
+      synthetic and the Blender handoff tests run headless)*
 
 ## Machine facts
 
@@ -121,3 +124,21 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   tools/list, tool call through the SDK client).
 - Evidence: `uv run pytest` → **107 passed**; `-m dcc` → **22 passed**
   (both bridge flavors); ruff clean; doctor exit 0 with bridge up.
+
+### 2026-08-22 — Phase 7 research + script (cloud)
+- Deep-research pass for TEE Extract (9 agents, ~865K tokens): corpus
+  digests 11–18 committed; decisions A8–A10 recorded.
+- Load-bearing findings: MCP sampling is dead (deprecated in the MCP
+  2026-07-28 spec, unimplemented in Claude Code/Desktop) → in-band
+  extraction is the default channel; PyMuPDF (AGPL) and all open floor-plan
+  ML models (CC BY-NC / GPL) are license-banned → deterministic lane on
+  pdfplumber/ezdxf/ifcopenshell/OpenCV; `ezdxf` DIMENSION.get_measurement()
+  is dimensional ground truth; images bill by rendered dimensions
+  (`ceil(w/28)×ceil(h/28)`, ≤4,784 tokens on the Fable/Opus-5 tier) so
+  media serving is token-budget-first; VLM accuracy on drawings is ~0.95
+  for text transcription but 0.40–0.55 for symbol counting → extract text,
+  verify geometry deterministically; FML v3 adopted as plan-schema base but
+  extended (per-level heights, parametric roof) before freeze; frames +
+  transforms-as-facts with tier precedence settle cross-source conformance.
+- Phase 7 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections 7.1–7.8 with
+  acceptance criteria); build not started.

@@ -94,6 +94,7 @@ persistence, and version-drift protection.**
  │   · checkpoint/rollback manager               │
  │   · async job manager                         │
  │   · project memory (.tee/ state file)         │
+ │   · extract store: media → frame-tagged facts │
  └──────────┬────────────────────┬───────────────┘
             │                    │
    Blender adapter          Unreal adapter
@@ -350,7 +351,239 @@ README quickstart verified end-to-end, tag pushed.
 
 ---
 
-## 10. Standing rules (all phases)
+## 10. Phase 7 — TEE Extract: the media extraction module
+
+**Goal:** source materials (architectural drawings, CAD/BIM files, photos,
+satellite imagery, video) are converted into compact, frame-tagged,
+content-addressed **facts** exactly once, so raw media stops being re-billed
+in the model's context. Driving use case: drawings + satellite + site
+photos/video → a dimensionally-conformant 3D house in Blender.
+
+**Grounding:** `docs/research/11`–`18` (deep-research pass, 2026-08-22).
+Decisions A8–A10 in `docs/research/00-index.md` are settled — amend via
+`docs/DECISIONS.md` only. The honest cost claim (research 16): *zero token
+cost* applies to local deterministic preprocessing only; VLM passes cost
+either off-session dollars (API-key driver) or a one-time in-session spend
+(in-band driver), amortized by the fact store — media enters a model context
+exactly once, later sessions query facts at ~2 orders of magnitude fewer
+tokens.
+
+### 7.1 Extract kernel and fact store
+
+1. `server/src/tee/extract/` package + `.tee/extract/` store: facts keyed by
+   `(source_media_hash, extractor_id, extractor_version)` with a 2-char
+   fanout layout (DVC pattern); a derived-data cache in the Unreal-DDC sense
+   — same drawing arriving twice extracts once.
+2. Fact schema: every geometric fact carries `frame_id`, `tier`,
+   `confidence`, and provenance (source hash, extractor, model if VLM).
+   Plan facts use the **FML v3-derived schema** (walls as centerline `a`/`b`
+   + thickness, openings parameterized by `t` along the wall, rooms as
+   polygons) **extended before freeze** with per-level heights
+   (`elevation_z`, `floor_to_floor`, `ceiling_height`, aligned to
+   `Pset_BuildingStoreyCommon`), opening sill/head heights, and a parametric
+   roof object (IfcRoofTypeEnum subset, `pitch`, ridge/eave lines,
+   overhang). Nullable-but-present fields keep cache keys stable (research
+   17). **Schema freeze gate:** only after the frame registry, transform
+   table, and Z-extension land.
+3. `ex_*` virtual tools in the registry: `ex_ingest` (async via JobManager),
+   `ex_sources` (paged listing), `ex_search` (text search over facts),
+   `ex_facts(source)`, `ex_view(source, region|timestamp, token_budget)`,
+   `ex_store_facts` (schema-validated writeback, see 7.5).
+4. Dependencies as a `tee[extract]` extra. **License floor (A8):** banned
+   imports enforced by a CI lint — `fitz`/PyMuPDF (AGPL), `marker`,
+   `ultralytics`/FastSAM (AGPL); no CubiCasa5K/DeepFloorplan weights (CC
+   BY-NC / GPL); `ffmpeg` and `exiftool` via subprocess only, never linked.
+
+**Acceptance:** ingest of a mixed folder produces deduped, content-addressed
+sources; facts round-trip through `ex_search`/`ex_facts`; the license lint is
+release-gating; re-ingest of identical media is a no-op.
+
+### 7.2 Documents & CAD lane (deterministic first)
+
+1. **Sheet classifier as step 1** (research 17): tier 1 metadata — NCS sheet
+   numbers (A-1xx plan / A-2xx elevation / A-3xx section / A-5xx detail) +
+   title-block OCR + cover-sheet index; tier 2 fallback — one cheap VLM call
+   on a thumbnail. Route to plan/elevation/section extractors or skip.
+2. **DXF** (`ezdxf`, MIT): LWPOLYLINE walls (`get_points`, bulge handling,
+   OCS→WCS), `DIMENSION.get_measurement()` as ground-truth dimensional
+   facts (prefer measured over text overrides), `$INSUNITS` with the
+   unitless-fallback question; DWG only via the optional `odafc` adapter.
+3. **Vector PDF** (`pdfplumber`, MIT): vector-vs-scanned per-page classifier
+   (chars/images coverage test) emitted as a fact; lines/rects/words with
+   coordinates; dimension-string regex + nearest-parallel-line association →
+   (text value, segment length) pairs; **scale-inference ladder** —
+   least-squares fit over dimension pairs > title-block scale × paper size >
+   `$INSUNITS` > one calibration question — scale stored as a fact with
+   method + confidence.
+4. **IFC** (`ifcopenshell` as pip dependency, LGPL): IfcWall/IfcSpace/
+   IfcDoor/IfcWindow with world placements — the highest fact tier.
+5. **Raster fallback:** `pypdfium2` render at ~300 dpi → `pytesseract`
+   (RapidOCR optional extra for rotated text; word boxes + confidence,
+   whitelisted dimension charset) → classical OpenCV wall-mask heuristics
+   (reimplemented, never GPL code). No neural floor-plan models in core; a
+   plugin seam for users who accept other licenses.
+
+**Acceptance:** fixture DXF and vector-PDF plans extract walls, openings,
+rooms and dimensions into the plan schema with correct scale; source-format
+tier recorded (IFC > DXF > vector PDF > raster); unitless DXF triggers the
+calibration path.
+
+### 7.3 Image lane (photos + satellite)
+
+1. Local EXIF/GPS/orientation via Pillow (`getexif().get_ifd(GPSInfo)`,
+   `exif_transpose`) — mandatory, Claude never receives EXIF; `exifread`
+   only if HEIC/RAW is in scope.
+2. `ImageHash` phash dedupe: auto-collapse at Hamming ≤ 5, flag 6–10 as
+   similar (keep the sharpest by Laplacian variance).
+3. **Token-budget-first media serving** (research 12/14): images bill at
+   `ceil(w/28) × ceil(h/28)` tokens by *rendered dimensions* (bytes are
+   transport-only) — every serving parameter is a token budget, pixel sizes
+   derived from it; pre-resize locally per the official `resized_size()`
+   algorithm so the API never resizes silently.
+4. Labeled contact sheets (3×3 / 4×4, cell IDs burned in + per-cell EXIF
+   legend) as the default overview — ≤ 4,784 tokens regardless of photo
+   count; individual budgeted crops are the drill-down.
+5. Satellite: ground resolution `= 40,075,016.686 × cos(lat) / 2^(z+8)`
+   m/px (target z19–z21); EXIF GPS (~5 m error) locates the parcel, never
+   scales the model. Footprint references from Google Open Buildings (CC BY
+   4.0 preferred) or OSM/Overture/Microsoft (ODbL) — fetched at runtime,
+   cached with a license+provenance tag, never redistributed. OpenCV
+   contour tracing as the no-dataset fallback; MobileSAM as an optional
+   Apache-2.0 extra. Depth estimation: out of scope for v1.
+
+**Acceptance:** a 20-photo set collapses to deduped sources with GPS facts;
+a contact sheet + two crops cost < 7K tokens total (measured); satellite
+tile + footprint yields an outline polygon with meters-per-pixel recorded.
+
+### 7.4 Video lane
+
+1. Keyframes: PySceneDetect `AdaptiveDetector` + an every-N-seconds fallback
+   sampler for continuous walkthrough/drone footage (the driving case);
+   sharpest frame per scene via `cv2.Laplacian(...).var()`; phash dedupe at
+   Hamming ≤ 8.
+2. `ffmpeg` via `imageio-ffmpeg` (bundled static binary, subprocess only —
+   GPL binary is fine over subprocess, document it).
+3. Extraction index per video: `{frame_id, pts_time, scene_id, sharpness,
+   phash, thumb_path, (lat, lon, alt), nearest transcript segment}` — the
+   model's default view is a few hundred tokens of index rows; on-demand
+   frame fetch by `ffmpeg -ss <pts> -i src -frames:v 1` (input seeking).
+4. DJI telemetry: in-house ~50-line SRT regex parser (sidecar `.SRT` +
+   embedded `-map 0:s:0` demux), flight path downsampled to turning points.
+5. Audio: `faster-whisper` (MIT) `base`/`small` int8 + VAD, segment
+   timestamps time-aligned with keyframes.
+6. SfM: **sparse-only optional async job** on `pycolmap` (sequential
+   matching, ≤ 200 keyframes, poses + sparse points); dense reconstruction
+   out of scope; CPU runtimes documented as tens of minutes.
+
+**Acceptance:** fixture walkthrough video → ≤ 15 keyframes + contact sheet +
+timestamp index; a frame re-fetch by timestamp works; DJI SRT fixture yields
+a flight-path fact.
+
+### 7.5 VLM extraction passes (the only tokens this module spends)
+
+1. **Channel decision (A9, research 16):** MCP sampling is dead (deprecated
+   in MCP 2026-07-28, unimplemented in Claude Code/Desktop) — do not build
+   on it. Default driver: **in-band** — TEE serves prepared tiles/sheets and
+   extraction prompts; the host model reads media (its own Read tool where
+   available), extracts against the frozen per-media-type schema, and writes
+   back via `ex_store_facts` (schema-validated tool *input*, consistent with
+   A6). Never return image bytes as MCP tool results beyond the budgeted
+   `ex_view` crops.
+2. Optional **API-key driver**: when `ANTHROPIC_API_KEY` is present in the
+   server env, an async `ex_extract` job uses `messages.parse` +
+   `output_config` json_schema, `count_tokens` preflight, the Files API, the
+   Batch API (−50%) and `cache_control`. Absent a key, silently degrade to
+   in-band; reflect the active driver in `tee_status`. One `Extractor`
+   interface, two drivers, same fact store.
+3. Tiling: pre-resize per the official patch algorithm, ≤ 4,784 tokens/tile,
+   ≤ 2,000 px per side, `oversized_image: 'error'` on coordinate-bearing
+   images; pair every tile with locally-extracted text (vector text or OCR)
+   in the same prompt.
+4. **Play to measured VLM strengths** (research 14/17): transcription of
+   dimension strings/level markers/pitch triangles (~0.95 accuracy) — yes;
+   counting symbols or measuring pixels (0.40–0.55) — no, verify those with
+   deterministic CV or flag for human review. Returned pixel coordinates
+   are approximate: verify against OCR/vector text; crop-and-re-ask for
+   fine targets.
+5. Elevation/section pass extracts the Z facts (levels, plate/ridge heights,
+   pitch) that plans cannot provide; fusion joins on level index, facade
+   orientation, grid lines and callouts (e.g. `3/A-301`).
+
+**Acceptance:** a raster plan fixture extracts to schema-valid facts via the
+in-band flow (integration-tested through the real MCP client); dimension
+strings cross-check against OCR; the API-key driver is exercised when a key
+is configured, skipped cleanly otherwise.
+
+### 7.6 Frames and registration (A10, research 18)
+
+1. Frame registry: `frame_id` on every geometric fact — drawing paper/model
+   space, raster pixel, SfM reconstruction, geographic CRS, `site:{id}:enu`,
+   `blender:{scene}:world`; axis conventions recorded per frame.
+2. Transforms are first-class facts: `{from_frame, to_frame, type, params
+   (flat row-major, STAC convention), method, residual, accuracy_m, tier}`;
+   REP-105-style single-parent tree anchored at the site ENU hub
+   (`pymap3d`); derived facts cite their transform chain, so re-registration
+   invalidates only derived layers.
+3. Drawing→geo: footprint from the plan vs reference footprint —
+   `minimum_rotated_rectangle` init, constrained similarity fit (scale
+   pinned by declared units; free-scale deviation > 2% ⇒ units-conflict
+   fact, never a silent recalibration); store IoU + Hausdorff fit quality.
+4. Tier ladder (drawing dimension text > drawing geometry > SfM > GPS prior
+   > satellite/footprint); a transform never raises a fact above its
+   weakest source; EPSG:3857 is fetch-only — the conformance layer rejects
+   it; EXIF/DJI vertical channel is a lower tier than horizontal.
+
+**Acceptance:** fixture site registers drawing + satellite + photo frames
+into one tree; composed chains re-express plan facts in site ENU within the
+declared accuracy; the >2% scale-deviation case produces a units-conflict
+fact.
+
+### 7.7 Conformance and Blender handoff
+
+1. **Handoff tier 1:** plan facts → IFC authored offline via `ifcopenshell`
+   (IfcWall axis + body, IfcRelVoidsElement/IfcRelFillsElement openings,
+   IfcBuildingStorey elevations, IfcRoof) → imported through Bonsai
+   (Blender 4.0–5.x) for semantic BIM entities and quantities.
+2. **Handoff tier 2 (no add-ons):** `bl_build_from_plan` — wall centerlines
+   → mesh extrusion/solidify through the existing batch machinery; the
+   FloorplanToBlender3d pattern driven from semantic JSON, checkpointed and
+   diff-tracked like any batch. Blender scene ≡ site ENU (datum at origin,
+   meters, Z-up, BlenderGIS-style scene properties).
+3. **Conformance:** `bl_check_against_plan` — compare built geometry to plan
+   facts in the common frame; effective tolerance = RSS of both facts' tier
+   tolerances + `accuracy_m` of every transform on both chains; tolerance
+   classes default to USIBD LOA bands (±25/±12/±6 mm). Above tolerance:
+   tier precedence decides (written dimension governs — the AEC "do not
+   scale" rule); systematic residuals demote and refit the *transform*, not
+   the facts. Every over-tolerance case is a first-class **conflict fact**
+   `{fact_a, fact_b, delta_m, tolerance_m, winner, disposition}` — the
+   conflict facts ARE the conformance report. Z-conformance = cross-sheet
+   consistency of stated dimensions.
+
+**Acceptance:** fixture plan builds a watertight multi-room shell in live
+Blender via both tiers; a deliberately mis-built wall yields exactly one
+conflict fact naming the delta; the conformance report costs < 500 tokens.
+
+### 7.8 Fixtures, tests and the extraction benchmark
+
+1. Synthetic fixtures generated in-repo (no licensing risk): an
+   `ezdxf`-authored DXF plan with real DIMENSION entities; a vector-PDF plan;
+   Blender-rendered "site photos" and a walkthrough "video" of a known
+   house model; a hand-written DJI-format SRT.
+2. Unit tests per lane (no DCC needed); live `-m dcc` tests for handoff and
+   conformance; the in-band extraction flow tested through the real MCP
+   client.
+3. `benchmarks/` gains an extraction scenario: naive (media re-billed in
+   context each turn) vs TEE Extract (ingest once, facts thereafter),
+   measured over a simulated multi-session build — cite the research-16
+   amortization math and verify it empirically.
+
+**Acceptance:** full suite green; extraction benchmark published in
+`benchmarks/RESULTS.md`; `docs/PROGRESS.md` updated with measured numbers.
+
+---
+
+## 11. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.

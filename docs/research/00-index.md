@@ -20,6 +20,14 @@ empirically and record it in `docs/PROGRESS.md`.*
 | [08-mcp-client-compatibility.md](08-mcp-client-compatibility.md) | What Claude Code/Desktop/Cursor/API connector actually honor: list_changed, resource_link, outputSchema hazards, image paths, defer_loading/PTC, lint rules |
 | [09-blender-change-detection-rollback.md](09-blender-change-detection-rollback.md) | msgbus vs depsgraph handlers, `session_uid` keying, undo-push invariants (#77557), background undo (#60934), snapshot rollback |
 | [10-blender-version-baseline.md](10-blender-version-baseline.md) | Blender 5.x baseline decision, 4.5→5.2 breaking-change fault lines, bpy wheel matrix, official Blender Lab MCP internals & wire protocol |
+| [11-drawing-cad-extraction.md](11-drawing-cad-extraction.md) | Deterministic drawing/CAD extraction: pdfplumber, ezdxf DIMENSION ground truth, ifcopenshell, raster/OCR fallback, scale-inference ladder, license traps (PyMuPDF AGPL, CubiCasa NC) |
+| [12-photo-satellite-pipeline.md](12-photo-satellite-pipeline.md) | Local photo/satellite preprocessing: EXIF/GPS, phash dedupe, token-budget-first crops & contact sheets, web-mercator math, footprint datasets & licenses |
+| [13-video-pipeline.md](13-video-pipeline.md) | Zero-token video pipeline: PySceneDetect keyframes, sharpness/dedupe, imageio-ffmpeg, faster-whisper, DJI SRT telemetry, sparse-only pycolmap SfM boundary |
+| [14-claude-vision-extraction.md](14-claude-vision-extraction.md) | Claude vision mechanics: patch token formula & caps, image caching, PDF handling, coordinate grounding limits, measured VLM accuracy bands, structured-output extraction |
+| [15-extraction-prior-art.md](15-extraction-prior-art.md) | Prior art: docling/unstructured/marker, media MCPs, FML v3 schema precedent, Bonsai/IFC Blender handoff, content-addressed cache patterns |
+| [16-extraction-channels.md](16-extraction-channels.md) | VLM extraction channels: MCP sampling post-mortem, in-band vs API-key drivers, elicitation limits, honest cost framing |
+| [17-sheets-heights-roof-schema.md](17-sheets-heights-roof-schema.md) | Sheet classification (NCS metadata-first), elevation/section Z-extraction, FML height/roof schema extension before freeze |
+| [18-frames-and-registration.md](18-frames-and-registration.md) | Frame registry, transforms-as-facts, site ENU hub, tier ladder, footprint-fit registration, conformance tolerance math (USIBD LOA) |
 
 ## Architecture decisions (ADR)
 
@@ -55,6 +63,28 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   auto-checkpointed code-exec tools; never expose DCC sockets off-machine.
   *Why:* none of the DCC-side sockets have auth; official docs say VM
   isolation is the mitigation. (10, 03)
+- **A8 — Extraction license floor:** deterministic-first extraction stack
+  (pdfplumber, pypdfium2, ezdxf, ifcopenshell-as-dependency, OpenCV,
+  pytesseract/RapidOCR, Pillow, ImageHash, PySceneDetect, imageio-ffmpeg,
+  faster-whisper; shapely/pyproj/pymap3d/rasterio for registration); CI
+  lint bans PyMuPDF (AGPL), marker, ultralytics/FastSAM, CubiCasa5K and
+  DeepFloorplan weights; ffmpeg/exiftool subprocess-only. *Why:* the
+  floor-plan ML landscape is a licensing minefield and everything needed is
+  achievable with permissive tools. (11, 12, 13, 15)
+- **A9 — Extraction channel:** in-band host-model extraction is the default
+  (prepared tiles + `ex_store_facts` writeback); server-side API-key driver
+  optional as async jobs; MCP sampling ruled out (deprecated 2026-07-28,
+  unimplemented in Claude Code/Desktop). *Why:* verified client reality;
+  channel-agnostic Extractor keeps the tool surface identical. (16)
+- **A10 — Fact model:** content-addressed facts keyed (media_hash,
+  extractor_id, extractor_version); FML v3-derived plan schema extended
+  with per-level heights + parametric roof before freeze; frame_id on every
+  geometric fact; transforms as first-class facts in a single-parent tree
+  anchored at site ENU; tier precedence (dimension text > drawing geometry
+  > SfM > GPS prior > satellite/footprint); conflict facts ARE the
+  conformance report; EPSG:3857 fetch-only. *Why:* the AEC
+  written-dimensions-govern rule, REP-105/GeoPose precedent, and scan-to-BIM
+  tolerance practice all converge on this shape. (17, 18, 15)
 
 ## Headline numbers worth remembering
 
