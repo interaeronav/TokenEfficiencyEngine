@@ -883,7 +883,126 @@ published. DCC/network-marked tests skip cleanly offline.
 
 ---
 
-## 13. Standing rules (all phases)
+## 13. Phase 10 — TEE Design: the expert game design module
+
+**Goal:** an AI agent designs games from evidence — real player routines,
+validated experience research, motivation profiles, current market data,
+and formal design logic — and emits a machine-verifiable spec that TEE's
+build phases (assets, adapters) consume directly. The field gap is
+verified: no product or engine encodes a design-expertise layer as of
+2026-08; every successful generation system pairs the LLM with a formal
+validator. TEE's design module IS that pairing.
+
+**Grounding:** `docs/research/26`–`31` (six-agent deep-research pass,
+2026-08-22). Decisions A16–A18 settled — amend via `docs/DECISIONS.md`
+only. Anti-goals, stated up front: no folk benchmarks (percentile grids
+with sources or nothing); no prose-first GDDs (they read deceptively
+well); no dark patterns (code-severity rules from live enforcement); no
+homogenized designs (differentiation is forced, not hoped for).
+
+### 10.1 Design knowledge base (A16)
+
+1. `server/src/tee/design/` package. Reference tables as versioned data
+   files (every figure: value + source + as_of + verification grade;
+   estimates labeled): retention/session percentile grids by platform and
+   genre; genre convention templates (session shape, loop cadence,
+   camera/control norms); motivation model (12-dimension vector,
+   published aggregate findings); market opportunity map with dates; UX
+   parameter table (text/subtitle/contrast/flash/latency/FOV minima);
+   economy archetypes; scope-cost weights per asset class; live-ops
+   cadence norms; the dark-pattern rulebook (rule + jurisdiction +
+   severity `code`/`guideline`).
+2. Licensing enforced in review: aggregate findings and paraphrased
+   constructs only; no proprietary instruments (PENS), no unvalidated
+   ones (GEQ — PXI/miniPXI is the default), no bulk report extraction
+   (EU database right), no content-farm numbers.
+
+### 10.2 The design spec: `tee-design/1` (A17)
+
+Versioned JSON schema with stable IDs; the SOURCE OF TRUTH for a game
+design. Sections, each independently checkable and consumable:
+`meta` (audience profile as motivation vector, platform, price point,
+market position vs named comparables), `core_loop` (verbs, loop steps
+with target durations, failure state, session-end hook), `economy`
+(typed faucet/sink/converter graph with rates and caps), `progression`
+(unlock and difficulty tables, teach-test-compose ordering), `level_macro`
+(Cerny-style beat chart: spaces × mechanics/exotics/intensity),
+`content_list` (assets by class + count + reuse — feeds the scope
+estimator and Phase 9's asset search directly), `routine` (daily/weekly/
+season loops with reset conventions and streak-grace rules),
+`accessibility` (the enforce-table checklist state), `open_questions`.
+`gd_render` emits the prose one-pager and pitch view FROM the spec,
+never the reverse. Validation errors name the exact fix (P7).
+
+### 10.3 Verification battery (A17)
+
+Deterministic checkers (design/checks.py, callable individually and via
+the script lane), cost-ordered:
+1. **Design lint** — the novelty: core loop undefined; loop lacks a
+   failure state; currency with no sink; no session-end hook; mechanic
+   introduced but never composed; difficulty spike before its mechanic
+   is taught; content list missing a class the level_macro references;
+   audience/monetization contradictions (e.g. competitive core aimed at
+   35+ without age-tolerant depth).
+2. **Scope estimate** — content_list × asset-class weights → effort
+   bands; flags scope/team mismatches.
+3. **Economy simulation** — discrete-time source/sink solver run per
+   player persona (motivation-vector-derived play patterns); flags
+   unbounded inflation, dead currencies, sink/faucet imbalance beyond
+   archetype bands.
+4. **Progression validator** — monotonicity, smoothness,
+   time-to-next-unlock bounds, teach-test-compose ordering; pity/gacha
+   hazard-function checks where present (with the A18 ethics gates).
+5. **Ethics/dark-pattern check** — the code-severity rulebook; `code`
+   rows are hard failures the model cannot relax.
+6. **Bounded self-play** — one budgeted transcript of the model playing
+   the spec turn-by-turn ("is there a decision loop at all") — the only
+   token-spending checker, run last.
+
+### 10.4 The `game-design` skill (A16)
+
+Agent Skills standard (<500 lines; references one level deep; scripts
+executed, not read). The judgment layer: design-pass order (audience →
+market position → core loop → economy → progression → level macro →
+content → routine → verify), when to challenge the user's premise,
+anti-pattern catalog, and DIFFERENTIATION FORCING — every design names
+3 comparables from the market tables and states its delta; a novelty
+check against genre convention templates counters LLM homogenization.
+Enforce-vs-judge split from research 28 encoded as instructions: the
+parameter tables are enforced by checkers; juice (inverted-U, capped),
+DDA visibility, HUD diegesis, difficulty-curve shape are judged with
+cited heuristics. Evals authored before polish (3+ scenarios: a
+scoped co-op brief hits the opportunity map; an economy with a dead
+currency is caught; a dark-pattern monetization ask is refused with the
+rule citation).
+
+### 10.5 Bridge to build
+
+`content_list` entries carry asset classes compatible with Phase 9's
+search/creation lanes; `level_macro` rows drive blockout batches through
+the existing typed ops; the spec lives in the fact store (content-
+addressed, diffable — design REVISIONS are diffs, not new documents).
+UE/UEFN targets consume the same spec (the Phase 12 research pass covers
+the UEFN/Verse surface; UE 5.8's first-party MCP plugin, extended to
+UEFN 2026-08-20, is the anticipated route).
+
+### 10.6 Acceptance
+
+Full suite green. `tee-design/1` round-trips (validate → render → edit →
+re-validate). The lint catches each seeded defect class in a fixture
+spec (dead currency, missing session-end hook, taught-after-tested
+mechanic) with one-line fixes. The economy solver flags a seeded
+inflation spiral and passes a balanced fixture. The ethics check hard-
+fails a seeded under-16 loot-box spec citing the rule and jurisdiction.
+Percentile tables answer "what is good D7 for mobile puzzle" with the
+grid value + source + year, never a folk target. A skill eval produces a
+spec for a small-team 3D co-op brief that names 3 comparables, passes
+all checkers, and its content_list resolves against Phase 9 asset
+classes. `docs/PROGRESS.md` updated with evidence.
+
+---
+
+## 14. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.

@@ -35,6 +35,12 @@ empirically and record it in `docs/PROGRESS.md`.*
 | [23-generative-3d.md](23-generative-3d.md) | Text/image-to-3D 2026: TRELLIS.2 MIT flip, Hunyuan territory trap, hosted API pricing, mandatory cleanup pipeline, honest quality bar, USCO IP status |
 | [24-texture-material-generation.md](24-texture-material-generation.md) | Image-model license floor (Z-Image/klein/SDXL), tileability, Marigold-IID photo→PBR, scene-conditioned ControlNet loop, procedural lane (Infinigen, physicallybased.info) |
 | [25-context-aware-assets.md](25-context-aware-assets.md) | Context-aware skill design R1-R24: envelope scaling policy, style facts, relational placement + validators, sun-true lighting, skill packaging, render-free verification |
+| [26-player-psychology.md](26-player-psychology.md) | Player motivation models validity-graded (QF GMM N=466k, Trojan Typology, SDT/PENS/BANGS), demographic anchors, encoding licensing rules |
+| [27-player-routines.md](27-player-routines.md) | Retention/session percentile benchmarks by platform+genre, Weibull playtime law, cadence-based churn, live-ops norms, dark-pattern regulatory red lines |
+| [28-game-ux.md](28-game-ux.md) | Validated UX practice: PXI-not-GEQ, RITE, game-feel/accessibility parameter tables, defaults-dominate evidence, enforce-vs-judge split |
+| [29-market-trends.md](29-market-trends.md) | Market 2024-2026 with sourced numbers: Steam economics, genre winners/losers, UGC payouts, AI sentiment gap, small-team opportunity map |
+| [30-design-logic.md](30-design-logic.md) | Frameworks standing, encodable economy/progression/pity math, level-design patterns + procgen licenses, one-pager + Cerny macro chart artifacts |
+| [31-ai-design-module.md](31-ai-design-module.md) | Prior art verdicts, LLM design failure modes, LLM-proposes-formal-verifies pattern, three-layer knowledge encoding, tee-design/1 spec schema |
 
 ## Architecture decisions (ADR)
 
@@ -147,6 +153,37 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   once and cached; verification is render-free geometry first with at
   most one budgeted render; packaged as the `context-aware-assets` skill
   (Agent Skills standard, scripts-not-prose). (25, 22, 18)
+
+- **A16 — Design knowledge encoding:** three layers matched to content
+  type — versioned reference tables for enumerable facts (benchmark
+  percentile grids, genre conventions, economy archetypes, scope-cost
+  weights, UX parameters; every figure carries source + as_of; estimates
+  labeled), ONE `game-design` skill for judgment and procedure, and
+  executable checkers run via the script lane. No fine-tune; RAG optional
+  long-tail only. Instruments: PXI/miniPXI default, never GEQ
+  (unvalidated); never bundle proprietary instruments or paywalled report
+  tables (Feist facts-only rule; EU database right). (26, 27, 28, 31)
+- **A17 — Design spec & verification contract:** the source of truth is
+  the machine-verifiable `tee-design/1` spec (core_loop, economy graph,
+  progression, level_macro beat chart, content_list by asset class,
+  open_questions); the prose GDD is a rendered view. LLM proposes,
+  formal system verifies — cost-ordered battery: design-lint → scope
+  estimate → economy timestep simulation per persona → progression
+  validator → bounded self-play transcript → in-engine last. Spec
+  sections map 1:1 to build phases (content_list feeds the Phase 9 asset
+  module; level_macro feeds blockouts). Existing GDLs rejected (VGDL
+  dead/2D, Ludii NC-ND, PuzzleScript tile-only). (31, 30)
+- **A18 — Evidence & ethics floor:** benchmarks encoded as percentile
+  grids per platform/genre, never folk targets; UX rules split
+  enforce-vs-judge (text/subtitle/contrast/photosensitivity/latency/
+  remapping enforced; juice/DDA/diegesis judged, with juice capped per
+  the inverted-U evidence); dark-pattern rules carry code severity
+  (disclosed odds, single-conversion pricing, streak grace, no
+  minor-targeted countdown pressure, reward presence never punish
+  absence, binge → care not upsells) grounded in FTC/EU-CPC/Belgium/
+  Australia/Brazil enforcement; AI-content defaults: disclose, keep
+  invisible-infra or clearly stylized, never voice/likeness without
+  consent (SAG-AFTRA 2025). (27, 28, 29)
 
 ## Headline numbers worth remembering
 

@@ -34,6 +34,9 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       2026-08-22; build not started. Asset acquisition/search lanes are
       cloud-buildable against live free APIs; GPU generation lanes and UE
       import need the physical machine)*
+- [ ] Phase 10 — TEE Design *(research complete + phase scripted
+      2026-08-22; build not started. Fully cloud-buildable — reference
+      tables, spec schema, checkers and skill need no DCC)*
 
 ## Machine facts
 
@@ -276,3 +279,26 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
   hero assets curated.
 - Phase 9 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections 9.1–9.7
   with acceptance criteria); build not started.
+
+### 2026-08-22 — Phase 10 research + script (cloud)
+- Deep-research pass for TEE Design (6 agents, ~560K tokens): corpus
+  digests 26–31 committed; decisions A16–A18 recorded.
+- Load-bearing findings: the design-expertise layer is UNCLAIMED across
+  all products and engines (Aug 2026) — commercial tools stop at
+  ideation/assets, platform AI at execution; every successful generation
+  system pairs LLM proposals with a formal validator (GAVEL, RuleSmith,
+  Roblox's playtesting agent) — TEE's module is that pairing; LLM prose
+  GDDs score deceptively well, so the machine-verifiable spec is the
+  source of truth and prose is a rendered view; median mobile D1 is ~22%
+  (folk 30–40% targets are top-decile) — benchmarks ship as percentile
+  grids with sources; regularity-of-play beats volume as a churn
+  predictor; GEQ was never validated (PXI/miniPXI default); defaults
+  dominate behavior (95% keep subtitles when default-on); loot-box risk
+  is the randomization itself (meta-analytic r≈0.26) — dark-pattern
+  rules carry code severity from live FTC/EU/Brazil/Australia
+  enforcement; the evidence-backed small-team niche is 3D co-op at
+  $8–25 with EA-as-the-launch; UE 5.8's first-party MCP plugin
+  (extended to UEFN 2026-08-20) validates A4's proxy architecture.
+- Phase 10 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections 10.1–10.6
+  with acceptance criteria incl. seeded-defect lint tests and an ethics
+  hard-fail); build not started.

@@ -4,6 +4,32 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Phase 10 (TEE Design) researched; decisions A16–A18
+
+A six-agent deep-research pass (docs/research/26–31) grounded the expert
+game design module on real user routines, experiences, profiles, trends
+and logic. Three new settled decisions in `docs/research/00-index.md`:
+
+- **A16 — knowledge encoding:** reference tables (sourced, versioned) +
+  one game-design skill + executable checkers; no fine-tune, RAG
+  long-tail only; PXI-not-GEQ; facts-only licensing rule.
+- **A17 — spec & verification:** machine-verifiable `tee-design/1` spec
+  as source of truth (prose GDD = rendered view); LLM-proposes-
+  formal-verifies battery from design-lint to bounded self-play; spec
+  sections feed the build phases directly.
+- **A18 — evidence & ethics floor:** percentile benchmarks over folk
+  targets; enforce-vs-judge UX split; code-severity dark-pattern rules
+  from live enforcement actions; AI-content consent/disclosure defaults.
+
+Load-bearing evidence: the design-expertise layer is unclaimed across
+all products and engines (Aug 2026); every successful generation system
+pairs the LLM with a formal validator; LLM prose GDDs score deceptively
+well (the argument for spec-as-source-of-truth); median mobile D1 is
+~22%, not the folk 30-40% (top-decile numbers); GEQ was never validated;
+the randomization in loot boxes — not spending — is the measured risk
+factor; and UE 5.8's first-party MCP plugin (extended to UEFN
+2026-08-20) validates A4's proxy bet.
+
 ## 2026-08-22 — Phase 9 (TEE Assets) researched; decisions A13–A15
 
 A six-agent deep-research pass (docs/research/20–25) grounded the asset
