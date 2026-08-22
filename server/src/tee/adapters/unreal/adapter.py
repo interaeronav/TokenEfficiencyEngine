@@ -239,17 +239,36 @@ class UnrealAdapter:
                 warnings_as_errors,
             )
         )
+        # Compile as a SEPARATE call: a tool failure inside the script is not
+        # catchable there (the sandbox aborts the whole run), so the only way
+        # to get compile diagnostics instead of a dead script is to ask for
+        # the compile on its own and let the error come back normally.
+        compile_status, compile_error = "clean", None
+        try:
+            self.catalog.call(
+                "BlueprintTools",
+                "compile_blueprint",
+                {
+                    "blueprint": {"refPath": data.get("blueprint")},
+                    "warnings_as_errors": warnings_as_errors,
+                },
+                timeout=300,
+            )
+        except TeeError as exc:
+            compile_status, compile_error = "failed", exc.message[:800]
+
         report = bp_verify.verify_written(dsl, data.get("readback", ""))
         result = {
             "blueprint": data.get("blueprint"),
             "function": function_name,
-            "compile": data.get("compile"),
+            "compile": compile_status,
+            "reused": data.get("reused"),
             "verified": report["ok"],
             "forms_requested": report["forms_requested"],
             "forms_written": report["forms_written"],
         }
-        if data.get("compile_error"):
-            result["compile_error"] = data["compile_error"]
+        if compile_error:
+            result["compile_error"] = compile_error
         if not report["ok"]:
             raise TeeError(
                 "ue_graph_incomplete",

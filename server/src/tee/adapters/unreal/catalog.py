@@ -40,9 +40,13 @@ class ToolsetCatalog:
         for line in text.splitlines():
             if not line.startswith("- "):
                 continue
-            head, _, desc = line[2:].partition(":")
+            head, sep, desc = line[2:].partition(":")
             qualified = head.strip()
-            if not qualified:
+            # Toolset DESCRIPTIONS contain their own "- " bullet lists, so a
+            # bare startswith("- ") invents toolsets that do not exist (it
+            # reported 67 where there are 55). A real entry is
+            # "- <qualified.name>: <description>": no spaces before the colon.
+            if not qualified or not sep or " " in qualified:
                 continue
             toolsets[S.short_name(qualified)] = qualified
             descriptions[S.short_name(qualified)] = desc.strip()

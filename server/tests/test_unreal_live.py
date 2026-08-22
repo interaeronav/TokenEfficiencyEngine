@@ -236,3 +236,10 @@ def test_bad_dsl_syntax_fails_before_reaching_the_editor(adapter):
             dsl="(fn Nope (",
         )
     assert err.value.code == "ue_dsl_syntax"
+
+
+def test_toolset_listing_has_no_phantom_entries(catalog):
+    names = catalog.load_toolsets()
+    assert all(" " not in n for n in names), [n for n in names if " " in n]
+    # every advertised name must actually resolve and describe
+    assert catalog.resolve(sorted(names)[0])

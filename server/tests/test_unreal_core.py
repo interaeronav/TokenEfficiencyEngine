@@ -240,3 +240,14 @@ def test_verifier_catches_silently_dropped_statements():
     assert report["ok"] is False
     assert report["dropped_forms"] == 2
     assert "NoSuch|Node|Here" in report["likely_unresolved"]
+
+
+def test_description_bullets_are_not_mistaken_for_toolsets(catalog):
+    """list_toolsets descriptions contain their own '- ' bullet lists. A naive
+    line filter invents toolsets: it counted 67 on live 5.8.1 where there are
+    55, so the model could be handed names that do not exist."""
+    names = catalog.load_toolsets()
+    assert set(names) == {"ActorTools"}
+    assert all(" " not in n for n in names)
+    listing = catalog.list_summary()
+    assert listing["total"] == 1

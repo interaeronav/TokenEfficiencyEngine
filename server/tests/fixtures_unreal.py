@@ -104,9 +104,16 @@ class FakeUnrealWire:
         arguments = arguments or {}
         self.calls.append((name, arguments))
         if name == "list_toolsets":
-            return "\n".join(
-                f"- {q}: {ts['description'].splitlines()[0]}" for q, ts in TOOLSETS.items()
-            )
+            # Real payloads interleave description bullet lists, which look
+            # exactly like entries unless the parser is strict (live 5.8.1
+            # reported 67 "toolsets" that way where there are 55).
+            lines = []
+            for q, ts in TOOLSETS.items():
+                lines.append(f"- {q}: {ts['description'].splitlines()[0]}")
+                lines.append("- Enum value lookups")
+                lines.append("- FX-related operations in levels or blueprints")
+                lines.append("")
+            return "\n".join(lines)
         if name == "describe_toolset":
             return json.dumps(TOOLSETS[arguments["toolset_name"]])
         if name == "call_tool":

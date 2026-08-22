@@ -29,6 +29,18 @@ def _build_blender_app(project: str, host: str, port: int, allow_code_exec: bool
     return app
 
 
+def _build_unreal_app(project: str, host: str, port: int, allow_code_exec: bool):
+    from tee.adapters.unreal.adapter import UnrealAdapter
+    from tee.adapters.unreal.tools import register_unreal_tools
+    from tee.adapters.unreal.wire import UnrealWire
+    from tee.app import TeeApp
+
+    adapter = UnrealAdapter(UnrealWire(host=host, port=port))
+    app = TeeApp({"unreal": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
+    register_unreal_tools(app, adapter)
+    return app
+
+
 def _attach_extract(app, project: str, *, with_handoff: bool):
     """Register TEE Extract tools when the extract extra is installed;
     silently skip otherwise (the kernel works without it)."""
@@ -90,10 +102,13 @@ def cmd_serve(args: argparse.Namespace) -> int:
         app = _build_blender_app(
             args.project, args.blender_host, blender_port, args.allow_code_exec
         )
+    elif args.adapter == "unreal":
+        app = _build_unreal_app(
+            args.project, args.unreal_host, args.unreal_port, args.allow_code_exec
+        )
     else:
         print(
-            f"adapter '{args.adapter}' is not wired yet (unreal arrives in "
-            "Phase 3); available: fake, blender",
+            f"adapter '{args.adapter}' is not recognised; available: fake, blender, unreal",
             file=sys.stderr,
         )
         return 2
@@ -168,6 +183,8 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--project", default=".", help="project root for .tee/ memory")
     serve.add_argument("--blender-host", default="127.0.0.1", help="Blender bridge host")
     serve.add_argument("--blender-port", type=int, default=9876, help="Blender bridge port")
+    serve.add_argument("--unreal-host", default="127.0.0.1", help="Unreal MCP server host")
+    serve.add_argument("--unreal-port", type=int, default=8000, help="Unreal MCP server port")
     serve.add_argument(
         "--allow-code-exec",
         action="store_true",

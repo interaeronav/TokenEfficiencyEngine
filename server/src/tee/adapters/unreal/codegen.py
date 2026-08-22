@@ -256,35 +256,58 @@ def blueprint_function_program(
     return (
         "import json\n\n"
         f"_ARGS = json.loads({json.dumps(json.dumps(payload))})\n"
-        f'_BP = "{BLUEPRINT}"\n' + _BLUEPRINT_BODY
+        f'_BP = "{BLUEPRINT}"\n_ASSETS = "{ASSETS}"\n' + _BLUEPRINT_BODY
     )
 
+
+ASSETS = "editor_toolset.toolsets.asset.AssetTools"
 
 _BLUEPRINT_BODY = """
 def _bp(tool, payload):
     return execute_tool(_BP + "." + tool, json.dumps(payload))["returnValue"]
 
+def _asset(tool, payload):
+    return execute_tool(_ASSETS + "." + tool, json.dumps(payload))["returnValue"]
+
 def run():
-    blueprint = _bp("create", {
-        "folder_path": _ARGS["folder"],
-        "asset_name": _ARGS["asset_name"],
-        "asset_type": {"refPath": _ARGS["parent_class"]}})
-    graph = _bp("add_function_graph", {
-        "blueprint": blueprint, "graph_name": _ARGS["function_name"]})
-    for p in _ARGS["params"]:
-        _bp("add_function_param", {
-            "graph": graph, "param_name": p["name"],
-            "param_type": p["type"], "input_param": p["input"]})
+    # Idempotent by CHECKING, never by catching: a tool failure inside
+    # execute_tool_script is not catchable at all - neither `except
+    # RuntimeError` nor `except Exception` intercepts it, the sandbox aborts
+    # the whole script (verified live on 5.8.1, and contrary to
+    # get_execution_environment's own "raises RuntimeError" instructions).
+    folder = _ARGS["folder"].rstrip("/")
+    name = _ARGS["asset_name"]
+    bp_path = folder + "/" + name
+    reused = {"blueprint": False, "graph": False}
+
+    if _asset("exists", {"path": bp_path}):
+        blueprint = _asset("load_asset", {"asset_path": bp_path})
+        reused["blueprint"] = True
+    else:
+        blueprint = _bp("create", {
+            "folder_path": folder, "asset_name": name,
+            "asset_type": {"refPath": _ARGS["parent_class"]}})
+
+    existing = _bp("list_graphs", {"blueprint": blueprint})
+    wanted = _ARGS["function_name"]
+    graph = None
+    for g in existing:
+        if g["refPath"].split(":")[-1] == wanted:
+            graph = {"refPath": g["refPath"]}
+            reused["graph"] = True
+            break
+    if graph is None:
+        graph = _bp("add_function_graph", {"blueprint": blueprint, "graph_name": wanted})
+
+    if not reused["graph"]:
+        for p in _ARGS["params"]:
+            _bp("add_function_param", {
+                "graph": graph, "param_name": p["name"],
+                "param_type": p["type"], "input_param": p["input"]})
+
     _bp("write_graph_dsl", {"graph": graph, "code": _ARGS["dsl"]})
     readback = _bp("read_graph_dsl", {"graph": graph})
-    out = {"blueprint": blueprint["refPath"], "graph": graph["refPath"],
-           "readback": readback}
-    try:
-        _bp("compile_blueprint", {"blueprint": blueprint,
-                                  "warnings_as_errors": _ARGS["warnings_as_errors"]})
-        out["compile"] = "clean"
-    except RuntimeError as exc:
-        out["compile"] = "failed"
-        out["compile_error"] = str(exc)[:800]
-    return out
+    return {"blueprint": blueprint["refPath"], "graph": graph["refPath"],
+            "readback": readback, "reused": reused,
+            "compile": "clean"}
 """
