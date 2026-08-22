@@ -12,10 +12,16 @@
   ONE capability Epic's toolsets lack — unsandboxed editor Python inside
   an undo transaction — and TEE only calls it when code exec is allowed.
   Everything else in the Unreal adapter works without it.
+- `tee-engine-0.1.0.mcpb` — MCP Bundle for drag-and-drop install into
+  Claude Desktop. Contains the server source, `pyproject.toml` and
+  `uv.lock`; Desktop runs it with `uv run tee serve --adapter blender`.
+  Change the adapter afterwards in the extension's settings, or use
+  `tee doctor --emit claude-desktop` for a plain config instead.
 - The server wheel is not committed (build it with `make -C server
   dist`; any TEE session does this automatically during setup).
 
-Committed binaries are limited to these two small plugin zips so that
+Committed binaries are limited to the two small plugin zips and the
+bundle so that
 non-technical installs work straight from a repo pull, given that this
 repo currently has no GitHub Releases. When Releases exist, these files
 move there.

@@ -1,4 +1,4 @@
-.PHONY: check lint test format dist
+.PHONY: check lint test format dist mcpb
 
 check: lint test
 
@@ -11,7 +11,21 @@ dist:
 		--source-dir ../adapters/blender/tee_bridge --output-dir dist
 	cd ../adapters/unreal && zip -qr ../../server/dist/TeeToolset-$(TEE_PLUGIN_VERSION).zip \
 		TeeToolset -x '*/__pycache__/*' -x '*.pyc'
+	$(MAKE) mcpb
 	@ls -la dist/
+
+# .mcpb (MCP Bundle) for drag-and-drop install into Claude Desktop. Schema
+# mirrors a real installed bundle (manifest_version 0.4, server.type "uv"),
+# not a guessed one.
+mcpb:
+	@rm -rf build/mcpb && mkdir -p build/mcpb dist
+	cp ../packaging/mcpb_manifest.json build/mcpb/manifest.json
+	cp pyproject.toml uv.lock build/mcpb/
+	cp ../README.md build/mcpb/
+	cp -R src build/mcpb/src
+	find build/mcpb -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+	cd build/mcpb && zip -qr ../../dist/tee-engine-$(TEE_PLUGIN_VERSION).mcpb .
+	@echo "built dist/tee-engine-$(TEE_PLUGIN_VERSION).mcpb"
 
 lint:
 	uv run ruff check src tests

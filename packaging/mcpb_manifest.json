@@ -1,0 +1,31 @@
+{
+  "manifest_version": "0.4",
+  "name": "Token Efficiency Engine",
+  "version": "0.1.0",
+  "description": "Drive Blender and Unreal Engine with minimal tokens",
+  "long_description": "TEE is an MCP server between AI models and Blender / Unreal Engine whose core metric is tokens per completed task. Reads return compact summaries and diffs instead of scene dumps, mutations run as checkpointed batches, and the long tail of DCC capability is reached through progressive disclosure rather than hundreds of always-loaded tools.\n\nBlender needs the TEE bridge extension (or the official Blender Lab MCP add-on); Unreal needs UE 5.8+ with Epic's ModelContextProtocol and AllToolsets plugins enabled. See the repository for setup.",
+  "author": {
+    "name": "interaeronav",
+    "url": "https://github.com/interaeronav/TokenEfficiencyEngine"
+  },
+  "homepage": "https://github.com/interaeronav/TokenEfficiencyEngine",
+  "support": "https://github.com/interaeronav/TokenEfficiencyEngine/issues",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/tee/cli.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "tee", "serve", "--adapter", "blender"]
+    }
+  },
+  "license": "MIT",
+  "compatibility": {
+    "runtimes": {
+      "python": ">= 3.11"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/interaeronav/TokenEfficiencyEngine"
+  }
+}
