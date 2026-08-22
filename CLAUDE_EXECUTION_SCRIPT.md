@@ -1152,6 +1152,14 @@ promise (cook/memory/publish/moderation are human-gated); no claim of
 full Verse type/effect checking offline (symbol/signature linting is
 the honest boundary).
 
+**Scope amendment (2026-08-22, owner decision):** the LIVE-editor lanes
+(12.3's live proxy, the compile-in-editor path, Scene Graph ops against
+Epic's toolsets, live playtest sessions) are REMOVED from scope — UEFN
+is Windows-only and the project has no Windows machine. The offline
+lanes (12.1, 12.2 offline validation, 12.4, 12.5, 12.6) are shipped and
+remain supported; the adapter interface + fakes stay in the codebase as
+the revival point if a Windows machine ever joins.
+
 ### 12.1 Verse digest facts lane (A22)
 
 1. Digest parser for `*.digest.verse` files (plain Verse declarations:
@@ -1257,7 +1265,7 @@ by property test; the capability probe degrades cleanly with no editor
 (clear remediation, no crash); license lint proves no AGPL-derived
 code and no Epic digest text in the repo. Live-editor lanes (compile
 loop, Scene Graph ops, sessions, auto-import) are interface-complete
-with fakes and marked for the physical Windows machine.
+with fakes and DESCOPED per the 2026-08-22 amendment above.
 `docs/PROGRESS.md` updated with evidence.
 
 ---

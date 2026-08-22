@@ -71,8 +71,8 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       templates, FakeUefn adapter w/ LUF↔XYZ boundary, export_for_uefn
       (live FBX+LOD autogen verified), version-trajectory firewall
       tests, uefn skill, live Data API analytics; 26 tests + 2 live.
-      Physical Windows machine still owed: live UEFN MCP proxy, compile
-      lane, Scene Graph ops against Epic's toolsets)*
+      Live-editor lanes DESCOPED 2026-08-22 — owner decision, no
+      Windows machine; offline lanes shipped, interface+fakes kept)*
 
 ## Machine facts
 
@@ -128,11 +128,14 @@ Platform split of the outstanding ledger (decided by the hardware):
   Marigold-IID - 128 GB unified memory is ample; CUDA-only claims in
   A14 get re-verified against MPS), hosted generation (Tripo/Meshy
   keys), [assets-embed] embeddings (CPU/MPS).
-- **Still needs a Windows machine:** everything live-UEFN (editor,
-  Beta Access toggles, MCP toolsets, Verse compile lane, Scene Graph
-  ops against Epic's toolsets) - UEFN has no macOS build. The offline
-  UEFN lanes (digest/lint/templates/export preflight) already work
-  everywhere.
+- **DESCOPED (owner decision, 2026-08-22):** everything live-UEFN
+  (editor, Beta Access toggles, MCP toolsets, Verse compile lane,
+  Scene Graph ops against Epic's toolsets) — UEFN has no macOS build
+  and the project has no Windows machine. Removed from the outstanding
+  ledger, not just deferred. The offline UEFN lanes
+  (digest/lint/templates/export preflight) are SHIPPED and supported
+  everywhere; the adapter interface + fakes remain in the codebase so
+  the live proxy could be revived by a future decision.
 - **Still needs CUDA:** local TRELLIS.2-4B (nvdiffrast is
   CUDA-bound) - lane 3 local generation stays hosted-only on this Mac.
 
@@ -992,11 +995,13 @@ Final state on the physical M5 Mac, everything re-verified in one pass:
 
 Nothing further can be closed on this machine. The honest remainder:
 
-**Needs a Windows machine** (no macOS build exists):
+**Descoped** (owner decision, 2026-08-22 — see `docs/DECISIONS.md`):
 - everything live-UEFN — editor, Beta Access toggles, MCP toolsets, Verse
-  compile lane, Scene Graph ops. The offline UEFN lanes (digest parsing,
-  lint, templates, export preflight) work everywhere and are tested.
-- the clean-**Windows**-machine install rehearsal (Phase 6).
+  compile lane, Scene Graph ops — and the clean-Windows-machine install
+  rehearsal. UEFN is Windows-only and the project has no Windows machine,
+  so these are removed from scope, not owed. The offline UEFN lanes
+  (digest parsing, lint, templates, export preflight) work everywhere and
+  are tested; the adapter interface + fakes stay as the revival point.
 
 **Needs CUDA** (Apple Silicon cannot run it):
 - local TRELLIS.2-4B generation — nvdiffrast is CUDA-bound. Lane 3 stays

@@ -108,6 +108,8 @@ unverified.
 
 ## UEFN
 
-UEFN has no macOS build; the live UEFN lanes need a Windows machine. The
-offline lanes (digest parsing, Verse lint, templates, export preflight) work
-everywhere — see the `uefn` skill.
+UEFN is Windows-only and live-editor integration is OUT OF SCOPE for this
+project (owner decision, 2026-08-22 — no Windows machine). TEE's offline
+UEFN lanes (Verse digest facts + linting, templates, export preflight,
+analytics) work everywhere and are fully supported — `uefn_status` reports
+the mode. See the `uefn` skill.

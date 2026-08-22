@@ -4,6 +4,25 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Live UEFN editor integration descoped (owner decision)
+
+UEFN runs on Windows only and the project's physical machine is a Mac
+(M5 MacBook Pro Max) — there is no Windows machine and none is planned.
+The owner removed the live-editor lanes from scope: the live UEFN proxy
+(script 12.3's live half), the compile-in-editor Verse path, Scene
+Graph operations against Epic's toolsets, live playtest sessions, and
+the clean-Windows-machine install rehearsal. This amends A22 (its "thin
+capability-probed proxy of Epic's UEFN toolsets" item) and A23's
+live-editor items; it is a removal from the outstanding ledger, not a
+deferral.
+
+What stays, unchanged and fully supported everywhere: the offline UEFN
+lanes — Verse digest facts + digest-grounded linting, the template
+corpus, `export_for_uefn` preflight, the Fortnite Data API analytics
+lane, and the `uefn` skill. The adapter interface + FakeUefn fakes stay
+in the codebase as the revival point should a Windows machine ever
+join; `uefn_status` reports the mode honestly (offline, never "live").
+
 ## 2026-08-22 — Phase 12 (TEE UEFN + trajectory firewall) researched; decisions A22–A24
 
 A five-agent deep-research pass (docs/research/38–42) grounded the
