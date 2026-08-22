@@ -1495,3 +1495,11 @@ back onto the pin.
 Live on OkongoSim: a pin created, read back through `pin_show`/`pin_list`,
 filled from Poly Haven on the owner's pick, before/after captures, and the
 level saved. Evidence in `docs/PROGRESS.md`.
+
+### 14.5 Durability (`pin_export` / `pin_import`)
+
+Pins are authored state inside a level that a project regenerates from its
+data files. `pin_export` writes a stable, sorted, repo-trackable JSON of
+every pin; `pin_import` replays it — markers restored, recorded assets
+re-placed only where nothing is actually standing. `pin_list` reports
+`missing` when the tags claim an asset the level no longer has.

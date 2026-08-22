@@ -110,6 +110,12 @@ These contradict the documentation, so TEE handles them for you:
   even when it *does* apply, so trust the read-back, not the return value.
 - `Actor.add_component_by_class` is **absent** from the 5.8.1 Python API, so a
   marker cannot grow a text label at runtime; use the actor label and tags.
+- **Component collision must be set through the PROFILE, not the enum.**
+  `set_collision_enabled(NO_COLLISION)` on a freshly spawned StaticMeshActor
+  reads back as `NO_COLLISION` inside the same script and is
+  `QUERY_AND_PHYSICS` again by the next dispatch — the profile is what gets
+  serialised. TEE's pin markers call `set_collision_profile_name("NoCollision")`
+  and `pin_set` refuses a marker that reads back as colliding.
 - Entity ids (`u1`, `u2`, …) are **per session**. They are assigned in listing
   order, so replaying a saved `tee_batch` from an earlier session can resolve
   the same id to a DIFFERENT actor. Re-read ids with `tee_scene_summary` in the
@@ -164,6 +170,19 @@ searches the pin's wishlist and answers with a shortlist; with
 `pick='source:id'` it imports at the pin through `as_import` (same four-band
 scale policy, same checkpoint), faces it along the pin's yaw, replaces whatever
 stood there, and writes the chosen key back onto the pin.
+
+**Pins are authored state living in a generated level.** A project whose level
+is rebuilt from its data files by a commandlet would lose them, so
+`pin_export` writes every pin — record, position, yaw — to a stable, sorted
+JSON that belongs in the repo, and `pin_import` replays it: markers restored,
+and any recorded asset that is not actually standing there imported again
+(pins already filled are left alone). The tags in the level stay
+authoritative; the file is a snapshot of them, and where it lives is
+`[pins].file` (default `<project>/pins.json`).
+
+`pin_list` marks a pin `missing: true` when its tags claim an asset but
+nothing is standing at the spot — which is exactly what a level rebuild
+leaves behind.
 
 ## Fallback route: UE 5.3–5.7
 

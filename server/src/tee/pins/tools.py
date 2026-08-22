@@ -5,10 +5,16 @@ its whole record - id, name, category, notes, wishlist, and what finally
 filled it - stored in the actor's own tags. `pin_fill` closes the loop:
 wishlist terms -> asset search -> the owner's pick -> import at the pin, with
 the chosen key written back onto the pin.
+
+`pin_export` / `pin_import` exist because pins are AUTHORED state living in a
+GENERATED artifact: a level rebuilt from a project's data files would drop
+them. The file is a seed and a backup, not a second source of truth - the tags
+in the level stay authoritative, and an export is a snapshot of them.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -20,8 +26,24 @@ from tee.pins import model, program
 DEFAULT_NAMESPACE = "tee_pin"
 
 
+#: Bumped only when the on-disk shape changes incompatibly.
+EXPORT_VERSION = 1
+
+#: Fields carried through an export, in file order.
+EXPORT_FIELDS = (
+    "id",
+    "name",
+    "category",
+    "notes",
+    "wishlist",
+    "asset_class",
+    "target_dims",
+    "asset",
+)
+
+
 def _fill_label(pin_id: str) -> str:
-    return f"PinFill_{pin_id}"
+    return program.FILL_LABEL_PREFIX + pin_id
 
 
 def register_pin_tools(app, project_root: Path | str) -> None:
@@ -55,6 +77,7 @@ def register_pin_tools(app, project_root: Path | str) -> None:
             decoded["position_m"] = row["location_m"]
             decoded["yaw"] = row["yaw"]
             decoded["actor_label"] = row["label"]
+            decoded["fill_present"] = bool(row.get("fill_present"))
             pins.append(decoded)
         pins.sort(key=lambda p: p.get("id", ""))
         return pins
@@ -83,7 +106,11 @@ def register_pin_tools(app, project_root: Path | str) -> None:
         }
         if not out["filled"]:
             out["wishlist"] = pin.get("wishlist", [])
-        return {k: v for k, v in out.items() if v not in (None, [])}
+        elif not pin.get("fill_present"):
+            # The tags claim an asset, but nothing is standing there - a level
+            # rebuilt from its data files loses the props, not the record.
+            out["missing"] = True
+        return {k: v for k, v in out.items() if v not in (None, [], False)}
 
     def pin_list(args):
         pins = _read(args)
@@ -152,6 +179,24 @@ def register_pin_tools(app, project_root: Path | str) -> None:
                 f"Pin {pin_id!r} does not exist yet, so it needs a location.",
                 fix="Pass location=[x, y, z] in METRES (world space).",
             )
+        if data.get("created"):
+            # A marker that collides or ships is worse than no marker: it
+            # blocks the player or turns up inside the delivered build.
+            if "NO_COLLISION" not in str(data.get("collision", "")):
+                raise TeeError(
+                    "pin_marker_collides",
+                    f"Pin {pin_id!r} spawned with collision "
+                    f"{data.get('collision')!r}, not NO_COLLISION.",
+                    fix="The marker mesh's collision profile refused to take; "
+                    "report this with the value above before using the pin.",
+                )
+            if not data.get("editor_only"):
+                raise TeeError(
+                    "pin_marker_would_ship",
+                    f"Pin {pin_id!r} is not marked editor-only.",
+                    fix="is_editor_only_actor did not take on this engine "
+                    "build; report it before relying on pins.",
+                )
         if location is not None:
             want = float(location[2])
             got = float(data.get("marker_base_z_m", want))
@@ -188,6 +233,105 @@ def register_pin_tools(app, project_root: Path | str) -> None:
             "removed_asset": data.get("removed_fill"),
             **app.cache(adapter).stamp(),
         }
+
+    # -- durability: a snapshot the level cannot lose ----------------------
+
+    def _pin_file(args: dict[str, Any]) -> Path:
+        raw = str(args.get("path") or config.get("file") or "pins.json")
+        path = Path(raw).expanduser()
+        return path if path.is_absolute() else Path(project_root) / path
+
+    def pin_export(args):
+        pins = _read(args)
+        path = _pin_file(args)
+        rows = []
+        for pin in pins:
+            row = {
+                field: pin[field] for field in EXPORT_FIELDS if pin.get(field) not in (None, "", [])
+            }
+            row["position_m"] = pin["position_m"]
+            if pin.get("yaw"):
+                row["yaw"] = pin["yaw"]
+            rows.append(row)
+        document = {
+            "version": EXPORT_VERSION,
+            "namespace": namespace,
+            "pins": sorted(rows, key=lambda r: r.get("id", "")),
+        }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # Stable ordering, trailing newline: this file is meant to live in a
+        # repo, and a snapshot that churns its own diff is useless there.
+        path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n")
+        return {"path": str(path), "pins": len(rows), "namespace": namespace}
+
+    def pin_import(args):
+        path = _pin_file(args)
+        if not path.exists():
+            raise TeeError(
+                "pin_file_missing",
+                f"No pin file at {path}.",
+                fix="Write one with pin_export, or pass path= to point at it.",
+            )
+        try:
+            document = json.loads(path.read_text())
+        except (OSError, ValueError) as exc:
+            raise TeeError(
+                "pin_file_unreadable", f"{path}: {exc}", fix="Fix or regenerate the file."
+            ) from exc
+        version = document.get("version")
+        if version != EXPORT_VERSION:
+            raise TeeError(
+                "pin_file_version",
+                f"{path} is version {version!r}; this TEE writes {EXPORT_VERSION}.",
+                fix="Re-export from a level that already has the pins, or "
+                "hand-edit the version if you know the shapes match.",
+            )
+        file_ns = document.get("namespace")
+        if file_ns and file_ns != namespace:
+            raise TeeError(
+                "pin_namespace_mismatch",
+                f"{path} holds {file_ns!r} pins but this project uses {namespace!r}.",
+                fix="Set [pins] namespace in .tee/config.toml to match the "
+                "file, or export afresh under this project's namespace.",
+            )
+        wanted = document.get("pins") or []
+        present = {pin["id"]: pin for pin in _read(args)}
+        restored, updated, filled, unchanged = [], [], [], []
+        for row in wanted:
+            pin_id = model.validate_id(str(row["id"]))
+            (updated if pin_id in present else restored).append(pin_id)
+            pin_set(
+                {
+                    **{f: row[f] for f in EXPORT_FIELDS if f in row and f != "asset"},
+                    "location": row.get("position_m"),
+                    "yaw": row.get("yaw"),
+                    "adapter": args.get("adapter"),
+                }
+            )
+        if args.get("fill", True):
+            # Only what is genuinely missing: re-importing a prop that is
+            # already standing costs a download-and-place for no change.
+            for pin in _read(args):
+                row = next((r for r in wanted if r.get("id") == pin["id"]), None)
+                if not row or not row.get("asset"):
+                    continue
+                if pin.get("fill_present"):
+                    unchanged.append(pin["id"])
+                    continue
+                pin_fill({"id": pin["id"], "pick": row["asset"], "adapter": args.get("adapter")})
+                filled.append(pin["id"])
+        extra = sorted(set(present) - {str(r.get("id")) for r in wanted})
+        out = {
+            "path": str(path),
+            "restored": sorted(restored),
+            "updated": sorted(updated),
+            "filled": sorted(filled),
+        }
+        if unchanged:
+            out["already_standing"] = sorted(unchanged)
+        if extra:
+            out["in_level_not_in_file"] = extra
+        return out
 
     # -- the loop: wishlist -> shortlist -> import -> record ---------------
 
@@ -415,6 +559,37 @@ def register_pin_tools(app, project_root: Path | str) -> None:
             },
             pin_fill,
             tags=["pins", "populate", "import", "polyhaven", "unreal"],
+        ),
+        VirtualTool(
+            "pin_export",
+            "Write every pin in the level to a JSON file (default "
+            "<project>/pins.json, or [pins].file) - id, record, position and "
+            "yaw, sorted so the diff is stable. Pins are authored state in a "
+            "generated level; this is the copy a rebuild cannot lose.",
+            {
+                "type": "object",
+                "properties": {"path": {"type": "string"}, "adapter": adapter_prop},
+            },
+            pin_export,
+            tags=["pins", "export", "backup", "unreal"],
+        ),
+        VirtualTool(
+            "pin_import",
+            "Replay a pin file into the level: every pin is upserted (marker, "
+            "position, tags) and, unless fill=false, any recorded asset that "
+            "is not actually standing there is imported again. Reports what "
+            "was restored, what was already there, and any pin in the level "
+            "that the file does not mention.",
+            {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "fill": {"type": "boolean"},
+                    "adapter": adapter_prop,
+                },
+            },
+            pin_import,
+            tags=["pins", "import", "restore", "unreal"],
         ),
         VirtualTool(
             "pin_remove",

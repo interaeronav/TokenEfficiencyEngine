@@ -52,6 +52,12 @@ Consequences:
 - What fills a pin is found by the label convention `PinFill_<id>`, not by
   the pin's own record, so a re-created marker cannot leave two props
   stacked on one spot.
+- Pins are authored state inside a GENERATED artifact: OkongoSim's level is
+  rebuilt from `data/*.json` by commandlets. `pin_export` / `pin_import`
+  therefore snapshot the pins to a repo-tracked JSON and replay it. This does
+  not make the file a second source of truth — the level's tags stay
+  authoritative and an export is a snapshot of them; import is explicit, never
+  a background sync.
 
 ## 2026-08-22 — Voxkiln removed; the out-of-the-box 3D-generation need is dropped (owner decision)
 

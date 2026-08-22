@@ -103,8 +103,12 @@ class FakePinEditor(FakeAdapter):
             return self._remove(args)
         if set(args) == {"label_of_fill"}:
             return self._clear(args)
-        return {
-            "pins": [
+        rows = []
+        for name, a in self.actors.items():
+            if NS not in a["tags"]:
+                continue
+            pin_id = next((t.split(":", 1)[1] for t in a["tags"] if t.startswith(NS + "_id:")), "")
+            rows.append(
                 {
                     "label": name,
                     "tags": a["tags"],
@@ -112,11 +116,10 @@ class FakePinEditor(FakeAdapter):
                     # marker centre, so this mirrors its output
                     "location_m": list(a["loc_m"]),
                     "yaw": a["yaw"],
+                    "fill_present": ("PinFill_" + pin_id) in self.actors,
                 }
-                for name, a in self.actors.items()
-                if NS in a["tags"]
-            ]
-        }
+            )
+        return {"pins": rows}
 
     def _upsert(self, args: dict) -> dict:
         label = args["label"]
@@ -137,6 +140,8 @@ class FakePinEditor(FakeAdapter):
             "yaw": actor["yaw"],
             "marker_base_z_m": actor["loc_m"][2],
             "marker_size_m": [0.18, 0.18, 0.5],
+            "collision": "<CollisionEnabled.NO_COLLISION: 0>",
+            "editor_only": True,
         }
 
     def _remove(self, args: dict) -> dict:
@@ -374,3 +379,135 @@ def test_remove_leaves_the_placed_asset_unless_asked(app):
     assert out["removed"] is True and out["removed_asset"] is None
     assert "PinFill_p1" in dcc.actors
     assert call(app, "pin_list")["count"] == 0
+
+
+# -- export / import ---------------------------------------------------------
+
+
+def test_export_writes_a_stable_sorted_snapshot(app, tmp_path: Path):
+    call(app, "pin_set", id="b-pin", name="B", category="chair", location=[1, 2, 0])
+    call(
+        app,
+        "pin_set",
+        id="a-pin",
+        name="A",
+        category="table",
+        notes="note",
+        wishlist=["x", "y"],
+        location=[3, 4, 0.5],
+        yaw=90,
+    )
+    out = call(app, "pin_export")
+    assert out["pins"] == 2
+    doc = json.loads(Path(out["path"]).read_text())
+    assert doc["version"] == 1 and doc["namespace"] == NS
+    assert [p["id"] for p in doc["pins"]] == ["a-pin", "b-pin"]
+    assert doc["pins"][0]["wishlist"] == ["x", "y"]
+    assert doc["pins"][0]["position_m"] == [3, 4, 0.5]
+    assert doc["pins"][0]["yaw"] == 90
+    # exporting again writes the same bytes: this file lives in a repo
+    before = Path(out["path"]).read_bytes()
+    call(app, "pin_export")
+    assert Path(out["path"]).read_bytes() == before
+
+
+def test_import_restores_pins_a_level_rebuild_dropped(app):
+    _stub_assets(app, hits=[], imported={"created": ["u9"]})
+    call(
+        app,
+        "pin_set",
+        id="p1",
+        name="One",
+        category="chair",
+        wishlist=["stool"],
+        location=[1, 2, 0],
+    )
+    call(app, "pin_fill", id="p1", pick="polyhaven:stool")
+    path = call(app, "pin_export")["path"]
+
+    dcc = app.adapter("unreal")
+    dcc.actors.clear()  # the commandlet rebuilt the level from data files
+    assert call(app, "pin_list")["count"] == 0
+
+    out = call(app, "pin_import")
+    assert out["restored"] == ["p1"] and out["filled"] == ["p1"]
+    pin = call(app, "pin_show", id="p1")["pin"]
+    assert pin["name"] == "One"
+    assert pin["wishlist"] == ["stool"]
+    assert pin["asset"] == "polyhaven:stool"
+    assert pin["position_m"] == [1, 2, 0]
+    assert Path(path).exists()
+
+
+def test_import_does_not_re_place_a_prop_that_is_already_standing(app):
+    _stub_assets(app, hits=[], imported={"created": ["u9"]})
+    call(app, "pin_set", id="p1", category="chair", location=[1, 2, 0])
+    call(app, "pin_fill", id="p1", pick="polyhaven:stool")
+    call(app, "pin_export")
+    dcc = app.adapter("unreal")
+    dcc.actors["PinFill_p1"] = {"tags": [], "loc_m": [1, 2, 0], "yaw": 0.0}
+    dcc.destroyed.clear()
+
+    out = call(app, "pin_import")
+    assert out["filled"] == []
+    assert out["already_standing"] == ["p1"]
+    assert dcc.destroyed == []
+
+
+def test_import_reports_pins_the_file_does_not_know_about(app):
+    call(app, "pin_set", id="p1", category="chair", location=[1, 2, 0])
+    call(app, "pin_export")
+    call(app, "pin_set", id="p2", category="chair", location=[5, 6, 0])
+    out = call(app, "pin_import", fill=False)
+    assert out["in_level_not_in_file"] == ["p2"]
+    assert out["updated"] == ["p1"]
+
+
+def test_import_refuses_a_file_from_another_namespace(app, tmp_path: Path):
+    path = tmp_path / "other.json"
+    path.write_text(json.dumps({"version": 1, "namespace": "other_pin", "pins": []}))
+    with pytest.raises(TeeError) as exc:
+        call(app, "pin_import", path=str(path))
+    assert exc.value.code == "pin_namespace_mismatch"
+
+
+def test_import_refuses_a_future_file_version(app, tmp_path: Path):
+    path = tmp_path / "v99.json"
+    path.write_text(json.dumps({"version": 99, "namespace": NS, "pins": []}))
+    with pytest.raises(TeeError) as exc:
+        call(app, "pin_import", path=str(path))
+    assert exc.value.code == "pin_file_version"
+
+
+def test_import_says_where_the_missing_file_should_be(app):
+    with pytest.raises(TeeError) as exc:
+        call(app, "pin_import", path="nope/pins.json")
+    assert exc.value.code == "pin_file_missing"
+    assert "pin_export" in (exc.value.fix or "")
+
+
+def test_list_flags_a_pin_whose_prop_is_gone(app):
+    _stub_assets(app, hits=[], imported={"created": ["u9"]})
+    call(app, "pin_set", id="p1", category="chair", location=[1, 2, 0])
+    call(app, "pin_fill", id="p1", pick="polyhaven:stool")
+    dcc = app.adapter("unreal")
+    dcc.actors["PinFill_p1"] = {"tags": [], "loc_m": [1, 2, 0], "yaw": 0.0}
+    assert "missing" not in call(app, "pin_list")["pins"][0]
+    del dcc.actors["PinFill_p1"]
+    assert call(app, "pin_list")["pins"][0]["missing"] is True
+
+
+def test_a_marker_that_would_collide_is_refused(app):
+    """A marker that blocks the player is worse than no marker."""
+    dcc = app.adapter("unreal")
+    original = dcc._upsert
+
+    def colliding(args):
+        out = original(args)
+        out["collision"] = "<CollisionEnabled.QUERY_AND_PHYSICS: 3>"
+        return out
+
+    dcc._upsert = colliding
+    with pytest.raises(TeeError) as exc:
+        call(app, "pin_set", id="p1", location=[1, 2, 0])
+    assert exc.value.code == "pin_marker_collides"

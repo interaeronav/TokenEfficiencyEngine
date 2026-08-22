@@ -19,6 +19,8 @@ MARKER_DIR = "/Game/TeeAssets/Pins"
 MARKER_HEIGHT_CM = 50.0
 MARKER_RADIUS_CM = 9.0
 PIN_FOLDER = "TEE/Pins"
+#: What stands at a pin is found by label, not by the pin's own record.
+FILL_LABEL_PREFIX = "PinFill_"
 
 
 def _args(payload: dict[str, Any]) -> str:
@@ -80,13 +82,24 @@ READ = (
     _HELPERS
     + """
 def _run():
+    labels = set()
+    for actor in _AES.get_all_level_actors():
+        labels.add(actor.get_actor_label())
+    prefix = _A["namespace"] + "_id:"
     rows = []
     for actor, tags in _pins(_A["namespace"]):
-        rows.append(_report(actor, _A["namespace"]))
-    # A pin's marker sits with its BASE on the spot; the reported position is
-    # the spot itself, not the marker's centre.
-    for row in rows:
+        row = _report(actor, _A["namespace"])
+        # A pin's marker sits with its BASE on the spot; the reported position
+        # is the spot itself, not the marker's centre.
         row["location_m"][2] = round(row["location_m"][2] - _A["half_height_m"], 4)
+        # Whether anything is ACTUALLY standing here, which is not the same
+        # question as whether the pin's tags claim it is.
+        pin_id = ""
+        for tag in tags:
+            if tag.lower().startswith(prefix.lower()):
+                pin_id = tag[len(prefix):]
+        row["fill_present"] = bool(pin_id) and (_A["fill_prefix"] + pin_id) in labels
+        rows.append(row)
     return {"pins": rows}
 
 
@@ -134,8 +147,11 @@ def _spawn(loc_cm):
     actor = _AES.spawn_actor_from_object(
         mesh, unreal.Vector(loc_cm[0], loc_cm[1], loc_cm[2] + _A["half_height_cm"]))
     comp = actor.get_component_by_class(unreal.StaticMeshComponent)
-    # Collision is set AT SPAWN: a marker must never block the player, and a
-    # component whose collision is changed later can miss the physics rebuild.
+    # Collision is set AT SPAWN, and through the PROFILE: setting the enum
+    # alone reads back as NO_COLLISION inside the same script and reverts to
+    # the mesh's QUERY_AND_PHYSICS by the next dispatch, because the profile
+    # is what gets serialised. A marker must never block the player.
+    comp.set_collision_profile_name("NoCollision")
     comp.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
     comp.set_material(0, _ensure_material())
     actor.set_actor_scale3d(unreal.Vector(
@@ -171,6 +187,9 @@ def _run():
     out["location_m"][2] = round(out["location_m"][2] - _A["half_height_m"], 4)
     origin, extent = actor.get_actor_bounds(False)
     out["marker_base_z_m"] = round((origin.z - extent.z) / 100.0, 4)
+    marker = actor.get_component_by_class(unreal.StaticMeshComponent)
+    out["collision"] = str(marker.get_collision_enabled())
+    out["editor_only"] = bool(actor.get_editor_property("is_editor_only_actor"))
     out["marker_size_m"] = [round(extent.x * 2 / 100.0, 3), round(extent.y * 2 / 100.0, 3),
                             round(extent.z * 2 / 100.0, 3)]
     return out
@@ -220,7 +239,16 @@ result = _run()
 
 
 def read_program(namespace: str) -> str:
-    return _args({"namespace": namespace, "half_height_m": MARKER_HEIGHT_CM / 200.0}) + READ
+    return (
+        _args(
+            {
+                "namespace": namespace,
+                "half_height_m": MARKER_HEIGHT_CM / 200.0,
+                "fill_prefix": FILL_LABEL_PREFIX,
+            }
+        )
+        + READ
+    )
 
 
 def upsert_program(

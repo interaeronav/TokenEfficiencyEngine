@@ -1566,3 +1566,51 @@ resolved `u881` to a different actor and deleted a pin marker. No project
 geometry was lost (every `/Game/House` mesh still has its actor; the
 873-actor baseline is intact) and the marker was rebuilt, but ids must be
 re-read in the session that acts on them. Documented in setup-unreal.md.
+
+### 2026-08-22 — Phase 14.5: pins survive a level rebuild
+
+Follow-up the owner asked for after the pin lane landed. Pins are authored
+state living in a level that OkongoSim regenerates from `data/*.json`, so a
+commandlet run would drop them and nothing would bring them back.
+
+**`pin_export` / `pin_import`.** Export writes a stable, sorted JSON — id,
+name, category, notes, wishlist, class/dims, chosen asset, position, yaw —
+to `[pins].file` (OkongoSim: `data/pins.json`, which is git-tracked, unlike
+`.tee/`). Import upserts every pin and re-places only the recorded assets
+that are not actually standing there; it reports what it restored, what was
+already standing, and any pin in the level the file does not mention. It
+refuses a file from another namespace or a future version, by name.
+
+`pin_list` now says `missing: true` when a pin's tags claim an asset but
+nothing is at the spot — exactly the state a rebuild leaves behind. That
+needed the read program to report whether `PinFill_<id>` actually exists,
+which is a different question from what the tags say.
+
+**Proved live, not asserted:** exported both pins, deleted
+`verandah-seat-01` and its chair outright (`pin_remove remove_asset=true`,
+level down to 875 actors), then `pin_import` →
+`restored: [verandah-seat-01], filled: [verandah-seat-01],
+already_standing: [open-plan-stool-01]`, back to 877 actors with the record
+intact (notes, wishlist, yaw -135). Re-exporting produced a **byte-identical
+file**, so the round trip is lossless.
+
+**A real defect the new live tests caught.** Both existing pin markers were
+standing in the level with `QUERY_AND_PHYSICS` collision — invisible
+obstacles in a walkable twin. `set_collision_enabled(NO_COLLISION)` reads
+back correctly *inside the same script* and reverts by the next dispatch,
+because the collision PROFILE is what gets serialised. Fixed with
+`set_collision_profile_name("NoCollision")`; `pin_set` now reads the
+collision and the editor-only flag back and refuses a marker that would
+block the player or ship in a build. The two markers already in the level
+were repaired in place and verified in a separate dispatch.
+
+Two live pin tests added (`test_unreal_live.py`): the full round trip
+through the real editor under its own namespace, and the marker's
+editor-only/no-collision/folder guarantees.
+
+**Suites:** `not dcc` 419 passed 2 skipped; `dcc` 85 passed; ruff clean.
+
+**Editor state at hand-off:** level and `/Game/TeeAssets/**` saved at
+22:11, nothing dirty, 877 actors. The OkongoSim build session warns that
+once it resumes, its commandlets write the map — after that this editor's
+copy is stale and must not be saved without reloading first.
