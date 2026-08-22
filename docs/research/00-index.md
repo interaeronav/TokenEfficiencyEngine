@@ -68,7 +68,9 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   pytesseract/RapidOCR, Pillow, ImageHash, PySceneDetect, imageio-ffmpeg,
   faster-whisper; shapely/pyproj/pymap3d/rasterio for registration); CI
   lint bans PyMuPDF (AGPL), marker, ultralytics/FastSAM, CubiCasa5K and
-  DeepFloorplan weights; ffmpeg/exiftool subprocess-only. *Why:* the
+  DeepFloorplan weights; ffmpeg/exiftool subprocess-only. Speaker
+  diarization (pyannote.audio) is optional-only: MIT code but HF-gated
+  models needing a user token — degrade to non-diarized, never require. *Why:* the
   floor-plan ML landscape is a licensing minefield and everything needed is
   achievable with permissive tools. (11, 12, 13, 15)
 - **A9 — Extraction channel:** in-band host-model extraction is the default

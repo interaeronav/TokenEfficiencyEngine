@@ -17,7 +17,10 @@ extraction module. Three new settled decisions recorded in
   pyproj, pymap3d, rasterio for registration). Hard bans enforced by CI
   lint: PyMuPDF (AGPL), marker, ultralytics/FastSAM, CubiCasa5K and
   DeepFloorplan weights, Depth Anything Base/Large. ffmpeg/exiftool via
-  subprocess only.
+  subprocess only. Audio is a first-class modality: Claude has no audio
+  input, so local transcription (faster-whisper) is the only channel;
+  pyannote diarization is optional (MIT code, HF-gated models requiring a
+  user token) and degrades silently to non-diarized transcription.
 - **A9 — extraction channel:** MCP sampling is dead (deprecated in the MCP
   2026-07-28 spec, unimplemented in Claude Code/Desktop) — the default VLM
   extraction driver is in-band (host model + `ex_store_facts` writeback);

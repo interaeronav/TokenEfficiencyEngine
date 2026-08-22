@@ -354,7 +354,7 @@ README quickstart verified end-to-end, tag pushed.
 ## 10. Phase 7 — TEE Extract: the media extraction module
 
 **Goal:** source materials (architectural drawings, CAD/BIM files, photos,
-satellite imagery, video) are converted into compact, frame-tagged,
+satellite imagery, video, audio) are converted into compact, frame-tagged,
 content-addressed **facts** exactly once, so raw media stops being re-billed
 in the model's context. Driving use case: drawings + satellite + site
 photos/video → a dimensionally-conformant 3D house in Blender.
@@ -455,7 +455,7 @@ calibration path.
 a contact sheet + two crops cost < 7K tokens total (measured); satellite
 tile + footprint yields an outline polygon with meters-per-pixel recorded.
 
-### 7.4 Video lane
+### 7.4 Video & audio lane
 
 1. Keyframes: PySceneDetect `AdaptiveDetector` + an every-N-seconds fallback
    sampler for continuous walkthrough/drone footage (the driving case);
@@ -469,15 +469,34 @@ tile + footprint yields an outline polygon with meters-per-pixel recorded.
    frame fetch by `ffmpeg -ss <pts> -i src -frames:v 1` (input seeking).
 4. DJI telemetry: in-house ~50-line SRT regex parser (sidecar `.SRT` +
    embedded `-map 0:s:0` demux), flight path downsampled to turning points.
-5. Audio: `faster-whisper` (MIT) `base`/`small` int8 + VAD, segment
-   timestamps time-aligned with keyframes.
-6. SfM: **sparse-only optional async job** on `pycolmap` (sequential
+5. SfM: **sparse-only optional async job** on `pycolmap` (sequential
    matching, ≤ 200 keyframes, poses + sparse points); dense reconstruction
    out of scope; CPU runtimes documented as tens of minutes.
+6. **Audio is a first-class modality, not a video afterthought.** Claude has
+   no audio input — local transcription is the *only* channel for audio
+   content, not an optimization. Standalone audio ingest (`.wav`, `.mp3`,
+   `.m4a`, `.ogg` — voice memos, client briefings, recorded site notes)
+   shares the video pipeline's transcription stage: `ffmpeg` demux/resample
+   to 16 kHz mono → `faster-whisper` (MIT) `base`/`small` int8 with VAD,
+   emitting segment-level timestamps and detected language as facts.
+7. Transcript facts are searchable via `ex_search` and time-aligned with
+   keyframes when the source is a video ("this is the north wall" links to
+   the frame showing it). A cheap in-band text pass turns briefing
+   transcripts into structured **requirement facts** ("4 bedrooms",
+   "master faces east", "budget ceiling …") in the same store, tiered as
+   stated-requirement evidence.
+8. Speaker diarization (who said what — client vs. architect) is an
+   **optional gated extra**: `pyannote.audio` code is MIT but its pretrained
+   models are gated on Hugging Face behind free-but-mandatory terms
+   acceptance and a user-supplied `HF_TOKEN`; a missing/expired token must
+   degrade silently to non-diarized transcription (never fail the ingest),
+   and the gating caveat is documented. Not part of core acceptance.
 
 **Acceptance:** fixture walkthrough video → ≤ 15 keyframes + contact sheet +
 timestamp index; a frame re-fetch by timestamp works; DJI SRT fixture yields
-a flight-path fact.
+a flight-path fact; a standalone audio memo fixture transcribes to
+time-stamped segment facts findable via `ex_search`, and the requirements
+pass extracts at least one structured requirement fact from it.
 
 ### 7.5 VLM extraction passes (the only tokens this module spends)
 
@@ -569,7 +588,9 @@ conflict fact naming the delta; the conformance report costs < 500 tokens.
 1. Synthetic fixtures generated in-repo (no licensing risk): an
    `ezdxf`-authored DXF plan with real DIMENSION entities; a vector-PDF plan;
    Blender-rendered "site photos" and a walkthrough "video" of a known
-   house model; a hand-written DJI-format SRT.
+   house model; a hand-written DJI-format SRT; a synthesized speech clip
+   for the audio lane (`espeak-ng` subprocess where available, else a tiny
+   committed WAV) reading a scripted client brief.
 2. Unit tests per lane (no DCC needed); live `-m dcc` tests for handoff and
    conformance; the in-band extraction flow tested through the real MCP
    client.
