@@ -1018,10 +1018,8 @@ Nothing further can be closed on this machine. The honest remainder:
 - hosted generation with real Tripo/Meshy keys; `[assets-embed]` embeddings.
 - Whisper/pyannote quality spot-check on real site audio (fixtures only so
   far).
-- Blender library authoring / `asset_listing` publishing; UE asset import
-  path from the assets module.
+- Blender library authoring / `asset_listing` publishing.
 - live fluid-bake validation (Blender).
-- `.mcpb` bundle, for clients that want one.
 
 **Data caveat still standing:** joist-span worst-grade values in
 `plaus_rules.json` are approximate pending edition verification, and
@@ -1063,3 +1061,38 @@ Two corrections en route, both mine:
   other apart. Tests space them 200 cm.
 
 - Evidence: **374 passed, 2 skipped**; `-m dcc` **78 passed**.
+
+### 2026-08-22 — Three more ledger items closed (M5 Mac)
+
+**`.mcpb` bundle (Phase 6).** `make mcpb` builds an MCP Bundle carrying the
+server source, `pyproject.toml` and `uv.lock`; it ships under
+`releases/v0.1.0/`. The manifest schema was copied from a **real installed
+bundle on this machine** (the official Blender Lab MCP extension:
+`manifest_version` 0.4, `server.type` `"uv"`, `mcp_config` command/args)
+rather than written from memory, and only fields observable there were used.
+Verified by running it as a client would — extract, execute the exact command
+the manifest names, drive it over MCP stdio: **16 always-loaded tools,
+`tee_status` ok**.
+
+**Assets → Unreal import (Phase 9).** `as_import(adapter="unreal")` was a
+stub that fell through to a generic `create` op the UE codegen cannot
+execute. Epic's `AssetTools` can find/load/save/delete assets but has **no
+import call**, and the sandboxed script lane cannot reach the importer, so a
+real import needs TEE's content plugin. `import_asset_file` runs an
+`AssetImportTask`, spawns the static mesh, and reads bounds back **converted
+cm → m** (the unit seam that silently produces 100× errors). Verified as a
+cross-DCC round-trip: a 2 m cube authored in headless Blender → GLB →
+ingested → imported into UE → read back at exactly **2.0 × 2.0 × 2.0 m**,
+scale band `accept`, `verify.ok` true.
+
+Two scale-policy refusals en route were the guard working, not defects: a
+2 m model with no class and no target has nothing to judge against, and
+2 m → 1 m is refused because 0.5 is neither a unit factor nor a ±10% snap.
+
+**Doctor** now completes the MCP handshake and counts the catalog instead of
+reporting OK because a port is open, and distinguishes a stranger on the port
+from a server with no toolsets (`AllToolsets` being off by default is the most
+likely setup mistake). Both negative paths tested.
+
+- Evidence: **374 passed, 2 skipped**; `-m dcc` **80 passed**; `make check`
+  green.
