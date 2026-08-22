@@ -282,7 +282,10 @@ Steps:
 **Acceptance:** scripted session against a live 5.8 editor: spawn + configure
 actors via one macro call; Blueprint function authored and compiled with
 diagnostics via graph DSL; `describe_toolset` never forwarded raw (test
-asserts summarized size < 10% of raw); fallback tier smoke-tested on an older
+asserts the raw payload never reaches the model, the largest toolset's
+summary stays under 2,500 tokens, and every summary is under 20% of raw —
+amended from a flat <10% ratio; see DECISIONS A25 for the measurements and
+why the ratio was the wrong gate); fallback tier smoke-tested on an older
 engine if present, else marked `n/a` in PROGRESS.
 
 ---

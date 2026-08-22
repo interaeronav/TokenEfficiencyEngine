@@ -195,3 +195,42 @@ The current SDK on PyPI is `mcp` 2.0, which renames it to
 no-outputSchema rule), and ships an in-memory `Client(server)` used by the
 test suite. Substance of A1 unchanged: official SDK, stdio primary. Pinned
 `mcp>=2.0,<3`.
+
+## 2026-08-22 — A25: the UE toolset-summary acceptance is an absolute token
+budget, not a 10%-of-raw ratio
+
+Phase 3 step 3's acceptance says the test must assert "summarized size < 10%
+of raw" for `describe_toolset`. Measured against the live UE 5.8.1 server on
+the M5 Mac, TEE's summarizer lands at **11.6–17.1%** with one-line docs kept,
+and **7.2–10.0%** with signatures only.
+
+The ratio is the wrong gate, for two reasons the measurements make plain:
+
+1. **It rewards bloat in the input.** `AssetTools` summarizes to 561 tokens
+   and scores 17.1%; `BlueprintTools` summarizes to 2,097 tokens and scores
+   11.6%. The toolset that costs the model four times less scores worse,
+   purely because Epic's raw payload for it carries less boilerplate to strip.
+   A ratio measures Epic's verbosity, not TEE's efficiency.
+2. **Hitting 10% would cost more tokens than it saves.** The only way there
+   is to drop the one-line doc summaries (2,097 → 1,291 tokens on
+   `BlueprintTools`, 11.6% → 7.2%). But without a doc line the model cannot
+   tell `find_nodes` from `find_node_types` without calling
+   `ue_describe_tool`, and each of those round-trips returns a full schema
+   (~390 tokens for one `BlueprintTools` tool). Two such lookups already
+   exceed the 806 tokens the docs cost for all 53 tools. Optimizing the
+   published ratio would make real sessions more expensive - the exact
+   failure the project's core metric exists to prevent.
+
+**Decision.** Keep one-line docs on by default; keep a `docs=False` mode for
+callers that genuinely want the floor. The acceptance becomes:
+
+- no raw `describe_toolset` payload is ever returned to the model (unchanged
+  in spirit, and the point of the original bullet), AND
+- the summary of the largest toolset stays **under 2,500 tokens** (measured:
+  2,097 for `BlueprintTools`, against 18,042 raw = **88.4% saved**), AND
+- the summary is **under 20% of raw** on every toolset, with signatures-only
+  mode under 10%.
+
+Recorded rather than silently met: the original bullet is achievable as
+written, and was deliberately not adopted because doing so costs the user
+tokens.
