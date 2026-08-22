@@ -125,6 +125,18 @@ class _IOLoop:
         self.buffers: dict[socket.socket, bytearray] = {}
         self.sink = sink
         self.stop_event = threading.Event()
+        # Cooperative shutdown. Closing the listener/selector from another
+        # thread while the loop thread sits in select() is fatal on macOS:
+        # kqueue.control() raises OSError(EBADF) where Linux epoll merely
+        # returns. So `close()` wakes the loop through this socketpair and
+        # lets the loop thread do the teardown itself.
+        self._wake_r, self._wake_w = socket.socketpair()
+        self._wake_r.setblocking(False)
+        self._wake_w.setblocking(False)
+        self.selector.register(self._wake_r, selectors.EVENT_READ, None)
+        self._torn_down = threading.Event()
+        self._teardown_lock = threading.Lock()
+        self.loop_thread: threading.Thread | None = None
 
     @property
     def port(self) -> int:
@@ -133,6 +145,12 @@ class _IOLoop:
     def step(self, timeout: float) -> None:
         for key, _ in self.selector.select(timeout):
             sock = key.fileobj
+            if sock is self._wake_r:
+                try:
+                    sock.recv(65536)
+                except OSError:
+                    pass
+                continue
             if sock is self.listener:
                 try:
                     conn, _addr = self.listener.accept()
@@ -160,8 +178,12 @@ class _IOLoop:
                 self.sink(sock, frame)
 
     def run(self) -> None:
-        while not self.stop_event.is_set():
-            self.step(0.2)
+        self.loop_thread = threading.current_thread()
+        try:
+            while not self.stop_event.is_set():
+                self.step(0.2)
+        finally:
+            self._teardown()
 
     def _drop(self, sock: socket.socket) -> None:
         try:
@@ -174,16 +196,41 @@ class _IOLoop:
         except OSError:
             pass
 
-    def close(self) -> None:
+    def close(self, timeout: float = 5.0) -> None:
+        """Stop the loop and release every socket.
+
+        Safe from any thread: the loop thread owns the teardown and this only
+        falls back to doing it inline once that thread has exited (or wedged
+        past `timeout`, where leaking the port would be the worse failure).
+        """
         self.stop_event.set()
-        for sock in list(self.buffers):
-            self._drop(sock)
         try:
-            self.selector.unregister(self.listener)
-        except (KeyError, ValueError):
+            self._wake_w.send(b"\x01")
+        except OSError:
             pass
-        self.listener.close()
-        self.selector.close()
+        thread = self.loop_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout)
+        self._teardown()
+
+    def _teardown(self) -> None:
+        with self._teardown_lock:
+            if self._torn_down.is_set():
+                return
+            for sock in list(self.buffers):
+                self._drop(sock)
+            for sock in (self._wake_r, self.listener):
+                try:
+                    self.selector.unregister(sock)
+                except (KeyError, ValueError):
+                    pass
+            self.selector.close()
+            for sock in (self._wake_r, self._wake_w, self.listener):
+                try:
+                    sock.close()
+                except OSError:
+                    pass
+            self._torn_down.set()
 
 
 def _send_response(sock: socket.socket, frame: bytes) -> None:
@@ -236,6 +283,9 @@ def start_gui(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> int:
             pass
         return TIMER_INTERVAL
 
+    # Claim ownership before the thread starts: `close()` must never decide
+    # it can tear down inline just because `run()` has not begun yet.
+    loop.loop_thread = thread
     _gui_state.update({"loop": loop, "thread": thread, "pump": pump})
     thread.start()
     bpy.app.timers.register(pump, first_interval=TIMER_INTERVAL, persistent=True)
@@ -251,6 +301,8 @@ def stop_gui() -> None:
     if pump is not None and bpy.app.timers.is_registered(pump):
         bpy.app.timers.unregister(pump)
     if loop is not None:
+        # Blocks until the I/O thread has torn its own sockets down, so a
+        # GUI add-on disable/reload leaves no traceback behind (macOS kqueue).
         loop.close()
 
 

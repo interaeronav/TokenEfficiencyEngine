@@ -3,6 +3,7 @@ the module imports bpy solely inside its GUI entry points)."""
 
 import importlib.util
 import json
+import socket
 import sys
 import threading
 from pathlib import Path
@@ -109,3 +110,39 @@ def test_io_loop_end_to_end_with_wire_client(bridge_server):
     finally:
         loop.close()
         thread.join(timeout=5)
+
+
+def test_close_from_another_thread_is_silent_and_frees_the_port(bridge_server):
+    """Regression, macOS: tearing the selector down from the caller's thread
+    while the I/O thread sits in select() raises OSError(EBADF) out of kqueue
+    (Linux epoll tolerates it). stop_gui() runs on Blender's main thread, so
+    that path printed a traceback into every user's console on every add-on
+    disable. close() must hand teardown to the loop thread instead."""
+    caught: list[threading.ExceptHookArgs] = []
+    previous_hook = threading.excepthook
+    threading.excepthook = caught.append
+    try:
+        loop = bridge_server._IOLoop("127.0.0.1", 0, lambda sock, data: None)
+        port = loop.port
+        thread = threading.Thread(target=loop.run, name="tee-bridge-io", daemon=True)
+        loop.loop_thread = thread
+        thread.start()
+        wire = BlenderWire(port=port, connect_timeout=2.0, call_timeout=5.0)
+        assert wire.probe() is False  # connects; the null sink never replies
+        loop.close()  # <- from the main thread, while the loop is in select()
+        thread.join(timeout=5)
+        assert not thread.is_alive()
+    finally:
+        threading.excepthook = previous_hook
+
+    assert caught == [], f"I/O thread raised during shutdown: {caught}"
+    assert loop._torn_down.is_set()
+    with socket.socket() as probe:  # the listener really is gone
+        probe.bind(("127.0.0.1", port))
+
+
+def test_close_is_idempotent_and_safe_before_the_loop_runs(bridge_server):
+    loop = bridge_server._IOLoop("127.0.0.1", 0, lambda sock, data: None)
+    loop.close()
+    loop.close()
+    assert loop._torn_down.is_set()
