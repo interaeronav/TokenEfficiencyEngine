@@ -1,0 +1,60 @@
+[project]
+name = "voxkiln"
+version = "0.1.0"
+description = "AI-first local image-to-3D generation engine, built on Microsoft TRELLIS.2 (MIT)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "interaeronav", email = "interaeronav@gmail.com" }]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "trimesh>=4.4",
+    "fast-simplification>=0.1.7",
+    "xatlas>=0.0.9",
+    "opencv-python-headless>=4.9",
+    "pillow>=10.0",
+    "shapely>=2.0",
+    "rtree>=1.2",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+# The neural pipeline itself. torch>=2.13 recommended on Apple Silicon
+# (FlexAttention-MPS); any >=2.5 works for CUDA/CPU.
+model = [
+    "torch>=2.5",
+    "torchvision>=0.20",
+    "transformers>=4.46",
+    "huggingface_hub>=0.26",
+    "safetensors>=0.4",
+    "tqdm>=4.66",
+]
+manifold = ["manifold3d>=3.0"]
+rebuild = ["scikit-image>=0.24"]
+mcp = ["mcp>=1.2"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+voxkiln = "voxkiln.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/voxkiln"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"vendor" = "voxkiln/_vendor"
+
+[tool.ruff]
+line-length = 99
+target-version = "py311"
+extend-exclude = ["vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
