@@ -454,6 +454,49 @@ class UnrealAdapter:
             }
         return report
 
+    def import_asset_file(
+        self,
+        path: str,
+        *,
+        destination: str = "/Game/TeeAssets",
+        label: str | None = None,
+        location: list[float] | None = None,
+        scale: float = 1.0,
+    ) -> dict[str, Any]:
+        """Import a mesh file into the project and spawn it.
+
+        Epic's AssetTools toolset can find, load, save and delete assets but
+        cannot IMPORT one, so this needs TEE's content plugin.
+        """
+        import os
+
+        if not os.path.exists(path):
+            raise TeeError(
+                "asset_file_missing",
+                f"No file at {path}.",
+                fix="Import needs a path the editor can read on this machine.",
+            )
+        name = label or os.path.splitext(os.path.basename(path))[0]
+        data = self.editor_python(
+            simulate.import_program(
+                path, destination, name, location or [0.0, 0.0, 0.0], float(scale)
+            ),
+            f"TEE: import {name}",
+        )
+        if not data.get("meshes"):
+            raise TeeError(
+                "asset_import_empty",
+                f"The editor imported {path} but produced no static mesh.",
+                fix="Check the file opens in the editor manually; glTF/FBX "
+                "with a mesh is expected.",
+            )
+        ref = data.get("actor")
+        if ref:
+            self._id_for(ref)
+            self._labels[ref] = data.get("label") or name
+            data["entity_id"] = self._ids[ref]
+        return data
+
     # -- vision ------------------------------------------------------------
 
     def capture(self, view: str, max_bytes: int) -> bytes:

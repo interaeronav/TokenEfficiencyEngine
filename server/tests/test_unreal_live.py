@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from conftest import find_blender
 
 from tee.adapters.unreal.catalog import ToolsetCatalog
 from tee.adapters.unreal.summarize import _REF_DESC
@@ -379,3 +380,48 @@ def test_settle_rejects_an_unknown_actor_label(tee_plugin):
     with pytest.raises(TeeError) as err:
         tee_plugin.settle(["NoSuchActorAnywhere"])
     assert err.value.code == "unknown_actor"
+
+
+def test_asset_file_imports_and_measures_in_metres(tee_plugin, tmp_path):
+    """Epic's AssetTools can find/load/save/delete assets but cannot IMPORT
+    one, so this runs through TEE's content plugin. UE is centimetres; every
+    TEE surface is metres, so the readback must come back converted."""
+    import subprocess
+
+    blender = find_blender()
+    if blender is None:
+        pytest.skip("no Blender binary to author a source mesh")
+    glb = tmp_path / "unit_cube.glb"
+    script = tmp_path / "export.py"
+    script.write_text(
+        "import bpy, sys\n"
+        "for o in list(bpy.data.objects): bpy.data.objects.remove(o, do_unlink=True)\n"
+        "bpy.ops.mesh.primitive_cube_add(size=2.0)\n"
+        "bpy.ops.export_scene.gltf(filepath=sys.argv[-1], export_format='GLB')\n"
+    )
+    subprocess.run(
+        [blender, "--background", "--factory-startup", "--python", str(script), "--", str(glb)],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    assert glb.exists()
+
+    out = tee_plugin.import_asset_file(
+        str(glb),
+        destination="/Game/TeeTestImport",
+        label="PytestImported",
+        location=[-1200, 1400, 200],
+    )
+    assert out["meshes"], out
+    assert out["entity_id"].startswith("u")
+    # the Blender cube is 2 m; UE reports centimetres and TEE converts
+    assert out["dims_m"] == pytest.approx([2.0, 2.0, 2.0], abs=0.01), out
+
+
+def test_import_of_a_missing_file_fails_before_the_editor(tee_plugin):
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        tee_plugin.import_asset_file("/nope/not/here.glb")
+    assert err.value.code == "asset_file_missing"

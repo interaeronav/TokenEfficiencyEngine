@@ -131,3 +131,66 @@ def max_delta(a: dict[str, list[float]], b: dict[str, list[float]]) -> float:
         other = b[label]
         worst = max(worst, max(abs(pose[i] - other[i]) for i in range(3)))
     return worst
+
+
+def import_program(
+    path: str,
+    destination: str,
+    label: str,
+    location: list[float],
+    scale: float,
+) -> str:
+    """Import a mesh file and spawn it, returning measured world bounds.
+
+    Epic's `AssetTools` toolset has no import call at all (it can find, load,
+    save and delete assets, but not bring one in), so this needs the
+    unsandboxed lane and TEE's content plugin.
+    """
+    import json as _json
+
+    args = {
+        "path": path,
+        "destination": destination,
+        "label": label,
+        "location": location,
+        "scale": scale,
+    }
+    return f"""
+import json
+import unreal
+_A = json.loads({_json.dumps(_json.dumps(args))})
+
+task = unreal.AssetImportTask()
+task.filename = _A["path"]
+task.destination_path = _A["destination"]
+task.automated = True
+task.replace_existing = True
+task.save = False
+unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
+paths = [str(p) for p in task.get_editor_property("imported_object_paths")]
+
+meshes = []
+for p in paths:
+    obj = unreal.EditorAssetLibrary.load_asset(p)
+    if isinstance(obj, unreal.StaticMesh):
+        meshes.append((p, obj))
+
+out = {{"imported": paths, "meshes": [p for p, _ in meshes]}}
+if meshes:
+    aes = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    loc = _A["location"]
+    actor = aes.spawn_actor_from_object(
+        meshes[0][1], unreal.Vector(loc[0], loc[1], loc[2]))
+    actor.set_actor_label(_A["label"])
+    s = _A["scale"]
+    if s != 1.0:
+        actor.set_actor_scale3d(unreal.Vector(s, s, s))
+    origin, extent = actor.get_actor_bounds(False)
+    out["actor"] = actor.get_path_name()
+    out["label"] = actor.get_actor_label()
+    # UE is centimetres; TEE speaks metres everywhere else.
+    out["dims_m"] = [round(extent.x * 2 / 100.0, 4),
+                     round(extent.y * 2 / 100.0, 4),
+                     round(extent.z * 2 / 100.0, 4)]
+result = out
+"""

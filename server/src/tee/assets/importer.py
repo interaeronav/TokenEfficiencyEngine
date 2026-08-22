@@ -173,13 +173,36 @@ def import_asset(
         props["rotation_euler"] = rotation
     if scale != 1.0:
         props["scale"] = [scale, scale, scale]
+    source_path = (
+        entry.get("path")
+        if entry.get("source") == "local"
+        else str(store.asset_dir(entry["hash"]) / entry["primary"])
+    )
     if adapter == "blender":
-        path = (
-            entry.get("path")
-            if entry.get("source") == "local"
-            else str(store.asset_dir(entry["hash"]) / entry["primary"])
+        ops = [{"op": "import_file", "path": source_path, "name": display, "props": props}]
+    elif adapter == "unreal":
+        # Epic's AssetTools cannot import at all, and the sandboxed script lane
+        # cannot reach the importer, so this runs through TEE's content plugin
+        # rather than the typed batch. Checkpoint by hand to keep the same
+        # rollback guarantee a batch would give.
+        dcc = app.adapter(adapter)
+        checkpoint = app.checkpoints.create(
+            dcc, f"auto:import:{asset_ref}", app.cache(adapter).revision
         )
-        ops = [{"op": "import_file", "path": path, "name": display, "props": props}]
+        imported = dcc.import_asset_file(
+            source_path,
+            label=display,
+            location=[v * 100.0 for v in (location or [0.0, 0.0, 0.0])],  # m -> cm
+            scale=scale,
+        )
+        app.cache(adapter).resync(dcc)
+        batch = {
+            "checkpoint": checkpoint.id,
+            "created": [imported["entity_id"]] if imported.get("entity_id") else [],
+            "details": {imported.get("entity_id", "u?"): {"dims_m": imported.get("dims_m")}},
+            **app.cache(adapter).stamp(),
+        }
+        ops = None
     else:
         if measured:
             props["dims_m"] = [round(v * scale, 4) for v in measured]
@@ -191,7 +214,8 @@ def import_asset(
                 "props": props,
             }
         ]
-    batch = app.run_batch(adapter, ops, label=f"import:{asset_ref}")
+    if ops is not None:
+        batch = app.run_batch(adapter, ops, label=f"import:{asset_ref}")
 
     # 6. read-back verification: expected dims vs the DCC's reported dims
     verification: dict[str, Any] | None = None
