@@ -1614,3 +1614,36 @@ editor-only/no-collision/folder guarantees.
 22:11, nothing dirty, 877 actors. The OkongoSim build session warns that
 once it resumes, its commandlets write the map — after that this editor's
 copy is stale and must not be saved without reloading first.
+
+### 2026-08-22 — Pins delivered into OkongoSim's own repo
+
+The pin lane was working but only durable inside TEE's repo and one
+developer's machine. Closed that: three commits in `/Users/john/OkongoSim`,
+each staged file by file so none of the build session's in-flight
+texture/material work (822 uncommitted paths) was swept in.
+
+- `92ee3e7` — `Plugins/TeeToolset` vendored (content-only, from TEE
+  v0.1.0), `TeeToolset` enabled Editor-only in `OkongoSim.uproject`,
+  `data/pins.json` tracked, and **`.gitignore` changed from `.tee/` to
+  `.tee/*` + `!.tee/config.toml`**. That last one was the actual bug in the
+  hand-off: the config carries the pin tag namespace (`okongo_pin`) and the
+  pin file path, so a clone without it read the level's pins under the
+  default `tee_pin` namespace — which is to say, saw no pins at all. The
+  `.tee/assets/` download cache stays ignored.
+- `aa1a8fb` — `Content/TeeAssets/**` (9 MB, the two CC0 props and the pin
+  marker material) plus `CREDITS-assets.md`, rendered by `as_credits` from
+  the attribution manifests. The assets are committed because the level
+  references them: a clone with the map but without them gets missing-mesh
+  errors. They stay reproducible — `pin_import` re-downloads and re-places
+  from `data/pins.json`.
+
+Deliberately not committed there: `Content/Maps/OkongoSite.umap`. It is the
+build session's surface, and `data/pins.json` is the durable record either
+way.
+
+**Editor left clean**: saved at 22:21:54 after checking the map's mtime was
+still my own 22:11:17 write (that session is paused, so nothing could be
+clobbered), 877 actors, nothing dirty. UE 5.8.1 exposes no
+`Package.set_dirty_flag`, so a content-identical save is the only way to
+leave an editor with nothing pending — the alternative was leaving a dirty
+map that an accidental Ctrl+S could later push over someone else's work.
