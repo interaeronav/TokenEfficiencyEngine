@@ -4,6 +4,36 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-22 — Phase 9 (TEE Assets) researched; decisions A13–A15
+
+A six-agent deep-research pass (docs/research/20–25) grounded the asset
+management + creation module. Three new settled decisions in
+`docs/research/00-index.md`:
+
+- **A13 — asset backends & license hygiene:** tier-1 = Poly Haven /
+  ambientCG / Poly Pizza / Smithsonian (Sketchfab guarded; Fab
+  human-only); server-side store owns catalogs/thumbnails/downloads;
+  SPDX allowlist failing closed on NC/ND/unknown; attribution manifests
+  with license snapshots travel with the cache.
+- **A14 — creation lanes & generation floor:** procedural (measured
+  values, Infinigen) → local diffusion (Z-Image/klein/SDXL + Marigold) →
+  photo-derived PBR → generated 3D (TRELLIS.2 local, Tripo/Meshy hosted
+  behind one wait-polling adapter with cost confirmation); mandatory
+  cleanup macro; gated lanes labeled; honest bar stated ("set dressing
+  on demand, hero assets curated").
+- **A15 — selection & context contract:** Holodeck-shaped server-side
+  retrieval with ≤5-row shortlists; relational placement plans validated
+  against cited clearance/code rules; four-band scale-envelope policy;
+  GPS-true sun; render-free verification, one budgeted render max;
+  shipped as the `context-aware-assets` skill.
+
+Load-bearing evidence: the official Blender Lab MCP has no asset tools
+(space open); the popular community integration measurably re-fetches a
+2.3 MB catalog per search and truncates alphabetically; TRELLIS.2's MIT
+release (Dec 2025) makes a clean local 3D lane possible; MobileCLIP's
+MIT repo hides research-only weights; Sketchfab changed owners again
+(KitBash, 2026-08-10) — platform risk is a design input.
+
 ## 2026-08-22 — Phase 8 (context economics) added; decisions A11–A12
 
 A research + simulation pass (docs/research/19) measured where the

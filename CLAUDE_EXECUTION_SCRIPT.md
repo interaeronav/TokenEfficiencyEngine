@@ -714,7 +714,176 @@ Blender and published; `docs/PROGRESS.md` updated with measured numbers.
 
 ---
 
-## 12. Standing rules (all phases)
+## 12. Phase 9 — TEE Assets: management, acquisition, and creation
+
+**Goal:** finding, selecting, and creating scene assets stops being the
+drag it is everywhere else. Free assets become one cheap typed query away
+(license-safe by construction); asset creation is a laddered set of lanes
+from zero-GPU procedural materials to photo-derived PBR and generated 3D;
+selection, scaling, placement, and lighting are scene-based and
+context-aware, driven by the facts TEE already extracted (plan dimensions,
+site photos, GPS, brief). The measured prior-art baseline to beat: the
+popular community integration spends 2-5k tokens to find and place ONE
+asset, re-fetches a 2.3 MB catalog per search, and lets NC-licensed assets
+into commercial projects unchecked.
+
+**Grounding:** `docs/research/20`–`25` (six-agent deep-research pass,
+2026-08-22). Decisions A13–A15 in `docs/research/00-index.md` are settled —
+amend via `docs/DECISIONS.md` only. Honest quality claim, stated up front
+and in tool descriptions: generation delivers *set dressing on demand* —
+good mid-ground props and photo-true materials; hero assets are curated,
+not generated (research 23). Photographic fidelity comes from the
+photo-derived material lane and real scanned CC0 assets, not from
+text-to-3D.
+
+### 9.1 Asset store, source registry, license hygiene (A13)
+
+1. `server/src/tee/assets/` package. `AssetStore` reuses the ExtractStore
+   patterns (content-addressed cache under `.tee/assets/`, 2-char fanout):
+   cached FILES keyed by hash (never URLs — Sketchfab's expire in 300 s),
+   a local metadata index (name, tags, license SPDX, tri count, real
+   dimensions, source, thumbnail phash), and per-asset **attribution
+   manifests** (TASL + SPDX + license text snapshot + retrieved_at + file
+   hash + modifications + pre-rendered credit line) with a `CREDITS.md`
+   renderer.
+2. Source registry (`sources` module): per-backend adapters for Poly Haven
+   (no-auth; unique User-Agent; "Powered by Poly Haven" credit in docs),
+   ambientCG (cache-first), Poly Pizza (key; license-filtered), Smithsonian
+   (key; CC0-flag gated), Sketchfab (opt-in; OAuth; guarded). Each backend
+   declares BOTH its asset-license regime and its site-ToS constraints.
+   Catalogs are fetched server-side with ETag/if-modified caching — the
+   2.3 MB-per-search prior-art failure is structurally impossible.
+3. License gate: SPDX allowlist (`CC0-1.0`, `CC-BY-4.0`, `CC-BY-3.0`;
+   `CC-BY-SA-*` behind a config flag) failing CLOSED on NC/ND/unknown/
+   proprietary/GPL. A test proves an NC asset cannot enter the cache.
+4. Local library ingest: `as_ingest` indexes the user's own asset folders
+   (glTF header probe via pygltflib — tri counts and exact extents from
+   JSON, no DCC; map-set regex for texture packs; thumbnails rendered
+   once, phashed).
+
+### 9.2 Search and selection (A15)
+
+1. `as_search`: one faceted query (keywords + class + license + max_tris +
+   real-dimension range) over all enabled backends + the local index;
+   compact rows (id, name, license, tris, dims_m, source) ≤ 5 per class by
+   default. The Holodeck contract: the model states WHAT it needs
+   (description, target dims, constraints); ranking happens server-side —
+   tags first, ΔE00 palette-vs-style-brief second, thumbnail embeddings
+   third (SigLIP-2 Apache or CLIP MIT, computed at index time, cached by
+   thumbnail hash; optional `[assets-embed]` extra, CPU-only).
+2. `as_sheet`: one labeled contact sheet of the shortlist (tiles ≥ 256 px,
+   reusing the extract contact-sheet machinery) as the tie-breaker view;
+   `tee_media` serves individual budgeted previews. Never per-candidate
+   inline images by default.
+
+### 9.3 Import and library plumbing (research 21)
+
+1. `as_import`: download (or reuse — BlenderKit's `asset_in_scene` lesson:
+   check cache and scene before any network) → glTF-first probe →
+   **four-band scale policy** against the semantic-class envelope tables
+   (accept / silent power-of-ten fix recorded as a fact / snap-to-catalogue
+   ±10% / reject with one line) → import through the NORMAL typed batch
+   machinery (checkpointed, diff-reported) → idempotent PBR wiring →
+   read-back verification (the rotation-mode no-op lesson). Fit-to-plan:
+   a door asset auto-scales into a 0.9 m plan opening; uniform-only unless
+   the asset declares `stretch_axes`.
+2. Blender library authoring, fully headless: `asset_mark` + metadata +
+   catalogs (cats.txt written directly — no API exists), previews
+   (synchronous in `--background` since 3.6; custom 256 px render +
+   `lib_id_load_custom_preview` as the universal path), self-contained
+   `libraries.write` per asset, then `blender -c asset_listing generate`
+   so TEE gets Blender's own queryable remote-library JSON index for free
+   (and can serve it to human users' Asset Browsers).
+3. UE 5.8 (physical machine): Interchange `import_asset` +
+   `wait_until_all_tasks_done` (async trap), `AssetImportTask` fallback
+   for commandlets; Asset Registry tag queries (Triangles/LODs) instead
+   of loading assets; FBX stays on the legacy importer; Fab is
+   human-download-then-import (a Launcher-export TCP listener in the
+   Blender adapter is the one automatable seam).
+
+### 9.4 Creation lanes (A14)
+
+1. **Lane 0 — procedural (default, zero-GPU, zero tokens at rest):**
+   `as_material` builds Principled node graphs parameterized from the
+   physicallybased.info CC0 dataset (measured albedo/roughness/IOR — no
+   hallucinated constants); Infinigen (BSD-3) generators as the reference
+   library for the hard ones. Emitted as typed batch ops.
+2. **Lane 1 — local diffusion (`[assets-gen]` extra, GPU-gated):**
+   Z-Image family (Apache) general; SDXL + circular padding for
+   born-tileable textures; Marigold-IID for PBR map estimation; diffusers
+   in-process, ComfyUI only ever as a separate process. Scene-conditioned:
+   headless depth/normal EXR render → ControlNet-depth img2img →
+   UV Project modifier + Cycles bake back onto geometry.
+3. **Lane 2 — photo-derived PBR (the Okongo lane):** rectify (homography,
+   most-frontal ingested photo) → Marigold delight → seamless-or-
+   UV-project → maps → Real-ESRGAN; metallic clamped to 0 on masonry/
+   paint. Facades of a specific building use projection, not tiling.
+4. **Lane 3 — generated 3D:** local TRELLIS.2-4B (MIT; nvdiffrast/
+   nvdiffrec audited OUT of the runtime path before the lane is declared
+   clean) and hosted Tripo/Meshy behind ONE async-job adapter with
+   Meshy-style server-side wait-polling (backoff, hard cap, one result)
+   and **cost confirmation before any paid call**. Every generated mesh
+   passes the mandatory cleanup macro (normalize scale/orientation/pivot →
+   Quadriflow/decimate to budget → Smart UV → Cycles re-bake → export)
+   and carries an `ai-generated` provenance fact (generator, input hash,
+   USCO copyright note).
+5. Gated lanes (config opt-in, clearly labeled, never default): FLUX-dev
+   (non-commercial runtime), SD3.5 (revenue-conditional), Hunyuan3D local
+   (geo-restricted license — geo-labeled).
+
+### 9.5 Context awareness (A15)
+
+1. `style_brief` fact auto-derived at ingest: CIELAB k-means palette from
+   site photos (color NAMES are the in-context form), style terms and
+   materials from the caption pass, avoid-list from the audio brief.
+2. Placement: the model emits a relational plan (anchor + wall-segment id
+   + offset + relations, ~10 tokens/object); `as_place` solves and
+   validates against the machine-readable rule table (clearances,
+   circulation corridor, door swings, work triangle; `code` vs `guideline`
+   severity — guideline rows relaxable with a note, code rows never;
+   region-parameterized from the GPS datum).
+3. Lighting: sun azimuth/elevation from the GPS datum + date/time (astral
+   default, pvlib SPA precision; NEVER pysolar — GPL); drives Blender
+   sun/Nishita sky and UE directional light through the adapters; HDRI
+   picked from Poly Haven by elevation band + weather, its in-image sun
+   azimuth detected once (brightest pixel) and cached as a fact.
+
+### 9.6 The `context-aware-assets` skill
+
+Packaged per the Agent Skills standard (spec-portable frontmatter;
+SKILL.md < 500 lines; reference files one level deep with TOCs; scripts
+executed, never read): the 7-step checklist (brief → search → fit → plan →
+validate → apply → verify) with exact tool invocations for the fragile
+steps and judgment room for selection/grouping; reference tables =
+dimension envelopes, clearance rules, source-license matrix; 3+ evals
+authored before the skill is polished (furnish the fixture bedroom; the
+kitchen work-triangle trap; reject the 0.4 m "sofa").
+
+### 9.7 Verification and benchmark
+
+1. Render-free battery after every apply: scale sanity vs envelopes, BVH
+   collision (≤ 5 mm contact tolerated), support raycast, clearance/
+   corridor checks, code checks through the conformance machinery,
+   texture-palette ΔE00 vs the brief — one compact violations+fixes
+   report. At most ONE budgeted render per task (~768×512), gated on
+   geometric pass + a genuinely visual question.
+2. `benchmarks/` gains an asset scenario: find-select-place N assets via
+   TEE vs the measured prior-art flow (catalog dumps + per-candidate
+   previews + polling chatter), published in RESULTS.md.
+
+**Acceptance:** live `as_search` against Poly Haven answers a furniture
+query in ≤ 200 response tokens with the catalog ETag-cached server-side;
+an NC-licensed asset is refused from the cache by test; the attribution
+manifest renders a correct CREDITS.md for a CC-BY asset; a door asset
+auto-scales into the fixture plan's 0.9 m opening and a 0.4 m "sofa" is
+rejected with one line; sun az/el for the fixture GPS datum matches the
+NOAA reference within 1°; the placement validator catches a blocked
+door swing and a sub-760 mm corridor; full suite green; benchmark
+published. DCC/network-marked tests skip cleanly offline.
+
+---
+
+## 13. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.

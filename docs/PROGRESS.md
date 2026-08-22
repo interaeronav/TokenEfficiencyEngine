@@ -30,6 +30,10 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       cloud, 2026-08-22: tee_script lane, columnar responses, recap,
       caption-once; fix-loop benchmark 63.2% saved at 3 conflicts, flat
       script cost vs linear rounds)*
+- [ ] Phase 9 — TEE Assets *(research complete + phase scripted
+      2026-08-22; build not started. Asset acquisition/search lanes are
+      cloud-buildable against live free APIs; GPU generation lanes and UE
+      import need the physical machine)*
 
 ## Machine facts
 
@@ -247,3 +251,28 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
 - Evidence: `uv run pytest` → **186 passed** (1 deliberate skip); `-m dcc`
   → **26 passed** (both bridge flavors, live Blender 5.2); ruff clean;
   full benchmark suite re-run against live Blender.
+
+### 2026-08-22 — Phase 9 research + script (cloud)
+- Deep-research pass for TEE Assets (6 agents, ~660K tokens): corpus
+  digests 20–25 committed; decisions A13–A15 recorded.
+- Load-bearing findings: the official Blender Lab MCP ships NO asset
+  tools — the space is open; the popular community integration measurably
+  re-fetches a 2.3 MB catalog per "search", truncates to the
+  alphabetically-first 20, and spends 2–5k tokens to place one asset —
+  the baseline TEE's design beats structurally; TRELLIS.2-4B went MIT
+  (Dec 2025), enabling a license-clean local 3D generation lane (one
+  nvdiffrast runtime audit pending); Hunyuan3D weights exclude EU/UK/SK
+  including OUTPUTS — geo-labeled opt-in only; Z-Image/FLUX.2-klein give
+  an Apache-2.0 local image lane; Marigold-IID is the license-clean
+  photo→PBR core for the Okongo site-photo lane; MobileCLIP's MIT repo
+  hides research-only weights (banned; SigLIP 2 Apache is the embedder);
+  pysolar is GPL (astral/pvlib instead); Sketchfab changed owners again
+  (KitBash, 2026-08-10) — guarded opt-in backend, platform risk recorded;
+  Blender 5.2's remote-asset-library JSON listing (`blender -c
+  asset_listing generate`) gives TEE a free queryable library index; glTF
+  spec-required accessor bounds make dimension checks free pre-DCC;
+  Holodeck-style server-side retrieval (59.8% human preference) sets the
+  selection contract; honest quality bar stated: set dressing on demand,
+  hero assets curated.
+- Phase 9 written into `CLAUDE_EXECUTION_SCRIPT.md` (sections 9.1–9.7
+  with acceptance criteria); build not started.

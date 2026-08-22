@@ -29,6 +29,12 @@ empirically and record it in `docs/PROGRESS.md`.*
 | [17-sheets-heights-roof-schema.md](17-sheets-heights-roof-schema.md) | Sheet classification (NCS metadata-first), elevation/section Z-extraction, FML height/roof schema extension before freeze |
 | [18-frames-and-registration.md](18-frames-and-registration.md) | Frame registry, transforms-as-facts, site ENU hub, tier ladder, footprint-fit registration, conformance tolerance math (USIBD LOA) |
 | [19-context-economics.md](19-context-economics.md) | Phase 8 grounding: app-side script lane (PTC pattern), tool-result eviction economics, columnar encodings, caption-once, the BM25 negative result |
+| [20-free-asset-sources.md](20-free-asset-sources.md) | Free asset/texture/HDRI sources: APIs, license regimes, ToS traps, tier-1 backends, attribution manifest spec |
+| [21-asset-plumbing.md](21-asset-plumbing.md) | Blender 5.2 asset libraries/catalogs/previews headless, remote-library JSON listings, import paths, glTF free metadata, UE 5.8 Interchange/registry, unit math |
+| [22-asset-prior-art.md](22-asset-prior-art.md) | Measured prior art: ahujasid/BlenderKit/asset MCPs wire costs and bug classes, Holodeck selection pattern, steal/avoid lists |
+| [23-generative-3d.md](23-generative-3d.md) | Text/image-to-3D 2026: TRELLIS.2 MIT flip, Hunyuan territory trap, hosted API pricing, mandatory cleanup pipeline, honest quality bar, USCO IP status |
+| [24-texture-material-generation.md](24-texture-material-generation.md) | Image-model license floor (Z-Image/klein/SDXL), tileability, Marigold-IID photo→PBR, scene-conditioned ControlNet loop, procedural lane (Infinigen, physicallybased.info) |
+| [25-context-aware-assets.md](25-context-aware-assets.md) | Context-aware skill design R1-R24: envelope scaling policy, style facts, relational placement + validators, sun-true lighting, skill packaging, render-free verification |
 
 ## Architecture decisions (ADR)
 
@@ -103,6 +109,44 @@ Settled by this corpus; change only with a new entry in `docs/DECISIONS.md`.
   resume (≤ 500 tokens); caption-once media pass (`kind: "caption"` facts
   gate re-attachment). Fact search stays substring-count: BM25 was
   simulated and regressed (9/10 → 7/10 at 611 facts). (19)
+
+- **A13 — Asset backends & license hygiene:** tier-1 sources Poly Haven,
+  ambientCG, Poly Pizza, Smithsonian OA (Sketchfab guarded opt-in; Fab is
+  human-download-then-import only; ShareTextures/OGA/Objaverse excluded).
+  Server-side asset store owns catalogs (ETag-cached), thumbnails,
+  downloads and a local index — the model sees compact rows, never
+  catalogs. Per-backend ASSET-license and SITE-ToS tracked separately;
+  SPDX allowlist (CC0-1.0, CC-BY-4.0/3.0; SA behind a flag) failing
+  CLOSED on NC/ND/unknown/GPL; TASL+SPDX attribution manifest with
+  license text snapshotted at download time travels with the cache;
+  cache files, never URLs. (20, 21, 22)
+- **A14 — Creation lanes & generation floor:** lane 0 procedural
+  (node-graphs parameterized from physicallybased.info CC0 values;
+  Infinigen BSD as reference library); lane 1 local diffusion (Z-Image
+  Apache / FLUX.2-klein-4B Apache / SDXL-RAIL++ tileable; Marigold-IID
+  maps; diffusers in-process, ComfyUI separate-process only); lane 2
+  photo-derived PBR from ingested site media (rectify → delight → maps →
+  Real-ESRGAN); lane 3 generated 3D — local TRELLIS.2-4B MIT (audit
+  nvdiffrast out of runtime) + hosted Tripo/Meshy behind ONE async
+  adapter with server-side wait-polling and cost-confirmation-before-
+  paid-call; every generated asset passes the mandatory cleanup macro
+  (normalize → remesh/decimate → UV → re-bake) and carries an
+  ai-generated provenance fact. Gated, clearly labeled, never default:
+  FLUX-dev, SD3.5, Hunyuan (geo-restricted). Banned: MobileCLIP weights,
+  pysolar, Intrinsic, InstantMesh/Zero123++, pymeshlab-in-process.
+  Honest bar: set dressing on demand; hero assets curated. (23, 24)
+- **A15 — Selection & context contract:** Holodeck-shaped selection — the
+  model emits {description, target dims, constraints}; server-side
+  retrieval ranks tags → ΔE00 palette → index-time SigLIP-2/CLIP
+  embeddings and returns ≤5-row shortlists; one ≥256 px-tile contact
+  sheet only as tie-breaker. Placement is a relational plan solved and
+  validated server-side (Merrell terms as hard validators; code vs
+  guideline severity; region-parameterized from the GPS datum);
+  four-band measured-size envelope policy governs scaling; sun-true
+  lighting from the GPS datum (astral/pvlib) with HDRI azimuth detected
+  once and cached; verification is render-free geometry first with at
+  most one budgeted render; packaged as the `context-aware-assets` skill
+  (Agent Skills standard, scripts-not-prose). (25, 22, 18)
 
 ## Headline numbers worth remembering
 
