@@ -968,3 +968,56 @@ slightly to **93.1%** (was 92.6%) — same fixtures, regenerated.
 
 `run_unreal_scenario` skips cleanly when no editor is listening, and is
 wrapped so a live-editor failure can never take the rest of the suite down.
+
+### 2026-08-22 — Execution script COMPLETE (all phases 0–12 checked off)
+
+Final state on the physical M5 Mac, everything re-verified in one pass:
+
+- `make check` → **371 passed, 2 skipped**; ruff check + format clean.
+- `uv run pytest -m dcc` → **76 passed**: Blender against **both** bridge
+  flavors (official Blender Lab MCP add-on + TEE's own bridge) and Unreal
+  against a live 5.8.1 editor.
+- `tee doctor` → **all six checks OK**, including
+  `unreal: MCP on 127.0.0.1:8000, 56 toolsets + TEE toolset` — the first time
+  every check has passed on one machine.
+- Clean-venv install rehearsal re-run with the new module: wheel installs,
+  `tee 0.1.0`, `--adapter unreal` serves over MCP stdio, 16 always-loaded
+  tools, `ue_*` tools discoverable through `tee_search_tools` and describable.
+- `make dist` produces the wheel, sdist, `tee_bridge-0.1.2.zip` and
+  `TeeToolset-0.1.0.zip`; both plugin zips ship under `releases/v0.1.0/`.
+- Benchmarks re-run end to end; all rows in `benchmarks/RESULTS.md`, headline
+  numbers cited in README.
+
+## What is NOT done, and what it needs
+
+Nothing further can be closed on this machine. The honest remainder:
+
+**Needs a Windows machine** (no macOS build exists):
+- everything live-UEFN — editor, Beta Access toggles, MCP toolsets, Verse
+  compile lane, Scene Graph ops. The offline UEFN lanes (digest parsing,
+  lint, templates, export preflight) work everywhere and are tested.
+- the clean-**Windows**-machine install rehearsal (Phase 6).
+
+**Needs CUDA** (Apple Silicon cannot run it):
+- local TRELLIS.2-4B generation — nvdiffrast is CUDA-bound. Lane 3 stays
+  hosted-only here.
+
+**Needs an older engine** (none installed):
+- the UE 5.3–5.7 Remote Control fallback tier is **unimplemented**, not
+  merely unverified. Stated plainly in `docs/setup-unreal.md`.
+
+**Possible here but not attempted this session** (no blocker beyond time):
+- GPU diffusion lanes 1–2 via torch **MPS** (Z-Image / SDXL-tileable /
+  Marigold-IID) — 128 GB unified memory is ample; the CUDA-only claims in
+  research 14 still need re-verifying against MPS.
+- hosted generation with real Tripo/Meshy keys; `[assets-embed]` embeddings.
+- Whisper/pyannote quality spot-check on real site audio (fixtures only so
+  far).
+- Blender library authoring / `asset_listing` publishing; UE asset import
+  path from the assets module.
+- UE physics/settle via Simulate-In-Editor, and live fluid-bake validation.
+- `.mcpb` bundle, for clients that want one.
+
+**Data caveat still standing:** joist-span worst-grade values in
+`plaus_rules.json` are approximate pending edition verification, and
+SANS 10400 has not been added for Okongo jurisdiction defaults.
