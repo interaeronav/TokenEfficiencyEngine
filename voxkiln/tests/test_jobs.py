@@ -115,3 +115,22 @@ def test_query_reports_state(store, image):
     q = store.query(report["asset_id"])
     assert q["state"] == "done"
     assert q["stats"]["tris"] == report["stats"]["tris"]
+
+
+def test_failure_fixes_name_the_action_that_resolves_them():
+    """ "inspect params" is useless for a gated download - no parameter the
+    caller can change grants access. The gated case is the one every new
+    machine hits."""
+    from voxkiln.jobs import _fix_for
+
+    class GatedRepoError(Exception):
+        pass
+
+    gated = _fix_for(GatedRepoError("403 Client Error: gated repo"))
+    assert "request access at https://huggingface.co/" in gated
+    assert "hf auth login" in gated
+    assert "voxkiln doctor" in gated
+
+    assert "hf auth login" in _fix_for(Exception("401 Unauthorized"))
+    assert "disk" in _fix_for(OSError("No space left on device"))
+    assert _fix_for(ValueError("bad param")).startswith("inspect params")

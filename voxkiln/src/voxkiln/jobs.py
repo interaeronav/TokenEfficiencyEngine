@@ -172,7 +172,7 @@ class JobStore:
                 job.error = {
                     "error": "generation_failed",
                     "message": f"{type(exc).__name__}: {exc}",
-                    "fix": "inspect params; if this repeats, run voxkiln doctor",
+                    "fix": _fix_for(exc),
                     "trace_tail": traceback.format_exc().strip().splitlines()[-3:],
                 }
                 job.state = "failed"
@@ -236,3 +236,27 @@ class JobStore:
         if self.use_cache:
             cache_mod.put(req["cache_key"], rep)
         return rep
+
+
+def _fix_for(exc: BaseException) -> str:
+    """Map a failure to the action that actually resolves it.
+
+    "inspect params" is useless advice for a gated download: no parameter the
+    caller can change will grant access. The gated case is the one every new
+    machine hits, so it gets named explicitly.
+    """
+    text = f"{type(exc).__name__}: {exc}"
+    if "gated repo" in text.lower() or "GatedRepoError" in text:
+        import voxkiln
+
+        return (
+            f"the image-conditioning model is gated: request access at "
+            f"https://huggingface.co/{voxkiln.IMAGE_COND_REPO} (approved "
+            f"manually by the owner), then `hf auth login`. "
+            f"`voxkiln doctor` reports this before a run."
+        )
+    if "401" in text or "Unauthorized" in text:
+        return "authenticate with `hf auth login` (or set HF_TOKEN)"
+    if "No space left" in text or "OSError: [Errno 28]" in text:
+        return "free disk space; weights and outputs need ~20 GB"
+    return "inspect params; if this repeats, run voxkiln doctor"

@@ -122,9 +122,7 @@ def lint_weights(*roots: str | Path) -> list[dict[str, str]]:
                 continue
             for repo, why in BANNED_WEIGHTS.items():
                 if repo in text:
-                    violations.append(
-                        {"file": str(path), "line": "-", "module": repo, "why": why}
-                    )
+                    violations.append({"file": str(path), "line": "-", "module": repo, "why": why})
     return violations
 
 

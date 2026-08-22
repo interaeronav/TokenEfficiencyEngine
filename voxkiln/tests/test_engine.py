@@ -1,5 +1,3 @@
-
-
 def test_doctor_reports_gated_weight_access(monkeypatch):
     """The 15 GB of TRELLIS weights download fine and every model loads before
     the GATED image tower fails with a 403 - minutes in, after the expensive

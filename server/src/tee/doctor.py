@@ -248,6 +248,54 @@ def check_unreal() -> Check:
     )
 
 
+def check_voxkiln() -> Check:
+    """Local 3D generation (Phase 13). Reports the gated-weights state too:
+    having the 15 GB of TRELLIS weights cached is NOT sufficient, because the
+    image-conditioning tower is gated and approved manually."""
+    try:
+        import voxkiln
+        from voxkiln.engine import doctor as voxkiln_doctor
+    except ImportError:
+        return Check(
+            "voxkiln",
+            "warn",
+            "not installed - local image-to-3D unavailable",
+            fix="pip install 'voxkiln[model]' (see docs/setup-voxkiln.md); "
+            "hosted Tripo/Meshy stay available with keys",
+        )
+    report = voxkiln_doctor()
+    backend = (report.get("probe") or {}).get("backend")
+    if backend is None:
+        return Check(
+            "voxkiln",
+            "warn",
+            f"{voxkiln.__version__} installed but no CUDA/MPS backend",
+            fix=(report.get("probe") or {}).get("fix", "needs Apple Silicon or CUDA"),
+        )
+    gated = report.get("gated_weights") or {}
+    weights = report.get("weights_cached_gb")
+    if gated.get("accessible") is False:
+        return Check(
+            "voxkiln",
+            "warn",
+            f"{voxkiln.__version__} on {backend}, weights {weights} GB, but the "
+            f"gated image model is not accessible ({gated.get('reason')})",
+            fix=gated.get("fix", ""),
+        )
+    if not weights:
+        return Check(
+            "voxkiln",
+            "warn",
+            f"{voxkiln.__version__} on {backend} but no weights cached",
+            fix="run `voxkiln fetch-weights` (~16 GB, once)",
+        )
+    return Check(
+        "voxkiln",
+        "ok",
+        f"{voxkiln.__version__} on {backend}, weights {weights} GB, gated model OK",
+    )
+
+
 def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
     return [
         check_python(),
@@ -256,6 +304,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_blender_bridge(bridge_port),
         check_bpy_wheel_abi(),
         check_unreal(),
+        check_voxkiln(),
     ]
 
 
