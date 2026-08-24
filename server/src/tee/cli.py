@@ -197,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     doctor.add_argument(
         "--emit",
         metavar="CLIENT",
-        help="print MCP client config (claude-code|claude-desktop|cursor) and exit",
+        help="print MCP client config (claude-code|claude-desktop|cursor|qwen-code) and exit",
     )
     doctor.add_argument("--blender-port", type=int, default=9876, help="Blender bridge port")
     doctor.set_defaults(fn=cmd_doctor)

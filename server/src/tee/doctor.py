@@ -348,10 +348,16 @@ def emit_config(client: str, *, adapter: str = "blender", port: int = BRIDGE_POR
             f"claude mcp add tee -- {' '.join(command)}\n"
             "# or in .mcp.json:\n" + json.dumps({"mcpServers": {"tee": entry}}, indent=2)
         )
-    if client in ("claude-desktop", "cursor"):
-        where = "claude_desktop_config.json" if client == "claude-desktop" else "~/.cursor/mcp.json"
+    if client in ("claude-desktop", "cursor", "qwen-code"):
+        where = {
+            "claude-desktop": "claude_desktop_config.json",
+            "cursor": "~/.cursor/mcp.json",
+            "qwen-code": "~/.qwen/settings.json (or .qwen/settings.json for project scope)",
+        }[client]
         return f"// add to {where}:\n" + json.dumps({"mcpServers": {"tee": entry}}, indent=2)
-    raise ValueError(f"unknown client '{client}' (use claude-code, claude-desktop or cursor)")
+    raise ValueError(
+        f"unknown client '{client}' (use claude-code, claude-desktop, cursor or qwen-code)"
+    )
 
 
 def render(checks: list[Check]) -> tuple[str, int]:
