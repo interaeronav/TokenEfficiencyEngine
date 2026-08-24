@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from conftest import StubBridge
 
 from tee import doctor
@@ -52,7 +53,7 @@ def test_render_exit_code_only_fails_on_required():
 
 
 def test_emit_config_shapes():
-    for client in ("claude-code", "claude-desktop", "cursor"):
+    for client in ("claude-code", "claude-desktop", "cursor", "qwen-code"):
         out = doctor.emit_config(client)
         assert "tee" in out
         assert "serve" in out
@@ -60,6 +61,16 @@ def test_emit_config_shapes():
         json_part = out[out.index("{") :]
         parsed = json.loads(json_part)
         assert parsed["mcpServers"]["tee"]["command"] == "uv"
+
+
+def test_emit_config_qwen_names_its_settings_file():
+    out = doctor.emit_config("qwen-code")
+    assert ".qwen/settings.json" in out
+
+
+def test_emit_config_rejects_an_unknown_client():
+    with pytest.raises(ValueError, match="qwen-code"):
+        doctor.emit_config("codex")
 
 
 def test_unreal_check_rejects_a_stranger_on_the_port(monkeypatch):

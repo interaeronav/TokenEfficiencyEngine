@@ -31,7 +31,7 @@ extra is missing.
 ## 2. Connect your client
 
 `tee doctor --emit <client>` prints a ready-to-paste config for
-`claude-code`, `claude-desktop`, or `cursor`, using whichever layout you
+`claude-code`, `claude-desktop`, `cursor`, or `qwen-code`, using whichever layout you
 installed (dev checkout → `uv run`; wheel install → the venv binary):
 
 ```bash
