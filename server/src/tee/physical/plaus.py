@@ -22,7 +22,9 @@ decides both WHICH table applies and HOW MUCH FORCE a finding may claim:
                       nothing above HEUR is emitted until it is resolved.
 
 Capping is visible, never silent: a capped finding carries
-`severity_capped_from` and the reason.
+`severity_capped_from`, and `jurisdiction.legal_basis` states the reason
+once for the whole response (repeating it per finding cost 2.5x the
+payload for no added information - see benchmarks/RESULTS.md).
 
 Model contract (assembled from plan facts + scene entities, or passed
 directly): {"elements": [{id, class, ...}], "region": "US"}
@@ -162,13 +164,6 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             "detail": detail,
             "source": source or rule.get("source"),
         }
-        # Legal force is jurisdictional. Where the regime has adopted no code,
-        # a CODE-severity rule is professional standard of care, not law - and
-        # the downgrade is stated, never silent.
-        if _SEVERITY_ORDER.index(claimed) > ceiling_rank:
-            finding["severity"] = ceiling
-            finding["severity_capped_from"] = claimed
-            finding["severity_cap_reason"] = profile["legal_basis"]
         findings.append(finding)
 
     for element in elements:
@@ -422,6 +417,18 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
     evaluated += 1  # the graph check
     findings.extend(_wet_walls(elements, table))
     evaluated += 1
+
+    # Legal force is jurisdictional. Where the regime has adopted no code, a
+    # CODE-severity rule is professional standard of care, not law - and the
+    # downgrade is stated, never silent. This runs over the assembled list,
+    # not inside hit(), because _load_path and _wet_walls build findings
+    # directly: capping in hit() alone let load_path claim CODE force on
+    # communal land while the same response said nothing above STD applied.
+    for finding in findings:
+        claimed = finding["severity"]
+        if _SEVERITY_ORDER.index(claimed) > ceiling_rank:
+            finding["severity"] = ceiling
+            finding["severity_capped_from"] = claimed
 
     jurisdiction: dict[str, Any] = {
         "region": region_key,

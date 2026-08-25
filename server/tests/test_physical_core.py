@@ -449,8 +449,33 @@ def test_communal_land_caps_code_to_standard_of_care_and_says_why():
     finding = out["findings"][0]
     assert finding["severity"] == "STD"
     assert finding["severity_capped_from"] == "CODE"
-    assert "no building control" in finding["severity_cap_reason"].lower()
     assert out["jurisdiction"]["capped_findings"] == 1
+    # The reason is stated once for the response, not repeated per finding:
+    # the duplicate strings cost 2.5x the payload and said nothing new.
+    assert "no building control" in out["jurisdiction"]["legal_basis"].lower()
+    assert "severity_cap_reason" not in finding
+
+
+def test_the_ceiling_binds_every_finding_producer_not_just_hit():
+    """load_path and wet-wall findings are built directly rather than through
+    hit(). Capping only inside hit() let a response say `max_severity: STD`
+    in its header and then emit a CODE finding underneath it."""
+    broken = {
+        "region": "NA-communal",
+        "elements": [
+            {"id": "beam", "class": "beam", "span_m": 4.0, "depth_mm": 300, "material": "concrete"},
+            {"id": "pad", "class": "footing", "width_m": 0.6, "soil_bearing_kpa": 120},
+        ],
+    }
+    out = plaus.check(broken)
+    load_path = [f for f in out["findings"] if f["rule"] == "load_path"]
+    assert load_path, "the broken load path should be found at all"
+    assert load_path[0]["severity"] == "STD"
+    assert load_path[0]["severity_capped_from"] == "CODE"
+    ceiling = out["jurisdiction"]["max_severity"]
+    order = ("CONV", "HEUR", "STD", "CODE")
+    for finding in out["findings"]:
+        assert order.index(finding["severity"]) <= order.index(ceiling), finding
 
 
 def test_bare_namibia_refuses_to_guess_the_regime():

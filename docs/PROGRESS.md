@@ -645,7 +645,10 @@ Platform split of the outstanding ledger (decided by the hardware):
   port-forward DCC sockets, code-exec gating, script-lane
   non-capability, data-handling posture). README rewritten with
   user-facing install, module table, measured numbers updated
-  (16 tools ≈ 2,757 tokens by the canonical model_dump measure);
+  (16 tools ≈ 2,757 tokens by the canonical model_dump measure; the
+  2026-08-25 re-measure reads 2,959 by that measure and **2,465 on the
+  wire** — model_dump counts ~490 tokens of `null` padding no client
+  ever receives, so the wire figure is the honest one);
   server README updated; `tee-usage` skill packages the operating
   procedure (macro-first, diffs, text-before-pixels, trust-the-gates).
 - Evidence: `uv run pytest` → **341 passed, 1 skipped**; ruff clean;
@@ -804,7 +807,8 @@ written against. Live-probed facts, several of which correct doc 07:
   - `list_toolsets` — 13,286 bytes
 
   One `describe_toolset(BlueprintTools)` costs **more than six times**
-  TEE's entire always-loaded 16-tool surface (~2,757 tokens). This is
+  TEE's entire always-loaded 16-tool surface (~2,465 tokens on the wire;
+  see the 2026-08-25 entry for why the earlier 2,757 overstated it). This is
   the measured justification for the A4 summarizing/caching proxy, and
   the baseline any Phase 5 UE benchmark is measured against.
 
@@ -1410,6 +1414,59 @@ gated-access blocker dies with it — nothing to request. Research digests
 43–48 stay in the corpus; decisions A26–A28 are amended by the removal
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
+
+### 2026-08-25 — Token-efficiency test (cloud half) + two plausibility bugs
+
+Ran the tokens-per-task measurement the CLAUDE.md testing rule requires
+after any change to state representation or tool schemas — Phase 14.2
+changed both. Two new scenarios added to `benchmarks/run_benchmarks.py`
+(`run_surface_scenario`, `run_jurisdiction_scenario`); neither needs a
+DCC, so both run in CI and in a cloud session.
+
+**Surface.** 16 always-loaded tools = **2,465 tokens on the wire**
+(`by_alias`, `exclude_none` — what the SDK actually sends). The 2,757
+figure recorded on 2026-08-22 came from a bare `model_dump()`, which
+today counts 2,959 because MCP SDK 2.0.0 added `execution`/`icons`
+fields that serialize as `null` and are dropped before transmission.
+Registering all five modules adds **0 tokens**: the 69 tools they
+contribute stay behind the meta-tools, and reaching one costs 725
+tokens, so a flat one-tool-per-capability server (9,889 tokens) only
+wins in a session using more than ~13 distinct long-tail tools.
+
+**Regression found and fixed.** Phase 14.2 wrote the whole
+`legal_basis` string onto *every* capped finding, when the
+`jurisdiction` header already carried it once. On `NA-local-authority`
+that inflated the response from 856 → 2,146 tokens. Removing the
+per-finding copy costs no information and cuts it to 1,206 (−43.8%);
+`NA-communal` 1,941 → 1,239. Directly contrary to hard rule 2.
+
+**Correctness bug found and fixed.** The severity ceiling was applied
+inside `hit()`, but `_load_path()` and `_wet_walls()` build findings
+directly and bypassed it. A communal-land response could therefore
+announce `max_severity: STD` in its header and emit a `CODE` load-path
+finding underneath — the exact self-contradiction the mechanism exists
+to prevent. The cap now runs as one post-pass over the assembled list.
+Regression test `test_the_ceiling_binds_every_finding_producer_not_just_hit`
+was confirmed to fail against the unfixed code before being kept.
+
+**Tokens per task.** Answering "which code applies at this site, and
+does this plan meet it?" by reading the four applicable-law files into
+context costs 32,089 tokens. One `plaus_check` costs 1,452 — **95.5%
+saved**, and unlike the corpus read it cannot quietly answer from the
+wrong jurisdiction.
+
+**Known gap, not fixed.** TEE has 21 plausibility rules and none of
+them concerns building height or storey count, so it cannot evaluate a
+multi-storey proposal at all. `masonry_slenderness` also matches
+material on a name whitelist that misses `clay_brick`. Both are
+recorded here rather than patched blind; neither is a Phase 14.2
+regression.
+
+- Evidence: `pytest -m "not dcc and not ml and not network"` →
+  **405 passed, 1 skipped, 89 deselected**; ruff clean. Blender/Unreal
+  benchmark rows are unchanged in `benchmarks/RESULTS.md` because they
+  need hardware this session does not have; the extract (92.6%), fix-loop
+  (63.2%) and asset (93.5%) rows were re-run headless and reproduce.
 
 ### 2026-08-25 — Phase 14.2: southern-African jurisdiction wiring
 
