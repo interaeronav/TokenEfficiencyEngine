@@ -17,6 +17,15 @@ judged by that metric first.
   hallucinated calls are the #1 friction point this project exists to fix.
   Verify any API you are unsure of against local docs or a smoke test, never
   from memory.
+- `knowledge-base/` is a DIFFERENT thing: a 38-domain reference library the
+  owner imported (A29), written elsewhere, never verified by this project.
+  It grounds nothing on its own. To use a fact from it, re-check it against
+  the source its own frontmatter cites, then carry that citation into
+  whatever TEE file you put it in. `confidence: low` and
+  `status: needs-verification` mean exactly what they say.
+  **Never take a `bpy`/`unreal` API fact from `knowledge-base/13_*`,
+  `14_*` or `15_*`** — third-party prose about a drifting API is the exact
+  failure mode above. The rule in the previous bullet outranks it, always.
 
 ## Hard rules (token-efficiency dogma)
 

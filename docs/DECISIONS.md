@@ -4,6 +4,63 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
+## 2026-08-25 — Expert Knowledge Base imported; TEE scope amended (A29)
+
+The owner directed that the full "12 Expert Knowledge Base" from the
+Okongo Oneleiwa Project Dropbox — 38 domains, 401 files, ~1.4M words,
+1,811 cited sources — be integrated into this repository as sourced
+reference data (all 38 domains, not just the construction-adjacent
+ones). It is mirrored verbatim under `knowledge-base/`, frontmatter
+intact. This amends TEE's scope as follows.
+
+**A29 — two corpora, one authority rule.** TEE now carries reference
+material it did not author or verify. The boundary is absolute and is
+the point of this decision:
+
+- `docs/research/` remains TEE's OWN grounding: written by this
+  project's research passes, verified against primary sources at the
+  time, cited per finding, and the only corpus that may justify an
+  engineering decision (`docs/DECISIONS.md` cites it, not the KB).
+- `knowledge-base/` is IMPORTED reference: authoritative for nothing
+  in TEE until a specific fact is lifted out, re-checked against its
+  own cited source, and wired in with that citation recorded. Its
+  `confidence:` and `status: needs-verification` frontmatter markers
+  are load-bearing — a `low`/`needs-verification` file is an open
+  question, not a fact.
+- **Hard rule, DCC domains:** `13_software_unreal_engine`,
+  `14_software_blender`, `15_software_autodesk_fusion` are third-party
+  prose about the exact APIs TEE exists to keep models from
+  hallucinating. They are NEVER a source for a `bpy`/`unreal` call.
+  API facts come from the live version probe, local docs, or a smoke
+  test — the CLAUDE.md rule is unchanged and now explicitly outranks
+  anything in the KB.
+
+**Scope widened (one item, deliberate):** the plausibility checker's
+jurisdiction coverage extends from IRC/US + generic to include
+southern Africa — SANS 10400 and the Namibian building-control route,
+sourced from `knowledge-base/03_codes_standards/`. This closes the gap
+tracked since Phase 11 ("SANS 10400 has not been added for Okongo
+jurisdiction defaults"). A20's findings-not-approvals contract is
+unchanged: the checker flags against cited clauses with CODE/STD/
+HEUR/CONV severity, it never approves, sizes, or certifies, and a
+Namibian finding cites the Namibian instrument rather than assuming
+the South African one applies.
+
+**Scope explicitly NOT widened:** TEE does not become a knowledge
+management or retrieval product. No KB search tool, no embedding
+index, no RAG lane is promised by this decision — the always-loaded
+tool surface is unchanged (A2/A11 progressive disclosure still
+governs). Any future retrieval over the KB is a separate, measured
+decision. The non-construction domains (aviation, medical, finance,
+health, semiconductors, and the rest) are carried as the owner's
+reference library and wired into nothing.
+
+**Provenance obligation:** the corpus keeps its own
+`00_meta/source-register.md` (1,811 URLs) and `00_meta/VERIFICATION.md`.
+Anything TEE lifts from it carries the original citation through to
+TEE's own data files, so a rule in `plaus_rules.json` remains
+traceable to the instrument it came from, not merely to "the KB".
+
 ## 2026-08-22 — Voxkiln RESTORED (owner decision — approval received)
 
 The owner reports the pending approval has come through (the gated

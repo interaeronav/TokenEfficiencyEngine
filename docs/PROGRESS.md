@@ -65,7 +65,8 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       IDS tier; 18 live + 24 unit tests. Physical machine still owed:
       UE physics/settle (SIE), fluid bake live validation, hip roof
       pending straight-skeleton lib, CoACD proxy integration,
-      SANS 10400 before Okongo jurisdiction defaults)*
+      SANS 10400 before Okongo jurisdiction defaults - source
+      material now in hand, wiring moved to Phase 14)*
 - [x] Phase 12 — TEE UEFN (bonus) *(built in cloud, 2026-08-22:
       digest parser+diff firewall, digest-grounded Verse lint, validated
       templates, FakeUefn adapter w/ LUF↔XYZ boundary, export_for_uefn
@@ -81,6 +82,13 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       server 395 tests + voxkiln 41 tests green after restoration.
       Mac owes the live half again: reinstall, weights if cleaned,
       first live generation, determinism, stock-vs-ours battery)*
+- [ ] Phase 14 — Expert Knowledge Base *(owner import, 2026-08-25:
+      38 domains / 401 files / ~1.4M words / 1,811 cited sources
+      mirrored verbatim to `knowledge-base/`; A29 sets the two-corpus
+      boundary — imported reference grounds nothing until re-checked,
+      and the DCC-software domains are never an API source. IN
+      PROGRESS: mirror running; then the southern-africa jurisdiction
+      wiring that closes the Phase 11 SANS 10400 gap)*
 
 ## Machine facts
 
@@ -1041,8 +1049,10 @@ approval arrived (see DECISIONS).
   far).
 
 **Data caveat still standing:** joist-span worst-grade values in
-`plaus_rules.json` are approximate pending edition verification, and
-SANS 10400 has not been added for Okongo jurisdiction defaults.
+`plaus_rules.json` are approximate pending edition verification. The
+SANS 10400 / Okongo jurisdiction half of this caveat is being closed by
+Phase 14 (A29) — the source material is now in `knowledge-base/
+03_codes_standards/`; the wiring and its tests are the remaining work.
 
 ### 2026-08-22 — UE settle via Simulate-In-Editor (ledger item closed)
 

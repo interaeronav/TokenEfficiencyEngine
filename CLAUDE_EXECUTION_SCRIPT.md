@@ -1429,7 +1429,76 @@ battery runs stock-vs-ours and PROGRESS gets the numbers.
 
 ---
 
-## 17. Standing rules (all phases)
+## 17. Phase 14 — Expert Knowledge Base: import, boundary, jurisdiction wiring
+
+**Goal:** absorb the owner's 38-domain reference library (401 files,
+~1.4M words, 1,811 cited sources) into the repo without letting it
+contaminate TEE's own grounding — and cash the one thing in it that
+closes a tracked gap: SANS 10400 / Namibian building control.
+
+**Grounding:** the corpus's own `knowledge-base/00_meta/` (SCHEMA,
+VERIFICATION register, source-register). Decision A29 settled — amend
+via `docs/DECISIONS.md` only. Anti-goals: no TEE tool reads the KB at
+runtime unless a step below says so; no KB search/embedding/RAG lane
+(A2/A11 tool surface is unchanged); no fact enters a TEE data file
+without its original citation travelling with it; **no `bpy`/`unreal`
+API fact is ever taken from `13_*`/`14_*`/`15_*`** (third-party prose
+on a drifting API is the failure mode TEE exists to prevent); no
+re-writing, summarizing or "improving" mirrored files — they are
+imported verbatim, frontmatter intact.
+
+### 14.1 Mirror (A29)
+
+1. Verbatim copy of all 38 domains to `knowledge-base/<domain>/`,
+   YAML frontmatter preserved, plus `INDEX.md` and `00_meta/`.
+2. `knowledge-base/README.md` states the two-corpus boundary in the
+   first screen: what this is, what it is not, what TEE actually
+   consumes, and its provenance.
+   Acceptance: 401/401 files present, spot-checked against the source
+   listing; no file rewritten (frontmatter `id:` still parses).
+
+### 14.2 Jurisdiction wiring — the one scope widening (A20, A29)
+
+1. `server/src/tee/physical/` gains a `southern-africa` jurisdiction:
+   SANS 10400 parts as CODE-severity rules, the Namibian building-
+   control route as its own instrument (Namibia is NOT "South Africa
+   with a different flag" — the KB's `03_codes_standards/00_overview`
+   is explicit that the legal stacks differ; a Namibian finding cites
+   the Namibian instrument).
+2. Every rule added carries `source` + `clause` through to
+   `plaus_rules.json`, re-checked against the citation in the KB file
+   rather than trusted from it.
+3. A20's contract is untouched: findings, not approvals; severity
+   CODE/STD/HEUR/CONV; no sizing, no "passes", no certification.
+   Unverified numbers stay flagged rather than shipped as fact.
+   Acceptance: a plan checked with `jurisdiction="namibia"` returns
+   findings citing Namibian/SANS clauses; the same plan under the
+   default jurisdiction is unchanged; tests cover both; no rule
+   without a citation.
+
+### 14.3 What stays reference-only
+
+Materials/suppliers, Namibia climate + geology, walls, paving,
+joinery, interiors, hydrology, machine vision, and every
+non-construction domain are carried as reference text and wired into
+nothing. Candidate future work (NOT promised here): material facts
+into `assets/materials.py`, Namibia climate into site/sun defaults,
+`25_environmental_asset_creation` read against `docs/research/`
+rather than instead of it. Each would be its own decision entry with
+its own verification.
+
+### 14.4 Acceptance
+
+Mirror complete and verbatim; README boundary stated; CLAUDE.md
+carries the two-corpus rule and the DCC-domain prohibition; A29 in
+`docs/DECISIONS.md`; the southern-africa jurisdiction ships with
+cited rules and tests; full suite green; `docs/PROGRESS.md` updated
+with evidence. The KB adds ZERO always-loaded tokens to the tool
+surface — verified by the canonical tool-surface measure.
+
+---
+
+## 18. Standing rules (all phases)
 
 - **Measure before optimizing:** log every tool's response size from day one;
   alert when a median exceeds 2K tokens.
