@@ -381,5 +381,55 @@ callers that genuinely want the floor. The acceptance becomes:
   mode under 10%.
 
 Recorded rather than silently met: the original bullet is achievable as
-written, and was deliberately not adopted because doing so costs the user
+written, and was deliberately not adopted because doing it costs the user
 tokens.
+
+## 2026-08-26 — A30: the Expert Knowledge Base is a read-only TEE module (owner request)
+
+Owner request: integrate the `12 Expert Knowledge Base` corpus (Dropbox,
+`02 Okongo Oneleiwa Project`) with TEE so OkongoSim sessions can query it
+— cross-referencing the sim against sourced construction knowledge
+without re-pasting documents into context.
+
+Decision A30: **the KB joins TEE as a read-only query module (`tee/kb/`),
+indexed from the corpus's own `manifest.json`, never written to by TEE.**
+
+- **Read-only, by construction.** The corpus maintains itself with its own
+  `00_meta/validate.py` / `00_meta/rebuild.py`; TEE exposes query tools
+  only. A write lane would create a second author of a corpus whose value
+  is its citation discipline.
+- **`manifest.json` is the index source, not a tree walk.** Every file
+  entry already carries id, title, domain, tags, jurisdiction, status,
+  confidence, words, sha256 and a summary — exactly the hit-list fields a
+  token-efficient search needs. The built index caches to `<project>/.tee/
+  kb/` (per-project, like other TEE state), keyed on the manifest's
+  generated date + per-file sha256s.
+- **Drift fails loud and cheap.** Dropbox syncs under the corpus; if a
+  file's sha256 no longer matches the manifest, `kb_status` and every query
+  say so in one line with the fix (re-run the corpus's `rebuild.py`),
+  instead of serving stale facts silently.
+- **Progressive disclosure, as always.** No `kb_*` tool joins the
+  always-loaded surface; the four tools (`kb_status`, `kb_search`,
+  `kb_read`, `kb_facts`) register as virtual tools reachable through
+  `tee_search_tools` — zero tokens until asked for.
+- **The corpus's own flags pass through verbatim.** Confidence
+  (high/medium/low), `needs-verification` status and jurisdiction markers
+  (`**[NA]**` / `**[ZA]**`) appear on every hit and every returned
+  section; TEE never upgrades, drops or rephrases them. The corpus's
+  AGENTS.md rules (cite sources, never blend NA/ZA regimes, never present
+  unverified figures as fact) are the module's contract.
+- **Budgets everywhere.** `kb_search` returns hit lists only (id, title,
+  domain, confidence, one-line summary); `kb_read` is section-addressed
+  and token-budgeted (never a whole 1.3M-word corpus, never a whole file
+  by default); `kb_facts` returns only `## Key facts` blocks — the lane
+  for the owner's metrics cross-referencing.
+- **No embeddings, no new runtime dependency.** Retrieval is deterministic
+  keyword scoring over manifest titles/tags/summaries plus in-file heading
+  indexes. The corpus is curated and small enough (401 files) that this
+  beats a vector store on both tokens and reproducibility.
+
+Consequences: config grows a `[kb]` section (`root` path, optional
+`max_kb` response budget); `cli.py` grows `_attach_kb`; OkongoSim's
+`.tee/config.toml` points `root` at the Dropbox folder so the pin-namespace
+config and the KB config live in the same tracked file. The Blender side
+gets the tools for free through the same MCP surface.

@@ -1503,3 +1503,106 @@ data files. `pin_export` writes a stable, sorted, repo-trackable JSON of
 every pin; `pin_import` replays it — markers restored, recorded assets
 re-placed only where nothing is actually standing. `pin_list` reports
 `missing` when the tags claim an asset the level no longer has.
+
+---
+
+## 19. Phase 15 — TEE KB: the Expert Knowledge Base module (owner request, 2026-08-26)
+
+**Goal:** give OkongoSim (and any TEE client) sourced answers from the
+owner's `12 Expert Knowledge Base` — 38 domains, 401 curated markdown
+files, ~1.3M words, every claim cited or flagged — without pasting
+documents into context. The sim cross-references real-world metrics
+(jurisdiction, confidence, sources) through the same MCP surface that
+drives the editor.
+
+**Grounding:** the corpus's own `AGENTS.md` and `manifest.json`
+(Dropbox, `02 Okongo Oneleiwa Project/12 Expert Knowledge Base`). The
+manifest carries per-file id, title, domain, tags, jurisdiction, status,
+confidence, words, sha256 and summary — the index source. Decision
+**A30** in `docs/DECISIONS.md` settles the shape: read-only module,
+manifest-indexed, progressive disclosure, flags pass through verbatim.
+
+**Anti-goals:** no writes into the corpus (its own `validate.py` /
+`rebuild.py` own that); no embeddings or new runtime dependencies; no
+full-file or full-corpus dumps; no rephrasing of confidence/jurisdiction.
+
+### 15.1 Index builder (`tee/kb/index.py`)
+
+1. Load `<root>/manifest.json`; validate required keys; one loud, short
+   error if missing or malformed (with the fix: point `[kb] root` at the
+   corpus).
+2. Build the index: per-file record (id, path, title, domain, tags,
+   jurisdiction, status, confidence, words, sha256, summary) plus a
+   domain table (slug, title, file/word counts) and corpus totals.
+3. Cache to `<project>/.tee/kb/index.json` keyed on manifest `generated`
+   date; rebuild on demand (`kb_status(rebuild=true)`) — never on every
+   call.
+4. Drift check: sha256 each indexed file, compare with the manifest.
+   Any mismatch or missing file marks the index `stale` and lists the
+   offenders (capped); queries still serve but carry the staleness flag,
+   and the fix line says to run the corpus's `00_meta/rebuild.py`.
+5. Per-file heading index (section title → byte range) parsed from the
+   markdown so `kb_read` can address sections without loading whole files
+   into responses.
+
+### 15.2 Retrieval (`tee/kb/search.py`)
+
+Deterministic keyword scoring over manifest titles, tags, summaries and
+the heading index — no embeddings. Filters: `domain`, `jurisdiction`,
+`confidence`, `status`. Results ranked, capped, each row carrying the
+corpus's flags verbatim. Empty result returns the domain list as the
+cheap next move, not silence.
+
+### 15.3 Tools (`tee/kb/tools.py`)
+
+Four registry tools (progressive disclosure — none on the always-loaded
+surface; descriptions under 2 KB each):
+
+- `kb_status` — corpus totals, domain table (compact), index freshness
+  and drift list, configured root; `rebuild=true` rebuilds the cache.
+- `kb_search` — query + filters → hit list only: id, title, domain,
+  confidence, one-line summary. Default limit 8, hard cap 20.
+- `kb_read` — one file by id. No section arg → section list (titles +
+  sizes) plus the frontmatter flags. With section → that section only,
+  token-budgeted (`max_tokens`, default 800, cap 4000). Cite the file's
+  `## Sources` block alongside, truncated to fit the budget.
+- `kb_facts` — the `## Key facts` blocks of matched files (query or id
+  list) — the metrics lane. Confidence flag on every block; a file
+  without the section says so in one line.
+
+Every response that carries corpus content carries its confidence and
+jurisdiction markers. `needs-verification` content is labelled, never
+served bare.
+
+### 15.4 Config and wiring
+
+1. `config.py`: `[kb]` section — `root` (path to the corpus, required
+   to activate the module), optional `max_kb` response budget. Missing
+   `[kb]` → module silently inactive (like other extras); malformed →
+   the standard degrade-with-warning path.
+2. `cli.py`: `_attach_kb(app, project)` next to the other attaches;
+   doctor gains a kb check (root exists, manifest readable, drift count).
+3. No new dependency; stdlib + existing kernel (budget, errors, registry).
+
+### 15.5 OkongoSim wiring
+
+Add `[kb] root` to OkongoSim's `.tee/config.toml` (the tracked config
+that already carries the pin namespace) pointing at the Dropbox corpus.
+TEE is the MCP surface OkongoSim sessions already use, so the tools land
+with no plugin change. Document in OkongoSim's `docs/` beside
+`tee-pins.md`. (Stretch, only if asked: a `kb_query` editor console
+command through TeeToolset.)
+
+### 15.6 Acceptance
+
+1. `pytest` green: index build, drift detection, search ranking/filters,
+   section reads, budget caps, flags-pass-through, malformed-manifest and
+   missing-root error paths (fixture corpus, never the live Dropbox one).
+2. Live against the real corpus: `kb_status` clean, one `kb_search`
+   (e.g. paving specification), one `kb_read` section, one `kb_facts`,
+   every response carrying confidence/jurisdiction.
+3. Benchmark row in `benchmarks/RESULTS.md`: the paving-spec lookup via
+   `kb_*` vs dumping `INDEX.md`/files raw.
+4. OkongoSim `.tee/config.toml` carries `[kb]`, and a session driving
+   the sim answers a site question from the corpus with citations.
+5. Evidence in `docs/PROGRESS.md`; README module table gains the kb row.
