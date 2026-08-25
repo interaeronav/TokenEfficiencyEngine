@@ -1475,6 +1475,12 @@ imported verbatim, frontmatter intact.
    findings citing Namibian/SANS clauses; the same plan under the
    default jurisdiction is unchanged; tests cover both; no rule
    without a citation.
+   **DONE 2026-08-25.** Implemented as six regime profiles with
+   jurisdiction-dependent SEVERITY, not merely jurisdiction-dependent
+   values — because the KB establishes that SANS has no legal force in
+   Namibia. Bare "namibia" deliberately does NOT resolve to a regime
+   (it caps at HEUR and asks); an unknown region raises. 12 tests;
+   zero always-loaded tokens added.
 
 ### 14.3 What stays reference-only
 

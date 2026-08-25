@@ -61,6 +61,21 @@ Anything TEE lifts from it carries the original citation through to
 TEE's own data files, so a rule in `plaus_rules.json` remains
 traceable to the instrument it came from, not merely to "the KB".
 
+**Implemented 2026-08-25 (Phase 14.2).** The first fact lifted out of the
+corpus reversed the obvious design. The naive reading — "give Namibia the
+SANS rules" — is precisely the error the KB names as characteristic of AI
+agents on this topic: SANS 10400 is law in South Africa only. In Namibia it
+binds solely where a local authority incorporated it under LAA s 94B, and on
+communal land there is no building control at all. So the jurisdiction layer
+varies **legal force**, not just numbers: `max_severity` per regime, with
+CODE capped to STD wherever no code has been adopted and the downgrade
+stated in the finding (`severity_capped_from` + reason). Bare "NA" resolves
+to NA-unresolved rather than guessing between three materially different
+regimes, and an unknown region raises instead of quietly falling back to the
+IRC. Every encoded SANS value carries clause + edition + a RE-VERIFY note,
+honouring the provenance obligation above and the corpus's own warning that
+SANS text is sold, not published, and changes between editions.
+
 ## 2026-08-22 — Voxkiln RESTORED (owner decision — approval received)
 
 The owner reports the pending approval has come through (the gated

@@ -1,9 +1,57 @@
 {
   "_meta": {
     "posture": "findings, never approvals; flag against cited prescriptive tables; never emit a member size; never a 'passes' state (A20). Severity: CODE (adopted prescriptive requirement; never relaxable) / STD (engineering-standard bound) / HEUR (published rule-of-thumb) / CONV (practice convention).",
-    "jurisdiction": "US-IRC defaults; region-parameterized like the placement rules. SANS 10400 (South Africa) research is a recorded follow-up BEFORE Okongo jurisdiction hardening.",
+    "jurisdiction": "US-IRC defaults. Southern-African regimes implemented (A29): pass region= to select. SANS 10400 is LAW only in South Africa (Act 103 of 1977); in Namibia it has force only where a local authority incorporated it under Local Authorities Act 23 of 1992 s 94B, and on communal land there is no building control at all. Severity is therefore jurisdiction-dependent - see _jurisdiction_profiles.",
     "edition_note": "span-table values are the WORST-CASE grade column (a span within them is legal under ANY grade - zero false positives); verify against the locally adopted edition before hardening (recorded follow-up)",
     "as_of": "2026-08-22"
+  },
+  "_jurisdiction_profiles": {
+    "_note": "Resolve the regime BEFORE quoting any requirement. Source: knowledge-base/03_codes_standards/00_overview.md and 04_namibia-building-regulations.md (both status:stable, confidence:high). max_severity caps what any rule may emit here: legal force is jurisdictional, so a rule that is CODE in ZA is at most STD where no code has been adopted.",
+    "US": {
+      "label": "United States (IRC)",
+      "rule_set": "irc",
+      "max_severity": "CODE",
+      "legal_basis": "IRC as adopted by the local jurisdiction"
+    },
+    "ZA": {
+      "label": "South Africa",
+      "rule_set": "sans",
+      "max_severity": "CODE",
+      "legal_basis": "National Building Regulations and Building Standards Act 103 of 1977; the SANS 10400 series is the deemed-to-satisfy route. Deemed-to-satisfy is non-mandatory: a rational design by a competent person appointed under Regulation A19 is the lawful alternative.",
+      "source": "knowledge-base/03_codes_standards/00_overview.md; 01_south-africa-nbr-act.md"
+    },
+    "NA-local-authority": {
+      "label": "Namibia - proclaimed local authority (municipal / town / village council)",
+      "rule_set": "sans",
+      "max_severity": "STD",
+      "legal_basis": "Namibia has NO national building act. A local authority council may make building regulations under Local Authorities Act 23 of 1992 s 94(1)(ag), and may incorporate SANS by reference under s 94B - but only the standard it actually incorporated, at the edition it incorporated (s 94B(3) blocks automatic edition updates). Unless that council's gazetted regulations have been read, SANS findings here are professional standard of care, NOT law.",
+      "advisory": "Obtain the council's Government Notice number and its s 94B list of incorporated standard publications before treating any SANS value as binding. s 94B(4) entitles you to read an incorporated standard free of charge at the council offices.",
+      "source": "knowledge-base/03_codes_standards/04_namibia-building-regulations.md"
+    },
+    "NA-settlement": {
+      "label": "Namibia - declared settlement area (Regional Councils Act 22 of 1992)",
+      "rule_set": "sans",
+      "max_severity": "STD",
+      "legal_basis": "A regional council does NOT hold the LAA s 94(1)(ag) building-regulation power (that is a local authority council power). Plan approval in a settlement may be handled administratively, by the responsible ministry, or not at all.",
+      "advisory": "Building control in settlements is thin and must be confirmed settlement by settlement.",
+      "source": "knowledge-base/03_codes_standards/04_namibia-building-regulations.md"
+    },
+    "NA-communal": {
+      "label": "Namibia - communal land (Communal Land Reform Act 5 of 2002)",
+      "rule_set": "sans",
+      "max_severity": "STD",
+      "legal_basis": "NO building control regime: no building plan approval, no building control officer, no inspection regime, no occupancy certificate, and SANS 10400 is not law. The right to build comes from a customary land right or leasehold allocated by the Chief or Traditional Authority and ratified/registered by the Communal Land Board.",
+      "advisory": "No building control is not the same as no obligations: the designer, engineer and builder carry ordinary common-law and professional duties of care, and donor-funded, bank-financed or institutional projects are almost always CONTRACTUALLY required to meet SANS 10400/10160. With no regulator, the specification and the engineer's certification are the only quality control. Environmental clearance, electrical certification, water permits, OHS duties and professional registration DO still apply.",
+      "source": "knowledge-base/03_codes_standards/04_namibia-building-regulations.md"
+    },
+    "NA-unresolved": {
+      "label": "Namibia - regime NOT yet established",
+      "rule_set": "sans",
+      "max_severity": "HEUR",
+      "legal_basis": "Unknown. Namibian building control depends entirely on which of three regimes the site falls in: proclaimed local authority, declared settlement, or communal land.",
+      "advisory": "Resolve the regime before relying on any finding. The proclaimed boundary is not obvious on the ground - obtain the proclamation Government Notice and the surveyed boundary. For Okongo specifically: proclaimed a Village Council in 2015, so inside that boundary it HAS the s 94(1)(ag) power, but whether it has gazetted building regulations is unverified; immediately outside the boundary the land is communal and no building control applies.",
+      "source": "knowledge-base/03_codes_standards/04_namibia-building-regulations.md"
+    }
   },
   "joist_span_max_m": {
     "severity": "CODE",
@@ -82,13 +130,42 @@
     "severity": "CODE",
     "source": "IRC R311.7 (riser <=196 mm, tread >=254 mm, headroom >=2032 mm, width >=914 mm)",
     "riser_max_mm": 196, "tread_min_mm": 254, "headroom_min_mm": 2032, "width_min_mm": 914,
-    "blondel": { "severity": "CONV", "range_mm": [550, 700], "source": "Blondel 2R+G convention" }
+    "blondel": { "severity": "CONV", "range_mm": [550, 700], "source": "Blondel 2R+G convention" },
+    "by_jurisdiction": {
+      "sans": {
+        "source": "SANS 10400-M clause 4.2 (riser <=200 mm, going >=250 mm, headroom >=2,1 m from the pitch line, width >=750 mm) - values taken from the 2011 edition per knowledge-base/03_codes_standards/02_sans-10400-parts-register.md; current is Ed. 3.02 (2025), RE-VERIFY before relying on them",
+        "riser_max_mm": 200, "tread_min_mm": 250, "headroom_min_mm": 2100, "width_min_mm": 750,
+        "blondel": { "severity": "CONV", "range_mm": [570, 650], "source": "SANS 10400-M clause 4.2: going + 2 x riser between 570 mm and 650 mm (a NARROWER band than the generic Blondel convention)" }
+      }
+    }
+  },
+  "sans_room_min_area": {
+    "severity": "CODE",
+    "rule_set": "sans",
+    "source": "SANS 10400-C clause 4.2/4.4 (habitable room other than kitchen, scullery or laundry: 6 m2, no linear dimension < 2 m) - 2010 edition, re-verify against Ed. 3.01 (2016)",
+    "min_area_m2": 6.0,
+    "min_dimension_m": 2.0,
+    "finding": "habitable room below the SANS 10400-C minimum size (no IRC equivalent is checked in this table)"
+  },
+  "sans_stair_riser_variation": {
+    "severity": "CODE",
+    "rule_set": "sans",
+    "source": "SANS 10400-M clause 4.2 (variation in riser and going dimensions within a flight not more than 6 mm) - 2011 edition, re-verify against Ed. 3.02 (2025)",
+    "max_variation_mm": 6,
+    "finding": "riser/going variation within one flight exceeds the SANS 10400-M limit - a trip hazard and a common site defect"
   },
   "ceiling_min_mm": {
     "severity": "CODE",
     "source": "IRC R305.1 (habitable 7 ft = 2134 mm)",
     "value": 2134,
-    "finding": "habitable ceiling below the IRC minimum"
+    "finding": "habitable ceiling below the IRC minimum",
+    "by_jurisdiction": {
+      "sans": {
+        "value": 2400,
+        "source": "SANS 10400-C clause 4.3 (habitable room 2,4 m; passage/bathroom 2,1 m) - value taken from the 2010 edition per knowledge-base/03_codes_standards/02_sans-10400-parts-register.md; current is Ed. 3.01 (2016), RE-VERIFY against the purchased text before relying on it",
+        "finding": "habitable ceiling below the SANS 10400-C minimum (note: 2,4 m is 266 mm HIGHER than the IRC minimum - an IRC-compliant ceiling can fail here)"
+      }
+    }
   },
   "head_stack_geometry": {
     "severity": "CODE",

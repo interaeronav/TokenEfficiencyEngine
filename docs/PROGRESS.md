@@ -82,13 +82,14 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       server 395 tests + voxkiln 41 tests green after restoration.
       Mac owes the live half again: reinstall, weights if cleaned,
       first live generation, determinism, stock-vs-ours battery)*
-- [ ] Phase 14 — Expert Knowledge Base *(owner import, 2026-08-25:
-      38 domains / 401 files / ~1.4M words / 1,811 cited sources
-      mirrored verbatim to `knowledge-base/`; A29 sets the two-corpus
-      boundary — imported reference grounds nothing until re-checked,
-      and the DCC-software domains are never an API source. IN
-      PROGRESS: mirror running; then the southern-africa jurisdiction
-      wiring that closes the Phase 11 SANS 10400 gap)*
+- [x] Phase 14 — Expert Knowledge Base *(owner import, 2026-08-25:
+      38 domains / 405 files / ~1.4M words / 1,811 cited sources
+      mirrored verbatim to `knowledge-base/`, all 401 markdown files
+      frontmatter-verified; A29 sets the two-corpus boundary — imported
+      reference grounds nothing until re-checked, and the DCC-software
+      domains are never an API source. 14.2 jurisdiction wiring done:
+      US/ZA/NA regimes with jurisdiction-dependent severity; 12 tests.
+      14.3 stays reference-only by design)*
 
 ## Machine facts
 
@@ -1040,10 +1041,11 @@ approval arrived (see DECISIONS).
   far).
 
 **Data caveat still standing:** joist-span worst-grade values in
-`plaus_rules.json` are approximate pending edition verification. The
-SANS 10400 / Okongo jurisdiction half of this caveat is being closed by
-Phase 14 (A29) — the source material is now in `knowledge-base/
-03_codes_standards/`; the wiring and its tests are the remaining work.
+`plaus_rules.json` are approximate pending edition verification. The SANS
+10400 / Okongo jurisdiction half of this caveat is **CLOSED** (Phase 14.2,
+2026-08-25) — see the evidence entry below. Its own edition caveat now
+travels inside the rules file: the SANS values are from the 2010/2011
+editions and each carries a RE-VERIFY note naming the current edition.
 
 ### 2026-08-22 — UE settle via Simulate-In-Editor (ledger item closed)
 
@@ -1408,6 +1410,45 @@ gated-access blocker dies with it — nothing to request. Research digests
 43–48 stay in the corpus; decisions A26–A28 are amended by the removal
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
+
+### 2026-08-25 — Phase 14.2: southern-African jurisdiction wiring
+
+Closes the gap tracked since Phase 11 ("SANS 10400 has not been added for
+Okongo jurisdiction defaults"). The KB made clear that the naive reading —
+"add SANS rules for Namibia" — would have been **wrong**, and named it as
+the characteristic AI error on this topic
+(`knowledge-base/03_codes_standards/00_overview.md`): SANS 10400 is law in
+South Africa under the NBR Act 103 of 1977, but in Namibia it binds only
+where a council incorporated it under Local Authorities Act s 94B, and on
+communal land — which is most of Ohangwena outside the proclaimed towns —
+there is no building control regime at all.
+
+So the wiring makes **legal force jurisdictional, not just the numbers**:
+
+- `region` was previously accepted by `plaus_check` and silently ignored.
+  It now resolves to one of six profiles (US / ZA / NA-local-authority /
+  NA-settlement / NA-communal / NA-unresolved), each carrying its
+  `legal_basis` into the response.
+- Severity is capped per regime. A rule that is CODE in ZA is emitted as
+  STD on Namibian communal land — professional standard of care, not law —
+  and the downgrade is visible (`severity_capped_from` + the reason), never
+  silent.
+- Bare `NA`/`namibia` resolves to **NA-unresolved** and caps at HEUR rather
+  than guessing between three regimes that differ completely. An unknown
+  region raises rather than defaulting to the IRC.
+- SANS values encoded, each with clause + edition + a RE-VERIFY note:
+  10400-C ceiling 2,4 m and minimum habitable room 6 m² / 2 m least
+  dimension; 10400-M riser ≤200 mm, going ≥250 mm, headroom 2,1 m, width
+  ≥750 mm, 2R+G 570–650 mm, riser variation ≤6 mm.
+- The codes genuinely disagree in **both** directions, which is why a real
+  switch was needed rather than extra rules: a 2,2 m ceiling passes the IRC
+  and fails SANS; an 800 mm stair passes SANS and fails the IRC.
+
+Evidence: **408 passed, 1 skipped** (12 new jurisdiction tests); ruff clean;
+`test_server_lint` green — `plaus_check` is a VirtualTool, so the richer
+description adds **zero always-loaded tokens**. The one failure in the run,
+`test_uefn_analytics_live`, is a pre-existing `@pytest.mark.network` test
+whose Fortnite island id now 404s upstream — unrelated to this change.
 
 ### 2026-08-22 — Voxkiln RESTORED (owner decision — approval received)
 

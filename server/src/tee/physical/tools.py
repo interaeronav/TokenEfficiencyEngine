@@ -431,12 +431,23 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             "stairs, ceilings, fall protection, the IRC R301.1 load-path "
             "graph. Findings only - never member sizing, never a 'passes' "
             "state. NOT an engineering review; conditions outside the "
-            "prescriptive envelope require a licensed engineer.",
+            "prescriptive envelope require a licensed engineer.\n"
+            "region selects the legal regime AND how much force a finding "
+            "may claim: US (IRC, default) | ZA (SANS 10400 under the NBR "
+            "Act, CODE force) | NA-local-authority | NA-settlement | "
+            "NA-communal (Namibia: SANS is not law, so CODE is capped to "
+            "STD) | NA-unresolved. Namibia's three regimes differ "
+            "completely, so bare 'NA' resolves to NA-unresolved and caps "
+            "findings until you establish which applies.",
             {
                 "type": "object",
                 "properties": {
                     "elements": {"type": "array"},
-                    "region": {"type": "string"},
+                    "region": {
+                        "type": "string",
+                        "description": "US (default) | ZA | NA-local-authority "
+                        "| NA-settlement | NA-communal | NA-unresolved",
+                    },
                 },
                 "required": ["elements"],
             },
