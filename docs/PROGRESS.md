@@ -66,7 +66,7 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       UE physics/settle (SIE), fluid bake live validation, hip roof
       pending straight-skeleton lib, CoACD proxy integration,
       SANS 10400 before Okongo jurisdiction defaults - source
-      material now in hand, wiring moved to Phase 14)*
+      material now in hand, wiring moved to Phase 15)*
 - [x] Phase 12 — TEE UEFN (bonus) *(built in cloud, 2026-08-22:
       digest parser+diff firewall, digest-grounded Verse lint, validated
       templates, FakeUefn adapter w/ LUF↔XYZ boundary, export_for_uefn
@@ -82,14 +82,19 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       server 395 tests + voxkiln 41 tests green after restoration.
       Mac owes the live half again: reinstall, weights if cleaned,
       first live generation, determinism, stock-vs-ours battery)*
-- [x] Phase 14 — Expert Knowledge Base *(owner import, 2026-08-25:
+- [x] Phase 15 — Expert Knowledge Base *(owner import, 2026-08-25:
       38 domains / 405 files / ~1.4M words / 1,811 cited sources
       mirrored verbatim to `knowledge-base/`, all 401 markdown files
-      frontmatter-verified; A29 sets the two-corpus boundary — imported
+      frontmatter-verified; A30 sets the two-corpus boundary — imported
       reference grounds nothing until re-checked, and the DCC-software
-      domains are never an API source. 14.2 jurisdiction wiring done:
+      domains are never an API source. 15.2 jurisdiction wiring done:
       US/ZA/NA regimes with jurisdiction-dependent severity; 12 tests.
-      14.3 stays reference-only by design)*
+      15.3 stays reference-only by design)*
+- [ ] Phase 16 — TEE KB query module *(planned by the owner with the
+      Qwen session, 2026-08-26; decision A31: read-only `kb_*` tools over
+      the `knowledge-base/` mirror, manifest-indexed, budgeted, flags
+      verbatim. Not started — build from Phase 16 of the execution
+      script)*
 
 ## Machine facts
 
@@ -1051,7 +1056,7 @@ approval arrived (see DECISIONS).
 
 **Data caveat still standing:** joist-span worst-grade values in
 `plaus_rules.json` are approximate pending edition verification. The SANS
-10400 / Okongo jurisdiction half of this caveat is **CLOSED** (Phase 14.2,
+10400 / Okongo jurisdiction half of this caveat is **CLOSED** (Phase 15.2,
 2026-08-25) — see the evidence entry below. Its own edition caveat now
 travels inside the rules file: the SANS values are from the 2010/2011
 editions and each carries a RE-VERIFY note naming the current edition.
@@ -1420,7 +1425,7 @@ gated-access blocker dies with it — nothing to request. Research digests
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
 
-### 2026-08-25 — Phase 14.2: southern-African jurisdiction wiring
+### 2026-08-25 — Phase 15.2: southern-African jurisdiction wiring
 
 Closes the gap tracked since Phase 11 ("SANS 10400 has not been added for
 Okongo jurisdiction defaults"). The KB made clear that the naive reading —

@@ -4,7 +4,7 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
-## 2026-08-25 — Expert Knowledge Base imported; TEE scope amended (A29)
+## 2026-08-25 — Expert Knowledge Base imported; TEE scope amended (A30)
 
 The owner directed that the full "12 Expert Knowledge Base" from the
 Okongo Oneleiwa Project Dropbox — 38 domains, 401 files, ~1.4M words,
@@ -13,7 +13,7 @@ reference data (all 38 domains, not just the construction-adjacent
 ones). It is mirrored verbatim under `knowledge-base/`, frontmatter
 intact. This amends TEE's scope as follows.
 
-**A29 — two corpora, one authority rule.** TEE now carries reference
+**A30 — two corpora, one authority rule.** TEE now carries reference
 material it did not author or verify. The boundary is absolute and is
 the point of this decision:
 
@@ -61,7 +61,7 @@ Anything TEE lifts from it carries the original citation through to
 TEE's own data files, so a rule in `plaus_rules.json` remains
 traceable to the instrument it came from, not merely to "the KB".
 
-**Implemented 2026-08-25 (Phase 14.2).** The first fact lifted out of the
+**Implemented 2026-08-25 (Phase 15.2).** The first fact lifted out of the
 corpus reversed the obvious design. The naive reading — "give Namibia the
 SANS rules" — is precisely the error the KB names as characteristic of AI
 agents on this topic: SANS 10400 is law in South Africa only. In Namibia it
@@ -456,15 +456,22 @@ Recorded rather than silently met: the original bullet is achievable as
 written, and was deliberately not adopted because doing it costs the user
 tokens.
 
-## 2026-08-26 — A30: the Expert Knowledge Base is a read-only TEE module (owner request)
+## 2026-08-26 — A31: the Expert Knowledge Base is a read-only TEE module (owner request)
 
-Owner request: integrate the `12 Expert Knowledge Base` corpus (Dropbox,
-`02 Okongo Oneleiwa Project`) with TEE so OkongoSim sessions can query it
-— cross-referencing the sim against sourced construction knowledge
-without re-pasting documents into context.
+Owner request: integrate the `12 Expert Knowledge Base` corpus with TEE so
+OkongoSim sessions can query it — cross-referencing the sim against sourced
+construction knowledge without re-pasting documents into context. (Between
+the request and this record, the parallel session imported the corpus
+in-repo as `knowledge-base/` under A30 — so this module reads that mirror
+by default, not the Dropbox original.)
 
-Decision A30: **the KB joins TEE as a read-only query module (`tee/kb/`),
+Decision A31: **the KB joins TEE as a read-only query module (`tee/kb/`),
 indexed from the corpus's own `manifest.json`, never written to by TEE.**
+This is the runtime lane A30's phase deliberately left closed — it is
+sanctioned here on the owner's request, and every A30 rule (two-corpus
+authority boundary, citation travels with any lifted fact, DCC-software
+domains are never an API source, flags pass through verbatim) binds
+whatever these tools return.
 
 - **Read-only, by construction.** The corpus maintains itself with its own
   `00_meta/validate.py` / `00_meta/rebuild.py`; TEE exposes query tools
@@ -476,10 +483,12 @@ indexed from the corpus's own `manifest.json`, never written to by TEE.**
   token-efficient search needs. The built index caches to `<project>/.tee/
   kb/` (per-project, like other TEE state), keyed on the manifest's
   generated date + per-file sha256s.
-- **Drift fails loud and cheap.** Dropbox syncs under the corpus; if a
-  file's sha256 no longer matches the manifest, `kb_status` and every query
-  say so in one line with the fix (re-run the corpus's `rebuild.py`),
-  instead of serving stale facts silently.
+- **Drift fails loud and cheap.** With the in-repo mirror (the default
+  root) drift is a git event, not a silent one; with a Dropbox root the
+  sync can move files under the index. Either way, if a file's sha256 no
+  longer matches the manifest, `kb_status` and every query say so in one
+  line with the fix (re-run the corpus's `rebuild.py`, or pull the
+  mirror), instead of serving stale facts silently.
 - **Progressive disclosure, as always.** No `kb_*` tool joins the
   always-loaded surface; the four tools (`kb_status`, `kb_search`,
   `kb_read`, `kb_facts`) register as virtual tools reachable through
@@ -500,8 +509,10 @@ indexed from the corpus's own `manifest.json`, never written to by TEE.**
   indexes. The corpus is curated and small enough (401 files) that this
   beats a vector store on both tokens and reproducibility.
 
-Consequences: config grows a `[kb]` section (`root` path, optional
-`max_kb` response budget); `cli.py` grows `_attach_kb`; OkongoSim's
-`.tee/config.toml` points `root` at the Dropbox folder so the pin-namespace
+Consequences: config grows a `[kb]` section (`root` defaults to the
+in-repo `knowledge-base/` mirror from A30's phase; an explicit path —
+e.g. the owner's Dropbox original — overrides it; optional `max_kb`
+response budget); `cli.py` grows `_attach_kb`; OkongoSim's
+`.tee/config.toml` points `root` at the mirror so the pin-namespace
 config and the KB config live in the same tracked file. The Blender side
 gets the tools for free through the same MCP surface.
