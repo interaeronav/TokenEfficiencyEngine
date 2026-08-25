@@ -396,3 +396,173 @@ def test_ids_data_completeness_tier(tmp_path):
     out = app.registry.call("plaus_ids", {"ifc": str(ifc_path), "ids": str(ids_path)})
     assert out["specifications"] == 1
     assert "no data-completeness conflicts" in out["summary"], out
+
+
+# -- jurisdiction (A29): SANS 10400 / Namibia -------------------------------
+#
+# The governing fact, from knowledge-base/03_codes_standards/00_overview.md:
+# SANS 10400 is law in South Africa (NBR Act 103 of 1977) but NOT in Namibia,
+# where it binds only if a council incorporated it under LAA s 94B - and on
+# communal land there is no building control at all. So the checker must vary
+# both the VALUES it tests against and the FORCE it claims.
+
+
+def _room(ceiling_m: float, **extra):
+    return {
+        "elements": [
+            {"id": "r1", "class": "room", "ceiling_m": ceiling_m, "habitable": True, **extra}
+        ]
+    }
+
+
+def test_us_remains_the_default_and_uses_irc_values():
+    """No region, or region=US, must behave exactly as before this existed."""
+    bare = plaus.check(_room(2.2))
+    explicit = plaus.check({**_room(2.2), "region": "US"})
+    assert bare["findings"] == explicit["findings"] == []
+    assert bare["jurisdiction"]["region"] == "US"
+    assert bare["jurisdiction"]["rule_set"] == "irc"
+
+
+def test_a_ceiling_legal_under_irc_is_a_finding_under_sans():
+    """2,2 m clears the IRC's 2134 mm and fails SANS 10400-C's 2,4 m. The
+    jurisdictions genuinely disagree - which is why region has to be real."""
+    assert plaus.check({**_room(2.2), "region": "US"})["findings"] == []
+    za = plaus.check({**_room(2.2), "region": "ZA"})["findings"]
+    assert len(za) == 1
+    assert za[0]["rule"] == "ceiling_min_mm"
+    assert "2400" in za[0]["detail"]
+    assert "SANS 10400-C" in za[0]["source"]
+
+
+def test_south_africa_may_claim_code_force():
+    finding = plaus.check({**_room(2.2), "region": "ZA"})["findings"][0]
+    assert finding["severity"] == "CODE"
+    assert "severity_capped_from" not in finding
+
+
+def test_communal_land_caps_code_to_standard_of_care_and_says_why():
+    """On communal land no code has been adopted, so the same conflict is a
+    professional-standard finding, not a legal one - and the downgrade is
+    stated rather than silent."""
+    out = plaus.check({**_room(2.2), "region": "NA-communal"})
+    finding = out["findings"][0]
+    assert finding["severity"] == "STD"
+    assert finding["severity_capped_from"] == "CODE"
+    assert "no building control" in finding["severity_cap_reason"].lower()
+    assert out["jurisdiction"]["capped_findings"] == 1
+
+
+def test_bare_namibia_refuses_to_guess_the_regime():
+    """'Namibia' alone is not an answer: the three regimes differ completely,
+    and assuming one is the documented failure mode."""
+    for spelling in ("NA", "namibia"):
+        out = plaus.check({**_room(2.2), "region": spelling})
+        assert out["jurisdiction"]["region"] == "NA-unresolved"
+        assert out["findings"][0]["severity"] == "HEUR"
+        assert "Okongo" in out["jurisdiction"]["advisory"]
+
+
+def test_local_authority_flags_the_s94b_incorporation_question():
+    out = plaus.check({**_room(2.2), "region": "NA-local-authority"})
+    assert out["jurisdiction"]["max_severity"] == "STD"
+    assert "94B" in out["jurisdiction"]["advisory"]
+
+
+def test_unknown_region_fails_loud_rather_than_defaulting_to_irc():
+    with pytest.raises(TeeError) as err:
+        plaus.check({**_room(2.2), "region": "Ruritania"})
+    assert err.value.code == "unknown_region"
+    assert "NA-communal" in (err.value.fix or "")
+
+
+def test_sans_only_rules_are_absent_from_the_irc_table():
+    """A room too small under SANS 10400-C must not be reported under the IRC
+    table, which encodes no such rule - inventing one would be a false claim."""
+    small = {
+        "elements": [
+            {
+                "id": "r1",
+                "class": "room",
+                "ceiling_m": 3.0,
+                "habitable": True,
+                "area_m2": 4.0,
+                "min_dimension_m": 1.5,
+            }
+        ]
+    }
+    assert plaus.check({**small, "region": "US"})["findings"] == []
+    za = plaus.check({**small, "region": "ZA"})["findings"]
+    rules_hit = {f["rule"] for f in za}
+    assert rules_hit == {"sans_room_min_area"}
+    assert len(za) == 2  # area and narrowest dimension are separate findings
+
+
+def test_sans_stair_geometry_differs_from_irc_in_both_directions():
+    """SANS allows a taller riser (200 vs 196) but demands a tighter 2R+G band
+    (570-650 vs 550-700). Neither code is uniformly stricter."""
+    stair = {
+        "elements": [
+            {
+                "id": "s1",
+                "class": "stair",
+                "riser_mm": 198,
+                "tread_mm": 260,
+                "headroom_mm": 2100,
+                "width_mm": 800,
+            }
+        ]
+    }
+    us = {f["detail"] for f in plaus.check({**stair, "region": "US"})["findings"]}
+    za = {f["detail"] for f in plaus.check({**stair, "region": "ZA"})["findings"]}
+    assert any("riser 198" in d for d in us)  # over the IRC's 196
+    assert not any("riser 198" in d for d in za)  # within the SANS 200
+    assert any("width" in d for d in us)  # under the IRC's 914
+    assert not any("width" in d for d in za)  # over the SANS 750
+    assert any("2R+G" in d for d in za)  # 656 is outside 570-650
+    assert not any("2R+G" in d for d in us)  # but inside 550-700
+
+
+def test_sans_flags_riser_variation_within_a_flight():
+    stair = {
+        "elements": [
+            {
+                "id": "s1",
+                "class": "stair",
+                "riser_mm": 180,
+                "tread_mm": 260,
+                "headroom_mm": 2100,
+                "width_mm": 800,
+                "riser_variation_mm": 11,
+            }
+        ]
+    }
+    za = plaus.check({**stair, "region": "ZA"})["findings"]
+    assert any(f["rule"] == "sans_stair_riser_variation" for f in za)
+    # The IRC table encodes no riser-variation rule, so it must not fire there.
+    # (It does flag the 800 mm width, which clears SANS's 750 but not IRC's 914 -
+    # the codes disagreeing again, which is the point.)
+    us = plaus.check({**stair, "region": "US"})["findings"]
+    assert not any(f["rule"] == "sans_stair_riser_variation" for f in us)
+    assert {f["rule"] for f in us} == {"stairs"}
+
+
+def test_every_jurisdiction_states_its_legal_basis():
+    """A finding without its legal basis invites the reader to assume force it
+    does not have."""
+    for region in ("US", "ZA", "NA-local-authority", "NA-settlement", "NA-communal"):
+        j = plaus.check({**_room(2.5), "region": region})["jurisdiction"]
+        assert j["legal_basis"]
+        assert j["max_severity"] in ("CODE", "STD", "HEUR", "CONV")
+
+
+def test_findings_never_become_approvals_in_any_jurisdiction():
+    """A20's contract survives the jurisdiction work."""
+    for region in ("US", "ZA", "NA-communal"):
+        out = plaus.check({**_room(2.5), "region": region})
+        # a clean run reports rules evaluated; it never reports a pass
+        assert "no plausibility conflicts detected" in out["summary"]
+        assert "passes" not in out["summary"].lower()
+        assert "compliant" not in out["summary"].lower()
+        # and the disclaimer keeps saying absence of findings is not approval
+        assert "not an approval" in out["disclaimer"]

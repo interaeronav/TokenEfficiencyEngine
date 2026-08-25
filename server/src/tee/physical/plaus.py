@@ -6,6 +6,24 @@ engineering practice. So: findings carry source + severity + the exact
 delta; there is no member sizing and no "passes" state - a clean run
 reports "no plausibility conflicts detected (N rules evaluated)".
 
+Jurisdiction (A29). `region` selects the legal regime, and the regime
+decides both WHICH table applies and HOW MUCH FORCE a finding may claim:
+
+  US (default)        IRC. Unchanged behaviour.
+  ZA                  SANS 10400 as the deemed-to-satisfy route under the
+                      NBR Act 103 of 1977. CODE severity is legitimate.
+  NA-local-authority  Namibia has NO national building act. SANS binds only
+  NA-settlement       where that council incorporated it (LAA s 94B), which
+  NA-communal         this checker cannot know; on communal land there is no
+                      building control at all. So CODE is capped to STD:
+                      professional standard of care, not law.
+  NA-unresolved       Bare "NA"/"namibia". The regime is the FIRST question
+                      and guessing it is the documented failure mode, so
+                      nothing above HEUR is emitted until it is resolved.
+
+Capping is visible, never silent: a capped finding carries
+`severity_capped_from` and the reason.
+
 Model contract (assembled from plan facts + scene entities, or passed
 directly): {"elements": [{id, class, ...}], "region": "US"}
 Element classes and their fields:
@@ -20,8 +38,9 @@ Element classes and their fields:
   footing        {width_m, wall: id, soil_bearing_kpa?}
   rafter         {has_tie_or_ridge: bool}
   roof           {covering, pitch_deg}
-  stair          {riser_mm, tread_mm, headroom_mm, width_mm}
-  room           {ceiling_m, habitable: bool}
+  stair          {riser_mm, tread_mm, headroom_mm, width_mm,
+                  riser_variation_mm?}
+  room           {ceiling_m, habitable: bool, area_m2?, min_dimension_m?}
   wet_room       {level, x_range}
   cantilever     {length_m, back_span_m}
   post           {supports: [ids], footing: id?}
@@ -40,12 +59,80 @@ from functools import cache
 from importlib import resources
 from typing import Any
 
+from tee.kernel.errors import TeeError
+
 DISCLAIMER = (
     "Findings flag conflicts with cited prescriptive tables; they are not "
     "an engineering review, and absence of findings is not an approval. "
     "Spans or conditions outside prescriptive envelopes require design by "
     "a licensed engineer (IRC R301.1.3)."
 )
+
+
+# CONV < HEUR < STD < CODE. A regime's ceiling caps what any rule may claim.
+_SEVERITY_ORDER = ("CONV", "HEUR", "STD", "CODE")
+
+# Accepted spellings -> profile key. Deliberately NOT fuzzy: an unknown region
+# is an error, and a bare "namibia" resolves to the unresolved regime rather
+# than silently picking one of its three very different answers.
+_REGION_ALIASES = {
+    "us": "US",
+    "usa": "US",
+    "irc": "US",
+    "": "US",
+    "za": "ZA",
+    "south-africa": "ZA",
+    "south africa": "ZA",
+    "rsa": "ZA",
+    "sans": "ZA",
+    "na": "NA-unresolved",
+    "namibia": "NA-unresolved",
+    "na-unresolved": "NA-unresolved",
+    "na-local-authority": "NA-local-authority",
+    "na-local": "NA-local-authority",
+    "na-municipal": "NA-local-authority",
+    "na-town": "NA-local-authority",
+    "na-village": "NA-local-authority",
+    "na-settlement": "NA-settlement",
+    "na-communal": "NA-communal",
+    "communal": "NA-communal",
+}
+
+
+def resolve_jurisdiction(region: Any) -> tuple[str, dict[str, Any]]:
+    """Region string -> (profile key, profile). Unknown regions raise rather
+    than defaulting: quietly checking a Namibian plan against the IRC is the
+    failure this whole mechanism exists to prevent."""
+    profiles = rules()["_jurisdiction_profiles"]
+    key = _REGION_ALIASES.get(str(region or "US").strip().lower())
+    if key is None:
+        known = ", ".join(k for k in profiles if not k.startswith("_"))
+        raise TeeError(
+            "unknown_region",
+            f"region '{region}' is not a known jurisdiction.",
+            fix=f"Use one of: {known}. Namibia has three different regimes - "
+            "'NA' alone resolves to NA-unresolved, which caps findings until "
+            "you establish whether the site is in a proclaimed local authority, "
+            "a declared settlement, or on communal land.",
+        )
+    return key, profiles[key]
+
+
+def _resolved_table(table: dict[str, Any], rule_set: str) -> dict[str, Any]:
+    """Fold each rule's `by_jurisdiction[rule_set]` overlay onto its base, and
+    drop rules that belong to a different rule set entirely."""
+    out: dict[str, Any] = {}
+    for key, rule in table.items():
+        if key.startswith("_") or not isinstance(rule, dict):
+            out[key] = rule
+            continue
+        if rule.get("rule_set") and rule["rule_set"] != rule_set:
+            continue
+        variant = (rule.get("by_jurisdiction") or {}).get(rule_set)
+        merged = {**rule, **variant} if variant else dict(rule)
+        merged.pop("by_jurisdiction", None)
+        out[key] = merged
+    return out
 
 
 @cache
@@ -55,7 +142,11 @@ def rules() -> dict[str, Any]:
 
 
 def check(model: dict[str, Any]) -> dict[str, Any]:
-    table = rules()
+    region_key, profile = resolve_jurisdiction(model.get("region", "US"))
+    rule_set = profile["rule_set"]
+    table = _resolved_table(rules(), rule_set)
+    ceiling = profile["max_severity"]
+    ceiling_rank = _SEVERITY_ORDER.index(ceiling)
     elements = model.get("elements", [])
     by_id = {e.get("id"): e for e in elements if e.get("id")}
     findings: list[dict[str, Any]] = []
@@ -63,15 +154,22 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
 
     def hit(rule_key: str, element_id: Any, detail: str, *, severity=None, source=None):
         rule = table[rule_key]
-        findings.append(
-            {
-                "rule": rule_key,
-                "severity": severity or rule["severity"],
-                "element": element_id,
-                "detail": detail,
-                "source": source or rule.get("source"),
-            }
-        )
+        claimed = severity or rule["severity"]
+        finding = {
+            "rule": rule_key,
+            "severity": claimed,
+            "element": element_id,
+            "detail": detail,
+            "source": source or rule.get("source"),
+        }
+        # Legal force is jurisdictional. Where the regime has adopted no code,
+        # a CODE-severity rule is professional standard of care, not law - and
+        # the downgrade is stated, never silent.
+        if _SEVERITY_ORDER.index(claimed) > ceiling_rank:
+            finding["severity"] = ceiling
+            finding["severity_capped_from"] = claimed
+            finding["severity_cap_reason"] = profile["legal_basis"]
+        findings.append(finding)
 
     for element in elements:
         cls = element.get("class")
@@ -259,18 +357,52 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                     severity="CONV",
                     source=rule["blondel"]["source"],
                 )
+            variation = element.get("riser_variation_mm")
+            if variation is not None and "sans_stair_riser_variation" in table:
+                evaluated += 1
+                vrule = table["sans_stair_riser_variation"]
+                if float(variation) > vrule["max_variation_mm"]:
+                    hit(
+                        "sans_stair_riser_variation",
+                        eid,
+                        f"riser/going variation {float(variation):.0f} mm > "
+                        f"{vrule['max_variation_mm']} mm within one flight: "
+                        f"{vrule['finding']}",
+                    )
 
         elif cls == "room":
             if element.get("habitable", True):
                 evaluated += 1
                 rule = table["ceiling_min_mm"]
-                ceiling = float(element.get("ceiling_m", 99)) * 1000
-                if ceiling < rule["value"]:
+                room_height = float(element.get("ceiling_m", 99)) * 1000
+                if room_height < rule["value"]:
                     hit(
                         "ceiling_min_mm",
                         eid,
-                        f"ceiling {ceiling:.0f} mm < {rule['value']} mm: {rule['finding']}",
+                        f"ceiling {room_height:.0f} mm < {rule['value']} mm: {rule['finding']}",
                     )
+                if "sans_room_min_area" in table:
+                    rrule = table["sans_room_min_area"]
+                    area = element.get("area_m2")
+                    if area is not None:
+                        evaluated += 1
+                        if float(area) < rrule["min_area_m2"]:
+                            hit(
+                                "sans_room_min_area",
+                                eid,
+                                f"habitable room {float(area):.2f} m2 < "
+                                f"{rrule['min_area_m2']} m2: {rrule['finding']}",
+                            )
+                    narrowest = element.get("min_dimension_m")
+                    if narrowest is not None:
+                        evaluated += 1
+                        if float(narrowest) < rrule["min_dimension_m"]:
+                            hit(
+                                "sans_room_min_area",
+                                eid,
+                                f"narrowest plan dimension {float(narrowest):.2f} m < "
+                                f"{rrule['min_dimension_m']} m: {rrule['finding']}",
+                            )
 
         elif cls == "cantilever":
             evaluated += 1
@@ -291,9 +423,25 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
     findings.extend(_wet_walls(elements, table))
     evaluated += 1
 
+    jurisdiction: dict[str, Any] = {
+        "region": region_key,
+        "label": profile["label"],
+        "rule_set": rule_set,
+        "max_severity": ceiling,
+        "legal_basis": profile["legal_basis"],
+    }
+    if profile.get("advisory"):
+        jurisdiction["advisory"] = profile["advisory"]
+    if profile.get("source"):
+        jurisdiction["source"] = profile["source"]
+    capped = sum(1 for f in findings if "severity_capped_from" in f)
+    if capped:
+        jurisdiction["capped_findings"] = capped
+
     out: dict[str, Any] = {
         "findings": findings,
         "rules_evaluated": evaluated,
+        "jurisdiction": jurisdiction,
         "disclaimer": DISCLAIMER,
     }
     if not findings:
