@@ -347,9 +347,19 @@ for i in range(2):
     c.set_simulate_physics(True)
     c.set_collision_profile_name("PhysicsActor")
     made.append(actor.get_actor_label())
-result = {"made": made}
+# The ground under the drop is whatever this project has there - an empty
+# level's floor sits at 0, a landscape does not. Measure it instead of
+# assuming (OkongoSim's terrain here is ~16 cm below zero).
+world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+hit = unreal.SystemLibrary.line_trace_single(
+    world, unreal.Vector(-600, 1500, 1000), unreal.Vector(-600, 1500, -1000),
+    unreal.TraceTypeQuery.TRACE_TYPE_QUERY1, True, [], unreal.DrawDebugTrace.NONE, True)
+# HitResult exposes nothing as attributes on 5.8.1 - to_dict() or bust.
+result = {"made": made, "ground_z": hit.to_dict()["location"].z if hit else 0.0}
 """
-    labels = tee_plugin.editor_python(setup, "TEE: test settle setup")["made"]
+    ready = tee_plugin.editor_python(setup, "TEE: test settle setup")
+    labels = ready["made"]
+    ground = ready["ground_z"]
     report = tee_plugin.settle(labels, adopt=True)
     assert report["settled"] is True
     assert report["actors"] == 2
@@ -365,8 +375,9 @@ result = {"made": made}
         "          if a.get_actor_label().startswith('PytestBox')}",
         "TEE: verify settle",
     )
+    # a 100 cm cube rests with its centre ~50 cm above whatever it landed on
     for z in final.values():
-        assert 40 < z < 60, final
+        assert ground + 40 < z < ground + 60, (final, ground)
 
     # already at rest: returns at the minimum, not the cap
     again = tee_plugin.settle(labels)
@@ -425,3 +436,88 @@ def test_import_of_a_missing_file_fails_before_the_editor(tee_plugin):
     with pytest.raises(TeeError) as err:
         tee_plugin.import_asset_file("/nope/not/here.glb")
     assert err.value.code == "asset_file_missing"
+
+
+def test_pins_round_trip_through_the_real_editor(tee_plugin, tmp_path):
+    """The whole pin lane against a live level: tags written, tags read back,
+    snapshotted to a file, destroyed, and restored from that file. Uses its
+    own namespace so it cannot collide with a project's real pins, and no
+    asset lane (that needs the network)."""
+    from tee.app import TeeApp
+    from tee.pins.tools import register_pin_tools
+
+    app = TeeApp({"unreal": tee_plugin}, project_root=tmp_path)
+    app.config.pins = {"namespace": "tee_pin_livetest"}
+    register_pin_tools(app, tmp_path)
+
+    def call(_tool, **kwargs):
+        return app.registry.call(_tool, {"adapter": "unreal", **kwargs})
+
+    made = call(
+        "pin_set",
+        id="live-1",
+        name="Live test pin",
+        category="chair",
+        notes="written by pytest",
+        wishlist=["stool", "bench"],
+        location=[-6.0, 22.0, 1.5],
+        yaw=45,
+    )
+    assert made["created"] is True
+    # pin_set verifies the marker's BASE landed on the spot and fails if not
+    assert made["position_m"] == [-6.0, 22.0, 1.5]
+
+    shown = call("pin_show", id="live-1")["pin"]
+    assert shown["name"] == "Live test pin"
+    assert shown["wishlist"] == ["stool", "bench"]
+    assert shown["notes"] == "written by pytest"
+    assert shown["yaw"] == 45.0
+    assert shown["fill_present"] is False
+
+    exported = call("pin_export")
+    assert exported["pins"] == 1
+    document = json.loads((tmp_path / "pins.json").read_text())
+    assert document["namespace"] == "tee_pin_livetest"
+
+    assert call("pin_remove", id="live-1")["removed"] is True
+    assert call("pin_list")["count"] == 0
+
+    restored = call("pin_import")
+    assert restored["restored"] == ["live-1"]
+    again = call("pin_show", id="live-1")["pin"]
+    assert again["position_m"] == [-6.0, 22.0, 1.5]
+    assert again["notes"] == "written by pytest"
+
+    call("pin_remove", id="live-1")
+
+
+def test_a_pin_marker_never_ships_and_never_blocks_the_player(tee_plugin, tmp_path):
+    """A marker is an authoring aid: editor-only, and no collision - set at
+    spawn, because a component whose collision changes later can miss the
+    physics rebuild."""
+    from tee.app import TeeApp
+    from tee.pins.tools import register_pin_tools
+
+    app = TeeApp({"unreal": tee_plugin}, project_root=tmp_path)
+    app.config.pins = {"namespace": "tee_pin_livetest"}
+    register_pin_tools(app, tmp_path)
+    app.registry.call(
+        "pin_set", {"adapter": "unreal", "id": "live-2", "location": [-9.0, 22.0, 0.0]}
+    )
+    probe = tee_plugin.editor_python(
+        "import unreal\n"
+        "aes = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)\n"
+        "out = {}\n"
+        "for a in aes.get_all_level_actors():\n"
+        "    if a.get_actor_label() == 'Pin_live-2':\n"
+        "        c = a.get_component_by_class(unreal.StaticMeshComponent)\n"
+        "        out = {'editor_only': bool(a.get_editor_property('is_editor_only_actor')),\n"
+        "               'collision': str(c.get_collision_enabled()),\n"
+        "               'folder': str(a.get_folder_path())}\n"
+        "result = out",
+        "TEE: pin marker probe",
+    )
+    assert probe["editor_only"] is True
+    assert "NO_COLLISION" in probe["collision"]
+    assert probe["folder"] == "TEE/Pins"
+    app.registry.call("pin_remove", {"adapter": "unreal", "id": "live-2"})

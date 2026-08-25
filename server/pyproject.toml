@@ -92,7 +92,7 @@ testpaths = ["tests"]
 timeout = 60
 markers = [
     "dcc: requires a live DCC (Blender/Unreal) on this machine",
-    "network: requires outbound network access (skips cleanly offline)",
+    "network: requires outbound network access (skips cleanly offline); excluded from the default hermetic suite - run with `-m network`",
     "ml: needs multi-gigabyte model weights ([assets-embed] / [assets-gen])",
 ]
-addopts = "-m 'not dcc and not ml'"
+addopts = "-m 'not dcc and not ml and not network'"

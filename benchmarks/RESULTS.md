@@ -110,16 +110,16 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 16 | **2,465** |
 | same, by `model_dump()` | 16 | 2,959 |
-| flat server, one tool per capability | 85 | 9,889 |
+| flat server, one tool per capability | 92 | 10,787 |
 
-Registering all five modules (extract, assets, design, physical,
-uefn) adds **0 tokens** to the always-loaded
-surface - the 69 tools they contribute live behind the
+Registering all six modules (extract, assets, design, physical,
+pins, uefn) adds **0 tokens** to the always-loaded
+surface - the 76 tools they contribute live behind the
 meta-tools. Reaching one costs 725 tokens (one search +
 one describe), so the flat design only pays off in a session that
-uses more than ~13 distinct long-tail tools.
+uses more than ~14 distinct long-tail tools.
 
-## Jurisdiction: legal force per regime (Phase 14.2)
+## Jurisdiction: legal force per regime (Phase 15.2)
 
 One 7-element plan, checked under every regime TEE knows. The
 same conflicts carry different legal force, so the responses

@@ -97,6 +97,29 @@ These contradict the documentation, so TEE handles them for you:
   by name.
 - `tools/call` answered **plain JSON**, not SSE, on every call measured. TEE
   parses both.
+- A **partially specified transform is not "unchanged", it is ZERO.** Epic's
+  xform converter documents every field as optional; a rotation-only
+  `set_actor_transform` teleported an imported chair to the world origin
+  (5.8.1). TEE's batch interpreter reads the current transform back and fills
+  the gaps before writing, so `tee_batch` `set` ops mean what they say.
+- `MaterialEditingLibrary.connect_material_property` returns **True while
+  changing nothing**: an authored Constant3Vector -> Emissive material kept the
+  default graph (95 pixel-shader instructions) and rendered black. Parametrise
+  a shipped material through a `MaterialInstanceConstant` instead and read the
+  value back — `set_material_instance_vector_parameter_value` returns False
+  even when it *does* apply, so trust the read-back, not the return value.
+- `Actor.add_component_by_class` is **absent** from the 5.8.1 Python API, so a
+  marker cannot grow a text label at runtime; use the actor label and tags.
+- **Component collision must be set through the PROFILE, not the enum.**
+  `set_collision_enabled(NO_COLLISION)` on a freshly spawned StaticMeshActor
+  reads back as `NO_COLLISION` inside the same script and is
+  `QUERY_AND_PHYSICS` again by the next dispatch — the profile is what gets
+  serialised. TEE's pin markers call `set_collision_profile_name("NoCollision")`
+  and `pin_set` refuses a marker that reads back as colliding.
+- Entity ids (`u1`, `u2`, …) are **per session**. They are assigned in listing
+  order, so replaying a saved `tee_batch` from an earlier session can resolve
+  the same id to a DIFFERENT actor. Re-read ids with `tee_scene_summary` in the
+  session you act in; never hard-code them into a script you rerun.
 
 ## Required for simulation: let the editor tick in the background
 
@@ -121,6 +144,45 @@ in Background".) Keeping the editor window in the foreground also works.
 TEE does not rely on you remembering: `ue_settle` asserts that simulation time
 actually advances and fails with this exact remedy rather than returning a
 confident wrong answer.
+
+## Pins: markers that carry their own record
+
+`pin_set` / `pin_list` / `pin_show` / `pin_fill` / `pin_remove` put a small
+editor-only marker where something should eventually go and keep its record —
+id, display name, category, notes, wishlist, and what finally filled it — in
+the actor's own **tags**, so it survives a level reload and reads back without
+opening the editor (decision A29).
+
+They need the content plugin above and code execution, because Epic's toolsets
+expose no way to read or write an actor's Tags array.
+
+The tag prefix is per project, in `.tee/config.toml`:
+
+```toml
+[pins]
+namespace = "okongo_pin"   # default: tee_pin
+```
+
+so pins join a project's existing tag family rather than starting a second one.
+Markers are `is_editor_only_actor` with collision off — an authoring aid must
+never ship inside, or block, the walkable build. `pin_fill` with no `pick`
+searches the pin's wishlist and answers with a shortlist; with
+`pick='source:id'` it imports at the pin through `as_import` (same four-band
+scale policy, same checkpoint), faces it along the pin's yaw, replaces whatever
+stood there, and writes the chosen key back onto the pin.
+
+**Pins are authored state living in a generated level.** A project whose level
+is rebuilt from its data files by a commandlet would lose them, so
+`pin_export` writes every pin — record, position, yaw — to a stable, sorted
+JSON that belongs in the repo, and `pin_import` replays it: markers restored,
+and any recorded asset that is not actually standing there imported again
+(pins already filled are left alone). The tags in the level stay
+authoritative; the file is a snapshot of them, and where it lives is
+`[pins].file` (default `<project>/pins.json`).
+
+`pin_list` marks a pin `missing: true` when its tags claim an asset but
+nothing is standing at the spot — which is exactly what a level rebuild
+leaves behind.
 
 ## Fallback route: UE 5.3–5.7
 

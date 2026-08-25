@@ -64,6 +64,16 @@ def _attach_assets(app, project: str, extract_store) -> None:
     register_asset_tools(app, Path(project), extract_store=extract_store)
 
 
+def _attach_pins(app, project: str) -> None:
+    """Register the pin lane (pin_*). Actor tags are the storage, so this is
+    an Unreal-only lane and is not offered to a session that cannot use it."""
+    if "unreal" not in app.adapters:
+        return
+    from tee.pins.tools import register_pin_tools
+
+    register_pin_tools(app, Path(project))
+
+
 def _attach_design(app, project: str) -> None:
     """Register TEE Design tools (pure stdlib - always on)."""
     from tee.design.tools import register_design_tools
@@ -114,6 +124,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         return 2
     extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
     _attach_assets(app, args.project, extract_store)
+    _attach_pins(app, args.project)
     _attach_design(app, args.project)
     _attach_physical(app, args.project)
     _attach_uefn(app, args.project)

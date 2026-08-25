@@ -34,9 +34,10 @@ def test_polyhaven_search_is_compact_and_cached(store, network):
     for row in rows:
         assert row.license == "CC0-1.0"
         assert row.dims_m is not None  # models carry real dimensions
+        assert row.asset_class == "model"  # `t=`, not `types=`: no HDRIs here
     # second search: served from the fresh disk cache, no network
     _, info = store.catalogs.fetch_json(
-        "polyhaven-models", "https://api.polyhaven.com/assets?types=models"
+        "polyhaven-t-models", "https://api.polyhaven.com/assets?t=models"
     )
     assert info["cache"] == "fresh"
 

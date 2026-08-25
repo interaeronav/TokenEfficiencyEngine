@@ -66,7 +66,7 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       UE physics/settle (SIE), fluid bake live validation, hip roof
       pending straight-skeleton lib, CoACD proxy integration,
       SANS 10400 before Okongo jurisdiction defaults - source
-      material now in hand, wiring moved to Phase 14)*
+      material now in hand, wiring moved to Phase 15)*
 - [x] Phase 12 — TEE UEFN (bonus) *(built in cloud, 2026-08-22:
       digest parser+diff firewall, digest-grounded Verse lint, validated
       templates, FakeUefn adapter w/ LUF↔XYZ boundary, export_for_uefn
@@ -82,14 +82,19 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       server 395 tests + voxkiln 41 tests green after restoration.
       Mac owes the live half again: reinstall, weights if cleaned,
       first live generation, determinism, stock-vs-ours battery)*
-- [x] Phase 14 — Expert Knowledge Base *(owner import, 2026-08-25:
+- [x] Phase 15 — Expert Knowledge Base *(owner import, 2026-08-25:
       38 domains / 405 files / ~1.4M words / 1,811 cited sources
       mirrored verbatim to `knowledge-base/`, all 401 markdown files
-      frontmatter-verified; A29 sets the two-corpus boundary — imported
+      frontmatter-verified; A30 sets the two-corpus boundary — imported
       reference grounds nothing until re-checked, and the DCC-software
-      domains are never an API source. 14.2 jurisdiction wiring done:
+      domains are never an API source. 15.2 jurisdiction wiring done:
       US/ZA/NA regimes with jurisdiction-dependent severity; 12 tests.
-      14.3 stays reference-only by design)*
+      15.3 stays reference-only by design)*
+- [ ] Phase 16 — TEE KB query module *(planned by the owner with the
+      Qwen session, 2026-08-26; decision A31: read-only `kb_*` tools over
+      the `knowledge-base/` mirror, manifest-indexed, budgeted, flags
+      verbatim. Not started — build from Phase 16 of the execution
+      script)*
 
 ## Machine facts
 
@@ -124,10 +129,19 @@ memory** (macOS, Apple Silicon). Phase 0 re-run on the physical machine
 - Unreal installs: **UE 5.8** at `/Users/Shared/Epic Games/UE_5.8`,
   with Epic's first-party plugin present at
   `Engine/Plugins/Experimental/ModelContextProtocol/ModelContextProtocol.uplugin`.
-  Launcher at `/Applications/Epic Games Launcher.app`. An existing
-  project tree `OkongoSim` sits inside the engine dir;
-  `~/Documents/Unreal Projects/` is empty. Nothing listening on `:8000`
-  (editor not running / auto-start not yet enabled).
+  Launcher at `/Applications/Epic Games Launcher.app`.
+- **OkongoSim project root: `/Users/john/OkongoSim`** (git repo on `main`,
+  C++ project — `OkongoSim` + `OkongoSimEditor` modules, prebuilt Mac
+  editor binaries, `EngineAssociation` 5.8, description "Walkable digital
+  twin of House John P Nghiwete, Onheleiwa, Okongo, Namibia").
+  *(Corrected 2026-08-22: this entry previously said OkongoSim "sits
+  inside the engine dir". The engine-dir `OkongoSim/` is only a stray
+  `Intermediate/ShaderAutogen` leftover with no `.uproject` — the real
+  project has always been in the home directory. Anything that resolved
+  the project from the old line was pointing at an empty folder.)*
+- Scratch probe project: `~/Documents/Unreal Projects/TeeProbe`
+  (BP-only, empty Content, carries the optional `TeeToolset` content
+  plugin). Nothing listening on `:8000` when no editor is open.
 - Adapter tiers selected: **Blender primary** (5.2 LTS, TEE fallback
   bridge add-on — the official extension is absent here);
   **UE official tier** (5.8 + `ModelContextProtocol`, the A4 route). The
@@ -1046,7 +1060,7 @@ approval arrived (see DECISIONS).
 
 **Data caveat still standing:** joist-span worst-grade values in
 `plaus_rules.json` are approximate pending edition verification. The SANS
-10400 / Okongo jurisdiction half of this caveat is **CLOSED** (Phase 14.2,
+10400 / Okongo jurisdiction half of this caveat is **CLOSED** (Phase 15.2,
 2026-08-25) — see the evidence entry below. Its own edition caveat now
 travels inside the rules file: the SANS values are from the 2010/2011
 editions and each carries a RE-VERIFY note naming the current edition.
@@ -1418,7 +1432,7 @@ the removal commit.
 ### 2026-08-25 — Token-efficiency test (cloud half) + two plausibility bugs
 
 Ran the tokens-per-task measurement the CLAUDE.md testing rule requires
-after any change to state representation or tool schemas — Phase 14.2
+after any change to state representation or tool schemas — Phase 15.2
 changed both. Two new scenarios added to `benchmarks/run_benchmarks.py`
 (`run_surface_scenario`, `run_jurisdiction_scenario`); neither needs a
 DCC, so both run in CI and in a cloud session.
@@ -1428,12 +1442,15 @@ DCC, so both run in CI and in a cloud session.
 figure recorded on 2026-08-22 came from a bare `model_dump()`, which
 today counts 2,959 because MCP SDK 2.0.0 added `execution`/`icons`
 fields that serialize as `null` and are dropped before transmission.
-Registering all five modules adds **0 tokens**: the 69 tools they
+Registering all six modules adds **0 tokens**: the 76 tools they
 contribute stay behind the meta-tools, and reaching one costs 725
-tokens, so a flat one-tool-per-capability server (9,889 tokens) only
-wins in a session using more than ~13 distinct long-tail tools.
+tokens, so a flat one-tool-per-capability server (10,787 tokens) only
+wins in a session using more than ~14 distinct long-tail tools. The
+pins module merged from the Mac lane changed that count from 69 to 76
+and the always-loaded surface not at all — progressive disclosure held
+through the merge.
 
-**Regression found and fixed.** Phase 14.2 wrote the whole
+**Regression found and fixed.** Phase 15.2 wrote the whole
 `legal_basis` string onto *every* capped finding, when the
 `jurisdiction` header already carried it once. On `NA-local-authority`
 that inflated the response from 856 → 2,146 tokens. Removing the
@@ -1459,7 +1476,7 @@ wrong jurisdiction.
 them concerns building height or storey count, so it cannot evaluate a
 multi-storey proposal at all. `masonry_slenderness` also matches
 material on a name whitelist that misses `clay_brick`. Both are
-recorded here rather than patched blind; neither is a Phase 14.2
+recorded here rather than patched blind; neither is a Phase 15.2
 regression.
 
 - Evidence: `pytest -m "not dcc and not ml and not network"` →
@@ -1468,7 +1485,7 @@ regression.
   need hardware this session does not have; the extract (92.6%), fix-loop
   (63.2%) and asset (93.5%) rows were re-run headless and reproduce.
 
-### 2026-08-25 — Phase 14.2: southern-African jurisdiction wiring
+### 2026-08-25 — Phase 15.2: southern-African jurisdiction wiring
 
 Closes the gap tracked since Phase 11 ("SANS 10400 has not been added for
 Okongo jurisdiction defaults"). The KB made clear that the naive reading —
@@ -1526,3 +1543,231 @@ Still owed on the Mac: recreate the voxkiln venv + reinstall into the
 server venv, re-fetch weights if the cleanup removed them, verify the
 gated DINOv3 access now works, first live generation, same-seed
 determinism, the stock-vs-ours battery.
+
+### 2026-08-22 — OkongoSim wired for auto-start + Claude Desktop (M5 Mac)
+
+Owner moved TEE usage from the terminal to the **Claude desktop app** for
+day-to-day OkongoSim work. Changes made outside this repo:
+
+- `/Users/john/OkongoSim/OkongoSim.uproject` — enabled
+  `ModelContextProtocol` and `AllToolsets`, both with
+  `"TargetAllowList": ["Editor"]` so the unauthenticated loopback server
+  can never ship in a packaged Mac build (matches how the project already
+  gates `PythonScriptPlugin` / `EditorScriptingUtilities`).
+- `Saved/Config/MacEditor/EditorPerProjectUserSettings.ini` — added
+  `[/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]`
+  `bAutoStartServer=True`, and
+  `[/Script/UnrealEd.EditorPerformanceSettings]`
+  `bThrottleCPUWhenNotForeground=False` (setup-unreal.md requires the
+  latter for `ue_settle`; driving the editor from another app means it is
+  *always* backgrounded, so it is not optional in this workflow).
+- Setting names verified against engine source, not memory:
+  `UModelContextProtocolSettings` is `config=EditorPerProjectUserSettings`
+  with `bAutoStartServer = false`, `ServerPortNumber = 8000`,
+  `bEnableToolSearch = true` by default.
+- `~/Library/Application Support/Claude/claude_desktop_config.json` — added
+  `tee-unreal` and `tee-blender` entries beside the existing `unityMCP`.
+  Two deltas from `tee doctor --emit claude-desktop`: the `uv` command is
+  spelled absolutely (`/opt/homebrew/bin/uv`) because a GUI-launched app
+  does not inherit the shell `PATH`, and `--project /Users/john/OkongoSim`
+  is passed explicitly because `--project` defaults to `.` and a
+  Desktop-spawned server has no meaningful cwd. `.tee/` added to the
+  OkongoSim `.gitignore`.
+
+Evidence:
+
+- Freed `:8000` (the TeeProbe editor from the earlier session held it),
+  then opened OkongoSim the normal way — `open OkongoSim.uproject`, **no
+  launch flags**. `:8000` was listening ~10 s later, owned by the
+  OkongoSim editor pid.
+- `tee doctor` → exit 0, all six checks OK, including
+  `OK   unreal: MCP on 127.0.0.1:8000, 55 toolsets`. (55 and no
+  `+ TEE toolset`: the optional `TeeToolset` content plugin is installed
+  in TeeProbe, not in OkongoSim. Everything except unsandboxed editor
+  Python works without it.)
+- stdio handshake rehearsed under a stripped environment
+  (`env -i HOME=... PATH=/usr/bin:/bin`) against the exact configured
+  command: `initialize` returned the TEE server info and instructions, so
+  the Desktop entry does not depend on shell setup.
+
+### 2026-08-22 — Phase 14: pins, live in OkongoSim (owner request)
+
+The owner's pins work had been blocked on the missing content plugin.
+Unblocked and built end to end, all of it verified against the running
+UE 5.8.1 editor rather than asserted.
+
+**1. Plugin installed.** `adapters/unreal/TeeToolset` copied to
+`/Users/john/OkongoSim/Plugins/TeeToolset`; `TeeToolset` added to
+`OkongoSim.uproject` (`Enabled: true`, `TargetAllowList: ["Editor"]`,
+a 7-line diff — `PythonScriptPlugin` was already enabled). Editor
+restarted with `open OkongoSim.uproject`, no launch flags.
+
+```
+$ tee doctor
+OK   unreal: MCP on 127.0.0.1:8000, 56 toolsets + TEE toolset
+```
+
+**2. Import lane proved.** `as_search(query="wooden chair", asset_class=
+"model")` → 5 CC0 rows; `as_import(polyhaven:bar_chair_round_01,
+adapter="unreal", asset_class="chair", location=[10.717, 15.06, 0])` →
+`scale_band: accept`, read-back `[0.4832, 0.486, 0.7505]` m against the
+catalogue's `[0.483, 0.486, 0.751]`, actor at UE `(1071.7, 1506.0, 0.0)`
+with scale 1.0 and its base on the floor. Mesh landed in
+`/Game/TeeAssets/bar_chair_round_01/**` — nothing written to
+`Content/House/**`.
+
+**3. Pins.** `tee/pins/{model,program,tools}.py` + `tests/test_pins.py`
+(20 tests). Data lives in actor tags (decision A29); the OkongoSim
+namespace is `okongo_pin`, set in `/Users/john/OkongoSim/.tee/config.toml`,
+matching the level's existing `okongo_light` / `okongo_circuit` family.
+Marker: engine cone, 18 x 50 cm, base on the spot, collision off at spawn,
+`is_editor_only_actor`, outliner folder `TEE/Pins`, orange material
+instance.
+
+**4. Fill loop.** `pin_fill` with no pick searched the pin's three
+wishlist terms and returned nine model rows; on the owner's pick
+(`polyhaven:GreenChair_01`) it imported at the pin — `scale_band: accept`,
+read-back `[0.6731, 0.6644, 1.0585]` m — faced it along the pin's yaw, and
+wrote `okongo_pin_asset` + `okongo_pin_actor` back onto the marker.
+
+**5. Demo + conversion.** Two pins now stand in `/Game/Maps/OkongoSite`:
+
+```
+pin_list → count 2
+  open-plan-stool-01  "Open-plan stool"       chair  [10.717, 15.06, 0.0]   filled polyhaven:bar_chair_round_01
+  verandah-seat-01    "Verandah seating spot" chair  [24.07, 20.105, 0.0]   filled polyhaven:GreenChair_01
+```
+
+The step-2 lane-proof actor was retired and re-created as
+`open-plan-stool-01` so there is one system, not two. The level's other
+markers — `HouseDatum`, `PlayerStart_House`, `Veg_Scatter`,
+`Fauna_Spawner` — are functional actors, not decorative pins, and were
+left alone (the OkongoSim build session agreed independently). There were
+no pre-existing pins to migrate: the earlier attempt died on the missing
+plugin before it created anything. Level + `/Game/TeeAssets/**` saved;
+877 actors = the 873-actor baseline + 2 markers + 2 fills.
+
+**Defects found by running it, all fixed in this commit:**
+
+- `as_search` labels every model hit `"model"`, which has no dimension
+  envelope, so `as_import`'s default rejected every prop with "no envelope
+  or target to judge against" and no fix. The rejection now names the
+  envelope classes and `target_dims`.
+- Poly Haven's catalog filter is `?t=`, not `?types=`. TEE sent `types=`,
+  which the API ignores, so model searches ranked HDRIs and textures
+  alongside meshes (2361 rows instead of 521 — measured live). Fixed, with
+  the cache key carrying the parameter so a stale all-types body cannot be
+  revalidated into the filtered slot.
+- A partial transform in a `tee_batch` `set` op zeroes the fields it omits:
+  a rotation-only set teleported the imported chair to the world origin.
+  The batch interpreter now reads the transform back and fills the gaps.
+- `MaterialEditingLibrary.connect_material_property` returned True and
+  changed nothing (the material kept the default graph and rendered black);
+  the pin marker uses a parametrised `MaterialInstanceConstant` with a
+  read-back check instead.
+
+**Suites after the change:** `pytest -m "not dcc"` 410 passed, 2 skipped;
+`pytest -m dcc` 83 passed against the live editor + Blender; ruff clean.
+The live settle test needed fixing on the way: it assumed a floor at z=0,
+which is true of the scratch probe project and false of OkongoSim, whose
+terrain there sits 16.7 cm below zero (measured by line trace). It now
+measures the ground under the drop instead of assuming it. Two more 5.8.1
+API facts fell out: `SystemLibrary.line_trace_single` needs a real world
+context and returns `HitResult or None`, and `HitResult` exposes nothing
+as attributes — `to_dict()` or `get_editor_property()` only.
+
+**Hazard hit, worth remembering:** entity ids (`u1`, `u2`, …) are per
+session. Re-running a saved `tee_batch` file from an earlier session
+resolved `u881` to a different actor and deleted a pin marker. No project
+geometry was lost (every `/Game/House` mesh still has its actor; the
+873-actor baseline is intact) and the marker was rebuilt, but ids must be
+re-read in the session that acts on them. Documented in setup-unreal.md.
+
+### 2026-08-22 — Phase 14.5: pins survive a level rebuild
+
+Follow-up the owner asked for after the pin lane landed. Pins are authored
+state living in a level that OkongoSim regenerates from `data/*.json`, so a
+commandlet run would drop them and nothing would bring them back.
+
+**`pin_export` / `pin_import`.** Export writes a stable, sorted JSON — id,
+name, category, notes, wishlist, class/dims, chosen asset, position, yaw —
+to `[pins].file` (OkongoSim: `data/pins.json`, which is git-tracked, unlike
+`.tee/`). Import upserts every pin and re-places only the recorded assets
+that are not actually standing there; it reports what it restored, what was
+already standing, and any pin in the level the file does not mention. It
+refuses a file from another namespace or a future version, by name.
+
+`pin_list` now says `missing: true` when a pin's tags claim an asset but
+nothing is at the spot — exactly the state a rebuild leaves behind. That
+needed the read program to report whether `PinFill_<id>` actually exists,
+which is a different question from what the tags say.
+
+**Proved live, not asserted:** exported both pins, deleted
+`verandah-seat-01` and its chair outright (`pin_remove remove_asset=true`,
+level down to 875 actors), then `pin_import` →
+`restored: [verandah-seat-01], filled: [verandah-seat-01],
+already_standing: [open-plan-stool-01]`, back to 877 actors with the record
+intact (notes, wishlist, yaw -135). Re-exporting produced a **byte-identical
+file**, so the round trip is lossless.
+
+**A real defect the new live tests caught.** Both existing pin markers were
+standing in the level with `QUERY_AND_PHYSICS` collision — invisible
+obstacles in a walkable twin. `set_collision_enabled(NO_COLLISION)` reads
+back correctly *inside the same script* and reverts by the next dispatch,
+because the collision PROFILE is what gets serialised. Fixed with
+`set_collision_profile_name("NoCollision")`; `pin_set` now reads the
+collision and the editor-only flag back and refuses a marker that would
+block the player or ship in a build. The two markers already in the level
+were repaired in place and verified in a separate dispatch.
+
+Two live pin tests added (`test_unreal_live.py`): the full round trip
+through the real editor under its own namespace, and the marker's
+editor-only/no-collision/folder guarantees.
+
+**Suites:** `not dcc` 419 passed 2 skipped; `dcc` 85 passed; ruff clean.
+
+**Editor state at hand-off:** level and `/Game/TeeAssets/**` saved at
+22:11, nothing dirty, 877 actors. The OkongoSim build session warns that
+once it resumes, its commandlets write the map — after that this editor's
+copy is stale and must not be saved without reloading first.
+
+### 2026-08-22 — Pins delivered into OkongoSim's own repo
+
+The pin lane was working but only durable inside TEE's repo and one
+developer's machine. Closed that: three commits in `/Users/john/OkongoSim`,
+each staged file by file so none of the build session's in-flight
+texture/material work (822 uncommitted paths) was swept in.
+
+- `92ee3e7` — `Plugins/TeeToolset` vendored (content-only, from TEE
+  v0.1.0), `TeeToolset` enabled Editor-only in `OkongoSim.uproject`,
+  `data/pins.json` tracked, and **`.gitignore` changed from `.tee/` to
+  `.tee/*` + `!.tee/config.toml`**. That last one was the actual bug in the
+  hand-off: the config carries the pin tag namespace (`okongo_pin`) and the
+  pin file path, so a clone without it read the level's pins under the
+  default `tee_pin` namespace — which is to say, saw no pins at all. The
+  `.tee/assets/` download cache stays ignored.
+- `aa1a8fb` — `Content/TeeAssets/**` (9 MB, the two CC0 props and the pin
+  marker material) plus `CREDITS-assets.md`, rendered by `as_credits` from
+  the attribution manifests. The assets are committed because the level
+  references them: a clone with the map but without them gets missing-mesh
+  errors. They stay reproducible — `pin_import` re-downloads and re-places
+  from `data/pins.json`.
+
+- `a126d52` — `docs/tee-pins.md` in that project (tag scheme, the seven
+  `pin_*` tools, which files the work added, the two live pins, and the six
+  UE 5.8.1 gotchas), pointed to from its `CLAUDE.md` conventions. Written
+  because **three attempts to hand this to the build session as a
+  cross-session message expired unapproved** — the repo is the channel that
+  actually delivers. That is an edit to another project's CLAUDE.md, made on
+  the owner's "deliver what's needed", not on the peer session's request.
+
+Deliberately not committed there: `Content/Maps/OkongoSite.umap`. It is the
+build session's surface, and `data/pins.json` is the durable record either
+way.
+
+**Editor left clean**: saved at 22:21:54 after checking the map's mtime was
+still my own 22:11:17 write (that session is paused, so nothing could be
+clobbered), 877 actors, nothing dirty. UE 5.8.1 exposes no
+`Package.set_dirty_flag`, so a content-identical save is the only way to
+leave an editor with nothing pending — the alternative was leaving a dirty
+map that an accidental Ctrl+S could later push over someone else's work.

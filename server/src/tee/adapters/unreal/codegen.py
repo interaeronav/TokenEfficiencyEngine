@@ -56,6 +56,24 @@ def _label(actor):
 def _remove(actor):
     return _call("{scene}.remove_from_scene", {{"actor": actor}})["returnValue"]
 
+def _complete(actor, xform):
+    # Epic documents every transform field as optional and "omitted =
+    # unchanged". It is not: an omitted field is written as ZERO, so a
+    # rotation-only set teleports the actor to the world origin (verified
+    # live on 5.8.1). Fill the gaps from the actor's current transform; the
+    # extra dispatch is paid only by partial sets.
+    if "location" in xform and "rotation" in xform and "scale" in xform:
+        return xform
+    now = _get_xform(actor)
+    loc, rot, scl = now["location"], now["rotation"], now["scale"]
+    current = {{
+        "location": {{"x": loc["x"], "y": loc["y"], "z": loc["z"]}},
+        "rotation": {{"pitch": rot["pitch"], "yaw": rot["yaw"], "roll": rot["roll"]}},
+        "scale": {{"x": scl["x"], "y": scl["y"], "z": scl["z"]}},
+    }}
+    current.update(xform)
+    return current
+
 def _entity(ref):
     # Values returned by execute_tool are _StrictDict: .get(key, default) is
     # rejected by the sandbox, only direct [] access works (verified live,
@@ -154,7 +172,7 @@ def run():
         elif kind == "set":
             ref = {"refPath": _REFS[op["id"]]}
             if op.get("xform"):
-                _set_xform(ref, op["xform"])
+                _set_xform(ref, _complete(ref, op["xform"]))
             key = ref["refPath"]
             if key not in created and key not in modified:
                 modified.append(key)

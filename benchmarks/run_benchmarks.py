@@ -705,7 +705,7 @@ def run_physical_scenario() -> dict | None:
 
 
 # --------------------------------------------------------------------------
-# Surface + jurisdiction scenario (Phase 14.2): the two things a schema or
+# Surface + jurisdiction scenario (Phase 15.2): the two things a schema or
 # state-representation change can move. Needs no DCC, so it runs anywhere.
 # --------------------------------------------------------------------------
 
@@ -750,6 +750,7 @@ def run_surface_scenario() -> dict | None:
         from tee.extract.tools import register_extract_tools
         from tee.kernel.adapter import FakeAdapter
         from tee.physical.tools import register_physical_tools
+        from tee.pins.tools import register_pin_tools
         from tee.server import build_server
         from tee.uefn.tools import register_uefn_tools
     except ImportError as exc:
@@ -781,6 +782,7 @@ def run_surface_scenario() -> dict | None:
     register_asset_tools(app, root, extract_store=store)
     register_design_tools(app, root)
     register_physical_tools(app, root)
+    register_pin_tools(app, root)
     register_uefn_tools(app, root)
     tools = listed(app)
     full_tokens = estimate_tokens(
@@ -811,7 +813,7 @@ def run_surface_scenario() -> dict | None:
         "n_tools": len(tools),
         "wire_tokens": full_tokens,
         "model_dump_tokens": dump_tokens,
-        "added_by_five_modules": full_tokens - bare_tokens,
+        "added_by_modules": full_tokens - bare_tokens,
         "n_virtual_tools": len(names),
         "flat_server_tokens": flat_tokens,
         "reach_one_tool": reach,
@@ -1246,8 +1248,8 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
             f"| flat server, one tool per capability | "
             f"{r['n_virtual_tools'] + r['n_tools']} | {r['flat_server_tokens']:,} |",
             "",
-            "Registering all five modules (extract, assets, design, physical,",
-            f"uefn) adds **{r['added_by_five_modules']} tokens** to the always-loaded",
+            "Registering all six modules (extract, assets, design, physical,",
+            f"pins, uefn) adds **{r['added_by_modules']} tokens** to the always-loaded",
             f"surface - the {r['n_virtual_tools']} tools they contribute live behind the",
             f"meta-tools. Reaching one costs {r['reach_one_tool']} tokens (one search +",
             "one describe), so the flat design only pays off in a session that",
@@ -1257,7 +1259,7 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         j = jurisdiction_row
         lines += [
             "",
-            "## Jurisdiction: legal force per regime (Phase 14.2)",
+            "## Jurisdiction: legal force per regime (Phase 15.2)",
             "",
             "One 7-element plan, checked under every regime TEE knows. The",
             "same conflicts carry different legal force, so the responses",

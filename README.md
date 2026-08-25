@@ -51,8 +51,9 @@ modules — see [benchmarks/RESULTS.md](benchmarks/RESULTS.md) for all measured
 rows.
 
 The always-loaded MCP surface (16 tools) costs ~2.8K tokens of definitions —
-about the price of 4 typical MCP tools in the wild; ~68 further virtual tools
-load progressively through `tee_search_tools`.
+about the price of 4 typical MCP tools in the wild; 69 further virtual tools
+(on the fake adapter; adapter-specific lanes add more) load progressively
+through `tee_search_tools`.
 
 ## Scope
 
@@ -106,6 +107,7 @@ extension zip. Skills for Claude live under `skills/` (`tee-usage`,
 | design | `gd_*` | tee-design/1 spec, evidence tables, economy sim, ethics gates |
 | physical | `sim_*`, `wall_*`… | tier-2 modeling ops, material facts, settle physics, plausibility findings |
 | uefn | `uefn_*` | Verse digest facts + lint, Scene Graph vocabulary, Blender→UEFN export lane |
+| pins | `pin_*` | marker actors carrying their own record (Unreal actor tags), filled from free asset sources, export/import across level rebuilds |
 
 ## Continuing the build (Claude)
 

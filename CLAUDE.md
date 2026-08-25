@@ -18,7 +18,7 @@ judged by that metric first.
   Verify any API you are unsure of against local docs or a smoke test, never
   from memory.
 - `knowledge-base/` is a DIFFERENT thing: a 38-domain reference library the
-  owner imported (A29), written elsewhere, never verified by this project.
+  owner imported (A30), written elsewhere, never verified by this project.
   It grounds nothing on its own. To use a fact from it, re-check it against
   the source its own frontmatter cites, then carry that citation into
   whatever TEE file you put it in. `confidence: low` and

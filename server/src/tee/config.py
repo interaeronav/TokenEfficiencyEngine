@@ -17,6 +17,9 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
     allow_sa = false          # opt into CC-BY-SA share-alike assets (A13)
     sketchfab = false         # guarded backend opt-in
     backends = ["polyhaven"]  # optional: restrict enabled backends
+
+    [pins]
+    namespace = "tee_pin"     # actor-tag prefix the pin lane reads and writes
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ class ProjectConfig:
     allow_code_exec: bool | None = None  # None = not set
     blender_port: int | None = None
     assets: dict[str, Any] = field(default_factory=dict)
+    pins: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -73,6 +77,12 @@ class ProjectConfig:
             config.assets = assets
         elif assets:
             problems.append("[assets] must be a table")
+
+        pins = data.get("pins", {})
+        if isinstance(pins, dict):
+            config.pins = pins
+        elif pins:
+            problems.append("[pins] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)

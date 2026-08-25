@@ -1429,7 +1429,7 @@ battery runs stock-vs-ours and PROGRESS gets the numbers.
 
 ---
 
-## 17. Phase 14 — Expert Knowledge Base: import, boundary, jurisdiction wiring
+## 17. Phase 15 — Expert Knowledge Base: import, boundary, jurisdiction wiring
 
 **Goal:** absorb the owner's 38-domain reference library (401 files,
 ~1.4M words, 1,811 cited sources) into the repo without letting it
@@ -1437,17 +1437,20 @@ contaminate TEE's own grounding — and cash the one thing in it that
 closes a tracked gap: SANS 10400 / Namibian building control.
 
 **Grounding:** the corpus's own `knowledge-base/00_meta/` (SCHEMA,
-VERIFICATION register, source-register). Decision A29 settled — amend
+VERIFICATION register, source-register). Decision A30 settled — amend
 via `docs/DECISIONS.md` only. Anti-goals: no TEE tool reads the KB at
 runtime unless a step below says so; no KB search/embedding/RAG lane
-(A2/A11 tool surface is unchanged); no fact enters a TEE data file
+(A2/A11 tool surface is unchanged — **amended by A31 / Phase 16, owner
+request 2026-08-26: read-only `kb_*` query tools over the mirror are
+the sanctioned runtime lane; every rule in this paragraph still binds
+whatever those tools return**); no fact enters a TEE data file
 without its original citation travelling with it; **no `bpy`/`unreal`
 API fact is ever taken from `13_*`/`14_*`/`15_*`** (third-party prose
 on a drifting API is the failure mode TEE exists to prevent); no
 re-writing, summarizing or "improving" mirrored files — they are
 imported verbatim, frontmatter intact.
 
-### 14.1 Mirror (A29)
+### 15.1 Mirror (A30)
 
 1. Verbatim copy of all 38 domains to `knowledge-base/<domain>/`,
    YAML frontmatter preserved, plus `INDEX.md` and `00_meta/`.
@@ -1457,7 +1460,7 @@ imported verbatim, frontmatter intact.
    Acceptance: 401/401 files present, spot-checked against the source
    listing; no file rewritten (frontmatter `id:` still parses).
 
-### 14.2 Jurisdiction wiring — the one scope widening (A20, A29)
+### 15.2 Jurisdiction wiring — the one scope widening (A20, A30)
 
 1. `server/src/tee/physical/` gains a `southern-africa` jurisdiction:
    SANS 10400 parts as CODE-severity rules, the Namibian building-
@@ -1482,7 +1485,7 @@ imported verbatim, frontmatter intact.
    (it caps at HEUR and asks); an unknown region raises. 12 tests;
    zero always-loaded tokens added.
 
-### 14.3 What stays reference-only
+### 15.3 What stays reference-only
 
 Materials/suppliers, Namibia climate + geology, walls, paving,
 joinery, interiors, hydrology, machine vision, and every
@@ -1493,7 +1496,7 @@ into `assets/materials.py`, Namibia climate into site/sun defaults,
 rather than instead of it. Each would be its own decision entry with
 its own verification.
 
-### 14.4 Acceptance
+### 15.4 Acceptance
 
 Mirror complete and verbatim; README boundary stated; CLAUDE.md
 carries the two-corpus rule and the DCC-domain prohibition; A29 in
@@ -1522,3 +1525,169 @@ surface — verified by the canonical tool-surface measure.
 - **Honest reporting:** acceptance criteria are checked by running the
   commands, not by asserting success in prose. Paste real output into
   `docs/PROGRESS.md` when checking off a phase.
+
+---
+
+## 19. Phase 14 — TEE Pins: introspectable marker actors (owner request, 2026-08-22)
+
+**Goal:** the owner asked for pins in OkongoSim — a small marker actor
+standing where something should eventually go, carrying its own record so
+it can be asked about ("list the pins", "what is pin market-03") and
+filled from the free asset sources without clicking anything in the
+editor. Decision **A29** in `docs/DECISIONS.md` settles the storage: the
+DCC's own actor tags, not a sidecar file.
+
+**Grounding:** the live editor. Every Unreal claim in this phase was
+verified against UE 5.8.1 on the M5 Mac, not against memory.
+
+### 14.1 Tag encoding (`tee/pins/model.py`)
+
+- One marker tag (`<ns>`), then `<ns>_<field>:<value>` for id, name, cat,
+  note, wish, class, dims, asset, actor. Values split on the FIRST colon,
+  so an asset key (`polyhaven:GreenChair_01`) round-trips.
+- Ids are lowercase slugs, enforced: Unreal compares FName tags
+  case-insensitively, so `Market-03` and `market-03` would silently be one
+  pin.
+- `|` separates list entries inside one tag and is rejected in free text.
+- Upsert semantics: fields not mentioned keep their value; an explicit
+  empty clears one.
+
+### 14.2 Editor programs (`tee/pins/program.py`)
+
+One dispatch each: read all pins, upsert one, remove one, clear a fill.
+The marker is the engine cone, scaled to 18 x 50 cm, base ON the spot,
+collision off AT SPAWN, `is_editor_only_actor` true, outliner folder
+`TEE/Pins`, and an orange instance of the engine's basic-shape material.
+
+### 14.3 Tools (`tee/pins/tools.py`)
+
+`pin_set`, `pin_list`, `pin_show`, `pin_fill`, `pin_remove` — registry
+tools (progressive disclosure), Unreal-only, refusing other adapters with
+the reason. `pin_fill` with no pick searches the pin's wishlist and
+returns a shortlist; with `pick=` it imports at the pin through the normal
+`as_import` machinery, applies the pin's yaw, and records the chosen key
+back onto the pin.
+
+### 14.4 Acceptance
+
+Live on OkongoSim: a pin created, read back through `pin_show`/`pin_list`,
+filled from Poly Haven on the owner's pick, before/after captures, and the
+level saved. Evidence in `docs/PROGRESS.md`.
+
+### 14.5 Durability (`pin_export` / `pin_import`)
+
+Pins are authored state inside a level that a project regenerates from its
+data files. `pin_export` writes a stable, sorted, repo-trackable JSON of
+every pin; `pin_import` replays it — markers restored, recorded assets
+re-placed only where nothing is actually standing. `pin_list` reports
+`missing` when the tags claim an asset the level no longer has.
+
+---
+
+## 20. Phase 16 — TEE KB: the Expert Knowledge Base query module (owner request, 2026-08-26)
+
+**Goal:** give OkongoSim (and any TEE client) sourced answers from the
+owner's `12 Expert Knowledge Base` — 38 domains, 401 curated markdown
+files, ~1.3M words, every claim cited or flagged — without pasting
+documents into context. The sim cross-references real-world metrics
+(jurisdiction, confidence, sources) through the same MCP surface that
+drives the editor.
+
+**Grounding:** the corpus's own `AGENTS.md` and `manifest.json` —
+since Phase 15 both live IN-REPO at `knowledge-base/` (the mirror is the
+default root; the owner's Dropbox copy, `02 Okongo Oneleiwa Project/12
+Expert Knowledge Base`, remains a valid `[kb] root` override). The
+manifest carries per-file id, title, domain, tags, jurisdiction, status,
+confidence, words, sha256 and summary — the index source. Decision
+**A31** in `docs/DECISIONS.md` settles the shape: read-only module,
+manifest-indexed, progressive disclosure, flags pass through verbatim.
+
+**Anti-goals:** no writes into the corpus (its own `validate.py` /
+`rebuild.py` own that); no embeddings or new runtime dependencies; no
+full-file or full-corpus dumps; no rephrasing of confidence/jurisdiction.
+
+### 16.1 Index builder (`tee/kb/index.py`)
+
+1. Load `<root>/manifest.json`; validate required keys; one loud, short
+   error if missing or malformed (with the fix: point `[kb] root` at the
+   corpus).
+2. Build the index: per-file record (id, path, title, domain, tags,
+   jurisdiction, status, confidence, words, sha256, summary) plus a
+   domain table (slug, title, file/word counts) and corpus totals.
+3. Cache to `<project>/.tee/kb/index.json` keyed on manifest `generated`
+   date; rebuild on demand (`kb_status(rebuild=true)`) — never on every
+   call.
+4. Drift check: sha256 each indexed file, compare with the manifest.
+   Any mismatch or missing file marks the index `stale` and lists the
+   offenders (capped); queries still serve but carry the staleness flag,
+   and the fix line says to run the corpus's `00_meta/rebuild.py`.
+5. Per-file heading index (section title → byte range) parsed from the
+   markdown so `kb_read` can address sections without loading whole files
+   into responses.
+
+### 16.2 Retrieval (`tee/kb/search.py`)
+
+Deterministic keyword scoring over manifest titles, tags, summaries and
+the heading index — no embeddings. Filters: `domain`, `jurisdiction`,
+`confidence`, `status`. Results ranked, capped, each row carrying the
+corpus's flags verbatim. Empty result returns the domain list as the
+cheap next move, not silence.
+
+### 16.3 Tools (`tee/kb/tools.py`)
+
+Four registry tools (progressive disclosure — none on the always-loaded
+surface; descriptions under 2 KB each):
+
+- `kb_status` — corpus totals, domain table (compact), index freshness
+  and drift list, configured root; `rebuild=true` rebuilds the cache.
+- `kb_search` — query + filters → hit list only: id, title, domain,
+  confidence, one-line summary. Default limit 8, hard cap 20.
+- `kb_read` — one file by id. No section arg → section list (titles +
+  sizes) plus the frontmatter flags. With section → that section only,
+  token-budgeted (`max_tokens`, default 800, cap 4000). Cite the file's
+  `## Sources` block alongside, truncated to fit the budget.
+- `kb_facts` — the `## Key facts` blocks of matched files (query or id
+  list) — the metrics lane. Confidence flag on every block; a file
+  without the section says so in one line.
+
+Every response that carries corpus content carries its confidence and
+jurisdiction markers. `needs-verification` content is labelled, never
+served bare.
+
+### 16.4 Config and wiring
+
+1. `config.py`: `[kb]` section — `root` (path to the corpus; defaults
+   to the in-repo `knowledge-base/` mirror from Phase 15 when present,
+   otherwise required to activate the module), optional `max_kb`
+   response budget. Missing `[kb]` with no mirror → module silently
+   inactive (like other extras); malformed → the standard
+   degrade-with-warning path.
+2. `cli.py`: `_attach_kb(app, project)` next to the other attaches;
+   doctor gains a kb check (root exists, manifest readable, drift count).
+3. No new dependency; stdlib + existing kernel (budget, errors, registry).
+
+### 16.5 OkongoSim wiring
+
+Add `[kb] root` to OkongoSim's `.tee/config.toml` (the tracked config
+that already carries the pin namespace) pointing at the TEE repo's
+`knowledge-base/` mirror — stable, versioned, and already on the
+machine; the Dropbox corpus is the fallback root if the mirror is
+absent.
+TEE is the MCP surface OkongoSim sessions already use, so the tools land
+with no plugin change. Document in OkongoSim's `docs/` beside
+`tee-pins.md`. (Stretch, only if asked: a `kb_query` editor console
+command through TeeToolset.)
+
+### 16.6 Acceptance
+
+1. `pytest` green: index build, drift detection, search ranking/filters,
+   section reads, budget caps, flags-pass-through, malformed-manifest and
+   missing-root error paths (fixture corpus, never the live Dropbox one).
+2. Live against the real corpus: `kb_status` clean, one `kb_search`
+   (e.g. paving specification), one `kb_read` section, one `kb_facts`,
+   every response carrying confidence/jurisdiction.
+3. Benchmark row in `benchmarks/RESULTS.md`: the paving-spec lookup via
+   `kb_*` vs dumping `INDEX.md`/files raw.
+4. OkongoSim `.tee/config.toml` carries `[kb]`, and a session driving
+   the sim answers a site question from the corpus with citations.
+5. Evidence in `docs/PROGRESS.md`; README module table gains the kb row.

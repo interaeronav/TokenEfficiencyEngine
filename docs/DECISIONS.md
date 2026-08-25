@@ -4,7 +4,7 @@ Amendments to the settled architecture (A1–A7 in
 `docs/research/00-index.md`) or to `CLAUDE_EXECUTION_SCRIPT.md` are recorded
 here before being implemented: date, decision, rationale, what it supersedes.
 
-## 2026-08-25 — Expert Knowledge Base imported; TEE scope amended (A29)
+## 2026-08-25 — Expert Knowledge Base imported; TEE scope amended (A30)
 
 The owner directed that the full "12 Expert Knowledge Base" from the
 Okongo Oneleiwa Project Dropbox — 38 domains, 401 files, ~1.4M words,
@@ -13,7 +13,7 @@ reference data (all 38 domains, not just the construction-adjacent
 ones). It is mirrored verbatim under `knowledge-base/`, frontmatter
 intact. This amends TEE's scope as follows.
 
-**A29 — two corpora, one authority rule.** TEE now carries reference
+**A30 — two corpora, one authority rule.** TEE now carries reference
 material it did not author or verify. The boundary is absolute and is
 the point of this decision:
 
@@ -61,7 +61,7 @@ Anything TEE lifts from it carries the original citation through to
 TEE's own data files, so a rule in `plaus_rules.json` remains
 traceable to the instrument it came from, not merely to "the KB".
 
-**Implemented 2026-08-25 (Phase 14.2).** The first fact lifted out of the
+**Implemented 2026-08-25 (Phase 15.2).** The first fact lifted out of the
 corpus reversed the obvious design. The naive reading — "give Namibia the
 SANS rules" — is precisely the error the KB names as characteristic of AI
 agents on this topic: SANS 10400 is law in South Africa only. In Namibia it
@@ -93,6 +93,43 @@ registration, lane-3 probe, doctor check) is restored with it;
 generated-3D is local-first once more, hosted Tripo/Meshy the keyed
 fallback. The Mac owes the live half again: reinstall, weights if
 cleaned, first live generation, determinism, the stock-vs-ours battery.
+
+## 2026-08-22 — A29: pins are actor tags, not a sidecar file (owner request)
+
+Owner request: markers that stand where something should eventually go,
+each carrying its own record — id, display name, category, notes, and a
+wishlist of what belongs there — readable back without clicking, and
+fillable from the free asset sources.
+
+Decision A29: **the storage is the DCC's own actor tags.** One marker tag
+plus `<namespace>_<field>:<value>` pairs on a small editor-only marker
+actor. Rejected alternatives: a JSON sidecar in the repo (drifts from the
+level the moment anyone moves a marker in the editor, and a level reload
+cannot repair it) and a custom Blueprint actor class (needs a C++ or BP
+asset in every host project, and Epic's toolsets cannot read custom
+properties back).
+
+Consequences:
+- Pins are Unreal-only for now; the lane fails loud on other adapters
+  rather than pretending. Blender's object custom properties are the
+  obvious port when it is asked for.
+- Reading and writing tags needs unsandboxed editor Python (Epic's
+  toolsets expose no Tags access), so the pin lane requires TEE's content
+  plugin and `--allow-code-exec` — the same gate as `ue_editor_python`.
+- The tag prefix is per-project config (`[pins] namespace`), so pins join
+  a project's existing tag family instead of inventing a second one. In
+  OkongoSim that is `okongo_pin`, beside `okongo_light` / `okongo_circuit`.
+- Pin markers are `is_editor_only_actor` with collision off: an authoring
+  aid must never ship inside, or obstruct, the walkable build.
+- What fills a pin is found by the label convention `PinFill_<id>`, not by
+  the pin's own record, so a re-created marker cannot leave two props
+  stacked on one spot.
+- Pins are authored state inside a GENERATED artifact: OkongoSim's level is
+  rebuilt from `data/*.json` by commandlets. `pin_export` / `pin_import`
+  therefore snapshot the pins to a repo-tracked JSON and replay it. This does
+  not make the file a second source of truth — the level's tags stay
+  authoritative and an export is a snapshot of them; import is explicit, never
+  a background sync.
 
 ## 2026-08-22 — Voxkiln removed; the out-of-the-box 3D-generation need is dropped (owner decision)
 
@@ -416,5 +453,66 @@ callers that genuinely want the floor. The acceptance becomes:
   mode under 10%.
 
 Recorded rather than silently met: the original bullet is achievable as
-written, and was deliberately not adopted because doing so costs the user
+written, and was deliberately not adopted because doing it costs the user
 tokens.
+
+## 2026-08-26 — A31: the Expert Knowledge Base is a read-only TEE module (owner request)
+
+Owner request: integrate the `12 Expert Knowledge Base` corpus with TEE so
+OkongoSim sessions can query it — cross-referencing the sim against sourced
+construction knowledge without re-pasting documents into context. (Between
+the request and this record, the parallel session imported the corpus
+in-repo as `knowledge-base/` under A30 — so this module reads that mirror
+by default, not the Dropbox original.)
+
+Decision A31: **the KB joins TEE as a read-only query module (`tee/kb/`),
+indexed from the corpus's own `manifest.json`, never written to by TEE.**
+This is the runtime lane A30's phase deliberately left closed — it is
+sanctioned here on the owner's request, and every A30 rule (two-corpus
+authority boundary, citation travels with any lifted fact, DCC-software
+domains are never an API source, flags pass through verbatim) binds
+whatever these tools return.
+
+- **Read-only, by construction.** The corpus maintains itself with its own
+  `00_meta/validate.py` / `00_meta/rebuild.py`; TEE exposes query tools
+  only. A write lane would create a second author of a corpus whose value
+  is its citation discipline.
+- **`manifest.json` is the index source, not a tree walk.** Every file
+  entry already carries id, title, domain, tags, jurisdiction, status,
+  confidence, words, sha256 and a summary — exactly the hit-list fields a
+  token-efficient search needs. The built index caches to `<project>/.tee/
+  kb/` (per-project, like other TEE state), keyed on the manifest's
+  generated date + per-file sha256s.
+- **Drift fails loud and cheap.** With the in-repo mirror (the default
+  root) drift is a git event, not a silent one; with a Dropbox root the
+  sync can move files under the index. Either way, if a file's sha256 no
+  longer matches the manifest, `kb_status` and every query say so in one
+  line with the fix (re-run the corpus's `rebuild.py`, or pull the
+  mirror), instead of serving stale facts silently.
+- **Progressive disclosure, as always.** No `kb_*` tool joins the
+  always-loaded surface; the four tools (`kb_status`, `kb_search`,
+  `kb_read`, `kb_facts`) register as virtual tools reachable through
+  `tee_search_tools` — zero tokens until asked for.
+- **The corpus's own flags pass through verbatim.** Confidence
+  (high/medium/low), `needs-verification` status and jurisdiction markers
+  (`**[NA]**` / `**[ZA]**`) appear on every hit and every returned
+  section; TEE never upgrades, drops or rephrases them. The corpus's
+  AGENTS.md rules (cite sources, never blend NA/ZA regimes, never present
+  unverified figures as fact) are the module's contract.
+- **Budgets everywhere.** `kb_search` returns hit lists only (id, title,
+  domain, confidence, one-line summary); `kb_read` is section-addressed
+  and token-budgeted (never a whole 1.3M-word corpus, never a whole file
+  by default); `kb_facts` returns only `## Key facts` blocks — the lane
+  for the owner's metrics cross-referencing.
+- **No embeddings, no new runtime dependency.** Retrieval is deterministic
+  keyword scoring over manifest titles/tags/summaries plus in-file heading
+  indexes. The corpus is curated and small enough (401 files) that this
+  beats a vector store on both tokens and reproducibility.
+
+Consequences: config grows a `[kb]` section (`root` defaults to the
+in-repo `knowledge-base/` mirror from A30's phase; an explicit path —
+e.g. the owner's Dropbox original — overrides it; optional `max_kb`
+response budget); `cli.py` grows `_attach_kb`; OkongoSim's
+`.tee/config.toml` points `root` at the mirror so the pin-namespace
+config and the KB config live in the same tracked file. The Blender side
+gets the tools for free through the same MCP surface.
