@@ -20,6 +20,9 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   `CLAUDE_SELF_IMPROVEMENT_SCRIPT.md` the same way: work its phases from
   where the PROGRESS evidence says they stand, with TEE's own tools as
   co-pilot.
+- The A34 build (web_lookup + the TEE-native code model) is driven by
+  `CLAUDE_A34_SCRIPT.md`; research docs 49 and 50 are its design of
+  record.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or

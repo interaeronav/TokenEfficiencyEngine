@@ -601,3 +601,20 @@ engineering decisions; `knowledge-base/` participates per A30/A31 only
 never an API source). Owner-only calls (pricing, naming, store
 submission, repo split, module deletion, mission changes) are written
 up in the SI-4 gap list and stopped on, never made in-session.
+
+## 2026-08-28 — A34: build web_lookup + the TEE-native code model (owner decision)
+
+The owner directed the build of both researched capabilities: the
+budgeted multimodal web_lookup (research 49, incl. the mitigation
+section as hard requirements) and the TEE-native small LLM with a
+dense code-and-debugging root (research 50 + addendum). Driven by
+`CLAUDE_A34_SCRIPT.md` (root): Track W (fixtures → guarded fetcher →
+extractor → tool + benchmark → media arms) and Track M (adoption
+research → client seam → chore templates → benchmark verdicts →
+LoRA gate → close-out). The research docs are the design of record;
+the script is order + acceptance. Benchmarks decide every adoption;
+the base-model download passes the owner gate; local endpoints stay
+optional with proven degradation. Shortlist seeded from the
+2026-08-28 open-research pass (Qwen coder 7B/14B Apache-2.0,
+Ministral 3 dense Apache-2.0, DeepSeek-R1 distill MIT), final choice
+made and license-linted at adoption day.

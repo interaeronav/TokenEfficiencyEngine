@@ -2819,3 +2819,17 @@ code model (reason over in-context evidence: yes; API recall from
 weights: banned, enforced by seeded fixtures whose correct answer is to
 defer); Rung-1 distillation re-weighted onto TEE's own recorded failure
 universe. Build still awaits the owner's word.
+
+## 2026-08-28 — A34 directed and scripted (owner: build the discussed changes)
+
+Owner directed implementation of everything researched in docs 49/50.
+Authored `CLAUDE_A34_SCRIPT.md` (root): Track W builds web_lookup
+fixtures-first (hostile pages and evil URLs are the definition of done
+before any fetcher exists), Track M builds the code-expert native model
+(adoption research with a seeded shortlist from a live 2026-08-28 web
+search → client seam → chores with the API-defer trap suite → benchmark
+verdicts → evidence-gated LoRA). Decision recorded as A34; CLAUDE.md
+points at the script; the campaign kickoff was written into TEE's own
+project memory via tee_remember (key a34-campaign) so the build
+session's tee_recall surfaces it — the co-pilot loop in use during
+script authoring, as directed.
