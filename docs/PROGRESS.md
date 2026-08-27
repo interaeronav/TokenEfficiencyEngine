@@ -2235,3 +2235,46 @@ BENCHMARKS.md ✓ (first tranche + follow-up named).
 
   Server starts ✓, tee_status answers ✓ (blender unconnected is correct —
   no Blender running). §3 is now closed end to end on the 0.1.1 bundle.
+
+## 2026-08-27 — Mac session: handoff §4 first pass (owner-approved downloads + live lanes)
+
+Owner approved the §4 downloads and asked for `manifold3d`.
+
+**Repair ladder completed and proven on the real generated mesh**
+(the 491,888-tri determinism GLB):
+
+- `manifold3d` + `voxkiln[rebuild]` (scikit-image) installed; `voxkiln
+  doctor` deps now all true; suite still 47 passed / 1 skipped.
+- level=fast: fills small loops (the quadratic crawl fixed earlier today).
+- level=manifold: merge 735 verts → drop 14,199 confetti components →
+  fill 1,824 loops → `manifold_check: NotManifold` (this decode mesh is
+  beyond patching — honest result).
+- level=rebuild: voxel rebuild @256 → **watertight=True** (1,061,608 tris,
+  "UVs destroyed (pre-UV only)" — correctly a pre-texturing stage).
+
+**Models staged (HF cache, fp16 where published):** SDXL base,
+Marigold-IID appearance + lighting + normals, faster-whisper-large-v3.
+`pyannote/speaker-diarization-community-1` FAILED 403 (gated): owner must
+accept terms on its HF page, then re-fetch.
+
+**Lanes proven live tonight:**
+
+- Lane 1 local diffusion (Z-Image-Turbo, MPS): `as_generate` →
+  `ok: true, wall_s 83.4`, PNG written with the full `ai_generated`
+  provenance stamp (generator, input hash, USCO note).
+- `[assets-embed]` (SigLIP 2, MPS): 9.6 s cold; query "rusty corrugated
+  metal roof" ranks "corrugated iron roofing sheet weathered" 0.920 >
+  "galvanised steel roof panel" 0.856 > tree 0.646 > armchair 0.628.
+- Whisper large-v3 quality spot-check on REAL site audio (extract lane,
+  bundled imageio-ffmpeg, PyAV decode): 8 ambient-only iPhone clips →
+  **zero hallucinated segments** (the classic noise failure mode absent);
+  IMG_2743.MOV's single utterance caught ("Okay.", 2.19–2.69 s, en);
+  VIDEO-2025-11-21 site walkthrough → 7 fluent, correctly-timestamped
+  segments of accented English ("…should the garage and the main bedroom
+  be this side…"). Quality: PASS.
+
+**Explicitly not done tonight (still owed on §4/§5):** SDXL-tileable
+driver + Marigold-IID refinement code (weights staged; the photo_pbr /
+gen_local slots exist but the drivers are unwritten), pyannote diarization
+(gated, above), UE import path + Blender library authoring/asset_listing
+(need live DCC sessions), and all of §5 UE physics.
