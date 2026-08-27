@@ -17,6 +17,7 @@ from typing import Any
 
 from mcp.server.mcpserver import Image, MCPServer
 
+from tee import __version__
 from tee.app import TeeApp
 from tee.kernel.budget import columnarize, enforce_budget
 from tee.kernel.errors import TeeError, internal_error_payload
@@ -149,6 +150,7 @@ def _tool(app: TeeApp, name: str) -> Callable:
 def build_server(app: TeeApp) -> MCPServer:
     mcp = MCPServer(
         name="tee",
+        version=__version__,
         instructions=(
             "Token Efficiency Engine: drives Unreal Engine and Blender with "
             "minimal tokens. Reads return compact summaries and diffs, never "

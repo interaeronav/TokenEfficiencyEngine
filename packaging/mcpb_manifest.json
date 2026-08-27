@@ -1,7 +1,8 @@
 {
   "manifest_version": "0.4",
   "name": "Token Efficiency Engine",
-  "version": "0.1.0",
+  "display_name": "TEE — Token Efficiency Engine",
+  "version": "0.1.1",
   "description": "Drive Blender and Unreal Engine with minimal tokens",
   "long_description": "TEE is an MCP server between AI models and Blender / Unreal Engine whose core metric is tokens per completed task. Reads return compact summaries and diffs instead of scene dumps, mutations run as checkpointed batches, and the long tail of DCC capability is reached through progressive disclosure rather than hundreds of always-loaded tools.\n\nBlender needs the TEE bridge extension (or the official Blender Lab MCP add-on); Unreal needs UE 5.8+ with Epic's ModelContextProtocol and AllToolsets plugins enabled. See the repository for setup.",
   "author": {
@@ -10,12 +11,45 @@
   },
   "homepage": "https://github.com/interaeronav/TokenEfficiencyEngine",
   "support": "https://github.com/interaeronav/TokenEfficiencyEngine/issues",
+  "icon": "icon.png",
   "server": {
     "type": "uv",
     "entry_point": "src/tee/cli.py",
     "mcp_config": {
       "command": "uv",
-      "args": ["run", "tee", "serve", "--adapter", "blender"]
+      "args": [
+        "run", "--directory", "${__dirname}", "--no-dev",
+        "tee", "serve", "--adapter", "blender",
+        "--project", "${user_config.project_root}"
+      ]
+    }
+  },
+  "tools": [
+    { "name": "tee_status", "description": "Server, adapter and scene status, with an optional compact project recap" },
+    { "name": "tee_recall", "description": "Recall persistent project memory as a compact session preamble" },
+    { "name": "tee_remember", "description": "Store durable project memory: facts by key and dated notes" },
+    { "name": "tee_scene_summary", "description": "Compact, paged scene summary: entity counts and ids, filterable" },
+    { "name": "tee_entity_detail", "description": "Full cached detail for one entity by id" },
+    { "name": "tee_diff", "description": "What changed since a known (epoch, revision) stamp" },
+    { "name": "tee_batch", "description": "Run a checkpointed batch of mutations in one call" },
+    { "name": "tee_checkpoint", "description": "Create a named scene checkpoint" },
+    { "name": "tee_rollback", "description": "Roll the scene back to a checkpoint" },
+    { "name": "tee_job", "description": "Start or poll long-running jobs outside the request lock" },
+    { "name": "tee_capture", "description": "Budgeted viewport capture as inline JPEG" },
+    { "name": "tee_media", "description": "Budgeted media handling for renders and references" },
+    { "name": "tee_script", "description": "Run a budgeted mini-script of tool calls in the sandboxed interpreter" },
+    { "name": "tee_search_tools", "description": "Progressively discover the long tail of DCC-specific virtual tools" },
+    { "name": "tee_describe_tool", "description": "Inspect one virtual tool's full schema before calling it" },
+    { "name": "tee_call", "description": "Invoke a discovered virtual tool by name" }
+  ],
+  "keywords": ["blender", "unreal", "mcp", "token-efficiency", "3d", "dcc", "archviz", "game-dev"],
+  "user_config": {
+    "project_root": {
+      "type": "directory",
+      "title": "Project folder",
+      "description": "Folder where TEE keeps per-project state (.tee/ memory, checkpoints, extract store). Pick your working project folder — not the extension directory, which is wiped on update.",
+      "required": true,
+      "default": "${HOME}/TEE"
     }
   },
   "license": "MIT",

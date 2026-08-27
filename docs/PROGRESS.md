@@ -2127,3 +2127,54 @@ Premise note for whoever works §2 (voxkiln) next: the "re-fetch ~15 GB
 weights" bullet is likely moot — the 08-27 session found the HF cache was
 never cleaned (~18 GB incl. TRELLIS.2-4B, gated DINOv3 approved+cached),
 and a first MPS generation already succeeded on a plain rerun.
+
+## 2026-08-27 — Mac session: TEE 0.1.1, .mcpb launch-config + packaging fixes
+
+An external review of the packaged 0.1.0 .mcpb found four launch/packaging
+defects (unanchored `uv run` cwd, dev group installed for end users, `.tee/`
+state written into the wipeable extension install dir, empty
+`serverInfo.version`) and two cosmetics (no icon, no store listing). All
+fixed and verified this session; single commit on this branch, not pushed.
+
+- Version: 0.1.0 → 0.1.1 in `server/pyproject.toml` +
+  `server/src/tee/__init__.py`; `uv.lock` refreshed
+  (`uv run --no-dev tee --version` → `tee 0.1.1`).
+- `server.py`: `build_server()` now passes `version=__version__` to
+  `MCPServer` — `initialize` had been answering with an empty
+  `serverInfo.version` string.
+- `packaging/mcpb_manifest.json`: launch anchored as
+  `uv run --directory ${__dirname} --no-dev tee serve --adapter blender
+  --project ${user_config.project_root}`; required `project_root`
+  user_config (type directory, default `${HOME}/TEE`); added
+  `display_name`, `icon`, `keywords`, and the 16-tool `tools` listing.
+- New 512×512 `packaging/icon.png`; `make mcpb` packs it, keeps excluding
+  `__pycache__`/`*.pyc`, and names the bundle by new `TEE_SERVER_VERSION`
+  (0.1.1) — `TEE_PLUGIN_VERSION` stays 0.1.0 tracking the TeeToolset
+  `.uplugin`, so the UE zip name still matches the plugin it contains.
+- Verification, all on the rebuilt artifacts:
+
+  ```
+  $ uv run --no-dev tee --version
+  tee 0.1.1
+  $ <initialize+tools/list probe> | uv run --no-dev tee serve --adapter fake
+  serverInfo: {'name': 'tee', 'version': '0.1.1'}
+  tools: 16        # names byte-identical to the manifest tools listing
+  $ npx -y @anthropic-ai/mcpb validate packaging/mcpb_manifest.json
+  Manifest schema validation passes!
+  $ unzip -l dist/tee-engine-0.1.1.mcpb | grep -cE '\.venv/|__pycache__/|\.pyc'
+  0                # icon.png and manifest.json present
+  ```
+
+  Fresh-extract rehearsal of the exact host command — bundle unzipped to a
+  temp dir, launched from an unrelated cwd (`~`), blender adapter with no
+  bridge running: `uv run --directory <tempdir> --no-dev tee serve
+  --adapter blender --project /tmp/tee-smoke` answered `initialize` with
+  version 0.1.1 and listed 16 tools. `ruff` + `pytest` clean
+  (465 passed, 2 skipped).
+- Probe gotcha for future sessions: piping the three probe lines with an
+  instant stdin EOF races the server's shutdown — `initialize` answers but
+  `tools/list` can be dropped. Hold stdin open (`; sleep 2`) after printf.
+- Owner note: Claude Desktop currently has the 0.1.0 bundle (dragged in at
+  16:52, see §3 above). Re-drag `server/dist/tee-engine-0.1.1.mcpb` to get
+  the anchored launch + `project_root` picker; Desktop will now also prompt
+  for the project folder on install.
