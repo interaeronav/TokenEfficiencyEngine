@@ -2307,3 +2307,39 @@ Owner approved finishing 1 and 2; both closed this session:
 §4 still owed after tonight: UE import path + Blender library
 authoring/`asset_listing` (need live DCC sessions), hosted Tripo/Meshy
 keys (owner decision), and all of §5 UE physics.
+
+## 2026-08-27 — Mac session: handoff §4 + §5 CLOSED (owner: "proceed with the rest")
+
+Hosted Tripo/Meshy: DESCOPED by owner decision tonight ("not interested") —
+closed, not deferred.
+
+- **Blender asset library publishing (§4): LIVE.** `as_publish_library`
+  over OkongoSim's store → `/Users/john/TEE/asset-library`: authored 2,
+  indexed 2 via Blender's own `asset_listing generate`; the index carries
+  `"license": "CC0-1.0"` per asset plus dims + thumbnails — the license
+  gate's travel-with-the-asset promise holds in the artifact.
+- **UE import path for GENERATED assets (§4): LIVE.** The voxkiln
+  T-machine GLB → `as_ingest` → `local:t_machine` → `as_import`
+  (adapter=unreal, target_dims): `scale_band: accept`, checkpointed, and
+  read-back EXACT — expected [1.0005, 0.9178, 0.4034] m = read back.
+  (Scale gate honesty check en route: without target_dims/envelope it
+  refused with the four-band fix line, as designed.)
+- **UE physics/settle SIE (§5): LIVE.** Physics cube spawned at z=220 via
+  editor_python (TeeToolset), `ue_settle`: `settled: true`, sim 8.44 s,
+  27 polls, moved 170.5 cm, poses adopted. Viewport capture recorded.
+- **Fluid bake live validation (§5): DONE.** `sim_fluid` (cost-gated,
+  confirm_cost, res 32, liquid) against the real headless bridge:
+  "Fluid: Bake All complete", absolute-path cache populated —
+  750 files (`mesh/fluid_mesh_*.bobj.gz`, data 250, noise, config, guiding)
+  under `/Users/john/TEE/.tee/fluid_cache`.
+- **CoACD proxy integration (§5): WRITTEN + LIVE** (38c1672): `sim_proxy`
+  tool + hash-keyed cache. Real proof on the 491,888-tri generated mesh:
+  24 hulls / 8,186 proxy tris (60:1) in 38.8 s, `cache_hit: true` on the
+  second call; CoACD's own concavity warning surfaced honestly.
+- **Benchmark follow-up RESOLVED** (same commit): measured
+  `torch.float32` at the gated decode head on MPS — the stock-vs-ours
+  no-delta is by construction here; claim scoped to fp16 backends.
+
+With hosted keys descoped, every item in docs/mac-handoff.md §1–§6 is now
+closed with recorded evidence. Suites: server 471 passed / 2 skipped;
+voxkiln 47 passed / 1 skipped.
