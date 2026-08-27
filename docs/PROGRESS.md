@@ -2008,3 +2008,58 @@ kb_read {"id": "paving.block_paving", "section": "Key facts", "max_tokens": 500}
 ```
 
 Handoff §1 closed.
+
+## 2026-08-27 — Mac session: handoff §3 (install-validate the packaged artifacts)
+
+`make dist` re-run on the Mac: all five artifacts rebuilt cleanly
+(TeeToolset-0.1.0.zip, tee-engine-0.1.0.mcpb 520 KB, tee_bridge-0.1.2.zip,
+wheel + sdist).
+
+**TeeToolset-0.1.0.zip → fresh UE 5.8 project: VALIDATED.**
+
+- Fresh BP-only project created at `~/Documents/Unreal Projects/TeeZipProbe`
+  (same plugin set as TeeProbe: ModelContextProtocol, AllToolsets, TeeToolset,
+  PythonScriptPlugin). The plugin came ONLY from the zip:
+  `unzip TeeToolset-0.1.0.zip` into `Plugins/`.
+- Editor log (`~/Library/Logs/Unreal Engine/TeeZipProbeEditor/TeeZipProbe.log`):
+
+  ```
+  LogPluginManager: Mounting Project plugin TeeToolset
+  LogPython: Display: Running start-up script .../Plugins/TeeToolset/Content/Python/init_unreal.py... started...
+  LogToolsetRegistry: Display: Registering Toolset tee_toolset.toolsets.editor.TeeEditorTools
+  LogPython: Display: Running start-up script .../init_unreal.py... took 382.775 ms
+  ```
+
+- Live handshake proof, same form as the 08-22 evidence:
+
+  ```
+  $ tee doctor   (cwd = TeeZipProbe)
+  OK   unreal: MCP on 127.0.0.1:8000, 56 toolsets + TEE toolset
+  ```
+
+- Install-doc fact worth keeping: Epic's MCP HTTP server does NOT autostart by
+  default — `bAutoStartServer=True` under
+  `[/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]` in the
+  project's `Saved/Config/MacEditor/EditorPerProjectUserSettings.ini` (or the
+  Project Settings UI toggle / `-ModelContextProtocolStartServer` arg) is
+  needed before `tee doctor` can see the editor. The toolset REGISTRATION
+  itself needs nothing beyond the zip + enabling the plugin.
+  (Also: launching the UnrealEditor binary directly stalled pre-init in an
+  AppKit modal on this machine; `open <project>.uproject` boots clean.)
+
+**tee-engine-0.1.0.mcpb → Claude Desktop: stdio rehearsal done, drag = owner.**
+
+- Bundle extracted to a scratch dir; the manifest's exact configured command
+  (`uv run tee serve --adapter blender`) run under a stripped env
+  (`HOME` + `PATH=/opt/homebrew/bin:/usr/bin:/bin`):
+
+  ```
+  initialize -> serverInfo name "tee"
+  tools/list -> 16 tools (tee_status ... tee_call)
+  tee_status -> {"ok":true, ..., "virtual_tools":77, "code_exec_enabled":false}
+  ```
+
+- Remaining: the literal drag into Claude Desktop Settings → Extensions and a
+  `tee_status` answer from inside Desktop — owner's hands, ~1 minute.
+
+`tee_bridge-0.1.2.zip`: nothing owed (closed in cloud 2026-08-27).
