@@ -160,6 +160,17 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             "in Blender - the bridge is busy until it finishes",
         }
 
+    def sim_proxy(args):
+        from tee.physical.proxy import coacd_proxy
+
+        return coacd_proxy(
+            str(args["path"]),
+            Path(project_root) / ".tee" / "proxies",
+            threshold=float(args.get("threshold", 0.05)),
+            max_hulls=int(args.get("max_hulls", 32)),
+            seed=int(args.get("seed", 0)),
+        )
+
     def plaus_ids(args):
         try:
             import ifcopenshell
@@ -385,6 +396,26 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             },
             sim_fluid,
             tags=["physical", "physics", "fluid", "mantaflow", "bake"],
+        ),
+        VirtualTool(
+            "sim_proxy",
+            "CoACD convex-decomposition collision proxies for a concave "
+            "mesh, cached per source-file hash under .tee/proxies/. Returns "
+            "hull count, triangle budget and the proxy GLB path; cache_hit "
+            "says whether it computed. Seeded - same file + params, same "
+            "hulls on this build.",
+            {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "threshold": {"type": "number"},
+                    "max_hulls": {"type": "integer"},
+                    "seed": {"type": "integer"},
+                },
+                "required": ["path"],
+            },
+            sim_proxy,
+            tags=["physical", "physics", "collision", "proxy", "coacd", "settle"],
         ),
         VirtualTool(
             "plaus_ids",

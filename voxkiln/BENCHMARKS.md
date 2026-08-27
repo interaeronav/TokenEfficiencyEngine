@@ -129,3 +129,19 @@ scoped to fp16 backends — no row here supports it on MPS.
   fill pass (e906b97).
 - `jobs._execute` forwarded the CLI's `None` params over `export_glb`
   defaults — default CLI runs crashed at simplify (48082c2).
+
+### Addendum (same day, later session): the no-delta finding is RESOLVED
+
+The runtime dtype at the gated decode-threshold site was probed during a
+real stock-mode generation (F.sigmoid wrapper on the decode head):
+
+```
+[PROBE] gated decode-head tensor dtype: torch.float32
+```
+
+On MPS the vendored port keeps the decode head in fp32 (fp16 torso, fp32
+primitives — 76 fp32 / 216 fp16 params in shape_slat_decoder), so the
+ours-arm `.float()` upcasts are no-ops and the arms are hash-identical *by
+construction* on this backend. The "ours improves over stock" claim is
+hereby scoped to fp16 backends (CUDA); no MPS row can support or refute
+it, and the earlier UNVERIFIED label is lifted.
