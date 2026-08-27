@@ -96,13 +96,27 @@ def _diarize(wav: Path) -> list[dict[str, Any]]:
     if not os.environ.get("HF_TOKEN"):
         return []
     try:
+        import wave as wave_mod
+
+        import numpy as np
+        import torch
         from pyannote.audio import Pipeline  # optional, never a dependency
 
         pipeline = Pipeline.from_pretrained(
             "pyannote/speaker-diarization-community-1",
-            use_auth_token=os.environ["HF_TOKEN"],
+            token=os.environ["HF_TOKEN"],  # pyannote 4.x name (was use_auth_token)
         )
-        annotation = pipeline(str(wav))
+        # Decode with stdlib wave and hand the tensor over: pyannote 4.x file
+        # input goes through torchcodec, whose native lib is torch-version
+        # locked and absent/broken on many installs. The wav here is always
+        # resample_wav's own 16 kHz mono output, so stdlib decoding is safe.
+        with wave_mod.open(str(wav)) as w:
+            rate = w.getframerate()
+            pcm = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+        waveform = torch.from_numpy(pcm.astype(np.float32) / 32768.0).unsqueeze(0)
+        annotation = pipeline({"waveform": waveform, "sample_rate": rate})
+        # 4.x wraps the Annotation in a DiarizeOutput; 3.x returns it bare.
+        annotation = getattr(annotation, "speaker_diarization", annotation)
         turns = [
             {
                 "kind": "speaker_turn",
