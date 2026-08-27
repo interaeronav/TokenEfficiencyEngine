@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --all-extras
+      - run: uv run ruff check src tests
+      - run: uv run ruff format --check src tests
+      # DCC-marked tests need a live Blender/Unreal and are skipped by
+      # default; this runs the full fake-adapter suite.
+      - run: uv run pytest -q

@@ -45,6 +45,9 @@ follows from that.
 - `.tee/` holds project memory, checkpoints, and caches in plain files —
   treat it as project data (it is gitignored by default; commit nothing
   from it).
+- **TEE sends no telemetry.** There is no analytics, crash reporting, or
+  phone-home code path anywhere in the server or adapters; the only
+  network traffic is what the bullets above name, each user-initiated.
 
 ## Reporting
 

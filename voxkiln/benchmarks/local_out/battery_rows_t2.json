@@ -1,0 +1,37 @@
+[
+ {
+  "image": "1c359e94f2d699055c78487c90626cf5f1d7460c8fc04e60a286507e5286a28d.webp",
+  "pipeline": "512",
+  "seed": 42,
+  "arm": "ours",
+  "wall_s": 978.0,
+  "peak_rss_gb_cumulative": 19.26,
+  "ok": true,
+  "mesh_hash": "1fa684bf32e5f720",
+  "tris": 491139,
+  "verts": 379535,
+  "watertight": false,
+  "boundary_loops": 4644,
+  "nonmanifold_edges": 14867,
+  "degenerate_faces": 0,
+  "components": 1081,
+  "uv_overlap": null,
+  "texel_density_cv": null,
+  "accepted": true,
+  "timings_s": {
+   "pipeline_s": 119.09,
+   "export_s": 773.33,
+   "export.stats_raw_s": 264.62,
+   "export.repair_s": 146.39,
+   "export.simplify_s": 46.19,
+   "export.unwrap_s": 296.55,
+   "export.rasterize_uv_s": 12.35,
+   "export.project_s": 2.29,
+   "export.sample_volume_s": 0.42,
+   "export.inpaint_s": 0.58,
+   "export.write_glb_s": 3.94,
+   "total_s": 976.2
+  },
+  "glb": "benchmarks/local_out/glb/ours_1c359e94f2d6_512_42/vk-7e7864e8.glb"
+ }
+]

@@ -22,7 +22,7 @@ Format per item:
 - call: `tee_search_tools {"query": "kb knowledge base"}` then `tee_describe_tool {"name": "kb_status"}`
 - hurt: all 4 kb_* tools silently unregistered — `resolve_root(/Users/john/TEE, None)` → None (no knowledge-base/, no `[kb]` config) and `register_kb_tools` just skips; nothing anywhere says the module exists but is inactive. Root-causing took a bundle inspection + source read that a one-line answer would have avoided. The campaign's own co-pilot contract (kb_search/kb_read) was unfulfillable over MCP this session.
 - proposed: always register `kb_status`; with no root it answers `inactive` + the exact fix (`add [kb] root=... to .tee/config.toml`), doctor-voice. 
-- status: open (mitigated for this machine 2026-08-27: `[kb] root` written to /Users/john/TEE/.tee/config.toml per docs/setup-kb.md, so the installed co-pilot activates kb_* from its next start; the product fix stays owed)
+- status: done (8aa4847: inactive kb_status registers with kb_inactive + the config line; previously mitigated for this machine 2026-08-27: `[kb] root` written to /Users/john/TEE/.tee/config.toml per docs/setup-kb.md, so the installed co-pilot activates kb_* from its next start; the product fix stays owed)
 
 ## SI-B2 — tee_search_tools has no "no strong match" signal
 - seen: 2026-08-27, SI-0 session start
@@ -64,4 +64,4 @@ Format per item:
 - call: `tee doctor` / short-timeout initialize probes during the editor's first ~2.5-3 minutes
 - hurt: the MCP HTTP port binds at boot but tool dispatch waits for editor startup to settle; every short probe in that window reads "listening but did not answer as Unreal's MCP server (TeeError)" — a healthy editor looks broken, and one benchmark pass concluded "no editor" and skipped the UE scenario. Measured: same endpoint, 0-byte reply during startup, 0.18 s initialize once settled.
 - proposed: doctor's unreal hint (and the benchmark probe) should say "an editor that just launched may need ~2 minutes before MCP dispatches - retry before concluding it is broken", and probes that find the port bound by UnrealEditor should retry longer before reporting down.
-- status: open
+- status: done (8aa4847: doctor warn leads with the settle-and-retry hint and names the CrashReportClient squatter; longer benchmark-probe retries stay open as a nice-to-have)
