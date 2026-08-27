@@ -103,4 +103,3 @@ Okongo lies about 120 km east of Eenhana on the tarred road to Nkurenkuru, in Oh
 - The Roads Authority's October 2014 manual set could not be downloaded: the PDF attachment links on `ra.org.na/downloads` resolve to an internal SharePoint host. Contents, layer catalogues and Namibian-specific material limits are therefore **unverified**.
 - Whether the RA formally adopts TRH 4 / TRH 14 by reference in its Materials Manual, or has substituted Namibian limits (e.g. for calcrete and gypseous gravel), is **unverified**.
 - No published road-condition data specific to Ohangwena Region was obtained; the "Master Plan for Sustainable Transport for Ohangwena, Omusati, Oshana and Oshikoto Regions" (MWT/GIZ, 2017) is cited in the literature but was not retrieved.
-

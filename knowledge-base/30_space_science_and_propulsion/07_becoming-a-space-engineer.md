@@ -170,4 +170,3 @@ Small, fragmented, growing, and unusually open to newcomers — the ratio of int
 - [Spaceport America Cup](https://www.soundingrocket.org/sa-cup-home.html) — ESRA, accessed 2026-08-25
 - [ECSS active standards](https://ecss.nl/standards/active-standards/) — ECSS, accessed 2026-08-25
 - [NASA Systems Engineering Handbook](https://www.nasa.gov/reference/systems-engineering-handbook/) — NASA, accessed 2026-08-25
-

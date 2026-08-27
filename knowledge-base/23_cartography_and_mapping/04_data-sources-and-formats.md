@@ -371,4 +371,3 @@ and, where you have modified it:
 - SkyFi's per-order redistribution terms; these are set by the originating operator's EULA and must be read per purchase.
 - Whether GEDTM30's current COG endpoint is the OpenLandMap STAC or a Zenodo record — the GitHub repository has moved to Codeberg.
 - ASTER GDEM v3's exact citation requirement wording.
-

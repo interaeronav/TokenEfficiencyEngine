@@ -208,4 +208,3 @@ related: [semi.career, semi.rtl, semi.physics]
 - [High Bandwidth Memory — Wikipedia](https://en.wikipedia.org/wiki/High_Bandwidth_Memory) — accessed 2026-08-25
 - [DDR5 SDRAM — Wikipedia](https://en.wikipedia.org/wiki/DDR5_SDRAM) — accessed 2026-08-25
 - [SkyWater Technology — Wikipedia](https://en.wikipedia.org/wiki/SkyWater_Technology) — accessed 2026-08-25
-

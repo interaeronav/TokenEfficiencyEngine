@@ -171,4 +171,3 @@ A method for a remote construction camp and worksite:
 - Grundfos's web properties (grundfos.com and product-selection.grundfos.com) were not reachable from this environment; the Grundfos Product Center is the standard pump selection tool and should be reached directly in a browser. Status `needs-verification` for the exact URL.
 - Diesel and electricity prices, and therefore PV payback periods, move constantly — the "under three years" figure is indicative and must be recomputed with current N$ / R prices.
 - **[NA]** Confirm current Namibian electrical installation certification requirements and the accepted competent-person qualification before designing a temporary site supply.
-

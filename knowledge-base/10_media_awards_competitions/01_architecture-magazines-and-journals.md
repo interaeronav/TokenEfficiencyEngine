@@ -138,4 +138,3 @@ Consolidation matters for two reasons. First, a single submission to one group c
 - [Architizer — Wikipedia](https://en.wikipedia.org/wiki/Architizer) — founded 2008 by Marc Kushner and Matthias Hollwich; A+Awards from 2013. Accessed 2026-08-25.
 - [Divisare](https://divisare.com/) — Divisare srl Rome, online since 1998, subscription, ad-free editorial position. Accessed 2026-08-25.
 - [ArchDaily — Submit a Project](https://www.archdaily.com/submit-a-project) — free submission, built projects completed after 2014, region-specific packs. Accessed 2026-08-25.
-

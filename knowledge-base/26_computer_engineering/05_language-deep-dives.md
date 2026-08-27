@@ -244,4 +244,3 @@ Where Go optimises for team simplicity, **Zig** optimises for *transparency of c
 - C++26 contents are described only at the level isocpp.org states (decoupled TS-based development). Named features are `needs-verification`.
 - The claim that Android's Rust code shows materially fewer memory-safety defects than the C++ it replaced is well documented in Google's security blog but was **not fetched** for this file — `needs-verification`.
 - Rust edition years (2015/2018/2021/2024) are stated from general knowledge; the Edition Guide page fetched described the mechanism but did not enumerate the editions.
-

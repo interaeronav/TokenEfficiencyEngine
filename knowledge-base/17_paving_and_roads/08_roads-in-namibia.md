@@ -180,4 +180,3 @@ Ohangwena Region is 85,5 % rural, with major settlements strung along the good p
 - Dierks (1992) on Namibian low-volume roads was not retrieved.
 - Whether the RA's own Materials Manual (Oct 2014) sets Namibian-specific limits differing from TRH 14 is unverified.
 - Rainfall figures and the length of the wet season for Okongo specifically were not obtained from a primary source.
-

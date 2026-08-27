@@ -210,4 +210,3 @@ Where the peer-reviewed work appears. Most publish open-access preprints.
 - **SANS *OUCH!* licence terms** for organisational redistribution were not stated on the fetched page; confirm with SANS.
 - **Replication controversies** around Ariely's dishonesty research and Kahneman's priming chapter are described from general knowledge; primary sources not fetched. The characterisations are widely documented but should be cited properly if published.
 - **Proofpoint State of the Phish** was not fetched; described from general knowledge of the series.
-

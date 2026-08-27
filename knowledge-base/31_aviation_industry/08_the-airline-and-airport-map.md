@@ -306,4 +306,3 @@ Structural trend: engine OEMs have captured a large share of aftermarket value t
 - **"Namibia Air"** launch date (June–December 2026) is a government announcement and should be treated as unreliable until an AOC is issued.
 - Alliance member counts are approximate; membership changes (SAS moved from Star Alliance to SkyTeam in 2024, Oman Air joined oneworld in 2024).
 - MRO and lessor rankings are qualitative; no dated market-share source was retrieved.
-

@@ -153,4 +153,3 @@ The second recurring mistake is unit drift. Set `scene.unit_settings.system = 'M
 
 - The exact embedded Python version for 5.2 is inferred from the manual's Python-wheel example (`--python-version=3.13`); confirm at runtime with `sys.version` before pinning wheels in an extension manifest.
 - Whether the EEVEE render-engine enum identifier is still `'BLENDER_EEVEE_NEXT'` in 5.x or has reverted to `'BLENDER_EEVEE'`. Confirm with `blender -E help` or by reading `bpy.context.scene.render.engine` on a default scene before hard-coding it in a script.
-

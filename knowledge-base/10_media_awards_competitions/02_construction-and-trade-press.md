@@ -120,4 +120,3 @@ Namibia has no dedicated general construction magazine of the scale of *Construc
 - [SA Builder](https://www.sabuilder.co.za/) — MBSA-aligned editorial coverage of the South African construction industry. Accessed 2026-08-25.
 - [Master Builders South Africa](https://www.masterbuilders.org.za/) — national representative body; SA Builder referenced as its publication. Accessed 2026-08-25.
 - [The Namibian](https://www.namibian.com.na/) — The Free Press of Namibia (Pty) Ltd, hybrid paywall, Business/Real Estate/Energy Centre sections. Accessed 2026-08-25.
-

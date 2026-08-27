@@ -249,4 +249,3 @@ Fragile-roof rule: fibre-cement and translucent sheeting will not carry a person
 - IBR **load–span tables by gauge** are described by manufacturers as guidance only and were not obtainable; purlin spacing for IBR must be taken from the specific manufacturer's current load–span table or from an engineer.
 - Rafter and purlin size/span tables for cut roofs in SA pine were not sourced from SANS 10082 and the sizes given are indicative trade practice.
 - Wind loading for the Ohangwena region (SANS 10160-3 basic wind speed) was not verified; truss and anchor design must use the correct regional wind speed.
-

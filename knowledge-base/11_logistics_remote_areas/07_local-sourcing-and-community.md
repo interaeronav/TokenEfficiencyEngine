@@ -190,4 +190,3 @@ A village project is a small, highly visible, long-remembered event. The economi
 - [Land reform in Namibia](https://en.wikipedia.org/wiki/Land_reform_in_Namibia) — Wikipedia, accessed 2026-08-25
 - [Oukwanyama](https://en.wikipedia.org/wiki/Oukwanyama) — Wikipedia, accessed 2026-08-25
 - [Oshana](https://en.wikipedia.org/wiki/Oshana) — Wikipedia, accessed 2026-08-25
-

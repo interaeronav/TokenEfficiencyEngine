@@ -273,4 +273,3 @@ The contraction is not uniform. Three things thrived through it:
 - Headcounts for Naughty Dog, Insomniac, Guerrilla, Santa Monica, Riot (post-2018), Sega and Capcom were not obtained.
 - No verified total for 2025 game-industry layoffs was found as a single figure.
 - Engine attributions for Nintendo EPD, Naughty Dog, Supergiant, FromSoftware and Team Cherry were not confirmed by the sources fetched; "proprietary" is asserted where widely reported.
-

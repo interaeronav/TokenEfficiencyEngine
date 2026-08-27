@@ -375,4 +375,3 @@ print("PASS" if abs(val - NOM) <= TOL else f"FAIL  dev {val-NOM:+.3f} mm")
 - The claim that SIFT entered the OpenCV main module at version 4.4 following patent expiry in March 2020 is from general familiarity; the fetched contents page does not state it. `needs-verification` at the version-number level.
 - CIELAB ΔE*ab perceptibility thresholds (≈1 imperceptible, >3 obvious) are standard colorimetry folklore repeated widely; no primary CIE source fetched.
 - Licence status of SuperPoint/SuperGlue (Magic Leap research-only) stated from familiarity, not fetched.
-

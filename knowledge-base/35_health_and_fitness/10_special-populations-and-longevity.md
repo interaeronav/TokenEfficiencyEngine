@@ -291,4 +291,3 @@ The longevity field has attracted substantial commercial interest, and several w
 - **Blue Zones critique** references analyses of birth-record and pension-fraud confounding that were not retrieved in this pass; the criticism is real and published but the specific citation is `needs-verification`.
 - **Protein requirements for older adults (1.2–1.6 g/kg/day)** derive from the PROT-AGE and ESPEN expert group recommendations, not retrieved directly here. `needs-verification`.
 - No **Namibia-specific** environmental physiology literature was located; the regional notes are inferred from general climate characteristics and heat/altitude physiology. **[NA]** `needs-verification`.
-

@@ -274,4 +274,3 @@ Vendors: **SITA**, **Amadeus Airport IT**, **Collins/ARINC (vMUSE, AirVue)**, **
 - **SES2+ recast** — agreement reported in 2024; the implementing timeline is unverified.
 - The list of **ARINC 424 leg types** is from working knowledge; verify against the specification before using operationally.
 - **PSS vendor customer lists** change with every contract renewal; verify before citing any specific airline-vendor pairing.
-

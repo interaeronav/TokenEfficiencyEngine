@@ -238,4 +238,3 @@ related: [vision.calibration, vision.deep_learning, vision.projects, joinery.ove
 - MiCROTEC technology details (X-ray CT, tracheid effect, laser triangulation) and competitor names (Weinig/LuxScan, USNR, Finscan, Limab) are from general familiarity; the fetched page confirmed only the three product family names.
 - Cognex/Homag/Biesse/Zünd CNC vision feature names are unverified in this pass.
 - **[NA]** Namibian UAS regulations and data-protection law status must be verified directly with the NCAA and against current Namibian legislation before any commercial deployment.
-

@@ -196,4 +196,3 @@ If you are not going through a VTC or an apprenticeship, this is the honest audi
 - Whether cidb tender value ranges have been amended since the July 2021 Best Practice Guideline A6 could not be confirmed from a primary cidb regulation.
 - Current NHBRC home builder registration and home enrolment fees were not published on an accessible NHBRC page.
 - The current Affirmative Action (Employment) Act employee-number threshold for a "relevant employer" in Namibia should be confirmed with the Employment Equity Commission.
-

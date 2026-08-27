@@ -451,4 +451,3 @@ All URLs in the tables above were requested on 2026-08-25 and are cited in place
 - **Doka**: no stable public downloads URL was found at group level; user information (instructions for assembly and use) is reached from each system's product page. Worth re-checking.
 - **JCB**: JCB does not publish a general public operator-manual library; literature is dealer-routed. `jcb.com/en-gb/support` is the correct entry point.
 - Several sites are single-page applications that return HTTP 200 for unknown paths. Where a URL below is used programmatically, content-check the response, do not trust the status code alone.
-

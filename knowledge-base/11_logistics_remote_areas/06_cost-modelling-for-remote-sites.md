@@ -239,4 +239,3 @@ Make-or-buy is not only an arithmetic question. Making blocks on site adds:
 - [Ohorongo Cement](https://en.wikipedia.org/wiki/Ohorongo_Cement) — Wikipedia, accessed 2026-08-25
 - [The Trans-Cunene Corridor](https://www.wbcg.com.na/the-trans-cunene-corridor/) — Walvis Bay Corridor Group, accessed 2026-08-25
 - [Okongo](https://en.wikipedia.org/wiki/Okongo) — Wikipedia, accessed 2026-08-25
-

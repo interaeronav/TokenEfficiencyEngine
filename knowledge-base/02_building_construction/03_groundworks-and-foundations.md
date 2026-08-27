@@ -207,4 +207,3 @@ Rules from SANS 10400-K clause 4.5.3:
 - Presumed allowable bearing pressures are given as indicative engineering practice; they are **not** sourced from a South African primary standard and must be verified against SANS 10160-5 / a geotechnical report before design use.
 - Nominal concrete cover values are indicative; SANS 10100-2 Table 7 sets cover by exposure condition and concrete grade and was not obtainable in full.
 - Minimum founding depth in deep aeolian sand at Okongo is given as trade practice (600 mm); no Namibian standard specifying founding depth was located.
-

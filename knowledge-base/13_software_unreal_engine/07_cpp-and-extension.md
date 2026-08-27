@@ -402,4 +402,3 @@ Do not write C++ because it feels more professional. For an archviz practice the
 - [Hardware and Software Specifications](https://dev.epicgames.com/documentation/en-us/unreal-engine/hardware-and-software-specifications-for-unreal-engine) — Epic Games, accessed 2026-08-25
 - [Unreal MCP](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-mcp-in-unreal-editor) — Epic Games, accessed 2026-08-25 (Live Coding / `UFUNCTION` limitation)
 - [Creating User Interfaces with UMG and Slate](https://dev.epicgames.com/documentation/en-us/unreal-engine/creating-user-interfaces-with-umg-and-slate-in-unreal-engine) — Epic Games, accessed 2026-08-25
-

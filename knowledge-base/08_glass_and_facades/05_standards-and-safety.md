@@ -233,4 +233,3 @@ The detailed SANS 204 fenestration calculation — the permissible combinations 
 - **Namibia's legal adoption of any glazing standard is unverified.**
 - **The SANS 204 fenestration calculation method is unverified** beyond the 15% deemed-to-satisfy threshold.
 - The two commentary sources on critical locations disagree in detail; the standard governs.
-

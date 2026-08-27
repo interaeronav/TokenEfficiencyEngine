@@ -301,4 +301,3 @@ Tendon problems are the most common chronic complaint in lifters (patellar, Achi
 - The claim that deep squatting does not increase knee injury risk in trained populations is well-supported in narrative reviews but was not verified here against a specific systematic review. `needs-verification`.
 - The overhead-press shoulder-flexion range figure (~170–180°) is a textbook value, not a cited measurement.
 - Direct hypertrophy comparisons of hip thrust versus squat for gluteus maximus are limited; conclusions in the popular literature outrun the trial evidence.
-

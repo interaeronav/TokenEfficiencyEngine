@@ -179,4 +179,3 @@ Seawater reverse osmosis costs have fallen substantially over three decades thro
 - **No desalination cost figures are given** — deliberately, for lack of a verified source.
 - Erongo desalination plant capacity and ownership not verified.
 - Several key items are dated from EGU 2026 conference abstracts, which are not peer-reviewed.
-

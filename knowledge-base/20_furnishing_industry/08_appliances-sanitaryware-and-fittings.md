@@ -202,4 +202,3 @@ unit_system: SI
 - **[NA]** Namibian water hardness varies enormously by source; no data was obtained. Test before specifying appliances and fittings.
 - Whether Miele, Gaggenau or Toto have authorised service agents inside Namibia (as opposed to South Africa) was not verified — this materially affects the specification decision.
 - EN door-hardware standard numbers (EN 1154, EN 1125, EN 179) are cited from general knowledge, not read from the standards.
-

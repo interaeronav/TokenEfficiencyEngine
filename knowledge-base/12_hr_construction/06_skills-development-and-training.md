@@ -154,4 +154,3 @@ A ten-person contractor can run a credible development pipeline for very little:
 - **[ZA]** CETA mandatory grant percentage and current WSP/ATR submission deadline — unverified.
 - **[ZA]** section 12H learnership tax allowance amounts and whether the incentive remains in force — unverified.
 - The current list of NTA-accredited construction trades and the status of the transition from apprenticeship to the new VET qualification structure — unverified.
-

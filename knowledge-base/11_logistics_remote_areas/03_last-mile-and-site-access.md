@@ -168,4 +168,3 @@ Issue this with every heavy delivery.
 - [Ohangwena Region](https://en.wikipedia.org/wiki/Ohangwena_Region) — Wikipedia, accessed 2026-08-25
 - [Okongo](https://en.wikipedia.org/wiki/Okongo) — Wikipedia, accessed 2026-08-25
 - [Weighbridges and legal load limits](https://www.ra.org.na/weighbridge) — Roads Authority of Namibia, accessed 2026-08-25
-

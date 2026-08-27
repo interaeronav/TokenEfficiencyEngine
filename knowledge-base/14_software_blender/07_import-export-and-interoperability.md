@@ -267,4 +267,3 @@ bpy.ops.wm.usd_export(filepath="//out/house.usdc",
 - The current availability and maintenance status of a DXF import/export add-on for Blender 5.x could not be confirmed; the extensions platform search did not surface one. Treat `ezdxf` scripting as the supported route.
 - 3MF add-on availability for 5.x is likewise unconfirmed.
 - Exporter keyword arguments in the automation snippets (`export_selected_objects`, `use_scene_unit`, `ascii_format`, `export_extras`) are from working knowledge of the current C++ exporters and were not individually confirmed against the API reference; enumerate them at runtime before scripting.
-

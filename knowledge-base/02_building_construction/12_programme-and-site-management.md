@@ -245,4 +245,3 @@ Method:
 - Activity durations and lead times in this file are planning estimates based on typical small-contractor practice, **not** sourced values. They are marked `needs-verification` and should be replaced with the builder's own recorded data.
 - Ohangwena rainy-season dates are given as an approximation; confirm against Namibia Meteorological Service records for Okongo.
 - Namibian equivalents of the ZA health and safety file requirements and any local-authority inspection stages were not obtainable.
-

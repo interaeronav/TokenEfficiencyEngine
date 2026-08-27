@@ -183,4 +183,3 @@ Mounting uses Ø5 mm locating pin holes at 5 mm depth on the 32 mm grid. Hettich
 - **Blum CLIP top BLUMOTION** boring distances and mounting-plate distance tables were not obtained from Blum's own technical catalogue; the values here for boring distance (3–8 mm) come from a secondary source. Use the Blum overlay chart for any production setting-out.
 - AVENTOS power-factor bands are published in imperial units in the source consulted; use Blum's own calculator for metric selection.
 - Handle centre-to-centre ranges and hinges-per-door rules are trade practice, not manufacturer-published limits.
-

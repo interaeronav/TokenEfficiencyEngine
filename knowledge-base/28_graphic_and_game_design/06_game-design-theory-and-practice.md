@@ -359,4 +359,3 @@ Concept sketch → **blockout / whitebox** (grey geometry, correct scale and met
 - Mobile retention benchmarks (D1/D7/D30 ≈ 40/20/10%) are practitioner rules of thumb and are explicitly unverified.
 - Jesse Schell's elemental tetrad, Koster's theory of fun, Bartle's taxonomy, Swink's *Game Feel* decomposition and Csíkszentmihályi's flow model are described from the primary books, which were not fetched in this pass.
 - The specific regulatory status of loot boxes by jurisdiction was not verified and changes frequently; do not rely on the general statement above for compliance purposes.
-

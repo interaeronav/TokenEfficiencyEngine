@@ -269,4 +269,3 @@ Greywater (bath, shower, basin, laundry — **not** toilet or kitchen sink) is t
 - WHO guideline values for fluoride (1.5 mg/L) and nitrate (50 mg/L) are quoted from general knowledge of the WHO *Guidelines for Drinking-water Quality*; the WHO publication page was reachable but the values were not extracted from it directly — treat as `needs-verification`.
 - Namibian drinking-water quality standards (as distinct from WHO guidelines) were not located.
 - Hand-pump depth ranges (Afridev, India Mk II) are from general knowledge and need checking against manufacturer/RWSN documentation.
-

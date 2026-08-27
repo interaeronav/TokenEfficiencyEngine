@@ -360,4 +360,3 @@ Paint (matt/flat, eggshell, satin, semi-gloss, gloss — increasing sheen means 
 - Fire-safety standard numbers (BS 5852, BS 5867, CAL 117-2013, NFPA 260/261/701, EN 1021) are cited from general professional knowledge and were not verified against a primary source in this research.
 - Acoustic absorption coefficients are indicative; use manufacturers' octave-band test data for any calculation.
 - Southern African bed and door sizes should be confirmed against current local manufacturer schedules.
-

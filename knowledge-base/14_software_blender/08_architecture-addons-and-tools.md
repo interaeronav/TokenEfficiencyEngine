@@ -222,4 +222,3 @@ Everything else is optional. Resist installing more: every add-on is a version-c
 - Fluent's listing states support up to Blender 5.1; 5.2 support is **unverified**.
 - Blender Market has been rebranded **Superhive** (`blendermarket.com` redirects to `superhivemarket.com`); older links and tutorials still say Blender Market.
 - No DXF import/export extension surfaced on the extensions platform in this pass; if one exists, this list misses it.
-

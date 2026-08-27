@@ -306,4 +306,3 @@ Organise the file in these ten sections. An agent auditing a project file should
 - **DPC height above finished ground level** — the commonly-cited 150 mm was not verified against the current SANS 10400-K/J and is flagged accordingly.
 - **[NA]** Whether Okongo Village Council has a published submission checklist or inspection regime — unverified.
 - Current plan scrutiny **fee tariffs** for any specific authority in either country.
-

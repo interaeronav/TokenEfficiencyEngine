@@ -304,4 +304,3 @@ Ohangwena Region has three local authorities and two declared settlements:
 - Whether **regional councils** administering declared settlement areas exercise any building plan approval function, and under what power. The Regional Councils Act 22 of 1992 was not obtained in full.
 - The current status of the **NSI national building code / Eurocode adoption project** begun in 2012.
 - Whether the Communal Land Reform Act regulations impose any requirement or restriction on the *type* of structure that may be erected under a customary land right (beyond fencing under s 18/s 28). Not verified.
-

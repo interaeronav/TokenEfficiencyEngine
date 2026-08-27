@@ -135,4 +135,3 @@ Two consequences for a practice:
 - [The Namibian](https://www.namibian.com.na/) — publisher, hybrid access model, Business/Real Estate/Energy Centre sections. Accessed 2026-08-25.
 - [Crown Publications](https://www.crown.co.za/) — Construction World and stablemates as the SA commercial construction press. Accessed 2026-08-25.
 - [Engineering News](https://www.engineeringnews.co.za/) — Creamer Media archive and subscription structure. Accessed 2026-08-25.
-

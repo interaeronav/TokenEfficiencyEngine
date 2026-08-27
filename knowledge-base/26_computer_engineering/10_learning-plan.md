@@ -246,4 +246,3 @@ Front-end frameworks, mobile development, cloud certifications and DevOps toolin
 - The 15–20 h/week and 1,600–2,000 h totals are this file's synthesis, calibrated against the OSSU and Teach Yourself CS figures, not an independently sourced estimate.
 - The self-assessment rubric is a practitioner's framework, not a validated instrument.
 - Hiring-market claims ("almost nobody who has written a kernel is unemployable in systems work") are experience-based judgements, **not** survey-backed — treat as opinion.
-

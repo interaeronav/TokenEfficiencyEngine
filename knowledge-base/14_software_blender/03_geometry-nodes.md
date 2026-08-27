@@ -293,4 +293,3 @@ Never hard-code `"Socket_2"`. Socket identifiers are stable for an existing grou
   `GeometryNodeRepeatOutput` and `GeometryNodeSeparateGeometry` were not individually confirmed — check with
   Python Tooltips before scripting them.
 - The reveal-material selection in graph 1 (step 10) is described as a strategy rather than an exact wiring; the robust production approach is to assign reveal material inside the opening cutter and use Mesh Boolean's `Materials: Transfer` option instead.
-

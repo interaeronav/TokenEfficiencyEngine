@@ -216,4 +216,3 @@ unit_system: SI
 - Publication years for individual papers and books are from general knowledge, not from per-paper fetches. High-confidence dates (Turing 1936, Shannon 1948, Codd 1970, Lamport 1978, Diffie–Hellman 1976, RSA 1978) are safe; less-cited ones should be checked against the original venue before citation.
 - Hinton's 2024 Nobel Prize in Physics is stated from general knowledge and was not fetched — `needs-verification`.
 - Attribution disputes noted here (the EDVAC First Draft; Schmidhuber's priority claims; Merkle's role in public-key cryptography) are genuine live controversies, summarised rather than adjudicated.
-

@@ -167,4 +167,3 @@ The degree's real product is a person who can read an empirical literature criti
 - **[ZA]** Whether HPCSA-linked accreditation prescribes specific undergraduate content, and if so what — HPCSA site unreachable.
 - **[NA]** UNAM and NUST undergraduate psychology curricula — not verified.
 - The current status of specific contested social-psychology findings changes quickly; check the most recent large-scale replication projects rather than relying on this summary.
-

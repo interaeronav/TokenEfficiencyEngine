@@ -161,4 +161,3 @@ Unreal wins when the same scene must serve stills, film, VR and an interactive m
 - [Unreal MCP](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-mcp-in-unreal-editor) — Epic Games, accessed 2026-08-25
 - [Fab EULA](https://www.fab.com/eula) — Epic Games, accessed 2026-08-25
 - [Scripting the Unreal Editor Using Python](https://dev.epicgames.com/documentation/en-us/unreal-engine/scripting-the-unreal-editor-using-python) — Epic Games, accessed 2026-08-25
-

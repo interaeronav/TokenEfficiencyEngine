@@ -15,7 +15,7 @@ sources:
   - {title: "Massimo Vignelli", url: "https://en.wikipedia.org/wiki/Massimo_Vignelli", publisher: "Wikipedia", accessed: 2026-08-25}
   - {title: "Otl Aicher", url: "https://en.wikipedia.org/wiki/Otl_Aicher", publisher: "Wikipedia", accessed: 2026-08-25}
   - {title: "Design tokens — Material Design 3", url: "https://m3.material.io/foundations/design-tokens/overview", publisher: "Google", accessed: 2026-08-25}
-related: [gxgd.overview, gxgd.gd_canon, gxgd.gd_education, gxgd.uiux, gxgd.resources]
+related: [gxgd.overview, gxgd.gd_education, gxgd.gd_canon, gxgd.uiux, gxgd.resources]
 ---
 
 # Graphic design fundamentals — grid, type, colour, composition, production, accessibility
@@ -353,4 +353,3 @@ An identity is not a logo. It is a *system* that lets many people, over many yea
 - Pantone Connect's current subscription pricing and the exact status of Pantone libraries inside Adobe applications were not verified in this pass.
 - The 8% red–green colour vision deficiency prevalence figure is a widely cited population statistic that was not verified against a primary source here.
 - Vox-ATypI was formally retired/revised by ATypI; the current successor classification was not verified. The working shorthand table above is unaffected.
-

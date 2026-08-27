@@ -162,4 +162,3 @@ Leica's DISTO range and Bosch's GLM range dominate professional laser measuring;
 - Specific anchor load values are deliberately not quoted. They must come from the current ETA/ESR for the exact product, diameter, embedment and substrate — `needs-verification` is the correct status for any number sourced elsewhere.
 - Hilti PROFIS Engineering is accessed through the Hilti account portal; the direct application URL was not resolvable to an automated fetch and should be reached from the Hilti engineering pages listed above.
 - Platform tool counts and battery chemistries change annually; re-verify before making a purchase recommendation.
-

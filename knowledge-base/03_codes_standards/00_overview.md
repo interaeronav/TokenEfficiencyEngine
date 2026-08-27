@@ -126,4 +126,3 @@ This distinction drives most real-world disputes: a building control officer can
 - Whether any Namibian local authority has *formally* incorporated the SANS 10400 series by reference under LAA s 94B, and if so which parts and which editions. The Windhoek regulations as published reference pre-1990 SABS specifications (SABS 5, 61, 538, 563, 629), not SANS 10400. Requires confirmation from each council's gazetted regulations.
 - The current status of the NSI national building code project begun in 2012 — whether any Namibian standard for building design has since been declared under Standards Act s 20, and whether any has been declared compulsory under s 20(6).
 - Whether Namibian courts or councils have treated SANS 10400 as evidence of the professional standard of care in construction disputes. No public case law located.
-

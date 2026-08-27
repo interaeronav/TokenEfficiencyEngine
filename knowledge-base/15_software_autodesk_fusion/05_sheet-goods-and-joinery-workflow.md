@@ -258,4 +258,3 @@ Steps 3, 6, 7 and 8 are all scriptable. That is the argument for the API file.
 - Exact real thicknesses of PG Bison and Sonae Arauco MFC as delivered in Namibia — measure, do not assume.
 - The Manufacturing Extension's nesting UI workflow (menu paths, sheet library setup) was not verified against a live help page; the capability description is quoted from Autodesk's product page.
 - Whether the marketplace cut-list add-ins are currently maintained against the May 2026 release.
-

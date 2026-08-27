@@ -264,4 +264,3 @@ You do not need Kubeflow. You need reproducibility and the ability to answer "wh
 - The COCO JSON field list given here (`info/licenses/images/annotations/categories`; `bbox = [x, y, w, h]` absolute; `area`, `iscrowd`, `segmentation`) is standard and correct to the best of my knowledge, but the fetched page returned only navigation content — **not directly verified in this pass**. `needs-verification`.
 - CVAT Online pricing figures were read from the vendor site on the access date and change frequently.
 - The "≥ 150–300 instances per class" heuristic is practitioner folklore (it appears in Ultralytics and Roboflow guidance) rather than a research result.
-

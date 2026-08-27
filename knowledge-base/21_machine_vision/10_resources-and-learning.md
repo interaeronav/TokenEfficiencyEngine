@@ -176,4 +176,3 @@ Computer vision publishes primarily at conferences, not journals, and the procee
 - **Forsyth & Ponce** edition/year (2nd, Pearson, 2011) not verified in this pass.
 - **paperswithcode.com** was historically the standard benchmark-and-code index; its current operational status could not be confirmed in this pass (the fetch returned research summaries rather than a recognisable homepage). Prefer Hugging Face Papers and CVF Open Access as primary routes, and verify Papers with Code's status before relying on it.
 - COCO and ImageNet figures quoted here are standard and widely repeated but were not re-verified against cocodataset.org / image-net.org in this pass.
-

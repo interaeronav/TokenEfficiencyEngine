@@ -265,4 +265,3 @@ A profitable contract can still kill a builder if the cash timing is wrong.
 - Labour constants (hours per unit) for southern African trades could not be sourced from a published authority and are deliberately **not** tabulated here; the file gives the method for deriving them instead.
 - Waste factors other than mortar (20–50 %), plaster (20 %) and screed (10 %) are conventional trade allowances and are `needs-verification`.
 - JBCC retention percentages, payment periods and guarantee amounts are contract-data items in a paid document and were not verifiable from a free source.
-

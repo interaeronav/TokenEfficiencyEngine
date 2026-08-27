@@ -137,4 +137,3 @@ Across every scheme above, judging conversations turn on the same handful of thi
 - **IIDA Will Ching Design Competition**: whether it is still running and its current headcount threshold. `needs-verification`
 - **SA Décor and Design Awards** and **IID Awards [ZA]**: organiser, categories, cycle, entry. `needs-verification`
 - Recent **World Interior of the Year** winners, and named recent winning projects with designer *and* photographer credits, could not be retrieved for any scheme; do not fabricate these.
-

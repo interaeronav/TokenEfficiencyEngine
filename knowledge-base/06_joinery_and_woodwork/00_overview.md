@@ -90,4 +90,3 @@ For a kitchen/scullery/dressing-room/wardrobe/garage-store package, the reading 
 
 - Current NTA unit-standard codes and durations for the Namibian joiner/cabinetmaker trade test are not published in a form retrievable here; confirm with NTA directly before quoting qualification levels in a contract.
 - Whether Furntech's NQF 2/3 furniture-making qualifications are recognised for Namibian trade-test exemption is unverified.
-

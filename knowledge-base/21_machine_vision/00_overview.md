@@ -121,4 +121,3 @@ A fourth route — using vision to close the loop on robotic construction — re
 
 - No open, peer-reviewed benchmark exists for *joinery-specific* defect detection; the timber-grading literature is dominated by proprietary mill systems whose accuracy claims are unverifiable from outside. Flagged throughout `08`.
 - Vendor progress-monitoring accuracy claims (Buildots, Doxel, OpenSpace) are marketing figures; no independent third-party evaluation was located. Treated as `needs-verification` in `08`.
-

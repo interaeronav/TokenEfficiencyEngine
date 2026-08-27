@@ -205,4 +205,3 @@ Cut in with a 50–63 mm angled brush; roll with a medium-pile microfibre roller
 - Foam density and hardness figures, fullness factors, fold depths and adhesive classes are conventional trade values; confirm against the manufacturer's data for any specific product.
 - Fire-safety compliance for home-made or workroom-made soft furnishings is jurisdiction-specific and must be confirmed against the applicable regulation (file `06`).
 - Southern African protected-plant and CITES status for cycads and other indigenous species must be checked with the relevant conservation authority before specification **[NA] [ZA]**.
-

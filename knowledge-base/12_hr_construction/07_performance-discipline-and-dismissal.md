@@ -180,4 +180,3 @@ Full drafts are in file `10`. Each must be adapted and legally reviewed.
 - **[NA]** the time limit for referring a dismissal dispute to the Labour Commissioner (stated here as needing verification) and the current referral forms.
 - **[ZA]** whether s.188A pre-dismissal arbitration remains available on the current CCMA fee schedule, and the current fee.
 - The sanction guide table is drafted from general southern African disciplinary practice, not from any published code — it is **illustrative** and must be reviewed against any applicable bargaining council agreement or company code.
-

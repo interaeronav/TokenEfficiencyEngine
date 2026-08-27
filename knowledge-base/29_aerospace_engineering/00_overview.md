@@ -67,13 +67,13 @@ A third branch has become large enough to be treated separately in practice: **u
  FLUIDS   THERMO/    STRUCTURES   DYNAMICS  MATERIALS  SYSTEMS
    |      PROPULSION      |       & CONTROL     |          |
    |         |            |            |        |          |
-potential  Brayton   load paths   flight mech  Al/Ti    avionics
-boundary   turbojet  semi-mono-   stability    steels   hydraulics
- layer    turbofan  coque        control      Ni-super electrics
-transonic  ramjet    fatigue &    orbital mech composite ECS/ice
-supersonic rockets   damage tol.  attitude     adhesives fuel
-hypersonic inlets    aeroelastic. autoflight   coatings  landing gear
-  CFD      nozzles   FEM/NASTRAN  Kalman/LQR   AM        MBSE/SysML
+ potential  Brayton   load paths   flight mech  Al/Ti    avionics
+ boundary   turbojet  semi-mono-   stability    steels   hydraulics
+   layer    turbofan  coque        control      Ni-super electrics
+ transonic  ramjet    fatigue &    orbital mech composite ECS/ice
+ supersonic rockets   damage tol.  attitude     adhesives fuel
+ hypersonic inlets    aeroelastic. autoflight   coatings  landing gear
+   CFD      nozzles   FEM/NASTRAN  Kalman/LQR   AM        MBSE/SysML
 ```
 
 Every one of these branches maps to a module in the degree (`01_the-degree-and-curriculum.md`) and to a chapter of the technical files that follow.
@@ -187,4 +187,3 @@ Bilateral Aviation Safety Agreements (BASAs) with Technical Implementation Proce
 - Exact completion date and final work-package split of the Boeing/Airbus acquisition of Spirit AeroSystems — `needs-verification`.
 - Current global MRO market value for 2026 — figure quoted is an order-of-magnitude estimate, `needs-verification`.
 - Boeing 2025 full-year and 2026 year-to-date delivery totals could not be fetched from boeing.com (page is a JS application); see `06_aerospace-manufacturing.md`.
-

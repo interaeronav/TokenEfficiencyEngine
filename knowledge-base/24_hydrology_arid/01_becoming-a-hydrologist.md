@@ -130,4 +130,3 @@ Stated honestly: you cannot do hydrology properly without the mathematics. The f
 - Exact current programme names, entry requirements and fees at each institution were not individually verified; treat programme titles as indicative.
 - University of Arizona HWR pages were unreachable from the research environment on 2026-08-25.
 - **[NA]** Namibian professional registration requirements for hydrogeologists (as distinct from engineers) remain unverified.
-

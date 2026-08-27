@@ -291,4 +291,3 @@ Rules of thumb widely used in the survey industry (and to be validated on every 
 - The "1–3 × GSD horizontal, 2–5 × GSD vertical" heuristic is industry folklore repeated across vendor literature; no single authoritative primary source was fetched for it. Marked `needs-verification` — verify against ASPRS Positional Accuracy Standards for Digital Geospatial Data before contractual use.
 - Specific instrument noise figures (Leica RTC360, Faro Focus, Intel RealSense) are stated from general familiarity, not from datasheets fetched in this pass.
 - COLMAP's exact licence text (new BSD, with historical caveats around SiftGPU) should be confirmed on the repository before redistribution.
-

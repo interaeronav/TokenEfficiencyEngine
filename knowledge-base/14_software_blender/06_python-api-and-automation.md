@@ -855,4 +855,3 @@ if __name__ == "__main__":
 - `cycles.adaptive_min_samples`, `cycles.denoising_input_passes` and `cycles.blur_glossy` property names are used from working knowledge; the Cycles add-on's properties are not in the core RNA docs. Verify against `bpy.context.scene.cycles.bl_rna.properties` on the target build.
 - `scene.view_settings.look = 'AgX - Base Contrast'` — the exact Look string depends on the active OCIO config; enumerate `bpy.types.ColorManagedViewSettings.bl_rna.properties['look'].enum_items` rather than hard-coding.
 - The render-engine identifier passed to `scene.render.engine` (`'BLENDER_EEVEE_NEXT'` vs `'BLENDER_EEVEE'`) differs between the 4.2–4.5 and 5.x series; resolve it at runtime.
-

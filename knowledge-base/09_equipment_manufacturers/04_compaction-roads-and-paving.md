@@ -183,4 +183,3 @@ Modern rollers (Bomag **Terrameter/Evib**, Hamm **HCQ/Compaction Meter**, Ammann
 - **[ZA]** COLTO/SANS 3001 clause numbers and exact percentage targets vary by project specification and by the road authority (SANRAL, provincial, municipal). The percentages above are common practice, not a quoted clause — `needs-verification` before use in a specification.
 - **[NA]** The Roads Authority of Namibia's current standard specification for layerworks compaction should be confirmed directly; it broadly follows COLTO but with local amendments.
 - Effective compaction depths for specific plate and rammer models must be read from the manufacturer's data, not from the class ranges above.
-

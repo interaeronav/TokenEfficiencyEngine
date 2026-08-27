@@ -225,4 +225,3 @@ A variation is any change to the scope, quality, quantity or sequence of the wor
 - **[NA]** No Namibian gazetted fee guideline was located. Namibian practice appears to reference the SACAP guideline and PROCSA; this should be confirmed with NCAQS and the NIA.
 - JBCC edition: the contract data fetched corresponds to Edition 6.2 (May 2018) clause numbering; confirm against the edition actually incorporated in any given contract, as clause numbers move between editions.
 - The exact interim payment certificate **issue** interval is set in the contract data, not fixed by the agreement; monthly is conventional but not automatic.
-

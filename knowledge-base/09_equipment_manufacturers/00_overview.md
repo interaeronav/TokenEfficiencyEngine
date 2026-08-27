@@ -140,4 +140,3 @@ Practical rules:
 
 - Regional Namibian dealer coverage for the Chinese brands (XCMG, SANY, Zoomlion) changes rapidly and is not fully captured here — verify current appointments before specifying.
 - Several OEM sites (Caterpillar, Cummins, Perkins, LECTURA, Machinery Trader) block automated fetching; their URLs are recorded and are correct in a browser but could not be status-verified by script. This is flagged per row in file 09.
-

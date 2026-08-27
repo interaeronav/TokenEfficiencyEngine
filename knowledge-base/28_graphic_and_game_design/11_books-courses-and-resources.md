@@ -252,4 +252,3 @@ Verified by fetch in this pass (marked ✅ in the tables above):
 - **The Vignelli Canon's current free-PDF host was not verified.** Wikipedia confirms it was released as a free e-book in 2009 and expanded in 2010; vignelli.com has been intermittently unavailable. Search for the current mirror rather than relying on a URL here.
 - **Course details** (duration, price, current availability) for Coursera, edX, CGMA, School of Motion, IxDF, Type@Cooper and Type West were not verified.
 - **Southern African community links** (Make Games South Africa, Africa Games Week, Playtopia, rAge) were not verified and have no URLs given for that reason.
-

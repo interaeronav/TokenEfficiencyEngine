@@ -179,4 +179,3 @@ The practical consequence is that **"in Okongo" can mean two entirely different 
 - `needs-verification`: the total area of the Cuvelai basin in km² and the population living within it.
 - Ohangwena Region area is given as 10 703 km² in the region article and 10 706 km² in the regions table; the discrepancy is unresolved.
 - The 2023 census urban/rural and household-size figures for **Okongo Constituency** specifically were not retrieved.
-

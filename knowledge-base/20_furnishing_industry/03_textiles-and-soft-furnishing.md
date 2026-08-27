@@ -159,4 +159,3 @@ unit_system: SI
 - **Sunbrella / Glen Raven** technical claims (fibre type, warranty length) could not be fetched — the Wikipedia page returned no content. Fibre type given here is general industry knowledge.
 - Fabric widths, curtain fullness ratios and hem allowances are trade practice, not published standards.
 - Martindale-to-Wyzenbeek equivalence is deliberately not given: no authoritative conversion exists.
-

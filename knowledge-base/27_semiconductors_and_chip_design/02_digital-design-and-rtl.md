@@ -216,4 +216,3 @@ What the open flow cannot do (state this honestly): it has no signoff-quality pa
 - [Tiny Tapeout FAQ](https://tinytapeout.com/faq/) — accessed 2026-08-25
 - [SkyWater Technology — Wikipedia](https://en.wikipedia.org/wiki/SkyWater_Technology) — accessed 2026-08-25
 - [RISC-V — Wikipedia](https://en.wikipedia.org/wiki/RISC-V) — accessed 2026-08-25
-

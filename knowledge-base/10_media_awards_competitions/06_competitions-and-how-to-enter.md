@@ -208,4 +208,3 @@ The two non-negotiable items are the **week-1 compliance checklist** and the **h
 - [Dezeen Awards prices and dates](https://www.dezeen.com/awards/prices-and-dates/) — tiered deadline pricing as a model of rising-fee structures. Accessed 2026-08-25.
 - [AZ Awards](https://awards.azuremagazine.com/) — A+ Award for Student Work. Accessed 2026-08-25.
 - [European Union Prize for Contemporary Architecture — Wikipedia](https://en.wikipedia.org/wiki/European_Union_Prize_for_Contemporary_Architecture) — YTAA student strand added 2016. Accessed 2026-08-25.
-

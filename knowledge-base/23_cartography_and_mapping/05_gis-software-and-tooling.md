@@ -522,4 +522,3 @@ export PROJ_NETWORK=ON
 - The exact QGIS 4.x plugin compatibility position (which of the plugins listed have been ported) was not verified; the LTR recommendation is partly for this reason.
 - Martin, pg_tileserv, tegola and TiTiler version numbers were not checked in this session — the descriptions are of their stable, long-standing behaviour.
 - ArcGIS Pro's current version number and licensing tiers were not verified.
-

@@ -199,4 +199,3 @@ Other relevant currents, all `needs-verification` in their specifics: conservati
 - `needs-verification`: Oshiwambo terminology for homestead elements beyond *ondjugo* and *epata*, and the timber species traditionally used for the palisade in eastern Ohangwena.
 - `needs-verification`: the Namibia Institute of Architects and the Namibian Council for Architects and Quantity Surveyors — current registration requirements and membership. See domain 04.
 - No verified sources on South African–era modernist buildings in Namibia by name; §3 is characterised generically and should be strengthened.
-

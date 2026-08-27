@@ -227,4 +227,3 @@ Buy reference manuals in print (you will flip, not search) and theory in whateve
 - The podcast, journal and course lists are curated recommendations, not verified against publisher/producer pages; availability changes.
 - No Namibia-specific architectural practice manual or textbook was located. If one exists (e.g. published by the NIA), it should be added.
 - Whether SANS standards are available free of charge to South African users (they were at some periods for the SANS 10400 series) could not be confirmed; the archived copies linked in other files in this domain are third-party scans, not official distributions.
-

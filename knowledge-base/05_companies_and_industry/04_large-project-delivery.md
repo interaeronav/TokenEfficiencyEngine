@@ -218,4 +218,3 @@ Distilled from the case studies in `06_case-studies-of-major-projects.md`:
 - [Wikipedia — Big Dig (cost estimates and owner oversight)](https://en.wikipedia.org/wiki/Big_Dig)
 - [Wikipedia — Gautrain (cost estimate timeline)](https://en.wikipedia.org/wiki/Gautrain)
 - [Turner Construction (construction management at scale)](https://en.wikipedia.org/wiki/Turner_Construction)
-

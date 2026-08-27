@@ -224,4 +224,3 @@ Per-texture colour space is separate and is set on each Image Texture node. Gett
 - The metal base-colour table and the albedo ranges are widely used industry reference values, not values taken from Blender documentation — treat as guidance, **needs-verification** against a measured source if colour accuracy is contractual.
 - Texel-density figures are conventions from production practice, not documented Blender defaults.
 - The licence attached to Blender Studio's downloadable production assets is not stated on the welcome page; check each asset's own page before using one in paid client work.
-

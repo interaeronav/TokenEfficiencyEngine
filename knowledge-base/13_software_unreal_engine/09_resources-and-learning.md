@@ -217,4 +217,3 @@ Books date faster than any other resource here. For a fast-moving system such as
 - [benui — Unreal Engine reference](https://benui.ca/unreal/) — accessed 2026-08-25
 - [Isara Tech](https://isaratech.com/) — accessed 2026-08-25
 - [Model Context Protocol](https://modelcontextprotocol.io/) — accessed 2026-08-25
-

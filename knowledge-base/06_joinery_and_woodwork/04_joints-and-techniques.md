@@ -177,4 +177,3 @@ Ranked by cost and by quality:
 - The Wandel joint-strength tests are a single well-documented amateur test series, not a standards-based programme; treat the ordering as reliable and the absolute values as indicative.
 - Published comparative strength data for Domino loose tenons versus integral mortise and tenon is contested; no peer-reviewed source was located.
 - Dovetail slope conventions (1:6 / 1:8) are traditional practice rather than a sourced standard.
-

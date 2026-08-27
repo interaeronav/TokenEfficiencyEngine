@@ -115,4 +115,3 @@ This folder is written for two readers: someone who wants to understand the prof
 - Whether **neuropsychology** is currently a standalone HPCSA registration category or a sub-specialisation recognised within clinical psychology — this changed during the 2010s–2020s scope-of-practice revisions and needs confirmation.
 - The **HPCNA Social Work and Psychology Board** registration categories and minimum qualifications: the board exists and publishes Act / Minimum Requirements / Registration / Scope of Practice / Additional Examinations pages, but those pages were served behind a bot-verification interstitial and could not be read. The governing statute is believed to be the Social Work and Psychology Act, 2004 — **verify the Act number**.
 - Current list of US states granting prescriptive authority to psychologists.
-

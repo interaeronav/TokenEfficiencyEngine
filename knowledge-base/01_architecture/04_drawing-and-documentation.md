@@ -162,4 +162,3 @@ Schedules move repetitive data out of the drawings, where it would be repeated a
 - The line-weight table is industry practice; SANS 10143 specifies graduated weights but the specific millimetre values above are conventional, not quoted from the standard.
 - **[NA]** The City of Windhoek does not publish required drawing scales or copy counts for *building plan* (as distinct from urban planning) submissions; confirm with Building Control before issue.
 - Whether **[NA]** requires plans to be submitted by a registered architectural professional (as opposed to merely recording their registration number) is not stated on the submission form; note that urban planning applications *must* be submitted by a registered town planner.
-

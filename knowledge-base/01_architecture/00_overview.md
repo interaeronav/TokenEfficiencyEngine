@@ -101,4 +101,3 @@ A pragmatic order of study, whether formally enrolled or self-directing:
 
 - The exact prescribed period of practical training and the form of the prescribed examination under **[NA]** Architects' and Quantity Surveyors' Act s.11(2) are not published on the NCAQS public website; they must be obtained from the Council directly.
 - Whether Namibia has formally adopted SANS 10400 as a national building code, or whether building control remains entirely at local-authority level, could not be confirmed from a primary source.
-

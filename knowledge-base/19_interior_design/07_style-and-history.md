@@ -194,4 +194,3 @@ This is the most commercially and culturally significant development in interior
 - The Afro-modern designer and maker list is compiled from general knowledge; **individual attributions, nationalities and studio names should be verified** before publication. `needs-verification`
 - No specific Namibian or South African lodge or residential project is credited, because designer and photographer credits could not be verified. `needs-verification`
 - Southern African vernacular descriptions are generalised; consult ethnographic and architectural-history sources (and, where possible, the communities concerned) before using them in published work.
-

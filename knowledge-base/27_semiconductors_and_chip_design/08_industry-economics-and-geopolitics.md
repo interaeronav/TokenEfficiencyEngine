@@ -220,4 +220,3 @@ The binding constraint on every expansion plan announced since 2022 has been peo
 - [Micron Technology — Wikipedia](https://en.wikipedia.org/wiki/Micron_Technology) — accessed 2026-08-25
 - [SK Hynix — Wikipedia](https://en.wikipedia.org/wiki/SK_Hynix) — accessed 2026-08-25
 - [ChangXin Memory Technologies — Wikipedia](https://en.wikipedia.org/wiki/ChangXin_Memory_Technologies) — accessed 2026-08-25
-

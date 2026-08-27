@@ -201,4 +201,3 @@ Where the consequence of spontaneous fracture is unacceptable and HST capacity i
 - **EN 12150-1 minimum fragment counts per 50 × 50 mm by thickness were not obtained from a primary source** and are deliberately not stated here. Read the standard before quoting them.
 - Toughening furnace temperatures (620–650 °C) are given as the industry range and were not verified from a manufacturer document in this research pass.
 - PFG's current thickness and size availability may have changed since the 2016 brochure; confirm with PFG or PG Building Glass before specifying.
-

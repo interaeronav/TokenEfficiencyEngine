@@ -283,4 +283,3 @@ Inspect at the points where the work is about to be covered up. Each of these is
 - Tile lippage and tiled-surface flatness tolerances are trade practice; SANS 10107 could not be obtained in full.
 - Setting-out tolerances are trade practice; no South African standard specifying them was located.
 - Cement & Concrete SA notes that neither the SABS specifications nor the National Building Regulations set measurable requirements for hardened plaster quality — so acceptance criteria for plaster hardness must be agreed in the specification before work starts.
-

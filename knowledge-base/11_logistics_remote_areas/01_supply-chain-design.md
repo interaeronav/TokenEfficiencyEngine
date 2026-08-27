@@ -220,4 +220,3 @@ Work through in order. Each step constrains the next.
 - [Okongo](https://en.wikipedia.org/wiki/Okongo) — Wikipedia, accessed 2026-08-25
 - [Humanitarian logistics](https://en.wikipedia.org/wiki/Humanitarian_logistics) — Wikipedia, accessed 2026-08-25 (pre-positioning and warehouse typology)
 - [Geography of Namibia](https://en.wikipedia.org/wiki/Geography_of_Namibia) — Wikipedia, accessed 2026-08-25 (rainy seasons)
-

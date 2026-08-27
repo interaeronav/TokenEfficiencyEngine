@@ -203,4 +203,3 @@ Waterproofing is the trade with the widest gap between what is promised and what
 - Standard membrane thicknesses for torch-on systems (commonly quoted as 3 mm or 4 mm APP/SBS) were not found in the SANS 10021 text and should be taken from the specific manufacturer's specification.
 - Typical guarantee periods offered by South African waterproofing manufacturers were not verified from a primary source.
 - The shower waterproofing detail dimensions given (upstand heights, 300 mm past the threshold) are trade practice; the TAL specification should be consulted for the project-specific figures.
-

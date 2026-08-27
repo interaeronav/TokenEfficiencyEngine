@@ -282,4 +282,3 @@ Producers with valid NRCS Letters of Authority per the Cement & Concrete SA ceme
 - Ohorongo's current published price list, bag sizes and Namibian distribution network were not retrievable (ohorongo-cement.com blocks automated fetching). No Ohorongo prices are quoted here.
 - Namibian ready-mix suppliers serving Ohangwena Region have not been individually verified; whether ready-mix can practically reach Okongo within the discharge window is an open question for the specific project.
 - Whether the Cheetah/Ohorongo transaction has closed, and what it means for product ranges and pricing, needs re-checking.
-

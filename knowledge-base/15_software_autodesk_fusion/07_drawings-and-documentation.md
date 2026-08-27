@@ -212,4 +212,3 @@ Practical issues that separate a usable set from a decorative one:
 - The argument list of `DrawingExportManager.createPDFExportOptions()`.
 - Whether custom computed columns (e.g. panel area) can be added to a Fusion parts list in the May 2026 release.
 - Whether drawing templates can be shared across an Autodesk hub team, or are per-user.
-

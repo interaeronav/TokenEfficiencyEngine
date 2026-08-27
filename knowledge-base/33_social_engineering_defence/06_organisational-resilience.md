@@ -212,4 +212,3 @@ Assume the attack works. Plan for four scenarios:
 - **Caesars' SEC 8-K disclosure** of the 2023 incident was not retrieved; the reporting position is therefore not stated here.
 - **MGM's US$100 million figure** is reported as the company's stated loss expected to be covered by insurance; the underlying 8-K/10-Q language was not read directly.
 - Cyber insurance market practice (social engineering fraud endorsements, conditions precedent) is described from general industry knowledge; no policy wordings were consulted.
-

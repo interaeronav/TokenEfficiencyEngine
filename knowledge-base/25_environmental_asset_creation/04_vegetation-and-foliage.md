@@ -341,4 +341,3 @@ Covered in principle in `01 §4.4`. Specifics for foliage:
 - **Sapling Tree Gen** distribution status in Blender 5.2 (bundled vs extension). `needs-verification`.
 - **Actual height and habit distribution of mopane at Okongo** — the shrub/tree split depends on local soil, and the site is on deep sand rather than the clay that produces mopane scrub. Requires site photographs.
 - A verified list of the fruit and shade trees *planted* around Ohangwena homesteads (as opposed to wild species). Domain `18` flags this same gap.
-

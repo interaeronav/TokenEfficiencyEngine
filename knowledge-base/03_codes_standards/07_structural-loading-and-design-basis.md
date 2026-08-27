@@ -207,4 +207,3 @@ SANS 10400-B defines:
 - **Whether a Namibian wind loading source exists** (a national basic wind speed map or an ECN/NSI guidance note). None located. This is a real gap for Namibian design.
 - **SANS 10400-H trigger thresholds** at which deemed-to-satisfy foundations become unavailable and a rational design is mandatory — not verified.
 - Whether SANS 10400-B:2025 (Ed. 4.01) changed any of the design life, wind pressure or tolerance values quoted here from Edition 3.
-

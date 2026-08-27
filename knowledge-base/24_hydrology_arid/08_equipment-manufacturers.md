@@ -257,4 +257,3 @@ All URLs below were HTTP-status-tested on 2026-08-25; the status returned is not
 - **No detailed specifications** (measurement ranges, accuracies, memory, battery life, dimensions) were extracted from manufacturer datasheets in this pass. Model *names* are verified where stated; model *specifications* are `needs-verification`.
 - **Southern African distributors are largely unverified.** Only Campbell Scientific Africa was confirmed by a working regional site. Grundfos, LORENTZ, Hach and Xylem regional presences are asserted from general knowledge and should be checked before being relied on.
 - Product families listed for In-Situ, METER, RST, Grundfos and GF Instruments come from general knowledge because their sites blocked automated access; verify the current catalogue directly.
-

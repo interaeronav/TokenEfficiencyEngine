@@ -3350,4 +3350,3 @@ This repository was built by research agents working from public sources. Where 
 - ModelScope collection deep links (`modelscope.cn/collections/Qwen/Qwen38`) were not individually status-checked; only the organisation page was.
 - Ollama's `qwen3.8` library entry did not exist at the time of checking; re-check before citing an Ollama tag for that generation.
 
-

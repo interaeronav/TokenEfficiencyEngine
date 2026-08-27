@@ -219,4 +219,3 @@ The general law: **margin accrues to whoever controls a step that cannot be subs
 - **Export control specifics** are fast-moving; verify against the US Bureau of Industry and Security's current rules rather than this summary.
 - NVIDIA's most recent quarter could not be fetched; the figures given are **Q2 FY2026, ended 27 July 2025** — roughly a year stale as of this file's date.
 - The claimed "~40% of worldwide consumer electronics" for Foxconn is a **2012** figure and should not be treated as current.
-

@@ -200,4 +200,3 @@ Both countries are parties to the **UN Convention on the Rights of the Child** a
 - **[NA]** Sector Policy on Inclusive Education — year of adoption, specific provisions, and whether a formal tiered screening process equivalent to SIAS exists.
 - **[ZA]** SIAS policy clause detail and the current version in force.
 - Whether the Children's Act s.110 has been amended (the Children's Amendment Acts of 2016 and 2022 amended various provisions — check the consolidated text).
-

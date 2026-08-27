@@ -391,4 +391,3 @@ TMY absolute maximum **40.2 °C**, absolute minimum **4.2 °C**. Wind direction 
 - `needs-verification`: rainfall intensity–duration–frequency data for northern Namibia, needed to size gutters and downpipes properly.
 - `needs-verification`: the number of rain days per season specifically at Eenhana or Okongo.
 - Okongo has no station record; all site figures are nearest-station or reanalysis, as labelled.
-

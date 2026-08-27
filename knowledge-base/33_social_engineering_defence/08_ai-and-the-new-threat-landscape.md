@@ -190,4 +190,3 @@ The technology is not one-sided, and the defensive applications are less specula
 - **C2PA content credentials** are described from general knowledge; the specification was not fetched.
 - **Claims of percentage increases in phishing volume attributable to AI** circulate widely from vendor telemetry. None is used here, because none could be verified against a dated, methodologically transparent source.
 - The statement that no complete solution to prompt injection exists reflects OWASP's mitigation-framed guidance as of the 2025 list; re-check at each OWASP revision.
-

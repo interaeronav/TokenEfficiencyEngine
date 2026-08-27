@@ -378,4 +378,3 @@ print(y_west, x_south)                 # y is NEGATIVE east of the CM
 - **[NA]** Whether Namibia has adopted (or is adopting) a modern geocentric national datum in the way South Africa adopted Hartebeesthoek94. Not confirmed.
 - **[NA]/[ZA]** The current official national geoid models (as distinct from EGM2008) and their distribution terms.
 - Whether the Namibian Lo grid is legally defined in German Legal Metres in the Land Survey Act 33 of 1993 regulations, or only conventionally. EPSG records it as GLM from a Chief Directorate: Surveys and Land Information communication.
-

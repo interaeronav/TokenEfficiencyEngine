@@ -235,4 +235,3 @@ For a site at or near **Okongo, Ohangwena Region**:
 - **No delivery radius, delivery charge, minimum order or lead time was published by any Namibian merchant.** These are the numbers a project actually needs and they must be gathered by telephone.
 - No Namibian architectural glass processor, block/brick yard, ready-mix plant, roofing roll-former or timber treatment plant was identified.
 - Whether Pupkewitz Megabuild's "19 branches" figure predates recent openings (a 2026 news item refers to Megabuild coming to Gobabis) is unclear — the branch locator lists more than 19 outlets including the specialist stores.
-

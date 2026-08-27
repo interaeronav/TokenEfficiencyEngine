@@ -299,4 +299,3 @@ blender -b house.blend -S "Presentation" -E CYCLES \
 - The lumens→radiant-watts conversion factor (~300 lm/W for white LED) is a working approximation, not a Blender-documented figure; Blender provides no lumens input.
 - The clear-sky sun value of ~1000 W/m² is the standard solar-constant-at-sea-level figure, not a Blender default; the Blender default Sun strength is much lower.
 - Whether `Filmic` remains selectable in 5.2 or has been removed: the manual still documents it and marks it deprecated.
-

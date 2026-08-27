@@ -238,4 +238,3 @@ Plus periodic re-purchase as editions change. A subscription is likely to be che
 - **Current SABS Standards Sales email address and telephone number** — the SABS contact page could not be retrieved (TLS/robots restriction). Use the Help section of the webstore.
 - **Whether Namibian university libraries (NUST, UNAM) hold SANS subscriptions** accessible to non-students — not verified, but worth checking for anyone working in Namibia.
 - **Prices are ZAR and NAD as at 2026-08-25** and will change. Re-check before budgeting.
-

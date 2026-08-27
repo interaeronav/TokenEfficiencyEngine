@@ -225,4 +225,3 @@ Against that, **US$163,000 of DigiPen tuition** or an equivalent US private-scho
 - **Full Sail** total tuition is not published; only a net-price calculator is offered.
 - **Gnomon**, **USC**, **NYU** and **CMU ETC** tuition figures were not obtained.
 - Southern African studio and institution details beyond Open Window, Vega and Free Lives (Nyamakop, Sea Monster, Celestial Games, Wits/UCT/UP offerings) are from background knowledge and are `needs-verification`.
-

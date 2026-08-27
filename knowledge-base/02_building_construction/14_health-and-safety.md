@@ -291,4 +291,3 @@ Even on a one-house site, keep:
 - Whether the Chief Inspector's exemption referred to in the notes to Construction Regulation 3 is currently in force, and its terms, was not verified.
 - **[NA]** Namibian first aid box contents (Annexure G(3)(a)) and first aid attendant qualification requirements were not extracted in detail.
 - **[NA]** Namibia has no construction-specific regulations equivalent to the ZA Construction Regulations 2014 (no construction work permit, no statutory health and safety file, no mandatory construction manager appointment); the general GN 156/1997 regime applies. Confirm whether any sector-specific instrument has since been made.
-

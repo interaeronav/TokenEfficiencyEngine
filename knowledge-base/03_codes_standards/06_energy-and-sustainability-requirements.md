@@ -198,4 +198,3 @@ Practical priorities for a hot, arid, high-diurnal-range Namibian site:
 - **The current SANS 10252-1:2018 table numbers** for the annual average hot water heating requirement calculation (the 2011 XA cited tables 2 and 5 of the 2004 edition).
 - **Hot water pipe insulation thickness requirements** — the specific values were not verified from a public source.
 - **Whether any Namibian local authority or the NSI has adopted any building energy requirement.** No evidence found either way.
-

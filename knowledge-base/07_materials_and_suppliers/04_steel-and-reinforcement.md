@@ -274,4 +274,3 @@ Practical rules: match the anchor's corrosion class to the environment and to th
 - Stewarts & Lloyds Namibia and Steeledale Windhoek are recorded from third-party directories only; branch addresses, current trading status and product ranges are **unverified**.
 - The SANS 121 coating thickness table (minimum mean and local coating thicknesses by steel section thickness) was not retrieved and is not reproduced here.
 - Macsteel's Namibian presence, if any, was not confirmed; the Macsteel branch locator was not successfully read in this pass.
-

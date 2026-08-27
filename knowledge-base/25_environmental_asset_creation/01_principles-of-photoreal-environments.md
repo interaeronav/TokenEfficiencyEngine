@@ -315,4 +315,3 @@ The last 10% of photorealism is *photographic*, not 3D. A physically perfect ren
 - Measured albedo of Okongo-area Kalahari sand. The 0.30–0.45 range given is from general arid-quartz-sand literature, not a local measurement. `needs-verification` — a grey-card reference photograph on site would settle it.
 - Whether the Unreal SunSky `Solar Time` field expects true solar time or local clock time (flagged in domain `13`). Verify empirically once on this project.
 - Indicative sand hex values in §8 are eyeballed from reference practice, not colorimetric measurements. Replace with chart-calibrated values after the site visit.
-

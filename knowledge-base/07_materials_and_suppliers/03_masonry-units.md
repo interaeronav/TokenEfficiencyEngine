@@ -237,4 +237,3 @@ Namibian masonry supply is dominated by **concrete units made locally** rather t
 - No SANS product standard for cement-stabilised or interlocking earth blocks was located. Whether Agrément South Africa certification is recognised by Namibian local authorities is unverified.
 - SANS 1058 (paving blocks), SANS 927 (kerbs) and SANS 542 (concrete roof tiles) are cited from general practice knowledge and were **not independently verified** in this research pass; confirm the numbers before quoting them in a specification.
 - The Corobrik and Sabrix entries are based on their published product pages; branch and stocking detail was not verified.
-

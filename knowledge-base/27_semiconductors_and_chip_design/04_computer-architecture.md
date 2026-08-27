@@ -212,4 +212,3 @@ The TPU's architectural core is a large **systolic array** — a 2D grid of MAC 
 - [Groq — Wikipedia](https://en.wikipedia.org/wiki/Groq) — accessed 2026-08-25
 - [Chiplet — Wikipedia](https://en.wikipedia.org/wiki/Chiplet) — accessed 2026-08-25
 - [Chip Scale Package — Wikipedia](https://en.wikipedia.org/wiki/Chip_Scale_Package) — accessed 2026-08-25
-

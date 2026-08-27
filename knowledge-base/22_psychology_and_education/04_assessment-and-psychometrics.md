@@ -226,4 +226,3 @@ The report is the profession's actual product. A defensible educational psycholo
 - Whether the SSAIS-R, JSAIS, ASB and GSAT have been renormed since their original standardisation, and if so when.
 - **[NA]** Whether HPCNA operates any equivalent test-classification regime — not verified.
 - The current standing of R-PAS validity evidence relative to the Exner Comprehensive System.
-

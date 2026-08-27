@@ -148,4 +148,3 @@ This is directly relevant: Okongo is roughly 200 km from Ondangwa and 700 km fro
 - Zenith model range unverified — website unreachable.
 - No capital cost, mould cost or operating cost figures for any machine.
 - Ohorongo's cement types (CEM I/CEM II designations) and plant capacity are unverified.
-

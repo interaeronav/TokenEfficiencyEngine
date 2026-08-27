@@ -230,4 +230,3 @@ A transporter's price is built from:
 - [Trans-Kalahari Corridor](https://en.wikipedia.org/wiki/Trans-Kalahari_Corridor) — Wikipedia, accessed 2026-08-25
 - [Oshikango](https://en.wikipedia.org/wiki/Oshikango) — Wikipedia, accessed 2026-08-25
 - [Customs and Excise](https://www.namra.org.na/customs-excise/) — NamRA, accessed 2026-08-25
-

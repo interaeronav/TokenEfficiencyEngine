@@ -185,4 +185,3 @@ Where you want that relationship, **write a subcontract, not an employment contr
 - **[NA]** the section number and current wording of the Namibian presumption of employment (cited here as s.128A) is `needs-verification`.
 - **[ZA]** the current earnings threshold below which ss.198A/198B and the s.200A presumption apply — unverified rand figure.
 - **[NA]** the status of a comprehensive data protection statute (a Data Protection Bill has been in progress) is unverified.
-

@@ -230,4 +230,3 @@ The decisive advantage is **continuous effective-width tuning**: nanosheet width
 - [Intel 18A process technology](https://www.intel.com/content/www/us/en/foundry/process/18a.html) — Intel, accessed 2026-08-25
 - [TSMC A16 Technology](https://www.tsmc.com/english/dedicatedFoundry/technology/logic/l_A16) — TSMC, accessed 2026-08-25
 - [TSMC 2nm Technology](https://www.tsmc.com/english/dedicatedFoundry/technology/logic/l_2nm) — TSMC, accessed 2026-08-25
-

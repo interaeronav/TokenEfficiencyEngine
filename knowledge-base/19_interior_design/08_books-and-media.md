@@ -189,4 +189,3 @@ The best of these are business and process rather than styling.
 - Wharton & Codman's *The Decoration of Houses* publication year was not confirmed in this research.
 - All podcast entries are unverified.
 - *House and Leisure* **[ZA]** current publication status is unconfirmed.
-

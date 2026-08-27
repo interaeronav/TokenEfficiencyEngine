@@ -206,4 +206,3 @@ The regulatory system is designed to codify accumulated experience. New technolo
 - Exact scope and current status of the FAA Aircraft Certification, Safety, and Accountability Act 2020 implementation, and the JATR recommendation set — `needs-verification`.
 - Part 23 Amendment 23-64 effective date (given as 2017) — `needs-verification`.
 - DO-326A/ED-202A and EASA Part-IS applicability dates — `needs-verification`.
-

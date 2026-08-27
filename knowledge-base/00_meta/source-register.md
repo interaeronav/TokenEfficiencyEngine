@@ -1830,4 +1830,3 @@ Every external source cited anywhere in this repository, deduplicated by URL. 18
 | Yale School of Art | Graphic Design MFA | <https://www.art.yale.edu/graphic-design/> | `28_graphic_and_game_design/01_graphic-design-education.md` |
 | Youngman Roofing | Metal roofing materials explained: a practical guide for South African projects | <https://youngman.co.za/posts/metal-roofing-materials-explained-a-practical-guide-for-south-african-projects/> | `07_materials_and_suppliers/04_steel-and-reinforcement.md` |
 | Youngman Roofing / Corr-Line | IBR technical data (laps, fasteners, pitch) | <https://www.corr-line.co.za/ibr.php> | `02_building_construction/06_roofing-and-carpentry.md` |
-

@@ -749,6 +749,7 @@ def run_surface_scenario() -> dict | None:
         from tee.design.tools import register_design_tools
         from tee.extract.tools import register_extract_tools
         from tee.kernel.adapter import FakeAdapter
+        from tee.kb.tools import register_kb_tools
         from tee.physical.tools import register_physical_tools
         from tee.pins.tools import register_pin_tools
         from tee.server import build_server
@@ -784,6 +785,7 @@ def run_surface_scenario() -> dict | None:
     register_physical_tools(app, root)
     register_pin_tools(app, root)
     register_uefn_tools(app, root)
+    register_kb_tools(app, root, root=str(REPO / "knowledge-base"))
     tools = listed(app)
     full_tokens = estimate_tokens(
         _json.dumps([t.model_dump(**wire_kw) for t in tools], default=str)
@@ -879,6 +881,70 @@ def run_jurisdiction_scenario() -> dict | None:
             f"code check on communal land: read the corpus {corpus} tok -> "
             f"one plaus_check {tee_total} tok ({row['saving']:.1f}% saved)"
         )
+    return row
+
+
+# --------------------------------------------------------------------------
+# KB scenario (Phase 16): sourced answer from the Expert Knowledge Base.
+# The task: "what bedding-sand and jointing-sand spec applies to concrete
+# block paving here, with a citation?" Needs no DCC.
+# --------------------------------------------------------------------------
+
+
+def run_kb_scenario() -> dict | None:
+    try:
+        from tee.app import TeeApp
+        from tee.kb.tools import register_kb_tools
+        from tee.kernel.adapter import FakeAdapter
+    except ImportError as exc:
+        print(f"kb scenario skipped ({exc})")
+        return None
+    kb_root = REPO / "knowledge-base"
+    if not (kb_root / "manifest.json").is_file():
+        print("kb scenario skipped (no knowledge-base mirror)")
+        return None
+
+    project = tempfile.mkdtemp(prefix="tee-bench-kb-")
+    app = TeeApp({"fake": FakeAdapter()}, project_root=project)
+    register_kb_tools(app, project, root=str(kb_root))
+    reg = app.registry
+    tokens = 0
+    calls = 0
+
+    def call(name, args):
+        nonlocal tokens, calls
+        tokens += estimate_tokens(_json.dumps(args, separators=(",", ":"), default=str))
+        result = reg.call(name, args)
+        tokens += estimate_tokens(_json.dumps(result, separators=(",", ":"), default=str))
+        calls += 1
+        return result
+
+    hits = call("kb_search", {"query": "concrete block paving bedding sand specification"})
+    top = hits["hits"][0]["id"]
+    read = call("kb_read", {"id": top, "section": "Key facts"})
+    assert read["flags"]["confidence"], "flags must ride on every content response"
+    app.shutdown()
+
+    # Naive baseline: what a session without kb_* pastes to answer the same
+    # question with a citation - the corpus's own INDEX to find the file,
+    # then the whole file (sections are not addressable without the module).
+    index_tokens = estimate_tokens((kb_root / "INDEX.md").read_text(encoding="utf-8"))
+    file_rel = "17_paving_and_roads/03_concrete-block-paving.md"
+    file_tokens = estimate_tokens((kb_root / file_rel).read_text(encoding="utf-8"))
+    naive = index_tokens + file_tokens
+    row = {
+        "naive_tokens": naive,
+        "index_tokens": index_tokens,
+        "file_tokens": file_tokens,
+        "tee_tokens": tokens,
+        "tee_calls": calls,
+        "answer_file": top,
+        "saving": 100.0 * (1 - tokens / naive),
+    }
+    print(
+        f"kb paving lookup: INDEX.md + full file {naive} tok -> "
+        f"{calls} kb_* calls {tokens} tok ({row['saving']:.1f}% saved)"
+    )
     return row
 
 
@@ -1085,8 +1151,9 @@ def main() -> None:
     unreal_row = _safe(run_unreal_scenario)
     surface_row = _safe(run_surface_scenario)
     jurisdiction_row = _safe(run_jurisdiction_scenario)
+    kb_row = _safe(run_kb_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
-                  surface_row, jurisdiction_row)
+                  surface_row, jurisdiction_row, kb_row)
 
 
 def _safe(fn):
@@ -1099,7 +1166,8 @@ def _safe(fn):
 
 
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
-                  unreal_row=None, surface_row=None, jurisdiction_row=None) -> None:
+                  unreal_row=None, surface_row=None, jurisdiction_row=None,
+                  kb_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -1248,8 +1316,8 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
             f"| flat server, one tool per capability | "
             f"{r['n_virtual_tools'] + r['n_tools']} | {r['flat_server_tokens']:,} |",
             "",
-            "Registering all six modules (extract, assets, design, physical,",
-            f"pins, uefn) adds **{r['added_by_modules']} tokens** to the always-loaded",
+            "Registering all seven modules (extract, assets, design, physical,",
+            f"pins, uefn, kb) adds **{r['added_by_modules']} tokens** to the always-loaded",
             f"surface - the {r['n_virtual_tools']} tools they contribute live behind the",
             f"meta-tools. Reaching one costs {r['reach_one_tool']} tokens (one search +",
             "one describe), so the flat design only pays off in a session that",
@@ -1293,6 +1361,32 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                 "checks under one regime pays it each time - per-session",
                 "suppression is the obvious next saving and is not yet built.",
             ]
+    if kb_row is not None:
+        k = kb_row
+        lines += [
+            "",
+            "## Knowledge Base: sourced answer vs pasted corpus (Phase 16)",
+            "",
+            "The task: what bedding-sand and jointing-sand spec applies to",
+            "concrete block paving, with a citation. The naive side pastes",
+            "the corpus's own INDEX.md to find the file, then the whole file",
+            "(without the module, sections are not addressable). TEE runs one",
+            "kb_search and one budgeted kb_read of the 'Key facts' section,",
+            "with the file's Sources block and confidence/jurisdiction flags",
+            "riding along.",
+            "",
+            "| | Tokens | Calls | Saving |",
+            "|---|---|---|---|",
+            f"| paste INDEX.md ({k['index_tokens']:,}) + full file "
+            f"({k['file_tokens']:,}) | {k['naive_tokens']:,} | | |",
+            f"| kb_search + kb_read | {k['tee_tokens']:,} | {k['tee_calls']} | "
+            f"**{k['saving']:.1f}%** |",
+            "",
+            "Unlike the paste, the kb_* answer cannot arrive without its",
+            "confidence and jurisdiction flags - `needs-verification` content",
+            "is labelled in the response itself (A30/A31), not in a rule the",
+            "session has to remember.",
+        ]
     lines += [
         "",
         f"*Generated by `benchmarks/run_benchmarks.py` against Blender "

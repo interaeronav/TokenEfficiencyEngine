@@ -244,4 +244,3 @@ The correct professional posture, and the one industry actually takes: **CFD is 
 - The specific drag-count scatter figures quoted for the AIAA Drag Prediction Workshops are from the workshop literature but were not re-fetched for this file — treat the exact numbers as `needs-verification`; the qualitative conclusion is robust and repeatedly published.
 - Exact quarter-chord sweep angles for the 787 (≈32.2°) and A350 (≈31.9°) are widely published but not verified against manufacturer documentation here — `needs-verification`.
 - Δ`c_lmax` values for high-lift devices are the classic Raymer/Torenbeek table values; they are design-guidance figures, not measurements for any specific aircraft.
-

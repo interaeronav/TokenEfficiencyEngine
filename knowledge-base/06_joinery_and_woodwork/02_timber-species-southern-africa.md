@@ -103,4 +103,3 @@ Grading in SA runs on SANS grade rules for structural timber; for joinery ask fo
 - The current CITES annotation text for *Pterocarpus* spp. and *Dalbergia* spp. may have been amended at CoP20; confirm against the live CITES appendices before export.
 - CITES status of *Guibourtia coleosperma* specifically was not confirmed against the appendices.
 - Namibian trade names and availability of legally harvested kiaat in 2026 were not verified with a merchant.
-

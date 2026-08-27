@@ -165,7 +165,7 @@ E3  Sleeves and ducts under paving                             m
 
 F   COMPLETION
 F1  Clean down and remove surplus                              item
-F2  Joint top-up visit at 3 months                              item
+F2  Joint top-up visit at 3 months                             item
 
 G   PROVISIONAL / DAYWORK
 G1  Additional excavation in hard material                     m³
@@ -371,4 +371,3 @@ SPECIFICATION: SEGMENTAL CONCRETE BLOCK PAVING
 - No current labour rates, plant hire rates or material prices for South Africa or Namibia were obtained. The only absolute cost data in this file is the CMA's July 2009 Gauteng comparison.
 - Whether SANS 1200 MJ has been revised since 1984 (which would change the clause numbers used in the template) is unverified.
 - The template assumes the South African SANS framework. **[NA]** In Namibia these standards apply only by contract, not by law — which is precisely why the specification must be written out in full.
-

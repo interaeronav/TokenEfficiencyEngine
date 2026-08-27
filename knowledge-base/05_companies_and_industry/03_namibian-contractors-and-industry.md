@@ -220,4 +220,3 @@ If a public procurement decision goes against you, the statutory remedy is the *
 - [Windhoek Observer — local content and procurement policy](https://observer24.com.na/?s=local+content+procurement)
 - [Windhoek Observer — Public Procurement Act coverage](https://observer24.com.na/?s=Public+Procurement+Act)
 - [Windhoek Observer — construction sector news](https://observer24.com.na/?s=construction)
-

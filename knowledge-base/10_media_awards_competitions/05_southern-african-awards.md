@@ -160,4 +160,3 @@ For a glass, aluminium or facade subcontractor, AAAMSA compliance is more commer
 - [cidb](https://www.cidb.org.za/) — contractor register, guidelines and regulations as the board's core function. Accessed 2026-08-25.
 - [SAICE](https://saice.org.za/) — Civil Engineering as SAICE's news and information portal. Accessed 2026-08-25.
 - [The Namibian](https://www.namibian.com.na/) — Namibian infrastructure and construction coverage. Accessed 2026-08-25.
-

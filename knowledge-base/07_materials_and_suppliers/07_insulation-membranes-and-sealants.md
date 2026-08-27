@@ -225,4 +225,3 @@ So a designation such as **F 25 LM** means a construction sealant with 25 % move
 - The SANS 204 climatic zone assignments shown ("zones 1 & 4 & 6" etc.) are as published by the installer and relate to **South African** climatic zones. **Namibia is not covered by SANS 204 zoning** — the applicable Namibian requirement, if any, needs separate verification.
 - The sealant joint width/depth rules given are general good practice; they are **not quoted from ISO 11600** (which classifies products, not joint design) and should be checked against the specific manufacturer's data sheet.
 - Den Braven's and Alcolin's Namibian distribution was not verified.
-

@@ -315,4 +315,3 @@ That is roughly two years part-time and produces genuine, defensible competence 
 - Stellenbosch Electronic Systems Laboratory current UAV/flight-control postgraduate offerings — `needs-verification`.
 - MIT's current undergraduate capstone subject numbers (historically 16.82 Flight Vehicle Engineering / 16.83 Space Systems Engineering, later restructured) did not appear in the fetched catalogue page — `needs-verification`.
 - TU Delft BSc year-by-year module list and ECTS weights could not be fetched (404 on the study-programme page); the Design Synthesis Exercise capstone is well attested but the module list is `needs-verification`.
-

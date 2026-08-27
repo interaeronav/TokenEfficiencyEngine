@@ -220,4 +220,3 @@ For the architectural and joinery content itself, the reading lists in domains `
 - Blender Studio's **asset licence** is not stated on its welcome page.
 - **Book editions, years and ISBNs for the CRC/Routledge and Packt titles are unverified** because both publishers block automated requests.
 - No Blender-specific book aimed squarely at architectural or joinery practice was found and verified in this pass; if one exists, this register misses it.
-

@@ -143,4 +143,3 @@ Design studio typically consumes **20–30 hours per week** beyond scheduled con
 - Accreditation expiry dates for each ALS were not obtainable; SACAP publishes visit reports but not a consolidated validity table. Re-verify before relying on a specific programme's status.
 - CPUT and DUT programme names have changed with the phasing out of the National Diploma/BTech structure; the SACAP list may lag the institutions' current offerings. Marked `confidence: medium` for that reason.
 - The credit-share percentages in the model curriculum are a distillation of common practice, not a SACAP-prescribed weighting.
-

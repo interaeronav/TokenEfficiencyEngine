@@ -1586,6 +1586,15 @@ re-placed only where nothing is actually standing. `pin_list` reports
 
 ## 20. Phase 16 — TEE KB: the Expert Knowledge Base query module (owner request, 2026-08-26)
 
+> **DONE 2026-08-27 (cloud)** — 16.1–16.4 and 16.6 acceptance 1/2/3/5
+> built and measured; see `docs/PROGRESS.md`. Prerequisite discovered and
+> fixed first: the Phase 15 mirror never carried `manifest.json` /
+> `AGENTS.md` and was not byte-exact (330 trailing-newline artifacts, 7
+> noisy files) — completed and hash-reconciled against Dropbox before
+> building on it. 16.5 is documented in `docs/setup-kb.md`; the one-line
+> `[kb]` addition to OkongoSim's own `.tee/config.toml` (acceptance 4)
+> is owed by the Mac session with that repo.
+
 **Goal:** give OkongoSim (and any TEE client) sourced answers from the
 owner's `12 Expert Knowledge Base` — 38 domains, 401 curated markdown
 files, ~1.3M words, every claim cited or flagged — without pasting

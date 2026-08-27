@@ -230,4 +230,3 @@ Whichever you choose, **model each panel as its own object**, named systematical
 
 - The exact default `merge_threshold` on the Weld modifier is not restated here from source; the 0.1 mm figure given is a working recommendation, not a documented default.
 - Hinge cup bore dimensions (35 mm × ~12.5 mm) are industry-standard European hardware figures carried over from the joinery domain, not sourced from Blender documentation — confirm against the specific hardware manufacturer's data sheet before machining.
-

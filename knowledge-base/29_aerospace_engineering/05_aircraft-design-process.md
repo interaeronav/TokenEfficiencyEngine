@@ -212,4 +212,3 @@ The current landscape:
 - A380 development cost (€12–15 bn) and A220/CSeries development cost — widely reported ranges, not verified from company filings in this session; `needs-verification`.
 - COMAC C919 EASA validation status as of 2026 and Boeing 777X certification target — `needs-verification`.
 - Wind-tunnel hour counts and flight-test aircraft/hour counts for a large transport are industry rules of thumb, not programme-specific figures.
-

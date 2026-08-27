@@ -262,4 +262,3 @@ All figures below are published by PFG, derived using **NFRC 200-2010** methodol
 - Emissivity values for specific pyrolytic and sputtered coatings were not obtained from manufacturer literature; the 0.1–0.2 / 0.03–0.05 ranges given are indicative industry figures and should be verified per product.
 - Coating surface conventions (#1–#4) are standard practice but were not verified from a cited document in this pass.
 - Self-cleaning coating performance in a high-dust, low-rainfall environment is asserted from first principles, not from tested data.
-

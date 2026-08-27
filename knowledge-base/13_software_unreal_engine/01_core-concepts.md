@@ -213,4 +213,3 @@ Asset naming conventions are a separate matter and are covered in file `02`.
 - [Scripting the Unreal Editor Using Python](https://dev.epicgames.com/documentation/en-us/unreal-engine/scripting-the-unreal-editor-using-python) — Epic Games, accessed 2026-08-25
 - [unreal.EditorAssetLibrary (Python API)](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/class/EditorAssetLibrary.html) — Epic Games, accessed 2026-08-25
 - [Unreal Engine Modules](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-modules) — Epic Games, accessed 2026-08-25
-

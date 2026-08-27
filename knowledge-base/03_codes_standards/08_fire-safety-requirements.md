@@ -251,4 +251,3 @@ Fire engineering rational design is the normal route for shopping centres, wareh
 - **SANS 10400-W** hydrant spacing, flow, pressure and static storage requirements — not verified. Local fire department requirements typically exceed the standard and must be obtained separately.
 - **Clause 4.55** (presumed fire resistance of building materials and components) — the tables giving presumed ratings for common masonry, concrete and plasterboard constructions were not extracted. These are the tables a designer actually uses to demonstrate a 30, 60, 90 or 120 minute rating without testing.
 - **[NA]** What fire requirements Namibian local authorities apply. The City of Windhoek names "Fire" as one of four plan-review heads but publishes no fire standard. Obtain the fire brigade's requirements directly.
-

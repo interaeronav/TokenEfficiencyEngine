@@ -108,6 +108,7 @@ extension zip. Skills for Claude live under `skills/` (`tee-usage`,
 | physical | `sim_*`, `wall_*`… | tier-2 modeling ops, material facts, settle physics, plausibility findings |
 | uefn | `uefn_*` | Verse digest facts + lint, Scene Graph vocabulary, Blender→UEFN export lane |
 | pins | `pin_*` | marker actors carrying their own record (Unreal actor tags), filled from free asset sources, export/import across level rebuilds |
+| kb | `kb_*` | read-only, budgeted queries over the Expert Knowledge Base mirror; every answer carries the corpus's own confidence/jurisdiction flags and its Sources block |
 
 ## Continuing the build (Claude)
 

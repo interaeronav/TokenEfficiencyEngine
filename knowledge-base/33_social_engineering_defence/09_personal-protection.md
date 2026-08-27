@@ -249,4 +249,3 @@ Work top to bottom. Do not wait until you are certain.
 - **UK 7726 SMS short code** — widely used and industry-standard, but not confirmed on the fetched NCSC page. Marked `needs-verification`.
 - **South African free annual credit report entitlement** is stated from general knowledge of the National Credit Act; verify with the National Credit Regulator.
 - **Namibian Police cybercrime reporting** — no dedicated online channel was identified; Nam-CSIRT is the verified technical route.
-

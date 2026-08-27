@@ -200,4 +200,3 @@ Typically: 10–20% on appointment, then a payment at each gate, with the final 
 - Fee percentage bands, hourly rates and procurement margins above are **industry-typical ranges from practice, not sourced survey data** — treat as `needs-verification`. BIID, ASID and IID **[ZA]** all publish or have published fee guidance; the current documents were not retrievable.
 - The BIID Code of Conduct's exact wording on undisclosed commissions was not retrieved and should be quoted from source before being relied on contractually.
 - Southern African freight and clearing durations are practitioner estimates and vary sharply by port and season. `needs-verification`
-

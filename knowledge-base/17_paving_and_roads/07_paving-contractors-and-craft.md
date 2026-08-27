@@ -172,4 +172,3 @@ At the civil-engineering scale, roads and large pavements in southern Africa are
 - The current status and contact details of the 2004 CMA contractor members are unverified.
 - No specialist paving contractor operating in Ohangwena, Oshana, Omusati or Oshikoto Region could be identified.
 - Whether Namibia has a paving-trade certification (equivalent to ICPI installer certification) is unverified; SATC literature does reference "the training and accreditation of road builders and artisans in Namibia" but that paper could not be retrieved.
-

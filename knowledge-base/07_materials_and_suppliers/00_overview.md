@@ -122,4 +122,3 @@ Three planning rules follow:
 - No single authoritative published list of all Namibian Build it stores was found; the count of 23 comes from a SPAR Group 2025 capital-markets-day slide ("Western Region — RSA 39 & Namibia 23") and has not been reconciled store-by-store.
 - Road distances between Okongo, Eenhana, Ondangwa and Oshakati are not stated in any source verified here, so no distance figures are asserted in this domain.
 - Whether Namibian building-materials certification is governed by NSI marks, SABS marks, or both in practice for imported products needs verification against a current NSI directory.
-

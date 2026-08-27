@@ -205,4 +205,3 @@ Polar resupply is the extreme case: a **single annual window**, no possibility o
 - [Operation Deep Freeze](https://en.wikipedia.org/wiki/Operation_Deep_Freeze) — Wikipedia, accessed 2026-08-25
 - [Sphere Handbook](https://en.wikipedia.org/wiki/Sphere_Handbook) — Wikipedia, accessed 2026-08-25
 - [Okongo](https://en.wikipedia.org/wiki/Okongo) — Wikipedia, accessed 2026-08-25
-

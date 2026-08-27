@@ -278,4 +278,3 @@ Test *before* the concrete slab is cast and *again* after backfilling. Finding a
 - Indicative domestic pipe sizes (25/22/15 mm) are trade practice, not a SANS table; SANS 10252-1 requires sizing by calculation from the design flow rate and design flow pressure.
 - The edition of SANS 10252-2 available in full text is the 1993 (SABS 0252-2) edition; check for a current edition before relying on it contractually.
 - Namibian local-authority requirements for on-site sanitation approval in Ohangwena were not obtainable.
-

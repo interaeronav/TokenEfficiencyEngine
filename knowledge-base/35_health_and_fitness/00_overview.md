@@ -140,4 +140,3 @@ Where a single figure inside an otherwise `high`-confidence file is unverified, 
 
 - The `domain` slug convention across this knowledge base uses the numbered folder name; this domain follows `31_aviation_industry` in that respect.
 - Regional supplement-regulation detail for Namibia specifically (as distinct from South Africa) is thin in the accessible literature and is flagged as `needs-verification` in file `07`.
-

@@ -219,4 +219,3 @@ Balloons are the cheap version: a payload to 30 km with a GPS tracker, a camera,
 - Formula Student class structure (combustion / electric / driverless) and the points allocation — not present on the fetched page; `needs-verification`.
 - Current status and continuity of South African student aerospace competitions — `needs-verification`.
 - Nationality and clearance requirements for the named graduate schemes change frequently; check each employer's current terms.
-

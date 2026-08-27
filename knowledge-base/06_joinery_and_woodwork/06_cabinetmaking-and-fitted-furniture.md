@@ -172,4 +172,3 @@ A shop without a line borer or CNC can work the system with a shelf-pin jig (Fes
 - Kitchen dimensional standards above are UK/EU-derived; **[ZA]/[NA]** local manufacturers commonly use the same 720 mm carcass and 150 mm plinth, but this was not confirmed against a South African or Namibian manufacturer's published standard.
 - Hanging-rail clear heights are drawn from several design sources that do not fully agree; they are practical ranges, not a standard.
 - Appliance aperture dimensions must be taken from each appliance's own installation drawing — no generic figure is safe.
-

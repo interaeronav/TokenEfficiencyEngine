@@ -490,4 +490,3 @@ Vertical exaggeration of 1.5–2 is usually right for Namibian relief, which is 
 - Current per-load prices for Mapbox, MapTiler, Stadia, Esri and Google were **not** retrieved and change frequently. The *models* above are accurate; the numbers must be read from the providers' pricing pages.
 - The precise current MapLibre GL JS major version and its terrain API stability were not verified in this session.
 - Whether Google Maps Platform's current terms permit use as a basemap under third-party vector data — historically restricted; must be read in the current terms.
-

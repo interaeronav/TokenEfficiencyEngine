@@ -170,4 +170,3 @@ The two mistakes that cost the most: staying at one employer past the point of l
 - No verified salary series for Namibia or South Africa was obtainable. The regional heuristic given is **`needs-verification`** and should be replaced with data from a local source (e.g. a South African IT remuneration survey) before use.
 - HFT and quant compensation bands are widely reported but were not verifiable from a primary source; they are omitted rather than estimated.
 - Compensation for RTL design, DV and ML infrastructure above the BLS medians is well attested anecdotally but no primary-source band was fetched; these are described qualitatively rather than numerically.
-

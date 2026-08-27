@@ -153,4 +153,3 @@ The governing heuristic: **cross-border buying converts money into time risk.** 
 - **The cross-border documentation list is general trade practice**, drawn partly from a source that discloses AI generation; it has **not** been verified against NamRA or SARS primary guidance and must be confirmed with a clearing agent.
 - **No prices are quoted in this file.** Online catalogue prices from Builders, Chamberlains and Leroy Merlin change continuously and are SA-inclusive-of-SA-VAT; they are a benchmark, not a quotation.
 - Whether a Namibian buyer can practically obtain SA zero-rating on a counter purchase (as opposed to a documented export) was not verified and is a question for the specific supplier.
-

@@ -175,4 +175,3 @@ There is a **mutual recognition arrangement between NCARB and SACAP**, allowing 
 - **[ZA]** Current SACAP application, candidacy and annual registration fees, and the current PPE fee, were not obtainable from a primary source at the date of writing. The R390 / R2,377 figures are 2023 quotes.
 - Per-division ARE 5.0 examination fees were not confirmed from NCARB's own fee page (404 at time of access).
 - Whether the SACAP PPE is now held twice yearly as standard, or whether 2023 was exceptional, is unresolved between the PPE information sheet (annual) and the 2023/24 annual report (two sittings).
-

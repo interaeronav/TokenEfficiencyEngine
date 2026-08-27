@@ -292,4 +292,3 @@ A checklist:
 - **Contamination rates** are from Geyer 2004, now over twenty years old. More recent surveys exist but were not retrieved; the rate today may differ, though periodic analytical studies continue to find substantial adulteration, particularly in weight-loss and pre-workout categories. `needs-verification` for current figures.
 - **South African and Namibian regulatory detail** (specific SAHPRA call-up schedules; Namibia Medicines Regulatory Council supplement classification) could not be verified against primary sources in this pass. Marked `needs-verification`. **[ZA] [NA]**
 - The proportion of the HMB literature affected by industry funding is described qualitatively; a formal conflict-of-interest analysis was not located.
-

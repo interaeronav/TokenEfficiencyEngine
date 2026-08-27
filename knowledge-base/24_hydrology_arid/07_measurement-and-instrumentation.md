@@ -174,4 +174,3 @@ Covered from the siting perspective in `05`. From the instrumentation perspectiv
 - Instrument accuracy figures in the Key facts table are typical manufacturer/practice values, not extracted from specific datasheets — `needs-verification` against the datasheet of any instrument you actually buy.
 - V-notch and rectangular weir coefficients quoted are standard forms; check against ISO 1438 before building a structure.
 - Topp's equation coefficients are quoted from memory of the standard formulation and should be checked against Topp, Davis & Annan (1980) before use in analysis.
-

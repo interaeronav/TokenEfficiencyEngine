@@ -193,4 +193,3 @@ Two sub-problems: **detection** (where is the text) and **recognition** (what do
 - Ultralytics AGPL-3.0 licensing is stated from general familiarity and the widely reported terms; the licence file was **not** fetched in this pass. Verify directly before any commercial deployment. `needs-verification`.
 - Parameter counts for historical architectures (VGG-16 ≈ 138 M) and ImageNet dataset scales are from familiarity, not fetched.
 - DINOv3 is referenced as an existing successor to DINOv2; its release details were not verified in this pass.
-

@@ -225,4 +225,3 @@ def run(context):
 - Exact ribbon labels under the Assemble panel ("Enable Contact Sets" vs "Enable All Contact") were not verified against a scraped Autodesk help page. `needs-verification` on wording.
 - Whether Motion Study results can be exported as data (joint value tables) via the API.
 - Behaviour of rigid groups when a member component is replaced by a configuration row.
-

@@ -168,4 +168,3 @@ The question to ask of any platform is: **if this vendor doubled the price or di
 - Cognex product-family names (In-Sight 2000/7000/8000/9000, D900, L38/L48, VisionPro, PatMax, ViDi/Deep Learning, DataMan, 3D-A1000) are from general familiarity; **cognex.com returned HTTP 403 to automated fetching in this pass** and could not be confirmed.
 - Keyence, Omron, Matrox and Teledyne DALSA product names likewise not fetched in this pass.
 - Kornia's licence is stated as Apache-2.0 from familiarity; the documentation page fetched does not state it.
-

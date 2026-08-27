@@ -295,4 +295,3 @@ The third line is the same link with rate-1/2 convolutional coding — a good il
 - [NASA RP-1311 Part I (CEA)](https://ntrs.nasa.gov/citations/19950013764) — NASA NTRS, accessed 2026-08-25
 - [OpenRocket](https://openrocket.info/) — OpenRocket, accessed 2026-08-25
 - [CelesTrak fundamentals-of-astrodynamics](https://github.com/CelesTrak/fundamentals-of-astrodynamics) — GitHub, accessed 2026-08-25
-

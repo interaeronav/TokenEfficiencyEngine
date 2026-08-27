@@ -140,4 +140,3 @@ Paid cartography today is roughly: (a) geospatial data engineering and web map i
 
 - The exact ICA commission list for the 2027–2031 term will change at the Warsaw General Assembly; the 2023–2027 list is the current one.
 - Whether the **[NA]** Directorate of Survey and Mapping publishes an open national topographic dataset (as opposed to selling sheets) could not be confirmed — the ministry site was not reachable during research. Marked in `04` and `10` as needing verification.
-

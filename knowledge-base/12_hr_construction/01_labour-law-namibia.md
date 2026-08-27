@@ -161,4 +161,3 @@ This is the statute that governs "labour hire" in Namibia after the Supreme Cour
 - **Dismissal-dispute referral time limit** under the Labour Act — stated as 30 days from personal recollection of practice; verify against the Rules relating to the Conduct of Conciliation and Arbitration.
 - **Employees' Compensation Act** assessment rates for construction risk classes, and statutory reporting deadlines, were not retrievable (the LAC PDF fetch was blocked).
 - **Affirmative Action relevant-employer threshold** (50 employees) is from practice, not from the fetched text of s.20.
-

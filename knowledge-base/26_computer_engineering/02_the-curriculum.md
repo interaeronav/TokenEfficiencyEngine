@@ -228,4 +228,3 @@ Teach Yourself CS states the same prerequisites more tersely: study **computer a
 - Course numbering for Berkeley CS 61A/61B/61C/162/186, Stanford CS 144, CMU 15-445 and MIT 6.1810/6.5840 is stated from the curricula above and from general knowledge; the individual course pages were **not** fetched for this file. Numbers change (MIT 6.828 → 6.1810, 6.824 → 6.5840). Verify against the current university catalogue before enrolling.
 - Book editions are given where the curricula name them. Where an edition is not stated it was not verified.
 - Time estimates outside the OSSU and Teach Yourself CS figures are the author's synthesis, not sourced.
-

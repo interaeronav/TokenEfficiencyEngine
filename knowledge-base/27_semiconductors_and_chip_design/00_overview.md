@@ -162,4 +162,3 @@ Third-order effect, worth stating plainly: because packaging capacity and memory
 - [TSMC A16 Technology](https://www.tsmc.com/english/dedicatedFoundry/technology/logic/l_A16) — TSMC, accessed 2026-08-25
 - [3 nm process — Wikipedia](https://en.wikipedia.org/wiki/3_nm_process) — accessed 2026-08-25
 - [Rapidus — Wikipedia](https://en.wikipedia.org/wiki/Rapidus) — accessed 2026-08-25
-

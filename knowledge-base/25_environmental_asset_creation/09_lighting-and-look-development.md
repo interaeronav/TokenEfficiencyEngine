@@ -310,4 +310,3 @@ For architectural work the grade should be nearly invisible. The client is judgi
 - Whether the **Blender colour management manual URL** used here is current — `docs.blender.org/manual/en/latest/render/color_management.html` returned 404 on 2026-08-25, so the page has moved; the settings described are from domain `14`'s verified summary. `needs-verification` on the new URL.
 - Whether **Unreal 5.8** has changed the default working colour space or added new view transforms beyond the ACES-derived filmic tonemapper. `needs-verification`.
 - The actual colour temperature of direct sun at Okongo through the day. The 5 000–5 500 K midday figure is standard daylight practice, not a local measurement. `needs-verification`.
-

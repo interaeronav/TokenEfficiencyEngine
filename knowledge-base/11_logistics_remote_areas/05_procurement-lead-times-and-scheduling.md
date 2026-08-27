@@ -213,4 +213,3 @@ Keep procurement and construction in **one** programme, not two documents that a
 - [Port of Walvis Bay](https://www.wbcg.com.na/port-of-walvis-bay/) — Walvis Bay Corridor Group, accessed 2026-08-25
 - [Geography of Namibia](https://en.wikipedia.org/wiki/Geography_of_Namibia) — Wikipedia, accessed 2026-08-25
 - [Logistics Cluster](https://en.wikipedia.org/wiki/Logistics_Cluster) — Wikipedia, accessed 2026-08-25
-

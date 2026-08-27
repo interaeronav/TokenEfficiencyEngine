@@ -199,4 +199,3 @@ These firms occupy the space that the collapsed listed groups vacated: cidb Grad
 - [Probuild (WBHO's Australian subsidiary)](https://en.wikipedia.org/wiki/Probuild)
 - [Tirisano Construction Fund — Annual Report 2021/2022 (settlement parties, R1.5 bn over 12 years, trust established 28 August 2017)](https://www-idc-co-za.b-cdn.net/wp-content/uploads/2022/12/TIRISANO-ANNUAL-REPORT-2021_2022_compressed.pdf)
 - [Industrial Development Corporation — Tirisano Construction Fund](https://www.idc.co.za/tirisano-construction-fund/)
-

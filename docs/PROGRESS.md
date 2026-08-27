@@ -90,11 +90,15 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       domains are never an API source. 15.2 jurisdiction wiring done:
       US/ZA/NA regimes with jurisdiction-dependent severity; 12 tests.
       15.3 stays reference-only by design)*
-- [ ] Phase 16 — TEE KB query module *(planned by the owner with the
-      Qwen session, 2026-08-26; decision A31: read-only `kb_*` tools over
-      the `knowledge-base/` mirror, manifest-indexed, budgeted, flags
-      verbatim. Not started — build from Phase 16 of the execution
-      script)*
+- [x] Phase 16 — TEE KB query module *(built in cloud, 2026-08-27:
+      read-only `kb_*` tools (status/search/read/facts) over the
+      `knowledge-base/` mirror, manifest-indexed, section-addressed,
+      token-budgeted, flags verbatim with UNVERIFIED labelling; the
+      mirror itself first completed and hash-reconciled against Dropbox
+      (manifest.json + AGENTS.md fetched, 337 byte-drifted files fixed).
+      22 tests incl. 4 live-mirror; paving-lookup benchmark 96.6% saved;
+      zero always-loaded tokens. Mac owes: the one-line `[kb]` section
+      in OkongoSim's .tee/config.toml — acceptance 16.6 #4)*
 
 ## Machine facts
 
@@ -1428,6 +1432,52 @@ gated-access blocker dies with it — nothing to request. Research digests
 43–48 stay in the corpus; decisions A26–A28 are amended by the removal
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
+
+### 2026-08-27 — Phase 16: the KB query module, and the mirror made byte-exact
+
+Built `tee/kb/` per A31. Before any code, the premise had to be repaired:
+the Phase 15 mirror never carried `manifest.json` or `AGENTS.md` (the
+index source the phase assumes in-repo), and hashing the 401 mirrored
+files against the manifest found **337 mismatches** — 330 were exactly
+one trailing newline added by the mirroring tool (stripped only where
+doing so restored the manifest's recorded sha256), 7 were real extraction
+noise (re-downloaded verbatim; every download verified against Dropbox's
+own `content_hash`). The corpus's `CLAUDE.md` was deliberately not
+mirrored: a `CLAUDE.md` in-repo would be auto-loaded as directory
+instructions by coding agents, and the imported corpus must never direct
+sessions (A30). One mismatch remains by design:
+`00_meta/source-register.md` in Dropbox itself no longer matches the
+corpus's own manifest — genuine upstream drift, faithfully mirrored, and
+now the drift check's first real catch (`kb_status` reports exactly this
+file with the rebuild.py fix line).
+
+The module: `index.py` (manifest-validated index cached under
+`<project>/.tee/kb/` keyed on the manifest's generated date; sha256 drift
+check that flags but keeps serving; H2 section addressing parsed on
+demand), `search.py` (deterministic keyword scoring over title/id/tags/
+summary/headings with exact filters; empty results return the domain
+table, not silence), `tools.py` (kb_status / kb_search / kb_read /
+kb_facts as virtual tools — zero always-loaded tokens; kb_read is
+section-addressed and budgeted, default 800 cap 4000, the file's Sources
+block riding along; needs-verification and low-confidence content carries
+an explicit UNVERIFIED warning naming A30). Root resolution: `[kb] root`
+config first (used even if broken, so typos fail loud), then the
+project's own mirror, then the source checkout's; none → module inactive.
+`cli.py` grew `_attach_kb`, `config.py` the `[kb]` table, `doctor` a kb
+check. `docs/setup-kb.md` documents activation and the OkongoSim wiring.
+
+- Evidence: `pytest server/tests/test_kb.py` → **22 passed** (fixture
+  corpus + 4 live-mirror tests: 401 files/38 domains, paving lookup with
+  citation under budget, facts lane, flagged DCC domains). Full suite
+  `-m "not dcc and not ml and not network"` → **458 passed, 1 skipped**;
+  ruff clean. Benchmark (RESULTS.md): paving-spec lookup with citation =
+  57,349 tokens pasting INDEX.md + the file vs **1,951** via kb_search +
+  one budgeted kb_read — **96.6% saved**; always-loaded surface unchanged
+  at 16 tools / 2,465 wire tokens with all seven modules registered
+  (80 virtual tools).
+- Owed elsewhere: OkongoSim's `.tee/config.toml` `[kb]` section (Mac
+  session with that repo; acceptance 16.6 #4) — the exact lines are in
+  `docs/setup-kb.md`.
 
 ### 2026-08-25 — Token-efficiency test (cloud half) + two plausibility bugs
 

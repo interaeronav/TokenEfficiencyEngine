@@ -220,4 +220,3 @@ And the things to stop doing: matching instruction to learning styles; "brain-ba
 - **[NA]** Sector Policy on Inclusive Education — the primary PDF was not retrievable from this environment; year of adoption and specific commitments unverified.
 - The status of "germane cognitive load" as a distinct category within CLT is actively debated; check the current CLT literature.
 - Evidence on transferability of SWPBIS to large-class, low-resource southern African schools — not established.
-

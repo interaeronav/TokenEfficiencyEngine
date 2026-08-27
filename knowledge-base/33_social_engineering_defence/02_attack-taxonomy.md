@@ -273,4 +273,3 @@ Malicious removable media left where a curious person will find it, or an entici
 - **Chainalysis 2024 crypto fraud figure (US$12.4 bn)** is cited via Wikipedia; verify against the Chainalysis Crypto Crime Report directly before quoting in a formal document.
 - **CISA number-matching fact sheet** could not be fetched (HTTP 403); its existence and subject are confirmed via the phishing-resistant MFA fact sheet and Microsoft documentation, but the specific recommendations are summarised from the related CISA MFA guidance rather than read directly. Marked `needs-verification`.
 - The **US$75 bn aggregate pig-butchering figure** reported in some coverage is a single academic estimate with wide uncertainty and is deliberately not used as a headline here.
-

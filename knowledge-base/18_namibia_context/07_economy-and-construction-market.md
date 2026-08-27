@@ -170,4 +170,3 @@ A federation of community savings groups, supported by the Namibia Housing Actio
 - `needs-verification`: current builders' merchants and their ranges in Ondangwa, Oshakati and Eenhana. See domain 07.
 - `needs-verification`: current Namibian construction material price indices and any published building cost index.
 - Sector-share figures for 2024 (Cirrus) and 2025 (NSA) are not on the same basis and should not be compared directly.
-

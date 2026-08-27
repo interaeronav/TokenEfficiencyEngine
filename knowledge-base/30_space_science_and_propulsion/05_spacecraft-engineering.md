@@ -304,4 +304,3 @@ Defined by Cal Poly San Luis Obispo and Stanford in 1999. **1U = 100 × 100 × 1
 - [James Webb Space Telescope](https://en.wikipedia.org/wiki/James_Webb_Space_Telescope) — Wikipedia, accessed 2026-08-25 (sunshield layers and temperatures)
 - [Europa Clipper](https://en.wikipedia.org/wiki/Europa_Clipper) — Wikipedia, accessed 2026-08-25 (solar array area and power at Jupiter)
 - [ECSS active standards](https://ecss.nl/standards/active-standards/) — ECSS, accessed 2026-08-25
-
