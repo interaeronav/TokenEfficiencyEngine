@@ -197,14 +197,19 @@ class JobStore:
         asset_id = job.id
         glb_path = self.out_dir / f"{asset_id}.glb"
         t1 = time.monotonic()
+        # None means "not requested": let export_glb's own defaults apply
+        # rather than overriding them (a None target_faces crashed simplify).
+        overrides = {
+            key: params[key]
+            for key in ("texture_size", "target_faces", "repair_level")
+            if params.get(key) is not None
+        }
         export_report = export_glb(
             raw["vertices"],
             raw["faces"],
             raw["voxel"],
             str(glb_path),
-            texture_size=params["texture_size"],
-            target_faces=params["target_faces"],
-            repair_level=params["repair_level"],
+            **overrides,
         )
         timings["export_s"] = time.monotonic() - t1
         # the export chain's own stage split, so a slow bake names itself
