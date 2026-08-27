@@ -2211,3 +2211,27 @@ BiRefNet ≈ 18 GB present; `voxkiln doctor`: weights 15.12 GB, gated DINOv3
 §2 owed items all executed: reinstall ✓, weights verified (no fetch
 needed) ✓, first live generation ✓, determinism ✓, battery into
 BENCHMARKS.md ✓ (first tranche + follow-up named).
+
+## 2026-08-27 — Handoff §3 final acceptance: 0.1.1 in Claude Desktop, tee_status in situ
+
+- Owner re-dragged `tee-engine-0.1.1.mcpb` at 17:03; Desktop then skipped the
+  server on every launch — `main.log`: "No MCP config found for extension
+  local.mcpb.interaeronav.token-efficiency-engine (…@0.1.1), skipping".
+  Root cause: the REQUIRED `project_root` user_config was never captured at
+  install (settings file held only `{"isEnabled": true}`; the manifest
+  default did not auto-apply). Install-doc fact: after dragging a bundle
+  with required user_config, the extension's settings must be opened and
+  saved once. Owner saved Project folder = `/Users/john/TEE` (20:1x) →
+  settings now `{"isEnabled": true, "userConfig": {"project_root":
+  "/Users/john/TEE"}}` and the server came up.
+- Proof, executed through the installed extension itself (a Claude session
+  calling the Desktop-managed server):
+
+  ```
+  tee_status {"recap": true}
+  → {"ok": true, "adapters": {"blender": {…, "connected": false}},
+     "virtual_tools": 77, "code_exec_enabled": false, "recap": {…}}
+  ```
+
+  Server starts ✓, tee_status answers ✓ (blender unconnected is correct —
+  no Blender running). §3 is now closed end to end on the 0.1.1 bundle.
