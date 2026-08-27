@@ -1,3 +1,3 @@
 """Token Efficiency Engine - MCP server + API layer for Unreal Engine and Blender."""
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"

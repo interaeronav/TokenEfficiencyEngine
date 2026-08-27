@@ -3,11 +3,10 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased
+## 0.2.0 — 2026-08-28
 
-Proposed next version: **0.2.0** (surface-visible changes; see the
-release checklist in docs/COMMERCIAL_READINESS.md — the bump itself is
-step 1 there).
+The A33 self-improvement campaign release (owner-approved bump;
+surface-visible changes throughout).
 
 - Always-loaded tool schemas slimmed on the wire (pydantic titles,
   anyOf-null wrappers, null defaults stripped): 16 tools cost
