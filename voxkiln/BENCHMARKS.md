@@ -145,3 +145,16 @@ ours-arm `.float()` upcasts are no-ops and the arms are hash-identical *by
 construction* on this backend. The "ours improves over stock" claim is
 hereby scoped to fp16 backends (CUDA); no MPS row can support or refute
 it, and the earlier UNVERIFIED label is lifted.
+
+## 2026-08-27 — SI-2 stats-stage fixes (A33 campaign)
+
+Profiled on `ours_T_512_42` (491,888 tris, 22,108 components):
+`mesh_stats` spent 189 s in `trimesh.split()` (a Trimesh per component,
+for a count) and 67 s in `outline()` (path traversals, for a loop
+count). Both now count graph components directly: **275.8 s → 13.7 s on
+the same mesh under the same load** (commit cb7e377). Component counts
+are unchanged; `boundary_loops` moves to a CC-of-boundary-edges
+definition (this mesh: 22,892 new vs 27,593 traversal-entity count) —
+rows above this section used the old definition. `battery_rows_t2.json`
+(tranche 2, started before the change) also carries old-definition
+boundary loops; mesh hashes are unaffected by metrics.

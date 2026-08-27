@@ -2588,3 +2588,62 @@ never run the dcc suite and the benchmark against one editor
 concurrently (the level is shared state; one such overlap aborted the UE
 scenario mid-cleanup and SI-B5's carry-forward preserved the row).
 Commit: f0de6df.
+
+## 2026-08-27 — SI-2: profiled hotspots fixed, latency table, fault-injection table
+
+**2.1 Wall-time hotspots (profile before touching — held to).** The
+recorded 718 s export (unwrap 442 / stats 142 / repair 71) was profiled
+on the real T-machine mesh (491,888 tris). First finding: the decode
+surface is **22,108 components with no dominant shell** (largest piece
+0.034 of 4.44 total area) — confetti is the surface, which explains
+xatlas's 442 s (≥22k charts) and kills naive component-dropping.
+cProfile then confirmed two Python-side hotspots inside `mesh_stats`:
+`trimesh.split()` built a full Trimesh per component just to count them
+(189 s), and `outline()` built path traversals for the boundary-loop
+count (67 s). Both replaced with graph labeling (the same call
+`euler_numbers` already used): **mesh_stats 275.8 s → 13.7 s measured on
+the same mesh under identical CPU contention**, component count
+byte-identical, boundary-loop count moves to a documented CC-of-boundary-
+edges definition (22,892 vs traversal's 27,593 on this mesh; docstring
+and BENCHMARKS.md note the change; older rows used the old count).
+Commit cb7e377. UV unwrap's 442 s stands as structural (22k charts);
+candidates staged, not blind-applied: xatlas option matrix, rebuild-first
+export path. Repair (71 s) left untouched — profile runs died to memory
+pressure before reaching it twice; queued for a quiet-machine pass.
+
+**2.3 Server-side latency, live adapters (medians of 5).** Kernel and
+every cached read ≤0.3 ms (status 0.3, recap/summary/detail/diff ~0.0);
+blender: batch-1-create 4.8 ms, resync 1.6 ms, capture-16KB 32.9 ms;
+unreal: batch-1-create 3.0 s, delete-3 4.3 s, capture 2.5 s, resync
+0.67 s; virtual tools ≤2.2 ms (kb_search). Verdict: **no anomalies** —
+the UE costs are Epic's documented game-thread serialization (~0.37 s
+per dispatch), the very constraint TEE's batching already optimizes for;
+scenes left as found (15 entities verified at exit).
+
+**2.4 Failure paths (hard rule 6).** 23-fault injection table across
+kernel / dead-DCC / registry / kb / extract / assets / design / physical
+/ script / uefn: every fault answers ONE short message with the exact
+fix (24–112 tok); `kb_no_section` at 159 tok is correct-verbose (the fix
+IS the section list). Two real findings fixed (ba84e85): `as_materials`
+unknown category answered a silent empty list — now fails loud naming
+known categories; `_manifest_requires` failed UNSAFE, silently waiving
+attribution on an unreadable manifest — now fails safe. The 13
+swallowing `except Exception` sites were each reviewed: 11 are
+deliberate degrades with explicit outcomes (batch/script rollback
+paths, optional per-item lanes); the pyannote catch — the one that hid
+three API drifts — now separates expected absence (silent) from a
+broken lane (one visible `diarization_unavailable` marker fact).
+
+**2.2 The research-48 matrix, staged honestly.** The 38c1672 fp32
+finding halves the remaining work on this machine (stock≡ours by
+construction on MPS → one arm per config). Tranche 2 launched tonight
+on a quiet GPU (editor closed first): 2 uncovered images × seed 42 ×
+pipeline 512, ours arm → `battery_rows_t2.json` (its rows predate the
+boundary-loop definition change; hashes unaffected). Remaining after
+tranche 2: ~24 configs ≈ 5–8 h single-arm — further tranches next
+sessions or an owner-scheduled overnight window.
+
+**UE ops facts for the runbook:** TeeZipProbe boots an untitled temp
+level — nothing persists across editor restarts; mid-session debris is
+same-session test leftovers (delete + the level is exactly clean).
+The editor's MCP dispatches only ~2.5–3 min after launch (SI-B7).
