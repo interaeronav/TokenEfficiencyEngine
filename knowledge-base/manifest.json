@@ -319,9 +319,9 @@
       "updated": "2026-08-25",
       "words": 24832,
       "bytes": 312137,
-      "sha256": "c901de06bf5fd574",
+      "sha256": "e3b521d2a3b166a4",
       "source_count": 0,
-      "summary": "Every external source cited anywhere in this repository, deduplicated by URL. 1811 unique URLs drawn from 2826 citations across 399 files. Generated 2026-08-25 from the frontmatter of every file."
+      "summary": "Every external source cited anywhere in this repository, deduplicated by URL. 1811 unique URLs drawn from 2826 citations across 401 files. Generated 2026-08-25 from the frontmatter of every file."
     },
     {
       "path": "01_architecture/00_overview.md",

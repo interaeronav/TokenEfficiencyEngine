@@ -72,6 +72,17 @@ DISCLAIMER = (
 
 
 # CONV < HEUR < STD < CODE. A regime's ceiling caps what any rule may claim.
+_MASONRY_TOKENS = ("brick", "masonry", "block", "stone", "adobe", "cmu")
+
+
+def _is_masonry(material: Any) -> bool:
+    """Family match, not a name whitelist: the exact-name check silently
+    skipped 'clay_brick' and 'concrete_block' walls (a 60 m clay_brick wall
+    sailed through slenderness). Plain 'concrete' stays cast-in-situ."""
+    text = str(material or "").lower()
+    return any(token in text for token in _MASONRY_TOKENS)
+
+
 _SEVERITY_ORDER = ("CONV", "HEUR", "STD", "CODE")
 
 # Accepted spellings -> profile key. Deliberately NOT fuzzy: an unknown region
@@ -220,7 +231,7 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 )
 
         elif cls == "wall":
-            if element.get("material") in ("brick", "masonry", "brick_masonry"):
+            if _is_masonry(element.get("material")):
                 evaluated += 1
                 rule = table["masonry_slenderness"]
                 height = float(element.get("height_m", 0))
@@ -412,6 +423,31 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                     f"(ratio {length / back:.2f} > {rule['back_span_ratio_max']}): "
                     f"{rule['finding']}",
                 )
+
+    # Storey envelope: the entire rule set is prescriptive/deemed-to-satisfy
+    # territory. A building beyond it doesn't just break one rule - every
+    # rule here under-covers it, so say that once, at HEUR, for the model.
+    scope = table.get("prescriptive_scope_stories")
+    walls = [e for e in elements if e.get("class") == "wall"]
+    if scope and walls:
+        evaluated += 1
+        declared = max((int(e.get("stories", 1)) for e in walls), default=1)
+        tallest = max((float(e.get("height_m", 0)) for e in walls), default=0.0)
+        implied = int(tallest // float(scope["storey_height_m"]))
+        stories = max(declared, implied)
+        if stories > int(scope["max_stories"]):
+            how = (
+                f"declared {declared} storeys"
+                if declared >= implied
+                else f"a {tallest:.0f} m wall implies ~{implied} storeys "
+                f"(at {scope['storey_height_m']:.0f} m per storey, convention)"
+            )
+            hit(
+                "prescriptive_scope_stories",
+                "building",
+                f"{how} > the {scope['max_stories']}-storey envelope of the "
+                f"{rule_set} prescriptive rules: {scope['finding']}",
+            )
 
     findings.extend(_load_path(elements, by_id, table))
     evaluated += 1  # the graph check

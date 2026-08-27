@@ -1433,6 +1433,70 @@ gated-access blocker dies with it — nothing to request. Research digests
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
 
+### 2026-08-27 — Outstanding items actioned: corpus rebuilt, four fixes
+
+Ran the corpus's own `00_meta/rebuild.py` over the mirror (owner request)
+and closed every recorded cloud-scope gap.
+
+**The rebuild, and what it proved.** `rebuild_verification.py` carries a
+hard-coded `ROOT="/home/claude/kb"` from the original build machine, so
+it ran as a patched scratch copy (the mirrored script stays byte-exact);
+`rebuild_index.py` derives its root correctly. Pass 1 reproduced the
+owner's totals exactly — 401 files, 1,402,755 words, 2,826 citations,
+1,811 unique sources, 0 frontmatter problems — and regenerated
+`source-register.md` and `VERIFICATION.md` **byte-identical** to the live
+Dropbox files: the pipeline is deterministic, and the mirror
+reconciliation was correct. The upstream drift's root cause is now
+proven: `rebuild_index.py` writes `manifest.json` BEFORE rewriting
+`source-register.md`, so the manifest always records the previous
+generation's hash of that file (the owner's last run happened while the
+corpus was two files short — the stale entry even said "399 files"). A
+second `rebuild_index.py` pass converges it; drift is now **zero**
+(401/401 clean in `kb_status` and `tee doctor`). Net repo change: only
+`manifest.json` (one corrected record) and `INDEX.md` (the stale
+"399 files" summary row + whitespace). The owner's Dropbox copy still
+carries the stale manifest entry; syncing the corrected `manifest.json`
+and `INDEX.md` back to Dropbox is the owner's call.
+
+**Fix 1 — KB cache keyed on content, not date.** The rebuild exposed a
+Phase 16 bug the same day it shipped: the index cache was keyed on the
+manifest's `generated` date, which the corpus's generator hard-codes —
+so today's manifest change would never invalidate an existing cache. Now
+keyed on the manifest file's sha256. Regression test confirmed failing
+against the unfixed code.
+
+**Fix 2 — masonry family, not a name whitelist.** `masonry_slenderness`
+and `masonry_min_thickness_mm` matched `material` against three exact
+names and silently skipped `clay_brick` / `concrete_block` / `stone`
+walls — a 60 m clay_brick wall sailed through. Now a family-token match
+(brick/masonry/block/stone/adobe/cmu); cast-in-situ `concrete` stays
+out.
+
+**Fix 3 — the storey envelope exists now.** New
+`prescriptive_scope_stories` rule: the checker's whole rule set is
+prescriptive/deemed-to-satisfy territory, so a building beyond that
+envelope gets one HEUR finding saying every other finding under-covers
+it and rational design is the applicable regime. IRC: 3 storeys
+(R101.2's scope). SANS: 2 storeys, carrying the same RE-VERIFY note as
+the other paywalled-standard values. Triggered by declared `stories` or
+implied by wall height (3 m/storey convention, said in the finding).
+Verified in both directions: 3 storeys passes the IRC envelope and flags
+under SANS; the 60 m wall flags everywhere as "implies ~20 storeys".
+
+**Fix 4 — the dead Fortnite island.** `test_uefn_analytics_live` pointed
+at island 6560-2820-9190, retired upstream (API 404) — an external
+lifecycle event, not a tool defect. The test now skips with that reason
+on a 404 for the island and still fails on any other error. Verified
+live: the real API call now yields the skip.
+
+- Evidence: full suite `-m "not dcc and not ml and not network"` →
+  **462 passed, 1 skipped** (was 458); `test_physical_core.py` 40
+  passed; `test_kb.py` 23 passed; live network run → the analytics test
+  skips with "island retired upstream"; ruff check + format clean;
+  `kb_status` drift 0/401.
+- Still Mac-only, unchanged: OkongoSim `[kb]` config line (16.6 #4),
+  Voxkiln live bring-up, UE plugin zip, GPU lanes.
+
 ### 2026-08-27 — Phase 16: the KB query module, and the mirror made byte-exact
 
 Built `tee/kb/` per A31. Before any code, the premise had to be repaired:
@@ -1527,7 +1591,7 @@ them concerns building height or storey count, so it cannot evaluate a
 multi-storey proposal at all. `masonry_slenderness` also matches
 material on a name whitelist that misses `clay_brick`. Both are
 recorded here rather than patched blind; neither is a Phase 15.2
-regression.
+regression. *(Both CLOSED 2026-08-27 — see that entry.)*
 
 - Evidence: `pytest -m "not dcc and not ml and not network"` →
   **405 passed, 1 skipped, 89 deselected**; ruff clean. Blender/Unreal

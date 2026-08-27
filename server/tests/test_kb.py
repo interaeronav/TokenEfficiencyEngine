@@ -158,6 +158,24 @@ def test_index_builds_and_caches(kb, tmp_path):
     assert cache.is_file(), "index cache should be written under the project"
 
 
+def test_cache_invalidates_on_manifest_change_with_same_date(kb, tmp_path):
+    """The corpus's rebuild scripts hard-code the `generated` date, so a
+    regenerated manifest can change while the date stays identical. The
+    cache must key on manifest content, not the date."""
+    app, corpus = kb
+    app.registry.call("kb_status", {})  # populate the cache
+    manifest_path = corpus / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["files"][0]["summary"] = "rewritten by a rebuild with the same date"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    # a fresh index (new process) over the same project must not serve stale records
+    from tee.kb.index import KbIndex
+
+    fresh = KbIndex(corpus, tmp_path / "project")
+    record = next(r for r in fresh.records() if r["path"] == manifest["files"][0]["path"])
+    assert record["summary"] == "rewritten by a rebuild with the same date"
+
+
 def test_drift_marks_stale_but_still_serves(kb):
     app, corpus = kb
     victim = corpus / "10_paving/01_block-paving.md"

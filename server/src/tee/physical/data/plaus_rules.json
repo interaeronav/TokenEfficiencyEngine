@@ -56,7 +56,12 @@
   "joist_span_max_m": {
     "severity": "CODE",
     "source": "IRC R502.3.1(2) 40 psf live, worst-case grade column (edition-verify pending)",
-    "spans": { "2x6": 2.08, "2x8": 2.64, "2x10": 3.35, "2x12": 3.89 },
+    "spans": {
+      "2x6": 2.08,
+      "2x8": 2.64,
+      "2x10": 3.35,
+      "2x12": 3.89
+    },
     "finding": "modeled joist span exceeds the prescriptive envelope of IRC R502.3.1(2); verify with a licensed engineer"
   },
   "concrete_slab_min_depth": {
@@ -85,7 +90,20 @@
   "lintel_bearing_min_mm": {
     "severity": "STD",
     "source": "masonry practice standards (bearing by span)",
-    "by_span_m": [[1.0, 100], [2.0, 150], [99.0, 200]],
+    "by_span_m": [
+      [
+        1.0,
+        100
+      ],
+      [
+        2.0,
+        150
+      ],
+      [
+        99.0,
+        200
+      ]
+    ],
     "finding": "lintel end bearing below the standard minimum for its span"
   },
   "masonry_slenderness": {
@@ -97,7 +115,8 @@
   "masonry_min_thickness_mm": {
     "severity": "CODE",
     "source": "US empirical masonry provisions (6 in bearing walls one story / 8 in multi-story)",
-    "one_story": 152, "multi_story": 203,
+    "one_story": 152,
+    "multi_story": 203,
     "finding": "bearing masonry thinner than the empirical minimum"
   },
   "footing_width": {
@@ -119,23 +138,55 @@
   "roof_pitch_min_deg": {
     "severity": "CODE",
     "source_by_covering": {
-      "asphalt_shingle": { "min_deg": 9.46, "source": "IRC R905.2.2 (2:12 with double underlayment)" },
-      "concrete_tile": { "min_deg": 30.0, "source": "BS 5534 / manufacturer minima for plain+interlocking tile practice (the Okongo check)" },
-      "plain_tile": { "min_deg": 35.0, "source": "BS 5534 plain tiles" },
-      "metal_standing_seam": { "min_deg": 1.43, "source": "IRC R905.10.2 (1/4:12)" }
+      "asphalt_shingle": {
+        "min_deg": 9.46,
+        "source": "IRC R905.2.2 (2:12 with double underlayment)"
+      },
+      "concrete_tile": {
+        "min_deg": 30.0,
+        "source": "BS 5534 / manufacturer minima for plain+interlocking tile practice (the Okongo check)"
+      },
+      "plain_tile": {
+        "min_deg": 35.0,
+        "source": "BS 5534 plain tiles"
+      },
+      "metal_standing_seam": {
+        "min_deg": 1.43,
+        "source": "IRC R905.10.2 (1/4:12)"
+      }
     },
     "finding": "roof pitch below the minimum for its covering"
   },
   "stairs": {
     "severity": "CODE",
     "source": "IRC R311.7 (riser <=196 mm, tread >=254 mm, headroom >=2032 mm, width >=914 mm)",
-    "riser_max_mm": 196, "tread_min_mm": 254, "headroom_min_mm": 2032, "width_min_mm": 914,
-    "blondel": { "severity": "CONV", "range_mm": [550, 700], "source": "Blondel 2R+G convention" },
+    "riser_max_mm": 196,
+    "tread_min_mm": 254,
+    "headroom_min_mm": 2032,
+    "width_min_mm": 914,
+    "blondel": {
+      "severity": "CONV",
+      "range_mm": [
+        550,
+        700
+      ],
+      "source": "Blondel 2R+G convention"
+    },
     "by_jurisdiction": {
       "sans": {
         "source": "SANS 10400-M clause 4.2 (riser <=200 mm, going >=250 mm, headroom >=2,1 m from the pitch line, width >=750 mm) - values taken from the 2011 edition per knowledge-base/03_codes_standards/02_sans-10400-parts-register.md; current is Ed. 3.02 (2025), RE-VERIFY before relying on them",
-        "riser_max_mm": 200, "tread_min_mm": 250, "headroom_min_mm": 2100, "width_min_mm": 750,
-        "blondel": { "severity": "CONV", "range_mm": [570, 650], "source": "SANS 10400-M clause 4.2: going + 2 x riser between 570 mm and 650 mm (a NARROWER band than the generic Blondel convention)" }
+        "riser_max_mm": 200,
+        "tread_min_mm": 250,
+        "headroom_min_mm": 2100,
+        "width_min_mm": 750,
+        "blondel": {
+          "severity": "CONV",
+          "range_mm": [
+            570,
+            650
+          ],
+          "source": "SANS 10400-M clause 4.2: going + 2 x riser between 570 mm and 650 mm (a NARROWER band than the generic Blondel convention)"
+        }
       }
     }
   },
@@ -175,7 +226,8 @@
   "window_fall_protection": {
     "severity": "CODE",
     "source": "IRC R312.2 (openable sill <610 mm above floor with >1830 mm drop outside requires guard/limiter)",
-    "sill_mm": 610, "drop_mm": 1830,
+    "sill_mm": 610,
+    "drop_mm": 1830,
     "finding": "low openable sill over a high drop without fall protection"
   },
   "wet_wall_stacking": {
@@ -193,5 +245,18 @@
     "severity": "HEUR",
     "source": "practice rule: bearing wall above offset from wall below by more than the joist depth",
     "finding": "upper bearing wall offset from lower support beyond the joist depth"
+  },
+  "prescriptive_scope_stories": {
+    "severity": "HEUR",
+    "max_stories": 3,
+    "storey_height_m": 3.0,
+    "source": "IRC R101.2: the IRC's scope is one- and two-family dwellings and townhouses not more than three storeys above grade plane",
+    "finding": "beyond the prescriptive envelope every rule in this report under-covers the building - rational design by a competent person is the applicable regime, not prescriptive tables",
+    "by_jurisdiction": {
+      "sans": {
+        "max_stories": 2,
+        "source": "SANS 10400-K deemed-to-satisfy masonry rules: empirical wall tables cover up to two storeys. RE-VERIFY the storey limit against the current SANS 10400-K edition text (encoded from the widely-stated empirical envelope, not from the paywalled standard itself)"
+      }
+    }
   }
 }

@@ -95,19 +95,30 @@ class KbIndex:
 
     # -- build / cache -----------------------------------------------------
 
+    def _manifest_digest(self) -> str | None:
+        """Cache key: hash of the manifest FILE, not its `generated` date -
+        the corpus's rebuild scripts hard-code that date, so a regenerated
+        manifest can change while `generated` stays the same (seen live on
+        2026-08-27 when rebuild.py corrected the source-register entry)."""
+        try:
+            return hashlib.sha256((self.root / "manifest.json").read_bytes()).hexdigest()[:16]
+        except OSError:
+            return None
+
     def load(self, rebuild: bool = False) -> dict[str, Any]:
         if self._data is not None and not rebuild:
             return self._data
-        generated = None
         if not rebuild and self.cache_path.is_file():
             try:
                 cached = json.loads(self.cache_path.read_text(encoding="utf-8"))
-                generated = cached.get("generated")
-                if cached.get("root") == str(self.root) and generated is not None:
-                    manifest_generated = load_manifest(self.root).get("generated")
-                    if generated == manifest_generated:
-                        self._data = cached
-                        return cached
+                digest = cached.get("manifest_digest")
+                if (
+                    cached.get("root") == str(self.root)
+                    and digest is not None
+                    and digest == self._manifest_digest()
+                ):
+                    self._data = cached
+                    return cached
             except (json.JSONDecodeError, OSError):
                 pass  # unreadable cache is just rebuilt
         self._data = self._build()
@@ -122,6 +133,7 @@ class KbIndex:
             records.append(record)
         data = {
             "root": str(self.root),
+            "manifest_digest": self._manifest_digest(),
             "generated": manifest.get("generated"),
             "name": manifest.get("name", ""),
             "totals": manifest.get("totals", {}),
