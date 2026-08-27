@@ -2382,3 +2382,84 @@ TEE as the working session's own co-pilot. Authored and committed:
 Campaign not yet started; SI-0 (baseline ledger) is the first working
 session's job. The one-paste kickoff prompt is embedded at the top of
 the script.
+
+## 2026-08-27 — SI-0: campaign baseline ledger (A33 session 1)
+
+Campaign start. Co-pilot contract honored with one recorded gap: session
+opened with `tee_status(recap)` + `tee_recall` (both ok; memory empty —
+first campaign session). The session's MCP co-pilot turned out to be the
+**installed 0.1.1 .mcpb** (project_root=/Users/john/TEE, pre-38c1672:
+77 virtual tools, no sim_proxy, kb module present but INACTIVE because
+resolve_root finds no corpus from /Users/john/TEE) — so kb_* ran via the
+dev tree instead, and the CLI fallback the script names covers only
+serve/doctor. Friction logged: SI-B1..B6 seeded in docs/SI_BACKLOG.md —
+incl. SI-B6, found by live probe: the wire-visible `adapter` default
+("fake") fails with `unknown_adapter` on every real deployment, taxing
+every call ~6-8 tok of explicit adapter naming.
+
+Every number below came from a command run this session on this Mac.
+
+**Suites (dev tree, uv venv cp311):**
+
+| suite | result | wall |
+|---|---|---|
+| server `uv run pytest` | 471 passed, 2 skipped, 91 deselected | 23.0s |
+| server `-m dcc` (no UE editor) | 58 passed, 27 skipped (all 27 = test_unreal_live: no editor) | 24.9s |
+| server `-m dcc` (UE editor up) | **85 passed, 0 skipped** | 105.7s |
+| voxkiln `uv run pytest` | 47 passed, 1 skipped | 5.4s |
+| ruff check + format --check | clean / 160 files already formatted | — |
+
+**Benchmarks (`benchmarks/run_benchmarks.py`, live headless Blender 5.2.0):**
+donut 92.1% · populate-100 86.6% · materials 87.7% · layout 98.8% ·
+extraction 93.1% · fix-loop (5 rounds) 63.2% · assets 93.5% · settle ~222
+tok, 0.00 mm floor · plaus_check 95.5% · kb paving 96.7% · **UE
+level+blueprint 38,331→2,347 tok, 32→4 calls (93.9%) — exact match to the
+recorded claim**. First run (editor down) silently DROPPED the UE section
+from RESULTS.md (SI-B5); re-run with the editor up restored it before
+commit. Legitimate RESULTS.md drift vs last commit: ±4 tok estimator
+noise, 80→81 long-tail tools (sim_proxy landed after the last
+regeneration), kb_read 1,951→1,917.
+
+**Always-loaded surface (canonical script measure):** 16 tools =
+**2,465 tok wire / 2,959 model_dump** — matches the 08-25 claim exactly.
+Real stdio bytes are lower still: 2,330 compact tools array / 2,342 with
+envelope (SI-B4). Per-tool model_dump top 5: tee_scene_summary 306,
+tee_script 304, tee_media 239, tee_batch 230, tee_remember+tee_diff 198.
+Virtual tools: 82 by `tee_status` (dev tree, blender adapter) vs 81 by the
+benchmark harness (SI-B3); installed bundle 77.
+
+**tee doctor:** degraded state (no DCCs): blender-bridge WARN + one-line
+fix, unreal WARN, python/uv/blender/bpy-wheel/voxkiln (15.12 GB weights,
+gated OK)/kb (401 files / 38 domains) all OK, exit 0. Live state (bridge
+:9876 + UE editor up): **all 9 checks OK — "unreal: MCP on
+127.0.0.1:8000, 56 toolsets + TEE toolset" reproduces the §3 claim
+verbatim**, exit 0. The documented bridge fix command
+(`blender --background --python adapters/blender/tee_bridge/boot_background.py
+-- --port 9876`) worked verbatim; bridge verified through the live
+co-pilot (`tee_scene_summary refresh` → 3-entity compact summary).
+
+**Ops note (UE):** a TeeZipProbe editor running since 21:17 had a wedged
+MCP endpoint (TCP accepts, zero-byte replies; doctor: "did not answer as
+Unreal's MCP server"). Killing it spawned CrashReportClient, which itself
+LISTENS on 127.0.0.1:8000 and stole the port from the next editor boot
+("Starting MCP server on port 8000" logged, nothing bound). Kill the
+crash reporter before relaunching — worth a doctor/troubleshooting line
+(staged for SI-3). The "1 toolsets discoverable" boot line is just an
+incremental counter, not a defect.
+
+**Knowledge assets (SI-0.2 inventory, authority stated):**
+- `docs/research/` — 49 files (00-index + digests 01–48): engineering
+  grounding, the only corpus that justifies design decisions.
+- `docs/DECISIONS.md` (A1–A33) + `docs/PROGRESS.md`: project truth.
+- `knowledge-base/` via kb_status (dev tree): 38 domains / 401 files /
+  1,402,755 words / 2,826 citations / 1,811 unique source URLs,
+  generated 2026-08-25. Reference only (A30). Domains bearing on this
+  campaign, per kb_search from the corpus itself: `26_computer_engineering`
+  (compeng.tooling — engineering practice, confidence=high) and
+  `28_graphic_and_game_design` (gxgd.uiux, gxgd.gd_fundamentals —
+  product-polish craft, confidence=high); nothing on technical-writing
+  style. Using any fact from them requires re-verification against the
+  frontmatter-cited source first; 13/14/15 stay banned as API sources.
+
+Acceptance: every number above from a command run this session ✓; this
+table is what SI-1..SI-5 diff against.

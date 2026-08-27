@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,464 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -110,11 +110,11 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 16 | **2,465** |
 | same, by `model_dump()` | 16 | 2,959 |
-| flat server, one tool per capability | 96 | 11,292 |
+| flat server, one tool per capability | 97 | 11,484 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 80 tools they contribute live behind the
+surface - the 81 tools they contribute live behind the
 meta-tools. Reaching one costs 725 tokens (one search +
 one describe), so the flat design only pays off in a session that
 uses more than ~15 distinct long-tail tools.
@@ -140,7 +140,7 @@ site, and what the adopted standard requires:
 
 | | Tokens | Saving |
 |---|---|---|
-| read the code corpus (4 files) | 32,089 | |
+| read the code corpus (4 files) | 32,086 | |
 | one `plaus_check` | 1,452 | **95.5%** |
 
 The `jurisdiction` block costs 48-383 tokens depending on the
@@ -162,8 +162,8 @@ riding along.
 
 | | Tokens | Calls | Saving |
 |---|---|---|---|
-| paste INDEX.md (50,641) + full file (6,708) | 57,349 | | |
-| kb_search + kb_read | 1,951 | 2 | **96.6%** |
+| paste INDEX.md (50,640) + full file (6,708) | 57,348 | | |
+| kb_search + kb_read | 1,917 | 2 | **96.7%** |
 
 Unlike the paste, the kb_* answer cannot arrive without its
 confidence and jurisdiction flags - `needs-verification` content
