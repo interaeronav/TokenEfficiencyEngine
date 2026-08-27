@@ -2278,3 +2278,32 @@ driver + Marigold-IID refinement code (weights staged; the photo_pbr /
 gen_local slots exist but the drivers are unwritten), pyannote diarization
 (gated, above), UE import path + Blender library authoring/asset_listing
 (need live DCC sessions), and all of §5 UE physics.
+
+## 2026-08-27 — Mac session: §4 continued — the two missing lane drivers now EXIST
+
+Owner approved finishing 1 and 2; both closed this session:
+
+- **pyannote diarization LIVE** (owner accepted the HF gate): fixing it
+  surfaced three silent pyannote-4.x API drifts inside `_diarize`
+  (use_auth_token→token, torchcodec file decode replaced by a stdlib-wave
+  tensor hand-off, DiarizeOutput unwrap) — all hidden until now by the A8
+  silent-degrade catch. After the fix (4fb7842): 14 speaker turns, one
+  speaker, boundaries matching the Whisper segments on the walkthrough
+  clip. Whisper+pyannote spot-check (§4 extract bullet) fully closed.
+- **SDXL-tileable driver written and live** (3d8687b): circular padding
+  across UNet+VAE, measured `seam_ratio` on every result. First live run
+  (as_generate, MPS): `seam_ratio 0.922, tileable: true`, 1024 px,
+  wall 18.8 s. 2×2 tiling shows no visible joins. 3 unit tests incl.
+  roll-equivariance of a patched conv.
+- **Marigold-IID refinement written and live**: `photo_pbr_gpu.
+  derive_maps_marigold` behind `as_photo_material refine=auto|marigold|
+  off` with the classical fallback contract under test. Live on a real
+  drone frame of the house (masonry): delighted albedo + clean normal
+  separation (wall/blocks/roof steel) + roughness, honesty label
+  "measured (Marigold-IID…)". Server suite 469 passed / 2 skipped.
+- `manifold3d` + `voxkiln[rebuild]` earlier tonight completed the repair
+  ladder (watertight=True via voxel rebuild).
+
+§4 still owed after tonight: UE import path + Blender library
+authoring/`asset_listing` (need live DCC sessions), hosted Tripo/Meshy
+keys (owner decision), and all of §5 UE physics.
