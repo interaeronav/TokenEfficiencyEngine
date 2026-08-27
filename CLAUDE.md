@@ -16,6 +16,10 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
 
 - The build is driven by `CLAUDE_EXECUTION_SCRIPT.md`. Do not improvise a
   different plan while it exists; amend the script instead, then follow it.
+- The self-improvement campaign (A33) is driven by
+  `CLAUDE_SELF_IMPROVEMENT_SCRIPT.md` the same way: work its phases from
+  where the PROGRESS evidence says they stand, with TEE's own tools as
+  co-pilot.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or

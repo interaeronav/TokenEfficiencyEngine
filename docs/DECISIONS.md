@@ -576,3 +576,28 @@ scope of every measured claim. 87.7% (Blender), 93.9% (UE), 96.6% (KB)
 were measured on specific scenarios against specific baselines and stay
 labelled that way; "helps any AI" is the mission, not a benchmark row.
 No new runtime capability is added by this decision.
+
+## 2026-08-27 — A33: first real task — TEE improves TEE (owner decision)
+
+The owner set the product's first real task: turn TEE on its own
+codebase, with TEE itself as the working session's co-pilot, and make
+the product leaner, better- and more-efficiently-executing, more
+polished, and concretely closer to commercial readiness — drawing on
+all the knowledge the project carries.
+
+Recorded shape: the campaign is driven by
+`CLAUDE_SELF_IMPROVEMENT_SCRIPT.md` (root, sibling to the build
+script), phases SI-0 baseline → SI-1 leaner → SI-2 execution/efficiency
+→ SI-3 polish → SI-4 commercial readiness → SI-5 closing ledger.
+Method: dogfooding — sessions run on TEE's own memory (`tee_recall`/
+`tee_remember`), retrieval (`kb_*`), and discovery tools, and every
+friction met while doing so is logged to `docs/SI_BACKLOG.md` as
+improvement input. Nothing improves without a before/after measurement;
+regressions revert; BENCHMARKS/RESULTS stay append-only.
+
+Knowledge boundaries restated, not relaxed: `docs/research/` grounds
+engineering decisions; `knowledge-base/` participates per A30/A31 only
+(reference until re-verified at its cited source; `13_*`/`14_*`/`15_*`
+never an API source). Owner-only calls (pricing, naming, store
+submission, repo split, module deletion, mission changes) are written
+up in the SI-4 gap list and stopped on, never made in-session.

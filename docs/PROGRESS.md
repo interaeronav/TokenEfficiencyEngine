@@ -2361,3 +2361,24 @@ passes!"); pyproject TOML parse-checked. Deliberately unchanged: the six
 hard rules, the 16-tool surface, and the scope of every measured claim —
 the benchmark numbers stay labelled with the adapter and scenario they
 were measured on.
+
+## 2026-08-27 — A33: the self-improvement campaign is authored (owner directive)
+
+The owner gave the product its first real task: improve itself, with
+TEE as the working session's own co-pilot. Authored and committed:
+
+- `CLAUDE_SELF_IMPROVEMENT_SCRIPT.md` (root) — the campaign script:
+  co-pilot contract (tee_recall/remember, kb_*, friction logging),
+  phases SI-0 baseline ledger → SI-1 leaner → SI-2 execution/efficiency
+  → SI-3 polish → SI-4 commercial readiness → SI-5 closing ledger, each
+  with acceptance criteria; standing rules all inherited (A30 boundary,
+  append-only benchmarks, revert-on-regression, owner-only decision
+  list, >2 GB download confirmations).
+- `docs/SI_BACKLOG.md` — the append-only dogfooding friction log the
+  script mandates (seeded empty with its format).
+- `docs/DECISIONS.md` A33 — the decision record.
+- CLAUDE.md points at the campaign script beside the build script.
+
+Campaign not yet started; SI-0 (baseline ledger) is the first working
+session's job. The one-paste kickoff prompt is embedded at the top of
+the script.
