@@ -2,9 +2,15 @@
 
 ## What this project is
 
-TEE is an MCP server + API layer between AI models and Unreal Engine / Blender.
-Its core metric is **tokens per completed user task**. Every design decision is
-judged by that metric first.
+TEE's mission is to help **any AI** optimize its token usage and improve its
+work efficiency (A32). Concretely it is an MCP server + API layer between an
+AI model and the tools the model drives; its core metric is **tokens per
+completed user task**, and every design decision is judged by that metric
+first. Unreal Engine and Blender are the two shipped adapters and the proving
+ground where every pattern is implemented and measured — not the boundary of
+the product. The kernel (compact state + diffs, checkpointed batches,
+budgeted responses, progressive tool disclosure, project memory, extraction,
+KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
 
 ## How to work in this repo
 

@@ -1,16 +1,21 @@
 # Token Efficiency Engine (TEE)
 
-An AI token-efficiency engine for **Unreal Engine** and **Blender**.
+An engine that helps **any AI** optimize its token usage and improve its work
+efficiency.
 
-TEE is an MCP server and API layer that sits between AI models (Claude) and the
-two DCC tools, with one overriding design goal: **let the AI drive Unreal and
-Blender with the fewest tokens possible** — compact scene state, diff-based
-updates, batched macro-commands, and progressive disclosure of tool surface —
-while mitigating the friction points users hit when pairing AI with these tools.
+TEE is an MCP server and API layer that sits between an AI model and the tools
+it drives, with one overriding design goal: **complete the user's task with the
+fewest tokens possible** — compact state, diff-based updates, batched
+macro-commands, budgeted responses, and progressive disclosure of tool surface.
+It ships today with two production adapters, **Unreal Engine** and **Blender**:
+the proving ground where every pattern below is implemented and measured. The
+kernel is tool-agnostic (see [docs/DECISIONS.md](docs/DECISIONS.md), A32); the
+DCC knowledge lives entirely in the adapters.
 
 ## Why
 
-AI models interfacing with Unreal Engine and Blender burn tokens on:
+AI models driving heavyweight tools (Unreal Engine and Blender are TEE's
+proving ground) burn tokens on:
 
 - verbose scene dumps re-sent every turn,
 - screenshots where structured text would do,

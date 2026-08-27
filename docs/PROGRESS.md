@@ -2343,3 +2343,21 @@ closed, not deferred.
 With hosted keys descoped, every item in docs/mac-handoff.md §1–§6 is now
 closed with recorded evidence. Suites: server 471 passed / 2 skipped;
 voxkiln 47 passed / 1 skipped.
+
+## 2026-08-27 — Mission broadened by owner decision (A32)
+
+The owner redefined the product's purpose: TEE exists to help **any AI**
+optimize its token usage and improve its work efficiency; Unreal Engine
+and Blender are the first two shipped adapters and the measurement
+proving ground, no longer the definition. Recorded as A32 in
+docs/DECISIONS.md; reworded in README.md (headline + Why intro),
+CLAUDE.md ("What this project is"), `server/pyproject.toml` description,
+and the `.mcpb` manifest description/long_description (source only — the
+wording ships with the next bundle build; no rebuild or version bump for
+a description change, so Desktop's installed 0.1.1 keeps the old text
+until then). Manifest re-validated after the edit
+(`npx @anthropic-ai/mcpb validate` → "Manifest schema validation
+passes!"); pyproject TOML parse-checked. Deliberately unchanged: the six
+hard rules, the 16-tool surface, and the scope of every measured claim —
+the benchmark numbers stay labelled with the adapter and scenario they
+were measured on.

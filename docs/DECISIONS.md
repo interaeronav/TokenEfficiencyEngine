@@ -545,3 +545,34 @@ Measured (benchmarks/RESULTS.md): the paving-spec lookup with a citation
 is 57,349 tokens by pasting INDEX.md + the file, 1,951 by
 `kb_search` + one budgeted `kb_read` — 96.6% saved; the 4 `kb_*` tools
 add zero always-loaded tokens (surface still 16 tools / 2,465).
+
+## 2026-08-27 — A32: the mission broadens to any AI's token efficiency (owner decision)
+
+The owner directed that TEE's stated mission and purpose no longer be
+defined by Unreal Engine and Blender: the product exists **to help any
+AI optimize its token usage and improve its work efficiency**. The two
+DCCs become what they already are in the architecture — the first two
+shipped adapters and the proving ground where every pattern is
+implemented and measured — rather than the definition of the product.
+
+Rationale: the kernel was tool-agnostic before this decision named it.
+The state model (epoch/revision + diffs), checkpointed batching,
+token-budgeted responses, progressive tool disclosure, project memory
+(`tee_recall`/`tee_remember`), the extraction store, and the KB query
+module none of them contain a DCC assumption; the DCC knowledge lives
+entirely in the adapters. The six hard rules in CLAUDE.md were written
+as general dogma from day one.
+
+What changes: the mission statements only — README headline/intro,
+CLAUDE.md "What this project is", `server/pyproject.toml` description,
+and the `.mcpb` manifest description text (source-only; it ships with
+whatever bundle is built next — no rebuild or version bump for a
+wording change). Future integration proposals are judged exactly like
+the existing ones: by measured tokens per completed task.
+
+What does NOT change: the six hard rules; the adapter-first
+architecture; the shipped 16-tool surface; and — deliberately — the
+scope of every measured claim. 87.7% (Blender), 93.9% (UE), 96.6% (KB)
+were measured on specific scenarios against specific baselines and stay
+labelled that way; "helps any AI" is the mission, not a benchmark row.
+No new runtime capability is added by this decision.
