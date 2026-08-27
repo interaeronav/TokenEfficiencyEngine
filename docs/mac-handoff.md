@@ -54,8 +54,15 @@ All three artifacts BUILD anywhere and were built + structurally
 validated in the cloud on 2026-08-27 (`cd server && make dist`). What
 the Mac owes is the *install* half:
 
-- `tee-engine-0.1.0.mcpb` → drag into Claude Desktop, confirm the
-  server starts and `tee_status` answers.
+- ~~`tee-engine-0.1.0.mcpb`~~ — DONE on the Mac 2026-08-27: owner
+  dragged the bundle into Claude Desktop (installed as
+  `local.mcpb.interaeronav.token-efficiency-engine`); Desktop's
+  `mcp-server-Token Efficiency Engine.log` shows the installed server
+  answering the handshake (initialize → notifications/initialized →
+  tools/list result, zero errors). `tee_status` answering on the
+  manifest's exact command was proven in the 08-27 stdio rehearsal; an
+  in-chat call wasn't log-captured (Desktop quit right after install)
+  and is a 30-second optional check. Evidence in PROGRESS.md.
 - ~~`TeeToolset-0.1.0.zip`~~ — DONE on the Mac 2026-08-27: unzipped into
   a fresh UE 5.8 project (`~/Documents/Unreal Projects/TeeZipProbe`,
   plugin from the zip only), editor boot runs the plugin's

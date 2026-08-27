@@ -2095,3 +2095,35 @@ re-verified the whole chain from the owner's Downloads copy of the zip:
   way — registry display naming, not a stale file.
 - §3 remainder is only the mcpb drag into Claude Desktop (owner's ~1 minute).
   OkongoSim's source-installed plugin was not touched at any point.
+
+## 2026-08-27 — Mac session: handoff §3 fully closed (owner did the mcpb drag)
+
+Owner performed the Claude Desktop drag at 16:52 local; verified from disk
+and Desktop's own logs, not from assertion:
+
+- Installed extension present with matching settings json, both stamped
+  16:52: `~/Library/Application Support/Claude/Claude Extensions/`
+  `local.mcpb.interaeronav.token-efficiency-engine/`.
+- `~/Library/Logs/Claude/mcp-server-Token Efficiency Engine.log` (verbatim):
+
+  ```
+  2026-08-27T13:52:08.311Z [Token Efficiency Engine] [info] Message from client: method="initialize" id=0 params { metadata: undefined }
+  2026-08-27T13:52:08.667Z [Token Efficiency Engine] [info] Message from client: method="notifications/initialized" { metadata: undefined }
+  2026-08-27T13:52:08.672Z [Token Efficiency Engine] [info] Message from client: method="tools/list" id=1 params { metadata: undefined }
+  2026-08-27T13:52:08.673Z [Token Efficiency Engine] [info] Message from server: id=1 result { metadata: undefined }
+  ```
+
+  (An earlier initialize at 13:52:03 is Desktop's install-time probe.) No
+  error lines anywhere in the log. Desktop logs record methods, not
+  payloads; the 16-tool list incl. `tee_status` is in the stdio rehearsal
+  above, run on the manifest's exact command.
+- Not captured: a `tools/call` of `tee_status` from a Desktop chat —
+  Desktop was quit right after install, so no chat happened. The tool
+  answering is already proven above; first real chat use exercises it in
+  situ (30-second optional check).
+
+§3 is the first handoff section with every artifact struck through.
+Premise note for whoever works §2 (voxkiln) next: the "re-fetch ~15 GB
+weights" bullet is likely moot — the 08-27 session found the HF cache was
+never cleaned (~18 GB incl. TRELLIS.2-4B, gated DINOv3 approved+cached),
+and a first MPS generation already succeeded on a plain rerun.
