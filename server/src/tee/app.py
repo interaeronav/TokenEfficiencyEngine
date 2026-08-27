@@ -15,6 +15,7 @@ Jobs run outside the lock; their DCC calls queue on the bridge socket.
 from __future__ import annotations
 
 import contextlib
+import math
 import threading
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,78 @@ from tee.kernel.jobs import JobManager
 from tee.kernel.memory import ProjectMemory
 from tee.kernel.registry import ToolRegistry
 from tee.kernel.scene_cache import SceneCache
+
+
+def _values_match(requested: Any, actual: Any) -> bool:
+    """Echo test with float tolerance: a DCC rounding a requested 1.0 to
+    1.0000000149 is still an echo, not drift worth reporting."""
+    if isinstance(requested, (int, float)) and isinstance(actual, (int, float)):
+        return math.isclose(float(requested), float(actual), rel_tol=1e-5, abs_tol=1e-5)
+    if isinstance(requested, list) and isinstance(actual, list):
+        return len(requested) == len(actual) and all(
+            _values_match(r, a) for r, a in zip(requested, actual, strict=True)
+        )
+    return bool(requested == actual)
+
+
+def _trim_batch_echoes(
+    ops: list[dict[str, Any]],
+    payload: dict[str, Any],
+    prior: dict[str, dict[str, Any]] | None = None,
+) -> None:
+    """Batch reports carry drift, not echoes (hard rule 2).
+
+    A detail field that exactly matches what the op requested says nothing -
+    drop it. For modified entities, a field whose value is unchanged from the
+    pre-batch cache state is a re-report, not news - drop it too. Everything
+    else (measured dims, adapter renames, computed side effects) stays.
+    Created ids remain addressable via a compact names map. `created` is
+    op-ordered: all three adapters build it by sequential append, and batches
+    are atomic, so create op N maps to created[N]. The full post-op state
+    still reaches the scene cache - this trims only the client payload."""
+    details = payload.get("details")
+    if not isinstance(details, dict):
+        return
+    requested: dict[str, dict[str, Any]] = {}
+    created_list = payload.get("created") or []
+    creator_ops = [op for op in ops if op.get("op") not in ("set", "delete")]
+    if len(creator_ops) == len(created_list):
+        # every creator op (create, import_file, ...) yielded exactly one
+        # entity, in op order - map request to id; otherwise skip the
+        # request mapping and rely on the prior-state rule alone
+        for op, eid in zip(creator_ops, created_list, strict=False):
+            req = dict(op.get("props") or {})
+            for key in ("name", "kind"):
+                if key in op:
+                    req[key] = op[key]
+            requested[eid] = req
+    for op in ops:
+        if op.get("op") == "set" and op.get("id") is not None:
+            requested.setdefault(str(op["id"]), {}).update(op.get("props") or {})
+    names: dict[str, str] = {}
+    for eid in payload.get("created") or []:
+        det = details.get(eid)
+        if isinstance(det, dict) and isinstance(det.get("name"), str):
+            names[eid] = det["name"]
+    for eid, det in list(details.items()):
+        if not isinstance(det, dict):
+            continue
+        req = requested.get(eid, {})
+        was = (prior or {}).get(eid, {})
+        for field in list(det):
+            if (
+                field == "id"
+                or (field == "name" and eid in names)
+                or (field in req and _values_match(req[field], det[field]))
+                or (field in was and _values_match(was[field], det[field]))
+            ):
+                del det[field]
+        if not det:
+            del details[eid]
+    if not details:
+        payload.pop("details", None)
+    if names:
+        payload["names"] = names
 
 
 class TeeApp:
@@ -135,10 +208,16 @@ class TeeApp:
                 f"Batch failed: {type(exc).__name__}: {exc}",
                 fix=f"Batch {outcome}.",
             ) from exc
+        prior: dict[str, dict[str, Any]] = {}
+        for eid in diff.modified:
+            ent = cache.get(eid)
+            if ent is not None:
+                prior[eid] = ent.detailed()
         cache.apply_diff(diff, diff.upserts)
         payload: dict[str, Any] = {"ok": True, "checkpoint": checkpoint.id, **cache.stamp()}
         payload["applied"] = len(ops)
         payload.update(diff.to_payload())
+        _trim_batch_echoes(ops, payload, prior)
         return payload
 
     def rollback(self, adapter_name: str, ref: str) -> dict[str, Any]:

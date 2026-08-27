@@ -70,7 +70,13 @@ def test_full_editing_session():
         )
         assert out["ok"] is True
         assert out["created"] == ["e1", "e2"]
-        assert out["details"]["e1"]["scale"] == 2
+        # echo-free batch report (hard rule 2): everything applied exactly as
+        # requested, so no details ride back - only the id->name addressing
+        # map. Drift (a rename, a clamp) would appear under details.
+        assert out["names"] == {"e1": "Torus", "e2": "Key"}
+        assert "details" not in out
+        ent = payload(await client.call_tool("tee_entity_detail", {"entity_id": "e1"}))
+        assert ent["entity"]["scale"] == 2
         checkpoint = out["checkpoint"]
 
         # diff since baseline returns the delta, not the scene

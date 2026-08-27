@@ -28,7 +28,7 @@ def app(tmp_path, monkeypatch):
 
 
 def test_tools_registered_and_searchable(app):
-    hits = app.registry.search("asset search find")
+    hits = app.registry.search("asset search find")["tools"]
     assert any(h["name"] == "as_search" for h in hits)
     names = app.registry.names()
     for expected in (

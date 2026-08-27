@@ -78,7 +78,7 @@ def app_with_disabled(tmp_path):
 
 
 def test_disabled_tool_hidden_from_search(app_with_disabled):
-    hits = app_with_disabled.registry.search("demo")
+    hits = app_with_disabled.registry.search("demo")["tools"]
     names = [h["name"] for h in hits]
     assert "other_tool" in names
     assert "demo_tool" not in names

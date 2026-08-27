@@ -139,7 +139,9 @@ def _tool(app: TeeApp, name: str) -> Callable:
                     result = columnarize(result)
                     result = enforce_budget(result)
                     app.response_log.record(name, result)
-                    return json.dumps(result, separators=(",", ":"), default=str)
+                    return json.dumps(
+                        result, separators=(",", ":"), default=str, ensure_ascii=False
+                    )
                 return result
 
         return wrapper
@@ -195,8 +197,27 @@ def build_server(app: TeeApp) -> MCPServer:
     def tee_status(recap: bool = False):
         payload = {"ok": True, **app.status()}
         if recap:
+            rec = app.recap()
+            # recap is self-contained for other callers; here it rides in the
+            # SAME response as status, so intra-response duplicates are waste
+            if rec.get("checkpoints") == payload.get("checkpoints"):
+                rec.pop("checkpoints", None)
+            for name, entry in list((rec.get("adapters") or {}).items()):
+                top = payload.get("adapters", {}).get(name) or {}
+                if top.get("scene") == {
+                    "epoch": entry.get("epoch"),
+                    "revision": entry.get("revision"),
+                }:
+                    entry.pop("epoch", None)
+                    entry.pop("revision", None)
+                if "entities" in entry and top.get("entities") == entry["entities"]:
+                    entry.pop("entities")
+                if not entry:
+                    rec["adapters"].pop(name)
+            if not rec.get("adapters"):
+                rec.pop("adapters", None)
             payload["recap"] = enforce_budget(
-                app.recap(),
+                rec,
                 max_tokens=500,
                 narrow_hint="query the dropped area directly (tee_scene_summary, "
                 "ex_sources, tee_recall)",
@@ -318,9 +339,9 @@ def build_server(app: TeeApp) -> MCPServer:
                 max_bytes = max(1, min(int(max_kb), _CAPTURE_MAX_KB)) * 1024
                 data = app.adapter(app.resolve_adapter(adapter)).capture(view, max_bytes)
             except TeeError as exc:
-                return json.dumps(exc.to_payload())
+                return json.dumps(exc.to_payload(), ensure_ascii=False)
             except Exception as exc:
-                return json.dumps(internal_error_payload(exc))
+                return json.dumps(internal_error_payload(exc), ensure_ascii=False)
             app.response_log.record("tee_capture", {"bytes": len(data)})
             return Image(data=data, format="jpeg")
 
@@ -339,15 +360,16 @@ def build_server(app: TeeApp) -> MCPServer:
                         "The extraction module is not active in this server.",
                         fix="Serve with the extract module enabled (default "
                         "when the tee[extract] extra is installed).",
-                    ).to_payload()
+                    ).to_payload(),
+                    ensure_ascii=False,
                 )
             try:
                 budget = max(50, min(int(max_tokens), 4784))
                 data, info = app.media_view(source, region, timestamp, budget)
             except TeeError as exc:
-                return json.dumps(exc.to_payload())
+                return json.dumps(exc.to_payload(), ensure_ascii=False)
             except Exception as exc:
-                return json.dumps(internal_error_payload(exc))
+                return json.dumps(internal_error_payload(exc), ensure_ascii=False)
             app.response_log.record("tee_media", {"bytes": len(data), **info})
             return Image(data=data, format="jpeg")
 
@@ -365,7 +387,7 @@ def build_server(app: TeeApp) -> MCPServer:
     @mcp.tool(structured_output=False, description=_DESC["tee_search_tools"])
     @_tool(app, "tee_search_tools")
     def tee_search_tools(query: str, limit: int = 10):
-        return {"ok": True, "tools": app.registry.search(query, limit)}
+        return {"ok": True, **app.registry.search(query, limit)}
 
     @mcp.tool(structured_output=False, description=_DESC["tee_describe_tool"])
     @_tool(app, "tee_describe_tool")

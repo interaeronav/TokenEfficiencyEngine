@@ -10,11 +10,11 @@ ceil(w/28)*ceil(h/28)).
 
 | Scenario | Naive tokens | Naive calls | TEE tokens | TEE calls | Saving |
 |---|---|---|---|---|---|
-| donut-class modelling | 4,431 | 9 | 349 | 3 | 92.1% |
-| 100-object populate + what-changed | 49,283 | 23 | 6,585 | 3 | 86.6% |
-| material pass over 10 objects | 11,590 | 22 | 1,420 | 2 | 87.7% |
+| donut-class modelling | 4,431 | 9 | 295 | 3 | 93.3% |
+| 100-object populate + what-changed | 49,283 | 23 | 5,311 | 3 | 89.2% |
+| material pass over 10 objects | 11,590 | 22 | 980 | 2 | 91.5% |
 | layout verification | 2,926 | 2 | 36 | 1 | 98.8% |
-| **total** | **68,230** | | **8,390** | | **87.7%** |
+| **total** | **68,230** | | **6,622** | | **90.3%** |
 
 ## Extraction: ingest-once vs media re-billing
 
@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,052 | 44 | |
+| naive re-attach | 65,048 | 44 | |
 | TEE ingest-once | 4,464 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -43,13 +43,13 @@ intermediate tool results never enter model context.
 
 | | Context tokens | Rounds | Saving |
 |---|---|---|---|
-| separate tool rounds | 470 | 5 | |
-| one tee_script call | 173 | 1 | 63.2% |
+| separate tool rounds | 332 | 5 | |
+| one tee_script call | 173 | 1 | 47.9% |
 
-The script's cost is flat in loop length while round-based cost
-grows linearly (~130 tok/conflict): measured 17.7% / 63.2% /
-76.3% saved at 1 / 3 / 5 conflicts, approaching 100% as loops
-grow.
+The script's cost is flat in loop length while round-based
+cost grows linearly, so the saving widens with every extra
+conflict. (Leaner per-round responses narrow the headline
+percentage without costing a token - both arms got cheaper.)
 
 ## Assets: find-select-place (Phase 9)
 
@@ -66,7 +66,7 @@ verification report - zero images.
 | | Tokens | Calls | Saving |
 |---|---|---|---|
 | prior-art flow | 12,767 | 25 | |
-| TEE | 828 | 6 | 93.5% |
+| TEE | 762 | 6 | 94.0% |
 
 ## Physics: settle cost + variance floor (Phase 11)
 
@@ -115,9 +115,9 @@ fields no client ever sees, so it overstates the surface by ~20%.
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
 surface - the 81 tools they contribute live behind the
-meta-tools. Reaching one costs 725 tokens (one search +
+meta-tools. Reaching one costs 580 tokens (one search +
 one describe), so the flat design only pays off in a session that
-uses more than ~15 distinct long-tail tools.
+uses more than ~18 distinct long-tail tools.
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 

@@ -80,8 +80,13 @@ def test_recap_over_mcp_surface(app):
 
     anyio.run(scenario)
     recap = got["recap"]
-    stamp = recap["adapters"]["fake"]
+    # the resume contract is the RESPONSE: the scene stamp arrives at top
+    # level, and the recap block dedups against it instead of repeating it
+    # (SI-1.2 - intra-response duplication was ~30% of the recap payload)
+    stamp = got["adapters"]["fake"]["scene"]
     assert {"epoch", "revision"} <= set(stamp)
+    assert recap["adapters"]["fake"] == {"kinds": {"cube": 120}}
+    assert recap.get("checkpoints") != got.get("checkpoints")
     assert recap["extract"]["fact_kinds"]["plan"] == 1
     # plain status stays lean: no recap unless asked
     assert "recap" not in json.dumps(got["adapters"])

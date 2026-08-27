@@ -36,7 +36,18 @@ class VirtualTool:
 
     @property
     def one_line(self) -> str:
-        return self.description.strip().splitlines()[0]
+        """First line of the description, capped to roughly a sentence.
+
+        Search results pay this per hit; authors drift toward paragraph-long
+        'first lines', so the cap - not the author - holds the search row
+        price. The full text stays one tee_describe_tool away."""
+        line = self.description.strip().splitlines()[0]
+        if len(line) <= 150:
+            return line
+        cut = line.rfind(". ", 0, 150)
+        if cut > 40:
+            return line[: cut + 1]
+        return line[:147].rstrip() + "..."
 
 
 class ToolRegistry:
@@ -66,8 +77,12 @@ class ToolRegistry:
 
     # -- meta-tool backends ------------------------------------------------
 
-    def search(self, query: str, limit: int = 10) -> list[dict[str, str]]:
-        """Rank by word overlap against name, tags, and description."""
+    def search(self, query: str, limit: int = 10) -> dict[str, Any]:
+        """Rank by word overlap against name, tags, and description.
+
+        Returns {"tools": [...]} plus a "note" when nothing scored well, so
+        a weak result is distinguishable from a good one without spending
+        describe round-trips to find out (SI-B2)."""
         words = [w for w in re.split(r"[^a-z0-9]+", query.lower()) if w]
         scored: list[tuple[float, str]] = []
         for name, tool in self._tools.items():
@@ -87,7 +102,18 @@ class ToolRegistry:
             if score > 0 or not words:
                 scored.append((score, name))
         scored.sort(key=lambda pair: (-pair[0], pair[1]))
-        return [{"name": name, "summary": self._tools[name].one_line} for _, name in scored[:limit]]
+        result: dict[str, Any] = {
+            "tools": [
+                {"name": name, "summary": self._tools[name].one_line} for _, name in scored[:limit]
+            ]
+        }
+        top = scored[0][0] if scored else 0.0
+        if words and top < 2.0:
+            result["note"] = (
+                "no strong match (name/tag hits: none) - the capability may "
+                "not exist or may be adapter-gated; try other words"
+            )
+        return result
 
     def describe(self, name: str) -> dict[str, Any]:
         tool = self._require(name)
@@ -116,7 +142,7 @@ class ToolRegistry:
             )
         tool = self._tools.get(name)
         if tool is None:
-            suggestions = self.search(name, limit=3)
+            suggestions = self.search(name, limit=3)["tools"]
             hint = ", ".join(s["name"] for s in suggestions) or "tee_search_tools"
             raise TeeError(
                 "unknown_tool",

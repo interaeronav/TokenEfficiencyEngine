@@ -23,7 +23,11 @@ COLUMNAR_MIN_SHARED = 0.6
 
 
 def estimate_tokens(obj: Any) -> int:
-    text = obj if isinstance(obj, str) else json.dumps(obj, separators=(",", ":"), default=str)
+    text = (
+        obj
+        if isinstance(obj, str)
+        else json.dumps(obj, separators=(",", ":"), default=str, ensure_ascii=False)
+    )
     return max(1, int(len(text) / CHARS_PER_TOKEN))
 
 
@@ -130,7 +134,7 @@ def _largest_collection(payload: dict[str, Any]) -> tuple[str | None, int]:
     for key, value in payload.items():
         if key == "truncated" or not isinstance(value, (list, dict)):
             continue
-        cost = len(json.dumps(value, separators=(",", ":"), default=str))
+        cost = len(json.dumps(value, separators=(",", ":"), default=str, ensure_ascii=False))
         if cost > best_cost and _collection_size(value) > 1:
             best_key, best_cost = key, cost
     if best_key is None:

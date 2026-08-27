@@ -32,11 +32,11 @@ naive per-op-code + full-scene-dump pattern of existing bridges —
 
 | Scenario | Naive | TEE | Saving |
 |---|---|---|---|
-| donut-class modelling | 4,431 tok / 9 calls | 349 tok / 3 calls | 92.1% |
-| 100 objects + what-changed | 49,283 tok / 23 calls | 6,585 tok / 3 calls | 86.6% |
-| material pass, 10 objects | 11,590 tok / 22 calls | 1,420 tok / 2 calls | 87.7% |
+| donut-class modelling | 4,431 tok / 9 calls | 295 tok / 3 calls | 93.3% |
+| 100 objects + what-changed | 49,283 tok / 23 calls | 5,311 tok / 3 calls | 89.2% |
+| material pass, 10 objects | 11,590 tok / 22 calls | 980 tok / 2 calls | 91.5% |
 | layout verification | 2,926 tok / 2 calls | 36 tok / 1 call | 98.8% |
-| **total** | **68,230** | **8,390** | **87.7%** |
+| **total** | **68,230** | **6,622** | **90.3%** |
 
 **Unreal** (live UE 5.8.1 editor, Epic's official MCP server; the naive side
 is the workflow Epic's own `unreal-mcp` skill prescribes — `describe_toolset`
@@ -44,16 +44,17 @@ per toolset, then one `call_tool` per operation):
 
 | Scenario | Naive | TEE | Saving |
 |---|---|---|---|
-| level population + Blueprint function | 38,334 tok / 32 calls | 2,349 tok / 4 calls | **93.9%** |
+| level population + Blueprint function | 38,331 tok / 32 calls | 2,346 tok / 4 calls | **93.9%** |
 
 One `describe_toolset(BlueprintTools)` alone is ~18,000 tokens — more than six
 times TEE's entire always-loaded tool surface.
 
 Later phases added an extraction module (93.1% saved vs re-attaching media),
-an app-side script lane (63–76% saved on fix loops), an asset module (93.5%
-saved on find-select-place), plus design, physics/modeling, and UEFN/Verse
-modules — see [benchmarks/RESULTS.md](benchmarks/RESULTS.md) for all measured
-rows.
+an app-side script lane (flat cost in loop length: 48% saved on a 5-round
+fix loop, and the shaved per-round responses narrowed this from 63%), an
+asset module (94.0% saved on find-select-place), plus design,
+physics/modeling, and UEFN/Verse modules — see
+[benchmarks/RESULTS.md](benchmarks/RESULTS.md) for all measured rows.
 
 The always-loaded MCP surface (16 tools) costs ~1.9K tokens of definitions
 on the wire — under the price of 3 typical MCP tools in the wild; 74 further

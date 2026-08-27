@@ -37,10 +37,45 @@ def test_search_ranks_name_and_tag_matches():
     reg.register(make_tool("bl_create_cube"))
     reg.register(make_tool("bl_assign_material", tags=["blender", "material"]))
     reg.register(make_tool("ue_spawn_actor", tags=["unreal", "actor"]))
-    hits = reg.search("blender material")
+    result = reg.search("blender material")
+    hits = result["tools"]
     assert hits[0]["name"] == "bl_assign_material"
     assert all(set(h) == {"name", "summary"} for h in hits)
     assert "\n" not in hits[0]["summary"]
+    # name/tag hits scored well: no weak-match note rides along
+    assert "note" not in result
+
+
+def test_search_flags_weak_matches():
+    # SI-B2: description-only grazes and empty results carry a note; name/tag
+    # hits do not (covered in the ranking test above).
+    reg = ToolRegistry()
+    reg.register(make_tool("bl_create_cube"))
+    weak = reg.search("help")  # matches description text only, weight 1.0
+    assert weak["tools"][0]["name"] == "bl_create_cube"
+    assert "no strong match" in weak["note"]
+    none = reg.search("frobnicate")
+    assert none["tools"] == []
+    assert "no strong match" in none["note"]
+
+
+def test_one_line_caps_paragraph_descriptions():
+    long_first_line = (
+        "Search the Expert Knowledge Base by keyword with optional exact "
+        "filters. Returns ranked hits only with ids and one-line summaries "
+        "so a session can pick a file to read without paying for content it "
+        "never opens, and flags ride along verbatim."
+    )
+    tool = VirtualTool(
+        name="kb_demo",
+        description=long_first_line,
+        schema={"type": "object", "properties": {}},
+        handler=lambda a: {},
+    )
+    assert len(tool.one_line) <= 151
+    assert tool.one_line.endswith((".", "..."))
+    short = make_tool()
+    assert short.one_line == "Create a cube mesh."
 
 
 def test_describe_and_call_happy_path():

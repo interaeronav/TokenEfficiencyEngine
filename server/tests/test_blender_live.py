@@ -59,15 +59,22 @@ def test_batch_create_set_delete_roundtrip(app):
     assert out["ok"] is True
     assert len(out["created"]) == 3
     ball_id = out["created"][1]
-    assert out["details"][ball_id]["location"] == [0, 0, 2]
+    # echo-free report (hard rule 2): the applied location matched the
+    # request so it does not ride back; the entity kind differs from the
+    # op's creation recipe (uv_sphere -> mesh) so it does. The cache holds
+    # the applied state, synced from the adapter's full details.
+    assert out["names"][ball_id] == "Ball"
+    assert "location" not in out.get("details", {}).get(ball_id, {})
     assert out["details"][ball_id]["kind"] == "mesh"
+    assert app.cache("blender").get(ball_id).detailed()["location"] == [0, 0, 2]
     assert all(eid.startswith("b") for eid in out["created"])
 
     moved = app.run_batch(
         "blender", [{"op": "set", "id": ball_id, "props": {"location": [1, 1, 3]}}]
     )
     assert moved["modified"] == [ball_id]
-    assert moved["details"][ball_id]["location"] == [1, 1, 3]
+    assert "details" not in moved  # applied exactly as asked - no drift
+    assert app.cache("blender").get(ball_id).detailed()["location"] == [1, 1, 3]
 
     gone = app.run_batch("blender", [{"op": "delete", "id": ball_id}])
     assert gone["deleted"] == [ball_id]
@@ -230,9 +237,13 @@ def test_import_file_op_with_scale(app, adapter, tmp_path):
     )
     assert out["created"]
     detail = next(iter(out["details"].values()))
-    # 2 m cube at scale 0.5 -> 1 m dims, at the requested location
+    # 2 m cube at scale 0.5 -> 1 m dims (measured, never requested: reported)
     assert detail["dimensions"] == pytest.approx([1.0, 1.0, 1.0], abs=0.01)
-    assert detail["location"] == pytest.approx([1.0, 2.0, 0.0], abs=0.01)
+    # the requested location applied exactly, so it is echo-trimmed from the
+    # report; the cache carries the applied state
+    assert "location" not in detail
+    cached = app.cache("blender").get(out["created"][0]).detailed()
+    assert cached["location"] == pytest.approx([1.0, 2.0, 0.0], abs=0.01)
 
 
 def test_import_file_bad_format_is_one_line(app, tmp_path):
