@@ -1978,3 +1978,33 @@ map that an accidental Ctrl+S could later push over someone else's work.
   ```
 
 - Handoff §6 closed: mirror and Dropbox are now consistent everywhere.
+
+## 2026-08-27 — Mac session: handoff §1 (OkongoSim [kb] wiring, Phase 16 acceptance #4)
+
+Two commits in `/Users/john/OkongoSim` (repo is local-only, branch `main`):
+
+- `47973f6fc` — `[kb] root = "/Users/john/TokenEfficiencyEngine/knowledge-base"`
+  appended to the tracked `.tee/config.toml` beside `[pins]`.
+- `58faa8a0a` — `docs/tee-kb.md` added beside `docs/tee-pins.md` (adapted from
+  TEE `docs/setup-kb.md`'s OkongoSim section) + a Conventions bullet in
+  OkongoSim's CLAUDE.md pointing at it, same pattern as the pin handoff.
+
+Proof exchange (TeeApp built with `project_root=/Users/john/OkongoSim`, server
+venv, root resolved through OkongoSim's own config → the TEE mirror):
+
+```
+kb_search {"query": "concrete block paving bedding sand", "jurisdiction": "southern-africa"}
+→ 8 hits / 40 matched; top: paving.block_paving "Concrete block paving —
+  structure, materials, patterns and installation method"
+  (17_paving_and_roads, confidence=high, jurisdiction=southern-africa)
+
+kb_read {"id": "paving.block_paving", "section": "Key facts", "max_tokens": 500}
+→ flags {confidence: high, jurisdiction: southern-africa, status: stable}
+→ "Bedding sand, compacted thickness | **25 mm ± 10 mm** | SANS 1200 MJ 5.3"
+  (plus grading tables, joint width 2–6 mm target 3 mm, SANS 1058 strengths…)
+→ sources block rode along: CMA Concrete Block Paving Books 1–5 / SANS 1200 MJ
+  (https://www.cma.org.za/publications/paving/)
+→ budget respected: "truncated to ~500 tokens (3 lines dropped)"
+```
+
+Handoff §1 closed.
