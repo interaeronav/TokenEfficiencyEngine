@@ -1,5 +1,12 @@
 # Mac handoff — what only the physical machine can finish
 
+**STATUS 2026-08-27: every section below (§1–§6) is closed with
+recorded evidence in `docs/PROGRESS.md`; hosted Tripo/Meshy keys were
+descoped by owner decision. Nothing remains on this list. Named
+follow-ups live where they belong: the full research-48 battery matrix
+in `voxkiln/BENCHMARKS.md`, the hip-roof straight-skeleton design
+decision in §5.**
+
 Everything cloud-buildable is built, tested and pushed. This file is the
 single list of what remains, why it needs the M5 Mac, and how each item
 proves itself done. Work it in a Claude Code session opened in this repo
@@ -15,6 +22,10 @@ A one-paste prompt for the Mac session:
 > Stop and report if any item's premise no longer holds.
 
 ## 1. OkongoSim: the `[kb]` config line (Phase 16 acceptance #4)
+
+**DONE on the Mac 2026-08-27** — both OkongoSim commits made
+(`47973f6fc` config, `58faa8a0a` docs) and the live `kb_search` →
+`kb_read` proof exchange recorded in PROGRESS.md ("handoff §1").
 
 OkongoSim lives only at `/Users/john/OkongoSim` (not on GitHub), so this
 could not be done from the cloud. Two small commits there:
@@ -37,16 +48,33 @@ flagged, cited section. Record the exchange in PROGRESS.md.
 
 ## 2. Voxkiln live bring-up (Phase 13's second half)
 
+**DONE on the Mac 2026-08-27** — evidence in PROGRESS.md ("handoff §2
+(Voxkiln live bring-up) CLOSED") and `voxkiln/BENCHMARKS.md`.
+
 The code is restored and green (server 41 voxkiln tests); the live lane
 was never re-run after the delete/restore cycle.
 
-- Recreate the venv per `voxkiln/README.md`; reinstall into the server
-  venv.
-- Re-fetch weights if they were cleaned (~15 GB); the gated DINOv3
-  access is approved — verify the download actually succeeds now.
-- First live generation on MPS; then same-seed determinism (two runs,
-  same seed, hash the meshes).
-- Stock-vs-ours defect battery into `voxkiln/BENCHMARKS.md`.
+- ~~Recreate the venv per `voxkiln/README.md`; reinstall into the server
+  venv.~~ Recreated (`uv sync --extra model`); server venv imports
+  voxkiln 0.1.0.
+- ~~Re-fetch weights if they were cleaned (~15 GB); the gated DINOv3
+  access is approved — verify the download actually succeeds now.~~
+  Moot: the HF cache was never cleaned (~18 GB incl. TRELLIS.2-4B);
+  `voxkiln doctor` shows gated DINOv3 `accessible: true`. Nothing
+  downloaded.
+- ~~First live generation on MPS; then same-seed determinism (two runs,
+  same seed, hash the meshes).~~ First gen `state=done` in 1294 s
+  (490,280 tris, T.png seed 7); two fresh-subprocess seed-42 runs both
+  hashed `52b60b5bf50b3502` — deterministic on this device. Two real
+  product bugs found and fixed en route (quadratic `_winding_for_fill`,
+  `None` CLI params over `export_glb` defaults).
+- ~~Stock-vs-ours defect battery into `voxkiln/BENCHMARKS.md`.~~ First
+  tranche measured (4/4 rows, 2 images × seed 42 × both arms) with the
+  honest finding that the arms are hash-identical on MPS: the gated
+  decode head already runs fp32 there (measured), so the fp16-threshold
+  fixes are no-ops on this backend and the "ours improves over stock"
+  claim is scoped to fp16 backends. Full research-48 matrix stays open
+  as future work, stated in BENCHMARKS.md — not silently sampled.
 
 ## 3. Install-validate the packaged artifacts (Phase 6 close-out)
 
@@ -63,6 +91,10 @@ the Mac owes is the *install* half:
   manifest's exact command was proven in the 08-27 stdio rehearsal; an
   in-chat call wasn't log-captured (Desktop quit right after install)
   and is a 30-second optional check. Evidence in PROGRESS.md.
+  *Later the same day:* the optional check happened for real — the
+  0.1.1 bundle was re-dragged, the required `project_root` user-config
+  gotcha was found and documented, and `tee_status` answered in situ
+  through the Desktop-managed server (PROGRESS "§3 final acceptance").
 - ~~`TeeToolset-0.1.0.zip`~~ — DONE on the Mac 2026-08-27: unzipped into
   a fresh UE 5.8 project (`~/Documents/Unreal Projects/TeeZipProbe`,
   plugin from the zip only), editor boot runs the plugin's
@@ -80,18 +112,45 @@ the Mac owes is the *install* half:
 
 ## 4. GPU/model lanes (Phase 9 + 7)
 
-- Assets lanes 1–3 live on MPS: Z-Image, SDXL-tileable, Marigold-IID;
+**DONE on the Mac 2026-08-27** — evidence in PROGRESS.md ("handoff §4
+first pass", "§4 continued", "handoff §4 + §5 CLOSED").
+
+- ~~Assets lanes 1–3 live on MPS: Z-Image, SDXL-tileable, Marigold-IID;
   `[assets-embed]` embeddings; the UE import path; Blender library
-  authoring/`asset_listing` publishing.
-- Extract: Whisper/pyannote quality spot-check on real site audio.
+  authoring/`asset_listing` publishing.~~ All live with recorded output:
+  Z-Image-Turbo via `as_generate` (83.4 s, provenance stamp), the
+  SDXL-tileable driver written this day (seam_ratio 0.922, tileable
+  true), Marigold-IID refinement written behind `as_photo_material`
+  (live on a real drone frame), SigLIP-2 embeddings ranking sanely,
+  voxkiln GLB → `as_ingest` → `as_import` into UE with exact read-back,
+  and `as_publish_library` → Blender's own `asset_listing` index with
+  licenses travelling per asset. Hosted Tripo/Meshy keys: DESCOPED by
+  owner decision ("not interested").
+- ~~Extract: Whisper/pyannote quality spot-check on real site audio.~~
+  Whisper large-v3 on 8 real iPhone site clips: zero hallucinated
+  segments, the walkthrough transcribed fluently; pyannote diarization
+  live after the owner accepted the HF gate (three pyannote-4.x API
+  drifts found and fixed en route). Quality: PASS.
 
 ## 5. UE live physics (Phase 11 leftovers)
 
-UE physics/settle (SIE), fluid bake validation, CoACD proxy
-integration. Hip roof stays blocked on a straight-skeleton library —
-that is a design decision, not a Mac task.
+**DONE on the Mac 2026-08-27** — evidence in PROGRESS.md ("handoff §4 +
+§5 CLOSED").
+
+~~UE physics/settle (SIE), fluid bake validation, CoACD proxy
+integration.~~ `ue_settle` live against the real editor (settled true,
+poses adopted, capture recorded); `sim_fluid` bake against the real
+headless bridge (750-file cache written); `sim_proxy` (CoACD) written
+with a hash-keyed cache and proven on the 491,888-tri generated mesh
+(24 hulls, 60:1, cache hit on the second call). Hip roof stays blocked
+on a straight-skeleton library — that is a design decision, not a Mac
+task.
 
 ## 6. Dropbox sync-back (owner's call, 2 files)
+
+**DONE on the Mac 2026-08-27** — both files copied and verified
+byte-identical to the repo mirror (sha256 match); evidence in
+PROGRESS.md ("handoff item 6").
 
 The cloud session ran the corpus's own `00_meta/rebuild.py` over the
 in-repo mirror and converged it: the mirror's `manifest.json` (one

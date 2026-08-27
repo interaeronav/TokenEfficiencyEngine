@@ -38,5 +38,7 @@ testbeds/**/*.sln
 .tee/
 voxkiln/.venv/
 voxkiln/voxkiln_out/
+voxkiln/benchmarks/local_out/glb/
+voxkiln/benchmarks/local_out/*.log
 voxkiln/**/__pycache__/
 voxkiln/src/voxkiln.egg-info/
