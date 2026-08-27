@@ -59,8 +59,11 @@ the Mac owes is the *install* half:
 - `TeeToolset-0.1.0.zip` → unzip into a UE 5.8 project's `Plugins/`,
   confirm the toolset registers (OkongoSim already runs it from source;
   this validates the zip path for a fresh project).
-- `tee_bridge-0.1.2.zip` → install as a Blender extension, confirm the
-  bridge serves.
+- ~~`tee_bridge-0.1.2.zip`~~ — DONE in cloud 2026-08-27: validated,
+  installed (`blender --command extension install-file`), enabled, and a
+  live wire round-trip served from the installed extension
+  (`{'status': 'ok', 'result': {'v': '5.2.0 LTS', 'objs': 3}}`). Nothing
+  left for the Mac on this artifact.
 
 ## 4. GPU/model lanes (Phase 9 + 7)
 
@@ -85,6 +88,17 @@ If you want Dropbox consistent, copy those two files from
 `knowledge-base/` back to `Dropbox/02 Okongo Oneleiwa Project/12 Expert
 Knowledge Base/`. Content files are untouched — the mirror is
 byte-identical to Dropbox everywhere else.
+
+The cloud session attempted this on 2026-08-27: the clean path (a file
+request + browser upload of the exact bytes) was blocked by the
+permission classifier, and regenerating 680 KB of file content inline
+risks silent transcription corruption, so it was deliberately not
+forced. On the Mac it is one command from the TEE clone:
+
+```sh
+cp knowledge-base/manifest.json knowledge-base/INDEX.md \
+  ~/Dropbox/"02 Okongo Oneleiwa Project"/"12 Expert Knowledge Base"/
+```
 
 ## Explicitly NOT owed
 

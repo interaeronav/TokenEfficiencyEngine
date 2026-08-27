@@ -1433,6 +1433,28 @@ gated-access blocker dies with it — nothing to request. Research digests
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
 
+### 2026-08-27 — All-items pass: Blender artifact fully validated, delegation checked
+
+Actioned everything on the handoff list reachable from the cloud:
+
+- **`tee_bridge-0.1.2.zip` install-validated end-to-end** with the
+  container's real Blender 5.2.0 LTS: `--command extension validate`
+  clean, `install-file -r user_default -e` installed and enabled, the
+  installed extension's own `bridge_server.run_blocking` started in
+  background mode, and a live TEE wire round-trip answered
+  `{'status': 'ok', 'result': {'v': '5.2.0 LTS', 'objs': 3}}`. The
+  Blender artifact owes the Mac nothing; the .mcpb (Claude Desktop) and
+  TeeToolset (UE editor) install halves remain.
+- **Delegation checked, honestly closed:** no Claude session on the Mac
+  is reachable (ListAgents: none), and OkongoSim has no GitHub repo, so
+  the OkongoSim/Voxkiln/GPU/UE items cannot be driven from here.
+- **Dropbox sync-back attempted, deliberately not forced:** the clean
+  path (file request + browser upload of the exact bytes) was blocked
+  by the permission classifier; the only remaining cloud path would
+  regenerate 680 KB of corpus files inline, where silent transcription
+  corruption is a real risk. Left to the Mac as a one-line `cp`
+  (now spelled out in docs/mac-handoff.md).
+
 ### 2026-08-27 — Dead island removed; owed artifacts built; Mac handoff written
 
 **The dead Fortnite island is gone.** `test_uefn_analytics_live` was
