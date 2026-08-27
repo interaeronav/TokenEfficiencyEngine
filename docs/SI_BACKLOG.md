@@ -29,7 +29,7 @@ Format per item:
 - call: `tee_search_tools {"query": "look vlm describe viewport"}` → ex_prepare, ex_store_facts, bl_render; `{"query": "kb knowledge base"}` → as_materials, bl_assign_material, roof
 - hurt: weak matches are returned bare, indistinguishable from good ones — can't tell "tool doesn't exist" from "bad query" without describe round-trips. `tee_describe_tool` already computes closest-match hints on unknown_tool; search itself never says "nothing scored well".
 - proposed: relevance floor + a `note: no strong match` line naming nearest tool names (reuse the unknown_tool closest-match machinery).
-- status: open
+- status: done (SI-1.2: weak/empty searches carry the note; one-line summaries sentence-capped — 'kb read' query 648→427 tok, reach-one 725→580; 2 registry tests)
 
 ## SI-B3 — virtual-tool count differs by registration path (81 vs 82)
 - seen: 2026-08-27, SI-0 baseline measurements
@@ -50,7 +50,7 @@ Format per item:
 - call: `uv run python ../benchmarks/run_benchmarks.py` with no UE editor up
 - hurt: the regenerated RESULTS.md deleted the whole "Unreal: level population" section (the 93.9% row) because that scenario skipped — a re-run on any machine without a DCC erases recorded evidence from the tracked file (git diff: −29 lines).
 - proposed: preserve sections for skipped scenarios (carry forward with a "not re-run this pass" stamp) or refuse to rewrite when a previously-recorded scenario skipped.
-- status: open
+- status: done (SI-1.2: `_carry_forward` in run_benchmarks.py, verified by a live no-editor run that preserved the UE section stamped — and again the same evening when a concurrent-run abort skipped the UE scenario)
 
 ## SI-B6 — `adapter` default "fake" fails on every real deployment
 - seen: 2026-08-27, SI-0 session (co-pilot = installed 0.1.1, blender-only)
@@ -58,3 +58,10 @@ Format per item:
 - hurt: the wire-visible schema default ("fake") is wrong in every real session — omitting the param (the reasonable reading of a default) costs a failed round-trip, then ~6-8 tok of `"adapter":"blender"` on every later call in the session. The error itself is rule-6-clean; the default is the defect.
 - proposed: `adapter=None` + resolve to the sole configured adapter when exactly one exists (tests keep working — their single adapter IS fake); error naming choices only on real ambiguity.
 - status: done (5301424)
+
+## SI-B7 — doctor calls a just-booted UE editor "not answering as MCP"
+- seen: 2026-08-27, SI-1.2 session (TeeZipProbe, UE 5.8.1)
+- call: `tee doctor` / short-timeout initialize probes during the editor's first ~2.5-3 minutes
+- hurt: the MCP HTTP port binds at boot but tool dispatch waits for editor startup to settle; every short probe in that window reads "listening but did not answer as Unreal's MCP server (TeeError)" — a healthy editor looks broken, and one benchmark pass concluded "no editor" and skipped the UE scenario. Measured: same endpoint, 0-byte reply during startup, 0.18 s initialize once settled.
+- proposed: doctor's unreal hint (and the benchmark probe) should say "an editor that just launched may need ~2 minutes before MCP dispatches - retry before concluding it is broken", and probes that find the port bound by UnrealEditor should retry longer before reporting down.
+- status: open

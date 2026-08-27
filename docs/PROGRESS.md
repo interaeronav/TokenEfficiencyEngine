@@ -2506,3 +2506,85 @@ table is what SI-1..SI-5 diff against.
   next pass: response audit (1.2) with per-family fixtures, dependency/
   dead-code pass (1.3), SI-B2 search no-match signal, SI-B5 RESULTS
   section preservation.
+
+## 2026-08-27 — SI-1.2 + 1.3: response audit (four shaves, all fixtured) and the dead-weight pass
+
+**Response audit (SI-1.2).** Real payloads from every family captured on
+fixed fixtures first; four shaves implemented, each with before/after on
+the same fixture, behavior gated by the suites and a full live benchmark
+re-run:
+
+1. **Batch reports carry drift, not echoes** (hard rule 2 applied to the
+   report itself): a detail field matching the requested value is an echo
+   (float-tolerant, rel/abs 1e-5); for modified ids, a field unchanged
+   from the pre-batch cache state is a re-report; both are dropped. What
+   stays is news: measured dims, adapter renames, computed side effects.
+   Created ids stay addressable via a compact names map; a creator-op/
+   created-id misalignment guard skips request-mapping rather than guess.
+   The full post-op state still syncs the scene cache. Fixture: 30-create
+   batch report **663 → 205 tok (−69%)**; a drift-free set/delete batch
+   reports no details at all. Live: real-Blender detail for a uv_sphere
+   create is now `{kind: mesh, dimensions, verts, polys}` — the location
+   echo gone, the measured facts kept.
+2. **`tee_status(recap=true)` dedups against its own response**: the
+   checkpoint list rode twice byte-identical, adapter stamps twice.
+   Fixture: **208 → 139 tok (−33%)**. `app.recap()` itself stays
+   self-contained for other callers; the resume contract is the response.
+3. **`tee_search_tools` one-line summaries are capped at a sentence
+   (~150 chars)** — authors had drifted to paragraph-long "first lines"
+   (kb_search's summary was 4 lines). Fixture query 'kb read':
+   **648 → 427 tok (−34%)**; benchmark reach-one-tool **725 → 580**.
+   SI-B2 closed in the same change: a query whose best hit scored below
+   any name/tag match now carries `note: "no strong match..."` — weak
+   results are distinguishable from good ones without describe
+   round-trips (2 registry tests).
+4. **Wire serialization is UTF-8** (`ensure_ascii=False`, all six dump
+   sites + the budget estimator): corpus-heavy responses stop paying
+   ~4 tokens per em-dash for `—` escapes. kb_read fixture
+   **956 → 919 (−3.9%)** by the house estimator; the true tokenizer
+   saving on escapes is larger than chars/3.5 shows.
+
+Considered and rejected: dropping the `"ok":true` envelope (~3 tok/call)
+— it is the success discriminant every consumer keys on; risk over yield.
+
+**Benchmark rows moved the right way** (same run, live Blender + UE):
+assets find-select-place 828 → 762 tee tok (93.5% → 94.0% saved),
+populate-100 and UE rows re-measured in the full-editor run recorded
+below; no row regressed.
+
+**SI-B5 closed**: `run_benchmarks.py` now carries forward the previously
+recorded section of any scenario that skipped, stamped "*(not re-run this
+pass...)*" — verified live by a no-editor run that preserved the UE
+section instead of erasing it.
+
+**Dead-weight pass (SI-1.3), measured, no action needed:** `import
+tee.cli` = 4.4 ms cumulative (the 151 `PLC0415` import-outside-top-level
+findings ARE the lazy-import discipline); `ruff --select ALL` over src
+finds zero unused-import/unused-variable defects; the 25 `BLE001`
+blind-except findings are queued as the SI-2.4 fault-path review list
+(the pyannote lesson); wheel is 330 KB (947 KB / 123 files uncompressed),
+largest member the 67 KB CC0 material dataset, which earns its place.
+Style families (docstring/annotation/comma/copyright) deliberately not
+adopted. Recorded as a measured no-action result, A12-style.
+
+Suites after the change set: server **479 passed** (475 + 2 trim guards
++ 2 registry guards) / 2 skipped; dcc blender-flavor 58 green mid-pass
+and the full **85 with the live editor** in the closing run; ruff clean.
+**Closing benchmark set (live Blender + UE 5.8.1, clean level):** scenes
+total **87.7% → 90.3% saved** (donut 295/93.3%, populate-100 5,311/89.2%,
+materials 980/91.5%, layout 36/98.8%), assets 762/94.0%, extraction
+4,464/93.1% (unchanged), UE **38,334 → 2,349 (93.9%)** — reproduced
+exactly after deleting seven StaticMeshActor test-debris leftovers that a
+first solo run had honestly measured as 93.6% (both arms inflated by the
+same level growth; environment, not code). **Honesty row:** the fix-loop
+headline FELL 63.2% → 47.9% — the rounds arm dropped 470 → 332 tok
+because per-round responses got leaner while the script arm was already
+flat at 173; absolute cost went down in both arms, and the stale
+hardcoded 17.7/63.2/76.3 curve prose was removed from the writer rather
+than left to mislead. Two UE ops notes for the runbook: the editor's MCP
+dispatches only after startup settles (~2.5-3 min; port binds long
+before — a healthy editor probes as "down" in that window, SI-B7), and
+never run the dcc suite and the benchmark against one editor
+concurrently (the level is shared state; one such overlap aborted the UE
+scenario mid-cleanup and SI-B5's carry-forward preserved the row).
+Commit: f0de6df.
