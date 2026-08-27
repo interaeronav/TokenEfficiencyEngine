@@ -2063,3 +2063,35 @@ wheel + sdist).
   `tee_status` answer from inside Desktop — owner's hands, ~1 minute.
 
 `tee_bridge-0.1.2.zip`: nothing owed (closed in cloud 2026-08-27).
+
+## 2026-08-27 — Mac session: handoff §3 TeeToolset zip item ticked (independent re-verification)
+
+The 16:13 validation above was correct but the checklist strike-through in
+`mac-handoff.md` had been left undone. Before ticking it, a second session
+re-verified the whole chain from the owner's Downloads copy of the zip:
+
+- `~/Downloads/TeeToolset0.1.0.zip` (md5 `2b2fbb1249007b3aafc2e22b58d26cdf`)
+  vs `server/dist/TeeToolset-0.1.0.zip` (md5 `827e4f8dbf008dc084300b445b529e4e`):
+  different archive bytes (file mtimes from different `make dist` runs), but
+  the extracted trees are byte-identical to each other AND to what is
+  installed in TeeZipProbe — `diff -r --exclude=__pycache__` clean both ways.
+  So nothing was reinstalled; the existing install IS this zip's content.
+- Fresh independent editor boot (`open TeeZipProbe.uproject`, log opened
+  16:42:20, UE 5.8.1), from
+  `~/Library/Logs/Unreal Engine/TeeZipProbeEditor/TeeZipProbe.log`:
+
+  ```
+  LogPluginManager: Mounting Project plugin TeeToolset
+  [2026.08.27-13.42.41:323][  0]LogPython: Display: Running start-up script /Users/john/Documents/Unreal Projects/TeeZipProbe/Plugins/TeeToolset/Content/Python/init_unreal.py... started...
+  [2026.08.27-13.42.41:545][  0]LogToolsetRegistry: Display: Registering Toolset tee_toolset.toolsets.editor.TeeEditorTools
+  [2026.08.27-13.42.41:545][  0]LogPython: Display: Running start-up script /Users/john/Documents/Unreal Projects/TeeZipProbe/Plugins/TeeToolset/Content/Python/init_unreal.py... took 222.278 ms
+  ```
+
+  Zero `LogPython` errors/warnings in the whole log; editor quit cleanly
+  afterwards.
+- Naming note so nobody "fixes" it: the registry logs the class path as
+  `tee_toolset.toolsets.editor.TeeEditorTools` although the module file is
+  `editor_python.py`. Both TeeZipProbe boots (16:13 and 16:42) log it this
+  way — registry display naming, not a stale file.
+- §3 remainder is only the mcpb drag into Claude Desktop (owner's ~1 minute).
+  OkongoSim's source-installed plugin was not touched at any point.

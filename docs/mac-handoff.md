@@ -56,9 +56,15 @@ the Mac owes is the *install* half:
 
 - `tee-engine-0.1.0.mcpb` → drag into Claude Desktop, confirm the
   server starts and `tee_status` answers.
-- `TeeToolset-0.1.0.zip` → unzip into a UE 5.8 project's `Plugins/`,
-  confirm the toolset registers (OkongoSim already runs it from source;
-  this validates the zip path for a fresh project).
+- ~~`TeeToolset-0.1.0.zip`~~ — DONE on the Mac 2026-08-27: unzipped into
+  a fresh UE 5.8 project (`~/Documents/Unreal Projects/TeeZipProbe`,
+  plugin from the zip only), editor boot runs the plugin's
+  `init_unreal.py` and registers
+  `tee_toolset.toolsets.editor.TeeEditorTools` with zero Python
+  errors/warnings; independently re-verified same day with a second
+  clean boot from an owner-downloaded copy of the zip (extracted trees
+  byte-identical). Evidence in PROGRESS.md. OkongoSim's source install
+  was left untouched.
 - ~~`tee_bridge-0.1.2.zip`~~ — DONE in cloud 2026-08-27: validated,
   installed (`blender --command extension install-file`), enabled, and a
   live wire round-trip served from the installed extension
