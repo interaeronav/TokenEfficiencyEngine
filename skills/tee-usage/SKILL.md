@@ -29,14 +29,16 @@ procedure that keeps YOU from working against it.
 Any loop whose intermediate results you will not quote back — check ⇢
 fix ⇢ recheck, iterate over entities, poll-and-adjust — goes in ONE
 `tee_script` call. Its intermediate tool results never enter context
-(measured: 63–76% saved on conformance fix loops, growing with loop
-length). Reach for separate calls only when each step needs your
+(measured: flat cost in loop length — 48% saved on a 5-round fix loop
+even after per-round responses got leaner, widening with every extra
+round). Reach for separate calls only when each step needs your
 judgment on the previous step's output.
 
 ## Finding capability
 
-The 16 always-loaded tools are the kernel. Everything else (~68 virtual
-tools) is behind `tee_search_tools` → `tee_describe_tool` → `tee_call`:
+The 16 always-loaded tools are the kernel. Everything else (~74–82
+virtual tools, adapter-dependent) is behind `tee_search_tools` →
+`tee_describe_tool` → `tee_call`:
 `ex_*` extraction, `as_*` assets, `gd_*` design, `pin_*` marker pins
 (Unreal), modeling/physics (`wall_with_openings`, `sim_settle`,
 `plaus_check`, `mat_assign`), `uefn_*`. Search by capability words ("bake

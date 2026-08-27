@@ -2647,3 +2647,51 @@ sessions or an owner-scheduled overnight window.
 level — nothing persists across editor restarts; mid-session debris is
 same-session test leftovers (delete + the level is exactly clean).
 The editor's MCP dispatches only ~2.5–3 min after launch (SI-B7).
+
+## 2026-08-28 — SI-3 polish pass + a correction to the SI-2 census claim
+
+**Correction (honesty gate, same session):** the "22,108 components — 
+confetti is the surface" characterization in the SI-2 entry was measured
+on the EXPORTED GLB, where xatlas seam-splitting duplicates seam
+vertices and fragments face connectivity; the decode meshes themselves
+carry ~1,066–1,081 components (battery rows, both tranches). The census
+therefore describes post-unwrap chart fragmentation (expected), not the
+decode surface. The mesh_stats speedups stand exactly as measured (both
+sides ran on the same mesh); their magnitude inside the export pipeline
+— whose stats stages run on pre-unwrap meshes — gets its true number
+from the next battery export rather than from the GLB measurement.
+
+**SI-3 items closed this pass:**
+- Skills re-read against the changed surface: all 10 tool names cited by
+  `tee-usage` verified against the live registry; two stale number
+  claims fixed (fix-loop 63–76% → the honest post-shave 48%-at-5-rounds
+  wording; "~68 virtual tools" → 74–82 adapter-dependent). Other three
+  skills carry no stale numbers.
+- SI-B7 doctor fix: the unreal "listening but did not answer" warn now
+  leads with "a just-launched editor needs ~2–3 minutes before MCP
+  dispatches — retry first" and names the CrashReportClient squatter.
+- SI-B1 product fix: with no resolvable corpus, `kb_status` now stays
+  registered alone and answers `kb_inactive` + the exact config.toml
+  line (test amended to the new contract; the module never silently
+  vanishes again).
+- Cold-start truth test EXECUTED word-for-word in a fresh clone +
+  scratch venv: repo-checkout leg (sync, doctor exit 0 incl. correct
+  voxkiln-absent fix and the clone's own kb mirror), wheel leg (build →
+  venv pip install → `tee 0.1.1`), emit for both layouts (uv-run form
+  vs venv-binary form, both correct), stdio smoke of the installed
+  wheel (16 tools listed). Doc bugs found by execution and fixed: the
+  hardcoded 0.1.0 wheel filename in quickstart (a fresh build produces
+  0.1.1 — the literal command fails), the ~2.8K surface claim (→ ~1.9K
+  wire), the 68-virtual-tools count (→ 74–82 adapter-dependent).
+- Consistency pass (3.2), proposals staged not implemented (breaking):
+  list-field naming varies by family — `tools` (search) vs `hits`
+  (kb_search) vs `materials` (as_materials) vs `entities` (summary); a
+  0.2 rename would unify on one plural or add none. Error codes are
+  uniformly snake_case with fixes (fault table); `--json` exists where
+  it makes sense (doctor); no other rename candidates found worth the
+  break.
+
+**Machine-sharing note:** a concurrent session works /Users/john/OkongoSim
+and ran its own UE editor on :8000 tonight; TEE sessions must own their
+editor lifecycle and never assume the port. My UE editor was quit and
+its debris deleted; TeeZipProbe persists nothing by design.

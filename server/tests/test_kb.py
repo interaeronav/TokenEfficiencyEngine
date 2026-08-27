@@ -244,7 +244,13 @@ def test_root_resolution_order(tmp_path, monkeypatch):
     assert resolve_root(project_mirror_less, None) is None
     app = TeeApp({"fake": FakeAdapter()}, project_root=project_mirror_less)
     assert register_kb_tools(app, project_mirror_less) is None
-    assert not any(name.startswith("kb_") for name in app.registry.names())
+    # SI-B1: the module no longer vanishes silently - a lone kb_status stays
+    # registered and answers inactive with the exact one-line fix
+    assert [n for n in app.registry.names() if n.startswith("kb_")] == ["kb_status"]
+    out = app.registry.call("kb_status", {})
+    assert out["ok"] is False
+    assert out["error"]["code"] == "kb_inactive"
+    assert "config.toml" in out["error"]["fix"]
     app.shutdown()
 
 

@@ -77,6 +77,33 @@ def register_kb_tools(app, project_root: Path | str, *, root: str | None = None)
         configured = getattr(getattr(app, "config", None), "kb", {}).get("root")
     resolved = resolve_root(project_root, configured)
     if resolved is None:
+        # SI-B1: the module must never vanish silently - a lone kb_status
+        # stays registered and answers inactive with the exact fix
+        app.registry.register(
+            VirtualTool(
+                name="kb_status",
+                description=(
+                    "Expert Knowledge Base: INACTIVE for this project - no "
+                    "corpus root resolves. Activate with [kb] root = "
+                    '"/path/to/knowledge-base" in .tee/config.toml '
+                    "(docs/setup-kb.md); kb_search/kb_read/kb_facts register "
+                    "once a corpus resolves."
+                ),
+                schema={"type": "object", "properties": {}},
+                handler=lambda args: {
+                    "ok": False,
+                    "error": {
+                        "code": "kb_inactive",
+                        "message": "No Knowledge Base corpus root resolves for this project.",
+                        "fix": (
+                            'Add [kb] root = "/path/to/knowledge-base" to '
+                            ".tee/config.toml (docs/setup-kb.md)."
+                        ),
+                    },
+                },
+                tags=["kb", "knowledge"],
+            )
+        )
         return None
     index = KbIndex(resolved, project_root)
     kb_conf = getattr(getattr(app, "config", None), "kb", {}) or {}

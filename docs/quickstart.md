@@ -17,9 +17,9 @@ uv run tee doctor          # environment diagnostics with fixes
 Or install the built wheel into any Python 3.11+ environment:
 
 ```bash
-cd server && uv build      # -> dist/tee_engine-0.1.0-py3-none-any.whl
+cd server && uv build      # -> dist/tee_engine-<version>-py3-none-any.whl
 python -m venv ~/.tee-venv
-~/.tee-venv/bin/pip install dist/tee_engine-0.1.0-py3-none-any.whl
+~/.tee-venv/bin/pip install dist/tee_engine-*.whl
 ~/.tee-venv/bin/tee --version
 ```
 
@@ -61,16 +61,16 @@ round-trip) and names the fix for anything broken.
 
 ## 4. First session
 
-In your MCP client, the always-loaded surface is 16 tools (~2.8K tokens
-of definitions). The intended flow:
+In your MCP client, the always-loaded surface is 16 tools (~1.9K tokens
+of definitions on the wire). The intended flow:
 
 1. `tee_recall` once — project memory (versions, conventions, notes).
 2. `tee_scene_summary` — compact counts + paged entity rows, never a dump.
 3. Mutate with `tee_batch` (N ops = 1 round-trip, auto-checkpointed) and
    read the returned diff; `tee_diff` answers "what changed" later.
-4. The long tail (68 virtual tools across extraction, assets, design,
-   physical, UEFN) is behind `tee_search_tools` →
-   `tee_describe_tool` → `tee_call`.
+4. The long tail (~74–82 virtual tools across extraction, assets,
+   design, physical, UEFN, KB — adapter-dependent) is behind
+   `tee_search_tools` → `tee_describe_tool` → `tee_call`.
 5. Loops belong in ONE `tee_script` call — intermediate results never
    enter context.
 6. `tee_capture` (small budgeted JPEG) is a last resort; geometric

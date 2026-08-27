@@ -222,8 +222,11 @@ def check_unreal() -> Check:
                 "warn",
                 f"something is listening on :{EPIC_MCP_PORT} but it did not "
                 f"answer as Unreal's MCP server ({type(exc).__name__})",
-                fix="Check nothing else holds that port, and that the "
-                "ModelContextProtocol plugin is enabled in the open project.",
+                fix="A just-launched editor needs ~2-3 minutes before MCP "
+                "dispatches - retry first. If it persists: check nothing "
+                "else holds that port (CrashReportClient is known to squat "
+                "it) and that the ModelContextProtocol plugin is enabled "
+                "in the open project.",
             )
         if not toolsets:
             return Check(

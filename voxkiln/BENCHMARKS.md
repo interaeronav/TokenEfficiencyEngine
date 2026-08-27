@@ -158,3 +158,11 @@ definition (this mesh: 22,892 new vs 27,593 traversal-entity count) —
 rows above this section used the old definition. `battery_rows_t2.json`
 (tranche 2, started before the change) also carries old-definition
 boundary loops; mesh hashes are unaffected by metrics.
+
+**Correction (2026-08-28):** the SI-2 note above measured its component
+census on the exported GLB — post-unwrap, where xatlas seam-splitting
+fragments connectivity to 22,108 pieces. The decode meshes have
+~1,066–1,081 components (see rows). The timing fixes are unaffected
+(measured on the same mesh before/after); the export pipeline's own
+stats stages run pre-unwrap, so their in-pipeline delta comes from the
+next battery export.
