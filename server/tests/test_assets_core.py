@@ -211,3 +211,17 @@ def test_texture_set_regex_variants(tmp_path):
     assert set(sets["Wood"]) == {"base_color", "normal", "roughness"}
     assert set(sets["Metal"]) == {"metallic", "base_color"}
     assert "lonely" not in sets
+
+
+def test_unknown_material_category_fails_loud():
+    # hard rule 6 (SI-2.4): an unknown category must not answer an empty
+    # list that reads like "no materials exist"
+    import pytest
+
+    from tee.assets.materials import list_materials
+    from tee.kernel.errors import TeeError
+
+    with pytest.raises(TeeError) as err:
+        list_materials("unobtainium")
+    assert err.value.code == "unknown_category"
+    assert "metal" in err.value.fix

@@ -31,10 +31,14 @@ def _load() -> list[dict[str, Any]]:
 
 
 def list_materials(category: str | None = None) -> list[dict[str, Any]]:
-    """Compact rows: name, category, key scalar params."""
+    """Compact rows: name, category, key scalar params. An unknown category
+    fails loud with the known ones instead of answering an empty list that
+    reads like 'no materials exist' (hard rule 6)."""
     rows = []
+    known: set[str] = set()
     for mat in _load():
         cats = [c.lower() for c in mat.get("category", [])]
+        known.update(cats)
         if category and category.lower() not in cats:
             continue
         rows.append(
@@ -44,6 +48,12 @@ def list_materials(category: str | None = None) -> list[dict[str, Any]]:
                 "metalness": mat.get("metalness", 0),
                 "roughness": mat.get("roughness"),
             }
+        )
+    if category and not rows:
+        raise TeeError(
+            "unknown_category",
+            f"No materials in category '{category}'.",
+            fix=f"Known categories: {', '.join(sorted(known))}.",
         )
     return rows
 

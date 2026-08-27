@@ -127,8 +127,20 @@ def _diarize(wav: Path) -> list[dict[str, Any]]:
             for turn, _, speaker in annotation.itertracks(yield_label=True)
         ]
         return turns[:200]
-    except Exception:
+    except (ImportError, KeyError):
+        # the optional extra is absent or ungated (no HF_TOKEN): expected on
+        # plain installs - stay silent
         return []
+    except Exception as exc:
+        # the lane exists but broke: this exact catch once hid three
+        # pyannote-4.x API drifts (fixed 4fb7842). Degrade to one visible
+        # marker fact instead of vanishing, still never failing the ingest.
+        return [
+            {
+                "kind": "diarization_unavailable",
+                "reason": f"{type(exc).__name__}: {exc}"[:120],
+            }
+        ]
 
 
 REQUIREMENTS_PROMPT = (

@@ -596,7 +596,10 @@ def _manifest_requires(store: AssetStore, key: str) -> bool:
     try:
         return bool(store.manifest(key).get("attribution_required"))
     except Exception:
-        return False
+        # fail SAFE: an unreadable manifest must never silently waive
+        # attribution - over-crediting is harmless, under-crediting is a
+        # license violation (SI-2.4 blind-except review)
+        return True
 
 
 def _radians(deg: float) -> float:
