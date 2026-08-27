@@ -89,8 +89,8 @@ verified Blueprint macro.
 
 | | Context tokens | Round-trips | Saving |
 |---|---|---|---|
-| naive (describe_toolset + call_tool per op) | 38,334 | 32 | |
-| TEE | 2,349 | 4 | **93.9%** |
+| naive (describe_toolset + call_tool per op) | 38,331 | 32 | |
+| TEE | 2,347 | 4 | **93.9%** |
 
 The schema dumps dominate the naive side: one
 `describe_toolset(BlueprintTools)` alone is ~18,000 tokens, more

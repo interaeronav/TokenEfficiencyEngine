@@ -63,7 +63,10 @@ class SparseResBlock3d(nn.Module):
             # voxkiln defect fix (research 44, upstream issue #169 /
             # stableprojectorz): decide subdivision in fp32 - fp16 rounding
             # near zero flips voxel creation and scatters surface holes.
-            x = self.updown(x, subdiv.replace(subdiv.feats.float() > 0))
+            from trellis2.voxkiln_stock import STOCK
+
+            feats = subdiv.feats if STOCK else subdiv.feats.float()
+            x = self.updown(x, subdiv.replace(feats > 0))
         return x
 
     def _forward(self, x: sp.SparseTensor) -> sp.SparseTensor:

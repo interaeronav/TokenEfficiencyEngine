@@ -96,3 +96,32 @@ def test_export_repairs_before_bake(tmp_path):
     )
     assert any(e.get("op") == "fill_holes" for e in report["repairs"])
     assert report["stats"]["watertight"] is True
+
+
+def test_fast_projection_stays_within_half_a_voxel_of_the_exact_one():
+    """The bake projects every texel onto the frozen reference. The exact
+    trimesh path is O(queries x triangles) in Python and unusable at bake
+    scale, so the default samples the surface and answers from a KD-tree;
+    this pins the error it is allowed to introduce."""
+    import numpy as np
+    import trimesh
+
+    from voxkiln.export import _project_to_reference
+
+    reference = trimesh.creation.icosphere(subdivisions=4, radius=0.5)
+    rng = np.random.default_rng(0)
+    # query points just off the surface, like simplified-mesh texel positions
+    directions = rng.normal(size=(400, 3))
+    directions /= np.linalg.norm(directions, axis=1, keepdims=True)
+    points = directions * 0.5 * (1.0 + rng.normal(0, 0.01, (400, 1)))
+
+    voxel_size = 1.0 / 512.0
+    fast = _project_to_reference(reference, points, voxel_size=voxel_size)
+    exact = _project_to_reference(reference, points, exact=True)
+
+    deviation = np.linalg.norm(fast - exact, axis=1)
+    # The sample count is capped (2e6), so on a large surface the spacing -
+    # and with it the worst case - grows; the typical error is what the bake
+    # actually sees. Both are pinned so a regression cannot creep in quietly.
+    assert float(np.mean(deviation)) < 0.5 * voxel_size, float(np.mean(deviation))
+    assert deviation.max() < 2.0 * voxel_size, deviation.max()

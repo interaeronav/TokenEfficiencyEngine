@@ -175,20 +175,31 @@ class Engine:
         import os
 
         if self.backend == "mps":
-            # segment_reduce and a few other ops still lack MPS kernels
-            os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+            # PYTORCH_ENABLE_MPS_FALLBACK is set in voxkiln/__init__.py, not
+            # here: torch has already been imported by the time load() runs,
+            # and by then the flag is ignored.
             os.environ.setdefault("SPARSE_ATTN_BACKEND", "sdpa")
             os.environ.setdefault("SPARSE_CONV_BACKEND", "none")
+            # There are TWO attention subsystems and they read DIFFERENT
+            # variables: the sparse stack (SPARSE_ATTN_BACKEND, above) and
+            # the dense one (ATTN_BACKEND, modules/attention/config.py),
+            # which defaults to flash_attn and dies with
+            # ModuleNotFoundError the moment sparse-structure sampling
+            # starts. Both must be steered, and before trellis2 is
+            # imported - its config reads the environment at import time.
+            os.environ.setdefault("ATTN_BACKEND", "sdpa")
         else:
             for candidate, env in (("flash_attn", "flash_attn"), ("xformers", "xformers")):
                 try:
                     __import__(candidate)
                     os.environ.setdefault("SPARSE_ATTN_BACKEND", env)
+                    os.environ.setdefault("ATTN_BACKEND", env)
                     break
                 except ImportError:
                     continue
             else:
                 os.environ.setdefault("SPARSE_ATTN_BACKEND", "sdpa")
+                os.environ.setdefault("ATTN_BACKEND", "sdpa")
             try:
                 import flex_gemm  # noqa: F401
             except ImportError:

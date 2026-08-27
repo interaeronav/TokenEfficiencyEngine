@@ -36,6 +36,40 @@ def test_sdpa_sparse_attention_matches_manual_softmax():
     assert torch.allclose(out, expected, atol=1e-5)
 
 
+def test_flex_sparse_attention_matches_manual_softmax():
+    # research 45: the FlexAttention document-mask backend must be exact
+    # within each document, same contract as the sdpa backend above.
+    pytest.importorskip("torch.nn.attention.flex_attention")
+    from trellis2.modules.sparse import VarLenTensor, config
+    from trellis2.modules.sparse.attention.full_attn import (
+        sparse_scaled_dot_product_attention,
+    )
+
+    torch.manual_seed(0)
+    heads, ch = 2, 8
+    lens = [6, 4]
+    feats = torch.randn(sum(lens), 3, heads, ch)
+    qkv = VarLenTensor(feats, VarLenTensor.layout_from_seqlen(lens))
+
+    prev = config.ATTN
+    config.ATTN = "flex"
+    try:
+        out = sparse_scaled_dot_product_attention(qkv).feats
+    finally:
+        config.ATTN = prev
+
+    expected = torch.zeros(sum(lens), heads, ch)
+    offset = 0
+    for length in lens:
+        chunk = feats[offset : offset + length]
+        q, k, v = chunk.unbind(dim=1)
+        for h in range(heads):
+            scores = (q[:, h] @ k[:, h].T) / np.sqrt(ch)
+            expected[offset : offset + length, h] = torch.softmax(scores, dim=-1) @ v[:, h]
+        offset += length
+    assert torch.allclose(out, expected, atol=1e-5)
+
+
 def test_conv_none_matches_dense_conv3d():
     from trellis2.modules.sparse import SparseConv3d, SparseTensor
 

@@ -9,6 +9,38 @@ __all__ = [
 ]
 
 
+# voxkiln (research 45): FlexAttention-MPS block masks for the varlen batch.
+# Building a BlockMask is expensive, and the denoising loop repeats the same
+# seqlens every step, so cache on the seqlen signature. The mask itself is
+# head- and batch-independent (doc id equality), so one mask serves all heads.
+_flex_block_masks: dict = {}
+
+
+def _flex_doc_block_mask(q_seqlen: List[int], kv_seqlen: List[int], device: torch.device):
+    from torch.nn.attention.flex_attention import create_block_mask
+
+    key = (tuple(q_seqlen), tuple(kv_seqlen), str(device))
+    bm = _flex_block_masks.get(key)
+    if bm is None:
+        doc_q = torch.repeat_interleave(
+            torch.arange(len(q_seqlen), device=device),
+            torch.tensor(q_seqlen, device=device),
+        )
+        doc_kv = torch.repeat_interleave(
+            torch.arange(len(kv_seqlen), device=device),
+            torch.tensor(kv_seqlen, device=device),
+        )
+
+        def mask_mod(b, h, q_idx, kv_idx):
+            return doc_q[q_idx] == doc_kv[kv_idx]
+
+        bm = create_block_mask(
+            mask_mod, 1, 1, len(doc_q), len(doc_kv), device=device, _compile=True
+        )
+        _flex_block_masks[key] = bm
+    return bm
+
+
 @overload
 def sparse_scaled_dot_product_attention(qkv: VarLenTensor) -> VarLenTensor:
     """
@@ -233,6 +265,22 @@ def sparse_scaled_dot_product_attention(*args, **kwargs):
             q_off += lq
             kv_off += lkv
         out = torch.cat(outs, dim=0)
+    elif config.ATTN == 'flex':
+        # voxkiln (research 45): FlexAttention-MPS (torch >= 2.13) with a
+        # block-diagonal document mask - the varlen batch in ONE dispatch,
+        # no padding and no per-sequence loop. Same numerics as the sdpa
+        # branch (exact attention within each document).
+        from torch.nn.attention.flex_attention import flex_attention
+        if num_all_args == 1:
+            q, k, v = qkv.unbind(dim=1)
+        elif num_all_args == 2:
+            k, v = kv.unbind(dim=1)
+        bm = _flex_doc_block_mask(q_seqlen, kv_seqlen, device)
+        q4 = q.permute(1, 0, 2).unsqueeze(0)      # [1, H, T_Q, Ci]
+        k4 = k.permute(1, 0, 2).unsqueeze(0)      # [1, H, T_KV, Ci]
+        v4 = v.permute(1, 0, 2).unsqueeze(0)      # [1, H, T_KV, Co]
+        out = flex_attention(q4, k4, v4, block_mask=bm)   # [1, H, T_Q, Co]
+        out = out.squeeze(0).permute(1, 0, 2)     # [T_Q, H, Co]
     else:
         raise ValueError(f"Unknown attention module: {config.ATTN}")
     

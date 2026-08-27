@@ -92,7 +92,23 @@ class DinoV3FeatureExtractor:
         hidden_states = self.model.embeddings(image, bool_masked_pos=None)
         position_embeddings = self.model.rope_embeddings(image)
 
-        for i, layer_module in enumerate(self.model.layer):
+        # voxkiln version-drift shim: transformers moved the DINOv3 layer
+        # stack. Up to 4.x `DINOv3ViTModel` held `self.layer` directly; from
+        # 5.x it holds `self.model` (a `DINOv3ViTEncoder`) whose `.layer` is
+        # the ModuleList. Upstream still assumes the 4.x layout and dies with
+        # "'DINOv3ViTModel' object has no attribute 'layer'" - which nothing
+        # could hit before the gated weights became reachable.
+        encoder = getattr(self.model, "model", None)
+        layers = getattr(self.model, "layer", None)
+        if layers is None and encoder is not None:
+            layers = getattr(encoder, "layer", None)
+        if layers is None:
+            raise AttributeError(
+                f"{type(self.model).__name__}: no transformer layer stack at "
+                "`.layer` or `.model.layer` - transformers "
+                f"{__import__('transformers').__version__} is not supported here"
+            )
+        for layer_module in layers:
             hidden_states = layer_module(
                 hidden_states,
                 position_embeddings=position_embeddings,

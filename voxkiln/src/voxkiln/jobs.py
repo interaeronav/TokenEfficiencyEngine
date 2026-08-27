@@ -207,6 +207,9 @@ class JobStore:
             repair_level=params["repair_level"],
         )
         timings["export_s"] = time.monotonic() - t1
+        # the export chain's own stage split, so a slow bake names itself
+        for name, value in (export_report.get("stage_s") or {}).items():
+            timings[f"export.{name}_s"] = value
         timings["total_s"] = time.monotonic() - t0
 
         stats = export_report["stats"]

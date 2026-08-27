@@ -101,7 +101,9 @@ class FlexiDualGridVaeDecoder(SparseUnetVaeDecoder):
             # stableprojectorz): all hard decode thresholds and the vertex
             # nonlinearities run in fp32 - fp16 rounding near zero emits
             # stray "hair" quads and platform-dependent hole scatter.
-            feats32 = h.feats.float()
+            from trellis2.voxkiln_stock import STOCK
+
+            feats32 = h.feats if STOCK else h.feats.float()
             vertices = h.replace((1 + 2 * self.voxel_margin) * F.sigmoid(feats32[..., 0:3]) - self.voxel_margin)
             intersected = h.replace(feats32[..., 3:6] > 0)
             quad_lerp = h.replace(F.softplus(feats32[..., 6:7]))

@@ -28,7 +28,11 @@ def main(argv: list[str] | None = None) -> int:
     gen.add_argument("--watertight", action="store_true")
     gen.add_argument("--target-size-m", type=float)
     gen.add_argument("--out", default="voxkiln_out")
-    gen.add_argument("--timeout", type=float, default=900.0)
+    # CLI one-shot: wait for completion by default. A bounded wait that
+    # expires kills the job with the process, so the 900 s API default is
+    # wrong here - export alone can out-run it (measured >12 min, 2026-08-26).
+    # Pass an explicit --timeout to get the resumable-timeout response.
+    gen.add_argument("--timeout", type=float, default=None)
     gen.add_argument("--no-cache", action="store_true")
 
     show = sub.add_parser("show", help="show a job/asset report")

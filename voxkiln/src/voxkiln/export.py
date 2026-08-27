@@ -19,6 +19,7 @@ machines. GPU acceleration is an optimization slot, not a dependency.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -175,20 +176,53 @@ def _rasterize_uv(
     return positions, rc, covered
 
 
-def _project_to_reference(reference: trimesh.Trimesh, points: np.ndarray) -> np.ndarray:
+def _project_to_reference(
+    reference: trimesh.Trimesh,
+    points: np.ndarray,
+    *,
+    voxel_size: float | None = None,
+    exact: bool = False,
+) -> np.ndarray:
     """Closest points on the frozen full-res repaired surface - upstream's
     cuBVH re-projection ('corrects geometric errors introduced by
-    simplification'), done with trimesh's spatial index."""
-    try:
+    simplification'), on a CPU stack.
+
+    Upstream runs this on a CUDA BVH. `trimesh.proximity.closest_point` is the
+    exact CPU equivalent and it is O(queries x candidate triangles) in Python:
+    a 1024^2 bake against a full-resolution reference means ~1e6 queries and
+    ran for over half an hour on ONE core here, while the whole neural half of
+    the pipeline took twenty seconds (measured 2026-08-22, M5 Max).
+
+    So the default is a bounded approximation: sample the reference surface
+    densely enough that the mean spacing is under HALF a voxel of the very
+    attribute volume these points will sample, then answer with a KD-tree.
+    The projection can therefore be wrong by less than the resolution of the
+    thing it feeds - invisible in the bake - and it is multi-threaded. The
+    sample count is capped at 2e6, so on a very large surface the spacing (and
+    the worst-case error) grows; `tests/test_export.py` pins both the typical
+    and the worst deviation against the exact path. `exact=True` restores the
+    upstream-equivalent path for verification.
+    """
+    from scipy.spatial import cKDTree
+
+    if not len(points):
+        return points
+    if exact:
         closest, _, _ = trimesh.proximity.closest_point(reference, points)
         return closest
-    except BaseException:
-        # last-resort: nearest reference vertex (still bounded error)
-        from scipy.spatial import cKDTree
 
-        tree = cKDTree(reference.vertices)
-        _, idx = tree.query(points)
-        return reference.vertices[idx]
+    spacing = (voxel_size or 1.0 / 512.0) * 0.5
+    area = float(reference.area) or 1.0
+    n_samples = int(np.clip(area / (spacing * spacing), 200_000, 2_000_000))
+    try:
+        samples, _ = trimesh.sample.sample_surface(reference, n_samples)
+        cloud = np.vstack([np.asarray(samples), reference.vertices])
+    except BaseException:
+        # a reference with no area (degenerate decode) still has vertices
+        cloud = reference.vertices
+    tree = cKDTree(cloud)
+    _, idx = tree.query(points, workers=-1)
+    return cloud[idx]
 
 
 def _inpaint_seams(image: np.ndarray, covered: np.ndarray) -> np.ndarray:
@@ -226,6 +260,17 @@ def export_glb(
     from voxkiln.repair import repair
 
     report: dict[str, Any] = {"repairs": [], "export": {}}
+    # Per-stage wall clock. Without it a slow export is a black box: the first
+    # live run on Apple Silicon spent 20 s in the neural half and then over
+    # half an hour somewhere in here, and there was no way to say where.
+    stage_s: dict[str, float] = {}
+    _t = time.monotonic()
+
+    def _mark(name: str) -> None:
+        nonlocal _t
+        now = time.monotonic()
+        stage_s[name] = round(now - _t, 2)
+        _t = now
 
     mesh = trimesh.Trimesh(
         vertices=np.asarray(vertices, dtype=np.float64),
@@ -233,10 +278,12 @@ def export_glb(
         process=False,
     )
     report["stats_raw"] = mesh_stats(mesh)
+    _mark("stats_raw")
 
     # 1. repair at full resolution
     mesh, rlog = repair(mesh, level=repair_level, max_hole_perimeter=max_hole_perimeter)
     report["repairs"].extend(rlog)
+    _mark("repair")
 
     # 2. freeze the full-res repaired surface (the projection reference)
     reference = mesh.copy()
@@ -244,9 +291,11 @@ def export_glb(
     # 3. staged simplify + re-clean
     mesh, slog = _staged_simplify(mesh, target_faces)
     report["repairs"].extend(slog)
+    _mark("simplify")
 
     # 4. UV unwrap
     mesh, uvs = _unwrap(mesh)
+    _mark("unwrap")
 
     # 5. bake: texel -> surface point -> reference projection -> volume sample
     grid_res = max(2, round(1.0 / voxel.voxel_size)) if voxel.voxel_size > 0 else 1024
@@ -260,9 +309,12 @@ def export_glb(
         }
         clamped = max_useful
     positions, rc, covered = _rasterize_uv(mesh, uvs, clamped)
+    _mark("rasterize_uv")
     if len(positions):
-        projected = _project_to_reference(reference, positions)
+        projected = _project_to_reference(reference, positions, voxel_size=voxel.voxel_size)
+        _mark("project")
         samples = sparse_trilinear(voxel, projected)
+        _mark("sample_volume")
     else:
         samples = np.zeros((0, voxel.attrs.shape[1]))
 
@@ -275,6 +327,7 @@ def export_glb(
         img[rc[:, 0], rc[:, 1]] = samples[:, sl]
 
     base_color = _inpaint_seams(channels["base_color"], covered)
+    _mark("inpaint")
     metallic = channels.get("metallic", np.zeros((size, size, 1)))
     roughness = channels.get("roughness", np.ones((size, size, 1)))
     alpha = channels.get("alpha", np.ones((size, size, 1)))
@@ -319,4 +372,6 @@ def export_glb(
     report["stats"] = stats
     report["export"]["texture_size"] = size
     report["export"]["path"] = str(out_path)
+    _mark("write_glb")
+    report["stage_s"] = stage_s
     return report
