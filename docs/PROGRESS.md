@@ -2463,3 +2463,46 @@ incremental counter, not a defect.
 
 Acceptance: every number above from a command run this session ✓; this
 table is what SI-1..SI-5 diff against.
+
+## 2026-08-27 — SI-1 first pass: always-loaded surface −21.5%, zero behavior change
+
+- **Audit (SI-1.1) before touching anything:** the 2,959-token model_dump
+  splits into 980 of descriptions (already lean, mean 61/tool — no
+  description work justified) and 1,199 of schema, dominated by
+  pydantic-generated padding: a title per property, a "<tool>Arguments"
+  top-level title, and an anyOf-[T,null]+default:null wrapper on every
+  optional. Virtual tools: 82 registered (blender serve flavor),
+  describe-all 8,998 tok, mean 109, top plaus_check 308 / ex_register 233.
+- **Change 1 — `_slim_schema` (server.py):** post-registration pass strips
+  titles, collapses anyOf-null wrappers, drops `default: null`. Argument
+  validation runs on the pydantic signature model and is untouched; the
+  served schema is documentation. Wire-shape lint added so an SDK upgrade
+  that re-inflates or relocates the store fails loudly.
+- **Change 2 — SI-B6 (app.py + 8 signatures):** `adapter: str | None =
+  None` + `app.resolve_adapter` — omitting adapter= resolves to the sole
+  configured adapter (i.e. every real deployment works bare), multi-adapter
+  ambiguity answers `adapter_required` naming the choices. Kills the
+  guaranteed failed first round-trip and the ~6-8 tok/call adapter= tax in
+  real sessions; module tools already resolved at registration and were
+  never affected.
+- **Measured, canonical benchmark measure:** surface **2,465 → 1,935 tok
+  on the wire (−530, −21.5%)**; model_dump 2,959 → 2,428; true stdio
+  bytes (compact) 2,330 → 1,848. Full benchmark suite re-run against live
+  Blender + the live UE 5.8.1 editor: **every behavior row identical to
+  the SI-0 baseline** (donut 349, populate 6,585, materials 1,420, layout
+  36, extraction 4,464, fix-loop 173, assets 828, settle ~222/0.00 mm,
+  UE 2,349 vs baseline 2,347 = the run's own ±noise, plaus and kb rows
+  identical). Suites after: server **475 passed** (471 + 4 new guards) /
+  2 skipped; `-m dcc` **85 passed** live; ruff clean.
+- SI-B3 closed by explanation: 81 vs 82 was flavor composition, not drift
+  (fake+pins harness 81; blender serve 74+5 bl_*+3 handoff = 82; fake
+  serve 74). Counts must name their flavor; README now says 74
+  (fake-flavor) and ~1.9K wire for the 16.
+- SI-B1 mitigation: `[kb] root = ".../TokenEfficiencyEngine/knowledge-base"`
+  written to /Users/john/TEE/.tee/config.toml (the documented setup-kb.md
+  wiring) so the installed co-pilot activates kb_* from its next start;
+  the product fix (kb_status answering inactive+fix) stays open for SI-3.
+- Commit: 5301424 (code+tests+README+RESULTS). Remaining SI-1 items for a
+  next pass: response audit (1.2) with per-family fixtures, dependency/
+  dead-code pass (1.3), SI-B2 search no-match signal, SI-B5 RESULTS
+  section preservation.
