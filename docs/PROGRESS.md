@@ -2784,3 +2784,24 @@ endpoint answers, honest degradation elsewhere); named gaps = URL
 search backend and JS-only pages, both owner-gated; risk section
 (injection, SSRF, copyright, etiquette) gates any build. MVP sketch
 included; building it would be decision A34 — awaiting the owner.
+
+## 2026-08-28 — Research 50: a TEE-native small LLM (owner ask)
+
+Owner asked how TEE can build and integrate its own "custom, optimized,
+zippy, motivated, lite" LLM. Written as
+`docs/research/50-tee-native-small-llm.md`, grounded this session:
+
+- Live speed row: Qwen3.5-9B-4bit via mlx_lm.generate on this machine —
+  105.4 tok/s generation, 351.3 tok/s prompt, 5.3 GB peak.
+- Inventory: mlx_lm.lora trainer installed (on-device LoRA is real),
+  teacher models cached (DeepSeek V4 Flash, Qwen3.8-27B), serving +
+  shim + TEE's local_vlm client idiom all present.
+- The doc's shape: pretraining rejected honestly; the real path is an
+  Apache-clean base + behavior layer (Rung 0, days) + optional LoRA
+  "motivation pack" distilled on-device (Rung 1, ~a week), gated on
+  benchmark evidence; a five-chore whitelist defines "motivated"
+  (web_lookup extraction with an extractive-verification guarantee,
+  fact structuring, recap compression, kb rerank — never API facts);
+  risks gated (hallucination, drift, memory, scope creep).
+
+Build remains an owner decision (would take the next free A-number).
