@@ -33,9 +33,9 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       round-trip, Blender extension zip built+validated with real
       Blender, doctor --emit fixed for installed layouts, docs set
       (quickstart, per-DCC setup, troubleshooting, security), tee-usage
-      skill, v0.1.0 tagged. Physical machine still owed: UE
-      content-plugin zip (Phase 3), .mcpb bundle where a client wants
-      it, clean-WINDOWS-machine rehearsal)*
+      skill, v0.1.0 tagged. 2026-08-27: the plugin zip and .mcpb were
+      built and verified in cloud (`make dist` runs anywhere); the Mac
+      owes only install validation - see docs/mac-handoff.md)*
 - [x] Phase 7 — TEE Extract: media extraction module *(built in cloud,
       2026-08-22: all lanes + store + frames + handoff + IFC export; 144
       non-DCC tests, 26 live-Blender tests, extraction benchmark 92.6%
@@ -1432,6 +1432,41 @@ gated-access blocker dies with it — nothing to request. Research digests
 43–48 stay in the corpus; decisions A26–A28 are amended by the removal
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
+
+### 2026-08-27 — Dead island removed; owed artifacts built; Mac handoff written
+
+**The dead Fortnite island is gone.** `test_uefn_analytics_live` was
+pinned to creator island 6560-2820-9190, which upstream retired — first
+patched to skip on 404, now removed outright. The network lane instead
+asserts the tool's error contract against a deliberately invalid island
+(`0000-0000-0000`): a clean one-line failure, verified against the live
+API. No test depends on any specific creator island staying alive.
+
+**Two of the three "Mac-owed" Phase 6 artifacts were never Mac-bound.**
+`cd server && make dist` runs end-to-end in the cloud container:
+`TeeToolset-0.1.0.zip` (UE content plugin, structure verified),
+`tee-engine-0.1.0.mcpb` (manifest_version 0.4, server.type uv, 138
+files, verified), `tee_bridge-0.1.2.zip` (built with real Blender
+5.2.0), wheel + sdist. `dist/` stays gitignored by design — artifacts
+are one `make dist` away on any machine; both new bundles were also
+sent to the owner directly. What the Mac still owes is the *install*
+half (drag the .mcpb into Claude Desktop, unzip the plugin into a fresh
+UE project, install the Blender extension).
+
+**OkongoSim confirmed unreachable from the cloud.** `list_repos` shows
+no OkongoSim repository on GitHub — it exists only at
+`/Users/john/OkongoSim` — so Phase 16 acceptance #4 (the `[kb]` config
+line) is genuinely a Mac task, not a deferred one.
+
+**`docs/mac-handoff.md`** now carries the complete remaining-work list
+with a one-paste prompt for the Mac session: OkongoSim `[kb]` wiring,
+Voxkiln live bring-up, artifact install validation, GPU/model lanes,
+UE live physics, and the optional 2-file Dropbox sync-back of the
+corrected `manifest.json` + `INDEX.md`.
+
+- Evidence: `make dist` output above; suite `-m "not dcc and not ml and
+  not network"` re-run after the test replacement; live network run →
+  the new contract test passes against the real API; ruff clean.
 
 ### 2026-08-27 — Outstanding items actioned: corpus rebuilt, four fixes
 

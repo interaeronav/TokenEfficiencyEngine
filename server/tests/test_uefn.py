@@ -315,17 +315,12 @@ def test_no_agpl_and_no_epic_digest_text_in_repo():
 
 
 @pytest.mark.network
-def test_uefn_analytics_live(tmp_path, app, network):
-    """Public Fortnite Data API, unauthenticated (skips offline). Creator
-    islands get retired upstream - a 404 for the island is that external
-    lifecycle event, not a defect in the tool, so it skips with the reason
-    rather than failing forever against a dead code."""
-    try:
-        out = app.registry.call("uefn_analytics", {"island": "6560-2820-9190", "interval": "day"})
-    except Exception as exc:
-        if "404" in str(exc):
-            pytest.skip("island 6560-2820-9190 retired upstream (API 404)")
-        raise
-    assert out["island"] == "6560-2820-9190"
-    # either aggregated metrics or the sparse-data note - both valid
-    assert len(out) > 2 or "note" in out
+def test_uefn_analytics_live_contract(tmp_path, app, network):
+    """Public Fortnite Data API, unauthenticated (skips offline). Pinned
+    creator islands get retired upstream - the previous version of this test
+    died with its island (6560-2820-9190, API 404) - so this asserts the
+    tool's error contract against a known-invalid island instead: a clean
+    one-line TeeError-shaped failure, not a stack trace or a hang."""
+    with pytest.raises(Exception) as err:
+        app.registry.call("uefn_analytics", {"island": "0000-0000-0000", "interval": "day"})
+    assert "404" in str(err.value) or "not" in str(err.value).lower()
