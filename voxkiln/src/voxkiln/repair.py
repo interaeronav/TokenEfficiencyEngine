@@ -66,14 +66,18 @@ def _boundary_loops(mesh: trimesh.Trimesh) -> list[list[int]]:
     return loops
 
 
-def _winding_for_fill(mesh: trimesh.Trimesh, loop: list[int]) -> list[int]:
+def _directed_edges(mesh: trimesh.Trimesh) -> set[tuple[int, int]]:
+    """Every directed edge a->b as traversed by its owning face. Built once
+    per fill pass: rebuilding it per loop made repair quadratic in mesh size
+    (hours on a raw decode mesh, whose hole fill is deferred to this stage)."""
+    edges = mesh.faces[:, [0, 1, 1, 2, 2, 0]].reshape(-1, 2)
+    return set(map(tuple, edges.tolist()))
+
+
+def _winding_for_fill(edge_dirs: set[tuple[int, int]], loop: list[int]) -> list[int]:
     """Orient the loop so fan triangles face outward: a boundary edge (a,b)
     appearing as a->b in its owning face must appear as b->a in the fill."""
-    edge_dirs = {}
-    for face in mesh.faces:
-        for i in range(3):
-            edge_dirs[(int(face[i]), int(face[(i + 1) % 3]))] = True
-    a, b = loop[0], loop[1]
+    a, b = int(loop[0]), int(loop[1])
     if (a, b) in edge_dirs:
         return list(reversed(loop))
     return loop
@@ -88,6 +92,7 @@ def fill_boundary_loops(
     if not loops:
         return mesh, 0
     scale = float(np.linalg.norm(mesh.bounds[1] - mesh.bounds[0])) or 1.0
+    edge_dirs = _directed_edges(mesh)
     vertices = mesh.vertices.copy()
     new_faces = []
     filled = 0
@@ -96,7 +101,7 @@ def fill_boundary_loops(
         perimeter = float(np.linalg.norm(np.diff(np.vstack([pts, pts[:1]]), axis=0), axis=1).sum())
         if perimeter > max_hole_perimeter * scale:
             continue
-        loop = _winding_for_fill(mesh, loop)
+        loop = _winding_for_fill(edge_dirs, loop)
         if len(loop) == 3:
             new_faces.append([loop[0], loop[1], loop[2]])
         else:
