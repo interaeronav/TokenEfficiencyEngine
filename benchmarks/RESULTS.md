@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,464 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -89,8 +89,8 @@ verified Blueprint macro.
 
 | | Context tokens | Round-trips | Saving |
 |---|---|---|---|
-| naive (describe_toolset + call_tool per op) | 38,334 | 32 | |
-| TEE | 2,349 | 4 | **93.9%** |
+| naive (describe_toolset + call_tool per op) | 38,331 | 32 | |
+| TEE | 2,346 | 4 | **93.9%** |
 
 The schema dumps dominate the naive side: one
 `describe_toolset(BlueprintTools)` alone is ~18,000 tokens, more

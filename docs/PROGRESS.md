@@ -2695,3 +2695,60 @@ from the next battery export rather than from the GLB measurement.
 and ran its own UE editor on :8000 tonight; TEE sessions must own their
 editor lifecycle and never assume the port. My UE editor was quit and
 its debris deleted; TeeZipProbe persists nothing by design.
+
+## 2026-08-28 — SI-5: campaign closing ledger (A33, sessions 1–2, one continuous run)
+
+Everything SI-0 measured, re-measured at close on this machine — live
+headless Blender 5.2 + live UE 5.8.1 for every row that needs them.
+Wrong-way movements are in the same table with their why, not footnoted.
+
+| Metric | SI-0 baseline | Close | Why it moved |
+|---|---|---|---|
+| server suite | 471 passed / 2 skipped | **480 / 2** | +9 guard tests (wire-shape, resolution, trim, registry, category) |
+| dcc suite (live Blender + UE) | 85 passed | **85 passed** | unchanged |
+| voxkiln suite | 47 / 1 | **48 / 1** | +1 equivalence test |
+| ruff check + format | clean | clean | — |
+| always-loaded surface (canonical wire) | 2,465 tok | **1,935 (−21.5%)** | schema slimming (5301424) |
+| same, model_dump / true stdio | 2,959 / 2,330 | 2,428 / 1,848 | same |
+| scenes benchmark total | 87.7% saved | **90.3% saved** | response shaves (f0de6df) |
+| — donut / populate / materials | 349 / 6,585 / 1,420 tok | 295 / 5,311 / 980 | echo-trim + UTF-8 |
+| extraction | 4,464 (93.1%) | 4,464 (93.1%) | untouched |
+| assets find-select-place | 828 (93.5%) | **762 (94.0%)** | echo-trim via as_import |
+| UE level+blueprint | 2,347 (93.9%) | **2,346 (93.9%)** | reproduced, clean level |
+| reach-one-virtual-tool | 725 tok | **580** | capped one-line summaries |
+| fix-loop (5 rounds vs script) | 63.2% saved | **47.9% saved** | the ROUNDS arm fell 470→332 tok from the same shaves; script arm flat at 173 — absolute cost down in both arms, percentage honestly narrower |
+| batch report, 30 creates (fixture) | 663 tok | **205** | news-not-echoes |
+| status recap (fixture) | 208 tok | **139** | intra-response dedup |
+| search 'kb read' (fixture) | 648 tok | **427** + weak-match notes | SI-B2 |
+| kb_read fixture | 956 tok | **919** | UTF-8 wire |
+| tee doctor | 9/9 OK both adapters | **9/9 OK both adapters** | + settle hint, kb-inactive answer |
+| voxkiln mesh_stats (491k-tri mesh) | 275.8 s | **13.7 s** | split()/outline() → graph labeling (cb7e377) |
+| battery matrix coverage | 2 of 9 images | **4 of 9** | tranche 2 (single-arm per the fp32 finding) |
+| release hygiene | no LICENSE / CHANGELOG / CI / templates | all present; five dist artifacts build; manifest validates | SI-4 (f164b22) |
+
+Friction ledger: SI-B1..B7 raised by dogfooding; B1, B2, B3, B5, B6, B7
+closed with commits/explanations; **B4 stays open** (the canonical
+surface measure still uses spaced separators — both figures are recorded
+side by side; changing the measure twice in one campaign was judged
+worse than the 4.5% overstatement, staged for the 0.2.0 RC).
+
+Also still open, honestly: repair-stage profile (2 attempts died to
+memory pressure under concurrent generation — quiet-machine pass
+queued); the remaining ~5–8 h of the research-48 matrix; the SI-3.2
+rename proposals (staged as breaking, for 0.2.0); the CI workflow's
+first green run (observe after this push); v0.1.0/v0.1.1 tags (owner or
+full-permission checkout).
+
+Owner-decision list (SI-4): version number (0.2.0 recommended),
+name/trademark check at publish, PyPI/Desktop-channel publishing,
+commercial licensing before any publication, repo split, support
+statement — each written up in docs/COMMERCIAL_READINESS.md with a
+recommendation and deliberately not made.
+
+The campaign's own method held: every change was measured before and
+after on the same fixtures, every regression-looking number is explained
+in place, two narrative errors (the 93.6% UE row, the 22k-component
+census) were caught by the process and corrected in the record, and the
+UE runbook now includes the clean exit (in-engine quit_editor via
+editor_python — acknowledged `{'quit': True}`, no crash reporter, ports
+freed).

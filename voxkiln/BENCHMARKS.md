@@ -166,3 +166,21 @@ fragments connectivity to 22,108 pieces. The decode meshes have
 (measured on the same mesh before/after); the export pipeline's own
 stats stages run pre-unwrap, so their in-pipeline delta comes from the
 next battery export.
+
+### Tranche 2 (2026-08-28, A33 SI-2.2): two more images, single-arm
+
+Per the fp32 finding, stock≡ours on MPS by construction, so remaining
+configs run one arm. `benchmarks/local_out/battery_rows_t2.json`
+(seed 42, pipeline 512, ours):
+
+| image | ok | wall s | tris | watertight | components | mesh hash |
+|---|---|---|---|---|---|---|
+| 1c359e94…webp | ✓ | 978.0 | 491,139 | false | 1,081 | 1fa684bf32e5f720 |
+| 3903b879…webp | ✓ | 456.4 | 494,685 | false | 2,042 | cf848d25296f9a41 |
+
+Caveat: the boundary_loops column of these rows may mix the old and new
+definitions (the metrics change landed mid-tranche); hashes and every
+other field are unaffected. Covered so far: 4 of 9 images at seed 42 /
+pipeline 512. Remaining: 5 images × this config + the other pipeline ×
+3 seeds ≈ 5–8 h single-arm, staged for future sessions or an
+owner-scheduled window.

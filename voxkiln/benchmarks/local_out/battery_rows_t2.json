@@ -33,5 +33,40 @@
    "total_s": 976.2
   },
   "glb": "benchmarks/local_out/glb/ours_1c359e94f2d6_512_42/vk-7e7864e8.glb"
+ },
+ {
+  "image": "3903b87907a6b4947006e6fc7c0c64f40cd98932a02bf0ecf7d6dfae776f3a38.webp",
+  "pipeline": "512",
+  "seed": 42,
+  "arm": "ours",
+  "wall_s": 456.4,
+  "peak_rss_gb_cumulative": 19.38,
+  "ok": true,
+  "mesh_hash": "cf848d25296f9a41",
+  "tris": 494685,
+  "verts": 406058,
+  "watertight": false,
+  "boundary_loops": 3164,
+  "nonmanifold_edges": 18487,
+  "degenerate_faces": 0,
+  "components": 2042,
+  "uv_overlap": null,
+  "texel_density_cv": null,
+  "accepted": true,
+  "timings_s": {
+   "pipeline_s": 28.47,
+   "export_s": 345.47,
+   "export.stats_raw_s": 3.58,
+   "export.repair_s": 27.16,
+   "export.simplify_s": 11.35,
+   "export.unwrap_s": 287.89,
+   "export.rasterize_uv_s": 12.24,
+   "export.project_s": 1.03,
+   "export.sample_volume_s": 0.2,
+   "export.inpaint_s": 0.36,
+   "export.write_glb_s": 1.67,
+   "total_s": 454.83
+  },
+  "glb": "benchmarks/local_out/glb/ours_3903b87907a6_512_42/vk-e505c27d.glb"
  }
 ]
