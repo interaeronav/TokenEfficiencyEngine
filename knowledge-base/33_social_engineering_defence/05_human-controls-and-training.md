@@ -239,4 +239,3 @@ Click rate is a poor primary metric: it is dominated by campaign difficulty (whi
 - **ISO/IEC 27001:2022 Annex A structure** (93 controls in four themes; A.6.3 as the awareness control) is stated from general knowledge — the ISO landing page did not expose Annex A detail. Verify against the standard text.
 - **NIST SP 800-53 Rev. 5 AT-family control enhancement numbering** is from general knowledge; the CSRC control browser could not be read directly. Verify identifiers before quoting them in an audit response.
 - Reported corporate incidents involving distressing simulated-phishing lures (fake bonus emails and similar) are referenced generically because specific incidents could not be re-verified during construction.
-

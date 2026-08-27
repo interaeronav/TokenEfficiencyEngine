@@ -33,9 +33,9 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       round-trip, Blender extension zip built+validated with real
       Blender, doctor --emit fixed for installed layouts, docs set
       (quickstart, per-DCC setup, troubleshooting, security), tee-usage
-      skill, v0.1.0 tagged. Physical machine still owed: UE
-      content-plugin zip (Phase 3), .mcpb bundle where a client wants
-      it, clean-WINDOWS-machine rehearsal)*
+      skill, v0.1.0 tagged. 2026-08-27: the plugin zip and .mcpb were
+      built and verified in cloud (`make dist` runs anywhere); the Mac
+      owes only install validation - see docs/mac-handoff.md)*
 - [x] Phase 7 — TEE Extract: media extraction module *(built in cloud,
       2026-08-22: all lanes + store + frames + handoff + IFC export; 144
       non-DCC tests, 26 live-Blender tests, extraction benchmark 92.6%
@@ -90,11 +90,15 @@ under "Evidence log"). Record machine-specific facts under "Machine facts".
       domains are never an API source. 15.2 jurisdiction wiring done:
       US/ZA/NA regimes with jurisdiction-dependent severity; 12 tests.
       15.3 stays reference-only by design)*
-- [ ] Phase 16 — TEE KB query module *(planned by the owner with the
-      Qwen session, 2026-08-26; decision A31: read-only `kb_*` tools over
-      the `knowledge-base/` mirror, manifest-indexed, budgeted, flags
-      verbatim. Not started — build from Phase 16 of the execution
-      script)*
+- [x] Phase 16 — TEE KB query module *(built in cloud, 2026-08-27:
+      read-only `kb_*` tools (status/search/read/facts) over the
+      `knowledge-base/` mirror, manifest-indexed, section-addressed,
+      token-budgeted, flags verbatim with UNVERIFIED labelling; the
+      mirror itself first completed and hash-reconciled against Dropbox
+      (manifest.json + AGENTS.md fetched, 337 byte-drifted files fixed).
+      22 tests incl. 4 live-mirror; paving-lookup benchmark 96.6% saved;
+      zero always-loaded tokens. Mac owes: the one-line `[kb]` section
+      in OkongoSim's .tee/config.toml — acceptance 16.6 #4)*
 
 ## Machine facts
 
@@ -659,7 +663,10 @@ Platform split of the outstanding ledger (decided by the hardware):
   port-forward DCC sockets, code-exec gating, script-lane
   non-capability, data-handling posture). README rewritten with
   user-facing install, module table, measured numbers updated
-  (16 tools ≈ 2,757 tokens by the canonical model_dump measure);
+  (16 tools ≈ 2,757 tokens by the canonical model_dump measure; the
+  2026-08-25 re-measure reads 2,959 by that measure and **2,465 on the
+  wire** — model_dump counts ~490 tokens of `null` padding no client
+  ever receives, so the wire figure is the honest one);
   server README updated; `tee-usage` skill packages the operating
   procedure (macro-first, diffs, text-before-pixels, trust-the-gates).
 - Evidence: `uv run pytest` → **341 passed, 1 skipped**; ruff clean;
@@ -818,7 +825,8 @@ written against. Live-probed facts, several of which correct doc 07:
   - `list_toolsets` — 13,286 bytes
 
   One `describe_toolset(BlueprintTools)` costs **more than six times**
-  TEE's entire always-loaded 16-tool surface (~2,757 tokens). This is
+  TEE's entire always-loaded 16-tool surface (~2,465 tokens on the wire;
+  see the 2026-08-25 entry for why the earlier 2,757 overstated it). This is
   the measured justification for the A4 summarizing/caching proxy, and
   the baseline any Phase 5 UE benchmark is measured against.
 
@@ -1424,6 +1432,229 @@ gated-access blocker dies with it — nothing to request. Research digests
 43–48 stay in the corpus; decisions A26–A28 are amended by the removal
 entry in DECISIONS. Server suite re-run after the removal — results in
 the removal commit.
+
+### 2026-08-27 — All-items pass: Blender artifact fully validated, delegation checked
+
+Actioned everything on the handoff list reachable from the cloud:
+
+- **`tee_bridge-0.1.2.zip` install-validated end-to-end** with the
+  container's real Blender 5.2.0 LTS: `--command extension validate`
+  clean, `install-file -r user_default -e` installed and enabled, the
+  installed extension's own `bridge_server.run_blocking` started in
+  background mode, and a live TEE wire round-trip answered
+  `{'status': 'ok', 'result': {'v': '5.2.0 LTS', 'objs': 3}}`. The
+  Blender artifact owes the Mac nothing; the .mcpb (Claude Desktop) and
+  TeeToolset (UE editor) install halves remain.
+- **Delegation checked, honestly closed:** no Claude session on the Mac
+  is reachable (ListAgents: none), and OkongoSim has no GitHub repo, so
+  the OkongoSim/Voxkiln/GPU/UE items cannot be driven from here.
+- **Dropbox sync-back attempted, deliberately not forced:** the clean
+  path (file request + browser upload of the exact bytes) was blocked
+  by the permission classifier; the only remaining cloud path would
+  regenerate 680 KB of corpus files inline, where silent transcription
+  corruption is a real risk. Left to the Mac as a one-line `cp`
+  (now spelled out in docs/mac-handoff.md).
+
+### 2026-08-27 — Dead island removed; owed artifacts built; Mac handoff written
+
+**The dead Fortnite island is gone.** `test_uefn_analytics_live` was
+pinned to creator island 6560-2820-9190, which upstream retired — first
+patched to skip on 404, now removed outright. The network lane instead
+asserts the tool's error contract against a deliberately invalid island
+(`0000-0000-0000`): a clean one-line failure, verified against the live
+API. No test depends on any specific creator island staying alive.
+
+**Two of the three "Mac-owed" Phase 6 artifacts were never Mac-bound.**
+`cd server && make dist` runs end-to-end in the cloud container:
+`TeeToolset-0.1.0.zip` (UE content plugin, structure verified),
+`tee-engine-0.1.0.mcpb` (manifest_version 0.4, server.type uv, 138
+files, verified), `tee_bridge-0.1.2.zip` (built with real Blender
+5.2.0), wheel + sdist. `dist/` stays gitignored by design — artifacts
+are one `make dist` away on any machine; both new bundles were also
+sent to the owner directly. What the Mac still owes is the *install*
+half (drag the .mcpb into Claude Desktop, unzip the plugin into a fresh
+UE project, install the Blender extension).
+
+**OkongoSim confirmed unreachable from the cloud.** `list_repos` shows
+no OkongoSim repository on GitHub — it exists only at
+`/Users/john/OkongoSim` — so Phase 16 acceptance #4 (the `[kb]` config
+line) is genuinely a Mac task, not a deferred one.
+
+**`docs/mac-handoff.md`** now carries the complete remaining-work list
+with a one-paste prompt for the Mac session: OkongoSim `[kb]` wiring,
+Voxkiln live bring-up, artifact install validation, GPU/model lanes,
+UE live physics, and the optional 2-file Dropbox sync-back of the
+corrected `manifest.json` + `INDEX.md`.
+
+- Evidence: `make dist` output above; suite `-m "not dcc and not ml and
+  not network"` re-run after the test replacement; live network run →
+  the new contract test passes against the real API; ruff clean.
+
+### 2026-08-27 — Outstanding items actioned: corpus rebuilt, four fixes
+
+Ran the corpus's own `00_meta/rebuild.py` over the mirror (owner request)
+and closed every recorded cloud-scope gap.
+
+**The rebuild, and what it proved.** `rebuild_verification.py` carries a
+hard-coded `ROOT="/home/claude/kb"` from the original build machine, so
+it ran as a patched scratch copy (the mirrored script stays byte-exact);
+`rebuild_index.py` derives its root correctly. Pass 1 reproduced the
+owner's totals exactly — 401 files, 1,402,755 words, 2,826 citations,
+1,811 unique sources, 0 frontmatter problems — and regenerated
+`source-register.md` and `VERIFICATION.md` **byte-identical** to the live
+Dropbox files: the pipeline is deterministic, and the mirror
+reconciliation was correct. The upstream drift's root cause is now
+proven: `rebuild_index.py` writes `manifest.json` BEFORE rewriting
+`source-register.md`, so the manifest always records the previous
+generation's hash of that file (the owner's last run happened while the
+corpus was two files short — the stale entry even said "399 files"). A
+second `rebuild_index.py` pass converges it; drift is now **zero**
+(401/401 clean in `kb_status` and `tee doctor`). Net repo change: only
+`manifest.json` (one corrected record) and `INDEX.md` (the stale
+"399 files" summary row + whitespace). The owner's Dropbox copy still
+carries the stale manifest entry; syncing the corrected `manifest.json`
+and `INDEX.md` back to Dropbox is the owner's call.
+
+**Fix 1 — KB cache keyed on content, not date.** The rebuild exposed a
+Phase 16 bug the same day it shipped: the index cache was keyed on the
+manifest's `generated` date, which the corpus's generator hard-codes —
+so today's manifest change would never invalidate an existing cache. Now
+keyed on the manifest file's sha256. Regression test confirmed failing
+against the unfixed code.
+
+**Fix 2 — masonry family, not a name whitelist.** `masonry_slenderness`
+and `masonry_min_thickness_mm` matched `material` against three exact
+names and silently skipped `clay_brick` / `concrete_block` / `stone`
+walls — a 60 m clay_brick wall sailed through. Now a family-token match
+(brick/masonry/block/stone/adobe/cmu); cast-in-situ `concrete` stays
+out.
+
+**Fix 3 — the storey envelope exists now.** New
+`prescriptive_scope_stories` rule: the checker's whole rule set is
+prescriptive/deemed-to-satisfy territory, so a building beyond that
+envelope gets one HEUR finding saying every other finding under-covers
+it and rational design is the applicable regime. IRC: 3 storeys
+(R101.2's scope). SANS: 2 storeys, carrying the same RE-VERIFY note as
+the other paywalled-standard values. Triggered by declared `stories` or
+implied by wall height (3 m/storey convention, said in the finding).
+Verified in both directions: 3 storeys passes the IRC envelope and flags
+under SANS; the 60 m wall flags everywhere as "implies ~20 storeys".
+
+**Fix 4 — the dead Fortnite island.** `test_uefn_analytics_live` pointed
+at island 6560-2820-9190, retired upstream (API 404) — an external
+lifecycle event, not a tool defect. The test now skips with that reason
+on a 404 for the island and still fails on any other error. Verified
+live: the real API call now yields the skip.
+
+- Evidence: full suite `-m "not dcc and not ml and not network"` →
+  **462 passed, 1 skipped** (was 458); `test_physical_core.py` 40
+  passed; `test_kb.py` 23 passed; live network run → the analytics test
+  skips with "island retired upstream"; ruff check + format clean;
+  `kb_status` drift 0/401.
+- Still Mac-only, unchanged: OkongoSim `[kb]` config line (16.6 #4),
+  Voxkiln live bring-up, UE plugin zip, GPU lanes.
+
+### 2026-08-27 — Phase 16: the KB query module, and the mirror made byte-exact
+
+Built `tee/kb/` per A31. Before any code, the premise had to be repaired:
+the Phase 15 mirror never carried `manifest.json` or `AGENTS.md` (the
+index source the phase assumes in-repo), and hashing the 401 mirrored
+files against the manifest found **337 mismatches** — 330 were exactly
+one trailing newline added by the mirroring tool (stripped only where
+doing so restored the manifest's recorded sha256), 7 were real extraction
+noise (re-downloaded verbatim; every download verified against Dropbox's
+own `content_hash`). The corpus's `CLAUDE.md` was deliberately not
+mirrored: a `CLAUDE.md` in-repo would be auto-loaded as directory
+instructions by coding agents, and the imported corpus must never direct
+sessions (A30). One mismatch remains by design:
+`00_meta/source-register.md` in Dropbox itself no longer matches the
+corpus's own manifest — genuine upstream drift, faithfully mirrored, and
+now the drift check's first real catch (`kb_status` reports exactly this
+file with the rebuild.py fix line).
+
+The module: `index.py` (manifest-validated index cached under
+`<project>/.tee/kb/` keyed on the manifest's generated date; sha256 drift
+check that flags but keeps serving; H2 section addressing parsed on
+demand), `search.py` (deterministic keyword scoring over title/id/tags/
+summary/headings with exact filters; empty results return the domain
+table, not silence), `tools.py` (kb_status / kb_search / kb_read /
+kb_facts as virtual tools — zero always-loaded tokens; kb_read is
+section-addressed and budgeted, default 800 cap 4000, the file's Sources
+block riding along; needs-verification and low-confidence content carries
+an explicit UNVERIFIED warning naming A30). Root resolution: `[kb] root`
+config first (used even if broken, so typos fail loud), then the
+project's own mirror, then the source checkout's; none → module inactive.
+`cli.py` grew `_attach_kb`, `config.py` the `[kb]` table, `doctor` a kb
+check. `docs/setup-kb.md` documents activation and the OkongoSim wiring.
+
+- Evidence: `pytest server/tests/test_kb.py` → **22 passed** (fixture
+  corpus + 4 live-mirror tests: 401 files/38 domains, paving lookup with
+  citation under budget, facts lane, flagged DCC domains). Full suite
+  `-m "not dcc and not ml and not network"` → **458 passed, 1 skipped**;
+  ruff clean. Benchmark (RESULTS.md): paving-spec lookup with citation =
+  57,349 tokens pasting INDEX.md + the file vs **1,951** via kb_search +
+  one budgeted kb_read — **96.6% saved**; always-loaded surface unchanged
+  at 16 tools / 2,465 wire tokens with all seven modules registered
+  (80 virtual tools).
+- Owed elsewhere: OkongoSim's `.tee/config.toml` `[kb]` section (Mac
+  session with that repo; acceptance 16.6 #4) — the exact lines are in
+  `docs/setup-kb.md`.
+
+### 2026-08-25 — Token-efficiency test (cloud half) + two plausibility bugs
+
+Ran the tokens-per-task measurement the CLAUDE.md testing rule requires
+after any change to state representation or tool schemas — Phase 15.2
+changed both. Two new scenarios added to `benchmarks/run_benchmarks.py`
+(`run_surface_scenario`, `run_jurisdiction_scenario`); neither needs a
+DCC, so both run in CI and in a cloud session.
+
+**Surface.** 16 always-loaded tools = **2,465 tokens on the wire**
+(`by_alias`, `exclude_none` — what the SDK actually sends). The 2,757
+figure recorded on 2026-08-22 came from a bare `model_dump()`, which
+today counts 2,959 because MCP SDK 2.0.0 added `execution`/`icons`
+fields that serialize as `null` and are dropped before transmission.
+Registering all six modules adds **0 tokens**: the 76 tools they
+contribute stay behind the meta-tools, and reaching one costs 725
+tokens, so a flat one-tool-per-capability server (10,787 tokens) only
+wins in a session using more than ~14 distinct long-tail tools. The
+pins module merged from the Mac lane changed that count from 69 to 76
+and the always-loaded surface not at all — progressive disclosure held
+through the merge.
+
+**Regression found and fixed.** Phase 15.2 wrote the whole
+`legal_basis` string onto *every* capped finding, when the
+`jurisdiction` header already carried it once. On `NA-local-authority`
+that inflated the response from 856 → 2,146 tokens. Removing the
+per-finding copy costs no information and cuts it to 1,206 (−43.8%);
+`NA-communal` 1,941 → 1,239. Directly contrary to hard rule 2.
+
+**Correctness bug found and fixed.** The severity ceiling was applied
+inside `hit()`, but `_load_path()` and `_wet_walls()` build findings
+directly and bypassed it. A communal-land response could therefore
+announce `max_severity: STD` in its header and emit a `CODE` load-path
+finding underneath — the exact self-contradiction the mechanism exists
+to prevent. The cap now runs as one post-pass over the assembled list.
+Regression test `test_the_ceiling_binds_every_finding_producer_not_just_hit`
+was confirmed to fail against the unfixed code before being kept.
+
+**Tokens per task.** Answering "which code applies at this site, and
+does this plan meet it?" by reading the four applicable-law files into
+context costs 32,089 tokens. One `plaus_check` costs 1,452 — **95.5%
+saved**, and unlike the corpus read it cannot quietly answer from the
+wrong jurisdiction.
+
+**Known gap, not fixed.** TEE has 21 plausibility rules and none of
+them concerns building height or storey count, so it cannot evaluate a
+multi-storey proposal at all. `masonry_slenderness` also matches
+material on a name whitelist that misses `clay_brick`. Both are
+recorded here rather than patched blind; neither is a Phase 15.2
+regression. *(Both CLOSED 2026-08-27 — see that entry.)*
+
+- Evidence: `pytest -m "not dcc and not ml and not network"` →
+  **405 passed, 1 skipped, 89 deselected**; ruff clean. Blender/Unreal
+  benchmark rows are unchanged in `benchmarks/RESULTS.md` because they
+  need hardware this session does not have; the extract (92.6%), fix-loop
+  (63.2%) and asset (93.5%) rows were re-run headless and reproduce.
 
 ### 2026-08-25 — Phase 15.2: southern-African jurisdiction wiring
 

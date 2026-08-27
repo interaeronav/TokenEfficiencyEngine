@@ -327,4 +327,3 @@ The most useful function of this literature is calibration: it puts a number on 
 - **EU member state variation** is described qualitatively; a state-by-state table was not compiled.
 - The claim that unmonitored EPO use explains the cluster of cyclist deaths circa 1987–1991 is **widely reported but epidemiologically unproven**; it is presented here as attribution, not established fact.
 - Reported **insulin and diuretic fatalities in bodybuilders** are drawn from case-report and forensic literature that was not individually retrieved in this pass. `needs-verification` for specific counts.
-

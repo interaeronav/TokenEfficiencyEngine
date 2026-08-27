@@ -301,4 +301,3 @@ The 2021 edition replaced the six climatic zones of the 2011 edition with **ener
 - Part W hydrant spacing, flow rate and static storage requirements — not verified from a public source.
 - Part K wall panel tables 1–7 — deliberately not reproduced (copyright); the worked-example limiting dimensions quoted are from the 2011 edition only.
 - Whether SABS offers a discounted "SANS 10400 complete set" bundle price below the sum of the individual parts. Not verified.
-

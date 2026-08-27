@@ -190,4 +190,3 @@ Where there is no bargaining council, the Minister may issue a **sectoral determ
 - **SDL** rate (1 %), exemption threshold (R500 000) and 80/20 split — quoted from practice, not from the fetched statutory text.
 - **EEA Amendment Act 4 of 2022** commencement date, the 50-employee designated-employer test and the sectoral numerical targets for construction — unverified.
 - **UIF** contribution rate (1 % + 1 %) and monthly earnings ceiling — not verified in this pass.
-

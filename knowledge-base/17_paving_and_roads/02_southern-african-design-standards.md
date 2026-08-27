@@ -192,4 +192,3 @@ Also listed: **BRMM Manual, March 2003** (bridge routine maintenance), and "Road
 - **The Red Book / Neighbourhood Planning and Design Guide**: edition, publisher and download location unverified.
 - Whether SANS 1200 MJ has been revised since 1984, and whether a SANS equivalent of EN 1338 now applies, is unverified.
 - The contents of every Roads Authority October 2014 manual are unverified — the files are not publicly reachable.
-

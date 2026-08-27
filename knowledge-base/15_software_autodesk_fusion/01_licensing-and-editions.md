@@ -168,4 +168,3 @@ Against that, note that **the base subscription already gives you 2.5D CAM with 
 - **The detailed Personal Use restriction matrix.** Autodesk's article URLs returned 404; the document limit, CAM axis limit, rapid-as-feed behaviour and export list above are community knowledge, not quoted source. `needs-verification`.
 - **Current startup programme** name, eligibility and duration.
 - **Whether cloud credits still exist** for rendering or generative design, and Fusion's Flex token rate.
-

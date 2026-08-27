@@ -114,4 +114,3 @@ related: [media.magazines_journals, media.trade_press, media.southern_african_me
 - [UIA Competitions](https://uia-architectes.org/en/competitions/) — UNESCO-UIA regulations 1956, endorsement meaning. Accessed 2026-08-25.
 - [Dezeen Awards prices and dates](https://www.dezeen.com/awards/prices-and-dates/) — 2026 fee tiers. Accessed 2026-08-25.
 - [SAISC Steel Awards](https://www.saisc.co.za/steel-awards/) — annual cycle, eligibility window. Accessed 2026-08-25.
-

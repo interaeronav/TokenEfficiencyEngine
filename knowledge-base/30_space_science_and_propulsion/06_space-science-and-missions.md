@@ -144,4 +144,3 @@ Its scientific output is genuinely mixed — microgravity materials and combusti
 - [Artemis program](https://en.wikipedia.org/wiki/Artemis_program) — Wikipedia, accessed 2026-08-25
 - [International Space Station](https://en.wikipedia.org/wiki/International_Space_Station) — Wikipedia, accessed 2026-08-25
 - [Tiangong space station](https://en.wikipedia.org/wiki/Tiangong_space_station) — Wikipedia, accessed 2026-08-25
-

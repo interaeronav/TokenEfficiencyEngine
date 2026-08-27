@@ -167,4 +167,3 @@ Plan these on a sketch before the first delivery. Retro-fitting them costs doubl
 
 - Numerical setting-out tolerances (position, overall dimension, diagonal difference, trench width, foundation level) could not be sourced from SANS or another primary standard and are given as trade practice; they are marked `needs-verification` for anyone relying on them contractually.
 - Ohangwena Regional Council / Okongo Town Council requirements for building plan approval, site inspections and boundary certification are not documented in an accessible online source.
-

@@ -197,4 +197,3 @@ Mixing the two is normal; mixing them *unconsciously* is what produces incoheren
 - SANS 10400-T escape-route **widths** (clause 4.21) and the occupant-load table could not be read from the archived PDF excerpt; consult the full standard before sizing corridors on fire grounds.
 - **[NA]** Equivalent Namibian dimensional minima (Municipality of Windhoek Building Regulations, G.N. 57 of 1969) were not extracted clause-by-clause; do not assume SANS numbers apply automatically in Namibia.
 - Brick nominal dimensions vary by manufacturer; verify against the supplier's data before setting out.
-

@@ -259,4 +259,3 @@ Design rules: a partition is only as good as its weakest path — flanking throu
 - **[NA]** No Namibian statutory thermal performance requirement was found. Whether SANS 10400-XA has been formally adopted in Namibia is unresolved.
 - SANS 10400-XA Table 4 fenestration U-value and SHGC values were not extracted line-by-line; consult the standard for compliance calculations.
 - Reverberation-time targets are drawn from general acoustic practice; ANSI S12.60 and equivalent SANS provisions should be checked for regulated building types.
-

@@ -153,4 +153,3 @@ Beam saw with automatic feed and labelling, throughfeed edgebander at 25–60 m/
 - Current South African agent appointments for SCM, Altendorf, Biesse, HOMAG and MARTIN were not individually verified and change; confirm from each manufacturer's contacts/locations page before relying on them. Status `needs-verification`.
 - Lamello's site returns a language redirect to an automated fetch; the product range described is from established product knowledge and should be confirmed on the current catalogue.
 - No specific model prices are quoted; machinery pricing in ZAR/N$ moves with the exchange rate and should be obtained by quotation.
-

@@ -139,4 +139,3 @@ For a precast yard: **battery moulds** and **tilting tables** (Elematic, Weckenm
 - Form-Scaff / Waco Africa branch list and current system pressure ratings were not machine-verified; obtain the current technical manual from the branch.
 - DIN 18218 pressure values and EN 1065 prop classes are quoted as principles here; the numeric limits are `needs-verification` against the current standard text before use in a design.
 - Namibian ready-mix availability outside Windhoek, Walvis Bay, Swakopmund and Oshakati is limited and changes; verify before assuming ready-mix supply.
-

@@ -315,4 +315,3 @@ Figures without a `[needs-verification]` tag are from the cited sources. Note th
 - [Vulcan Centaur](https://en.wikipedia.org/wiki/Vulcan_Centaur) — Wikipedia, accessed 2026-08-25 (RL10C-1-1 and RL10E figures)
 - [Ariane 6](https://en.wikipedia.org/wiki/Ariane_6) — Wikipedia, accessed 2026-08-25 (Vinci, P120C)
 - [Rocket Lab Neutron](https://en.wikipedia.org/wiki/Rocket_Lab_Neutron) — Wikipedia, accessed 2026-08-25 (Archimedes)
-

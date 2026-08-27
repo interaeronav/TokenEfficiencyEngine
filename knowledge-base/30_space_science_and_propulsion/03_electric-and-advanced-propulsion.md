@@ -219,4 +219,3 @@ The lessons transfer to any extraordinary propulsion claim: (a) if your signal i
 - [Breakthrough Starshot](https://en.wikipedia.org/wiki/Breakthrough_Starshot) — Wikipedia, accessed 2026-08-25
 - [Deep Space 1](https://en.wikipedia.org/wiki/Deep_Space_1) — Wikipedia, accessed 2026-08-25
 - [BepiColombo](https://en.wikipedia.org/wiki/BepiColombo) — Wikipedia, accessed 2026-08-25 (T6 figures)
-

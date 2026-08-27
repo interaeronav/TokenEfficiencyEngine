@@ -376,4 +376,3 @@ For a client who will ask to see the house at three different times:
 - Whether the Water plugin's automatic Landscape deformation can be constrained to a very shallow basin without manual sculpting. `needs-verification`.
 - **SunSky `Solar Time`** semantics (true solar vs clock time). `needs-verification`.
 - Typical cloud base altitude at Okongo in the wet season — the 1.2–3 km figures given are from general meteorological reasoning for a hot inland climate, not from local observation. `needs-verification`.
-

@@ -257,4 +257,3 @@ Everything else — Fusion hardware, water, particles, the full pipeline discipl
 - **Which Epic sample projects** (City Sample, Electric Dreams, Valley of the Ancient, archviz samples) are current and downloadable for UE 5.8. `needs-verification`.
 - **A current field guide to the trees of northern Namibia** — title, author, ISBN. `needs-verification`. Domain `18` flags the same gap for a recommended indigenous species list.
 - Specific YouTube channels have been deliberately omitted rather than risk a stale list; if a curated list is wanted, it should be compiled and re-verified quarterly.
-

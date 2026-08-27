@@ -355,4 +355,3 @@ One file per employee, in this order, with a contents page at the front. Medical
 - No bargaining council main agreement wording has been incorporated; **[ZA]** employers in a council's registered scope must align contract, wage, leave and disciplinary provisions to the extended agreement.
 - **[NA]** record retention periods under the Labour Act were not verified; the three-year period stated is the **[ZA]** BCEA s.31 period applied as good practice.
 - The warning validity periods (3/6/12 months) and the appeal timeframes are common practice, not statutory.
-

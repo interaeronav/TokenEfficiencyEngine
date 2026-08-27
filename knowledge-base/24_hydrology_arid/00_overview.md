@@ -103,4 +103,3 @@ The atmospheric end of the cycle: precipitation measurement and its errors, stor
 
 - Gauge-based long-term rainfall statistics for Okongo/Eenhana specifically (Namibia Meteorological Service or SASSCAL station data) have not been obtained; all rainfall statistics here are reanalysis-derived.
 - No verified A-pan evaporation map value for Ohangwena has been located; the ET₀ figures are computed rather than measured.
-

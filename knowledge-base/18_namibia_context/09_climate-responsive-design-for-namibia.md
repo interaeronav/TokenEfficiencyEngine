@@ -368,4 +368,3 @@ Put the long axis east–west on the highest ground available. Raise the floor. 
 - `needs-verification`: eaves ventilation free-area ratios required or recommended by the applicable standard.
 - The §2 vertical-surface irradiation table is computed with an **isotropic sky model and a ground albedo of 0.30**. Pale bare Kalahari sand may have an albedo of 0.35–0.45, which would raise all vertical-surface figures; the *relative ranking between orientations* is robust, the absolute values are indicative.
 - All Okongo figures derive from reanalysis or from the nearest stations (Eenhana ~120 km, Ondangwa ~180 km). There is no station record at Okongo.
-

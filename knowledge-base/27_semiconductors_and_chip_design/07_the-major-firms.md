@@ -310,4 +310,3 @@ Formerly Mentor Graphics, acquired by Siemens in 2017 for US$4.5 bn. **13% of th
 - [Yangtze Memory Technologies — Wikipedia](https://en.wikipedia.org/wiki/Yangtze_Memory_Technologies) — accessed 2026-08-25
 - [ChangXin Memory Technologies — Wikipedia](https://en.wikipedia.org/wiki/ChangXin_Memory_Technologies) — accessed 2026-08-25
 - [Rapidus — Wikipedia](https://en.wikipedia.org/wiki/Rapidus) — accessed 2026-08-25
-

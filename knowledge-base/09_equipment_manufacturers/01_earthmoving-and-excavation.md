@@ -192,4 +192,3 @@ Budget for the attachment properly: **hydraulic breakers** (matched to carrier w
 - Bell's B25E, B40E, B50E and B60E product pages did not expose engine model and emissions tier in the extracted text; the power/payload/weight figures above are verified but the engine designations for those four are `needs-verification`.
 - Class weight ranges for non-Bell machines are engineering conventions, not manufacturer statements — treat as planning bands only.
 - Current SADC dealer appointments for XCMG, SANY, Zoomlion and LiuGong should be re-checked before specifying.
-

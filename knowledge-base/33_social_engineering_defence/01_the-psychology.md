@@ -169,4 +169,3 @@ Huang and Orbach's 2018 analysis in *Social Research* frames cons as **inducing 
 - **Danziger et al. (2011) parole study** and the **ego-depletion replication failures** (Hagger et al. multi-lab RRR) are described from general knowledge; primary sources not fetched. The contested status is well established but citations should be added.
 - **Pronin's bias blind spot** work and the "intelligence trap" literature are cited from general knowledge; primary sources not fetched.
 - Cialdini's *Pre-Suasion* unity principle is verified; the experimental basis for unity specifically is thinner than for the original six and should be characterised cautiously.
-

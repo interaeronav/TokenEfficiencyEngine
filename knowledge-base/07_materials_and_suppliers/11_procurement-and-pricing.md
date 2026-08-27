@@ -315,4 +315,3 @@ Use one row per bill item, one block of columns per supplier. Compare only after
 - **Discount structures and typical trade discount percentages are not published by any merchant** and are described qualitatively only.
 - **Delivery radius, delivery charge and minimum order value for the northern Namibian branches are unknown** and are the single most important commercial fact a project in Ohangwena Region needs to establish.
 - Whether Namibian merchants will hold a project rate against steel and cement price movement, and for how long, is unverified.
-

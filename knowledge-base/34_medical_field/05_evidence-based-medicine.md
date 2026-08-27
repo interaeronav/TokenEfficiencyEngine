@@ -359,4 +359,3 @@ If you have thirty seconds rather than fifteen minutes: **read the primary outco
 - The ASA 2016 statement on p-values, Greenhalgh's 2014 *BMJ* "EBM in crisis" paper, the COMPare project and the Cochrane methodology review on industry sponsorship are named from general reference knowledge and were not retrieved in this pass — verify before citing.
 - The I² interpretive bands (0–40 / 30–60 / 50–90 / 75–100) come from the Cochrane Handbook; verify the current wording, which is deliberately hedged in the source.
 - The ASCOT-LLA and SELECT figures are as reported by the secondary sources cited; check the primary papers (*Lancet* 2003 and *NEJM* 2023 respectively) before quoting.
-

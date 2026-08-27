@@ -216,4 +216,3 @@ Notes that matter:
 - [OpenROAD Project — Wikipedia](https://en.wikipedia.org/wiki/OpenROAD_Project) — accessed 2026-08-25
 - [SkyWater Technology — Wikipedia](https://en.wikipedia.org/wiki/SkyWater_Technology) — accessed 2026-08-25
 - [RISC-V — Wikipedia](https://en.wikipedia.org/wiki/RISC-V) — accessed 2026-08-25
-

@@ -295,4 +295,3 @@ The market is concentrated in the **Lloyd's of London** subscription market plus
 - **US DOT rulemaking status** — the fate of the proposed delay-compensation rule and the 2024 refund rule under the current administration is unverified.
 - Cape Town contracting party count (85) is as reported by the cited source and should be checked against UNIDROIT's current status table.
 - Typical airline liability limits (US$1.5–2.5 bn) are market practice figures from general industry knowledge, not from a cited source.
-

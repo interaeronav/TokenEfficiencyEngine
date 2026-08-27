@@ -349,4 +349,3 @@ The **incretin** story is the most consequential commercial and clinical develop
 - **Lyfgenia** (lovotibeglogene autotemcel) approval date is stated as concurrent with Casgevy's US sickle-cell approval from general knowledge; verify with FDA.
 - Bioequivalence limits (80–125% for the 90% CI) and the "rule of three" in pharmacovigilance are standard but were not verified against a primary source here.
 - **[ZA]/[NA]** SAHPRA and Namibia Medicines Regulatory Council process detail is described generally; verify current procedures with each authority.
-

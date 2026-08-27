@@ -174,4 +174,3 @@ The same logic runs on the contracting side, at different scale (see `03`): the 
 - **Kéré Architecture's headcount** is taken from the team list on the practice website at the date of access and will change.
 - **Vastushilpa Consultants' partner and staff numbers** are as given in the Pritzker biography and may be historical rather than current.
 - The claim that two-principal partnerships are unusually stable is an observation from this sample, not a researched finding; **treat as a hypothesis**.
-

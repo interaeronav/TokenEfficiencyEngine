@@ -226,4 +226,3 @@ Bring these to the first structural meeting:
 - SANS 10400-K deemed-to-satisfy tables (wall height/length/thickness matrices) were not read directly; the Category 1 limits quoted come from a peer-reviewed review paper, not the standard itself.
 - Dead-load, bearing-pressure, column-sizing and movement-joint figures are conventional engineering practice values and are **not** cited to a standard. Treat as order-of-magnitude only.
 - **[NA]** Namibia's applicable loading code (whether SANS 10160 is adopted, or another regime applies) was not established.
-

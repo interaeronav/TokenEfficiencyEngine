@@ -181,4 +181,3 @@ That list is why the hand calculation and the material knowledge come first, and
 - Whether Fusion supports orthotropic material definitions for timber in Static Stress. Believed not; `needs-verification`.
 - Menu/panel labels in the Simulation workspace were not verified against a scraped Autodesk help page.
 - Material property ranges in the table above are indicative trade values, not board-specific published data. Get the manufacturer's technical data sheet for the actual board.
-

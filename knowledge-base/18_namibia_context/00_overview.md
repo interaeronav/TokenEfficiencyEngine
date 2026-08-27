@@ -127,4 +127,3 @@ Data quality declines sharply as you move from the national scale to Okongo. Nat
 - The share of Ohangwena households now connected to grid electricity post-2023 census has not been verified; the 20.7 % figure is from earlier census reporting.
 - Current NORED and NamWater tariff schedules and connection fees were not retrievable and are marked `needs-verification` in `08_infrastructure-and-services.md`.
 - Depth to the shallow (saline) water table specifically at Okongo is unverified.
-

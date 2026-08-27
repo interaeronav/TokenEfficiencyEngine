@@ -197,4 +197,3 @@ A battery-electric aircraft therefore carries roughly **25 times less usable ene
 - Take-off turbine entry temperatures for specific current engines are not published by manufacturers; the 1,700–1,900 K range is the accepted open-literature figure.
 - Cruise TSFC values are representative, not certified figures for any named engine.
 - Current status of the PW1100G powder-metal inspection programme (completion, remaining AOG count in 2026) — `needs-verification`.
-

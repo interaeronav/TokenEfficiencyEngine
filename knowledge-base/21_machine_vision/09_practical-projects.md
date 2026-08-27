@@ -537,4 +537,3 @@ MDF dust on the front windows (scheduled cleaning plus the shift-start verificat
 - The tolerance budget in Project D uses **assumed** values for platen flatness, panel bow and edge quality. These must be measured on real panels before the design is committed.
 - Steel thermal expansion is taken as 12 µm/m/°C — verify against the actual alloy.
 - Accuracy and recall targets in the acceptance criteria are proposed engineering targets, not measured results.
-

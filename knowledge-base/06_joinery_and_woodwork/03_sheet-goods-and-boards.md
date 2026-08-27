@@ -146,4 +146,3 @@ High-pressure laminate is kraft paper and décor paper impregnated with phenolic
 - Published density figures (kg/m³) and mechanical properties (internal bond, MOR, MOE, screw withdrawal) for BisonBord and SupaWood were not retrievable — the PG Bison technical data sheets are behind a robots-disallowed path. Request the current data sheets directly.
 - Sonae Arauco South Africa does not publish sheet sizes and thicknesses on its site; confirm the Novogold/Novowood size range with the mill.
 - Namibian stockholding: which PG Bison and Sonae Arauco thicknesses are actually held in Windhoek (rather than ordered from South Africa) is not documented here and materially affects lead times.
-

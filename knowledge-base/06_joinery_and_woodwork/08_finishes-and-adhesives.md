@@ -142,4 +142,3 @@ Sanding is the finish. Every scratch you leave will be magnified by the first co
 - Open and clamp times in the adhesive table are typical manufacturer values, not a single sourced dataset — always use the specific product's TDS.
 - The Adkwik summary of EN 204 renders the shear-strength requirements ambiguously ("less than 10 N/mm²"); the values given here are stated as *minimum* requirements, which is the correct sense of EN 204, but should be confirmed against the standard itself.
 - No local (SA/Namibian) 2K PU or waterborne system was verified; Woodoc is the only confirmed local product here. Obtain TDS for the specific system used (e.g. Plascon Woodcare, Duram, Chemical Initiatives) before writing a finishing specification.
-

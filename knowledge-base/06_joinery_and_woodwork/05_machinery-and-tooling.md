@@ -165,4 +165,3 @@ Do these in order, and re-do them after any machine is moved:
 - Extraction figures are converted from a US cfm reference; verify against the machine manufacturer's stated extraction port volume and static pressure requirement before sizing a system.
 - No specific SCM, Felder or Altendorf model specifications were verified; machine recommendations here are generic by capability, not by model.
 - **[NA]/[ZA]** Local occupational health and safety requirements for woodworking machinery (SA: OHS Act General Machinery Regulations; NA: Labour Act regulations) were not checked and may impose specific guarding and training duties.
-

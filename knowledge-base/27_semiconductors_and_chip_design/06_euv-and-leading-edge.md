@@ -257,4 +257,3 @@ Yield is modelled as `Y = Y0 · f(D0·A)`, where `D0` is defect density per cm²
 - [SMIC — Wikipedia](https://en.wikipedia.org/wiki/Semiconductor_Manufacturing_International_Corporation) — accessed 2026-08-25
 - [TSMC 2Q26 Quarterly Results](https://investor.tsmc.com/english/quarterly-results/2026/q2) — accessed 2026-08-25
 - [CHIPS and Science Act — Wikipedia](https://en.wikipedia.org/wiki/CHIPS_and_Science_Act) — accessed 2026-08-25
-

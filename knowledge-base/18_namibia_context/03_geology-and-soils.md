@@ -265,4 +265,3 @@ The Atlas is explicit: the small number of boreholes in the Cuvelai is due to **
 - `needs-verification`: fluoride, nitrate and sulphate concentrations in Ohangwena groundwater.
 - `needs-verification`: current status of Ohangwena II development — the BBC/BGR data is from 2012 and a 2018 press report referenced "work on Ohangwena aquifer begins"; the present state of the wellfield was not confirmed.
 - The Atlas of Namibia's numeric maps (soil depth, water-holding capacity, aquifer yield) were not readable as text; only the narrative statements are cited here.
-

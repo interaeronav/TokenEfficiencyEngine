@@ -474,4 +474,3 @@ An **inundation-frequency** surface is the honest product: it says how often a p
 - **[NA]** Whether a national CORS network with public correction streams covers northern Namibia.
 - Local Authority / Regional Council submission requirements for Okongo — required scales, sheet sizes, and whether a surveyor's diagram is mandatory.
 - SkyFi per-order redistribution terms (set by each originating operator).
-

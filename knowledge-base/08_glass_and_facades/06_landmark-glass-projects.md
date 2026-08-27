@@ -200,4 +200,3 @@ These were requested for this file and could not be verified against a citable s
 - The Shard's glass type (whether low-iron / extra-white, and whether single or double glazed) and its facade contractor were not verified.
 - The Louvre Pyramid's glass thickness and exact make-up were not verified.
 - Apple Fifth Avenue's glass manufacturer was not verified. Josef Gartner and sedak are verified only for the Steve Jobs Theater facade.
-

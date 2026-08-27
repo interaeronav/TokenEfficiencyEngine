@@ -185,4 +185,3 @@ The systematic study of how actual decision-making departs from the rational-age
 - Heschong Mahone daylighting-in-schools studies are frequently cited in green-building literature and have been methodologically criticised; the only record retrieved was a 2021 book chapter. Verify the original reports and the critiques before relying on the effect sizes.
 - Bainbridge's "Ironies of Automation" (1983), Reason's *Human Error* (1990), Endsley on situation awareness, Edmondson on psychological safety, Newman's *Defensible Space* and Lynch's *The Image of the City* are described from general knowledge; verify primary references.
 - Meta-analytic evidence on nudge effect sizes and publication bias (Mertens et al. 2022; Della Vigna & Linos 2022) is referenced from general knowledge; verify before citing figures.
-

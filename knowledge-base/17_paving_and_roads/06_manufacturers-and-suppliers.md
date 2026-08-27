@@ -179,4 +179,3 @@ These two are worth distinguishing from the block makers because their product i
 - No current price lists were obtained from any manufacturer.
 - Whether any South African producer has a Namibian distribution agreement or depot is unverified.
 - The CMA's current (2026) producer-member list was not retrieved; only the 2004 list published in its own manuals.
-

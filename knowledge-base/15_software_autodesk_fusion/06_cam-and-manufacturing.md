@@ -272,4 +272,3 @@ def run(context):
 - Exact `NCProgram.parameters` names for output folder and filename in the May 2026 release.
 - Whether the base (non-extension) subscription currently includes 3D Adaptive Clearing — this has moved between tiers historically. `needs-verification`.
 - Exact ribbon panel names in the Manufacture workspace were not verified against a scraped help page.
-

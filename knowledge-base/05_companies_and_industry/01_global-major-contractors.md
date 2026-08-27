@@ -149,4 +149,3 @@ The Japanese Big Five share a distinctive operational signature: **design-build 
 - [Obayashi Corporation](https://en.wikipedia.org/wiki/Obayashi_Corporation) · [Kajima](https://en.wikipedia.org/wiki/Kajima) · [Shimizu Corporation](https://en.wikipedia.org/wiki/Shimizu_Corporation)
 - [Larsen & Toubro](https://en.wikipedia.org/wiki/Larsen_%26_Toubro)
 - [Namport — Walvis Bay container terminal built by China Harbour Engineering Company](https://www.namport.com.na/news/465/Walvis-Bay-container-terminal-opens/)
-

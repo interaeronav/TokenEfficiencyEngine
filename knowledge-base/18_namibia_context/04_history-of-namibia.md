@@ -216,4 +216,3 @@ Ohangwena's history is the eastern Kwanyama history, and it runs like this:
 - `needs-verification`: the date the Eenhana–Okongo road was tarred, and whether the Okongo airstrip is of SADF origin.
 - Genocide death-toll ranges are contested in the scholarship; the figures quoted are the ranges given in the cited encyclopaedic source.
 - The Wikipedia infobox gives Namibia's population as 3 022 401 but labels the census year 2025; the 2023 Population and Housing Census figure of 3 022 401 is used throughout this domain.
-

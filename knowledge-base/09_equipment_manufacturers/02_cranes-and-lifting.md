@@ -170,4 +170,3 @@ A lift plan should contain:
 - Specific chart values quoted above (e.g. "90 t at 3 m") are illustrative of chart behaviour, not model data — always read the actual chart. `needs-verification` if reused as a number.
 - Current Namibian LMI registration and reciprocity with the South African ECSA/LMI scheme should be confirmed with the Namibian Ministry of Labour before relying on SA certificates.
 - IPAF (ipaf.org) blocks automated fetching; its MEWP operator categories (1a/1b/3a/3b) are the de facto standard in SADC but were not machine-verified here.
-

@@ -203,4 +203,3 @@ The pattern across all ten: **only one of them (number 9) depends on a person re
 - The **Lockheed Martin Cyber Kill Chain** is referenced from general knowledge; the original white paper was not fetched.
 - **Confirmation of Payee** schemes vary by jurisdiction (UK, EU under the Instant Payments Regulation, South Africa's evolving arrangements). Verify local availability before recommending it as a control.
 - The claim that the **service desk is now the most attacked enterprise function** is well supported by the 2023 casino incidents and vendor reporting but is not backed here by a quantified public dataset. Marked `needs-verification` as a quantitative claim.
-

@@ -332,4 +332,3 @@ What is verifiable and matters more:
 - **ATCO unit endorsement failure rates** are anecdotal industry figures, not sourced.
 - **Command upgrade minima** vary by operator and are not published; the figures given are illustrative.
 - EASA ATPL(A) experience minima quoted from FCL.510.A; not re-verified against the current consolidated text in this pass.
-

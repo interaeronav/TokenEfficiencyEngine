@@ -166,4 +166,3 @@ For unsealed roads the controlling parameters are the **Shrinkage Product** (lin
 - The full TRH 4 (1996) design catalogue tables could not be retrieved; only the road-category/reliability framework and the UTG 2 block-paving extract were verified. Specific TRH 4 layer thicknesses quoted anywhere should be checked against the document itself.
 - SAMDM transfer functions (the actual distress equations and their coefficients) were not obtained and are **needs-verification**.
 - Tyre contact pressure of ~520 kPa is the conventional design assumption; the exact value used in current SANRAL practice was not verified.
-

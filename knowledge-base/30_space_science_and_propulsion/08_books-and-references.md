@@ -146,4 +146,3 @@ sources:
 - [NASA RP-1311 Part I, Gordon & McBride, October 1994](https://ntrs.nasa.gov/citations/19950013764) — NASA NTRS, accessed 2026-08-25
 - [NASA Systems Engineering Handbook (NASA/SP-6105)](https://www.nasa.gov/reference/systems-engineering-handbook/) — NASA, accessed 2026-08-25
 - [ECSS active standards](https://ecss.nl/standards/active-standards/) — ECSS, accessed 2026-08-25
-

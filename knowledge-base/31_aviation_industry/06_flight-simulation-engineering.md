@@ -478,4 +478,3 @@ For a serious fixed-base FTD or an FNPT-class device:
 - **Frasca's current ownership** and **the current FAA AATD/BATD credit limits** need verification against AC 61-136 and the FAA's current policy.
 - **Motion transfer-of-training research** — the claim that Level D motion shows limited transfer benefit reflects a body of published work (Bürki-Cohen and colleagues at the Volpe Center in particular) that is not cited here and should be read directly.
 - **ARINC 610** revision level and its exact list of required simulation-support features were not verified against the current specification.
-

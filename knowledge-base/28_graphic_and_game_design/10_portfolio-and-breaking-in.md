@@ -284,4 +284,3 @@ The Game Developers Conference (San Francisco, annually, usually March) is where
 - Whether design and art tests are typically paid varies enormously by employer and region; no survey data was verified.
 - Regional conference names and cadences (Develop:Brighton, Devcom, Reboot, Nordic Game, A MAZE, Africa Games Week, Playtopia, rAge, Design Indaba) were not verified.
 - No verified data on the *graphic design* entry-level market specifically — the BLS figures cover the whole occupation, not entry level.
-

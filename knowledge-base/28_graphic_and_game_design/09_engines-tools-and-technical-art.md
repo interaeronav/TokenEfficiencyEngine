@@ -239,4 +239,3 @@ Every console release must pass the platform holder's certification before it ca
 - Unreal Engine royalty and seat-licence figures are carried from `13_software_unreal_engine`, which sourced them from Epic's licence page; they were not re-fetched here.
 - **Platform certification programme names (TRC, XR, lotcheck) and timelines are from industry convention**, not from the platform holders' own documentation, which is NDA-gated and not publicly fetchable. Treat the specifics as `needs-verification` and rely on the actual requirements document once you have developer access.
 - Unity's Runtime Fee is described as retracted based on its absence from the current pricing page and widely reported industry events; the formal retraction document was not fetched.
-

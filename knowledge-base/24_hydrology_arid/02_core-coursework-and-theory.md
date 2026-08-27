@@ -279,4 +279,3 @@ Descriptive statistics of skewed hydrologic series (log transformation, L-moment
 
 - Carsel & Parrish van Genuchten class parameters are quoted from standard HYDRUS documentation but were not re-verified against the original 1988 paper — treat as indicative.
 - Manning `n` values are standard textbook ranges (Chow 1959 lineage) and were not re-verified against a primary source in this pass.
-

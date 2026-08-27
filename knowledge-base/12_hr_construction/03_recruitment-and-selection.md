@@ -173,4 +173,3 @@ Each of the following is a skeleton. Add the project name, reporting line, contr
 - The current names, contact routes and turnaround times for NTA and NQA qualification verification were not fetched; confirm directly.
 - Whether the **[NA]** Employment Services Act vacancy-notification duty (s.16) has been activated for construction employers by ministerial designation is unverified.
 - **[ZA]** SACPCMP registration categories and the point at which registration is legally required (as opposed to contractually required) need verification.
-

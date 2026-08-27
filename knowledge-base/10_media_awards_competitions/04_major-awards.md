@@ -194,4 +194,3 @@ Two things survive and remain valuable: the **published archive of 362 winning p
 - [Holcim Foundation Awards](https://www.holcimfoundation.org/awards) — eight cycles 2004–2025, USD 14 m, 362 winners, 33 230 entries, 166 countries, four goals and three design principles, programme conclusion. Accessed 2026-08-25.
 - [The Plan](https://www.theplan.it/eng) — THE PLAN Award, Real Estate Award and ECCA Award strands. Accessed 2026-08-25.
 - [The Architectural Review — Wikipedia](https://en.wikipedia.org/wiki/The_Architectural_Review) — AR Emerging Architecture Awards established 1999. Accessed 2026-08-25.
-

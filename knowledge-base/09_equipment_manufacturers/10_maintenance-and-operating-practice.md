@@ -267,4 +267,3 @@ Reproduce one of these per machine. It is deliberately simple enough to be fille
 - **[ZA]** The exact statutory inspection intervals under the Driven Machinery Regulations and the Pressure Equipment Regulations are not quoted here (regulation text was not verified in this pass) — read them from the current regulations before completing the statutory register.
 - **[NA]** Namibian operator certification and machinery inspection requirements were not verified against the Namibian Labour Act regulations; confirm with the Namibian Ministry of Labour and with the project insurer.
 - **[ZA]** TETA/CETA accreditation status of any specific training provider must be checked directly; accreditations lapse.
-

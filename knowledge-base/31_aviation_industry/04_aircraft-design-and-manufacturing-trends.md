@@ -266,4 +266,3 @@ ICAO has an Advanced Air Mobility and an automation workstream; EASA's public po
 - **ReFuelEU percentages** are quoted from the adopted regulation as generally reported; verify against the published Regulation (EU) 2023/2405 text before relying on the exact figures.
 - Battery specific-energy figures and the kerosene comparison are standard engineering values, not sourced here.
 - Contrail radiative forcing magnitude is from the Lee et al. (2021) assessment as commonly cited; not verified in this pass.
-

@@ -84,4 +84,3 @@ Biographical facts here were checked against the Pritzker Prize's own laureate p
 - The Namibia Institute of Architects website (`nia.org.na`) could not be retrieved during compilation; NIA membership numbers, award programmes and member-practice lists remain **unverified**.
 - NCAQS does not publish registration category counts online; the number of registered architects in Namibia is **unverified**.
 - No consolidated scholarly reference on twentieth- and twenty-first-century Namibian architectural practice was located; file `02` is therefore thinner on Namibia than on South Africa and West Africa.
-

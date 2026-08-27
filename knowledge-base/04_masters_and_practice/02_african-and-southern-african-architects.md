@@ -167,4 +167,3 @@ Windhoek is hot semi-arid, Köppen **BSh**: coldest month July at about 13.1 °C
 - **Mphethi Morojele, Luyanda Mpahlwa, Mokena Makeka, Heinrich and Ilze Wolff** — no biographical or project fact verified; all practice websites returned errors during compilation.
 - **RIBA Lubetkin Prize year for the Red Location Museum** — 2006 and 2010 both appear in the source consulted; unresolved.
 - **NLÉ / Makoko Floating School** — founding year of NLÉ given as 2010 by the practice, Venice Silver Lion 2016 unverified.
-

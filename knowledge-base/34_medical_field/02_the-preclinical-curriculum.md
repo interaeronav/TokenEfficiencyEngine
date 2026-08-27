@@ -211,4 +211,3 @@ Other structural variants in wide use:
 - The percentage-of-time allocations in the Key facts table are indicative composites drawn from typical integrated curricula, not a published standard; they are marked as such and should not be cited as authoritative.
 - Current edition numbers for Moore, Junqueira, Langman, Katzung, Rang & Dale, Janeway's, Jawetz and Lippincott titles were **not** verified in this pass (several Wikipedia article URLs were unfetchable). Editions named without a year in this file should be confirmed against the publisher — see `04_the-textbooks-and-manuals.md`, which carries the same caveat.
 - Whether Robbins has advanced beyond the 10th edition (2020) could not be confirmed; the 11th edition listing did not resolve.
-

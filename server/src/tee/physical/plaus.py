@@ -22,7 +22,9 @@ decides both WHICH table applies and HOW MUCH FORCE a finding may claim:
                       nothing above HEUR is emitted until it is resolved.
 
 Capping is visible, never silent: a capped finding carries
-`severity_capped_from` and the reason.
+`severity_capped_from`, and `jurisdiction.legal_basis` states the reason
+once for the whole response (repeating it per finding cost 2.5x the
+payload for no added information - see benchmarks/RESULTS.md).
 
 Model contract (assembled from plan facts + scene entities, or passed
 directly): {"elements": [{id, class, ...}], "region": "US"}
@@ -70,6 +72,17 @@ DISCLAIMER = (
 
 
 # CONV < HEUR < STD < CODE. A regime's ceiling caps what any rule may claim.
+_MASONRY_TOKENS = ("brick", "masonry", "block", "stone", "adobe", "cmu")
+
+
+def _is_masonry(material: Any) -> bool:
+    """Family match, not a name whitelist: the exact-name check silently
+    skipped 'clay_brick' and 'concrete_block' walls (a 60 m clay_brick wall
+    sailed through slenderness). Plain 'concrete' stays cast-in-situ."""
+    text = str(material or "").lower()
+    return any(token in text for token in _MASONRY_TOKENS)
+
+
 _SEVERITY_ORDER = ("CONV", "HEUR", "STD", "CODE")
 
 # Accepted spellings -> profile key. Deliberately NOT fuzzy: an unknown region
@@ -162,13 +175,6 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
             "detail": detail,
             "source": source or rule.get("source"),
         }
-        # Legal force is jurisdictional. Where the regime has adopted no code,
-        # a CODE-severity rule is professional standard of care, not law - and
-        # the downgrade is stated, never silent.
-        if _SEVERITY_ORDER.index(claimed) > ceiling_rank:
-            finding["severity"] = ceiling
-            finding["severity_capped_from"] = claimed
-            finding["severity_cap_reason"] = profile["legal_basis"]
         findings.append(finding)
 
     for element in elements:
@@ -225,7 +231,7 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                 )
 
         elif cls == "wall":
-            if element.get("material") in ("brick", "masonry", "brick_masonry"):
+            if _is_masonry(element.get("material")):
                 evaluated += 1
                 rule = table["masonry_slenderness"]
                 height = float(element.get("height_m", 0))
@@ -418,10 +424,47 @@ def check(model: dict[str, Any]) -> dict[str, Any]:
                     f"{rule['finding']}",
                 )
 
+    # Storey envelope: the entire rule set is prescriptive/deemed-to-satisfy
+    # territory. A building beyond it doesn't just break one rule - every
+    # rule here under-covers it, so say that once, at HEUR, for the model.
+    scope = table.get("prescriptive_scope_stories")
+    walls = [e for e in elements if e.get("class") == "wall"]
+    if scope and walls:
+        evaluated += 1
+        declared = max((int(e.get("stories", 1)) for e in walls), default=1)
+        tallest = max((float(e.get("height_m", 0)) for e in walls), default=0.0)
+        implied = int(tallest // float(scope["storey_height_m"]))
+        stories = max(declared, implied)
+        if stories > int(scope["max_stories"]):
+            how = (
+                f"declared {declared} storeys"
+                if declared >= implied
+                else f"a {tallest:.0f} m wall implies ~{implied} storeys "
+                f"(at {scope['storey_height_m']:.0f} m per storey, convention)"
+            )
+            hit(
+                "prescriptive_scope_stories",
+                "building",
+                f"{how} > the {scope['max_stories']}-storey envelope of the "
+                f"{rule_set} prescriptive rules: {scope['finding']}",
+            )
+
     findings.extend(_load_path(elements, by_id, table))
     evaluated += 1  # the graph check
     findings.extend(_wet_walls(elements, table))
     evaluated += 1
+
+    # Legal force is jurisdictional. Where the regime has adopted no code, a
+    # CODE-severity rule is professional standard of care, not law - and the
+    # downgrade is stated, never silent. This runs over the assembled list,
+    # not inside hit(), because _load_path and _wet_walls build findings
+    # directly: capping in hit() alone let load_path claim CODE force on
+    # communal land while the same response said nothing above STD applied.
+    for finding in findings:
+        claimed = finding["severity"]
+        if _SEVERITY_ORDER.index(claimed) > ceiling_rank:
+            finding["severity"] = ceiling
+            finding["severity_capped_from"] = claimed
 
     jurisdiction: dict[str, Any] = {
         "region": region_key,

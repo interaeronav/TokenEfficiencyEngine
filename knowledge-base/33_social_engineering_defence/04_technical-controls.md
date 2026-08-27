@@ -260,4 +260,3 @@ Write these as one-page, decision-oriented documents. Rehearse them (file `05` Â
 - **The Uber hardcoded-PowerShell-credential detail** is widely reported but the primary confirmation was not fetched here; see file `07`, where it is marked.
 - **SPF's 10-lookup limit** and the specific mechanics of "SPF flattening" are from general operational knowledge; verify against RFC 7208 before publishing as guidance.
 - **Token binding / token protection** support varies substantially by identity platform and licence tier; verify availability in your own tenant.
-

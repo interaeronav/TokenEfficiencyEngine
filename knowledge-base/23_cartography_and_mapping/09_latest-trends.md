@@ -223,4 +223,3 @@ For a small practice doing construction, terrain and context mapping in Namibia:
 - Commercial PPP-RTK service accuracy and convergence claims (Trimble RTX, TerraStar, Skylark, PointPerfect) are vendor claims and were not verified.
 - Whether GeoParquet 2.0.0 has moved from release candidate to final since the page was fetched.
 - 2025 CNG blog post titles were not enumerated (the archive page lists 20 posts without titles in the fetched view).
-

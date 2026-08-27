@@ -272,4 +272,3 @@ unit_system: SI
 - [Big Dig](https://en.wikipedia.org/wiki/Big_Dig)
 - [Neom](https://en.wikipedia.org/wiki/Neom)
 - [Stefanutti Stocks — Kusile Civil Works Joint Venture, Eskom Contractor of the Year 2025](https://stefanuttistocks.com/about/)
-

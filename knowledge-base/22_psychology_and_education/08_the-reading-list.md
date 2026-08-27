@@ -235,4 +235,3 @@ These matter because clients, teachers, principals and HR managers have read the
 - Kahneman's 2012 open letter on priming and his later acknowledgements are described from general knowledge; locate the primary correspondence before quoting.
 - The Macnamara et al. deliberate-practice meta-analyses are described from general knowledge; verify the specific effect estimates before citing.
 - No Namibian-authored psychology text was identified for this list. If one exists, it should be added.
-

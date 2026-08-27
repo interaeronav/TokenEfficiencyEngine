@@ -467,4 +467,3 @@ Ranked roughly by frequency in southern African residential work:
 - **SANS 10400-H foundation tables** were not machine-readable in this pass. The foundation schedule here is derived from first principles and should be checked against Part H. `needs-verification`
 - Table 19's clay/reinforced row (16 → 6 m) reads anomalously in the transcribed text; verify against a clean copy of the standard.
 - Watermeyer's *Free-standing walls — a design guide* (CMA, 1993) should be obtained and this file reconciled with it.
-

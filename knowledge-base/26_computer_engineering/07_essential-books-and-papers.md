@@ -210,4 +210,3 @@ Reading primary sources is a habit worth building. Most of these are shorter and
 - **Free/paid status** was verified only for SICP, OSTEP and *Crafting Interpreters*. The other **FREE** marks are from general knowledge and are `needs-verification`; publisher terms change.
 - Paper venues and years are stated from general knowledge. The high-confidence ones (Turing 1936, Shannon 1948, Codd CACM 1970, Lamport CACM 1978, Raft USENIX ATC 2014, Transformer NeurIPS 2017 / arXiv 1706.03762) are safe; verify the rest against the ACM Digital Library or the venue proceedings before citing.
 - The *Crafting Interpreters* page confirmed free access but did not confirm the two-interpreter structure (Java tree-walker, C bytecode VM); that detail is from general knowledge.
-

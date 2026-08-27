@@ -398,6 +398,56 @@ def test_ids_data_completeness_tier(tmp_path):
     assert "no data-completeness conflicts" in out["summary"], out
 
 
+# -- masonry family + storey envelope (2026-08-27 gap closure) ---------------
+
+
+def _wall_model(region="US", **wall):
+    base = {
+        "id": "w1",
+        "class": "wall",
+        "thickness_m": 0.22,
+        "material": "clay_brick",
+        "bearing": True,
+        "supports": ["f1"],
+    }
+    base.update(wall)
+    return {"region": region, "elements": [base, {"id": "f1", "class": "footing", "width_m": 0.6}]}
+
+
+def test_masonry_matches_the_family_not_a_name_whitelist():
+    """'clay_brick' and 'concrete_block' walls used to skip the masonry
+    checks entirely - a 60 m clay_brick wall sailed through slenderness."""
+    for material in ("clay_brick", "concrete_block", "brick_masonry", "stone"):
+        out = plaus.check(_wall_model(material=material, height_m=60.0))
+        assert any(f["rule"] == "masonry_slenderness" for f in out["findings"]), material
+    # cast-in-situ concrete is NOT masonry and must stay out of these checks
+    out = plaus.check(_wall_model(material="concrete", height_m=60.0))
+    assert not any(f["rule"].startswith("masonry") for f in out["findings"])
+
+
+def test_storey_envelope_flags_at_heur_and_differs_by_rule_set():
+    """3 storeys is inside the IRC's R101.2 scope and beyond the SANS
+    empirical envelope; the finding is a scope statement, so HEUR."""
+    three = _wall_model(height_m=8.4, stories=3)
+    assert not any(
+        f["rule"] == "prescriptive_scope_stories" for f in plaus.check(three)["findings"]
+    )
+    za = plaus.check(_wall_model(region="ZA", height_m=8.4, stories=3))["findings"]
+    scope = [f for f in za if f["rule"] == "prescriptive_scope_stories"]
+    assert scope and scope[0]["severity"] == "HEUR"
+    assert "rational design" in scope[0]["detail"]
+
+
+def test_storey_envelope_implied_by_wall_height():
+    """A tower described only by geometry still trips the envelope: 60 m
+    of wall implies ~20 storeys at the 3 m convention."""
+    out = plaus.check(_wall_model(region="NA-communal", height_m=60.0))
+    scope = [f for f in out["findings"] if f["rule"] == "prescriptive_scope_stories"]
+    assert scope and "implies ~20 storeys" in scope[0]["detail"]
+    # HEUR sits under every jurisdiction cap, so it is never severity-capped
+    assert "severity_capped_from" not in scope[0]
+
+
 # -- jurisdiction (A29): SANS 10400 / Namibia -------------------------------
 #
 # The governing fact, from knowledge-base/03_codes_standards/00_overview.md:
@@ -449,8 +499,33 @@ def test_communal_land_caps_code_to_standard_of_care_and_says_why():
     finding = out["findings"][0]
     assert finding["severity"] == "STD"
     assert finding["severity_capped_from"] == "CODE"
-    assert "no building control" in finding["severity_cap_reason"].lower()
     assert out["jurisdiction"]["capped_findings"] == 1
+    # The reason is stated once for the response, not repeated per finding:
+    # the duplicate strings cost 2.5x the payload and said nothing new.
+    assert "no building control" in out["jurisdiction"]["legal_basis"].lower()
+    assert "severity_cap_reason" not in finding
+
+
+def test_the_ceiling_binds_every_finding_producer_not_just_hit():
+    """load_path and wet-wall findings are built directly rather than through
+    hit(). Capping only inside hit() let a response say `max_severity: STD`
+    in its header and then emit a CODE finding underneath it."""
+    broken = {
+        "region": "NA-communal",
+        "elements": [
+            {"id": "beam", "class": "beam", "span_m": 4.0, "depth_mm": 300, "material": "concrete"},
+            {"id": "pad", "class": "footing", "width_m": 0.6, "soil_bearing_kpa": 120},
+        ],
+    }
+    out = plaus.check(broken)
+    load_path = [f for f in out["findings"] if f["rule"] == "load_path"]
+    assert load_path, "the broken load path should be found at all"
+    assert load_path[0]["severity"] == "STD"
+    assert load_path[0]["severity_capped_from"] == "CODE"
+    ceiling = out["jurisdiction"]["max_severity"]
+    order = ("CONV", "HEUR", "STD", "CODE")
+    for finding in out["findings"]:
+        assert order.index(finding["severity"]) <= order.index(ceiling), finding
 
 
 def test_bare_namibia_refuses_to_guess_the_regime():

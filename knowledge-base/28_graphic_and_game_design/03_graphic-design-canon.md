@@ -217,4 +217,3 @@ What the canon is *not* useful for: it is overwhelmingly white, male, Western an
 - The Carson / Bryan Ferry / Zapf Dingbats anecdote is explicitly flagged unverified above.
 - Sagmeister's seven-year sabbatical practice and the AIGA Detroit poster date (1999) were not verified against a primary source.
 - Milton Glaser's I ♥ NY fee arrangement is widely reported but unverified here.
-

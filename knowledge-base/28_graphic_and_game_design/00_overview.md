@@ -157,4 +157,3 @@ If you are **an agent producing work in this domain**: `02` and `04` contain the
 - No verified 2026 figure was obtained for total *global* game industry headcount, so the layoff totals above cannot be expressed as a percentage of the workforce.
 - BLS "graphic designers" excludes many UI/UX roles, which are classified under web developers and digital designers; a like-for-like combined design wage figure was not verified.
 - 2025 full-year layoff totals were not obtained as a single verified number; the Wikipedia article covers 2023–2025 but gives an explicit annual total only for 2023 and 2024.
-

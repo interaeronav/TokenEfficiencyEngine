@@ -268,4 +268,3 @@ Everything else on this list is a reference to be consulted, not a book to be re
 - ESDU's current series list, publisher status and pricing — esdu.com returned HTTP 403; `needs-verification`.
 - Whether the free author-hosted PDFs of Martins & Ning *Engineering Design Optimization* and Leveson *Engineering a Safer World* are still posted — `needs-verification`.
 - Whether the Jenkinson *Civil Jet Aircraft Design* data appendices remain freely available — `needs-verification`.
-

@@ -71,7 +71,7 @@ Complete table of contents. **38 domains, 401 files, ~1,402,755 words, 1,811 uni
 - [`VERIFICATION.md`](./00_meta/VERIFICATION.md) — **Verification register**  
   This repository was built by research agents working from public sources. Where a fact could not be confirmed against a primary source it was **flagged rather than invented** — that discipline is what makes the rest of the corpus trustworthy, but it means an a
 - [`source-register.md`](./00_meta/source-register.md) — **Source register**  
-  Every external source cited anywhere in this repository, deduplicated by URL. 1811 unique URLs drawn from 2826 citations across 399 files. Generated 2026-08-25 from the frontmatter of every file.
+  Every external source cited anywhere in this repository, deduplicated by URL. 1811 unique URLs drawn from 2826 citations across 401 files. Generated 2026-08-25 from the frontmatter of every file.
 
 ### 01_architecture — Architecture — formation, design craft and professional practice
 
@@ -983,5 +983,3 @@ Complete table of contents. **38 domains, 401 files, ~1,402,755 words, 1,811 uni
 ---
 
 ⚠️ marks a file whose status is `needs-verification` or whose confidence is `low`. See `00_meta/VERIFICATION.md` for the consolidated list of what still needs checking.
-
-

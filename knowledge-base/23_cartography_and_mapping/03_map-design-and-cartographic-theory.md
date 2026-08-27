@@ -319,4 +319,3 @@ gdal_contour -a elev -i 5.0 dem.tif contours.gpkg -f GPKG
 - Bertin's original variable set and MacEachren's extensions are cited from the standard literature (`Sémiologie graphique`, 1967; *How Maps Work*, 1995) rather than from a fetched source — the classification above is uncontroversial but the specific wording is not quoted from a primary URL.
 - Imhof's label-placement priority ordering is the widely reproduced version; the original is *Positioning Names on Maps* (1975).
 - The Töpfer Radical Law formulation is standard but was not verified against a primary source in this session.
-

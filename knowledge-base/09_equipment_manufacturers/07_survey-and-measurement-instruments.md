@@ -151,4 +151,3 @@ Set the laser at one end of a 30 m run, read a receiver on a staff at both ends,
 - Accuracy figures above are typical class values for current instruments; the exact specification for a given model must be read from that model's data sheet (ISO 17123 test conditions apply). Status `needs-verification` for any figure used in a tolerance argument.
 - **[NA]** Current Namibian CORS/network RTK coverage and the official Namibian geoid model should be confirmed with the Namibian Directorate of Survey and Mapping before planning GNSS-based vertical control.
 - **[ZA]** TrigNet service status and the current South African geoid model version should be confirmed before relying on network RTK heights.
-

@@ -112,4 +112,3 @@ Northern Namibia is better supplied than its remoteness suggests. There are buil
 - [Trans-Kalahari Corridor](https://www.wbcg.com.na/trans-kalahari-corridor/) — Walvis Bay Corridor Group, accessed 2026-08-25
 - [Weighbridges](https://www.ra.org.na/weighbridge) — Roads Authority of Namibia, accessed 2026-08-25
 - [Ohorongo Cement](https://en.wikipedia.org/wiki/Ohorongo_Cement) — Wikipedia, accessed 2026-08-25
-

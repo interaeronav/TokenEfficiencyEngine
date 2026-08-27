@@ -125,4 +125,3 @@ Cross-domain: site OHS detail is in `02_building_construction/14_health-and-safe
 
 - The section number for the Namibian labour-hire provision (commonly cited as s.128A, inserted by the Labour Amendment Act 2 of 2012) has **not** been verified against a current consolidation in this pass — treat as `needs-verification`.
 - Whether any sectoral determination or wage order under s.13 of the Namibian Labour Act applies specifically to the construction industry, as distinct from the national minimum wage, is unverified.
-

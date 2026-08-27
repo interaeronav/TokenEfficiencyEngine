@@ -198,4 +198,3 @@ A house in Ohangwena carries meanings that a purely functional brief will miss.
 - `needs-verification`: the specific cultural practices around homestead graves in eastern Ohangwena, and whether they affect land-right transfer.
 - Ohangwena income-source percentages are from 2001-era census reporting and are likely to have shifted; the 2023 census breakdown was not retrieved.
 - §6 draws on general ethnographic characterisation of Owambo homestead life; the specific expectations listed should be confirmed with the client family rather than assumed.
-

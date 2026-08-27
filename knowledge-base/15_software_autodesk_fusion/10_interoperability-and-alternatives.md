@@ -207,4 +207,3 @@ The one thing not to do is to model production joinery in SketchUp because it is
 - FreeCAD's exact licence (believed LGPL-2.1-or-later) was not confirmed on the pages fetched.
 - Shapr3D's monthly price — the page rendered "$19/month" alongside "$228/year, 34% savings", which is internally inconsistent. Re-check.
 - Whether Fusion's USD export currently carries materials in a form Unreal or Omniverse consumes without rework.
-

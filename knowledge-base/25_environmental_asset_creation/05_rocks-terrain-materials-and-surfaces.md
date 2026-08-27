@@ -412,4 +412,3 @@ Worked example: a 4 m × 2.6 m wall panel at 1024 px/m needs 4096 × 2662 texels
 - **Prevailing wind direction at Okongo** for ripple and drift orientation. The Atlas of Namibia's wind chapter has regional data; the local direction needs confirming. `needs-verification`.
 - Whether **Nanite Displaced Meshes / tessellation** is production-ready in UE 5.8 and its cost on a landscape-scale ground material. `needs-verification`.
 - Whether calcrete is exposed anywhere on or near the site. Site visit.
-

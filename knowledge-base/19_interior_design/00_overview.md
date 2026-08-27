@@ -118,4 +118,3 @@ The honest conclusion is not "school doesn't matter". It is that **the field has
 - The current list of US states and Canadian provinces with interior design title or practice acts was not retrieved and is `needs-verification`.
 - Whether Namibia has any statutory or voluntary interior design registration body is unconfirmed **[NA]**.
 - The IID (South Africa) primary domain could not be reached during research; `iidprofessions.com` is a parked domain for sale. The organisation's existence is confirmed only indirectly via the UJ department page. `needs-verification`
-

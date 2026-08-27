@@ -294,4 +294,3 @@ Data sources feeding hazard identification: mandatory and voluntary occurrence r
 - **Slot secondary trading prices** and the current legal position on monetary slot transfers in the EU are unverified.
 - **Turnaround time figures** are industry norms, not sourced.
 - Technical dispatch reliability targets (>99%) are conventional industry practice, unsourced here.
-

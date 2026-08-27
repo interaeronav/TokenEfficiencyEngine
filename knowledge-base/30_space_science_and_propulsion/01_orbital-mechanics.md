@@ -433,4 +433,3 @@ Radiative heating scales roughly as `ρ^1.2 R_n v^8.5` and is negligible for LEO
 - [Voyager 1](https://en.wikipedia.org/wiki/Voyager_1) — Wikipedia, accessed 2026-08-25
 - [James Webb Space Telescope](https://en.wikipedia.org/wiki/James_Webb_Space_Telescope) — Wikipedia, accessed 2026-08-25 (L2 halo orbit dimensions)
 - [GMAT release history](https://sourceforge.net/projects/gmat/files/GMAT/) — NASA/SourceForge, accessed 2026-08-25
-

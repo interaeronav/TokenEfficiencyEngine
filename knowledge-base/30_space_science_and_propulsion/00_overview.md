@@ -188,4 +188,3 @@ Two observations follow. First, GEO comms satellites spend more delta-v on 15 ye
 - [NEXT (ion thruster)](https://en.wikipedia.org/wiki/NEXT_(ion_thruster)) — Wikipedia, accessed 2026-08-25
 - [RS-25](https://en.wikipedia.org/wiki/RS-25) — Wikipedia, accessed 2026-08-25
 - [Solar sail](https://en.wikipedia.org/wiki/Solar_sail) — Wikipedia, accessed 2026-08-25
-

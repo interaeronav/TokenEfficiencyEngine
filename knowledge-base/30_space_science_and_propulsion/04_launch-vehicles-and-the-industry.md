@@ -238,4 +238,3 @@ The risk is concentration. One operator flies most launches, owns most satellite
 - [Kuiper Systems / Amazon Leo](https://en.wikipedia.org/wiki/Kuiper_Systems) — Wikipedia, accessed 2026-08-25
 - [Guowang](https://en.wikipedia.org/wiki/Guowang) — Wikipedia, accessed 2026-08-25
 - [LE-9](https://en.wikipedia.org/wiki/LE-9) — Wikipedia, accessed 2026-08-25 (H3 flight dates)
-

@@ -239,4 +239,3 @@ J10  PRICING SCHEDULE (attached, priced by item and by room)
 - Waste factors are typical industry ranges; the actual figure for a given job depends entirely on the nesting result and the décor's grain constraints.
 - No standard South African or Namibian joinery specification template (equivalent to NBS or the JBCC preliminaries) was located and incorporated; if a JBCC-based contract is being used, the tolerance and payment clauses here must be reconciled with the main contract terms.
 - Current board, edging and hardware prices are not included and must be quoted fresh — see also the open questions in `02_timber-species-southern-africa.md`.
-

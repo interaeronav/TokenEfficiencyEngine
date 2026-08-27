@@ -186,4 +186,3 @@ On a site like Okongo in Ohangwena, or a rural Eastern Cape or Limpopo contract,
 - **[ZA]** national minimum wage rate, UIF rate and ceiling, SDL rate and exemption threshold, and BCEA earnings threshold — all unverified rand/percentage figures.
 - Deemed tax-free subsistence and travel allowance amounts in both countries — unverified.
 - **[ZA]** bargaining council wage schedules by task grade (BCCEI, BIBC) — not obtained; council sites blocked automated fetching.
-

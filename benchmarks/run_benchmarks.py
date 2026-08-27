@@ -20,6 +20,7 @@ Anthropic's visual token formula). Run:
 
 from __future__ import annotations
 
+import copy
 import json as _json
 import math
 import shutil
@@ -704,6 +705,250 @@ def run_physical_scenario() -> dict | None:
 
 
 # --------------------------------------------------------------------------
+# Surface + jurisdiction scenario (Phase 15.2): the two things a schema or
+# state-representation change can move. Needs no DCC, so it runs anywhere.
+# --------------------------------------------------------------------------
+
+# A small Namibian house described in the terms plaus_check understands.
+PLAN = {
+    "elements": [
+        {"id": "bed1", "class": "room", "habitable": True, "ceiling_m": 2.30,
+         "area_m2": 5.4, "min_dimension_m": 1.9},
+        {"id": "living", "class": "room", "habitable": True, "ceiling_m": 2.45,
+         "area_m2": 18.0, "min_dimension_m": 3.4},
+        {"id": "s1", "class": "stair", "riser_mm": 195, "tread_mm": 245,
+         "width_mm": 800, "headroom_mm": 2120, "riser_variation_mm": 9},
+        {"id": "j1", "class": "joist", "size": "2x8", "span_m": 4.2},
+        {"id": "r1", "class": "roof", "covering": "corrugated_metal", "pitch_deg": 7.0},
+        {"id": "w1", "class": "wall", "thickness_m": 0.22, "height_m": 2.7,
+         "length_m": 6.0, "material": "clay_brick"},
+        {"id": "f1", "class": "footing", "wall": "w1", "width_m": 0.20,
+         "soil_bearing_kpa": 120},
+    ]
+}
+REGIONS = ["US", "ZA", "NA-local-authority", "NA-settlement", "NA-communal", "NA"]
+# What a model must read to answer "which code applies here, and what does it
+# require?" without TEE. These four files carry the operative answer.
+CODE_CORPUS = [
+    "00_overview.md",
+    "04_namibia-building-regulations.md",
+    "05_namibia-approvals-and-institutions.md",
+    "02_sans-10400-parts-register.md",
+]
+
+
+def run_surface_scenario() -> dict | None:
+    """Always-loaded MCP surface, measured as the wire actually carries it,
+    plus what a flat one-tool-per-capability server would have cost."""
+    try:
+        import anyio
+        from mcp.client import Client
+
+        from tee.app import TeeApp
+        from tee.assets.tools import register_asset_tools
+        from tee.design.tools import register_design_tools
+        from tee.extract.tools import register_extract_tools
+        from tee.kernel.adapter import FakeAdapter
+        from tee.kb.tools import register_kb_tools
+        from tee.physical.tools import register_physical_tools
+        from tee.pins.tools import register_pin_tools
+        from tee.server import build_server
+        from tee.uefn.tools import register_uefn_tools
+    except ImportError as exc:
+        print(f"surface scenario skipped ({exc})")
+        return None
+
+    # The SDK puts messages on the wire with by_alias + exclude_none; a bare
+    # model_dump() counts ~490 tokens of null padding no client ever sees.
+    wire_kw = dict(by_alias=True, mode="json", exclude_none=True)
+
+    def listed(app):
+        server = build_server(app)
+
+        async def fetch():
+            async with Client(server) as client:
+                return (await client.list_tools()).tools
+
+        return anyio.run(fetch)
+
+    root = tempfile.mkdtemp(prefix="tee-bench-surface-")
+    bare = TeeApp({"fake": FakeAdapter()}, project_root=root)
+    bare_tokens = estimate_tokens(
+        _json.dumps([t.model_dump(**wire_kw) for t in listed(bare)], default=str)
+    )
+    bare.shutdown()
+
+    app = TeeApp({"fake": FakeAdapter()}, project_root=root)
+    store, _ = register_extract_tools(app, root)
+    register_asset_tools(app, root, extract_store=store)
+    register_design_tools(app, root)
+    register_physical_tools(app, root)
+    register_pin_tools(app, root)
+    register_uefn_tools(app, root)
+    register_kb_tools(app, root, root=str(REPO / "knowledge-base"))
+    tools = listed(app)
+    full_tokens = estimate_tokens(
+        _json.dumps([t.model_dump(**wire_kw) for t in tools], default=str)
+    )
+    dump_tokens = estimate_tokens(
+        _json.dumps([t.model_dump(mode="json") for t in tools], default=str)
+    )
+
+    registry = app.registry
+    names = registry.names()
+    flat = [
+        {
+            "name": name,
+            "description": registry.describe(name)["description"],
+            "inputSchema": registry.describe(name)["schema"],
+        }
+        for name in names
+    ]
+    flat_tokens = estimate_tokens(_json.dumps(flat, default=str)) + full_tokens
+    search = registry.search("check a staircase against the building code", limit=5)
+    reach = estimate_tokens(_json.dumps(search, default=str)) + estimate_tokens(
+        _json.dumps(registry.describe("plaus_check"), default=str)
+    )
+    app.shutdown()
+
+    row = {
+        "n_tools": len(tools),
+        "wire_tokens": full_tokens,
+        "model_dump_tokens": dump_tokens,
+        "added_by_modules": full_tokens - bare_tokens,
+        "n_virtual_tools": len(names),
+        "flat_server_tokens": flat_tokens,
+        "reach_one_tool": reach,
+        "saving": 100.0 * (1 - full_tokens / flat_tokens),
+    }
+    print(
+        f"surface: {len(tools)} always-loaded tools = {full_tokens} tok on the wire "
+        f"({dump_tokens} by model_dump); {len(names)} virtual tools would cost "
+        f"{flat_tokens} tok flat ({row['saving']:.1f}% saved); "
+        f"reach one = {reach} tok"
+    )
+    return row
+
+
+def run_jurisdiction_scenario() -> dict | None:
+    """plaus_check response cost per regime, and the same question answered by
+    reading the code corpus into context instead."""
+    try:
+        from tee.physical import plaus
+    except ImportError as exc:
+        print(f"jurisdiction scenario skipped ({exc})")
+        return None
+
+    rows = {}
+    for region in REGIONS:
+        result = plaus.check(dict(PLAN, region=region))
+        block = result.get("jurisdiction", {})
+        stripped = copy.deepcopy({k: v for k, v in result.items() if k != "jurisdiction"})
+        for finding in stripped.get("findings", []):
+            finding.pop("severity_capped_from", None)
+        total = estimate_tokens(_json.dumps(result, default=str))
+        rows[region] = {
+            "resolved": block.get("region"),
+            "rule_set": block.get("rule_set"),
+            "max_severity": block.get("max_severity"),
+            "findings": len(result.get("findings", [])),
+            "capped": block.get("capped_findings", 0),
+            "tokens": total,
+            "jurisdiction_cost": total - estimate_tokens(_json.dumps(stripped, default=str)),
+        }
+        print(
+            f"  {region:20s} -> {rows[region]['resolved']:20s} cap "
+            f"{rows[region]['max_severity']:4s} {rows[region]['findings']} findings "
+            f"({rows[region]['capped']} capped), {total} tok"
+        )
+
+    codes = Path(__file__).parent.parent / "knowledge-base" / "03_codes_standards"
+    corpus = None
+    if codes.is_dir():
+        corpus = sum(estimate_tokens((codes / name).read_text()) for name in CODE_CORPUS)
+    worst = max(rows.values(), key=lambda r: r["tokens"])
+    request = estimate_tokens(_json.dumps({"model": dict(PLAN, region="NA-communal")}, default=str))
+    tee_total = request + rows["NA-communal"]["tokens"]
+    row = {
+        "regions": rows,
+        "corpus_tokens": corpus,
+        "tee_tokens": tee_total,
+        "worst_response": worst["tokens"],
+        "saving": None if not corpus else 100.0 * (1 - tee_total / corpus),
+    }
+    if corpus:
+        print(
+            f"code check on communal land: read the corpus {corpus} tok -> "
+            f"one plaus_check {tee_total} tok ({row['saving']:.1f}% saved)"
+        )
+    return row
+
+
+# --------------------------------------------------------------------------
+# KB scenario (Phase 16): sourced answer from the Expert Knowledge Base.
+# The task: "what bedding-sand and jointing-sand spec applies to concrete
+# block paving here, with a citation?" Needs no DCC.
+# --------------------------------------------------------------------------
+
+
+def run_kb_scenario() -> dict | None:
+    try:
+        from tee.app import TeeApp
+        from tee.kb.tools import register_kb_tools
+        from tee.kernel.adapter import FakeAdapter
+    except ImportError as exc:
+        print(f"kb scenario skipped ({exc})")
+        return None
+    kb_root = REPO / "knowledge-base"
+    if not (kb_root / "manifest.json").is_file():
+        print("kb scenario skipped (no knowledge-base mirror)")
+        return None
+
+    project = tempfile.mkdtemp(prefix="tee-bench-kb-")
+    app = TeeApp({"fake": FakeAdapter()}, project_root=project)
+    register_kb_tools(app, project, root=str(kb_root))
+    reg = app.registry
+    tokens = 0
+    calls = 0
+
+    def call(name, args):
+        nonlocal tokens, calls
+        tokens += estimate_tokens(_json.dumps(args, separators=(",", ":"), default=str))
+        result = reg.call(name, args)
+        tokens += estimate_tokens(_json.dumps(result, separators=(",", ":"), default=str))
+        calls += 1
+        return result
+
+    hits = call("kb_search", {"query": "concrete block paving bedding sand specification"})
+    top = hits["hits"][0]["id"]
+    read = call("kb_read", {"id": top, "section": "Key facts"})
+    assert read["flags"]["confidence"], "flags must ride on every content response"
+    app.shutdown()
+
+    # Naive baseline: what a session without kb_* pastes to answer the same
+    # question with a citation - the corpus's own INDEX to find the file,
+    # then the whole file (sections are not addressable without the module).
+    index_tokens = estimate_tokens((kb_root / "INDEX.md").read_text(encoding="utf-8"))
+    file_rel = "17_paving_and_roads/03_concrete-block-paving.md"
+    file_tokens = estimate_tokens((kb_root / file_rel).read_text(encoding="utf-8"))
+    naive = index_tokens + file_tokens
+    row = {
+        "naive_tokens": naive,
+        "index_tokens": index_tokens,
+        "file_tokens": file_tokens,
+        "tee_tokens": tokens,
+        "tee_calls": calls,
+        "answer_file": top,
+        "saving": 100.0 * (1 - tokens / naive),
+    }
+    print(
+        f"kb paving lookup: INDEX.md + full file {naive} tok -> "
+        f"{calls} kb_* calls {tokens} tok ({row['saving']:.1f}% saved)"
+    )
+    return row
+
+
+# --------------------------------------------------------------------------
 # Runner
 # --------------------------------------------------------------------------
 
@@ -904,7 +1149,11 @@ def main() -> None:
     asset_row = run_asset_scenario()
     physical_row = run_physical_scenario()
     unreal_row = _safe(run_unreal_scenario)
-    write_results(rows, extract_row, asset_row, physical_row, unreal_row)
+    surface_row = _safe(run_surface_scenario)
+    jurisdiction_row = _safe(run_jurisdiction_scenario)
+    kb_row = _safe(run_kb_scenario)
+    write_results(rows, extract_row, asset_row, physical_row, unreal_row,
+                  surface_row, jurisdiction_row, kb_row)
 
 
 def _safe(fn):
@@ -917,7 +1166,8 @@ def _safe(fn):
 
 
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
-                  unreal_row=None) -> None:
+                  unreal_row=None, surface_row=None, jurisdiction_row=None,
+                  kb_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -1046,6 +1296,96 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
             "tool call is also serialized on the editor's game thread at",
             "~0.37 s, so the round-trip reduction is wall-clock as well as",
             "tokens.",
+        ]
+    if surface_row is not None:
+        r = surface_row
+        payoff = r["flat_server_tokens"] // max(1, r["reach_one_tool"])
+        lines += [
+            "",
+            "## Tool surface: progressive disclosure (P4/A6)",
+            "",
+            "The always-loaded MCP surface, measured as the wire actually",
+            "carries it (`by_alias`, `exclude_none` - what the SDK sends). A",
+            "bare `model_dump()` counts ~490 tokens of `null` padding for",
+            "fields no client ever sees, so it overstates the surface by ~20%.",
+            "",
+            "| | Tools | Tokens |",
+            "|---|---|---|",
+            f"| TEE always-loaded (wire) | {r['n_tools']} | **{r['wire_tokens']:,}** |",
+            f"| same, by `model_dump()` | {r['n_tools']} | {r['model_dump_tokens']:,} |",
+            f"| flat server, one tool per capability | "
+            f"{r['n_virtual_tools'] + r['n_tools']} | {r['flat_server_tokens']:,} |",
+            "",
+            "Registering all seven modules (extract, assets, design, physical,",
+            f"pins, uefn, kb) adds **{r['added_by_modules']} tokens** to the always-loaded",
+            f"surface - the {r['n_virtual_tools']} tools they contribute live behind the",
+            f"meta-tools. Reaching one costs {r['reach_one_tool']} tokens (one search +",
+            "one describe), so the flat design only pays off in a session that",
+            f"uses more than ~{payoff} distinct long-tail tools.",
+        ]
+    if jurisdiction_row is not None:
+        j = jurisdiction_row
+        lines += [
+            "",
+            "## Jurisdiction: legal force per regime (Phase 15.2)",
+            "",
+            "One 7-element plan, checked under every regime TEE knows. The",
+            "same conflicts carry different legal force, so the responses",
+            "differ in severity, not just in wording.",
+            "",
+            "| Region | Resolves to | Rules | Cap | Findings | Capped | Tokens |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for region, row in j["regions"].items():
+            lines.append(
+                f"| `{region}` | {row['resolved']} | {row['rule_set']} | "
+                f"{row['max_severity']} | {row['findings']} | {row['capped']} | "
+                f"{row['tokens']:,} |"
+            )
+        if j.get("corpus_tokens"):
+            lines += [
+                "",
+                "Answering the same question without TEE means reading the",
+                "applicable-law files into context - which regime governs the",
+                "site, and what the adopted standard requires:",
+                "",
+                "| | Tokens | Saving |",
+                "|---|---|---|",
+                f"| read the code corpus (4 files) | {j['corpus_tokens']:,} | |",
+                f"| one `plaus_check` | {j['tee_tokens']:,} | **{j['saving']:.1f}%** |",
+                "",
+                "The `jurisdiction` block costs 48-383 tokens depending on the",
+                "regime; communal land carries the longest advisory because it",
+                "is where 'no code applies' is most easily misread as 'anything",
+                "goes'. It repeats on every call, so a session running many",
+                "checks under one regime pays it each time - per-session",
+                "suppression is the obvious next saving and is not yet built.",
+            ]
+    if kb_row is not None:
+        k = kb_row
+        lines += [
+            "",
+            "## Knowledge Base: sourced answer vs pasted corpus (Phase 16)",
+            "",
+            "The task: what bedding-sand and jointing-sand spec applies to",
+            "concrete block paving, with a citation. The naive side pastes",
+            "the corpus's own INDEX.md to find the file, then the whole file",
+            "(without the module, sections are not addressable). TEE runs one",
+            "kb_search and one budgeted kb_read of the 'Key facts' section,",
+            "with the file's Sources block and confidence/jurisdiction flags",
+            "riding along.",
+            "",
+            "| | Tokens | Calls | Saving |",
+            "|---|---|---|---|",
+            f"| paste INDEX.md ({k['index_tokens']:,}) + full file "
+            f"({k['file_tokens']:,}) | {k['naive_tokens']:,} | | |",
+            f"| kb_search + kb_read | {k['tee_tokens']:,} | {k['tee_calls']} | "
+            f"**{k['saving']:.1f}%** |",
+            "",
+            "Unlike the paste, the kb_* answer cannot arrive without its",
+            "confidence and jurisdiction flags - `needs-verification` content",
+            "is labelled in the response itself (A30/A31), not in a rule the",
+            "session has to remember.",
         ]
     lines += [
         "",

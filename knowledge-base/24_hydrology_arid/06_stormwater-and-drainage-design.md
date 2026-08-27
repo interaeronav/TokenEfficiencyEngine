@@ -232,4 +232,3 @@ For a homestead on sandy ground near Okongo:
 - SANRAL Drainage Manual edition number and its current download URL were not verified; the SANRAL homepage responds but the manual page was not located.
 - Runoff coefficients, permissible velocities and entrance-loss coefficients above are standard textbook ranges, not values verified against a primary manual in this pass.
 - Namibian statutory requirements for site drainage, floor levels and freeboard (if any exist beyond local authority by-laws) were not established.
-

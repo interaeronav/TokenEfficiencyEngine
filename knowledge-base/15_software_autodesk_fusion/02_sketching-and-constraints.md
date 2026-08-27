@@ -195,4 +195,3 @@ def run(context):
 ## Open questions
 
 - The exact ribbon labels for the Project/Include flyout and the Sketch Palette options were not verified against a live Autodesk help page (help.autodesk.com renders client-side and could not be scraped on 2026-08-25). They are stated from working knowledge; confirm in the application. `needs-verification` on labels, not on behaviour.
-

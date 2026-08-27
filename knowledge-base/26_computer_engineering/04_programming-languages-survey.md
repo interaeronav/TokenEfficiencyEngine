@@ -286,4 +286,3 @@ The `always_ff` block does not "execute" — it *describes* a bank of W flip-flo
 - The TIOBE ranking cited is **September 2024**; a current index should replace it.
 - Mojo and Carbon are moving quickly and their status statements will date fastest of anything in this file.
 - The APL snippet in Part 4 is written from general knowledge and was **not** executed against an APL interpreter on this machine (unlike the assembly in `03_machine-level-language.md`); treat it as illustrative and `needs-verification`.
-

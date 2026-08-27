@@ -175,4 +175,3 @@ Construction has an internationally documented elevated suicide rate among men, 
 - **[NA]** Employees' Compensation Act reporting deadlines, claim forms and benefit percentages — not retrievable; the LAC PDF fetch was blocked.
 - **[ZA]** the current status and content of the Code of Good Practice on Key Aspects of HIV/AIDS and Employment (and any replacement under the EEA) — unverified.
 - No southern African occupational heat-stress exposure standard (e.g. a WBGT threshold) was verified; the guidance above is general good practice.
-

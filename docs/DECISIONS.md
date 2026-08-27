@@ -516,3 +516,32 @@ response budget); `cli.py` grows `_attach_kb`; OkongoSim's
 `.tee/config.toml` points `root` at the mirror so the pin-namespace
 config and the KB config live in the same tracked file. The Blender side
 gets the tools for free through the same MCP surface.
+
+**Implemented 2026-08-27 (Phase 16).** As decided, with three findings
+from the build:
+
+- **The mirror was missing the manifest, and was not byte-exact.** A30's
+  mirror never carried `manifest.json` / `AGENTS.md` (the index source
+  this module assumes in-repo), and 337 of 401 mirrored files hashed
+  differently from the manifest — 330 by exactly one trailing newline
+  added by the mirroring tool, 7 by real extraction noise. Completed the
+  mirror from Dropbox (hash-verified against Dropbox's own
+  `content_hash`), stripped the newline only where doing so restored the
+  manifest's exact sha256, and re-downloaded the 7 verbatim. The corpus's
+  own `CLAUDE.md` was deliberately NOT mirrored: identical in size to
+  `AGENTS.md`, and a `CLAUDE.md` inside this repo would be auto-loaded as
+  directory instructions by coding agents — the imported corpus must
+  never direct sessions (A30).
+- **One genuine upstream drift, kept.** `00_meta/source-register.md` in
+  Dropbox no longer matches what the corpus's own manifest recorded for
+  it (regeneration ordering, most likely). The mirror carries the live
+  file faithfully; `kb_status` reports exactly this one file as drifted
+  with the rebuild.py fix line — the drift check's first real catch.
+- **Config `max_tokens`, not `max_kb`.** The per-response budget knob
+  landed as `[kb] max_tokens` (the same unit every tool argument uses)
+  rather than the `max_kb` name floated above.
+
+Measured (benchmarks/RESULTS.md): the paving-spec lookup with a citation
+is 57,349 tokens by pasting INDEX.md + the file, 1,951 by
+`kb_search` + one budgeted `kb_read` — 96.6% saved; the 4 `kb_*` tools
+add zero always-loaded tokens (surface still 16 tools / 2,465).

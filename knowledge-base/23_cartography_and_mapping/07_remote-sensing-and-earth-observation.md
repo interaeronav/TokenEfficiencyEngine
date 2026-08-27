@@ -400,4 +400,3 @@ gdallocationinfo -valonly -geoloc dtm_ortho.tif 664231.12 8055412.34
 - Sensor dimensions used in the GSD worked example are representative of the DJI 1″/20 MP class; confirm the exact sensor width, focal length and image width from the specific aircraft's specification sheet before planning a survey.
 - ODM RAM guidance is an operational rule of thumb, not a figure quoted from the documentation.
 - Google Earth Engine's current commercial licensing thresholds were not verified.
-

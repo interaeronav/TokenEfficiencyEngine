@@ -420,4 +420,3 @@ Every technique above has to serve this. A summary of what the landscape actuall
 - **`Landscape Grass Output`** — this material output expression is not listed on Epic's Landscape Materials node page; confirm its exact name and availability in UE 5.8 before relying on it. `needs-verification`.
 - Whether **Nanite Landscape** (Landscape with Nanite enabled) is production-ready in 5.8 and whether it changes the component-size advice. `needs-verification`.
 - Actual site relief and the presence/absence of a nearby *oshana*. Requires the drone survey or a site visit.
-

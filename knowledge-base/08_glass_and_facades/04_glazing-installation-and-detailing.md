@@ -215,4 +215,3 @@ Glass is heavy, fragile in bending, and lethally sharp. A 6 mm pane weighs about
 - Glass weights per m² are calculated from a nominal density of 2 500 kg/m³ and are approximate.
 - Crealco system designations were taken from the company website in August 2026 and change with product releases.
 - Namibian practice on putty, steel windows and site glazing method has not been separately verified.
-

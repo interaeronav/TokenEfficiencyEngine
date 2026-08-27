@@ -347,4 +347,3 @@ SkyFi imagery is **licensed**, not sold. Typical commercial satellite imagery li
 - **SkyFi licence terms** for derived 3D products and for redistribution to a client. `needs-verification` against the actual order terms.
 - **NCAA drone regulations** for commercial RPAS operation in Namibia. `needs-verification`.
 - Whether Metashape Standard's feature set is sufficient for scale-bar-based georeferencing, or whether Professional is required for that specifically. `needs-verification`.
-

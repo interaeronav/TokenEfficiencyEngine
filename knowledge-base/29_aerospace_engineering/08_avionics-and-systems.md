@@ -233,4 +233,3 @@ Design principles that matter:
 - CVR duration requirements (25 h) and their applicability dates by authority — `needs-verification`.
 - ACAS X deployment timeline and mandate status — `needs-verification`.
 - 787 cabin altitude and humidity figures are manufacturer claims — `needs-verification`.
-

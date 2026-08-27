@@ -275,4 +275,3 @@ Two rules that save the most money: **nothing gets chased after the plaster is o
 - Minimum drying time for new plaster before painting, and alkali-resistant primer requirements, are given as general trade practice; they were not obtainable from an accessible South African paint manufacturer's technical data sheet and are marked `needs-verification`.
 - Spreading rates (m²/ℓ) for specific SA paint systems are not given here because no primary source was available.
 - SANS 10107 was not obtainable in full; the tiling values quoted come from a manufacturer's general specification that itself references SANS 10107.
-

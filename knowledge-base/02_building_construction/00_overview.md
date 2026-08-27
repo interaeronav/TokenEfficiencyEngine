@@ -82,4 +82,3 @@ Each file opens with a `## Key facts` block of hard numbers so a retrieval syste
 ## Open questions
 
 - Current Namibian building control practice at regional/local authority level in Ohangwena (plan approval, inspections) is not documented in an accessible primary source and should be confirmed with the Ohangwena Regional Council and the relevant town council before relying on any assumption of SANS-based approval.
-

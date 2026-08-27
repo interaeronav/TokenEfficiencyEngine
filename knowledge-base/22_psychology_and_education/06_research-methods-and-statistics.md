@@ -190,4 +190,3 @@ Report an effect size with a **confidence interval** for every primary analysis.
 - Current editions of all methods texts named — only first-publication years were verified.
 - The "developer allegiance" effect size in educational intervention research — asserted here from general knowledge; find and cite the meta-analytic estimate.
 - Whether South African and Namibian ethics committees have adopted preregistration and open-data expectations, and what the local guidance says about open data from small or identifiable communities.
-

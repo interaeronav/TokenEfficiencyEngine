@@ -265,4 +265,3 @@ The counter-argument, which is strong for a small archviz practice: C++ adds a c
 - [Scripting the Unreal Editor Using Python](https://dev.epicgames.com/documentation/en-us/unreal-engine/scripting-the-unreal-editor-using-python) — Epic Games, accessed 2026-08-25
 - [Gameplay Framework](https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-framework-in-unreal-engine) — Epic Games, accessed 2026-08-25
 - [Product Configurator Template](https://dev.epicgames.com/documentation/en-us/unreal-engine/product-configurator-template-in-unreal-engine) — Epic Games, accessed 2026-08-25
-

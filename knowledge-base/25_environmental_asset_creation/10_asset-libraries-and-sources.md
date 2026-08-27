@@ -230,4 +230,3 @@ Unreal Engine 5.8 © Epic Games. Blender 5.2 LTS (GPL). Autodesk Fusion.
 - **The Grove**, **Chocofur**, **CGTrader**, **cgbookcase**, **3D Scan Store free scans** and **Materialize** — current status, terms and pricing not verified in this pass. `needs-verification`.
 - **Atlas of Namibia** reuse terms for its maps and figures in a client deliverable. `needs-verification`.
 - **PTGui** pricing. `needs-verification`.
-

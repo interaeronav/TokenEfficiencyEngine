@@ -148,4 +148,3 @@ All biographical claims above link to the specific source used. The Wikipedia ar
 - **Charles Zana**, **Rose Uniacke**, **Vincent Van Duysen**: training and practice-founding dates — unconfirmed.
 - **All four South African entries** (Tristan du Plessis/Studio A, Egg Designs, Source IBA, Tonic Design): education, founding years and awards — unconfirmed.
 - Axel Vervoordt: no formal design education is recorded, but this is an absence of evidence, not evidence of absence.
-

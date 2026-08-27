@@ -156,4 +156,3 @@ Still viable in unregulated markets, and it is how a striking number of the cano
 - IID **[ZA]** membership categories, accredited-school list and current website — `needs-verification`.
 - Greenside Design Center, DSSA and Stellenbosch qualification titles, NQF levels and fees — `needs-verification`.
 - All tuition figures except RCA's are indicative bands, not sourced quotations.
-

@@ -318,4 +318,3 @@ This is the part design education omits and every product review depends on.
 - The "5 users" figure and the SUS average of 68 are widely used practitioner benchmarks (Nielsen 2000; Sauro & Lewis) that were not verified against their primary sources here.
 - Doherty threshold (400 ms) and the 100 ms / 1 s / 10 s response-time bands derive from Miller (1968) and Nielsen (1993) and were not re-verified.
 - WCAG 2.2 SC 2.5.8 target-size minimum (24×24 CSS px at AA) was not fetched directly.
-

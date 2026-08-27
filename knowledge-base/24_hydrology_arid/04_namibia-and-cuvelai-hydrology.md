@@ -201,4 +201,3 @@ which exceeds an average year's harvest from a 150 m² roof. The honest conclusi
 - PJTC / ZAMCOM / ORASECOM / CUVECOM founding instruments and dates need verification against treaty texts.
 - Namibian national mean annual rainfall and evaporation map values are not cited here because no primary source was verified.
 - KOH-0 / KOH-1 boundary depth differs between the two SASSCAL papers (20 m vs 30 m).
-

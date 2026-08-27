@@ -241,4 +241,3 @@ def run(context):
 - The complete list of functions supported in Fusion's expression parser was not verified against a live Autodesk help page; `floor`, `ceil` and `round` are stated from working knowledge. `needs-verification`.
 - Current interaction between Configurations and the Manufacture workspace (do toolpaths follow a configuration row?). `needs-verification`.
 - Exact ribbon panel names on the Solid tab were not verified against a scraped help page.
-

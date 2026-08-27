@@ -692,4 +692,3 @@ For a small practice the honest recommendation is: **use the client-side Python 
 - Fusion Data API specifics (endpoint URL, entity names, auth scopes) — APS docs render client-side and could not be captured. `needs-verification`.
 - Current availability and access process for Design Automation for Fusion.
 - Whether `pip`-installed third-party packages are supported in the embedded interpreter in the May 2026 release.
-

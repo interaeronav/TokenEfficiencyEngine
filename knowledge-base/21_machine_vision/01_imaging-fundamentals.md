@@ -197,4 +197,3 @@ Default to **monochrome** unless colour is the discriminating feature. Reasons: 
 
 - Specific Sony sensor figures quoted here (IMX250: 2448 × 2048 at 3.45 µm; ~70 % peak QE; 65–72 dB dynamic range for the Pregius family) are from general industry familiarity and were **not** re-verified against a Sony datasheet in this pass — treat as indicative and check the camera vendor's EMVA 1288 report before designing to them. Marked `needs-verification` at the numeric level.
 - SWIR timber moisture measurement wavelengths (the water absorption bands near 1450 nm and 1940 nm) are stated qualitatively only; no primary source fetched.
-

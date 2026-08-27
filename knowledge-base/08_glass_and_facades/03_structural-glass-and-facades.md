@@ -218,4 +218,3 @@ Glass fins stabilise large glazed walls out of plane and let the facade read as 
 - The SANS 10400-N deemed-to-satisfy thickness tables reproduced in section 3 come from published commentary, not from the standard itself.
 - No southern African facade-engineering practice guide was located in this research pass; the wind zoning and pressure-multiplier statements are general engineering practice, not cited.
 - Minimum edge distances and hole diameters for point fixings are manufacturer-specific and were not verified.
-

@@ -169,4 +169,3 @@ All of them must be **built before the blocks are laid**, founded on the subbase
 - Crossover (vehicle entrance) requirements for Namibian local authorities were not obtained; requirements for communal land in Ohangwena are believed to be nil but this is unverified.
 - No slip-resistance classification scheme (pendulum test values or an SANS equivalent of DIN 51097 barefoot ratings) was obtained for pool surrounds.
 - Namibian rainfall intensity data for stormwater sizing in Ohangwena was not obtained.
-

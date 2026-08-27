@@ -127,4 +127,3 @@ When writing specifications or contracts, name the deliverable format, not the s
 - Exact current offline grace period before the licence check blocks use. The autodesk.com pages are JavaScript-rendered and the number could not be extracted. `needs-verification`.
 - Exact minimum/recommended CPU, RAM, GPU and VRAM figures from the live system requirements page (same rendering problem).
 - Whether cloud credits still exist as a purchasable unit for any Fusion function after the 2025–26 extension consolidation, or whether all cloud solving is now bundled into extensions.
-

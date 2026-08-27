@@ -262,4 +262,3 @@ Selected works: Casa Chica, Vilches (1997); Carbonero House (1998); CR House, Sa
 - **Smiljan Radić's birth year** is not stated on the Pritzker biography page accessed and is left blank here rather than guessed.
 - **Álvaro Siza's association with Fernando Távora** is well established in the literature but was not confirmed on the Pritzker page accessed; treat as **needs-verification** against a Porto school source.
 - Malagueira's exact dwelling count (~1 200) and Aranya's exact plot count (~6 500) are given as approximations and **need verification** against project monographs.
-

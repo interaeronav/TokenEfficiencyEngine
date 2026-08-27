@@ -290,4 +290,3 @@ Coating [x] years; IGU edge seal [x] years; laminate against delamination [x] ye
 - **SANS 10137's dimensional requirements** (setting-block positions and sizes, edge clearance, edge cover) are not verified; clause 4.2 of the template reflects trade practice and must be reconciled with the standard.
 - **Visual quality acceptance criteria** (permitted defect sizes and densities by viewing distance) are in the EN product standards but were not retrieved; do not write numbers into a specification without reading them.
 - **[NA]** The Namibian regulatory reference in clause 1.2 is deliberately conditional because Namibia's adoption of SANS 10400-N is unverified — see `05_standards-and-safety.md`.
-

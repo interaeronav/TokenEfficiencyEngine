@@ -216,4 +216,3 @@ unit_system: SI
 - The ICA site did not respond to a plain HTTP client during link checking (it responded via a full browser fetch); the URL is correct.
 - *Cartographic Perspectives* is open access; *The Cartographic Journal* and *Cartography and Geographic Information Science* are paywalled — `paywalled: true` applies to those two.
 - Esri MOOC availability is periodic; check the catalogue rather than assuming a course is currently running.
-

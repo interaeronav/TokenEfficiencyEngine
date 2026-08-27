@@ -225,4 +225,3 @@ Two frequently cited cases could not be verified from retrievable primary or enc
 - **Caesars' regulatory filings** for the 2023 incident were not retrieved.
 - **Arup** has made limited public statements; the US$25 million figure derives from CNN Business reporting dated 17 May 2024 as summarised on Wikipedia. The CNN article itself was not directly retrievable (robots.txt).
 - A **Namibian** documented social-engineering case could not be identified from retrievable sources. Nam-CSIRT and Bank of Namibia publications may contain suitable material.
-

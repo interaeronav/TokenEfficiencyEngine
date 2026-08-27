@@ -279,4 +279,3 @@ Sandwich panels give the best thermal performance per millimetre and the fastest
 - Global Roofing Solutions and Macsteel Roofing branch coverage in Namibia is unverified.
 - Detailed span tables for GRS Klip-Lok 700 and for the Fluteline and Trimflute profiles were not extracted; the Safintra tables reproduced here are profile-specific and must not be applied to another manufacturer's product.
 - Thatch performance figures (R-value, fire behaviour, required pitch) are described qualitatively; no southern African thatching standard or Agrément certificate was verified in this pass.
-

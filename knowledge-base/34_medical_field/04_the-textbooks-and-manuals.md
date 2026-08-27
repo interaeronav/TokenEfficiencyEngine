@@ -196,7 +196,7 @@ Every book below falls into one of five categories, and the category matters mor
 
 - ***The Oxford Handbook of Clinical Specialties***, ***Oxford Handbook of General Practice***, ***Oxford Handbook of Clinical Diagnosis*** — **POCKET**.
 - ***Clinical Pharmacology*** (Bennett & Brown) — the bridge between pharmacology and prescribing.
-- ***Greenhalgh, How to Read a Paper*** (Wiley/BMJ Books) — the standard introduction to critical appraisal; see `06`.
+- ***Greenhalgh, How to Read a Paper*** (Wiley/BMJ Books) — the standard introduction to critical appraisal; see `05`.
 - ***Straus, Glasziou, Richardson & Haynes, Evidence-Based Medicine: How to Practice and Teach It*** — the Sackett lineage text.
 - ***Hennekens & Buring, Epidemiology in Medicine*** and ***Rothman, Modern Epidemiology*** — the epidemiology texts a clinician-researcher graduates to.
 - ***Gordis Epidemiology*** — the accessible undergraduate epidemiology text.
@@ -262,4 +262,3 @@ Once qualified, almost no one consults a textbook during a clinical shift. They 
 - UpToDate's 2026 individual price (US$579/year) is taken from a secondary source; confirm on the Wolters Kluwer store.
 - AnKing deck version numbering changes frequently; no specific current version is asserted.
 - DSM-5-TR (2022) and ICD-11 (in force 1 January 2022) dates are stated from general reference knowledge and were not verified against APA/WHO primary pages in this pass.
-

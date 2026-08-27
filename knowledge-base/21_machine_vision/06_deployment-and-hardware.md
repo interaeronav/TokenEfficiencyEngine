@@ -235,4 +235,3 @@ plc.write_registers(address=100, values=[int(width_mm*100)], slave=1)   # 0.01 m
 - Hailo-8/8L TOPS figures (26 / 13 TOPS) and Raspberry Pi AI HAT+ details are from familiarity, not fetched.
 - GigE Vision practical bandwidth (~115 MB/s on 1 GbE) and USB3 Vision (~350–400 MB/s) are practitioner figures, not standard-specified.
 - Dark-current doubling "per 6–8 °C" is a widely quoted silicon rule of thumb, not verified against a datasheet here.
-

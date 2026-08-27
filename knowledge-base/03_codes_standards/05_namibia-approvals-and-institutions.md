@@ -233,4 +233,3 @@ Practical consequence: on a Namibian site, the safety regime is usually driven b
 - **NORED's published service-area map** and confirmation that Okongo falls within it — inferred from NORED references to Ohangwena Region, not confirmed for Okongo specifically.
 - **Whether an ECC is required for a borehole for a single institutional building** (as opposed to "industrial/commercial purposes" under listed activity 8.1) — the threshold is not stated in the listed activities and must be confirmed with the Environmental Commissioner.
 - **The Water Resources Management Act 11 of 2013 borehole drilling and abstraction permit thresholds** — not verified.
-

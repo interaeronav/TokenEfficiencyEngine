@@ -135,4 +135,3 @@ Four propositions organise everything that follows.
 - **2026 DBIR detailed figures** — only landing-page headline numbers were available. The human-element percentage for the 2026 edition is not yet recorded here.
 - **IC3 2025 Internet Crime Report** — if published by the time of reading, all 2024 figures above should be refreshed.
 - WebSearch was unavailable during the construction of this domain; all sources were fetched directly by URL. A small number of intended sources (CISA PDF fact sheets behind 403s, some news archives behind robots.txt) could not be read and are noted per-file.
-

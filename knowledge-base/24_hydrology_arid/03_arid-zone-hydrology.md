@@ -211,4 +211,3 @@ If the answer to several of these is yes, either reconfigure the model explicitl
 - The list of Namibian westward-flowing ephemeral rivers is compiled from general knowledge and has **not** been checked against a Namibian hydrological authority list; the set of rivers is confident, the completeness is `needs-verification`.
 - Typical transmission-loss percentages (10–50% per 10–20 km) are indicative ranges from the general literature, not a Namibian measurement — no site-specific Namibian transmission-loss figure was verified in this pass.
 - Namib fog deposition rates and fog-collector yields were not verified to a primary source and are deliberately not quantified above.
-

@@ -426,4 +426,3 @@ for sl, g in cp.groupby("slope_class"):
 - Unity's terrain heightmap resolution constraint (`2^n + 1`) is stable but the current importer's handling of 16-bit RAW endianness was not verified.
 - GEDTM30's current COG endpoint — the GitHub repository has moved to Codeberg and the OpenLandMap STAC entry should be checked before a production run.
 - **[NA]** Whether any national or regional lidar coverage exists for Namibia. None found. `needs-verification`.
-

@@ -170,4 +170,3 @@ Three structural facts should shape any plan made today.
 
 - ABET/ECSA/EUR-ACE accreditation criteria for computer engineering were not fetched for this file; the accreditation statements above are general and should be checked against the current criteria documents before being relied on for admissions or registration advice.
 - The 2025 Turing Award (announced in 2026) could not be verified — the ACM award pages returned 403 or stale cached content. The verified list in this folder ends at the 2024 award (Barto & Sutton).
-

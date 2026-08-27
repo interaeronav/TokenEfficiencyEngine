@@ -215,4 +215,3 @@ This assumes zero background and a target of "employable as a GIS/geospatial ana
 - GISP application/exam fees and recertification period.
 - UNAM's current geoinformation-related programme names.
 - Whether the Erasmus Mundus *Cartography M.Sc.* consortium (TU Munich / TU Wien / TU Dresden / Twente) is still recruiting under that name.
-

@@ -225,4 +225,3 @@ Okongo receives **2 275 kWh/m²/yr of global horizontal irradiance (6.23 kWh/m²
 - `needs-verification`: current Namibian regulated fuel prices and the northern zone differential; LPG availability at Okongo.
 - `needs-verification`: Okongo village council waste and sanitation arrangements, and the local authority's minimum borehole/soakaway separation distance.
 - `needs-verification`: the water source and reticulation arrangement actually serving Okongo village (Kunene pipeline extension, local borehole field, or both).
-

@@ -219,4 +219,3 @@ Applied to others' claims: **ask what result the proponent would accept as disco
 - The bias blind spot literature (Pronin and colleagues) is referenced from general knowledge; verify.
 - The US Air Force cockpit example (Gilbert Daniels, 1950s) is widely repeated and is described here from general knowledge; verify the primary source before using it in a formal document.
 - Berkson's paradox and collider bias are stated correctly in general terms; a worked epidemiological reference would strengthen this file.
-

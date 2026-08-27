@@ -722,4 +722,3 @@ Print it. Every asset passes it before it enters a level.
 - **`Texture2D` size accessors** in Python for 5.8. `needs-verification`.
 - Whether **`bpy.ops.export_scene.fbx`** in Blender 5.2 still accepts all the keyword arguments used in §9.1 — Blender's FBX exporter was rewritten in C++ for import in 5.0 and the export operator's signature may have shifted. `needs-verification` — run it once.
 - Whether Unreal's **USD Stage** workflow in 5.8 can carry Nanite and foliage settings, which would change the recommendation in §8. `needs-verification`.
-

@@ -291,4 +291,3 @@ Clinical trialist; epidemiologist and public health researcher; health services 
 - **[ZA]** The National Health Act sections (71–73), the NDoH ethics guidelines edition (2nd, 2015) and NHREC's current registration requirements should be confirmed against the Department of Health.
 - **[NA]** Namibian research authorisation and ethics review procedures are described generally; verify with the Ministry of Health and Social Services and UNAM.
 - CRediT's 14 roles and grant success-rate ranges (10–25%) are stated from general knowledge, not verified.
-

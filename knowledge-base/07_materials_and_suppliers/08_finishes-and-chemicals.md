@@ -280,4 +280,3 @@ Paint is a **system**: substrate preparation → primer → intermediate/underco
 - Duram's and Prominent Paints' current ownership was **not verified**.
 - The primer/substrate table and the coating-type table are general trade practice, not quoted from a manufacturer specification. Confirm against the chosen manufacturer's system specification.
 - No Namibian paint manufacturer was identified; all paint appears to be imported from South Africa. Unverified.
-

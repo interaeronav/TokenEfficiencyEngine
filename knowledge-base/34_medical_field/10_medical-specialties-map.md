@@ -243,4 +243,3 @@ Systemic changes with the most leverage: **payment reform** that stops rewarding
 - **[ZA]** The 2019 silicosis class-action settlement is stated from general knowledge — verify the settlement date, value and parties before citing.
 - Medscape 2022 compensation figures are the most recent verified in this pass and are now several years old; refresh from the current report.
 - Physician suicide-rate claims are widely repeated with variable methodology; treat as `needs-verification` and consult a current systematic review before quoting a figure.
-

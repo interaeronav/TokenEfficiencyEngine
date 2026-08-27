@@ -144,4 +144,3 @@ For interior fitted furniture, durability class is largely irrelevant — but **
 - No published EMC study specific to Namibian interiors was located; the EMC values here are derived from the FPL table applied to Windhoek RH data, not measured in-service.
 - Regional kiln schedules for *Pterocarpus angolensis* and *Baikiaea plurijuga* were not found in retrievable technical literature; obtain from the drying yard.
 - Formal EN 350 durability class numbers (1–5) for the southern African species were not verified against the standard; the wording used here follows the Wood Database ratings.
-

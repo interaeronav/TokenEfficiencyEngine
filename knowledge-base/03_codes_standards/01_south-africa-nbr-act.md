@@ -248,4 +248,3 @@ Application is made to the **building control officer** for authorisation, witho
 - Whether the s 24 general penalty of R4 000 has been adjusted by any subsequent amendment or by the Adjustment of Fines Act. Not verified from a public source.
 - The prescribed qualifications for a building control officer under s 5 — set by regulation; the specific regulation and qualification list was not verified from a public source.
 - Whether Part U (Refuse disposal) and Part E (Demolition work) have corresponding published SANS 10400 parts. The SABS webstore listing accessed 2026-08-25 shows no SANS 10400-E or SANS 10400-U; this suggests those regulations have no separate deemed-to-satisfy standard, but that should be confirmed with SABS.
-

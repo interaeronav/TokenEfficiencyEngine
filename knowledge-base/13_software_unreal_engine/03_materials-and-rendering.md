@@ -243,4 +243,3 @@ Log the output by launching with `LOG=`, e.g. `UnrealEditor.exe -silent LOG=MyLo
 - [Unreal Insights](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-insights-in-unreal-engine) — Epic Games, accessed 2026-08-25
 - [Rendering High Quality Frames with Movie Render Queue](https://dev.epicgames.com/documentation/en-us/unreal-engine/rendering-high-quality-frames-with-movie-render-queue-in-unreal-engine) — Epic Games, accessed 2026-08-25
 - [Unreal Engine 5.8 Release Notes](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes) — Epic Games, accessed 2026-08-25
-

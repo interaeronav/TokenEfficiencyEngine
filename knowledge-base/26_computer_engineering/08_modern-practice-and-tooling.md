@@ -276,4 +276,3 @@ The engineers who get the most out of these tools in 2026 are, without exception
 - Google's *Engineering Practices* code-review documentation and AWS's published TLA+ work are referenced from general knowledge and were not fetched.
 - Container runtime details (namespaces, cgroups, OverlayFS) and Kubernetes concepts are from general knowledge, not from fetched documentation.
 - Git's SHA-256 object format is available but not the default; the demonstration above used SHA-1.
-

@@ -226,4 +226,3 @@ Add, if you can: **a dispute clause pointing to adjudication or mediation before
 - [SAICE — publications](https://saice.org.za/publications/)
 - [CIF Namibia — Sourcing a contractor: contracts, payment terms, insurance and references](https://cifnamibia.com/sourcing_a_contractor.php)
 - [NHBRC — National Home Builders Registration Council](https://www.nhbrc.org.za/)
-

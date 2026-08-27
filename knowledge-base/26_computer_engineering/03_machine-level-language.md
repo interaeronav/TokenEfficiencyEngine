@@ -466,4 +466,3 @@ strings / ldd / strace / ltrace   # inspecting a built binary
 - AAPCS64 register roles are stated from general knowledge; the Arm *Procedure Call Standard for the Arm 64-bit Architecture* document itself was not fetched.
 - RISC-V profile contents (RVA20/22/23) are described qualitatively; the profile specification was not fetched and the exact mandatory extension lists are `needs-verification`.
 - The `fence.i` / AArch64 cache-maintenance sequences are given from general knowledge and should be checked against the current architecture reference manual before use in production code.
-

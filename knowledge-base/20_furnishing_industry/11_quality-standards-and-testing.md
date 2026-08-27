@@ -201,4 +201,3 @@ A purchase order that gets you enforceable quality contains, per line item:
 - **EN 1725, EN 15939 and the current status of superseded seating/storage standards** need confirmation against the current CEN catalogue.
 - Warranty norms in section 8 are compiled industry practice, not surveyed data; only Houtlander's lifetime structural guarantee was verified from a primary source.
 - The relationship between "E0" and any harmonised European class is genuinely ambiguous in the market — treat "E0" claims with suspicion unless a test standard and method are named.
-

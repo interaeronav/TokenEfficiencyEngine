@@ -162,4 +162,3 @@ This is the practical end of every pattern above, and the literature is unhelpfu
 - Billy Baldwin's, David Hicks's and Albert Hadley's most-quoted maxims are widely circulated but were **not verifiable from a retrievable source** during this research and are therefore omitted rather than quoted. They should be sourced from their own books (file `08`) with page references before use.
 - Ilse Crawford's own statements on atmosphere are paraphrased here from her department name and book titles, not quoted. Her Netflix *Abstract* episode and her published writing are the correct primary sources.
 - Vervoordt's stated wabi-sabi philosophy is inferred from his exhibition and book titles; the encyclopaedic source does not set out the philosophy in his words.
-

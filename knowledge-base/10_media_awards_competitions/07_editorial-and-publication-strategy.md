@@ -232,4 +232,3 @@ Publication compounds. Editors publish practices they have published before, bec
 - [earthworks magazine](https://earthworksmagazine.co.za/) — explicit invitation to submit project features, industry news, course information and events. Accessed 2026-08-25.
 - [Dezeen Awards prices and dates](https://www.dezeen.com/awards/prices-and-dates/) — award cycle timing that publication planning must anticipate. Accessed 2026-08-25.
 - [Crown Publications](https://www.crown.co.za/) — trade titles as accessible first-publication targets in South Africa. Accessed 2026-08-25.
-

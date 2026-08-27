@@ -204,4 +204,3 @@ Generator sizing for backup and for construction:
 - Chasing geometry rules are trade practice; no SANS clause was located that specifies maximum chase depth in masonry.
 - **[NA]** Namibian certificate-of-compliance requirements, the registration route for electricians, and whether SANS 10142-1 is legally incorporated could not be confirmed from a primary Namibian source.
 - Peak sun hours (5,0–5,5) for Okongo is an engineering estimate, not a sourced figure; confirm against a solar resource dataset for the exact site.
-

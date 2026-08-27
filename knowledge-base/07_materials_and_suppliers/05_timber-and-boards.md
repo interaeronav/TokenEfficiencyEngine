@@ -200,4 +200,3 @@ South African sawmilling and treatment is concentrated in the Mpumalanga, Limpop
 - The MDF, particleboard and plywood thickness ranges in the board table are from general trade practice, **not from a verified manufacturer datasheet**. Confirm against PG Bison and Sonae Arauco current catalogues.
 - No Namibian timber treatment plant was identified. Whether any H-class treatment capacity exists in Namibia, or whether all treated timber is imported, is unverified.
 - Pennypinchers Timbercity Windhoek is recorded from a third-party directory only.
-

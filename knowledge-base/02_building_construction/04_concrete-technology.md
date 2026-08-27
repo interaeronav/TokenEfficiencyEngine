@@ -153,7 +153,7 @@ The single most important number in concrete. Every extra litre of water per bag
 
 ## 4. Mixing, placing, compacting
 
-**Mixing.** Machine mixing is better than hand mixing. Charge some water first, then stone, cement and sand, then the rest of the water; mix at least 2 minutes after all materials are in. For hand mixing, mix sand and cement dry to a uniform colour before adding stone and water.
+**Mixing.** Machine mixing is better than hand mixing. Charge some water first, then stone, cement and sand, then the rest of the water; mix at least 2 minutes after all materials are in. For hand mixing, mix sand and cement dry to a uniform colour on a clean impervious surface before adding stone and water.
 
 **Transport.** Keep the barrow run short and the route firm. Long rough runs segregate the mix.
 
@@ -256,4 +256,3 @@ Admixtures must comply with **SANS 50934** and are never a substitute for good m
 - The 1,0 kg/m²/h evaporation-rate threshold for mandatory hot-weather precautions is international practice (ACI-derived) and was not found in the Cement & Concrete SA leaflets; treat as `needs-verification` for southern African use.
 - Numerical maximum water:cement ratios by exposure class (as in SANS 10100-2) were not obtainable from a primary source; the w/c figures given are working guides derived from the published cement contents.
 - The 7-day / 28-day strength ratio quoted is general engineering practice, not a sourced SANS figure.
-

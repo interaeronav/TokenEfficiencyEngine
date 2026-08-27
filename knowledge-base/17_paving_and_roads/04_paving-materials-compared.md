@@ -133,4 +133,3 @@ Avoid asphalt (no plant), polished anything (slip), and dark stone around water 
 - No slip-resistance test data (pendulum test values, SANS/BS classifications) was obtained for any of these materials. The slip column is qualitative and **needs-verification**.
 - No measured surface-temperature data for paving materials in a Namibian summer was obtained; the heat column is qualitative.
 - Namibian delivered prices for any material were not obtained.
-

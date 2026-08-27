@@ -262,4 +262,3 @@ Graduates complete a **one-year internship** for general registration, then usua
 - **[ZA]** Current CMSA Part I/Part II examination structure and fees per college — the CMSA homepage did not expose examination detail to automated retrieval; verify per college.
 - **UK Foundation allocation** — the post-SJT allocation model has changed more than once since 2022; confirm the current year's rules with UKFPO.
 - **US tuition and debt** — AAMC's debt dashboard did not render for retrieval; the 2013 cost and 2019 debt figures are stale and should be refreshed.
-

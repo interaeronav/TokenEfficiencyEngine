@@ -259,4 +259,3 @@ Launch with `-LOG=MyLog.txt` to capture stat dumps to file for later comparison,
 - [Stat Commands](https://dev.epicgames.com/documentation/en-us/unreal-engine/stat-commands-in-unreal-engine) — Epic Games, accessed 2026-08-25
 - [Unreal Insights](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-insights-in-unreal-engine) — Epic Games, accessed 2026-08-25
 - [Testing and Optimizing Your Content](https://dev.epicgames.com/documentation/en-us/unreal-engine/testing-and-optimizing-your-content) — Epic Games, accessed 2026-08-25
-

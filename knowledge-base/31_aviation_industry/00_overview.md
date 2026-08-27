@@ -206,4 +206,3 @@ Two accountability constructs matter and are frequently misunderstood:
 - AerCap's portfolio count above is dated 31 December 2022; the current figure should be taken from the latest 20-F or quarterly release.
 - IATA's ground damage cost estimate is quoted from memory of IATA's Ground Damage Prevention programme and is marked here as needing verification against a current IATA publication.
 - Heathrow slot pair transaction values are widely reported but rarely officially confirmed; do not quote a specific number without a primary source.
-

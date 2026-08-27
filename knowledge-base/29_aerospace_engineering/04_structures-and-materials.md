@@ -289,4 +289,3 @@ The consequence: after fifteen years, AM in flight-critical primary structure an
 - 2024-T3 and 7050-T7451 values were not fetched from a primary source in this session — `needs-verification`.
 - The FAA Widespread Fatigue Damage final rule date (given as 2010) was not re-verified in this session — `needs-verification`.
 - The GE LEAP fuel nozzle production count is a manufacturer claim repeated widely; exact current figure `needs-verification`.
-

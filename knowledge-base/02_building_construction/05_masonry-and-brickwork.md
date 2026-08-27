@@ -291,4 +291,3 @@ These are trade-practice values, marked `needs-verification` against SANS 2001-C
 - SANS 2001-CM1:2012 could not be obtained in full; the plumb/level/line tolerances given are trade practice and need verification against the standard's permissible deviations clause.
 - The "5 crimp ties per m²" figure for collar-jointed walls is taken from a Clay Brick Technical Guide figure caption rather than from the SANS clause text.
 - Namibian availability and pricing of specific unit sizes at Ondangwa/Oshakati depots is not documented here; confirm locally before designing to a coursing dimension.
-

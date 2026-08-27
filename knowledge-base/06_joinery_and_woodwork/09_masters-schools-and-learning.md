@@ -114,4 +114,3 @@ What is worth importing from this system even outside Germany: the explicit sepa
 - The structure of the German Meisterprüfung is described here in its conventional four-part form; the Tischler Schreiner Deutschland page consulted confirms the Meisterstück and the licensed-craft status but does not enumerate the parts.
 - Current Furntech campus locations and the NTA's present unit-standard codes and durations for the joiner/cabinetmaker trade were not obtainable.
 - Whether *Furniture & Cabinetmaking* is still in continuous publication in 2026 was inferred from a recent issue listing, not confirmed with the publisher.
-

@@ -219,4 +219,3 @@ SANS 10400-B clause 4.2.1.2 requires representative permanent, imposed and seism
 - The exact hazard-class-to-application mapping in the current **SANS 1288:2020** — the H2/H3/H4/H5/H6 assignments quoted here are from general industry practice, not from the purchased standard.
 - The full list of published **SANS 2001** parts and their current editions. Only CM1, CM2 and CT2 were verified.
 - Whether the Namibian **Cement Regulations GN 259** adopt SANS 50197-1 verbatim or set a distinct Namibian specification. Not verified — obtain the Government Notice from the NSI.
-

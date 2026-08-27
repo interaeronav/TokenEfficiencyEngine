@@ -260,4 +260,3 @@ The WHO estimates a global health worker shortfall in the millions, concentrated
 - **[NA]** Namibian population (~2.5 million), area (824,000 km²) and PSEMAS detail were not verified in this pass.
 - The WHO health workforce support and safeguards list membership changes periodically — check the current version before asserting that a specific country is on it.
 - Alma-Ata's evidence base claim (Starfield) and the "17-year translation gap" are widely repeated and weakly sourced; treat as `needs-verification`.
-

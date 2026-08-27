@@ -181,4 +181,3 @@ Readers arriving from the engineering, software or aviation domains of this know
 - Median US medical education debt is quoted from a 2019 graduating-cohort figure carried in secondary sources; the AAMC's own debt dashboard would not render for automated retrieval in this pass. Re-verify against the AAMC "Medical Student Education: Debt, Costs, and Loan Repayment" fact card before quoting.
 - Exact 2026 NRMP Main Residency Match totals could not be extracted (the results PDF was not retrievable); `01` therefore quotes the last figures that could be verified and flags the rest.
 - **[NA]** HPCNA internship and community-service requirements for Namibian medical graduates are described in `01` from the Council's published board structure plus general regional practice; the specific regulation numbers and durations were not retrievable from the HPCNA site in this pass and are flagged there.
-

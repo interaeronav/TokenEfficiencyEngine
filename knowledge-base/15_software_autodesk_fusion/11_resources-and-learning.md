@@ -200,4 +200,3 @@ For the joinery knowledge that Fusion is a tool *for* — wood movement, board s
 - Whether Autodesk University's on-demand session library is free to access without registration.
 - Whether all four certification levels (User / Associate / Professional / Expert) exist for Fusion specifically.
 - Book editions and current-ness — all `needs-verification`.
-

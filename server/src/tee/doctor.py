@@ -296,6 +296,47 @@ def check_voxkiln() -> Check:
     )
 
 
+def check_kb() -> Check:
+    """Expert Knowledge Base corpus: root resolvable, manifest readable,
+    drift count. Inactive is a plain state, not a failure."""
+    from tee.config import ProjectConfig
+    from tee.kb.index import KbIndex, resolve_root
+
+    config = ProjectConfig.load(".")
+    root = resolve_root(".", config.kb.get("root"))
+    if root is None:
+        return Check(
+            "kb",
+            "ok",
+            "inactive (no corpus configured or discoverable)",
+            fix="set [kb] root in .tee/config.toml to activate kb_* tools",
+        )
+    try:
+        index = KbIndex(root, ".")
+        data = index.load()
+        drift = data.get("drift", {})
+        totals = data.get("totals", {})
+        detail = (
+            f"{totals.get('files', '?')} files / {totals.get('domains', '?')} domains at {root}"
+        )
+        if drift.get("stale"):
+            n = drift.get("missing_count", 0) + drift.get("changed_count", 0)
+            return Check(
+                "kb",
+                "warn",
+                f"{detail}; {n} file(s) drifted from the manifest",
+                fix="run the corpus's 00_meta/rebuild.py to regenerate manifest.json",
+            )
+        return Check("kb", "ok", detail)
+    except Exception as exc:
+        return Check(
+            "kb",
+            "warn",
+            f"corpus at {root} unusable: {exc}",
+            fix="point [kb] root at the folder holding manifest.json",
+        )
+
+
 def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
     return [
         check_python(),
@@ -305,6 +346,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_bpy_wheel_abi(),
         check_unreal(),
         check_voxkiln(),
+        check_kb(),
     ]
 
 

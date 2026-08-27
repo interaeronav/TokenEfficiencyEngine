@@ -191,4 +191,3 @@ The two most load-bearing assets in this project are therefore (a) the **ground 
 - [Quixel — pricing and Fab transition](https://quixel.com/pricing) — Quixel / Epic Games
 - [Poly Haven licence](https://polyhaven.com/license) — Poly Haven
 - [ambientCG](https://ambientcg.com/) — ambientCG
-

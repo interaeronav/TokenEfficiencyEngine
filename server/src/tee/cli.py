@@ -97,6 +97,14 @@ def _attach_uefn(app, project: str) -> None:
     register_uefn_tools(app, Path(project))
 
 
+def _attach_kb(app, project: str) -> None:
+    """Register the kb_* lane when an Expert Knowledge Base corpus resolves
+    ([kb] root, or a discoverable knowledge-base/ mirror); inactive otherwise."""
+    from tee.kb.tools import register_kb_tools
+
+    register_kb_tools(app, Path(project))
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -128,6 +136,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_design(app, args.project)
     _attach_physical(app, args.project)
     _attach_uefn(app, args.project)
+    _attach_kb(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

@@ -326,4 +326,3 @@ Named for completeness: **community managers** (the studio's public interface an
 - The claim that games programming pays below general software for equivalent skill is a widely reported industry norm but was not verified against a dataset here.
 - Games QA pay relative to the BLS QA-analyst median is asserted from industry reporting, not from a verified dataset.
 - No non-US salary anchors were obtained. UK, Canadian, EU, and **[ZA]** South African figures are entirely absent and would materially improve this file.
-

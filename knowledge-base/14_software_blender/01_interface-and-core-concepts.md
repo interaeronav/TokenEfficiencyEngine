@@ -205,4 +205,3 @@ Custom properties are first-class, are saved in the `.blend`, survive round-trip
 ## Open questions
 
 - The precise set of `length_unit` enum values is reported as `Literal['DEFAULT']` in the generated API docs because it is a dynamic enum; `'METERS'`, `'MILLIMETERS'`, `'CENTIMETERS'`, `'KILOMETERS'` and `'MICROMETERS'` are the values exposed in the UI. Confirm at runtime with `bpy.types.UnitSettings.bl_rna.properties['length_unit'].enum_items` before hard-coding.
-

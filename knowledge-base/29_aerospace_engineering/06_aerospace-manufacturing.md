@@ -213,4 +213,3 @@ Traditional space manufacturing is the extreme end of aerospace practice: unit v
 - Completion date and final work-package allocation of the Boeing/Airbus acquisition of Spirit AeroSystems — `needs-verification`.
 - Nadcap supplier and audit volumes — the PRI site returned HTTP 403; `needs-verification`.
 - Global MRO market value for 2026 — order-of-magnitude estimate only.
-

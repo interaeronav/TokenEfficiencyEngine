@@ -154,4 +154,3 @@ Construction is the most cyclical major sector in almost every economy, because 
 - [Which FIDIC contract should I use?](https://fidic.org/node/149)
 - [Windhoek Observer — construction sector GDP and growth coverage](https://observer24.com.na/?s=construction+sector+GDP)
 - [Windhoek Observer — Chinese contractors, Roads Authority and KfW tender rules](https://observer24.com.na/?s=Chinese+contractors)
-

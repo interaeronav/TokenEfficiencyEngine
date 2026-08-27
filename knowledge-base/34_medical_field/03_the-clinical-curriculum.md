@@ -224,4 +224,3 @@ The step from final-year student to first-year doctor is the sharpest discontinu
 - The claim that "70–80% of diagnoses come from the history" traces to a small number of old studies (Hampton 1975; Peterson 1992) that were not retrieved here. Treat as a teaching heuristic, `needs-verification` as a statistic.
 - The "July effect" / "killing season" literature was not directly retrieved; the summary given is a characterisation of a contested evidence base and should be checked against a current systematic review before citation.
 - AAMC Core EPA count (13) and the current Milestones version were not verified against AAMC/ACGME primary sources in this pass.
-

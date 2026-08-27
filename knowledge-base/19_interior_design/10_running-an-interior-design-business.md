@@ -212,4 +212,3 @@ Where mature studios make disproportionate money, because it scales without hour
 - BIID standard forms of agreement — current document names, scope and availability were not confirmed.
 - Professional indemnity levels, and the VAT/tax treatment of procurement margin in South Africa **[ZA]** and Namibia **[NA]**, require local professional advice and are `needs-verification`.
 - No published benchmark data on interior design studio profitability or salary bands was retrievable in this research; ASID, BIID and *Business of Home* have all published such surveys and should be consulted for real numbers.
-

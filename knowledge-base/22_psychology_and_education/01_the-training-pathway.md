@@ -198,4 +198,3 @@ US doctoral training in psychology is the most expensive route in this file by a
 - NASP credit-hour and internship-hour standards, and current EPPP Part 2 jurisdiction adoption.
 - UK trainee educational psychologist funding arrangements for the current intake year.
 - Current fee levels for professional master's programmes **[ZA]** and doctorates (UK/US) — deliberately omitted rather than guessed.
-

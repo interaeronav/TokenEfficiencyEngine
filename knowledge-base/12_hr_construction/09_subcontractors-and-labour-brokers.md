@@ -226,4 +226,3 @@ Run this once per subcontractor per project, and keep the completed sheet in the
 - **[ZA]** the current earnings threshold that gates ss.198A/198B and the s.200A presumption — unverified rand figure.
 - Whether the **[NA]** Employment Services Act licensing regime is actively enforced against construction labour suppliers, and the current licence application route — unverified.
 - Typical retention percentages and defects liability periods quoted here are standard market practice, not statutory; the actual figures come from the applicable main contract form (JBCC, NEC, FIDIC, GCC).
-

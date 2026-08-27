@@ -210,4 +210,3 @@ Access to certain employers (a handful of consultancies and most in-house corpor
 - Basel's current postgraduate typography programme name and structure were not verified directly from the school's site.
 - Werkplaats Typografie's current cohort size and fee structure were not verified.
 - Stellenbosch, UJ and Greenside programme names and durations were asserted from background knowledge, not fetched. Mark as `needs-verification`.
-

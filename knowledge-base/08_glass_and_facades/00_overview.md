@@ -133,4 +133,3 @@ There is one float glass producer of scale in the region — PFG at Springs, Gau
 - The exact clause numbering of SANS 10400-N:2012 has not been read from the standard itself; the requirements summarised here come from published commentary. Treat clause citations as indicative until the purchased standard is checked.
 - Namibia's adoption status of the SANS suite for glazing is not verified — see `05_standards-and-safety.md`.
 - Latitude-specific solar geometry above is computed from the standard solar-noon relation, not taken from a published table; verify against site-specific solar data before using it for a shading design.
-

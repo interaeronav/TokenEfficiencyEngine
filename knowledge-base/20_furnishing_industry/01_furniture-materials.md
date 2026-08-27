@@ -172,4 +172,3 @@ Beamhouse operations (soaking, liming, unhairing, scudding, fleshing, deliming, 
 - Steel tube wall thicknesses, plywood thickness/span rules and glass thickness recommendations are trade practice, not cited standards.
 - PU-coated "faux leather" service life (3–7 years) is a widely repeated trade figure; no manufacturer data obtained.
 - Namibian coastal corrosion category (ISO 9223 C3/C4/C5) for Swakopmund/Walvis Bay was not verified; confirm before specifying external metal finishes.
-

@@ -375,4 +375,3 @@ print(f"{obj.name}: {len(me.polygons)} faces, {len(me.uv_layers)} UV layers")
 - Whether **Fusion's USD export** carries `metersPerUnit` correctly and whether Unreal's USD importer honours it without a manual scale. `needs-verification`.
 - Child-safety spacing requirements for gate infill bars under the applicable Namibian/South African standard — see domain `03_codes_standards`. `needs-verification`.
 - Availability and current price of a Blender **STEP importer** add-on (STEPper or equivalent) compatible with Blender 5.2. `needs-verification`.
-

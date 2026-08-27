@@ -183,4 +183,3 @@ Jointing sand top-up (three months, then as needed); weed control; abrasion is n
 - SANS 1058:2021 tensile splitting strength values and abrasion limits were not obtained — only the fact of the change. The numeric acceptance criteria are **needs-verification**.
 - Whether SANS 1200 MJ has been revised since 1984 (and whether the CMA extracts remain current) is unverified.
 - The full UTG 2 catalogue (all road categories and climatic regions) was not obtained; only one representative page reproduced in CMA Book 2.
-

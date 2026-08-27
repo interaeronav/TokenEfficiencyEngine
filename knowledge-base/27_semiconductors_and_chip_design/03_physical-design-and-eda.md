@@ -192,4 +192,3 @@ Since about 2020 the vendors have shipped reinforcement-learning and Bayesian-op
 - [Photolithography — Wikipedia](https://en.wikipedia.org/wiki/Photolithography) — accessed 2026-08-25
 - [OpenROAD Project — Wikipedia](https://en.wikipedia.org/wiki/OpenROAD_Project) — accessed 2026-08-25
 - [Intel 18A process technology](https://www.intel.com/content/www/us/en/foundry/process/18a.html) — Intel, accessed 2026-08-25
-

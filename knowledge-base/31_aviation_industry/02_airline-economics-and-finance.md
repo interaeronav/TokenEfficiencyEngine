@@ -270,4 +270,3 @@ What has changed, and why margins improved after 2010: consolidation (the US wen
 - **Leased share of world fleet (~50%)** requires a dated Cirium or IBA citation.
 - **Loyalty programme valuations** cited from the 2020 financing round are widely reported but not verified here against the underlying filings.
 - IATA's 2026 forecast predates the June 2026 demand contraction; a revised outlook from the June 2026 AGM in Rio de Janeiro was not located and should be sought.
-

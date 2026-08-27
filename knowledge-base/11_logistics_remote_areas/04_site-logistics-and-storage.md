@@ -247,4 +247,3 @@ SITE LOGISTICS PLAN — [Project] — Rev [n] — [date]
 - [Ohangwena Region](https://en.wikipedia.org/wiki/Ohangwena_Region) — Wikipedia, accessed 2026-08-25
 - [Okongo](https://en.wikipedia.org/wiki/Okongo) — Wikipedia, accessed 2026-08-25
 - [Humanitarian logistics](https://en.wikipedia.org/wiki/Humanitarian_logistics) — Wikipedia, accessed 2026-08-25 (warehouse typology)
-
