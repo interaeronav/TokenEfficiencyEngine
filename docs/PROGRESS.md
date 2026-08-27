@@ -2752,3 +2752,12 @@ census) were caught by the process and corrected in the record, and the
 UE runbook now includes the clean exit (in-engine quit_editor via
 editor_python — acknowledged `{'quit': True}`, no crash reporter, ports
 freed).
+
+## 2026-08-28 — v0.2.0 tagged (owner: "update git")
+
+CI green on the bump commit (run 33119934606, success), tree clean and
+synced. Annotated tags pushed: `v0.2.0` at 797c7d9 and the missing
+historical `v0.1.1` at be7f871 (verified: that commit's pyproject says
+0.1.1; CHANGELOG anchors both). `v0.1.0` already existed on origin.
+Remote now carries all three release tags — the SI-5 open item
+"v0.1.0/v0.1.1 tags" closes with this.
