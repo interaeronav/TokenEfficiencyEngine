@@ -243,4 +243,7 @@ def build_drivers(config: dict[str, Any] | None = None) -> dict[str, GenDriver]:
 
         out_dir = config.get("generated_dir") or Path.cwd() / ".tee" / "generated"
         drivers["local-diffusion"] = LocalDiffusionDriver(out_dir)
+        from tee.assets.gen_tileable import TileableSdxlDriver
+
+        drivers["sdxl-tileable"] = TileableSdxlDriver(out_dir)
     return drivers

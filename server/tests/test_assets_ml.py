@@ -165,3 +165,85 @@ def test_local_diffusion_generates_a_real_image(tmp_path):
     assert image.size == (512, 512)
     low, high = image.convert("L").getextrema()
     assert high > low, "generated a uniform image"
+
+
+# -- tileable SDXL driver logic (no model) -----------------------------------
+
+
+def test_tileable_driver_is_free_and_image_only():
+    from tee.assets.gen_tileable import TileableSdxlDriver
+
+    driver = TileableSdxlDriver("/tmp/tee-tile-test")
+    assert driver.paid is False
+    assert driver.estimate("image", {})["cost_usd"] == 0.0
+    with pytest.raises(ValueError) as err:
+        driver.submit("3d", "a crate", {})
+    assert "voxkiln or a hosted driver" in str(err.value)
+
+
+def test_seam_ratio_separates_tileable_from_seamed():
+    """A wrapped gradient tiles (ratio ~1); a linear gradient has a hard wrap
+    seam (ratio >> threshold). The metric must tell them apart or the
+    'tileable' verdict is decoration."""
+    import numpy as np
+    from PIL import Image
+
+    from tee.assets.gen_tileable import SEAM_RATIO_TILEABLE, seam_ratio
+
+    x = np.arange(64, dtype=np.float32)
+    wrapped = (127.5 - 127.5 * np.cos(2 * np.pi * x / 64)).astype(np.uint8)
+    tileable = Image.fromarray(np.tile(wrapped, (64, 1))).convert("RGB")
+    seamed = Image.fromarray(np.tile((x * 4).astype(np.uint8), (64, 1))).convert("RGB")
+    assert seam_ratio(tileable) <= SEAM_RATIO_TILEABLE
+    assert seam_ratio(seamed) > SEAM_RATIO_TILEABLE
+
+
+def test_make_convs_circular_patches_padded_convs_only():
+    torch = pytest.importorskip("torch")
+
+    from tee.assets.gen_tileable import make_convs_circular
+
+    net = torch.nn.Sequential(
+        torch.nn.Conv2d(3, 8, kernel_size=3, padding=1),
+        torch.nn.Conv2d(8, 8, kernel_size=1),
+        torch.nn.Sequential(torch.nn.Conv2d(8, 3, kernel_size=3, padding=1)),
+    )
+    assert make_convs_circular(net) == 2
+    modes = [m.padding_mode for m in net.modules() if isinstance(m, torch.nn.Conv2d)]
+    assert modes == ["circular", "zeros", "circular"]
+    # a circularly padded conv on a wrapped signal stays wrap-consistent
+    x = torch.randn(1, 3, 8, 8)
+    y = net[0](x)
+    y_rolled = net[0](torch.roll(x, shifts=3, dims=-1))
+    assert torch.allclose(torch.roll(y, shifts=3, dims=-1), y_rolled, atol=1e-5)
+
+
+# -- marigold refinement wiring (no model) -----------------------------------
+
+
+def test_photo_material_falls_back_classical_when_marigold_unavailable(tmp_path, monkeypatch):
+    """refine='auto' must degrade to the classical maps when the GPU lane
+    raises; refine='marigold' must fail loud with the fix instead."""
+    from PIL import Image
+
+    from tee.app import TeeApp
+    from tee.assets import photo_pbr_gpu
+    from tee.assets.tools import register_asset_tools
+    from tee.kernel.adapter import FakeAdapter
+    from tee.kernel.errors import TeeError
+
+    def unavailable(*a, **k):
+        raise TeeError("marigold_missing", "no marigold here", fix="install it")
+
+    monkeypatch.setattr(photo_pbr_gpu, "derive_maps_marigold", unavailable)
+    photo = tmp_path / "wall.png"
+    Image.linear_gradient("L").convert("RGB").save(photo)
+    app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    register_asset_tools(app, tmp_path, extract_store=None)
+
+    maps = app.registry.call("as_photo_material", {"photo": str(photo)})
+    assert "estimated (classical)" in maps["honesty"]
+
+    with pytest.raises(TeeError) as err:
+        app.registry.call("as_photo_material", {"photo": str(photo), "refine": "marigold"})
+    assert "no marigold here" in str(err.value)
