@@ -29,9 +29,19 @@ def boundary_edge_count(mesh: trimesh.Trimesh) -> int:
 
 
 def boundary_loop_count(mesh: trimesh.Trimesh) -> int:
-    if boundary_edge_count(mesh) == 0:
+    """Boundary loops counted as connected components of the boundary-edge
+    graph. Definition changed 2026-08-27 (SI-2): `outline()` built path
+    traversals for every loop - 66 s vs 0.5 s on a 22k-component decode
+    mesh - and split shared-vertex boundary webs into separate arcs (27,593
+    vs 22,892 there). Rows recorded before that date used the old count."""
+    if len(mesh.faces) == 0:
         return 0
-    return len(mesh.outline().entities)
+    edges = mesh.edges_sorted
+    groups = trimesh.grouping.group_rows(edges, require_count=1)
+    if not len(groups):
+        return 0
+    boundary = edges[np.asarray(groups).reshape(-1)]
+    return len(trimesh.graph.connected_components(boundary))
 
 
 def nonmanifold_edge_count(mesh: trimesh.Trimesh) -> int:
@@ -157,7 +167,18 @@ def mesh_stats(
     """The compact stats block of the product report."""
     if expected_topology is not None and expected_topology not in TOPOLOGY_EXPECTATIONS:
         raise ValueError(f"expected_topology must be one of {TOPOLOGY_EXPECTATIONS}")
-    parts = mesh.split(only_watertight=False)
+    # count components by face-adjacency labeling (same call euler_numbers
+    # uses): split() builds a full Trimesh per component, which the profiler
+    # measured at 189 s of the 276 s stats stage on a 22k-component decode
+    # mesh - the count is the only thing this block needs
+    if len(mesh.faces):
+        components = len(
+            trimesh.graph.connected_components(
+                mesh.face_adjacency, nodes=np.arange(len(mesh.faces))
+            )
+        )
+    else:
+        components = 1
     bbox = (mesh.bounds[1] - mesh.bounds[0]) if len(mesh.vertices) else np.zeros(3)
     stats: dict[str, Any] = {
         "tris": len(mesh.faces),
@@ -167,7 +188,7 @@ def mesh_stats(
         "boundary_loops": boundary_loop_count(mesh),
         "nonmanifold_edges": nonmanifold_edge_count(mesh),
         "degenerate_faces": degenerate_face_count(mesh),
-        "components": int(max(len(parts), 1)),
+        "components": int(max(components, 1)),
         "euler_per_component": euler_numbers(mesh),
         "bbox": [round(float(x), 6) for x in bbox],
     }

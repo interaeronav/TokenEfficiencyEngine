@@ -48,3 +48,23 @@ def test_watertight_but_interpenetrating_trap():
 def test_open_topology_is_not_a_defect():
     stats = metrics.mesh_stats(fixtures.holed_sphere(), expected_topology="open")
     assert stats["topology_ok"] is True
+
+
+def test_component_count_matches_split():
+    # SI-2: the labeling count must agree with trimesh.split's semantics -
+    # split() itself was 189 s of the 276 s stats stage on a 22k-component
+    # decode mesh, so mesh_stats counts labels instead of building submeshes
+    import numpy as np
+    import trimesh
+
+    from voxkiln.metrics import mesh_stats
+
+    a = trimesh.creation.box()
+    b = trimesh.creation.box()
+    b.apply_translation([5, 0, 0])
+    two = trimesh.util.concatenate([a, b])
+    assert mesh_stats(two)["components"] == len(two.split(only_watertight=False)) == 2
+    one = trimesh.creation.icosphere(subdivisions=1)
+    assert mesh_stats(one)["components"] == 1
+    empty = trimesh.Trimesh(vertices=np.zeros((0, 3)), faces=np.zeros((0, 3), dtype=np.int64))
+    assert mesh_stats(empty)["components"] == 1
