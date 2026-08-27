@@ -58,6 +58,24 @@ class TeeApp:
 
     # -- helpers -----------------------------------------------------------
 
+    def resolve_adapter(self, name: str | None) -> str:
+        """Resolve an omitted adapter= to the sole configured adapter.
+
+        Real deployments serve one adapter, so omitting the argument must
+        just work there (SI-B6: a wire-visible default of 'fake' failed on
+        every non-test server and taxed each call with an explicit
+        adapter=). Ambiguity fails loud with the configured choices."""
+        if name is not None:
+            return name
+        if len(self.adapters) == 1:
+            return next(iter(self.adapters))
+        known = ", ".join(sorted(self.adapters)) or "(none)"
+        raise TeeError(
+            "adapter_required",
+            "Several adapters are configured; pass adapter=.",
+            fix=f"Configured adapters: {known}.",
+        )
+
     def adapter(self, name: str) -> Adapter:
         adapter = self.adapters.get(name)
         if adapter is None:

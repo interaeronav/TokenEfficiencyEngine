@@ -311,3 +311,34 @@ def test_columnar_encoding_on_large_summaries():
         assert isinstance(small["entities"], list)
 
     run_session(scenario)
+
+
+def test_adapter_omitted_resolves_to_sole_adapter():
+    # SI-B6: a single-adapter server (every real deployment) must accept
+    # calls that omit adapter= instead of failing on a 'fake' default.
+    async def scenario(client):
+        out = payload(await client.call_tool("tee_scene_summary", {}))
+        assert out["ok"] is True
+        cp = payload(await client.call_tool("tee_checkpoint", {"label": "solo"}))
+        assert cp["ok"] is True
+
+    run_session(scenario)
+
+
+def test_adapter_omitted_with_two_adapters_fails_loud():
+    app = TeeApp({"fake": FakeAdapter(), "fake2": FakeAdapter()}, project_root=".")
+    server = build_server(app)
+
+    async def main():
+        async with Client(server) as client:
+            out = payload(await client.call_tool("tee_scene_summary", {}))
+            assert out["ok"] is False
+            assert out["error"]["code"] == "adapter_required"
+            assert "fake2" in out["error"]["fix"]
+            named = payload(await client.call_tool("tee_scene_summary", {"adapter": "fake2"}))
+            assert named["ok"] is True
+
+    try:
+        anyio.run(main)
+    finally:
+        app.shutdown()

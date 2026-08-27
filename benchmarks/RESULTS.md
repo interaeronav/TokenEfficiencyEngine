@@ -89,8 +89,8 @@ verified Blueprint macro.
 
 | | Context tokens | Round-trips | Saving |
 |---|---|---|---|
-| naive (describe_toolset + call_tool per op) | 38,331 | 32 | |
-| TEE | 2,347 | 4 | **93.9%** |
+| naive (describe_toolset + call_tool per op) | 38,334 | 32 | |
+| TEE | 2,349 | 4 | **93.9%** |
 
 The schema dumps dominate the naive side: one
 `describe_toolset(BlueprintTools)` alone is ~18,000 tokens, more
@@ -108,9 +108,9 @@ fields no client ever sees, so it overstates the surface by ~20%.
 
 | | Tools | Tokens |
 |---|---|---|
-| TEE always-loaded (wire) | 16 | **2,465** |
-| same, by `model_dump()` | 16 | 2,959 |
-| flat server, one tool per capability | 97 | 11,484 |
+| TEE always-loaded (wire) | 16 | **1,935** |
+| same, by `model_dump()` | 16 | 2,428 |
+| flat server, one tool per capability | 97 | 10,954 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded

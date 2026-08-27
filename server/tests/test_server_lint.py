@@ -86,3 +86,28 @@ def test_tool_count_matches_expectation(tools):
     # silent whole-catalog drops are the failure mode this canary catches;
     # update the constant deliberately when adding/removing a tool
     assert len(tools) == EXPECTED_TOOL_COUNT
+
+
+def test_schemas_carry_no_generated_padding(tools):
+    # The served schema is documentation for the model - validation runs on
+    # the pydantic signature model. Pydantic titles and anyOf-null wrappers
+    # measured ~19% of the wire surface before _slim_schema (SI-1).
+    for tool in tools:
+        schema = tool.input_schema
+        assert "title" not in schema, tool.name
+        for prop_name, prop in (schema.get("properties") or {}).items():
+            where = f"{tool.name}.{prop_name}"
+            assert "title" not in prop, where
+            if "default" in prop:
+                assert prop["default"] is not None, where
+            for branch in prop.get("anyOf", []):
+                assert branch.get("type") != "null", where
+
+
+def test_adapter_params_advertise_no_default(tools):
+    # SI-B6: adapter= resolves server-side to the sole configured adapter;
+    # a wire-visible 'fake' default fails on every real deployment.
+    for tool in tools:
+        prop = (tool.input_schema.get("properties") or {}).get("adapter")
+        if prop is not None:
+            assert "default" not in prop, tool.name

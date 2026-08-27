@@ -55,10 +55,10 @@ saved on find-select-place), plus design, physics/modeling, and UEFN/Verse
 modules — see [benchmarks/RESULTS.md](benchmarks/RESULTS.md) for all measured
 rows.
 
-The always-loaded MCP surface (16 tools) costs ~2.8K tokens of definitions —
-about the price of 4 typical MCP tools in the wild; 69 further virtual tools
-(on the fake adapter; adapter-specific lanes add more) load progressively
-through `tee_search_tools`.
+The always-loaded MCP surface (16 tools) costs ~1.9K tokens of definitions
+on the wire — under the price of 3 typical MCP tools in the wild; 74 further
+virtual tools (on the fake adapter; adapter-specific lanes add more) load
+progressively through `tee_search_tools`.
 
 ## Scope
 

@@ -147,6 +147,32 @@ def _tool(app: TeeApp, name: str) -> Callable:
     return deco
 
 
+def _slim_schema(schema: dict) -> dict:
+    """Strip advertisement-only padding from a generated inputSchema.
+
+    Argument validation runs on the pydantic signature model, never on this
+    document, so the served schema is documentation for the model: pydantic
+    titles say nothing the property key doesn't, and an anyOf-with-null
+    wrapper on an optional says nothing that omitting the property doesn't.
+    """
+    schema.pop("title", None)
+    for prop in (schema.get("properties") or {}).values():
+        prop.pop("title", None)
+        branches = prop.get("anyOf")
+        if branches:
+            concrete = [b for b in branches if b.get("type") != "null"]
+            if concrete and len(concrete) < len(branches):
+                if len(concrete) == 1:
+                    prop.pop("anyOf")
+                    for key, value in concrete[0].items():
+                        prop.setdefault(key, value)
+                else:
+                    prop["anyOf"] = concrete
+        if "default" in prop and prop["default"] is None:
+            del prop["default"]
+    return schema
+
+
 def build_server(app: TeeApp) -> MCPServer:
     mcp = MCPServer(
         name="tee",
@@ -202,7 +228,7 @@ def build_server(app: TeeApp) -> MCPServer:
     @mcp.tool(structured_output=False, description=_DESC["tee_scene_summary"])
     @_tool(app, "tee_scene_summary")
     def tee_scene_summary(
-        adapter: str = "fake",
+        adapter: str | None = None,
         limit: int = 50,
         offset: int = 0,
         kind: str | None = None,
@@ -210,6 +236,7 @@ def build_server(app: TeeApp) -> MCPServer:
         refresh: bool = False,
         response_format: str = "concise",
     ):
+        adapter = app.resolve_adapter(adapter)
         if adapter not in app.caches:
             app.adapter(adapter)  # raises with the known-adapter hint
         cache = app.cache(adapter)
@@ -230,7 +257,8 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_entity_detail"])
     @_tool(app, "tee_entity_detail")
-    def tee_entity_detail(entity_id: str, adapter: str = "fake"):
+    def tee_entity_detail(entity_id: str, adapter: str | None = None):
+        adapter = app.resolve_adapter(adapter)
         app.adapter(adapter)
         ent = app.cache(adapter).get(entity_id)
         if ent is None:
@@ -243,7 +271,8 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_diff"])
     @_tool(app, "tee_diff")
-    def tee_diff(epoch: int, revision: int, adapter: str = "fake"):
+    def tee_diff(epoch: int, revision: int, adapter: str | None = None):
+        adapter = app.resolve_adapter(adapter)
         app.adapter(adapter)
         app.warm(adapter)
         return {"ok": True, **app.cache(adapter).diff_since(epoch, revision)}
@@ -252,21 +281,22 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_batch"])
     @_tool(app, "tee_batch")
-    def tee_batch(ops: list[dict[str, Any]], adapter: str = "fake", label: str | None = None):
+    def tee_batch(ops: list[dict[str, Any]], adapter: str | None = None, label: str | None = None):
         if not ops:
             raise TeeError("empty_batch", "ops is empty.", fix="Send at least one operation.")
-        return app.run_batch(adapter, ops, label)
+        return app.run_batch(app.resolve_adapter(adapter), ops, label)
 
     @mcp.tool(structured_output=False, description=_DESC["tee_checkpoint"])
     @_tool(app, "tee_checkpoint")
-    def tee_checkpoint(label: str, adapter: str = "fake"):
+    def tee_checkpoint(label: str, adapter: str | None = None):
+        adapter = app.resolve_adapter(adapter)
         cp = app.checkpoints.create(app.adapter(adapter), label, app.cache(adapter).revision)
         return {"ok": True, "checkpoint": cp.to_payload()}
 
     @mcp.tool(structured_output=False, description=_DESC["tee_rollback"])
     @_tool(app, "tee_rollback")
-    def tee_rollback(ref: str, adapter: str = "fake"):
-        return app.rollback(adapter, ref)
+    def tee_rollback(ref: str, adapter: str | None = None):
+        return app.rollback(app.resolve_adapter(adapter), ref)
 
     # -- jobs --------------------------------------------------------------
 
@@ -281,12 +311,12 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_capture"])
     def tee_capture(
-        adapter: str = "fake", view: str = "viewport", max_kb: int = _CAPTURE_DEFAULT_KB
+        adapter: str | None = None, view: str = "viewport", max_kb: int = _CAPTURE_DEFAULT_KB
     ):
         with app.lock:
             try:
                 max_bytes = max(1, min(int(max_kb), _CAPTURE_MAX_KB)) * 1024
-                data = app.adapter(adapter).capture(view, max_bytes)
+                data = app.adapter(app.resolve_adapter(adapter)).capture(view, max_bytes)
             except TeeError as exc:
                 return json.dumps(exc.to_payload())
             except Exception as exc:
@@ -325,10 +355,10 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_script"])
     @_tool(app, "tee_script")
-    def tee_script(code: str, adapter: str = "fake"):
+    def tee_script(code: str, adapter: str | None = None):
         from tee.kernel.script import run_script
 
-        return run_script(app, code, default_adapter=adapter)
+        return run_script(app, code, default_adapter=app.resolve_adapter(adapter))
 
     # -- progressive disclosure (meta-tools) --------------------------------
 
@@ -352,5 +382,11 @@ def build_server(app: TeeApp) -> MCPServer:
             # per-virtual-tool size log so the median alert works per tool
             app.response_log.record(f"virtual:{name}", result)
         return result
+
+    # Slim the served schemas in place (SDK-private store: the wire-shape
+    # lint in test_server_lint fails loudly if an SDK upgrade re-inflates
+    # or relocates them).
+    for entry in mcp._tool_manager._tools.values():
+        _slim_schema(entry.parameters)
 
     return mcp
