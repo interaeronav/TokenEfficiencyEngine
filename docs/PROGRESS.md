@@ -2761,3 +2761,26 @@ historical `v0.1.1` at be7f871 (verified: that commit's pyproject says
 0.1.1; CHANGELOG anchors both). `v0.1.0` already existed on origin.
 Remote now carries all three release tags — the SI-5 open item
 "v0.1.0/v0.1.1 tags" closes with this.
+
+## 2026-08-28 — Research 49: web_lookup with vision + sound (owner ask)
+
+Owner asked for a viability study of a budgeted web-lookup tool with
+vision, sound, and custom local AI infrastructure. Written as
+`docs/research/49-web-lookup-multimodal.md`, grounded in live
+measurements run this session (not recall):
+
+- Text: 3 real pages fetched and budget-cut — raw 54,656–345,604 tok
+  vs 471–497 tok extracts (99.1–99.9% saved; 90–96% vs visible text).
+- Vision: Poly Haven 720 px thumb → local claude-qwen-vl via the
+  LiteLLM shim: correct one-sentence material judgement in 5.9 s warm,
+  41-tok answer vs ~691 tok inline (the shim was started for the test
+  exactly as the owner's launcher does, and both it and the
+  lazy-started mlx-vlm server were stopped afterwards).
+- Sound: 12 s archive.org MP3 → faster-whisper large-v3 int8: 10.9 s,
+  correct transcript, 31 tok.
+
+Verdict in the doc: viable (text now; vision/sound where a local
+endpoint answers, honest degradation elsewhere); named gaps = URL
+search backend and JS-only pages, both owner-gated; risk section
+(injection, SSRF, copyright, etiquette) gates any build. MVP sketch
+included; building it would be decision A34 — awaiting the owner.
