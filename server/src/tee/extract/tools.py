@@ -352,6 +352,11 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
         packet["api_driver"] = (
             "available" if vlm.ApiDriver.available() else "not configured (in-band only)"
         )
+        packet["local_vlm_driver"] = (
+            "available (free, on-machine)"
+            if vlm.LocalVlmDriver.available()
+            else "unreachable (in-band only)"
+        )
         return packet
 
     reg.register(

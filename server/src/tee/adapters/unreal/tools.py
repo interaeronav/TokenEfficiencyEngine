@@ -18,6 +18,7 @@ from tee.app import TeeApp
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
+from . import vision
 from .adapter import UnrealAdapter
 
 _DSL_DOCS_CACHE: dict[str, str] = {}
@@ -107,6 +108,17 @@ def register_unreal_tools(app: TeeApp, adapter: UnrealAdapter) -> None:
         import base64
 
         return {"image_base64": base64.b64encode(data).decode("ascii"), **meta}
+
+    def ue_look(args: dict[str, Any]) -> dict[str, Any]:
+        question = str(args.get("question") or "").strip()
+        if not question:
+            raise TeeError(
+                "look_needs_question",
+                "ue_look answers a question about the viewport; none was given.",
+                fix='Pass {"question": "..."} - e.g. "Are the kitchen cabinets white?"',
+            )
+        max_bytes = int(float(args.get("max_kb", 96)) * 1024)
+        return vision.look(adapter, question, max_bytes=max_bytes)
 
     tools = [
         VirtualTool(
@@ -319,6 +331,30 @@ def register_unreal_tools(app: TeeApp, adapter: UnrealAdapter) -> None:
                 },
                 handler=ue_capture,
                 tags=["unreal", "vision", "screenshot"],
+            ),
+            VirtualTool(
+                name="ue_look",
+                description=(
+                    "Ask a question about the CURRENT viewport; a LOCAL vision "
+                    "model reads the pixels and returns a short text answer - "
+                    "the image never enters your context (~tens of tokens vs "
+                    "thousands for ue_capture). First call of a session may "
+                    "take a minute while the vision model loads. Prefer "
+                    "ue_scene_checks for geometric questions; prefer this over "
+                    "ue_capture for appearance questions (colors, materials, "
+                    "lighting, 'does it look right')."
+                ),
+                schema={
+                    "type": "object",
+                    "properties": {
+                        "question": {"type": "string"},
+                        "max_kb": {"type": "number"},
+                    },
+                    "required": ["question"],
+                },
+                handler=ue_look,
+                tags=["unreal", "vision", "local-vlm"],
+                examples=[{"question": "Are the bedroom walls white with a blue door?"}],
             ),
         ]
     )

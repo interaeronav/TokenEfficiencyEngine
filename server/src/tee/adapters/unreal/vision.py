@@ -13,9 +13,18 @@ from __future__ import annotations
 
 import base64
 import io
-from typing import Any
+from collections.abc import Callable
+from typing import Any, Protocol
 
+from tee.kernel import local_vlm
 from tee.kernel.errors import TeeError
+
+
+class _Captures(Protocol):
+    def capture_with_metadata(
+        self, max_bytes: int, *, show_ui: bool = False
+    ) -> tuple[bytes, dict[str, Any]]: ...
+
 
 # Rungs tried in order until one fits the budget.
 _RUNGS = ((1024, 60), (800, 55), (640, 50), (480, 45), (320, 40))
@@ -68,6 +77,25 @@ def encode_within_budget(png_b64: str, max_bytes: int) -> tuple[bytes, dict[str,
         fix="Raise max_kb, or use ue_scene_checks / tee_scene_summary - text "
         "state is the default evidence.",
     )
+
+
+def look(
+    adapter: _Captures,
+    question: str,
+    *,
+    max_bytes: int = 96 * 1024,
+    describe: Callable[..., str] = local_vlm.describe,
+) -> dict[str, Any]:
+    """Viewport -> local vision model -> short text answer (3.7).
+
+    The image goes to the LOCAL model and never enters the host context, so
+    the byte budget can be generous (bigger image = better answer, same host
+    tokens). The free text metadata rides along as usual.
+    """
+    data, meta = adapter.capture_with_metadata(max_bytes, show_ui=False)
+    answer = describe(data, question)
+    keep = ("cameraLocation", "cameraRotation", "cameraFOV", "labeled_actor_count")
+    return {"answer": answer, **{k: meta[k] for k in keep if k in meta}}
 
 
 def summarize_capture(payload: dict[str, Any]) -> dict[str, Any]:

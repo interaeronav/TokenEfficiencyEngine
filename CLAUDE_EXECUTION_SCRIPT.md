@@ -1691,3 +1691,24 @@ command through TeeToolset.)
 4. OkongoSim `.tee/config.toml` carries `[kb]`, and a session driving
    the sim answers a site question from the corpus with citations.
 5. Evidence in `docs/PROGRESS.md`; README module table gains the kb row.
+
+## 21. Phase 17 — Local VLM lane: on-machine vision-to-text (owner request, 2026-08-27)
+
+The machine now runs a local vision model (Qwen3-VL-30B on `mlx_vlm.server`,
+fronted by the owner's LiteLLM shim at `127.0.0.1:4000/v1`, model id
+`claude-qwen-vl`; the shim lazy-starts the vision server on first use). That
+turns P3's ladder into three rungs: text checks, then a LOCAL model reads the
+pixels and returns words, and only then budgeted JPEG into host context.
+
+1. `tee/kernel/local_vlm.py`: stdlib-only OpenAI chat client —
+   `available()` + `describe(image_bytes, question)`. Env overrides
+   `TEE_LOCAL_VLM_URL` / `TEE_LOCAL_VLM_MODEL`. TeeError with an actionable
+   fix when unreachable (P7); never a new core dependency.
+2. `ue_look(question, max_kb=96)`: capture → local VLM → short answer plus
+   the free camera/actor metadata. The image never enters host context, so
+   the byte budget is generous where `ue_capture` defaults to 16 KB.
+3. Extraction: `LocalVlmDriver` beside `ApiDriver` (same interface, zero
+   cost, nothing leaves the machine); `ex_prepare` advertises both drivers.
+4. Acceptance: offline unit tests (client payload/error paths, `look`
+   composition, driver JSON parse) green; live `describe()` through the
+   shim answers a known image correctly, lazy-start included.

@@ -155,6 +155,43 @@ def tile_plan(width: int, height: int) -> list[dict[str, int]]:
     return tiles
 
 
+class LocalVlmDriver:
+    """Free off-session extraction on the machine's own vision model (the
+    local shim's Qwen3-VL). Preferred over ApiDriver when reachable: same
+    interface, zero API cost, nothing leaves the machine."""
+
+    def __init__(self) -> None:
+        self.model = os.environ.get("TEE_LOCAL_VLM_MODEL", "claude-qwen-vl")
+
+    @staticmethod
+    def available() -> bool:
+        from tee.kernel import local_vlm
+
+        return local_vlm.available()
+
+    def extract_document_page(self, image_path: Path, schema_hint: dict) -> dict[str, Any]:
+        from tee.kernel import local_vlm
+
+        text = local_vlm.describe(
+            image_path.read_bytes(),
+            "Extract this architectural sheet into JSON matching this example "
+            "schema exactly (no prose):\n" + json.dumps(schema_hint),
+            model=self.model,
+            max_tokens=4096,
+        )
+        return json.loads(text[text.index("{") : text.rindex("}") + 1])
+
+    def caption_image(self, image_path: Path) -> str:
+        from tee.kernel import local_vlm
+
+        return local_vlm.describe(
+            image_path.read_bytes(),
+            "Caption this image in at most 20 words. Caption only, no preamble.",
+            model=self.model,
+            max_tokens=120,
+        )
+
+
 class ApiDriver:
     """Optional off-session extraction with a server-owned API key. Absent a
     key (or the sdk), everything silently degrades to the in-band driver."""

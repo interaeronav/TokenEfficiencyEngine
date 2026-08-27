@@ -1711,3 +1711,19 @@ clobbered), 877 actors, nothing dirty. UE 5.8.1 exposes no
 `Package.set_dirty_flag`, so a content-identical save is the only way to
 leave an editor with nothing pending — the alternative was leaving a dirty
 map that an accidental Ctrl+S could later push over someone else's work.
+
+
+## 2026-08-27 — Phase 17: local VLM lane (owner request)
+
+- `kernel/local_vlm.py` (stdlib urllib only), `ue_look` tool, extraction
+  `LocalVlmDriver` + `ex_prepare` driver advertisement. 4 new unit tests in
+  `tests/test_vision_local.py`; ruff clean.
+- Live evidence: `local_vlm.describe()` through the owner's shim on a solid
+  blue test PNG → "Blue." in 18.2 s cold (includes the shim lazy-starting
+  the vision server); `available()` True with only the shim up.
+- Owner-side (outside this repo): the shim hook now recognises OpenAI-style
+  `image_url` parts and lazy-starts the VL server when the vision model is
+  named explicitly — that is what makes `claude-qwen-vl` callable from TEE.
+- Not done: live `ue_look` against a running editor (no editor open this
+  session) — first real use will exercise capture→VLM end to end; the
+  benchmarks row (ue_look vs ue_capture re-reads) awaits that session.
