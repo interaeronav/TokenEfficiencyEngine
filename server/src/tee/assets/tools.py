@@ -165,7 +165,19 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
                 height_m=float(args.get("height_m", 1.0)),
             )
             source = Path(rect["path"])
-        maps = photo_pbr.derive_maps(source, out_dir, surface=str(args.get("surface", "generic")))
+        surface = str(args.get("surface", "generic"))
+        refine = str(args.get("refine", "auto"))
+        maps = None
+        if refine != "off":
+            try:
+                from tee.assets import photo_pbr_gpu
+
+                maps = photo_pbr_gpu.derive_maps_marigold(source, out_dir, surface=surface)
+            except TeeError:
+                if refine == "marigold":
+                    raise  # explicitly requested: fail loud with the fix
+        if maps is None:
+            maps = photo_pbr.derive_maps(source, out_dir, surface=surface)
         if args.get("tileable"):
             maps["tiled"] = photo_pbr.make_tileable(source, out_dir / f"{photo.stem}_tile.png")[
                 "path"
@@ -503,8 +515,10 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
         VirtualTool(
             "as_photo_material",
             "Photo-derived PBR (lane 2): optional homography rectify (4 "
-            "corners) then estimated normal/roughness maps; metallic clamped "
-            "on masonry/paint. Classical path; GPU machines refine it.",
+            "corners) then normal/roughness maps; metallic clamped on "
+            "masonry/paint. refine='auto' (default) uses Marigold on GPU "
+            "machines (adds a delighted albedo) and falls back classical; "
+            "'marigold' requires it; 'off' stays classical.",
             {
                 "type": "object",
                 "properties": {
@@ -514,6 +528,7 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
                     "height_m": {"type": "number"},
                     "surface": {"type": "string"},
                     "tileable": {"type": "boolean"},
+                    "refine": {"type": "string", "enum": ["auto", "marigold", "off"]},
                 },
                 "required": ["photo"],
             },
