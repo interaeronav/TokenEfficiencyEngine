@@ -1,0 +1,56 @@
+{
+ "runs": [
+  {
+   "run": 0,
+   "wall_s": 845.7,
+   "ok": true,
+   "mesh_hash": "52b60b5bf50b3502",
+   "tris": 491888,
+   "verts": 390301,
+   "glb": "/tmp/vk_out/det_42_0/vk-9fe624ab.glb",
+   "timings_s": {
+    "pipeline_s": 51.13,
+    "export_s": 717.55,
+    "export.stats_raw_s": 142.3,
+    "export.repair_s": 70.8,
+    "export.simplify_s": 44.21,
+    "export.unwrap_s": 441.72,
+    "export.rasterize_uv_s": 11.56,
+    "export.project_s": 1.52,
+    "export.sample_volume_s": 0.28,
+    "export.inpaint_s": 0.77,
+    "export.write_glb_s": 4.39,
+    "total_s": 843.72
+   }
+  },
+  {
+   "run": 1,
+   "wall_s": 844.5,
+   "ok": true,
+   "mesh_hash": "52b60b5bf50b3502",
+   "tris": 491888,
+   "verts": 390301,
+   "glb": "/tmp/vk_out/det_42_1/vk-3e242e26.glb",
+   "timings_s": {
+    "pipeline_s": 52.35,
+    "export_s": 719.51,
+    "export.stats_raw_s": 146.65,
+    "export.repair_s": 69.17,
+    "export.simplify_s": 43.52,
+    "export.unwrap_s": 442.4,
+    "export.rasterize_uv_s": 11.5,
+    "export.project_s": 1.46,
+    "export.sample_volume_s": 0.28,
+    "export.inpaint_s": 0.26,
+    "export.write_glb_s": 4.27,
+    "total_s": 843.34
+   }
+  }
+ ],
+ "verdict": {
+  "runs": 2,
+  "ok_runs": 2,
+  "distinct_mesh_hashes": 1,
+  "deterministic": true
+ }
+}
