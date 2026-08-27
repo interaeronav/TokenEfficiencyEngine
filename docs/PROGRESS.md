@@ -1958,3 +1958,23 @@ map that an accidental Ctrl+S could later push over someone else's work.
 - Not done: live `ue_look` against a running editor (no editor open this
   session) — first real use will exercise capture→VLM end to end; the
   benchmarks row (ue_look vs ue_capture re-reads) awaits that session.
+
+## 2026-08-27 — Mac session: handoff item 6 (Dropbox sync-back)
+
+- Copied `knowledge-base/manifest.json` + `knowledge-base/INDEX.md` over the
+  stale Dropbox originals in `~/Dropbox/02 Okongo Oneleiwa Project/12 Expert
+  Knowledge Base/`. Pre-copy diff confirmed exactly the two expected drifts
+  (the "399 files" → "401 files" line in both, plus one corrected `sha256`
+  record in manifest.json); nothing else differed.
+- Post-copy verification — byte-identical to the repo mirror:
+
+  ```
+  $ cmp manifest.json "$DEST/manifest.json" && cmp INDEX.md "$DEST/INDEX.md"
+  manifest.json: byte-identical
+  INDEX.md: byte-identical
+  $ shasum -a 256 "$DEST/manifest.json" "$DEST/INDEX.md"
+  b47a2db6441da6ae47de0046e1129f0f30f77eed83d8ad2d0ec103c1cf2b8bbd  manifest.json  (matches repo)
+  b1138451fecd99cccf3d8ac87e6623c95fea0b6c2031d6260f9a347fe9154d06  INDEX.md       (matches repo)
+  ```
+
+- Handoff §6 closed: mirror and Dropbox are now consistent everywhere.
