@@ -66,3 +66,66 @@ Per research 48: one row per input × pipeline × seed, two runs each
 watertightness, boundary loops, non-manifold edges, degenerates,
 per-component Euler, UV overlap %, texel-density CV, silhouette IoU, stage
 timings, peak memory. Same-seed ×3 determinism measured, never assumed.
+
+---
+
+## 2026-08-27 — Mac battery, first measured rows (M5 Max, MPS)
+
+```yaml
+voxkiln_commit:  15e78e2 (incl. the two live-lane fixes e906b97, 48082c2)
+upstream_commit: 75fbf0183001ed9876c8dbb35de6b68552ee08bd
+torch:           2.13.0
+macos:           26.6.2
+machine:         Apple M5 Max, 128 GB unified memory
+backend:         mps (SPARSE_ATTN_BACKEND=sdpa, SPARSE_CONV_BACKEND=none)
+pipelines:       512
+seeds:           [42]
+images:          T.png, 154c8867…webp   (2 of 9 frozen inputs)
+arms:            ours, stock            (fresh subprocess per run, --no-cache)
+thermal:         no warnings recorded (pmset -g therm), quiet machine
+status:          4/4 rows OK — see the no-delta finding below
+scope_note:      deliberately a first tranche, not the full research-48
+                 matrix (9 images × {512,1024_cascade} × 3 seeds); nothing
+                 else was run, nothing is sampled silently
+```
+
+### Determinism (measured, not assumed — research 48)
+
+Two full same-seed runs, fresh subprocess each (`benchmarks/determinism.py`,
+seed 42, pipeline 512): both produced **mesh_hash 52b60b5bf50b3502**,
+491,888 tris / 390,301 verts — `deterministic: true` on this device.
+Rows in `benchmarks/local_out/determinism.json`.
+
+### Rows (`benchmarks/local_out/battery_rows.json`)
+
+| image | arm | ok | wall s | tris | watertight | boundary loops | non-manifold edges | degen | components | mesh hash |
+|---|---|---|---|---|---|---|---|---|---|---|
+| T.png | ours  | ✓ | 839.5 | 491,888 | false | 5,017 | 14,846 | 0 | 1,066 | 52b60b5bf50b3502 |
+| T.png | stock | ✓ | 848.7 | 491,888 | false | 5,017 | 14,846 | 0 | 1,066 | 52b60b5bf50b3502 |
+| 154c8867…webp | ours  | ✓ | 286.9 | 454,552 | false | 2,881 | 10,660 | 1 | 5,405 | 9ea1c833820180b5 |
+| 154c8867…webp | stock | ✓ | 284.6 | 454,552 | false | 2,881 | 10,660 | 1 | 5,405 | 9ea1c833820180b5 |
+
+Stage timings (determinism run 0, representative): pipeline 51 s, export
+718 s of which unwrap 442 s, stats 142 s, repair 71 s, simplify 44 s.
+UV unwrap dominates end-to-end wall time on this machine.
+
+### Finding: no stock-vs-ours delta on this backend (measured)
+
+Per image, both arms produced **identical mesh hashes** — the fp32
+threshold fixes changed nothing here. The switch wiring was verified live
+(`VOXKILN_STOCK` reaches the subprocess; both gated sites import `STOCK`).
+Hypothesis, deliberately labelled UNVERIFIED: on the MPS path the gated
+tensors are already fp32, so the `.float()` upcasts are no-ops — the
+defect the fixes target is fp16 rounding (research 44), a CUDA-fp16
+phenomenon. Next session: probe the runtime dtype at the two gated sites,
+and if fp32 is confirmed, the "ours improves over stock" claim must be
+scoped to fp16 backends — no row here supports it on MPS.
+
+### Live-lane fixes the battery is standing on (this session)
+
+- `repair.py` `_winding_for_fill` rebuilt the full directed-edge dict per
+  hole — quadratic; 'fast' repair ran for hours at 100% CPU with no output
+  (both early stalls dumped exactly there). Edge set now built once per
+  fill pass (e906b97).
+- `jobs._execute` forwarded the CLI's `None` params over `export_glb`
+  defaults — default CLI runs crashed at simplify (48082c2).
