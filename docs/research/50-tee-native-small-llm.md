@@ -143,3 +143,76 @@ chore-sized work. The right build order is Rung 0 first (days,
 reversible, measurable), Rung 1 only on benchmark evidence. Building
 it would be an owner decision (next free number at time of writing:
 A34), scoped to the chore list above.
+
+## Addendum (owner directive, 2026-08-28): the root capability is code
+
+The owner set the model's foundation: **at its root this model must be
+a dense computer-language and debugging expert** — most work done
+through AI models is coding-related, and TEE's own domain (editor
+Python, bpy, Blueprint DSL, Verse, build/tool tracebacks) is code all
+the way down. This amends the doc as follows.
+
+### Base selection criterion, amended
+
+The base is chosen from **code-specialist** small models, not general
+chat models — the Qwen-Coder / DeepSeek-coder class of open-weight
+models in the 7–14B range, filtered hard at adoption time by: (1)
+license Apache/MIT-class through the existing lint (Codestral-class
+non-commercial and RAIL-restricted bases are rejected outright), (2)
+published code+debugging benchmark strength for the size class, (3)
+MLX 4-bit availability and LoRA-trainability. "Dense" is honored in
+both senses: densely trained on code, and preferring a **dense
+architecture over MoE at this size** — dense checkpoints are the
+well-trodden path for `mlx_lm.lora`, quantize predictably, and have
+flat per-token latency; an MoE base is acceptable only if it beats the
+dense candidate on the measured chores AND trains cleanly. Exact model
+naming is deliberately deferred to adoption day (model releases move
+monthly; the criteria are stable, the name is not).
+
+### The chore list, re-centered on code
+
+The five chores stand, and the code-expert root adds the highest-value
+ones — each attacking a measured token sink:
+
+6. **Traceback triage** (the flagship): raw DCC/Python failure (often
+   1–3k tokens of stack-trace novel) → TEE's rule-6 shape: one line of
+   diagnosis + the exact fix, grounded ONLY in evidence in-context
+   (the traceback, the failing source lines, the attempted op). This
+   is the fix-loop scenario's expensive half — the loop TEE already
+   benchmarks (47.9% saved today; a server-side debugging expert
+   attacks the remainder directly).
+7. **Script repair draft**: when a `tee_script`/batch fails validation,
+   propose the corrected script alongside the error — the client
+   accepts or rewrites, but no longer round-trips the whole context to
+   rediscover the fix.
+8. **Lint explanation**: deterministic checkers (Verse lint,
+   plaus_check, validators) stay the judges; the model may translate a
+   finding into the shortest actionable phrasing, never overrule one.
+
+### The A30 boundary, sharpened not relaxed
+
+A code expert will be tempted into API recall — the exact
+hallucination class TEE exists to kill. The line: **reasoning over
+evidence in-context (tracebacks, source, diffs, schemas) — yes; API
+facts from weights — still banned.** If the fix requires asserting an
+API signature, the model's output must route through the research
+corpus / live probe path (or say "verify against docs/research/NN"),
+same as every other session. Enforced by the hostile-fixture suite:
+seeded tracebacks whose correct fix requires an API the fixture
+deliberately omits — the passing answer defers, the failing answer
+invents.
+
+### Distillation data, re-weighted
+
+Rung 1's teacher traces are generated predominantly from TEE's own
+recorded failure universe — the fault-injection tables (SI-2), real
+tracebacks from PROGRESS evidence, seeded-defect fixtures, DCC error
+corpora produced by the fakes — so the "motivation pack" trains on the
+exact error distribution the product meets, not generic code Q&A.
+
+### Verdict, amended
+
+Unchanged in shape, stronger in aim: Rung 0 now starts from a
+code-specialist base and leads with traceback triage (the chore with
+the clearest measurable payoff), Rung 1 distills from TEE's own
+failure corpus. Still an owner decision to build.

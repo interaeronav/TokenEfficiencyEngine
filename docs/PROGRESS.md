@@ -2805,3 +2805,17 @@ zippy, motivated, lite" LLM. Written as
   risks gated (hallucination, drift, memory, scope creep).
 
 Build remains an owner decision (would take the next free A-number).
+
+## 2026-08-28 — Research 50 amended: code-expert root (owner directive)
+
+Owner set the TEE-native model's foundation: a dense computer-language
+and debugging expert. Research 50 addendum records what changes: base
+selection now filters for code-specialist small models (dense preferred
+over MoE at this size, license-linted, name deferred to adoption day);
+three code chores added with traceback triage as the flagship (raw 1-3k
+token stack traces → rule-6 one-line diagnosis + fix, attacking the
+fix-loop scenario's expensive half); the A30 boundary sharpened for a
+code model (reason over in-context evidence: yes; API recall from
+weights: banned, enforced by seeded fixtures whose correct answer is to
+defer); Rung-1 distillation re-weighted onto TEE's own recorded failure
+universe. Build still awaits the owner's word.
