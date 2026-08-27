@@ -2178,3 +2178,36 @@ fixed and verified this session; single commit on this branch, not pushed.
   16:52, see §3 above). Re-drag `server/dist/tee-engine-0.1.1.mcpb` to get
   the anchored launch + `project_root` picker; Desktop will now also prompt
   for the project folder on install.
+
+## 2026-08-27 — Mac session: handoff §2 (Voxkiln live bring-up) CLOSED
+
+Premise check first: the "re-fetch ~15 GB weights" bullet was moot — the HF
+cache was never cleaned (TRELLIS.2-4B 15 GB + DINOv3 1.1 GB + siglip2 +
+BiRefNet ≈ 18 GB present; `voxkiln doctor`: weights 15.12 GB, gated DINOv3
+`accessible: true`). Nothing was downloaded. Disk free: 1.1 TiB.
+
+- Venv recreated (`uv sync --extra model`, torch 2.13.0, MPS available);
+  server venv already imports voxkiln 0.1.0 as a path install. Suites green
+  on this machine: voxkiln 47 passed / 1 skipped; server 465 passed / 2
+  skipped / 91 deselected.
+- **First live generation on MPS: done.** `state=done` in 1294 s,
+  490,280-tri GLB (T.png, seed 7, watertight budget). Getting there
+  surfaced and fixed two real product bugs — the quadratic
+  `_winding_for_fill` crawl (e906b97; both earlier "hangs" faulthandler-
+  dumped at repair.py:75) and `None` CLI params overriding `export_glb`
+  defaults (48082c2). Ops note: the two stalled attempts also coincided
+  with the UE editor sharing the GPU; run generations on a quiet machine.
+- **Same-seed determinism: PASS, measured** — 2 fresh-subprocess runs,
+  seed 42: one mesh hash `52b60b5bf50b3502` (491,888 tris), ~845 s each.
+  `voxkiln/benchmarks/local_out/determinism.json` committed.
+- **Stock-vs-ours battery: first tranche measured** into
+  `voxkiln/BENCHMARKS.md` (4/4 rows, 2 images × seed 42 × both arms) with
+  an honest headline finding: the arms are hash-identical on MPS — the
+  fp32-threshold fixes appear inert on this backend (hypothesis: gated
+  tensors already fp32 here; UNVERIFIED, next session probes dtype).
+  Full research-48 matrix (9 images, 2 pipelines, 3 seeds) deliberately
+  not run tonight; scope is stated in the BENCHMARKS.md section.
+
+§2 owed items all executed: reinstall ✓, weights verified (no fetch
+needed) ✓, first live generation ✓, determinism ✓, battery into
+BENCHMARKS.md ✓ (first tranche + follow-up named).
