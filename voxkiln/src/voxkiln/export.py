@@ -116,13 +116,24 @@ def _staged_simplify(
 
 
 def _unwrap(mesh: trimesh.Trimesh) -> tuple[trimesh.Trimesh, np.ndarray]:
-    """xatlas UV unwrap; returns (rebuilt mesh, per-vertex uv)."""
+    """xatlas UV unwrap; returns (rebuilt mesh, per-vertex uv).
+
+    Chart optimization is skipped (max_iterations=0): on decode meshes the
+    single default optimization pass dominated the whole export - measured
+    895 s -> 12 s on the frozen T fixture (488k faces, ComputeCharts-bound,
+    A35 P2.3) - buying +29% charts / +5% seam vertices at an unchanged
+    atlas size; the bake already inpaints chart seams."""
     import xatlas
 
-    vmapping, indices, uvs = xatlas.parametrize(
+    atlas = xatlas.Atlas()
+    atlas.add_mesh(
         np.asarray(mesh.vertices, dtype=np.float32),
         np.asarray(mesh.faces, dtype=np.uint32),
     )
+    chart = xatlas.ChartOptions()
+    chart.max_iterations = 0
+    atlas.generate(chart, xatlas.PackOptions())
+    vmapping, indices, uvs = atlas[0]
     out = trimesh.Trimesh(
         vertices=mesh.vertices[vmapping], faces=indices.astype(np.int64), process=False
     )
@@ -215,7 +226,11 @@ def _project_to_reference(
     area = float(reference.area) or 1.0
     n_samples = int(np.clip(area / (spacing * spacing), 200_000, 2_000_000))
     try:
-        samples, _ = trimesh.sample.sample_surface(reference, n_samples)
+        # seeded: unseeded sampling made every export's texture differ
+        # run-to-run (~52% of covered texels, ~2/255 mean; found A35 P2.3
+        # while verifying the unwrap change) - any fixed seed gives the
+        # same approximation quality and a reproducible artifact
+        samples, _ = trimesh.sample.sample_surface(reference, n_samples, seed=0)
         cloud = np.vstack([np.asarray(samples), reference.vertices])
     except BaseException:
         # a reference with no area (degenerate decode) still has vertices

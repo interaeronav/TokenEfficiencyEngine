@@ -213,3 +213,35 @@ the repair-stage fix (326.8 → 9.5 s, this file, above) is inside these
 numbers. Coverage after tranche 3: all 9 eval images at seed 42;
 remaining matrix (extra seeds) stays open as future tranches. Rows
 carry the current component-cull and boundary-loop definitions.
+
+## 2026-08-29 — unwrap-stage fix + a byte-deterministic artifact (A35 P2.3)
+
+Profiled on a frozen fixture captured from a REAL run (T.png, seed 42,
+pipeline 512: 3,049,618-face decode → repair → staged simplify →
+488,002-face unwrap input), quiet machine. Native-stack sampling put the
+whole cost in `xatlas::ComputeCharts`; the full lever matrix confirmed
+it — every pack-side option (blockAlign, rotate_charts, resolution,
+normal-seam) landed within noise of the 895.4 s baseline, weld was a
+no-op (repair already merges vertices), and **`ChartOptions.max_iterations
+= 0` — skipping xatlas's single chart-optimization pass — took the same
+unwrap to 12.4 s (72×)**. Cost of the trade, measured on the same
+fixture: charts 20,360 → 26,217 (+29%), unwrapped verts 386,889 →
+406,781 (+5% seam duplication), atlas 1259² → 1272² (~equal), full UV
+span both ways; the bake already inpaints chart seams. In the pipeline:
+**export 1,037 s → 151 s, full generation 1,168 s → 277 s** on the
+same image/seed/machine. (The older "unwrap 442 s" row was measured
+under CPU contention on an earlier decode; tonight's baseline for the
+same config is 895 s solo — both are honest numbers for their day, the
+72× is like-for-like within one session.)
+
+**Found while verifying, then fixed: the shipped artifact was never
+run-stable.** Same-seed decode meshes are array-identical (re-verified
+three ways tonight — the determinism contract holds), but two exports
+of the SAME decode differed in 52% of covered texels (~2/255 mean
+channel delta, occasional large seam deltas): `_project_to_reference`
+sampled the reference surface with an UNSEEDED `sample_surface`, so
+every bake projected against a different 2M-point cloud. Seeded
+(seed=0, same approximation bound by construction). After both changes,
+two independent full generations produce **byte-identical GLBs**
+(sha256 822b58de…, 17,454,048 bytes) — decode-hash determinism is now
+artifact-byte determinism. Suite 48 passed / 1 skipped throughout.
