@@ -3,6 +3,13 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.3.1 — 2026-08-28
+
+- Packaging only: the released 0.3.0 `.mcpb` embedded a 0.2.0 manifest —
+  the RC bumped the build OUTPUT while `make dist` regenerates it from
+  `packaging/mcpb_manifest.json`. Source manifest is now the single
+  bumped truth and the artifact is verified by extraction before release.
+
 ## 0.3.0 — 2026-08-28
 
 The A34 campaign release: the web lane and the local code-model chore
