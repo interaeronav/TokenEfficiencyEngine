@@ -51,11 +51,28 @@ class GenDriver(Protocol):
 
 
 class GenerationLane:
-    """One adapter, N drivers; wait-polling and cost gates live here."""
+    """One adapter, N drivers; wait-polling and cost gates live here.
 
-    def __init__(self, drivers: dict[str, GenDriver], *, sleep=time.sleep):
-        self.drivers = drivers
+    Driver discovery probes torch/voxkiln, so a lane built from `builder`
+    defers it to first use - the serve path must never import torch at
+    registration (measured: +170 MB RSS, A35 P2)."""
+
+    def __init__(
+        self,
+        drivers: dict[str, GenDriver] | None = None,
+        *,
+        builder=None,
+        sleep=time.sleep,
+    ):
+        self._drivers = drivers
+        self._builder = builder
         self._sleep = sleep
+
+    @property
+    def drivers(self) -> dict[str, GenDriver]:
+        if self._drivers is None:
+            self._drivers = (self._builder or dict)()
+        return self._drivers
 
     def generate(
         self,

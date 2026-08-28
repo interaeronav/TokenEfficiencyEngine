@@ -24,7 +24,7 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
     store = AssetStore(project_root, allow_sa=bool(config.get("allow_sa")))
     backends = build_backends(store, config)
     search = AssetSearch(store, backends)
-    lane = GenerationLane(build_drivers(config))
+    lane = GenerationLane(builder=lambda: build_drivers(config))
     reg = app.registry
     default_adapter = next(iter(app.adapters), "fake")
 
