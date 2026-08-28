@@ -3558,3 +3558,15 @@ benchmarks/packaging), so every A35 measurement stands for the tree it
 ran on; both sessions' commits contain only their own files. Their
 push carried A35's P0–P2 commits to origin; the P2.3+P3+P4 commits go
 up with this note.
+
+## 2026-08-29 — v0.4.0 released (owner: "give me the 0.4.0 to install")
+
+The A35 release, per the RC discipline: versions stamped in all five
+places (pyproject / __init__ / Makefile / SOURCE mcpb manifest /
+CHANGELOG dated); `make check` 613 passed / 2 skipped; five artifacts
+rebuilt; the .mcpb VERIFIED BY EXTRACTION (manifest 0.4.0, 17 tools,
+bundle pyproject 0.4.0 with `[tool.uv] default-groups = []`) — the
+0.3.1-errata gate; Desktop-style install rehearsal: plain `uv sync` →
+**29 packages / 29 MB venv**, exact manifest argv → serverInfo 0.4.0,
+17 tools, 0.32 s first answer, 74 MB RSS. Tagged v0.4.0 and pushed;
+artifact handed to the owner at server/dist/tee-engine-0.4.0.mcpb.

@@ -3,7 +3,10 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased (A35 shrink campaign)
+## 0.4.0 — 2026-08-29
+
+The A35 shrink-campaign release (owner-approved bump): smaller, faster,
+more efficient — no tool-surface changes.
 
 - **Installed Desktop bundle shrinks 98 → ~32 MB.** Claude Desktop
   provisions the bundle venv with a plain `uv sync`, which included the
