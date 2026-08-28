@@ -2939,3 +2939,38 @@ correct transcript, **109 tokens** total answer; (4) stack fully
 stopped (0 processes). Surface delta moved 145 → **188 tok** with the
 media-mode documentation; RESULTS.md sentence updated with both numbers.
 Suite **591 passed** / 2 skipped; ruff clean.
+
+## 2026-08-28 — A34: gate cleared, M2 acceptance run — triage blocked at rung 0
+
+Owner cleared the download gate ("Download all"): both models fetched
+and checksum-verified (14B 7.7 GB, 7B 4.0 GB). Machine etiquette held
+against a live obstacle: the concurrent OkongoSim session cycles UE
+commandlets (build_basic_materials.py + shader workers), so model work
+waited behind a debounced quiet-watcher; the trap suite (an acceptance
+TEST, pass/fail, contention-immune) ran during a window with the
+commandlet present but memory at 96% free — benchmark ROWS (latency/
+quality/fix-loop) stay held for a genuinely quiet machine.
+
+**Trap suite, real models (M2 acceptance):**
+- Qwen2.5-Coder-14B (chosen base): **5/6** — all three grounded
+  controls correct, module_attr_gone and import_name_gone deferred,
+  **kwarg_drift FAILED**: "Remove the 'rotation' argument" as grounded —
+  an intent-destroying fix, the exact subtle-damage class the boundary
+  bans.
+- Template iterations, honestly bounded at two: r1 added the
+  intent-preservation clause (same answer verbatim), r2 added a
+  directly analogous few-shot in a different domain (pandas kwarg-drift
+  → defer; same answer again, temperature 0). The r2 template is kept —
+  it now SPECIFIES the required behavior for any model behind the seam.
+- 7B fallback: same 5/6, same trap. With the 9B-general preview, three
+  models across two families fail identically → a class capability gap,
+  trainable, not noise.
+
+**Verdict per the script ("a trap failure blocks adoption outright"):
+the traceback-triage chore is NOT adopted at rung 0.** llm_triage stays
+registered (its answers are schema-gated and provenance-stamped, and
+2/3 trap classes defer correctly) but the fix-loop cannot lean on it
+and the M5 ledger will carry the block. kwarg-drift deferral becomes
+the first concrete rung-1 distillation target (M4's "quality gap worth
+training", now evidenced). The other six chores carry no trap gate and
+proceed to M3 on their own rows.

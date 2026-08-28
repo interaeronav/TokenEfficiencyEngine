@@ -27,7 +27,7 @@ from typing import Any
 from tee.kernel import local_llm
 from tee.kernel.errors import TeeError
 
-REVISION = "r0"
+REVISION = "r2"  # r1: intent-preservation clause; r2: kwarg-drift few-shot
 STAMP = f"tee-coder@{REVISION}"
 
 _PROBE_TTL_S = 30.0
@@ -47,7 +47,16 @@ _TRIAGE_SYSTEM = (
     '"confidence": "grounded"|"needs_verification"}. '
     "Use confidence='needs_verification' and name what to check (docs, "
     "a live probe) whenever the exact fix requires an API fact not in "
-    "the evidence. " + _BOUNDARY
+    "the evidence. A fix that silently drops what the code was trying "
+    "to do (for example deleting an argument just to stop the error) is "
+    "NOT grounded - preserve the intent or defer. " + _BOUNDARY + " "
+    "Example - failure: TypeError: read_csv() got an unexpected keyword "
+    "argument 'error_bad_lines'. Correct answer: {\"diagnosis\": \"This "
+    "pandas version no longer accepts 'error_bad_lines'.\", \"fix\": "
+    "\"Keep the behavior but verify the replacement parameter against "
+    "the installed pandas docs before changing the call.\", "
+    "\"confidence\": \"needs_verification\"} - the error names the old "
+    "parameter, not its replacement; dropping it would change behavior."
 )
 
 _REPAIR_SYSTEM = (
