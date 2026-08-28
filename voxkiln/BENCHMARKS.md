@@ -203,3 +203,13 @@ part-faces vs the mesh's true 491,888 on this input), so 36
 borderline-tiny components the inflated measure kept (2,174 faces,
 0.32% of area) now correctly fall under the negligible-share threshold.
 Grouping itself is identical (21,894 components both ways, verified).
+
+## 2026-08-28 — tranche 3: the seed-42 sweep completes (9/9 images)
+
+Five remaining eval images run single-arm (ours; stock≡ours by
+construction on MPS per the 38c1672 fp32 finding), seed 42, pipeline
+512 → `battery_rows_t3.json`, all ok. Wall 270–1,593 s per config —
+the repair-stage fix (326.8 → 9.5 s, this file, above) is inside these
+numbers. Coverage after tranche 3: all 9 eval images at seed 42;
+remaining matrix (extra seeds) stays open as future tranches. Rows
+carry the current component-cull and boundary-loop definitions.
