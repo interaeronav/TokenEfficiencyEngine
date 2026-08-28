@@ -216,3 +216,60 @@ Unchanged in shape, stronger in aim: Rung 0 now starts from a
 code-specialist base and leads with traceback triage (the chore with
 the clearest measurable payoff), Rung 1 distills from TEE's own
 failure corpus. Still an owner decision to build.
+
+## M0 adoption research (2026-08-28, A34 build session): the base is chosen
+
+Verification basis: local model-cache inventory by filesystem read and a
+live web pass run today — every claim below carries its source; nothing
+is from memory.
+
+**Local inventory first** (`~/.cache/huggingface/hub`): no code-specialist
+model is cached. Present: `mlx-community/Qwen3.5-9B-MLX-4bit` (general;
+the research-50 speed row), `Qwen3.8-27B-bf16` + `DeepSeek-V4-Flash`
+(teachers), `Qwen3-VL-30B-A3B-4bit` (vision). The choice below therefore
+requires one download → the owner gate fires (free disk today: 1.1 TiB).
+
+**Candidate table** (criteria: code-specialist, dense preferred, 7–14B,
+Apache/MIT through the lint, MLX 4-bit published, `mlx_lm.lora`-trainable,
+thinking-off operation for chores):
+
+| Candidate | License | Dense? | Code-specialist? | MLX 4-bit | Thinking-off? | Verdict |
+|---|---|---|---|---|---|---|
+| **Qwen2.5-Coder-14B-Instruct** | Apache-2.0 (HF card, verified today) | dense 14.7B | yes — generation, reasoning, **code fixing** | `mlx-community/Qwen2.5-Coder-14B-Instruct-4bit` (exists, verified) | yes (non-thinking family) | **chosen** |
+| Qwen2.5-Coder-7B-Instruct | Apache-2.0 | dense 7.6B | yes (HumanEval 88.4) | mlx-community collection | yes | fallback if M3 latency says so |
+| Qwen3-Coder family | Apache-2.0 | **no — MoE only** (30B-A3B, 480B-A35B; no dense ≤14B exists, verified today) | yes | some | mixed | out of size/architecture class |
+| Ministral-3-14B-Instruct-2512 | Apache-2.0 | dense 13.5B + 0.4B **vision encoder** | **no — general multimodal** assistant | GGUF common; MLX text-only path unclear for the vision arch | yes | fails the code-specialist filter; nonstandard arch is LoRA risk |
+| DeepSeek-R1-Distill-Qwen-14B | MIT | dense (Qwen2.5-14B base) | debugging-strong **via CoT only** | community quants | **no — reasoning-only**; thinking-off guts it, thinking-on balloons chore latency (the research-50 caveat, measured) | rejected on operational fit |
+
+Sources consulted today: qwen.ai blog (Qwen2.5-Coder family licensing:
+0.5/1.5/7/14/32B Apache-2.0, 3B research-only), HF cards
+`Qwen/Qwen2.5-Coder-14B-Instruct` (Apache-2.0, 14.7B dense, 131K ctx) and
+`mlx-community/Qwen2.5-Coder-14B-Instruct-4bit`, QwenLM/Qwen3-Coder repo
+(MoE-only lineup), mistral.ai/news/mistral-3 + HF
+`mistralai/Ministral-3-14B-Instruct-2512` (Apache-2.0, multimodal,
+LiveCodeBench-class evals, no code-first identity),
+`deepseek-ai/DeepSeek-R1-Distill-Qwen-14B` (MIT, reasoning distill).
+
+**The choice: `Qwen2.5-Coder-14B-Instruct`, served as
+`mlx-community/Qwen2.5-Coder-14B-Instruct-4bit` (~8.3 GB).** It is the
+only candidate that passes every filter simultaneously; it is also the
+exact architecture family `mlx_lm.lora` handles best (the cached general
+9B and the R1 distills are the same lineage), and its non-thinking
+operation matches the chore contract natively. The 7B sibling stays the
+recorded fallback: if M3's latency rows say the 14B is not "zippy" on
+chore-sized prompts next to the 105 tok/s 9B reference, the 7B swaps in
+behind the same seam with no code change (`TEE_LOCAL_LLM_MODEL`).
+Vintage is the honest weakness (late-2024 family) — accepted because the
+M3 benchmarks, not the release date, decide adoption per chore.
+
+**License lint**: the Apache-2.0 LICENSE of the chosen repo is fetched
+and committed under `docs/licenses/` (fail-closed check: text is the
+canonical Apache-2.0, no RAIL/NC riders — the voxkiln banned-weights
+discipline extended to the [llm] reference model).
+
+**Owner gate, now pending**: download
+`mlx-community/Qwen2.5-Coder-14B-Instruct-4bit` (~8.3 GB; free disk
+1.1 TiB). Optionally also the 7B (~4.3 GB) so the M3 latency ladder can
+compare both under one gate. Until granted: M1 and every chore runs
+against the fake endpoint; the M2 trap suite and M3 rows that need the
+real model wait.
