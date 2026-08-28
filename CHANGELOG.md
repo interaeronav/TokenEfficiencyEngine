@@ -17,8 +17,11 @@ The A34 campaign: the web lane and the local code-model chore layer.
   `tee/llm/chores.py`): script-repair drafts on tee_script refusals,
   `llm_explain`, and extractive-by-verification web-quote refinement —
   each schema-gated, provenance-stamped, degrading to deterministic
-  paths with nothing running. Traceback triage exists but is NOT
-  registered (trap-suite block; see docs/setup-local-llm.md).
+  paths with nothing running. Traceback triage (`llm_triage`) ships
+  gated by the **tee-triage-a2 LoRA adapter** (rung 1): blocked on the
+  bare base by the trap suite, adopted when the adapter passed the full
+  suite plus latency/quality/held-out gates; `[llm] adapters` /
+  `TEE_LOCAL_LLM_ADAPTERS` serve it (see docs/setup-local-llm.md).
 - **BREAKING (SI-3.2)**: the primary list field of tool responses is
   now uniformly `items` — previously `tools` (tee_search_tools,
   ue_search_tools), `hits` (kb_search, ex_search), `materials`

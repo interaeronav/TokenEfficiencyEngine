@@ -3087,3 +3087,29 @@ benchmarks/rung1/RUNBOOK.md, (8) the remaining research-48 battery
 tranche (voxkiln/benchmarks/battery.py, single-arm per the fp32
 finding). 0.3.0 bump recommended AFTER the LoRA outcome settles the
 chore surface (adoption would re-register llm_triage).
+
+## 2026-08-28 — Rung 1 executed: tee-triage-a2 adopted, llm_triage returns
+
+Owner cleared the machine (post-reboot; OkongoSim done). The run, per
+RUNBOOK: a1 (400/family, rigid templates, stopped at iter 200 on a
+0.000 plateau) PASSED kwarg-drift generalization but broke the
+enum_listed control with a chimera of training templates — recorded and
+discarded: the lesson is that rigid single-phrasing templates train
+phrase-association, not the decision. a2 regenerated the set with
+paraphrase diversity (4-6 phrasings/family), a new looks-like-drift-
+but-grounded family (typo suggestions in-error), grounded as the
+majority class (1,519/1,141), 120 iters to val 0.017. Gates, in order:
+**trap suite 6/6** (drift deferral generalizes across the vocabulary
+blacklist into bpy/unreal), latency 0.76–1.77 s (~+0.1 s per-request
+adapter cost), extract-quality 22 vs 21 with the base run's abstention
+now answering clean, **held-out 5/5**. Adopted: llm_triage registered,
+REVISION r3+tee-triage-a2, adapter (44 MB) committed; setup doc carries
+the serving quirk found by source read — mlx_lm.server resolves its
+--adapter-path map against the already-resolved model path (~line 389),
+so the flag never applies to named-model requests; TEE passes the
+adapter per-request instead ("adapters" field, ignored by servers that
+don't know it). Two debugging dead-ends recorded honestly: the base
+model answering through a mis-routed server (model name vs default_model)
+and a suspected-then-cleared prompt-cache contamination. Suite 608
+green. The M4 gate closes ADOPTED; the fix-loop's chore surface is now
+complete as designed.

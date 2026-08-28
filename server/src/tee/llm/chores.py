@@ -107,11 +107,13 @@ _RERANK_SYSTEM = (
 )
 
 
-def _endpoint(cfg: dict[str, Any] | None) -> tuple[str, str]:
+def _endpoint(cfg: dict[str, Any] | None) -> tuple[str, str, str | None]:
     cfg = cfg or {}
+    adapters = cfg.get("adapters") or local_llm.DEFAULT_ADAPTERS
     return (
         str(cfg.get("url") or local_llm.DEFAULT_URL),
         str(cfg.get("model") or local_llm.DEFAULT_MODEL),
+        str(adapters) if adapters else None,
     )
 
 
@@ -147,12 +149,12 @@ def _run(
         raise TeeError(
             "llm_bad_arg", f"refine='{refine}' is not a mode.", fix="Use auto, local, or off."
         )
-    url, model = _endpoint(cfg)
+    url, model, adapters = _endpoint(cfg)
     if not _ready(refine, url):
         return None
     try:
         raw = local_llm.complete_json(
-            prompt, system=system, url=url, model=model, max_tokens=max_tokens
+            prompt, system=system, url=url, model=model, max_tokens=max_tokens, adapters=adapters
         )
     except TeeError:
         if refine == "local":

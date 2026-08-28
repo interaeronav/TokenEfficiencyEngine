@@ -34,6 +34,7 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
     [llm]
     url = "http://127.0.0.1:8080/v1"  # any OpenAI-compatible local endpoint
     model = "tee-coder"               # served model name (research 50 M0)
+    adapters = "…/tee-triage-a2"      # optional LoRA dir, sent per-request
 """
 
 from __future__ import annotations

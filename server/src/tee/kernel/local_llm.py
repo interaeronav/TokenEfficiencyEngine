@@ -26,6 +26,11 @@ from tee.kernel.errors import TeeError
 
 DEFAULT_URL = os.environ.get("TEE_LOCAL_LLM_URL", "http://127.0.0.1:4000/v1")
 DEFAULT_MODEL = os.environ.get("TEE_LOCAL_LLM_MODEL", "tee-coder")
+# Optional LoRA adapter dir, passed per-request ("adapters" field). Needed
+# because mlx_lm.server resolves its --adapter-path map against the
+# already-resolved model path (server.py ~line 389, read 2026-08-28), so
+# the startup flag alone never applies; other servers ignore the field.
+DEFAULT_ADAPTERS = os.environ.get("TEE_LOCAL_LLM_ADAPTERS") or None
 
 _UNREACHABLE_FIX = (
     "Start the local model stack (`mlx_lm.server --model "
@@ -59,6 +64,7 @@ def complete(
     temperature: float = 0.0,
     timeout: float = 120.0,
     response_format: dict | None = None,
+    adapters: str | None = DEFAULT_ADAPTERS,
 ) -> str:
     """One chore completion: deterministic, thinking-off, budgeted."""
     messages: list[dict] = []
@@ -76,6 +82,8 @@ def complete(
     }
     if response_format:
         body["response_format"] = response_format
+    if adapters:
+        body["adapters"] = adapters
     request = urllib.request.Request(
         f"{url}/chat/completions",
         data=json.dumps(body).encode(),
@@ -114,6 +122,7 @@ def complete_json(
     model: str = DEFAULT_MODEL,
     max_tokens: int = 500,
     timeout: float = 120.0,
+    adapters: str | None = DEFAULT_ADAPTERS,
 ) -> dict:
     """A completion that must parse as a JSON object - retried once with a
     corrective nudge, then failed loud. Schema validation stays with the
@@ -125,6 +134,7 @@ def complete_json(
         max_tokens=max_tokens,
         timeout=timeout,
         response_format={"type": "json_object"},
+        adapters=adapters,
     )
     text = complete(prompt, **kwargs)
     parsed = _parse_json_object(text)

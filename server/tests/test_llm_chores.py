@@ -265,3 +265,27 @@ def test_web_lookup_refine_off_never_calls_the_model(tmp_path) -> None:
     assert "model" not in answer
     assert calls == []
     assert "25 to 40 mm" in answer["quote"]  # the dumb path stands
+
+
+def test_adapters_passthrough_reaches_the_request_body(monkeypatch) -> None:
+    reply = json.dumps({"diagnosis": "d", "fix": "f", "confidence": "grounded"})
+    with fake_llm_server([reply]) as (url, calls):
+        result = chores.triage(
+            "boom", cfg={"url": url, "model": "fake", "adapters": "/tmp/adapter-x"}
+        )
+    assert result is not None
+    assert calls[0].get("adapters") == "/tmp/adapter-x"
+
+
+def test_llm_triage_is_registered_again(tmp_path) -> None:
+    from tee.app import TeeApp
+    from tee.kernel.adapter import FakeAdapter
+    from tee.llm.tools import register_llm_tools
+
+    app = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    try:
+        register_llm_tools(app, tmp_path)
+        description = app.registry.describe("llm_triage")["description"]
+        assert "needs_verification" in description
+    finally:
+        app.shutdown()

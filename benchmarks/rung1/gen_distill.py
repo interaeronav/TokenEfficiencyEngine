@@ -60,6 +60,38 @@ ATTRS = [
 
 BLACKLIST = {"primitive_cube_add", "rotation", "EditorLevelLibrary", "Annotation", "holes_fill"}
 
+# Paraphrase pools (a2): the decision must be the learnable signal, not the
+# phrasing - a1's rigid templates trained phrase-association and produced
+# chimera answers on the controls.
+DRIFT_DIAG = [
+    "This {lib} version does not accept '{kw}' on {fn}().",
+    "{fn}() no longer takes a '{kw}' argument in the installed {lib}.",
+    "The installed {lib} dropped the '{kw}' parameter of {fn}().",
+    "'{kw}' is not a parameter of {fn}() in this {lib} build.",
+]
+DRIFT_FIX = [
+    "Keep the intended behavior: check {fn}()'s current parameters in the {lib} docs before editing the call.",
+    "Verify what replaced '{kw}' in the installed {lib} documentation; removing it would change behavior.",
+    "Look up {fn}() in the {lib} changelog for the successor of '{kw}', then update the call.",
+    "The replacement name is not in the evidence - confirm it against the {lib} docs first.",
+]
+ENUM_ERRORS = [
+    "TypeError: enum \"{bad}\" not found in {good}",
+    "ValueError: '{bad}' is not a valid mode, must be one of {good}",
+    "ValueError: invalid choice: '{bad}' (choose from {good})",
+    "TypeError: mode expected one of {good}, got '{bad}'",
+]
+ENUM_DIAG = [
+    "'{bad}' is not a valid value; the error lists the valid set.",
+    "The mode '{bad}' does not exist - the accepted values are right in the error.",
+    "'{bad}' is rejected because only {good} are accepted.",
+]
+ENUM_FIX = [
+    "Use one of {good} - the full set is in the evidence.",
+    "Replace '{bad}' with the matching value from {good}.",
+    "Pick the appropriate mode from {good}; no lookup needed.",
+]
+
 
 def _clean(pool: list[str]) -> list[str]:
     return [x for x in pool if x not in BLACKLIST]
@@ -74,10 +106,8 @@ def _drift_kwarg(rng: random.Random) -> dict:
         f"TypeError: {fn}() got an unexpected keyword argument '{kw}'"
     )
     answer = {
-        "diagnosis": f"This {lib} version does not accept '{kw}' on {fn}().",
-        "fix": f"Keep the intended behavior: verify {fn}()'s current parameters "
-        f"in the installed {lib} docs before changing the call - dropping "
-        f"'{kw}' would silently change what the code does.",
+        "diagnosis": rng.choice(DRIFT_DIAG).format(lib=lib, fn=fn, kw=kw),
+        "fix": rng.choice(DRIFT_FIX).format(lib=lib, fn=fn, kw=kw),
         "confidence": "needs_verification",
     }
     return _example(failure, "", answer)
@@ -138,18 +168,37 @@ def _grounded_none(rng: random.Random) -> dict:
 
 def _grounded_enum(rng: random.Random) -> dict:
     fn = rng.choice(_clean(FUNCS))
-    good = rng.sample(["FAST", "SAFE", "FULL", "NONE", "AUTO"], 3)
-    bad = rng.choice(["TURBO", "MAX", "ULTRA"])
+    good = tuple(rng.sample(["FAST", "SAFE", "FULL", "NONE", "AUTO", "STRICT", "LOOSE"], 3))
+    bad = rng.choice(["TURBO", "MAX", "ULTRA", "QUICK", "BEST"])
     failure = (
         f"Traceback (most recent call last):\n"
         f'  File "cfg.py", line {rng.randint(2, 20)}, in <module>\n'
-        f"    {fn}(mode='{bad}')\n"
-        f"TypeError: enum \"{bad}\" not found in {tuple(good)}"
+        f"    {fn}(mode='{bad}')\n" + rng.choice(ENUM_ERRORS).format(bad=bad, good=good)
     )
     answer = {
-        "diagnosis": f"'{bad}' is not a valid mode; the error lists the valid ones.",
-        "fix": f"Pick the closest valid mode from {tuple(good)} - likely "
-        f"'{good[0]}' - the full set is in the evidence.",
+        "diagnosis": rng.choice(ENUM_DIAG).format(bad=bad, good=good),
+        "fix": rng.choice(ENUM_FIX).format(bad=bad, good=good),
+        "confidence": "grounded",
+    }
+    return _example(failure, "", answer)
+
+
+def _grounded_suggestion(rng: random.Random) -> dict:
+    """Looks like drift, but the error itself names the replacement - the
+    boundary case a1 got wrong in reverse: this must stay grounded."""
+    lib, fn = rng.choice(_clean(LIBS)), rng.choice(_clean(FUNCS))
+    kw = rng.choice(_clean(KWARGS))
+    typo = kw[:-2] + kw[-1] if len(kw) > 3 else kw + "s"
+    failure = (
+        f"Traceback (most recent call last):\n"
+        f'  File "job.py", line {rng.randint(3, 30)}, in <module>\n'
+        f"    {lib}.{fn}(data, {typo}=True)\n"
+        f"TypeError: {fn}() got an unexpected keyword argument '{typo}'. "
+        f"Did you mean '{kw}'?"
+    )
+    answer = {
+        "diagnosis": f"'{typo}' is a typo; the error itself suggests '{kw}'.",
+        "fix": f"Rename the argument to '{kw}' - the correct name is in the evidence.",
         "confidence": "grounded",
     }
     return _example(failure, "", answer)
@@ -185,7 +234,8 @@ def _example(failure: str, context: str, answer: dict) -> dict:
     }
 
 
-FAMILIES = [_drift_kwarg, _drift_attr, _drift_import, _grounded_none, _grounded_enum, _grounded_index]
+FAMILIES = [_drift_kwarg, _drift_attr, _drift_import, _grounded_none,
+            _grounded_enum, _grounded_suggestion, _grounded_index]
 
 
 def main() -> None:

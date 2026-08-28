@@ -1,16 +1,16 @@
-"""Virtual tools over the chore layer (A34 M2): llm_explain.
+"""Virtual tools over the chore layer (A34 M2): llm_triage, llm_explain.
 
 Long-tail by design - the chores add zero always-loaded surface. Tools
 degrade to a structured start-the-stack refusal when no endpoint
 answers; with the default 'auto' they answer honestly that the chore is
 unavailable and the evidence stands.
 
-llm_triage is deliberately NOT registered: the M2 trap suite blocked the
-traceback-triage chore at rung 0 (kwarg-drift traps answered with
-intent-destroying fixes labeled grounded, across three models -
-PROGRESS 2026-08-28). The chore function and its trap suite stay in the
-tree as the rung-1 training target; registration returns only when the
-full trap suite passes.
+llm_triage was blocked at rung 0 (kwarg-drift traps answered with
+intent-destroying fixes across three bare models) and returned at rung
+1: the tee-triage-a2 adapter passes the FULL trap suite plus the
+latency, quality, and held-out gates (PROGRESS 2026-08-28). Serving
+with the adapter: docs/setup-local-llm.md (TEE_LOCAL_LLM_ADAPTERS /
+[llm] adapters).
 """
 
 from __future__ import annotations
@@ -24,6 +24,22 @@ from tee.llm import chores
 
 def register_llm_tools(app, project_root: Path | str) -> None:
     cfg = dict(getattr(app.config, "llm", {}) or {})
+
+    def llm_triage(args):
+        result = chores.triage(
+            str(args.get("failure", "")),
+            str(args.get("context", "")),
+            refine=str(args.get("refine", "auto")),
+            cfg=cfg,
+        )
+        if result is None:
+            raise TeeError(
+                "llm_unavailable",
+                "No local model is running; the failure text stands as-is.",
+                fix="Start the local stack (see [llm] in .tee/config.toml) or "
+                "reason from the traceback directly.",
+            )
+        return result
 
     def llm_explain(args):
         result = chores.explain_lint(
@@ -41,6 +57,25 @@ def register_llm_tools(app, project_root: Path | str) -> None:
         return result
 
     for tool in [
+        VirtualTool(
+            "llm_triage",
+            "One-line diagnosis + exact fix for a failure/traceback, from the "
+            "local code model at zero client reasoning cost. Evidence-only: "
+            "answers confidence='needs_verification' when the fix depends on "
+            "an API fact not in the evidence (the A30 boundary, adapter-"
+            "enforced). Server-side, provenance-stamped.",
+            {
+                "type": "object",
+                "properties": {
+                    "failure": {"type": "string"},
+                    "context": {"type": "string"},
+                    "refine": {"type": "string"},
+                },
+                "required": ["failure"],
+            },
+            llm_triage,
+            tags=["llm", "debug", "traceback", "triage", "error", "fix"],
+        ),
         VirtualTool(
             "llm_explain",
             "The shortest actionable phrasing of a deterministic checker "

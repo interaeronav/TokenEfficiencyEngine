@@ -41,7 +41,19 @@ mlx_lm.server --model mlx-community/Qwen2.5-Coder-14B-Instruct-4bit --port 8080
 [llm]
 url = "http://127.0.0.1:8080/v1"
 model = "mlx-community/Qwen2.5-Coder-14B-Instruct-4bit"
+adapters = "/path/to/TokenEfficiencyEngine/benchmarks/rung1/adapters/tee-triage-a2"
 ```
+
+The `adapters` line loads TEE's **tee-triage-a2** LoRA (the rung-1
+"motivation pack": full trap suite green where the bare base fails
+kwarg-drift). TEE passes it per-request in the OpenAI-extension
+`adapters` field because mlx_lm.server's startup `--adapter-path` is
+never applied to named-model requests (the server resolves its adapter
+map against the already-resolved model path - server.py ~line 389,
+read 2026-08-28); servers that don't know the field ignore it, and the
+bare base remains fully supported (triage then answers less
+conservatively - the trap suite documents the difference).
+Environment form: `TEE_LOCAL_LLM_ADAPTERS=<path>`.
 
 The 7B sibling (~4.3 GB) is the recorded fallback when the latency
 ladder matters more than answer strength; it swaps in behind the same
@@ -76,11 +88,13 @@ evidence must answer `confidence: "needs_verification"` and name what
 to check. The trap suite (`server/tests/test_llm_traps.py`, `llm`
 marker) enforces this against the real model: seeded tracebacks whose
 correct fix requires an omitted API must defer; grounded controls must
-not. A trap failure blocks adoption outright — and did: the
-traceback-triage chore is **blocked at rung 0** (kwarg-drift traps
-answered with intent-destroying fixes across three models, 2026-08-28),
-so `llm_triage` is not registered; it returns when a rung-1 adapter
-passes the full suite. Deterministic checkers
+not. A trap failure blocks adoption outright — and did, at rung 0: the
+bare base (three models tried) answered kwarg-drift traps with
+intent-destroying fixes. The rung-1 **tee-triage-a2** adapter closed
+the gap (full suite green, latency/quality/held-out gates passed,
+2026-08-28), so `llm_triage` is registered; on a bare base without the
+adapter, treat its drift-case answers with rung-0 suspicion — the trap
+suite is the acceptance for any substitute model. Deterministic checkers
 (lint, plaus_check, validators) stay the judges everywhere — the model
 translates findings, never overrules them.
 
