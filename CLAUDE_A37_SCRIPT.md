@@ -197,5 +197,5 @@ row (tokens per completed drawing-set, naive vs TEE). Suites + CI
 green; docs and skills updated; artifacts rebuilt and rehearsed;
 campaign ledger in PROGRESS (surface delta target 0, probe decisions,
 acceptance pointers, wrong-way numbers explained); `tee_remember` the
-close-out. Version recommendation by semver (expected 0.4.0); the
-tag stays the owner's step.
+close-out. Version recommendation by semver (expected 0.5.0 — A35 took 0.4.0);
+the tag stays the owner's step.
