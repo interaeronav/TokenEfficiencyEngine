@@ -11,7 +11,6 @@ no I/O.
 from __future__ import annotations
 
 import pytest
-
 from fixtures_web import (
     DOCS_PAGE,
     HOSTILE_ALT,
@@ -21,6 +20,7 @@ from fixtures_web import (
     INJECTION,
     TINY_PAGE,
 )
+
 from tee.kernel.budget import estimate_tokens
 from tee.web import extract
 

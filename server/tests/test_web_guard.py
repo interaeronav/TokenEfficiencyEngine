@@ -99,7 +99,9 @@ def test_allow_local_admits_loopback() -> None:
 
 
 def test_hostname_pins_resolved_public_ip() -> None:
-    target = guard.validate_url("https://example.com/x", resolve=lambda host, port: ["93.184.216.34"])
+    target = guard.validate_url(
+        "https://example.com/x", resolve=lambda host, port: ["93.184.216.34"]
+    )
     assert (target.scheme, target.host, target.port) == ("https", "example.com", 443)
     assert target.ip == "93.184.216.34"
     assert target.url == "https://example.com/x"

@@ -15,12 +15,14 @@ import threading
 from typing import Any
 
 import pytest
-
 from fixtures_web import TINY_PAGE, robots_txt
+
 from tee.kernel.errors import TeeError
 from tee.web.fetch import WebFetcher
 
-HOSTS = {"site.example": ["93.184.216.34"], "other.example": ["203.0.113.7"]}
+# Real public addresses on purpose: documentation/TEST-NET ranges are
+# correctly non-global to the guard, so they cannot play "public" here.
+HOSTS = {"site.example": ["93.184.216.34"], "other.example": ["151.101.1.140"]}
 
 
 def resolve(host: str, port: int) -> list[str]:
@@ -192,7 +194,7 @@ def test_429_twice_gives_up_loud(tmp_path) -> None:
 
 
 def test_redirect_followed_with_revalidation(tmp_path) -> None:
-    fetcher, transport, _ = make_fetcher(
+    fetcher, _, _ = make_fetcher(
         tmp_path,
         {
             "http://site.example/robots.txt": NO_ROBOTS,
@@ -343,7 +345,7 @@ def test_offline_with_cache_degrades_to_stale(tmp_path) -> None:
 
 
 class _Handler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self) -> None:  # noqa: N802 - stdlib API name
+    def do_GET(self) -> None:
         body, status = b"", 200
         if self.path == "/robots.txt":
             body = robots_txt().encode()
@@ -368,9 +370,7 @@ def test_live_loopback_fetch_through_allow_local(tmp_path) -> None:
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        fetcher = WebFetcher(
-            tmp_path, allow_local=True, ports=(80, 443, port), min_interval_s=0.0
-        )
+        fetcher = WebFetcher(tmp_path, allow_local=True, ports=(80, 443, port), min_interval_s=0.0)
         result = fetcher.fetch(f"http://127.0.0.1:{port}/page.html")
         assert result.status == 200
         assert b"One short paragraph" in result.body
@@ -378,9 +378,7 @@ def test_live_loopback_fetch_through_allow_local(tmp_path) -> None:
             fetcher.fetch(f"http://127.0.0.1:{port}/secret")
         assert excinfo.value.code == "web_robots_blocked"
         with pytest.raises(TeeError) as blocked:
-            WebFetcher(tmp_path, ports=(80, 443, port)).fetch(
-                f"http://127.0.0.1:{port}/page.html"
-            )
+            WebFetcher(tmp_path, ports=(80, 443, port)).fetch(f"http://127.0.0.1:{port}/page.html")
         assert blocked.value.code == "web_private_blocked"
     finally:
         server.shutdown()

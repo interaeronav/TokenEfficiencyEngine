@@ -51,7 +51,8 @@ HOSTILE_UNICODE = (
 
 # --- benign pages -----------------------------------------------------------
 
-DOCS_PAGE = """<!doctype html>
+DOCS_PAGE = (
+    """<!doctype html>
 <html><head><title>bmesh module reference</title>
 <style>.nav { color: red; }</style></head>
 <body>
@@ -62,8 +63,11 @@ DOCS_PAGE = """<!doctype html>
 <h2>Boolean operations</h2>
 <p>bmesh.ops.boolean was added in 5.0 and expects manifold input meshes.</p>
 <h2>Unrelated appendix</h2>
-""" + "\n".join(f"<p>Filler paragraph {i} about nothing in particular.</p>" for i in range(200)) + """
+"""
+    + "\n".join(f"<p>Filler paragraph {i} about nothing in particular.</p>" for i in range(200))
+    + """
 </body></html>"""
+)
 
 TINY_PAGE = """<!doctype html><html><head><title>Tiny</title></head>
 <body><p>One short paragraph, nothing more.</p></body></html>"""
