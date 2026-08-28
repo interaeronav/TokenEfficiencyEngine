@@ -56,7 +56,8 @@ SEARX_PAYLOAD = {
 BRAVE_PAYLOAD = {
     "web": {
         "results": [
-            {"title": "Paving spec", "url": "https://spec.example/p", "description": "Sand depth spec."},
+            {"title": "Paving spec", "url": "https://spec.example/p",
+             "description": "Sand depth spec."},
         ]
     }
 }  # fmt: skip
