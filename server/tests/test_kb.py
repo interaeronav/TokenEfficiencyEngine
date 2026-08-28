@@ -316,6 +316,70 @@ def test_empty_result_returns_domains_not_silence(kb):
     assert {d["slug"] for d in result["domains"]} == {"10_paving", "20_walls"}
 
 
+# -- kb_propose (A37 P5.2 = A36 G6): gated authoring, A31-preserving -------
+
+
+GOOD_PROPOSAL = {
+    "id": "paving.kerb_bedding",
+    "title": "Kerb bedding mixes",
+    "domain": "10_paving",
+    "summary": "Kerbs bed on a semi-dry 1:4 mix laid ahead of the units.",
+    "key_facts": ["Mix 1:4 cement:sand", "Bed thickness 25 mm"],
+    "sources": [{"title": "CMA kerb note", "url": "https://example.test/kerb"}],
+}
+
+
+def test_propose_stages_a_complete_schema_shaped_draft(kb):
+    app, _ = kb
+    out = app.registry.call("kb_propose", dict(GOOD_PROPOSAL))
+    assert out["ok"] is True and out["status"] == "proposed"
+    assert "/.tee/kb-staging/" in out["path"]
+    assert "A31" in out["note"]
+    text = Path(out["path"]).read_text(encoding="utf-8")
+    for needle in (
+        "id: paving.kerb_bedding",
+        "status: proposed",
+        "confidence: low",
+        'url: "https://example.test/kerb"',
+        "UNVERIFIED PROPOSAL",
+        "## Key facts",
+        "- Mix 1:4 cement:sand",
+        "## Sources",
+        "## Open questions",
+    ):
+        assert needle in text, needle
+    replaced = app.registry.call("kb_propose", dict(GOOD_PROPOSAL))
+    assert "replaced" in replaced
+
+
+def test_propose_cannot_write_the_mirror(kb):
+    app, corpus = kb
+    before = sorted(str(p) for p in corpus.rglob("*"))
+    for bad_id in ("../evil", "x/../../y", "10_paving/evil", "Upper.Case", "plain"):
+        with pytest.raises(TeeError) as excinfo:
+            app.registry.call("kb_propose", {**GOOD_PROPOSAL, "id": bad_id})
+        assert excinfo.value.code == "kb_bad_id", bad_id
+    app.registry.call("kb_propose", dict(GOOD_PROPOSAL))  # a good one...
+    assert sorted(str(p) for p in corpus.rglob("*")) == before  # ...mirror untouched
+
+
+def test_propose_validates_domain_jurisdiction_and_citations(kb):
+    app, _ = kb
+    with pytest.raises(TeeError) as excinfo:
+        app.registry.call("kb_propose", {**GOOD_PROPOSAL, "domain": "99_nope"})
+    assert excinfo.value.code == "kb_bad_domain"
+    assert "10_paving" in excinfo.value.fix
+    with pytest.raises(TeeError) as excinfo:
+        app.registry.call("kb_propose", {**GOOD_PROPOSAL, "jurisdiction": "mars"})
+    assert excinfo.value.code == "kb_bad_jurisdiction"
+    with pytest.raises(TeeError) as excinfo:
+        app.registry.call("kb_propose", {**GOOD_PROPOSAL, "sources": []})
+    assert excinfo.value.code == "kb_uncited"
+    with pytest.raises(TeeError) as excinfo:
+        app.registry.call("kb_propose", {**GOOD_PROPOSAL, "sources": [{"title": "no url"}]})
+    assert excinfo.value.code == "kb_uncited"
+
+
 # -- reads -----------------------------------------------------------------
 
 

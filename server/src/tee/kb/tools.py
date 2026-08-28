@@ -8,12 +8,16 @@ needs-verification or low-confidence is labelled, never served bare (A30).
 
 from __future__ import annotations
 
+import json
+import re
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from tee.kb import search as kb_search_mod
 from tee.kb.index import KbIndex, resolve_root
 from tee.kernel.budget import estimate_tokens
+from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
 DEFAULT_READ_TOKENS = 800
@@ -212,6 +216,134 @@ def register_kb_tools(app, project_root: Path | str, *, root: str | None = None)
             out["stale"] = drift.get("fix", "index is stale - see kb_status")
         return out
 
+    # -- kb_propose (A37 P5.2 = A36 G6): gated authoring, A31-preserving ---
+    # "The KB joins TEE as a read-only query module ... never written to by
+    # TEE" (DECISIONS A31, 2026-08-26). Proposals therefore land ONLY in the
+    # project's .tee/kb-staging/; the mirror stays untouchable by
+    # construction, and a draft grounds nothing until the owner re-verifies
+    # it at its cited sources and moves it in per docs/setup-kb.md.
+
+    _JURISDICTIONS = ("global", "namibia", "south-africa", "southern-africa", "eu", "us", "uk")
+    _ID_SHAPE = re.compile(r"^[a-z0-9]+(\.[a-z0-9_]+)+$")
+    staging_root = (Path(project_root) / ".tee" / "kb-staging").resolve()
+
+    def kb_propose(args: dict[str, Any]) -> dict[str, Any]:
+        draft_id = str(args.get("id") or "").strip()
+        if not _ID_SHAPE.fullmatch(draft_id):
+            raise TeeError(
+                "kb_bad_id",
+                f"'{draft_id}' is not a corpus id.",
+                fix="Use dotted lowercase like 'joinery.euro_hinges' - letters, "
+                "digits, dots, underscores only (no slashes).",
+            )
+        data = index.load()
+        domains = [d["slug"] for d in data.get("domains", [])]
+        domain = str(args.get("domain") or "")
+        if domain not in domains:
+            raise TeeError(
+                "kb_bad_domain",
+                f"'{domain}' is not a corpus domain.",
+                fix=f"One of: {', '.join(domains)}.",
+            )
+        jurisdiction = str(args.get("jurisdiction") or "global")
+        if jurisdiction not in _JURISDICTIONS:
+            raise TeeError(
+                "kb_bad_jurisdiction",
+                f"'{jurisdiction}' is not in the corpus schema.",
+                fix=f"One of: {', '.join(_JURISDICTIONS)} (00_meta/SCHEMA.md).",
+            )
+        title = str(args.get("title") or "").strip()
+        summary = str(args.get("summary") or "").strip()
+        if not title or not summary:
+            raise TeeError(
+                "kb_bad_draft",
+                "A proposal needs title and summary.",
+                fix="Give a sentence-case title and a 2-5 sentence summary.",
+            )
+        sources = [s for s in (args.get("sources") or []) if isinstance(s, dict) and s.get("url")]
+        if not sources:
+            raise TeeError(
+                "kb_uncited",
+                "A proposal without sources cannot be reviewed.",
+                fix="Give sources as [{title, url, publisher?, accessed?}] - "
+                "cited material in, cited draft out (tee_web_lookup answers "
+                "carry their citation).",
+            )
+        today = date.today().isoformat()
+        source_lines = []
+        for s in sources:
+            entry = {
+                "title": str(s.get("title") or s["url"]),
+                "url": str(s["url"]),
+                "publisher": str(s.get("publisher") or ""),
+                "accessed": str(s.get("accessed") or today),
+            }
+            quoted = {k: json.dumps(v) for k, v in entry.items()}
+            source_lines.append(
+                f"  - {{title: {quoted['title']}, url: {quoted['url']}, "
+                f"publisher: {quoted['publisher']}, accessed: {quoted['accessed']}}}"
+            )
+        tags = [str(t).strip().lower() for t in (args.get("tags") or []) if str(t).strip()]
+        facts = [str(f).strip() for f in (args.get("key_facts") or []) if str(f).strip()]
+        body_extra = str(args.get("body") or "").strip()
+        front = [
+            "---",
+            f"id: {draft_id}",
+            f"title: {json.dumps(title)}",
+            f"domain: {domain}",
+            f"tags: [{', '.join(tags)}]",
+            f"jurisdiction: {jurisdiction}",
+            "status: proposed",
+            f"confidence: {args.get('confidence') or 'low'!s}",
+            f"updated: {today}",
+            "sources:",
+            *source_lines,
+            "proposed_by: tee kb_propose",
+            "---",
+        ]
+        body = [
+            f"# {title}",
+            "",
+            "> ⚠️ UNVERIFIED PROPOSAL (kb_propose): grounds nothing until the",
+            "> owner re-verifies every fact at its cited source and accepts it",
+            "> per docs/setup-kb.md (A30/A31).",
+            "",
+            summary,
+        ]
+        if facts:
+            body += ["", "## Key facts", "", *[f"- {f}" for f in facts]]
+        if body_extra:
+            body += ["", body_extra]
+        body += [
+            "",
+            "## Sources",
+            "",
+            *[f"- [{s.get('title') or s['url']!s}]({s['url']})" for s in sources],
+            "",
+            "## Open questions",
+            "",
+            "- Every fact above awaits re-verification at its cited source.",
+        ]
+        path = (staging_root / f"{draft_id}.md").resolve()
+        if not path.is_relative_to(staging_root):  # belt over the id regex
+            raise TeeError(
+                "kb_bad_id", "The id escapes the staging folder.", fix="No path parts in ids."
+            )
+        replaced = path.exists()
+        staging_root.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join([*front, "", *body]) + "\n", encoding="utf-8")
+        out = {
+            "ok": True,
+            "id": draft_id,
+            "path": str(path),
+            "status": "proposed",
+            "note": "UNVERIFIED draft staged OUTSIDE the corpus (A31: TEE never "
+            "writes the mirror). Owner accepts per docs/setup-kb.md.",
+        }
+        if replaced:
+            out["replaced"] = "a previous draft of this id was overwritten"
+        return out
+
     filter_props = {
         "domain": {"type": "string"},
         "jurisdiction": {"type": "string"},
@@ -264,6 +396,43 @@ def register_kb_tools(app, project_root: Path | str, *, root: str | None = None)
             },
             kb_read,
             tags=["kb", "knowledge", "read", "section", "cite"],
+        ),
+        VirtualTool(
+            "kb_propose",
+            "Draft a NEW Knowledge Base entry for owner review. Writes a "
+            "complete schema-shaped candidate (frontmatter with cited "
+            "sources, status=proposed, UNVERIFIED banner) into "
+            ".tee/kb-staging/ ONLY - the corpus mirror is never written by "
+            "TEE (decision A31: 'a read-only query module ... never written "
+            "to by TEE'). Pair with tee_web_lookup: cited material in, "
+            "cited draft out. The owner accepts per docs/setup-kb.md.",
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "domain": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "key_facts": {"type": "array", "items": {"type": "string"}},
+                    "body": {"type": "string"},
+                    "tags": {"type": "array", "items": {"type": "string"}},
+                    "jurisdiction": {"type": "string"},
+                    "confidence": {"type": "string"},
+                    "sources": {"type": "array", "items": {"type": "object"}},
+                },
+                "required": ["id", "title", "domain", "summary", "sources"],
+            },
+            kb_propose,
+            tags=["kb", "knowledge", "propose", "draft", "staging", "author"],
+            examples=[
+                {
+                    "id": "joinery.euro_hinges",
+                    "title": "Euro (cup) hinges - boring, mounting, adjustment",
+                    "domain": "06_joinery_and_woodwork",
+                    "summary": "Cup hinges bore 35 mm...",
+                    "sources": [{"title": "Blum catalogue", "url": "https://example/blum"}],
+                }
+            ],
         ),
         VirtualTool(
             "kb_facts",

@@ -88,3 +88,26 @@ kb_facts  {"query": "cement lead time okongo logistics"}
 
 `tee doctor` includes a `kb` check: root resolution, manifest readability,
 and the drift count, each with its one-line fix.
+
+## Proposing new entries: kb_propose and the owner review (A37)
+
+`kb_propose` (virtual, via `tee_call`) drafts a complete schema-shaped
+candidate entry — frontmatter per `00_meta/SCHEMA.md` with **cited
+sources required**, `status: proposed`, an UNVERIFIED banner in the
+body — into **`<project>/.tee/kb-staging/<id>.md`**, and nowhere else.
+Decision A31 stands verbatim: *"the KB joins TEE as a read-only query
+module (`tee/kb/`), indexed from the corpus's own `manifest.json`,
+never written to by TEE."* The staging folder is outside the corpus by
+construction, ids cannot carry path separators, and a test asserts the
+mirror is untouched by any propose. It pairs with `tee_web_lookup`:
+cited material in, cited draft out.
+
+**To accept a draft (owner, by hand):** re-verify every fact at its
+cited source, then move the file into
+`knowledge-base/<domain>/NN_kebab-title.md`, set `status` to
+`stable`/`draft`/`needs-verification` per your verification (the
+`proposed` status is deliberately outside the corpus enum so an
+unreviewed draft can never validate as corpus-ready), drop the
+`proposed_by` line and the UNVERIFIED banner, and run the corpus's own
+`00_meta/rebuild.py` + `validate.py`. To reject: delete the file from
+staging.

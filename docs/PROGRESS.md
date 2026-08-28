@@ -3841,3 +3841,30 @@ clears. make check 647/2 green.
   gets built from this doc alone.
 
 Suite **671 passed / 2 skipped** (647 + 24), ruff clean.
+
+## 2026-08-29 — A37 P5.2: kb_propose shipped (= A36 G6, worked ahead of blocked P4/P5.1)
+
+Phase-order note, honest: P4 and P5.1 wait on the owner install gate
+(FreeCAD 1.1.3 / Home Builder 5.1), so the campaign's next UNBLOCKED
+item was taken per the script's own interleaving allowance. kb_propose
+is pure server work with self-contained acceptance.
+
+- **`kb_propose`** (virtual, registers with the kb lane): drafts a
+  complete `00_meta/SCHEMA.md`-shaped candidate — required cited
+  sources ({title, url, publisher, accessed}), domain validated against
+  the live corpus domain table (rule-6 listing on miss), jurisdiction
+  validated against the schema enum, `status: proposed` FORCED (the
+  value is deliberately outside the corpus enum so an unreviewed draft
+  can never validate as corpus-ready), UNVERIFIED banner + Open
+  questions section in the body — into `<project>/.tee/kb-staging/`
+  only. Ids reject path separators by shape and a resolved-path belt
+  check backs the regex.
+- **A31 quoted in the tool's docs**, verbatim, in both the module
+  comment and setup-kb.md's new section; the owner accept workflow
+  documented (re-verify at cited sources → move → set real status →
+  corpus's own rebuild.py + validate.py).
+- **Acceptance tests (3 new)**: a staged draft carries the complete
+  frontmatter and body shape; the mirror-write-impossible test (five
+  hostile ids refused kb_bad_id AND a byte-level assert that the corpus
+  tree is unchanged by a good propose); domain/jurisdiction/citation
+  refusals each rule-6. Suite **674 passed / 2 skipped**, ruff clean.
