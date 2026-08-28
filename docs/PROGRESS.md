@@ -3423,3 +3423,31 @@ boot, on missing state, and as fallback-of-last-resort. Fixtures
 extended (single-occupancy assertion, out-of-bounds guard, job-token
 flow, fallback-to-q14b) + one live 14B→27B→14B round trip with
 ps/RSS evidence required.
+
+## 2026-08-29 — A35 P2: faster — every anomaly profiled, fixed, re-measured
+
+Method held: nothing was touched before profiling named the cost, and
+every fix was re-measured on the same fixture/protocol as P0.
+
+| Item | P0 baseline | After | The profiled cause |
+|---|---|---|---|
+| dev serve cold start | 0.65 s | **0.28 s** | registration-time `build_drivers` imported voxkiln→torch (+338 ms); drivers now build on first use |
+| dev serve idle RSS (all extras) | 242 MB | **74 MB** | same import (+170 MB); +1 MB under a 500-op batch; remaining floor is the mcp SDK import (~40 MB) — measured, no action |
+| web first lookup of a host (loopback) | 2,025 ms | **5.2 ms** | robots.txt armed the per-host rate clock; it now obeys the interval without arming it (content spacing + Crawl-delay unchanged, pinned by test) |
+| UE tee_script 1-create (live 5.8.1) | 13.67 s | **4.67 s** | scripted batches double-checkpointed; the script-scope checkpoint owns atomicity, the inner one is skipped |
+| UE tee_checkpoint, 5 created actors | 4.33 s | **2.66 s** | snapshot merged to ONE editor script, transforms only for TEE-moved actors (labels were read and never restored) |
+| UE tee_rollback (dirty) | 3.67 s | 3.67 s | untouched, as expected |
+| voxkiln unwrap (frozen T fixture) | 895.4 s solo tonight (442 s dated, under contention) | **12.4 s (72×)** | native sampling → `xatlas::ComputeCharts`; skipping the single chart-optimization pass (+29% charts, +5% seam verts, equal atlas) — full lever matrix in voxkiln/BENCHMARKS.md |
+| voxkiln export / full generation | 1,037 s / 1,168 s | **151 s / 277 s** | unwrap fix in the pipeline |
+| artifact reproducibility | decode hash-stable; texture differed run-to-run (52% of covered texels — pre-existing, invisible to the decode-level contract) | **byte-identical GLBs across independent generations** | `_project_to_reference` sampled with unseeded `sample_surface`; seeded (found by this campaign's own verification) |
+
+Evidence trail: E0–E2f matrix rows + stage tables in the entry logs and
+voxkiln/BENCHMARKS.md (2026-08-29 entry); UE arm re-measured on a live
+editor with the P0 protocol, editor quit in-engine each time. Suites at
+close of phase: server **612 passed / 2 skipped** + ruff clean; voxkiln
+**48 / 1**; live dcc smoke 58 green. Same-seed decode re-verified
+array-identical three ways; the shipped determinism contract holds and
+is now strictly stronger (artifact bytes).
+
+Commits: 6f6ddae (lazy drivers), df40ba8 (robots stamp), 0bea8d0 (UE
+dispatch cost), aa09055 (voxkiln unwrap + determinism).
