@@ -3128,3 +3128,21 @@ the 2 s bar - recorded miss), graded quality 21 vs the 14B's 22 with 0
 abstentions. **Verdict: no measured win - the 14B+a2 remains the
 reference; the 32B+b1 ships as a qualified option** (one config line to
 swap). RESULTS.md carries the comparison table; setup doc updated.
+
+## 2026-08-28 — 0.3.0 RC executed end to end
+
+Checklist per COMMERCIAL_READINESS, all green: versions stamped
+(pyproject / __init__ / Makefile / mcpb manifest — validates / CHANGELOG
+stamped 0.3.0), make check 608 passed; full benchmark battery with live
+Blender 5.2 + UE 5.8.1 — every scenario reproduced at the bar (scenes
+90.3% total, extraction 93.1%, fix-loop 47.9%, assets 94.0%, UE 93.9%,
+kb 96.7%, web 95.3%, surface 17 tools / 2,028 tok compact); the first
+battery run CRASHED on a B4-sweep regex injury (the toks helper mangled
+into an estimate_tokens kwarg — a kwarg-drift TypeError, fittingly),
+five sibling sites audited and fixed, battery re-run clean. dcc live
+suites 85/85. Five dist artifacts built; wheel rehearsed in a clean
+venv (tee 0.3.0, stdio smoke: serverInfo 0.3.0, 17 tools, LICENSE+data
+in the wheel); Blender extension validates; UE zip unchanged since its
+0.2.0 rehearsal (zero adapter commits since v0.2.0 — noted, not
+re-rehearsed). Editor quit in-engine ({} ack, ports freed, no crash
+reporter). Remaining: the owner's tag.

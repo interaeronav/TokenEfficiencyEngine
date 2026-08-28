@@ -1,7 +1,7 @@
 [project]
 # distribution name (PyPI-safe); the import package and CLI stay `tee`
 name = "tee-engine"
-version = "0.2.0"
+version = "0.3.0"
 description = "Token Efficiency Engine - helps any AI minimize tokens per completed task; MCP server with Unreal Engine and Blender adapters"
 readme = "README.md"
 requires-python = ">=3.11"

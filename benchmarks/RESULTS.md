@@ -30,7 +30,7 @@ contact sheet and one 300-token detail crop in total.
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
 | naive re-attach | 65,052 | 44 | |
-| TEE ingest-once | 4,464 | 12 | 93.1% |
+| TEE ingest-once | 4,467 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
 photos and drone footage widen the gap by an order of magnitude.
@@ -108,14 +108,14 @@ fields no client ever sees, so it overstates the surface by ~20%.
 
 | | Tools | Tokens |
 |---|---|---|
-| TEE always-loaded (wire) | 16 | **1,935** |
-| same, by `model_dump()` | 16 | 2,428 |
-| flat server, one tool per capability | 97 | 10,954 |
+| TEE always-loaded (wire) | 17 | **2,028** |
+| same, by `model_dump()` | 17 | 2,494 |
+| flat server, one tool per capability | 98 | 10,609 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
 surface - the 81 tools they contribute live behind the
-meta-tools. Reaching one costs 580 tokens (one search +
+meta-tools. Reaching one costs 570 tokens (one search +
 one describe), so the flat design only pays off in a session that
 uses more than ~18 distinct long-tail tools.
 
@@ -127,12 +127,12 @@ differ in severity, not just in wording.
 
 | Region | Resolves to | Rules | Cap | Findings | Capped | Tokens |
 |---|---|---|---|---|---|---|
-| `US` | US | irc | CODE | 4 | 0 | 402 |
-| `ZA` | ZA | sans | CODE | 7 | 0 | 992 |
-| `NA-local-authority` | NA-local-authority | sans | STD | 7 | 7 | 1,206 |
-| `NA-settlement` | NA-settlement | sans | STD | 7 | 7 | 1,098 |
-| `NA-communal` | NA-communal | sans | STD | 7 | 7 | 1,239 |
-| `NA` | NA-unresolved | sans | HEUR | 7 | 7 | 1,174 |
+| `US` | US | irc | CODE | 4 | 0 | 386 |
+| `ZA` | ZA | sans | CODE | 7 | 0 | 967 |
+| `NA-local-authority` | NA-local-authority | sans | STD | 7 | 7 | 1,176 |
+| `NA-settlement` | NA-settlement | sans | STD | 7 | 7 | 1,068 |
+| `NA-communal` | NA-communal | sans | STD | 7 | 7 | 1,209 |
+| `NA` | NA-unresolved | sans | HEUR | 7 | 7 | 1,144 |
 
 Answering the same question without TEE means reading the
 applicable-law files into context - which regime governs the
@@ -141,7 +141,7 @@ site, and what the adopted standard requires:
 | | Tokens | Saving |
 |---|---|---|
 | read the code corpus (4 files) | 32,086 | |
-| one `plaus_check` | 1,452 | **95.5%** |
+| one `plaus_check` | 1,399 | **95.6%** |
 
 The `jurisdiction` block costs 48-383 tokens depending on the
 regime; communal land carries the longest advisory because it
@@ -163,7 +163,7 @@ riding along.
 | | Tokens | Calls | Saving |
 |---|---|---|---|
 | paste INDEX.md (50,640) + full file (6,708) | 57,348 | | |
-| kb_search + kb_read | 1,917 | 2 | **96.7%** |
+| kb_search + kb_read | 1,865 | 2 | **96.7%** |
 
 Unlike the paste, the kb_* answer cannot arrive without its
 confidence and jurisdiction flags - `needs-verification` content
@@ -180,110 +180,13 @@ cited tee_web_lookup answer.
 
 | Question | Page text | tee_web_lookup | Saving |
 |---|---|---|---|
-| when must free() be called on a bmesh? | 22,752 | 593 | **97.4%** |
-| how thick should the bedding sand layer be? | 5,225 | 591 | **88.7%** |
-| how do I test whether an address is private? | 9,569 | 607 | **93.7%** |
-| what is the maximum line length and its exceptions? | 13,008 | 591 | **95.5%** |
+| when must free() be called on a bmesh? | 22,752 | 591 | **97.4%** |
+| how thick should the bedding sand layer be? | 5,225 | 585 | **88.8%** |
+| how do I test whether an address is private? | 9,569 | 604 | **93.7%** |
+| what is the maximum line length and its exceptions? | 13,008 | 588 | **95.5%** |
 
-Total 50,554 -> 2,382 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire (SI-B4 closed 2026-08-28: the canonical measure now uses compact separators and matches true stdio bytes - the same entry measured 188 under the old spaced measure, 145 before the W4 media modes joined the description) - repaid by the first question of the session.
+Total 50,554 -> 2,368 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire - repaid by the first question of the session.
 
 - https://pypi.org/project/trimesh/ answered with its bot-challenge variant; excluded
-
-
-## The chore layer, measured (A34 M3, 2026-08-28)
-
-Machine quiet (OkongoSim paused by the owner); servers started for the
-rows and stopped after. Reference: the research-50 general-9B row
-(105 tok/s, 5.3 GB).
-
-**Latency per chore** (median of 3, server warm; answer = the
-schema-validated payload):
-
-| Chore | 14B-4bit (8.0 GB RSS) | 7B-4bit | Answer tok |
-|---|---|---|---|
-| triage | 1.20 s | 0.68 s | 46-53 |
-| repair_script | 0.86 s | 0.52 s | 34 |
-| explain_lint | 0.85 s | 0.45 s | 26-33 |
-| refine_extract | 1.44 s | 0.75 s | 47-58 |
-| structure_facts | 1.72 s | 0.99 s | 59-66 |
-| compress_recap | 1.00 s | 0.44 s | 32-35 |
-| rerank | 0.90 s | 0.40 s | 19 |
-
-**Fix-loop re-run with the chore layer live** (14B serving, [llm]
-auto): 5 rounds / 332 tok -> one tee_script / 173 tok (**47.9% saved**)
-- byte-identical to the standing row. The chores touch only failure
-paths; the happy path pays nothing.
-
-**Extract-quality, graded** (chore 4; subject models below, grader =
-Qwen3.8-27B-bf16, the local teacher - a model-judged row, labeled as
-such; 6 fixture questions over TEE's own docs; scores are
-answers_question + faithful, each 0-2):
-
-| | answered | improved | equal | worse | abstained (safe) | typical quote size |
-|---|---|---|---|---|---|---|
-| 14B refined vs dumb | 5/6 | 1 | 4 | 0 | 1 | 23-139 tok vs the dumb path's ~195 |
-| 7B refined vs dumb | 5/6 | 1 | 4 | 0 | 1 | 23-55 tok vs ~195 |
-
-Both models: never worse than the dumb parser where they answer, one
-case improved (research-49: answers_question 1 -> 2), and the
-extractive-by-verification gate turned every failure into a safe
-abstention (the dumb quote stood, itself grading 2+2). One bounded
-overshoot recorded: a 253-tok refined quote against a 200-tok budget
-(the verifier's 5x-chars cap held it). The refined quotes' 2-8x size
-reduction at equal-or-better grades is the chore's real token value.
-
-**Trap suite (M2 acceptance, the adoption gate for triage)**: 14B and
-7B both 5/6 - all grounded controls and two trap classes correct,
-kwarg_drift answered with an intent-destroying fix labeled grounded on
-both (and on the general 9B), unmoved by two template revisions.
-**Triage blocked at rung 0**; llm_triage unregistered until a rung-1
-adapter passes the full suite.
-
-
-## Rung 1: the tee-triage-a2 adapter (A34 M4, 2026-08-28)
-
-Trained on the quiet machine per benchmarks/rung1/RUNBOOK.md:
-mlx_lm.lora on the 14B-4bit base, 2,660 programmatic examples across 7
-failure families with paraphrase diversity (a1's rigid templates
-trained phrase-association - chimera answers on a control - and was
-discarded; a2 used 4-6 phrasings per family, grounded as the majority
-class, 120 iters, val loss 0.017). Serving note recorded: mlx_lm.server
-applies --adapter-path only through its default_model map lookup BEFORE
-the model path is resolved (server.py ~389), so TEE passes the adapter
-per-request ("adapters" field; TEE_LOCAL_LLM_ADAPTERS / [llm] adapters).
-
-| Gate | bare 14B | + tee-triage-a2 |
-|---|---|---|
-| trap suite (3 drift + 3 controls) | 5/6 (kwarg_drift invents) | **6/6** |
-| held-out sanity (5 fresh, cross-domain) | — | **5/5** |
-| chore latency | 0.85-1.72 s | 0.76-1.77 s (~+0.1 s adapter) |
-| extract-quality (grader: Qwen3.8-27B) | 21 dumb / 22 refined, 1 abstention | 21 / **22, 0 abstentions** |
-
-The drift traps generalize across the vocabulary blacklist (bpy/unreal
-never in training data). Adopted: llm_triage registered again,
-chores.REVISION = r3+tee-triage-a2, the 44 MB adapter committed at
-benchmarks/rung1/adapters/tee-triage-a2 (base stays upstream).
-
-
-## The bigger base, gated (owner-directed, 2026-08-28)
-
-Qwen2.5-Coder-32B-Instruct-4bit (17 GB, Apache-2.0 verified) through
-the identical ladder. Bare: 5/6 - the same kwarg-drift trap as every
-bare model (fourth confirmation of the class gap). With its own
-tee-triage-b1 adapter (the a2 recipe, 120 iters, 33.4 GB training peak):
-
-| Gate | 14B + a2 (reference) | 32B + b1 |
-|---|---|---|
-| trap suite | 6/6 | **6/6** |
-| held-out (5 fresh) | 5/5 | **5/5** |
-| chore latency | 0.76-1.77 s | 1.39-3.90 s (~2.2x; refine_extract over the 2 s bar) |
-| extract quality (grader: 27B) | 22 refined / 0 abstentions | 21 refined / 0 abstentions |
-| resident | ~8.3 GB | ~18 GB |
-
-**Verdict from the rows: the 14B+a2 stays the reference** - the 32B
-buys no measured chore quality at 2.2x the latency and 2.2x the memory.
-It ships as a QUALIFIED OPTION (adapter committed as tee-triage-b1) for
-operators who want headroom for harder future chores; swapping is one
-config line. The benchmarks decide, not size.
 
 *Generated by `benchmarks/run_benchmarks.py` against Blender 5.2.0 LTS (headless, TEE bridge).*

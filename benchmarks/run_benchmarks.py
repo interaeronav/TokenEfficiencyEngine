@@ -448,7 +448,7 @@ def run_extract_scenario() -> tuple | None:
         def toks(x) -> int:
             import json as _json
 
-            return estimate_tokens(x, separators=(",", ":"))
+            return estimate_tokens(x)
 
         src = store.resolve("plan.dxf")["hash"][:8]
         app.registry.call("bl_build_from_plan", {"source": src})
@@ -683,7 +683,7 @@ def run_physical_scenario() -> dict | None:
             )
             import json as _json
 
-            report_tokens = estimate_tokens(out, separators=(",", ":"))
+            report_tokens = estimate_tokens(out)
             wall = out.get("wall_s", 0)
             runs.append(out["final_by_name"])
             app.rollback("blender", out["checkpoint"])
@@ -925,7 +925,7 @@ def run_web_scenario() -> dict | None:
         naive = estimate_tokens(extract_text(html)) + estimate_tokens(question)
         args = {"url": url, "question": question}
         answer = service.lookup(url, question)  # cache-fresh: same bytes both arms
-        tee = estimate_tokens(args, separators=(",", ":")) + estimate_tokens(answer, separators=(",", ":"))
+        tee = estimate_tokens(args) + estimate_tokens(answer)
         rows.append(
             {
                 "question": question,
@@ -1015,9 +1015,9 @@ def run_kb_scenario() -> dict | None:
 
     def call(name, args):
         nonlocal tokens, calls
-        tokens += estimate_tokens(args, separators=(",", ":"))
+        tokens += estimate_tokens(args)
         result = reg.call(name, args)
-        tokens += estimate_tokens(result, separators=(",", ":"))
+        tokens += estimate_tokens(result)
         calls += 1
         return result
 

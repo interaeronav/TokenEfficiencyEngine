@@ -3,9 +3,11 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased (0.3.0 candidate)
+## 0.3.0 — 2026-08-28
 
-The A34 campaign: the web lane and the local code-model chore layer.
+The A34 campaign release: the web lane and the local code-model chore
+layer (owner-approved bump after the rung-1 outcome settled the chore
+surface).
 
 - **New always-loaded tool `tee_web_lookup`** {url, question, max_tokens,
   media=auto|off|confirm}: budgeted cited extracts from one URL —

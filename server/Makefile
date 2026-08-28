@@ -5,7 +5,7 @@ check: lint test
 BLENDER ?= $(shell command -v blender 2>/dev/null || echo /home/user/blender-5.2.0-linux-x64/blender)
 TEE_PLUGIN_VERSION ?= 0.1.0
 # server/.mcpb version; TEE_PLUGIN_VERSION tracks the UE TeeToolset .uplugin
-TEE_SERVER_VERSION ?= 0.2.0
+TEE_SERVER_VERSION ?= 0.3.0
 
 dist:
 	uv build
