@@ -3808,3 +3808,36 @@ probe" — writing it as a VERIFIED worked example before the P0 probe
 runs would claim what is not yet measured (the deeper A30 law outranks
 the section plan); it gets its live fingerprint when the install gate
 clears. make check 647/2 green.
+
+## 2026-08-29 — A37 P3: the adapter kit (= A36 G5, moved up per the rehearsal law)
+
+- **`tee/kernel/contract.py` ships in the wheel**: the adapter contract
+  as a runnable pytest suite — subclass `AdapterContract`, override
+  `make_adapter()`, eleven tests run. Each test's docstring states WHY
+  the kernel needs the behavior (diffs-over-dumps asserted as
+  "a 1-op diff must not grow with unrelated entity count", both rule-6
+  failure shapes, caller-batch immutability for checkpoint replay, id
+  stability, concise-row compactness, snapshot/restore round-trip,
+  capture budget-or-refuse-loud).
+- **`docs/adapter-kit.md`**: the seam (typed ops in, diffs out), the
+  five rules each tied to its contract test, the seven-method skeleton,
+  FakeAdapter named as the annotated reference with its two
+  reference-niceties explicitly NOT demanded (same-batch create+delete
+  netting; extra ops), the prove-it snippet, wire-in via TeeApp, the
+  gateway-vs-native decision up front (research 53's build-thin rule),
+  and the rehearsal law stated to the outside reader.
+- **The kit's own fixtures** (tests/test_adapter_kit.py, 24 tests):
+  FakeAdapter passes the PACKAGED suite (shipped kit ≡ kernel truth,
+  enforced per-commit); a ToyAdapter (note board — no extra ops, no
+  viewport, capture refuses loud) written from the doc's skeleton alone
+  passes it too; a meta-test proves the suite CATCHES a broken adapter
+  (a batch mutator); and the doc's wire-in claim is executed —
+  TeeApp over the toy serves run_batch/auto-checkpoint/rollback with
+  zero adapter-specific code. One stumble found and fixed during that
+  last test: the doc now states that each batch auto-checkpoints
+  BEFORE applying (rolling back to a create's own checkpoint undoes
+  the create) — exactly the kind of kit bug the rehearsal law exists
+  to catch. The REAL acceptance continues in P4: the FreeCAD toolset
+  gets built from this doc alone.
+
+Suite **671 passed / 2 skipped** (647 + 24), ruff clean.
