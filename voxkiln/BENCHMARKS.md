@@ -184,3 +184,22 @@ other field are unaffected. Covered so far: 4 of 9 images at seed 42 /
 pipeline 512. Remaining: 5 images × this config + the other pipeline ×
 3 seeds ≈ 5–8 h single-arm, staged for future sessions or an
 owner-scheduled window.
+
+## 2026-08-28 — repair-stage fix (the queued SI-2 follow-through)
+
+Profiled on the T-machine mesh (491,888 tris; the pass twice killed by
+memory pressure under concurrent generation finally ran on a quiet
+machine): `repair(level="fast")` spent 302.8 s of 326.8 s inside
+`_cull_small_components` — `trimesh.split()` built a Trimesh per
+component (~30K on this mesh; 167 s of pure cache hashing) and
+`concatenate` rebuilt the survivors for another 112 s. Now the same
+face-graph labeling `mesh_stats` uses (cb7e377) plus one boolean face
+mask: **326.8 s → 9.5 s on the same mesh** (34×), voxkiln suite green.
+
+Definition note (the SI-2 boundary-loop precedent): component area is
+now the sum of the component's own face areas on the actual mesh.
+`split()`'s reprocessed parts carried ~0.4% duplicated faces (494,060
+part-faces vs the mesh's true 491,888 on this input), so 36
+borderline-tiny components the inflated measure kept (2,174 faces,
+0.32% of area) now correctly fall under the negligible-share threshold.
+Grouping itself is identical (21,894 components both ways, verified).

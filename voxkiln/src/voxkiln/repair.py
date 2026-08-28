@@ -118,15 +118,39 @@ def fill_boundary_loops(
 
 
 def _cull_small_components(mesh: trimesh.Trimesh) -> tuple[trimesh.Trimesh, int]:
-    parts = mesh.split(only_watertight=False)
-    if len(parts) <= 1:
+    """Drop components holding a negligible share of the surface area.
+
+    Face-graph labels + one face mask (the cb7e377 mesh_stats idiom): the
+    previous split()/concatenate built one Trimesh per component - ~30K of
+    them on decode-class meshes, 303 s of a 327 s repair, almost all of it
+    trimesh cache-hashing. Definition note (the SI-2 boundary-loop
+    precedent): component area is now the sum of that component's OWN face
+    areas on the actual mesh; split()'s reprocessed parts carried ~0.4%
+    duplicated faces, so a handful of borderline-tiny components that the
+    inflated measure kept now correctly fall under the negligible-share
+    threshold. Vertex order also differs from the old concatenate path;
+    downstream stages are order-agnostic."""
+    if len(mesh.faces) == 0:
         return mesh, 0
-    total = sum(p.area for p in parts)
-    keep = [p for p in parts if p.area > _COMPONENT_AREA_FRACTION * total]
-    dropped = len(parts) - len(keep)
-    if dropped == 0 or not keep:
+    components = trimesh.graph.connected_components(
+        mesh.face_adjacency, nodes=np.arange(len(mesh.faces))
+    )
+    if len(components) <= 1:
         return mesh, 0
-    return trimesh.util.concatenate(keep), dropped
+    face_areas = mesh.area_faces
+    areas = np.array([face_areas[comp].sum() for comp in components])
+    keep = areas > _COMPONENT_AREA_FRACTION * float(areas.sum())
+    dropped = int(len(components) - keep.sum())
+    if dropped == 0 or not keep.any():
+        return mesh, 0
+    mask = np.zeros(len(mesh.faces), dtype=bool)
+    for component, keep_it in zip(components, keep, strict=True):
+        if keep_it:
+            mask[component] = True
+    out = mesh.copy()
+    out.update_faces(mask)
+    out.remove_unreferenced_vertices()
+    return out, dropped
 
 
 def repair(
