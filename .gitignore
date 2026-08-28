@@ -42,3 +42,5 @@ voxkiln/benchmarks/local_out/glb/
 voxkiln/benchmarks/local_out/*.log
 voxkiln/**/__pycache__/
 voxkiln/src/voxkiln.egg-info/
+benchmarks/rung1/data/
+benchmarks/rung1/adapters/

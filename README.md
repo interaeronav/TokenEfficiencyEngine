@@ -56,10 +56,11 @@ asset module (94.0% saved on find-select-place), plus design,
 physics/modeling, and UEFN/Verse modules — see
 [benchmarks/RESULTS.md](benchmarks/RESULTS.md) for all measured rows.
 
-The always-loaded MCP surface (16 tools) costs ~1.9K tokens of definitions
-on the wire — under the price of 3 typical MCP tools in the wild; 74 further
-virtual tools (on the fake adapter; adapter-specific lanes add more) load
-progressively through `tee_search_tools`.
+The always-loaded MCP surface (17 tools, including `tee_web_lookup`) costs
+~2.0K tokens of definitions on the wire — under the price of 3 typical MCP
+tools in the wild; 75+ further virtual tools (on the fake adapter;
+adapter-specific lanes add more) load progressively through
+`tee_search_tools`.
 
 ## Scope
 

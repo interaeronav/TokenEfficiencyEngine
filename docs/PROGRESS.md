@@ -3042,3 +3042,48 @@ watchers while OkongoSim's commandlets ran; the trap suite (a pass/fail
 TEST) ran during a 96%-free window; every benchmark ROW ran on the
 quiet machine; servers idle-unloaded after every phase. Owner decides
 the version bump (0.3.0 candidate: new tool surface + chore layer).
+
+## 2026-08-28 — Owner directive batch: outstanding items executed
+
+Owner directives on the outstanding list, executed in machine-state
+order (CPU-light now; heavy items queued behind a quiet watcher):
+
+- **SI-B4 closed** (was: staged): the canonical wire measure now passes
+  objects to estimate_tokens (compact separators = true stdio bytes).
+  Compact canonical surface 2,028 tok; web entry delta 180. Historical
+  rows keep their values; RESULTS notes the measure change.
+- **SI-3.2 closed** (was: staged, breaking): primary list fields unify
+  on `items` — tools/hits/materials/entities across tee_search_tools,
+  ue_search_tools, kb_search, ex_search, as_materials,
+  tee_scene_summary, uefn. Counts, detail fields, and third-party
+  document keys untouched. CHANGELOG Unreleased (0.3.0 candidate)
+  carries the breaking entry.
+- **Doctor probes** (A34 follow-up 5): `web` and `local models` rows —
+  posture + cache count, 1.5 s localhost endpoint probes; down is a
+  plain state naming setup-local-llm.md. Live doctor 10 rows OK.
+- **Image ranking** (follow-up 6): width/height size hints — sub-64px
+  chrome demoted, ≥200px content promoted, alt-relevance first.
+- **web_search shipped** (research-49 gap, owner-directed): SearXNG
+  (operator instance) + keyed Brave (TEE_BRAVE_KEY) + keyless Wikipedia
+  default (labeled encyclopedic-only), one {title,url,snippet} row
+  shape, backend named in every response, snippets sanitized as
+  untrusted data, result URLs SSRF-guarded at lookup time, engine-page
+  scraping rejected as an anti-goal. Long-tail virtual tool (zero
+  always-loaded cost). 10 hermetic tests + live search→guarded-lookup.
+- **Commercial recommendations adopted** (owner: sole-user context):
+  names kept + collision line in README, PyPI-first deferred to the
+  first external user, MIT stands, monorepo kept, pre-release support
+  line added. README surface figures refreshed (17 tools / ~2.0K).
+- **Rung-1 prep** (LoRA waits for the quiet window): distillation
+  generator committed (2,280 train / 120 valid, six families, the
+  production r2 template embedded, eval-suite fixtures blacklisted
+  from vocabulary; data/ gitignored — regenerate seeded) + RUNBOOK.md
+  with the verify-flags-first, gates-in-order overnight sequence.
+
+Suite 606 passed / 2 skipped; ruff clean. Queued for the quiet machine,
+in order: (7) voxkiln repair-stage profile (mesh at
+/Users/john/TEE/gen-models/t_machine.glb), rung-1 training per
+benchmarks/rung1/RUNBOOK.md, (8) the remaining research-48 battery
+tranche (voxkiln/benchmarks/battery.py, single-arm per the fp32
+finding). 0.3.0 bump recommended AFTER the LoRA outcome settles the
+chore surface (adoption would re-register llm_triage).
