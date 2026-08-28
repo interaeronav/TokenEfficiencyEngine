@@ -28,6 +28,10 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
     [web]
     allow_local = false       # opt-in: web_lookup may reach private addresses
     ports = [80, 443]         # opt-in extra ports for web_lookup
+
+    [llm]
+    url = "http://127.0.0.1:8080/v1"  # any OpenAI-compatible local endpoint
+    model = "tee-coder"               # served model name (research 50 M0)
 """
 
 from __future__ import annotations
@@ -47,6 +51,7 @@ class ProjectConfig:
     pins: dict[str, Any] = field(default_factory=dict)
     kb: dict[str, Any] = field(default_factory=dict)
     web: dict[str, Any] = field(default_factory=dict)
+    llm: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -105,6 +110,12 @@ class ProjectConfig:
             config.web = web
         elif web:
             problems.append("[web] must be a table")
+
+        llm = data.get("llm", {})
+        if isinstance(llm, dict):
+            config.llm = llm
+        elif llm:
+            problems.append("[llm] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)
