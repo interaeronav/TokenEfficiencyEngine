@@ -195,27 +195,40 @@ class TeeApp:
     # -- operations shared by tools ---------------------------------------
 
     def run_batch(
-        self, adapter_name: str, ops: list[dict[str, Any]], label: str | None = None
+        self,
+        adapter_name: str,
+        ops: list[dict[str, Any]],
+        label: str | None = None,
+        *,
+        checkpoint: bool = True,
     ) -> dict[str, Any]:
+        """checkpoint=False is for callers that already hold an enclosing
+        checkpoint and roll back on any raise (the script lane): the inner
+        checkpoint+restore is then redundant work - on UE it doubled the
+        cost of every scripted batch (A35 P2, two extra game-thread
+        dispatches per batch)."""
         adapter = self.adapter(adapter_name)
         self.warm(adapter_name)
         cache = self.cache(adapter_name)
         cp_label = label or f"auto:batch-r{cache.revision + 1}"
-        checkpoint = self.checkpoints.create(adapter, cp_label, cache.revision)
+        cp = self.checkpoints.create(adapter, cp_label, cache.revision) if checkpoint else None
         try:
             diff = adapter.execute(ops)
         except Exception as exc:
             # Make the failure atomic: a batch that failed mid-way must not
             # leave the DCC and the cache silently divergent.
-            try:
-                adapter.restore(checkpoint.payload)
-                outcome = f"rolled back to checkpoint {checkpoint.id}; no ops were kept"
-            except Exception:
-                self.cache(adapter_name).invalidate()
-                outcome = (
-                    "rollback also failed - state may be partially applied; "
-                    "run tee_scene_summary(refresh=true)"
-                )
+            if cp is None:
+                outcome = "is restored by the enclosing script checkpoint"
+            else:
+                try:
+                    adapter.restore(cp.payload)
+                    outcome = f"rolled back to checkpoint {cp.id}; no ops were kept"
+                except Exception:
+                    self.cache(adapter_name).invalidate()
+                    outcome = (
+                        "rollback also failed - state may be partially applied; "
+                        "run tee_scene_summary(refresh=true)"
+                    )
             if isinstance(exc, TeeError):
                 fix = f"{exc.fix} Batch {outcome}." if exc.fix else f"Batch {outcome}."
                 raise TeeError(exc.code, exc.message, fix=fix) from exc
@@ -230,7 +243,9 @@ class TeeApp:
             if ent is not None:
                 prior[eid] = ent.detailed()
         cache.apply_diff(diff, diff.upserts)
-        payload: dict[str, Any] = {"ok": True, "checkpoint": checkpoint.id, **cache.stamp()}
+        payload: dict[str, Any] = {"ok": True, **cache.stamp()}
+        if cp is not None:
+            payload["checkpoint"] = cp.id
         payload["applied"] = len(ops)
         payload.update(diff.to_payload())
         _trim_batch_echoes(ops, payload, prior)

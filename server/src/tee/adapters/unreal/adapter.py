@@ -170,18 +170,12 @@ class UnrealAdapter:
     # -- checkpoints -------------------------------------------------------
 
     def snapshot(self, label: str) -> dict[str, Any]:
-        """One dispatch for the actor set, plus transforms only for actors TEE
-        has already moved - the only ones restore can meaningfully put back."""
-        data = self._run_script(codegen.LIST_ACTORS)
-        actors = [{"ref": a["ref"], "location": None} for a in data.get("actors", [])]
-        touched = [a for a in actors if a["ref"] in self._moved]
-        if touched:
-            detailed = self._run_script(codegen.details_program([a["ref"] for a in touched]))
-            positions = {d["ref"]: d["location"] for d in detailed.get("actors", [])}
-            for entry in actors:
-                if entry["ref"] in positions:
-                    entry["location"] = positions[entry["ref"]]
-        return {"label": label, "actors": actors}
+        """One editor script for the actor set, with transforms only for
+        actors TEE has already moved - the only ones restore can
+        meaningfully put back (labels are never restored, so they are
+        never read here)."""
+        data = self._run_script(codegen.snapshot_program(sorted(self._moved)))
+        return {"label": label, "actors": data.get("actors", [])}
 
     def restore(self, payload: dict[str, Any]) -> None:
         """Re-apply a snapshot: delete actors added since, and put the

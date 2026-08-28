@@ -442,7 +442,9 @@ def run_script(app, code: str, default_adapter: str = "fake") -> dict[str, Any]:
     def batch(ops: list, adapter: str = default_adapter, label: str | None = None):
         _spend_call(f"batch({len(ops)} ops)")
         _guard(adapter)
-        return app.run_batch(adapter, ops, label)
+        # the script-scope checkpoint from _guard owns atomicity here; an
+        # inner per-batch checkpoint would be redundant dispatches (A35 P2)
+        return app.run_batch(adapter, ops, label, checkpoint=adapter not in touched)
 
     def summary(adapter: str = default_adapter, **kwargs):
         _spend_call("summary()")

@@ -216,6 +216,34 @@ def run():
 """
 
 
+def snapshot_program(moved_refs: list[str]) -> str:
+    """The whole snapshot in ONE editor script: the actor list plus
+    transforms for the moved set only. It replaces a LIST_ACTORS dispatch
+    followed by a details_program dispatch, and reads no labels - restore
+    puts back existence and location, so labels were two wasted in-script
+    dispatches per actor (A35 P2: checkpoint cost scaled visibly with
+    created-actor count)."""
+    prelude = _PRELUDE.format(scene=SCENE, actor=ACTOR)
+    refs = json.dumps(json.dumps(moved_refs))
+    return prelude + f"\n_MOVED = set(json.loads({refs}))\n" + _SNAPSHOT
+
+
+_SNAPSHOT = """
+def run():
+    actors = execute_tool("{scene}.find_actors", json.dumps(
+        {"name": "", "tag": "", "collision_channels": []}))["returnValue"]
+    out = []
+    for a in actors:
+        ref = a["refPath"]
+        loc = None
+        if ref in _MOVED:
+            x = _get_xform({"refPath": ref})["location"]
+            loc = [x["x"], x["y"], x["z"]]
+        out.append({"ref": ref, "location": loc})
+    return {"actors": out}
+""".replace("{scene}", SCENE)
+
+
 def restore_program(actors: list[dict[str, Any]]) -> str:
     """Delete actors that are not in the snapshot, and move the rest back."""
     prelude = _PRELUDE.format(scene=SCENE, actor=ACTOR)
