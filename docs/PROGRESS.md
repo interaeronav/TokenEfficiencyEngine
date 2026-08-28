@@ -3491,3 +3491,60 @@ variations plus the dedup's −1.
 
 Suites: server **613 passed / 2 skipped** (612 + dedup regression),
 ruff clean. Commit: (this one).
+
+## 2026-08-29 — A35 P4: campaign closing ledger (smaller, faster, more efficient)
+
+Everything P0 measured, re-measured at close on this machine. Wrong-way
+numbers sit in the same table with their why.
+
+| Metric | P0 baseline | Close | Why |
+|---|---|---|---|
+| server suite | 608 / 2 skipped | **613 / 2** | +5: 2 ingest-degrade, 1 manifest canary, 1 robots zero-sleep pin, 1 web dedup |
+| voxkiln suite | 48 / 1 | **48 / 1** | unchanged |
+| dcc live suite | 85 (RC) | **85 passed** | full parity re-run: both Blender flavors + all UE tests against the changed snapshot/codegen, live 5.8.1 |
+| installed Desktop extension | 98 MB (95 MB venv / 49 pkgs, dev toolchain inside, extract extras lost) | **~32 MB (29 MB venv / 29 pkgs)** rehearsed from the rebuilt bundle | bundle-only `default-groups = []`; mcp[cli]→mcp; lands on the owner's next install |
+| cold serve → first answer (Desktop argv) | 0.32 s | **0.32 s** (rehearsal; first-ever run ~2 s while uv settles the fresh venv) | already fast; unchanged |
+| same, dev checkout | 0.65 s | **0.28 s** | lazy generation drivers |
+| idle RSS dev / installed | 242 / 75 MB | **74 / ~74 MB** | torch out of the serve path; floor is the mcp SDK import (~40 MB, measured no-action) |
+| web first lookup (loopback) | 2,025 ms | **5.2 ms** | robots no longer arms the rate clock |
+| UE script-create / checkpoint(5) / rollback | 13.7 / 4.3 / 3.7 s | **4.7 / 2.7 / 3.7 s** | double-checkpoint killed; one-script transform-only snapshot |
+| voxkiln unwrap (frozen T fixture) | 895 s solo (442 dated under contention) | **12.4 s** | ChartOptions.max_iterations=0; ComputeCharts-bound by native sampling |
+| voxkiln export / full generation | 1,037 / 1,168 s | **151 / 277 s** | unwrap fix |
+| artifact reproducibility | decode-hash only; textures jittered run-to-run (pre-existing, invisible) | **byte-identical GLBs across independent generations** | seeded reference sampling |
+| always-loaded surface | 2,028 tok / 17 tools | **2,028** | audited per-tool; no zero-semantic-loss shave worth taking (measured no-action) |
+| benchmark totals (live battery) | cited to RC | **every bar held**: scenes 90.3, extraction 93.1, fix-loop 47.9 (byte-identical), assets 94.0, UE 93.9, kb 96.7, plaus 95.6, web 95.3 (2,382→**2,367**, dedup) | zero wrong-way rows |
+| artifacts | five, rebuilt+rehearsed at P0 versions | five rebuilt (mcpb 567,323 B / wheel 363,347 / sdist 605,061 / bridge 6,472 / TeeToolset 3,880), wheel + mcpb install-rehearsed with stdio smokes (17 tools) | version stamp stays 0.3.1 until the owner bumps |
+
+Wrong-way or flat numbers, honestly: the always-loaded surface did NOT
+shrink (P3.1's audit found the A33 pass had taken the win; forcing more
+risked tested wording) — the campaign's token gains came from response
+content (web dedup) instead. The installed cold start was already 0.32 s
+and stays there. Nothing else moved the wrong way.
+
+Found-and-fixed beyond the plan (both by the campaign's own
+verification): the whole-job ex_ingest death on one missing optional
+package (rule 6), and the never-run-stable bake texture. Dogfooding
+friction filed: SI-B8 (checkpoint object vs rollback ref), SI-B9
+(ex_ingest `job` vs tee_job `job_id`) — both staged, neither judged
+0.3.1-blocking.
+
+**Owner-decision list (recommendations, deliberately not made):**
+1. **Version bump: 0.4.0 recommended.** Not breaking (no tool/API
+   renames or removals), but more than a patch: bundle composition
+   changed (dev group out, mcp[cli]→mcp), ex_ingest reports skips where
+   it errored, in-script batch results no longer carry a `checkpoint`
+   id, voxkiln artifacts differ (chart layout + now byte-deterministic),
+   web quotes dedup. CHANGELOG §Unreleased is written for it.
+2. Staged, needing an owner call: SI-B8 flatten (breaking response
+   shape), media-lanes-in-the-bundle (+134 MB venv vs working extract
+   lanes out of the box — measured both ways), pure-python phash to
+   drop scipy from two extras (breaks stored phash stability, needs a
+   migration).
+3. The owner's installed extension applies the 98→32 MB diet on the
+   next bundle install/update; until then it keeps today's venv.
+4. Tagging stays the owner's step, as always.
+
+Machine etiquette: every editor launch quit in-engine (`{}` ack ×5 this
+campaign), model/bridge servers stopped after use, benchmark rows on a
+verified-quiet machine. CI: push + first-run observation is the last
+step of this session.
