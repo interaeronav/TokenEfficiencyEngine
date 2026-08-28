@@ -382,7 +382,19 @@ def build_server(app: TeeApp) -> MCPServer:
     def tee_script(code: str, adapter: str | None = None):
         from tee.kernel.script import run_script
 
-        return run_script(app, code, default_adapter=app.resolve_adapter(adapter))
+        try:
+            return run_script(app, code, default_adapter=app.resolve_adapter(adapter))
+        except TeeError as exc:
+            # The rule-6 refusal stands; a local code model may add a repair
+            # draft (A34 M2 chore 2) so the client no longer round-trips the
+            # whole context to rediscover the fix. Silent absence = no model.
+            payload = exc.to_payload()
+            from tee.llm import chores
+
+            draft = chores.repair_script(code, exc.message, cfg=app.config.llm)
+            if draft:
+                payload["repair"] = draft
+            return payload
 
     # -- progressive disclosure (meta-tools) --------------------------------
 

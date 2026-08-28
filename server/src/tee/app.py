@@ -138,7 +138,10 @@ class TeeApp:
             from tee.web.tools import WebLookupService
 
             self._web = WebLookupService(
-                self.project_root, config=self.config.web, registry=self.registry
+                self.project_root,
+                config=self.config.web,
+                llm=self.config.llm,
+                registry=self.registry,
             )
         return self._web
 

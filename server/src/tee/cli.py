@@ -105,6 +105,14 @@ def _attach_kb(app, project: str) -> None:
     register_kb_tools(app, Path(project))
 
 
+def _attach_llm(app, project: str) -> None:
+    """Register the llm_* chore tools (A34): triage and lint explanation
+    from the local code model, structured-unavailable when none runs."""
+    from tee.llm.tools import register_llm_tools
+
+    register_llm_tools(app, Path(project))
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -137,6 +145,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_physical(app, args.project)
     _attach_uefn(app, args.project)
     _attach_kb(app, args.project)
+    _attach_llm(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

@@ -94,5 +94,6 @@ markers = [
     "dcc: requires a live DCC (Blender/Unreal) on this machine",
     "network: requires outbound network access (skips cleanly offline); excluded from the default hermetic suite - run with `-m network`",
     "ml: needs multi-gigabyte model weights ([assets-embed] / [assets-gen])",
+    "llm: requires a live local LLM endpoint (TEE_LOCAL_LLM_URL); skips cleanly without one",
 ]
-addopts = "-m 'not dcc and not ml and not network'"
+addopts = "-m 'not dcc and not ml and not network and not llm'"

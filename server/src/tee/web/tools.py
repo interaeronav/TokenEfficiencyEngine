@@ -33,6 +33,7 @@ class WebLookupService:
         project_root: Path | str,
         *,
         config: dict | None = None,
+        llm: dict | None = None,
         registry=None,
         fetcher: WebFetcher | None = None,
     ):
@@ -43,6 +44,7 @@ class WebLookupService:
             allow_local=bool(cfg.get("allow_local", False)),
             ports=ports,
         )
+        self.llm_cfg = dict(llm or {})
         self.registry = registry
 
     def lookup(
@@ -65,19 +67,40 @@ class WebLookupService:
             )
         budget = max(50, min(int(max_tokens or DEFAULT_MAX_TOKENS), MAX_TOKENS_CAP))
         result = self.fetcher.fetch(url)
+        html = result.body.decode("utf-8", errors="replace")
         answer = build_answer(
-            result.body.decode("utf-8", errors="replace"),
-            question,
-            url=result.url,
-            retrieved_at=result.retrieved_at,
-            max_tokens=budget,
+            html, question, url=result.url, retrieved_at=result.retrieved_at, max_tokens=budget
         )
+        refined = self._refine(html, question, budget)
+        if refined:
+            answer["quote"] = refined["quote"]
+            answer["model"] = refined["model"]
         if result.cache != "miss":
             answer["cache"] = result.cache
         hint = self._kb_hint(question)
         if hint:
             answer["kb_hint"] = hint
         return answer
+
+    def _refine(self, html: str, question: str, budget: int) -> dict | None:
+        """The research-50 chore-1 upgrade: local-model sentence selection
+        under the extractive-by-verification guarantee. Abstains (None) and
+        the dumb-parser quote stands whenever no model runs, [llm] refine is
+        off, or one emitted sentence fails the verbatim check."""
+        from tee.llm import chores
+        from tee.web.extract import extract_text
+
+        refine = str(self.llm_cfg.get("refine", "auto"))
+        if refine == "off":
+            return None
+        try:
+            return chores.refine_extract(
+                extract_text(html), question, budget, refine=refine, cfg=self.llm_cfg
+            )
+        except TeeError:
+            raise
+        except Exception:
+            return None  # refinement may never break the dumb path
 
     def _kb_hint(self, question: str) -> str | None:
         """KB-first routing made visible, never enforced (research 49): when
