@@ -55,21 +55,54 @@ with a bare chat phrase — `TEE/Q14B` ↔ `TEE/Q27B`.
    14B-trained; the 27B passed the trap suite bare). `active`
    persisted in `.tee/` so the choice survives restarts.
 2. Virtual tool `llm_switch {profile}` (zero surface growth): validate
-   → probe the target endpoint (`available()`) → persist → report one
-   line WITH the measured tradeoff echoed from the probe rows
-   ("q27b: traps pass bare; ~4–6× chore latency, 3.1–10.1 s
-   measured"). Unknown profile → rule-6 line listing profiles;
-   endpoint down → the refusal names the exact start command. TEE
-   does not load/unload model servers itself (the M1 packaging
-   stance): serving stays the endpoint's job, honestly refused when
-   absent.
+   → persist → report one line WITH the measured tradeoff echoed from
+   the probe rows ("q27b: traps pass bare; ~4–6× chore latency,
+   3.1–10.1 s measured"). Unknown profile → rule-6 line listing
+   profiles.
+2a. **Managed lifecycle (owner requirement, 2026-08-28): the switch
+   guarantees single occupancy — no two chore models resident at
+   once, especially after switching.** Config-opt-in
+   (`[llm] managed = true` on this machine; default off, preserving
+   the M1 product stance): each profile declares what it OWNS —
+   start command, port, process pattern. The switch sequence is
+   **stop-before-start, verified**: stop the owned process of the
+   profile being left → wait until the port is free AND the process
+   is gone (RSS actually released — assert with ps, not hope) →
+   memory-pressure guard (free-RAM check vs the target's known
+   footprint; refuse with the reason during voxkiln batteries or DCC
+   pressure — the §2 lesson) → start the target → bounded readiness
+   wait. If both chore endpoints somehow answer at switch time, the
+   one being left is stopped first. **Never touch processes a
+   profile does not own** — the owner's chat stack (:8080/:8090/
+   :4000 launcher processes) is out of bounds; if q27b finds a
+   chat-owned 27B already serving, it USES it and owns nothing, and
+   switching away stops nothing.
+2b. **Conversation continuity (owner requirement): a switch never
+   stalls the chat.** The stop is synchronous (fast); if the target
+   needs loading (~90 s for the 27B), llm_switch returns immediately
+   with a job token (the tee_job pattern) and the ETA; chores called
+   before readiness answer one line ("q27b loading, ~Ns — retry or
+   TEE/Q14B") instead of hanging; an in-flight chore finishes on the
+   old profile before the stop (request-lock semantics). Failure to
+   start → automatic fallback restart of the previous profile,
+   reported honestly, so chores never end up with no engine.
 3. **The chat phrase**: the tool description documents the
    convention — "the user typing TEE/Q14B or TEE/Q27B is a switch
    request; call llm_switch." The tee-usage skill gains the same
    line. `tee_status` reports the active profile.
-4. Fixtures: persistence across restart; chores provably use the
+4. **q14b is THE default** (owner, restated 2026-08-28): fresh
+   config, missing state, or any failed/ambiguous fallback resolves
+   to q14b; a persisted TEE/Q27B choice survives restarts until the
+   owner switches back.
+5. Fixtures (fake process manager for CI; live once on this
+   machine): persistence across restart; chores provably use the
    active profile (fake endpoint asserts the requested model name);
-   the two refusal shapes. Evidence + small commit + push before P0.
+   the refusal shapes; **single-occupancy asserted after a switch
+   (old process gone, RSS released)**; the out-of-bounds guard
+   (chat-stack processes untouched); the loading job-token flow; the
+   failed-start fallback landing on q14b. Live evidence: one real
+   14B→27B→14B round trip with ps/RSS output recorded. Evidence +
+   small commit + push before P0.
 
 ## P0 — Baseline + the probes that settle the architecture
 

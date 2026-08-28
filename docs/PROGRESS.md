@@ -3407,3 +3407,19 @@ command, tradeoff echo from the recorded probe rows, the chat-phrase
 convention documented in the tool description and tee-usage skill,
 and fixtures incl. chores provably using the active profile. A37
 decision addendum 2 recorded; TEE memory updated.
+
+## 2026-08-28 — A37 P0-S hardened: single occupancy + continuity (owner)
+
+Owner added two requirements to the model switch and restated the
+default. Scripted: managed stop-before-start lifecycle (opt-in
+[llm] managed; profiles own start/port/process; stop verified by
+port-free + process-gone + RSS released; both-up anomaly resolved by
+stopping the leaver; chat-stack :8080/:8090/:4000 out of bounds;
+free-RAM guard per the §2 lesson), continuity semantics (fast
+synchronous stop, job-token + ETA for the ~90 s 27B load, one-line
+not-ready chore answers, request-lock finish for in-flight chores,
+auto-fallback restart on failed start), and q14b as THE default at
+boot, on missing state, and as fallback-of-last-resort. Fixtures
+extended (single-occupancy assertion, out-of-bounds guard, job-token
+flow, fallback-to-q14b) + one live 14B→27B→14B round trip with
+ps/RSS evidence required.

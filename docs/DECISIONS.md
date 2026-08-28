@@ -682,3 +682,13 @@ q27b = 27B bare), virtual `llm_switch` with persisted choice, probed
 availability, tradeoff-echoing reports, and the documented chat
 phrase `TEE/Q14B` / `TEE/Q27B`. Serving stays the endpoint's job —
 TEE refuses with the start command, never manages model processes.
+
+**A37 addendum 3 (owner, 2026-08-28):** the P0-S model switch gains
+two hard requirements — (1) single occupancy: managed stop-before-
+start lifecycle (config-opt-in, owner's machine), old process
+verifiably gone with RSS released before the new one starts, chat-
+stack processes out of bounds, memory-pressure guard; (2) continuity:
+the switch never stalls the conversation — synchronous stop, job-
+token loading with ETA, one-line not-ready answers, in-flight chores
+finish first, failed starts fall back automatically. q14b restated as
+THE default (boot, missing state, and fallback-of-last-resort).
