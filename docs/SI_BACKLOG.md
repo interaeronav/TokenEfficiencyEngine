@@ -87,3 +87,10 @@ Format per item:
 - hurt: the response key and the parameter it feeds don't match; a client keying on `job_id` gets None and never polls. One failed harness pass before the eye caught it.
 - proposed: one name for the handle on both sides (`job` param alias or `job_id` response key; alias is non-breaking).
 - status: open
+
+## SI-B10 — kb_hint relevance is off-topic on non-domain questions
+- seen: 2026-08-28, research-54 session (installed 0.3.1 co-pilot)
+- call: tee_web_lookup on a Blender bmesh page → hint 'industry.case_studies'; on nasa/XPlaneConnect → 'industry.sa_contractors'; on stereopipeline docs → 'gxgd.game_disciplines'
+- hurt: three for three off-topic hints on questions outside the KB's domains — the hint spends ~40 tok/response teaching the client to distrust it; there is no score floor, so the best of 401 files is offered even when the best is irrelevant.
+- proposed: relevance floor on the hint (suppress below threshold) — same machinery as SI-B2's weak-match note; the kb-rerank chore (A34 M2 chore 7) is the deeper fix.
+- status: open

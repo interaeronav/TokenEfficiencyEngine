@@ -3368,3 +3368,19 @@ handoff → boards → close-out). CLAUDE_A36_SCRIPT.md marked SUPERSEDED
 with a do-not-work banner; CLAUDE.md pointer replaced; TEE project
 memory updated (a36 key marked merged, a37 key written). Campaign not
 started; P0 is the first session's job. A35 unchanged and separate.
+
+## 2026-08-28 — Research 54: NASA open source survey (owner ask)
+
+Owner asked which other NASA open source is useful. Written as
+`docs/research/54-nasa-open-source.md`; two of the deep-reads were
+performed THROUGH tee_web_lookup itself (XPlaneConnect, Ames Stereo
+Pipeline — budgeted cited extracts in the doc). Verdicts: XPC is the
+strongest new-lane candidate (any-DataRef read/set, player+traffic
+positioning, pause; scenario staging for simulator prep — A38-grade
+IF the owner runs X-Plane, question put to him); ASP mass-produces
+DTMs/textured meshes from commercial STEREO satellite imagery
+(pairs required — check the owned SkyFi delivery); OpenVSP = board
+asset source; Open MCT = host-side dashboard shell; F´/cFS/Trick/
+GMAT parked; FUN3D/OVERFLOW noted as not actually open. Dogfooding
+friction SI-B10 logged: kb_hint off-topic three-for-three on
+non-domain questions (score floor proposed). No campaign created.
