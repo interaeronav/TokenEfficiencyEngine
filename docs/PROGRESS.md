@@ -3163,3 +3163,16 @@ re-gating, and a 4-bit quant of a 3.x general model is the cheap
 intermediate test if wanted. Side value: the grader model itself
 demonstrating sound trap judgment validates the graded-quality rows'
 choice of judge.
+
+## 2026-08-28 — A35 directed and scripted (owner: smaller, faster, more efficient)
+
+Second self-improvement campaign authored as `CLAUDE_A35_SCRIPT.md`,
+recorded as A35. Premise measurements taken at authoring: artifacts
+already sub-MB (mcpb 566 KB / wheel 362 KB) so the script forbids
+kilobyte-chasing and aims at the real weight — installed extension
+98 MB, startup-to-first-answer, profiled per-tool latency, the
+UV-unwrap hotspot (~440 s on the T.png row), surface 2,028 tok, and
+the benchmark bars as the floor. Also flags the pdfplumber/imagehash
+manual-install smell for P1 root-cause. Kickoff written to TEE project
+memory (key a35-campaign). Campaign not started; P0 is the first
+session's job.

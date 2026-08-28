@@ -23,6 +23,8 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
 - The A34 build (web_lookup + the TEE-native code model) is driven by
   `CLAUDE_A34_SCRIPT.md`; research docs 49 and 50 are its design of
   record.
+- The A35 shrink campaign (smaller, faster, more efficient) is driven
+  by `CLAUDE_A35_SCRIPT.md`, inheriting the A33 rules.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or

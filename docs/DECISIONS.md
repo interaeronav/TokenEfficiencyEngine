@@ -618,3 +618,18 @@ optional with proven degradation. Shortlist seeded from the
 2026-08-28 open-research pass (Qwen coder 7B/14B Apache-2.0,
 Ministral 3 dense Apache-2.0, DeepSeek-R1 distill MIT), final choice
 made and license-linted at adoption day.
+
+## 2026-08-28 — A35: the shrink campaign (owner decision)
+
+The owner directed a second self-improvement campaign: TEE improves
+itself into a **smaller, faster, more efficient package**, with TEE as
+co-pilot, by the A33 method. Driven by `CLAUDE_A35_SCRIPT.md` (root):
+P0 baseline ledger → P1 smaller (dependency/footprint diet — the
+98 MB installed venv is the real target, not the sub-MB zips) → P2
+faster (cold-start-to-first-answer, profiled per-tool latency, the
+UV-unwrap hotspot) → P3 tokens round two (surface 2,028 baseline,
+response leftovers, full battery bars hold) → P4 close-out ledger.
+Scope guards: no new capabilities, no silent capability removal
+("smaller" means lighter, not less), the research-48 matrix remainder
+and all model/LoRA work stay out of scope. Regressions revert; the
+benchmark bars are the floor.
