@@ -2891,3 +2891,51 @@ fetched and fail-closed-linted (canonical Apache-2.0, no riders).
 **OWNER GATE PENDING: the ~8.3 GB weights download** (free disk 1.1 TiB;
 optionally +7B ~4.3 GB for the M3 latency ladder). M2's trap suite and
 M3's real-model rows wait on it; everything else proceeds on the fake.
+
+## 2026-08-28 — A34 session 1 continued: M1, M2 (fake-side), W4 live
+
+**M1 (e486364):** kernel/local_llm.py mirrors local_vlm.py (stdlib
+OpenAI client, available() probe, env config, thinking disabled in the
+request AND leaked <think> stripped, temperature 0, complete_json with
+one corrective retry then llm_bad_json, start-the-stack refusal naming
+the deterministic fallback). [llm] config table; threaded fake OpenAI
+endpoint for CI (fixtures_llm). Live round-trip recorded: machine
+checked quiet first (Epic launcher idle, TEE's own headless Blender,
+96% mem free) → mlx_lm.server + cached Qwen3.5-9B-4bit on a scratch
+port → chore-shaped traceback prompt through complete_json answered in
+**1.0 s** with a correct evidence-grounded diagnosis+fix → server
+stopped.
+
+**M2 (423e172):** tee/llm/chores.py — seven chores behind
+refine=auto|local|off, schema-validated fail-closed, provenance stamp
+tee-coder@r0, the A30 boundary in every template. Wiring: llm_triage /
+llm_explain virtual tools; tee_script refusals carry a repair draft when
+a model runs; tee_web_lookup quotes get refined under the
+extractive-by-verification guarantee (one invented sentence kills the
+lot — tested). All chores green on the fake endpoint (18 tests).
+**Trap suite** (3 API-defer traps + 3 grounded controls, llm marker)
+authored; acceptance runs against the CHOSEN model post-download.
+**Preview against the general 9B** (not the candidate; transient
+server, stopped after): 5/6 — all controls grounded, module_attr_gone
+and import_name_gone deferred correctly, kwarg_drift answered from
+weights instead of deferring. The suite catches exactly the failure it
+was built for; the coder must pass 6/6 before adoption.
+
+**W4:** media arms live. media=auto|off|confirm (confirm = the
+cost-confirm idiom for >10 MB files; 100 MB hard cap); streaming hosts
+refused BEFORE any fetch and paywalls answer as errors (anti-goal
+tests); images captioned top-2 through the guarded fetcher only when
+the question asks for pixels AND local_vlm answers, per-image failures
+reported in place; direct audio/video files transcribed through the
+extract lane and budget-cut against the question. 15 hermetic tests.
+Live proofs, in order: (1) **degrade with NOTHING running** — Wikipedia
+image question answered text + structured media refusal (20 images
+counted, fix named); (2) shim started the launcher way → **live
+captioned lookup 20.0 s** cold incl. VL lazy-start, correct caption of
+the paving photo via upload.wikimedia.org, the SVG tagline honestly
+per-image vlm_failed (collector now skips .svg/.ico — not raster food);
+(3) **live transcribed lookup 14.7 s**, archive.org test MP3 →
+correct transcript, **109 tokens** total answer; (4) stack fully
+stopped (0 processes). Surface delta moved 145 → **188 tok** with the
+media-mode documentation; RESULTS.md sentence updated with both numbers.
+Suite **591 passed** / 2 skipped; ruff clean.

@@ -185,7 +185,7 @@ cited tee_web_lookup answer.
 | how do I test whether an address is private? | 9,569 | 607 | **93.7%** |
 | what is the maximum line length and its exceptions? | 13,008 | 591 | **95.5%** |
 
-Total 50,554 -> 2,382 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 145 tokens on the canonical wire - repaid by the first question of the session.
+Total 50,554 -> 2,382 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 188 tokens on the canonical wire (145 at first measurement; +43 when the W4 media modes joined the description) - repaid by the first question of the session.
 
 - https://pypi.org/project/trimesh/ answered with its bot-challenge variant; excluded
 
