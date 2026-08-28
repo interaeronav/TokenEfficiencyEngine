@@ -205,7 +205,9 @@ class WebFetcher:
         robots_url = f"{target.scheme}://{netloc}/robots.txt"
         try:
             robots_target = self._validate(robots_url)
-            status, _headers, body = self._request(robots_target, self._headers(), 512 * 1024)
+            status, _headers, body = self._request(
+                robots_target, self._headers(), 512 * 1024, stamp=False
+            )
         except (TeeError, OSError, http.client.HTTPException):
             return None  # unreachable robots -> no rules known; the page fetch decides
         if status >= 400:
@@ -214,7 +216,14 @@ class WebFetcher:
         parser.parse(body.decode("utf-8", errors="replace").splitlines())
         return parser
 
-    def _throttle(self, target: Target) -> None:
+    def _throttle(self, target: Target, *, stamp: bool = True) -> None:
+        """Wait out the per-host interval; content requests arm the clock.
+
+        The robots.txt request obeys the interval but does not arm it
+        (stamp=False): crawl etiquette spaces successive CONTENT fetches,
+        and stamping on robots made every first lookup of a host pay a
+        deterministic min_interval_s sleep between robots and the page
+        itself (measured ~2.0 s on loopback, A35 P0)."""
         key = self._host_key(target)
         interval = self._interval.get(key, self.min_interval_s)
         last = self._last_request.get(key)
@@ -222,14 +231,15 @@ class WebFetcher:
             wait = interval - (self._clock() - last)
             if wait > 0:
                 self._sleep(wait)
-        self._last_request[key] = self._clock()
+        if stamp:
+            self._last_request[key] = self._clock()
 
     def _request(
-        self, target: Target, headers: dict[str, str], cap: int
+        self, target: Target, headers: dict[str, str], cap: int, *, stamp: bool = True
     ) -> tuple[int, dict[str, str], bytes]:
         """One throttled request with a single 429/503 Retry-After backoff."""
         for attempt in (1, 2):
-            self._throttle(target)
+            self._throttle(target, stamp=stamp)
             status, resp_headers, body = self._transport(target, headers, self.timeout_s)
             if status in (429, 503):
                 if attempt == 2:

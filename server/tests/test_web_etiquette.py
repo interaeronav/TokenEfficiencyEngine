@@ -163,6 +163,21 @@ def test_per_host_rate_limit_spaces_requests(tmp_path) -> None:
     assert sum(clock.sleeps) >= 2.0
 
 
+def test_first_lookup_of_a_host_pays_no_interval_sleep(tmp_path) -> None:
+    """robots.txt obeys the per-host interval but does not arm it: the first
+    content fetch of a fresh host must not sleep (A35 P0 measured every
+    first lookup paying ~min_interval_s between robots and the page)."""
+    fetcher, _, clock = make_fetcher(
+        tmp_path,
+        {
+            "http://site.example/robots.txt": OK_ROBOTS,
+            "http://site.example/a": PAGE,
+        },
+    )
+    fetcher.fetch("http://site.example/a")
+    assert sum(clock.sleeps) == 0.0
+
+
 def test_429_backoff_honors_retry_after_once(tmp_path) -> None:
     fetcher, _, clock = make_fetcher(
         tmp_path,
