@@ -185,5 +185,5 @@ class WebLookupService:
         top = hits[0]
         return (
             f"the local KB may already answer this: kb_read '{top.get('id')}' "
-            f"({top.get('title')}) costs ~10x less than a web fetch"
+            f"({top.get('title')}) - flagged and cited, no fetch needed"
         )
