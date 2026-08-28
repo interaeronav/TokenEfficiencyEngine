@@ -3113,3 +3113,18 @@ model answering through a mis-routed server (model name vs default_model)
 and a suspected-then-cleared prompt-cache contamination. Suite 608
 green. The M4 gate closes ADOPTED; the fix-loop's chore surface is now
 complete as designed.
+
+## 2026-08-28 — The bigger base, gated: 32B qualified, 14B stays the reference
+
+Owner directed the 32B through the same gates. Battery tranche 3 first
+completed the seed-42 sweep (9/9 images, all ok, 270-1,593 s/config
+with the new 9.5 s repair inside; source-vs-mesh sheet delivered to the
+owner). Then: 32B downloaded (17 GB, Apache-2.0 tag verified), bare
+trap suite 5/6 (same kwarg-drift miss - fourth model, the class gap is
+universal), tee-triage-b1 trained with the unchanged a2 recipe (120
+iters, val-class loss 0.029, 33.4 GB peak), full ladder: traps 6/6,
+held-out 5/5, latency 1.39-3.90 s (~2.2x the 14B; refine_extract over
+the 2 s bar - recorded miss), graded quality 21 vs the 14B's 22 with 0
+abstentions. **Verdict: no measured win - the 14B+a2 remains the
+reference; the 32B+b1 ships as a qualified option** (one config line to
+swap). RESULTS.md carries the comparison table; setup doc updated.

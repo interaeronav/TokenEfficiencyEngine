@@ -56,8 +56,12 @@ conservatively - the trap suite documents the difference).
 Environment form: `TEE_LOCAL_LLM_ADAPTERS=<path>`.
 
 The 7B sibling (~4.3 GB) is the recorded fallback when the latency
-ladder matters more than answer strength; it swaps in behind the same
-seam with no code change. Any llama.cpp / vLLM / LM Studio endpoint
+ladder matters more than answer strength; the 32B
+(`mlx-community/Qwen2.5-Coder-32B-Instruct-4bit`, 17 GB, with its own
+`tee-triage-b1` adapter) is the qualified headroom option - it passes
+every gate but measured no chore-quality win over the 14B at ~2.2x the
+latency (benchmarks/RESULTS.md carries the row). All swap in behind
+the same seam with no code change. Any llama.cpp / vLLM / LM Studio endpoint
 works identically — the benchmarks in `benchmarks/RESULTS.md` name the
 exact model they were measured against, and a different model means
 your numbers differ.
