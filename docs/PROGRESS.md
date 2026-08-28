@@ -3773,3 +3773,38 @@ config refused cleanly (stdio-only P1 decision), disabled backend dark,
 and **the always-loaded surface asserted IDENTICAL with and without a
 connected backend** (surface delta 0 by test, not by claim). Suite
 **647 passed / 2 skipped**, ruff clean.
+
+## 2026-08-29 — A37 P2: Gateway live — two reference backends fronted, the benchmark row lands
+
+**Live fronting (this machine, scratch project):** `fs` =
+secure-filesystem-server@0.2.0 — **14 tools** as `fs.*`, first connect
+7.05 s (the one-time npx fetch); `mem` = memory-server@0.6.3 — **9
+tools** as `mem.*`, connect 0.00 s because the serve-time background
+handshake had already landed it (the P1 lifecycle design observed
+working live). `tee_search_tools "read text file"` ranks
+`fs.read_text_file` first among the fronted tools; one real call each
+(`fs.read_text_file` round trip; `mem.create_entities` +
+`mem.read_graph` on the knowledge graph); both fingerprints pinned and
+visible in tee_status's gateway block. Drift firewall exercised on the
+FAKE per the script (the P1 three-generation drift test), not by
+mutating the real servers.
+
+**The benchmark row (appended to RESULTS.md; scenario added to
+run_benchmarks.py as `run_gateway_scenario`, npx-gated with clean skip
++ carry-forward):** a 3-call task (list folder, read config, read a
+2,000-line build log) against the live filesystem server — naive (the
+backend's own README pattern: all 14 schemas in context = 3,706 tok
+before the first call, plus raw results) **35,238 tok / 3 calls** vs
+TEE (meta-tool reach: one search + one describe, budgeted results, 1
+of 3 trimmed with the raise-max_tokens fix named) **1,629 tok / 5
+calls = 95.4% saved** — the UE-proxy precedent (93.9%) reproduced on a
+foreign backend.
+
+**docs/setup-gateway.md written**: config, untrusted stance, firewall
+behavior with the live refusal text, the two reference backends as the
+verified worked example. Deviation from the script, reasoned: the
+FreeCAD backend section is present but explicitly marked "pending its
+probe" — writing it as a VERIFIED worked example before the P0 probe
+runs would claim what is not yet measured (the deeper A30 law outranks
+the section plan); it gets its live fingerprint when the install gate
+clears. make check 647/2 green.

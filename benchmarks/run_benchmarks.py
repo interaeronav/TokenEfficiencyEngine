@@ -446,7 +446,6 @@ def run_extract_scenario() -> tuple | None:
 
         # -- Phase 8 (A11): the conformance fix loop, rounds vs tee_script
         def toks(x) -> int:
-            import json as _json
 
             return estimate_tokens(x)
 
@@ -681,7 +680,6 @@ def run_physical_scenario() -> dict | None:
                 {"ids": boxes, "passive_ids": [current["Ground"]],
                  "adapter": "blender"},
             )
-            import json as _json
 
             report_tokens = estimate_tokens(out)
             wall = out.get("wall_s", 0)
@@ -746,8 +744,8 @@ def run_surface_scenario() -> dict | None:
         from tee.assets.tools import register_asset_tools
         from tee.design.tools import register_design_tools
         from tee.extract.tools import register_extract_tools
-        from tee.kernel.adapter import FakeAdapter
         from tee.kb.tools import register_kb_tools
+        from tee.kernel.adapter import FakeAdapter
         from tee.physical.tools import register_physical_tools
         from tee.pins.tools import register_pin_tools
         from tee.server import build_server
@@ -1051,6 +1049,99 @@ def run_kb_scenario() -> dict | None:
 
 
 # --------------------------------------------------------------------------
+# Gateway scenario (A37 P2): a 3-call task against a many-tool MCP backend,
+# its own README pattern (every tool schema always-loaded + raw results) vs
+# fronted through TEE's meta-tools (always-loaded delta 0, budgeted
+# results). Needs npx; skips cleanly without it.
+# --------------------------------------------------------------------------
+
+
+def run_gateway_scenario() -> dict | None:
+    if shutil.which("npx") is None:
+        print("gateway scenario skipped (no npx)")
+        return None
+    try:
+        from tee.app import TeeApp
+        from tee.gateway.tools import register_gateway
+        from tee.kernel.adapter import FakeAdapter
+    except ImportError as exc:
+        print(f"gateway scenario skipped ({exc})")
+        return None
+
+    project = Path(tempfile.mkdtemp(prefix="tee-bench-gw-"))
+    sandbox = project / "site"
+    sandbox.mkdir()
+    (sandbox / "config.json").write_text(
+        _json.dumps({"site": "okongo", "grid_mm": 32, "revision": 7}, indent=1)
+    )
+    (sandbox / "build.log").write_text(
+        "\n".join(
+            f"[{i:05d}] stage {i % 9} ok - transforms applied, checks passed"
+            for i in range(2000)
+        )
+    )
+    (project / ".tee").mkdir()
+    (project / ".tee" / "config.toml").write_text(
+        f'[gateway.backends.fs]\n'
+        f'command = "npx -y @modelcontextprotocol/server-filesystem {sandbox}"\n'
+    )
+    app = TeeApp({"fake": FakeAdapter()}, project_root=project)
+    try:
+        service = register_gateway(app, project)
+        service.connect("fs")
+        backend = service.backends["fs"]
+        fp = backend.fingerprint or {}
+        calls = [
+            ("list_directory", {"path": str(sandbox)}),
+            ("read_text_file", {"path": str(sandbox / "config.json")}),
+            ("read_text_file", {"path": str(sandbox / "build.log")}),
+        ]
+        # naive arm: schemas carried all session, results raw
+        schema_tokens = estimate_tokens(backend.tools)
+        naive = schema_tokens
+        for tool, args in calls:
+            raw = backend.wire.tools_call(tool, args)
+            text = "\n".join(
+                str(b.get("text", ""))
+                for b in raw.get("content") or []
+                if isinstance(b, dict) and b.get("type") == "text"
+            )
+            naive += estimate_tokens(args) + estimate_tokens(text)
+        # TEE arm: reach via the existing meta-tools, results budgeted
+        tee = 0
+        query = {"query": "read text file directory"}
+        tee += estimate_tokens(query) + estimate_tokens(app.registry.search(query["query"]))
+        tee += estimate_tokens({"name": "fs.read_text_file"}) + estimate_tokens(
+            app.registry.describe("fs.read_text_file")
+        )
+        truncated = 0
+        for tool, args in calls:
+            result = app.registry.call(f"fs.{tool}", args)
+            truncated += 1 if "truncated" in result else 0
+            tee += estimate_tokens(args) + estimate_tokens(result)
+        row = {
+            "backend": f"{fp.get('server')}@{fp.get('version')}",
+            "backend_tools": len(backend.tools),
+            "schema_tokens": schema_tokens,
+            "naive_tokens": naive,
+            "naive_calls": len(calls),
+            "tee_tokens": tee,
+            "tee_calls": len(calls) + 2,
+            "truncated_results": truncated,
+            "saving": 100.0 * (1 - tee / naive),
+        }
+        print(
+            f"gateway {row['backend']} ({row['backend_tools']} tools): naive "
+            f"{naive:,} tok / {len(calls)} calls -> tee {tee:,} tok / "
+            f"{row['tee_calls']} calls ({row['saving']:.1f}% saved; "
+            f"schemas alone {schema_tokens:,})"
+        )
+        return row
+    finally:
+        app.shutdown()
+
+
+# --------------------------------------------------------------------------
 # Runner
 # --------------------------------------------------------------------------
 
@@ -1255,8 +1346,9 @@ def main() -> None:
     jurisdiction_row = _safe(run_jurisdiction_scenario)
     kb_row = _safe(run_kb_scenario)
     web_row = _safe(run_web_scenario)
+    gateway_row = _safe(run_gateway_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
-                  surface_row, jurisdiction_row, kb_row, web_row)
+                  surface_row, jurisdiction_row, kb_row, web_row, gateway_row)
 
 
 def _safe(fn):
@@ -1296,7 +1388,7 @@ def _carry_forward(section_header: str) -> list[str]:
 
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
-                  kb_row=None, web_row=None) -> None:
+                  kb_row=None, web_row=None, gateway_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -1535,6 +1627,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _web_section(web_row)
     else:
         lines += _carry_forward("## Web lookup: five documentation questions")
+    if gateway_row is not None:
+        lines += _gateway_section(gateway_row)
+    else:
+        lines += _carry_forward("## Gateway: fronting a many-tool MCP backend")
     lines += [
         "",
         f"*Generated by `benchmarks/run_benchmarks.py` against Blender "
@@ -1570,6 +1666,32 @@ def _web_section(w: dict) -> list[str]:
         lines += ["", *w["notes"]]
     return lines
     print(f"\nwrote {out}")
+
+
+def _gateway_section(g: dict) -> list[str]:
+    return [
+        "",
+        "## Gateway: fronting a many-tool MCP backend (A37)",
+        "",
+        "The task: list a project folder, read its config, read its 2,000-line",
+        f"build log - against {g['backend']} ({g['backend_tools']} tools), the",
+        "official filesystem reference server. **Naive** is the backend's own",
+        "README pattern: every tool schema in context for the whole session",
+        f"({g['schema_tokens']:,} tokens before the first call) plus raw results.",
+        "**TEE** fronts the same live server through the existing meta-tools",
+        "(always-loaded delta: 0, asserted by test), pays one search + one",
+        "describe to reach the tools, and budgets results with the truncation",
+        f"reported ({g['truncated_results']} of {g['naive_calls']} results trimmed here - the",
+        "2,000-line log arrives as a bounded excerpt with the raise-max_tokens",
+        "fix named, which is the point).",
+        "",
+        "| | Tokens | Calls | Saving |",
+        "|---|---|---|---|",
+        f"| naive (schemas in context + raw results) | {g['naive_tokens']:,} | "
+        f"{g['naive_calls']} | |",
+        f"| TEE (meta-tool reach + budgeted results) | {g['tee_tokens']:,} | "
+        f"{g['tee_calls']} | **{g['saving']:.1f}%** |",
+    ]
 
 
 def _blender_version() -> str:
