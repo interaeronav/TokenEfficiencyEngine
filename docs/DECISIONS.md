@@ -633,3 +633,21 @@ Scope guards: no new capabilities, no silent capability removal
 ("smaller" means lighter, not less), the research-48 matrix remainder
 and all model/LoRA work stay out of scope. Regressions revert; the
 benchmark bars are the floor.
+
+## 2026-08-28 — A36: build the research-51 roadmap (owner decision)
+
+The owner directed the build of all five recommended features from
+research 51: F1 TEE Gateway (front any MCP server through TEE's
+existing meta-tools — the UE-proxy pattern generalized, with a
+fingerprint drift-firewall and the research-49 untrusted-content
+posture applied to backend catalogs and results), F2 savings meter
+(recap block + virtual report_savings, estimates labelled), F3
+handoff pack (virtual tool, ≤500-tok portable brief), F4 adapter kit
+(docs + template + contract tests, rehearsed cold), F5 kb_propose
+(drafts to .tee/kb-staging only; the A31 mirror stays untouchable by
+construction). F6 diagnostics stays staged. Driven by
+`CLAUDE_A36_SCRIPT.md`; campaign law: the always-loaded surface does
+not grow — any exception is an owner decision measured in tokens.
+Not concurrent with A35 on the branch; whichever runs second
+re-baselines. Benchmark bars are the floor; version recommendation
+at close by semver (expected 0.4.0).

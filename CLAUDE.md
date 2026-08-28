@@ -25,6 +25,9 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   record.
 - The A35 shrink campaign (smaller, faster, more efficient) is driven
   by `CLAUDE_A35_SCRIPT.md`, inheriting the A33 rules.
+- The A36 roadmap build (gateway, meter, handoff, kit, kb_propose) is
+  driven by `CLAUDE_A36_SCRIPT.md`; research doc 51 is its design of
+  record.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or

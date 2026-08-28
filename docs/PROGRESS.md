@@ -3323,3 +3323,14 @@ progressive disclosure/budgets — the UE-proxy pattern generalized,
 tee_handoff portable brief; adapter kit and gated kb_propose staged
 behind; first-party Godot/QGIS adapters explicitly not recommended
 (front the incumbents instead). Building anything = A36, owner's word.
+
+## 2026-08-28 — A36 directed and scripted (owner: build all the recommendations)
+
+All five research-51 features scripted as `CLAUDE_A36_SCRIPT.md`,
+recorded as A36. Campaign laws: zero always-loaded surface growth
+(gateway rides the existing meta-tools; meter folds into the recap;
+handoff and kb_propose ship virtual), fronted-backend content treated
+as untrusted per research 49, fakes-first with a fingerprint
+drift-firewall, the battery bars as the floor, and no concurrency
+with A35 on the branch. Kickoff written to TEE project memory (key
+a36-campaign). Campaign not started; G0 is the first session's job.
