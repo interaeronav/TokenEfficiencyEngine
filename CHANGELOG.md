@@ -3,6 +3,34 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased (0.3.0 candidate)
+
+The A34 campaign: the web lane and the local code-model chore layer.
+
+- **New always-loaded tool `tee_web_lookup`** {url, question, max_tokens,
+  media=auto|off|confirm}: budgeted cited extracts from one URL —
+  SSRF-guarded (resolve-then-pin), robots/Crawl-delay honoring, TTL'd
+  ETag cache, sanitizing extractor; media arms caption page images and
+  transcribe direct audio/video via local models with structured
+  degrades. Surface 17 tools, 2,028 tok compact canonical wire.
+- **Local code-model chore layer** ([llm] config, `kernel/local_llm.py`,
+  `tee/llm/chores.py`): script-repair drafts on tee_script refusals,
+  `llm_explain`, and extractive-by-verification web-quote refinement —
+  each schema-gated, provenance-stamped, degrading to deterministic
+  paths with nothing running. Traceback triage exists but is NOT
+  registered (trap-suite block; see docs/setup-local-llm.md).
+- **BREAKING (SI-3.2)**: the primary list field of tool responses is
+  now uniformly `items` — previously `tools` (tee_search_tools,
+  ue_search_tools), `hits` (kb_search, ex_search), `materials`
+  (as_materials), `entities` (tee_scene_summary, uefn scene reads).
+  Detail fields, counts, and third-party document keys (glTF, Epic
+  toolsets) are unchanged.
+- **Measure change (SI-B4)**: the canonical wire surface measure now
+  uses compact JSON separators, matching true stdio bytes (~4.5% lower
+  than the old spaced measure; historical rows keep their values, noted
+  in benchmarks/RESULTS.md).
+- `tee doctor`: new `web` and `local models` rows.
+
 ## 0.2.0 — 2026-08-28
 
 The A33 self-improvement campaign release (owner-approved bump;

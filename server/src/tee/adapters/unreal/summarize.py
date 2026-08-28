@@ -148,7 +148,7 @@ def summarize_toolset(
         "about": summary_line(parsed.get("description")),
         "total": len(parsed.get("tools") or []),
         "shown": len(tools),
-        "tools": lines,
+        "items": lines,
         "note": "Signatures only ('!' = required). ue_describe_tool(<tool>) "
         "expands one full schema.",
     }

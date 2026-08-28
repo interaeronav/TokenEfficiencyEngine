@@ -118,7 +118,7 @@ class SceneCache:
             **self.stamp(),
             "total": total,
             "kinds": kinds,
-            "entities": [e.detailed() if detailed else e.concise() for e in page],
+            "items": [e.detailed() if detailed else e.concise() for e in page],
         }
         shown = len(page)
         if offset + shown < total:

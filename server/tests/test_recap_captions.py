@@ -124,7 +124,7 @@ def test_prepare_lists_uncaptioned_then_excludes_captioned(app):
 
 def test_captions_are_searchable(app):
     hits = app.registry.call("ex_search", {"query": "grey hallway"})
-    assert any(h["fact"].get("kind") == "caption" for h in hits["hits"])
+    assert any(h["fact"].get("kind") == "caption" for h in hits["items"])
 
 
 def test_all_captioned_collapses_to_note(app):

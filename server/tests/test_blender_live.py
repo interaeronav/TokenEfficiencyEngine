@@ -81,7 +81,7 @@ def test_batch_create_set_delete_roundtrip(app):
 
     summary = app.cache("blender").summary()
     assert summary["total"] == 2
-    names = {e["name"] for e in summary["entities"]}
+    names = {e["name"] for e in summary["items"]}
     assert names == {"Base", "Sun"}
 
 
@@ -113,7 +113,7 @@ def test_snapshot_restore_via_checkpoints(app):
     assert rolled["ok"] is True
     summary = app.cache("blender").summary()
     assert summary["total"] == 1
-    assert summary["entities"][0]["name"] == "Keep"
+    assert summary["items"][0]["name"] == "Keep"
 
 
 def test_assign_material_via_virtual_tool(app):

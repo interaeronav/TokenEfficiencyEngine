@@ -120,7 +120,7 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
     # -- creation lanes ----------------------------------------------------
 
     def as_materials(args):
-        return {"materials": materials_mod.list_materials(args.get("category"))}
+        return {"items": materials_mod.list_materials(args.get("category"))}
 
     def as_material(args):
         ops, provenance = materials_mod.assign_ops(str(args["id"]), str(args["query"]))

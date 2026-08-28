@@ -89,7 +89,7 @@ def test_summary_filters_pages_and_truncates():
         cache.apply_diff(Diff(created=[f"e{i}"]), [ent(f"e{i}", f"Obj{i}", kind)])
     s = cache.summary(limit=5, offset=0, kind="mesh")
     assert s["total"] == 15
-    assert len(s["entities"]) == 5
+    assert len(s["items"]) == 5
     assert "truncated" in s and "offset=5" in s["truncated"]
     assert s["kinds"] == {"mesh": 15, "light": 15}
     s2 = cache.summary(name_contains="obj1", limit=50)

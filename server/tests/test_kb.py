@@ -185,7 +185,7 @@ def test_drift_marks_stale_but_still_serves(kb):
     assert "10_paving/01_block-paving.md" in status["drift"]["changed"]
     assert "rebuild.py" in status["drift"]["fix"]
     result = app.registry.call("kb_search", {"query": "interlock paving"})
-    assert result["hits"], "a stale index must still serve queries"
+    assert result["items"], "a stale index must still serve queries"
     assert "stale" in result
 
 
@@ -260,20 +260,20 @@ def test_root_resolution_order(tmp_path, monkeypatch):
 def test_search_ranks_title_match_first(kb):
     app, _ = kb
     result = app.registry.call("kb_search", {"query": "block paving"})
-    assert result["hits"][0]["id"] == "paving.blocks"
+    assert result["items"][0]["id"] == "paving.blocks"
 
 
 def test_search_filters_are_exact(kb):
     app, _ = kb
     result = app.registry.call("kb_search", {"query": "paving", "confidence": "medium"})
-    assert [h["id"] for h in result["hits"]] == ["paving.costing"]
+    assert [h["id"] for h in result["items"]] == ["paving.costing"]
     result = app.registry.call("kb_search", {"query": "wall", "jurisdiction": "NA"})
-    assert [h["id"] for h in result["hits"]] == ["walls.boundary"]
+    assert [h["id"] for h in result["items"]] == ["walls.boundary"]
 
 
 def test_search_rows_carry_flags_verbatim(kb):
     app, _ = kb
-    hit = app.registry.call("kb_search", {"query": "boundary wall"})["hits"][0]
+    hit = app.registry.call("kb_search", {"query": "boundary wall"})["items"][0]
     assert hit["confidence"] == "low"
     assert hit["jurisdiction"] == "NA"
     assert hit["status"] == "needs-verification"
@@ -282,7 +282,7 @@ def test_search_rows_carry_flags_verbatim(kb):
 def test_empty_result_returns_domains_not_silence(kb):
     app, _ = kb
     result = app.registry.call("kb_search", {"query": "zzzqqq nothing"})
-    assert result["hits"] == []
+    assert result["items"] == []
     assert {d["slug"] for d in result["domains"]} == {"10_paving", "20_walls"}
 
 
@@ -398,7 +398,7 @@ def test_live_status_reads_the_real_corpus(live):
 
 @needs_mirror
 def test_live_paving_lookup_carries_citation_and_flags(live):
-    hits = live.registry.call("kb_search", {"query": "paving specification"})["hits"]
+    hits = live.registry.call("kb_search", {"query": "paving specification"})["items"]
     assert hits and hits[0]["domain"] == "17_paving_and_roads"
     top = hits[0]["id"]
     out = live.registry.call("kb_read", {"id": top, "section": "Key facts"})
@@ -421,5 +421,5 @@ def test_live_dcc_domains_never_pretend_to_ground_apis(live):
     the CLAUDE.md rule (never an API source) rides on those flags."""
     hits = live.registry.call(
         "kb_search", {"query": "geometry nodes", "domain": "14_software_blender"}
-    )["hits"]
+    )["items"]
     assert hits and all(h["confidence"] for h in hits)

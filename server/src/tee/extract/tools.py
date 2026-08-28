@@ -230,7 +230,7 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
     )
 
     def ex_search(args: dict[str, Any]) -> dict[str, Any]:
-        return {"hits": store.search(args["query"], int(args.get("limit") or 10))}
+        return {"items": store.search(args["query"], int(args.get("limit") or 10))}
 
     reg.register(
         VirtualTool(

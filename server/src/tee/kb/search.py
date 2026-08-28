@@ -88,7 +88,7 @@ def search(
             scored.append((score, record["path"], record))
     scored.sort(key=lambda item: (-item[0], item[1]))
     hits = [hit_row(record) for _, _, record in scored[:limit]]
-    out: dict[str, Any] = {"query": query, "hits": hits, "matched": len(scored)}
+    out: dict[str, Any] = {"query": query, "items": hits, "matched": len(scored)}
     if not hits:
         data = index.load()
         out["hint"] = "no match - pick a domain and search inside it"

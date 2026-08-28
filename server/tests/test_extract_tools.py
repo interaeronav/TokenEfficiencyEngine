@@ -84,7 +84,7 @@ def test_sources_and_facts(app):
 
 
 def test_search_across_sources(app):
-    hits = app.registry.call("ex_search", {"query": "bedroom"})["hits"]
+    hits = app.registry.call("ex_search", {"query": "bedroom"})["items"]
     assert any(h["name"] == "plan.dxf" for h in hits)
 
 
@@ -111,7 +111,7 @@ def test_in_band_writeback_requirements(app):
         },
     )
     assert stored["stored"] == 1
-    hits = app.registry.call("ex_search", {"query": "four bedrooms"})["hits"]
+    hits = app.registry.call("ex_search", {"query": "four bedrooms"})["items"]
     assert any(h["fact"]["kind"] == "requirement" for h in hits)
 
 

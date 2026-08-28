@@ -78,7 +78,7 @@ def test_kb_hint_appears_when_kb_matches(tmp_path) -> None:
     class FakeRegistry:
         def call(self, name: str, args: dict) -> dict:
             assert name == "kb_search"
-            return {"hits": [{"id": "05-block-paving", "title": "Block paving"}]}
+            return {"items": [{"id": "05-block-paving", "title": "Block paving"}]}
 
     answer = service(tmp_path, registry=FakeRegistry()).lookup(URL, "bedding sand?")
     assert "kb_read '05-block-paving'" in answer["kb_hint"]

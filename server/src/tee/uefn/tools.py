@@ -79,7 +79,7 @@ def register_uefn_tools(app, project_root: Path | str, *, uefn: UefnAdapter | No
         )
 
     def uefn_entities(args):
-        return {"entities": adapter.entities()}
+        return {"items": adapter.entities()}
 
     def uefn_entity_batch(args):
         return adapter.entity_batch(args["ops"])

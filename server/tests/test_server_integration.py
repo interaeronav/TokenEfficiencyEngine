@@ -92,7 +92,7 @@ def test_full_editing_session():
         # summary is compact and paged
         summary = payload(await client.call_tool("tee_scene_summary", {"limit": 1}))
         assert summary["total"] == 2
-        assert len(summary["entities"]) == 1
+        assert len(summary["items"]) == 1
         assert "offset=1" in summary["truncated"]
 
         # rollback, then the old stamp demands resync
@@ -111,7 +111,7 @@ def test_full_editing_session():
 def test_progressive_disclosure_roundtrip():
     async def scenario(client):
         hits = payload(await client.call_tool("tee_search_tools", {"query": "demo"}))
-        assert hits["tools"][0]["name"] == "bl_demo_tool"
+        assert hits["items"][0]["name"] == "bl_demo_tool"
 
         desc = payload(await client.call_tool("tee_describe_tool", {"name": "bl_demo_tool"}))
         assert desc["schema"]["required"] == ["n"]
@@ -302,8 +302,8 @@ def test_columnar_encoding_on_large_summaries():
         payload(await client.call_tool("tee_batch", {"ops": ops}))
 
         out = payload(await client.call_tool("tee_scene_summary", {"limit": 100}))
-        assert out["columnar"] == ["entities"]
-        cols, rows = out["entities"]["cols"], out["entities"]["rows"]
+        assert out["columnar"] == ["items"]
+        cols, rows = out["items"]["cols"], out["items"]["rows"]
         assert len(rows) == 100
         decoded = [dict(zip(cols, r[: len(cols)], strict=True)) for r in rows]
         names = {d["name"] for d in decoded}
@@ -317,7 +317,7 @@ def test_columnar_encoding_on_large_summaries():
 
         small = payload(await client.call_tool("tee_scene_summary", {"limit": 5}))
         assert "columnar" not in small
-        assert isinstance(small["entities"], list)
+        assert isinstance(small["items"], list)
 
     run_session(scenario)
 

@@ -186,7 +186,7 @@ def register_kb_tools(app, project_root: Path | str, *, root: str | None = None)
             found = kb_search_mod.search(
                 index, str(args.get("query", "")), limit=int(args.get("limit", 5))
             )
-            records = [index.record(hit["id"]) for hit in found["hits"]]
+            records = [index.record(hit["id"]) for hit in found["items"]]
         budget = _budget(args, DEFAULT_FACTS_TOKENS)
         per_file = max(120, budget // max(1, len(records))) if records else budget
         blocks = []
@@ -231,7 +231,7 @@ def register_kb_tools(app, project_root: Path | str, *, root: str | None = None)
         VirtualTool(
             "kb_search",
             "Search the Expert Knowledge Base (38 domains, 401 files) by "
-            "keyword with optional exact filters. Returns ranked hits only "
+            "keyword with optional exact filters. Returns ranked rows only "
             "(id, title, domain, confidence, one-line summary) - read a hit "
             "with kb_read. Content is imported reference: flags are the "
             "corpus's own, and low/needs-verification content is labelled.",

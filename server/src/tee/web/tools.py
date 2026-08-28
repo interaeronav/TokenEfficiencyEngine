@@ -179,7 +179,7 @@ class WebLookupService:
             found = self.registry.call("kb_search", {"query": question, "limit": 1})
         except Exception:  # kb inactive/disabled: the hint simply stays away
             return None
-        hits = found.get("hits") or []
+        hits = found.get("items") or []
         if not hits:
             return None
         top = hits[0]

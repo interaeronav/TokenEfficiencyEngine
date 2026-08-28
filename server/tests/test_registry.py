@@ -38,7 +38,7 @@ def test_search_ranks_name_and_tag_matches():
     reg.register(make_tool("bl_assign_material", tags=["blender", "material"]))
     reg.register(make_tool("ue_spawn_actor", tags=["unreal", "actor"]))
     result = reg.search("blender material")
-    hits = result["tools"]
+    hits = result["items"]
     assert hits[0]["name"] == "bl_assign_material"
     assert all(set(h) == {"name", "summary"} for h in hits)
     assert "\n" not in hits[0]["summary"]
@@ -52,10 +52,10 @@ def test_search_flags_weak_matches():
     reg = ToolRegistry()
     reg.register(make_tool("bl_create_cube"))
     weak = reg.search("help")  # matches description text only, weight 1.0
-    assert weak["tools"][0]["name"] == "bl_create_cube"
+    assert weak["items"][0]["name"] == "bl_create_cube"
     assert "no strong match" in weak["note"]
     none = reg.search("frobnicate")
-    assert none["tools"] == []
+    assert none["items"] == []
     assert "no strong match" in none["note"]
 
 

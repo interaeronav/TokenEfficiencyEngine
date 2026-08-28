@@ -1022,7 +1022,7 @@ def run_kb_scenario() -> dict | None:
         return result
 
     hits = call("kb_search", {"query": "concrete block paving bedding sand specification"})
-    top = hits["hits"][0]["id"]
+    top = hits["items"][0]["id"]
     read = call("kb_read", {"id": top, "section": "Key facts"})
     assert read["flags"]["confidence"], "flags must ride on every content response"
     app.shutdown()

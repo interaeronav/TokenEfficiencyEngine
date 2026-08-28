@@ -80,7 +80,7 @@ class ToolRegistry:
     def search(self, query: str, limit: int = 10) -> dict[str, Any]:
         """Rank by word overlap against name, tags, and description.
 
-        Returns {"tools": [...]} plus a "note" when nothing scored well, so
+        Returns {"items": [...]} plus a "note" when nothing scored well, so
         a weak result is distinguishable from a good one without spending
         describe round-trips to find out (SI-B2)."""
         words = [w for w in re.split(r"[^a-z0-9]+", query.lower()) if w]
@@ -103,7 +103,7 @@ class ToolRegistry:
                 scored.append((score, name))
         scored.sort(key=lambda pair: (-pair[0], pair[1]))
         result: dict[str, Any] = {
-            "tools": [
+            "items": [
                 {"name": name, "summary": self._tools[name].one_line} for _, name in scored[:limit]
             ]
         }
@@ -142,7 +142,7 @@ class ToolRegistry:
             )
         tool = self._tools.get(name)
         if tool is None:
-            suggestions = self.search(name, limit=3)["tools"]
+            suggestions = self.search(name, limit=3)["items"]
             hint = ", ".join(s["name"] for s in suggestions) or "tee_search_tools"
             raise TeeError(
                 "unknown_tool",
