@@ -669,3 +669,8 @@ fixtures. All A36 laws carry over (zero surface growth, untrusted
 fronted content, bars as the floor). Home Builder 5.1 lands through
 the EXISTING Blender adapter. A35 remains separate and never
 concurrent. Expected close at 0.4.0; the owner tags.
+
+**A37 addendum (owner, 2026-08-28):** the SI-B10 kb_hint fix (relevance
+floor + optional local rerank, fixtured on the three recorded
+misfires) is consolidated into the A37 script as phase P0-F — fixed
+first, before campaign work begins.

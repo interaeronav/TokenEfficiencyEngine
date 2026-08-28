@@ -22,6 +22,28 @@ A one-paste prompt for a fresh session:
 > the adapter it rehearses, benchmarks before claims. Stop and report
 > if any phase's premise no longer holds.
 
+## P0-F — Fix first: the kb_hint defect (SI-B10, owner-directed 2026-08-28)
+
+Before any campaign work, close the shipped defect logged as SI-B10:
+`kb_hint` (on tee_web_lookup and anywhere else it rides) offers the
+best KB match even when the best is irrelevant — three live misfires
+on record (a Blender bmesh question hinted at construction case
+studies; nasa/XPlaneConnect at SA contractors; stereo-pipeline docs at
+game-dev salaries).
+
+1. **Relevance floor**: suppress the hint when the top match scores
+   below threshold — reuse SI-B2's weak-match machinery; pick the
+   threshold from measured score distributions (in-domain fixture
+   queries vs the three misfires), not by feel.
+2. **Optional rerank**: when the local endpoint answers, route the
+   floor's borderline band through the kb-rerank chore (labelled in
+   the response provenance); absent endpoint → floor only.
+3. **Fixtures**: the three real misfires must produce NO hint; a
+   genuinely-KB question (the paving fixture) must keep its hint.
+4. Evidence: hint-token cost on non-domain calls before/after; kb
+   benchmark row unaffected; SI-B10 ticked with the commit; small
+   commit, pushed, before P0 begins.
+
 ## P0 — Baseline + the probes that settle the architecture
 
 1. Suites green; surface and battery totals cited to dated rows.

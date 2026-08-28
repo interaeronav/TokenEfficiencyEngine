@@ -3384,3 +3384,14 @@ asset source; Open MCT = host-side dashboard shell; F´/cFS/Trick/
 GMAT parked; FUN3D/OVERFLOW noted as not actually open. Dogfooding
 friction SI-B10 logged: kb_hint off-topic three-for-three on
 non-domain questions (score floor proposed). No campaign created.
+
+## 2026-08-28 — A37 script amended: kb_hint fix consolidated as P0-F (owner)
+
+Owner directed the SI-B10 kb_hint fix into the upcoming A37 session.
+`CLAUDE_A37_SCRIPT.md` gains P0-F ahead of P0: relevance floor via the
+SI-B2 weak-match machinery (threshold picked from measured score
+distributions), optional local-endpoint rerank for the borderline
+band, the three live misfires as must-produce-no-hint fixtures with
+the paving fixture as the must-keep control, and the kb benchmark row
+as the no-regression check. A37 decision addendum recorded; TEE
+project memory updated.
