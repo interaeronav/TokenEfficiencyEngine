@@ -43,7 +43,7 @@ Format per item:
 - call: `run_benchmarks.py` surface row = 2,465 tok ("wire") via `model_dump(exclude nulls)` with spaced separators; a real stdio `tools/list` response, compact-dumped = 2,330 tok (2,342 with JSON-RPC envelope)
 - hurt: the published wire figure overstates the real wire by ~5.8%; two sessions measuring "the" wire number get different answers.
 - proposed: measure the actual stdio frame (or compact separators) and state the method next to the number.
-- status: open (2026-08-27: method located — run_benchmarks uses model_dump(by_alias, exclude_none) with spaced separators; both figures now recorded side by side in PROGRESS: canonical 1,935 vs true stdio 1,848 after SI-1)
+- status: **closed 2026-08-28** (owner-directed): every estimate_tokens site in run_benchmarks now passes objects (compact separators, estimate_tokens' own dump) instead of pre-dumped spaced JSON. Compact canonical surface with tee_web_lookup: 2,028 tok (spaced measure said 2,123); the web entry's delta 180 (was 188). Historical rows keep their recorded values with the measure change noted in RESULTS.md.
 
 ## SI-B5 — RESULTS.md regeneration silently drops skipped scenarios
 - seen: 2026-08-27, SI-0 benchmark reproduction

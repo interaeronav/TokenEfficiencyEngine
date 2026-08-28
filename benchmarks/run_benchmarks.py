@@ -448,7 +448,7 @@ def run_extract_scenario() -> tuple | None:
         def toks(x) -> int:
             import json as _json
 
-            return estimate_tokens(_json.dumps(x, separators=(",", ":"), default=str))
+            return estimate_tokens(x, separators=(",", ":"))
 
         src = store.resolve("plan.dxf")["hash"][:8]
         app.registry.call("bl_build_from_plan", {"source": src})
@@ -683,9 +683,7 @@ def run_physical_scenario() -> dict | None:
             )
             import json as _json
 
-            report_tokens = estimate_tokens(
-                _json.dumps(out, separators=(",", ":"), default=str)
-            )
+            report_tokens = estimate_tokens(out, separators=(",", ":"))
             wall = out.get("wall_s", 0)
             runs.append(out["final_by_name"])
             app.rollback("blender", out["checkpoint"])
@@ -773,9 +771,7 @@ def run_surface_scenario() -> dict | None:
 
     root = tempfile.mkdtemp(prefix="tee-bench-surface-")
     bare = TeeApp({"fake": FakeAdapter()}, project_root=root)
-    bare_tokens = estimate_tokens(
-        _json.dumps([t.model_dump(**wire_kw) for t in listed(bare)], default=str)
-    )
+    bare_tokens = estimate_tokens([t.model_dump(**wire_kw) for t in listed(bare)])
     bare.shutdown()
 
     app = TeeApp({"fake": FakeAdapter()}, project_root=root)
@@ -787,12 +783,8 @@ def run_surface_scenario() -> dict | None:
     register_uefn_tools(app, root)
     register_kb_tools(app, root, root=str(REPO / "knowledge-base"))
     tools = listed(app)
-    full_tokens = estimate_tokens(
-        _json.dumps([t.model_dump(**wire_kw) for t in tools], default=str)
-    )
-    dump_tokens = estimate_tokens(
-        _json.dumps([t.model_dump(mode="json") for t in tools], default=str)
-    )
+    full_tokens = estimate_tokens([t.model_dump(**wire_kw) for t in tools])
+    dump_tokens = estimate_tokens([t.model_dump(mode="json") for t in tools])
 
     registry = app.registry
     names = registry.names()
@@ -804,11 +796,9 @@ def run_surface_scenario() -> dict | None:
         }
         for name in names
     ]
-    flat_tokens = estimate_tokens(_json.dumps(flat, default=str)) + full_tokens
+    flat_tokens = estimate_tokens(flat) + full_tokens
     search = registry.search("check a staircase against the building code", limit=5)
-    reach = estimate_tokens(_json.dumps(search, default=str)) + estimate_tokens(
-        _json.dumps(registry.describe("plaus_check"), default=str)
-    )
+    reach = estimate_tokens(search) + estimate_tokens(registry.describe("plaus_check"))
     app.shutdown()
 
     row = {
@@ -846,7 +836,7 @@ def run_jurisdiction_scenario() -> dict | None:
         stripped = copy.deepcopy({k: v for k, v in result.items() if k != "jurisdiction"})
         for finding in stripped.get("findings", []):
             finding.pop("severity_capped_from", None)
-        total = estimate_tokens(_json.dumps(result, default=str))
+        total = estimate_tokens(result)
         rows[region] = {
             "resolved": block.get("region"),
             "rule_set": block.get("rule_set"),
@@ -854,7 +844,7 @@ def run_jurisdiction_scenario() -> dict | None:
             "findings": len(result.get("findings", [])),
             "capped": block.get("capped_findings", 0),
             "tokens": total,
-            "jurisdiction_cost": total - estimate_tokens(_json.dumps(stripped, default=str)),
+            "jurisdiction_cost": total - estimate_tokens(stripped),
         }
         print(
             f"  {region:20s} -> {rows[region]['resolved']:20s} cap "
@@ -867,7 +857,7 @@ def run_jurisdiction_scenario() -> dict | None:
     if codes.is_dir():
         corpus = sum(estimate_tokens((codes / name).read_text()) for name in CODE_CORPUS)
     worst = max(rows.values(), key=lambda r: r["tokens"])
-    request = estimate_tokens(_json.dumps({"model": dict(PLAN, region="NA-communal")}, default=str))
+    request = estimate_tokens({"model": dict(PLAN, region="NA-communal")})
     tee_total = request + rows["NA-communal"]["tokens"]
     row = {
         "regions": rows,
@@ -935,9 +925,7 @@ def run_web_scenario() -> dict | None:
         naive = estimate_tokens(extract_text(html)) + estimate_tokens(question)
         args = {"url": url, "question": question}
         answer = service.lookup(url, question)  # cache-fresh: same bytes both arms
-        tee = estimate_tokens(
-            _json.dumps(args, separators=(",", ":"), default=str)
-        ) + estimate_tokens(_json.dumps(answer, separators=(",", ":"), default=str))
+        tee = estimate_tokens(args, separators=(",", ":")) + estimate_tokens(answer, separators=(",", ":"))
         rows.append(
             {
                 "question": question,
@@ -989,14 +977,9 @@ def _web_surface_delta() -> int | None:
                 return (await client.list_tools()).tools
 
         tools = anyio.run(fetch)
-        full = estimate_tokens(
-            _json.dumps([t.model_dump(**wire_kw) for t in tools], default=str)
-        )
+        full = estimate_tokens([t.model_dump(**wire_kw) for t in tools])
         without = estimate_tokens(
-            _json.dumps(
-                [t.model_dump(**wire_kw) for t in tools if t.name != "tee_web_lookup"],
-                default=str,
-            )
+            [t.model_dump(**wire_kw) for t in tools if t.name != "tee_web_lookup"]
         )
         return full - without
     finally:
@@ -1032,9 +1015,9 @@ def run_kb_scenario() -> dict | None:
 
     def call(name, args):
         nonlocal tokens, calls
-        tokens += estimate_tokens(_json.dumps(args, separators=(",", ":"), default=str))
+        tokens += estimate_tokens(args, separators=(",", ":"))
         result = reg.call(name, args)
-        tokens += estimate_tokens(_json.dumps(result, separators=(",", ":"), default=str))
+        tokens += estimate_tokens(result, separators=(",", ":"))
         calls += 1
         return result
 
