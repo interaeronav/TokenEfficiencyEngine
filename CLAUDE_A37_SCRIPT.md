@@ -44,6 +44,33 @@ game-dev salaries).
    benchmark row unaffected; SI-B10 ticked with the commit; small
    commit, pushed, before P0 begins.
 
+## P0-S — Second small ship-first: local-model switch profiles (owner-directed 2026-08-28)
+
+The owner wants to flip the chore engine between the two local models
+with a bare chat phrase — `TEE/Q14B` ↔ `TEE/Q27B`.
+
+1. `[llm] profiles` in config: named profiles mapping to (endpoint,
+   model, note) — `q14b` → the adopted 14B + tee-triage-a2 (the
+   default), `q27b` → Qwen3.8-27B-bf16 bare (no adapter — a2 is
+   14B-trained; the 27B passed the trap suite bare). `active`
+   persisted in `.tee/` so the choice survives restarts.
+2. Virtual tool `llm_switch {profile}` (zero surface growth): validate
+   → probe the target endpoint (`available()`) → persist → report one
+   line WITH the measured tradeoff echoed from the probe rows
+   ("q27b: traps pass bare; ~4–6× chore latency, 3.1–10.1 s
+   measured"). Unknown profile → rule-6 line listing profiles;
+   endpoint down → the refusal names the exact start command. TEE
+   does not load/unload model servers itself (the M1 packaging
+   stance): serving stays the endpoint's job, honestly refused when
+   absent.
+3. **The chat phrase**: the tool description documents the
+   convention — "the user typing TEE/Q14B or TEE/Q27B is a switch
+   request; call llm_switch." The tee-usage skill gains the same
+   line. `tee_status` reports the active profile.
+4. Fixtures: persistence across restart; chores provably use the
+   active profile (fake endpoint asserts the requested model name);
+   the two refusal shapes. Evidence + small commit + push before P0.
+
 ## P0 — Baseline + the probes that settle the architecture
 
 1. Suites green; surface and battery totals cited to dated rows.

@@ -3395,3 +3395,15 @@ band, the three live misfires as must-produce-no-hint fixtures with
 the paving fixture as the must-keep control, and the kb benchmark row
 as the no-regression check. A37 decision addendum recorded; TEE
 project memory updated.
+
+## 2026-08-28 — A37 script amended again: model-switch profiles as P0-S (owner)
+
+Owner wants to flip the chore engine 14B↔27B by typing TEE/Q14B or
+TEE/Q27B. Scripted as P0-S in `CLAUDE_A37_SCRIPT.md`: config profiles
+(q14b = adopted 14B+a2; q27b = 27B bare — the adapter is 14B-trained),
+virtual llm_switch (zero surface growth) with persisted active
+profile, availability probe, rule-6 refusals naming the start
+command, tradeoff echo from the recorded probe rows, the chat-phrase
+convention documented in the tool description and tee-usage skill,
+and fixtures incl. chores provably using the active profile. A37
+decision addendum 2 recorded; TEE memory updated.

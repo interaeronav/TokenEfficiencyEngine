@@ -674,3 +674,11 @@ concurrent. Expected close at 0.4.0; the owner tags.
 floor + optional local rerank, fixtured on the three recorded
 misfires) is consolidated into the A37 script as phase P0-F — fixed
 first, before campaign work begins.
+
+**A37 addendum 2 (owner, 2026-08-28):** local-model switch profiles
+consolidated into the A37 script as phase P0-S (after the kb_hint
+fix, before campaign P0): `[llm] profiles` (q14b = 14B+a2 default,
+q27b = 27B bare), virtual `llm_switch` with persisted choice, probed
+availability, tradeoff-echoing reports, and the documented chat
+phrase `TEE/Q14B` / `TEE/Q27B`. Serving stays the endpoint's job —
+TEE refuses with the start command, never manages model processes.
