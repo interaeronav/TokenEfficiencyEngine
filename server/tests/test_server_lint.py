@@ -111,3 +111,18 @@ def test_adapter_params_advertise_no_default(tools):
         prop = (tool.input_schema.get("properties") or {}).get("adapter")
         if prop is not None:
             assert "default" not in prop, tool.name
+
+
+def test_mcpb_manifest_tool_list_matches_surface(tools):
+    """The store-facing manifest names every always-loaded tool and nothing
+    else - it went stale once (16 entries while the server served 17)."""
+    import json
+    from pathlib import Path
+
+    manifest = Path(__file__).resolve().parents[2] / "packaging" / "mcpb_manifest.json"
+    declared = {t["name"] for t in json.loads(manifest.read_text())["tools"]}
+    served = {t.name for t in tools}
+    assert declared == served, (
+        f"manifest drift: only-in-manifest={sorted(declared - served)}, "
+        f"only-on-server={sorted(served - declared)}"
+    )

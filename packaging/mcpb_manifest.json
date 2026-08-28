@@ -38,6 +38,7 @@
     { "name": "tee_capture", "description": "Budgeted viewport capture as inline JPEG" },
     { "name": "tee_media", "description": "Budgeted media handling for renders and references" },
     { "name": "tee_script", "description": "Run a budgeted mini-script of tool calls in the sandboxed interpreter" },
+    { "name": "tee_web_lookup", "description": "Answer one question about one URL: a budgeted, cited extract with optional local captioning/transcription" },
     { "name": "tee_search_tools", "description": "Progressively discover the long tail of DCC-specific virtual tools" },
     { "name": "tee_describe_tool", "description": "Inspect one virtual tool's full schema before calling it" },
     { "name": "tee_call", "description": "Invoke a discovered virtual tool by name" }

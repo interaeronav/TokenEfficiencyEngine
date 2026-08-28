@@ -3,6 +3,26 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased (A35 shrink campaign)
+
+- **Installed Desktop bundle shrinks 98 → ~32 MB.** Claude Desktop
+  provisions the bundle venv with a plain `uv sync`, which included the
+  dev group (ruff/pytest/fpdf2, ~58 MB the server never runs); the
+  bundle's copy of `pyproject.toml` now ships `[tool.uv]
+  default-groups = []`. Measured after: 29 MB venv / 29 packages, same
+  17 tools, same 0.32 s first answer.
+- **Dependency diet: `mcp[cli]` → bare `mcp`.** The extra only added
+  typer + python-dotenv (dragging rich/pygments/shellingham) for the
+  SDK's own CLI, which TEE never invokes.
+- **`ex_ingest` no longer dies on a missing optional lane dependency.**
+  One absent package (e.g. `imagehash` in the no-extras bundle) used to
+  kill the whole job with a raw `ModuleNotFoundError`; now that file is
+  skipped with a one-line fix naming the package and the extra, other
+  files still ingest, and a missing `tee.*` module still fails loud.
+- mcpb manifest tool list caught up to the 17-tool surface
+  (`tee_web_lookup` was missing) and a lint canary now pins the
+  manifest to the served surface.
+
 ## 0.3.1 — 2026-08-28
 
 - Packaging only: the released 0.3.0 `.mcpb` embedded a 0.2.0 manifest —

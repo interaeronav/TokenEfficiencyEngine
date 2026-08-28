@@ -24,6 +24,11 @@ mcpb:
 	cp ../packaging/mcpb_manifest.json build/mcpb/manifest.json
 	cp ../packaging/icon.png build/mcpb/
 	cp pyproject.toml uv.lock build/mcpb/
+	# Claude Desktop provisions the bundle venv with a PLAIN uv sync at
+	# install time, which includes the default dev group (measured: +58 MB
+	# of ruff/pytest/fpdf2 the server never runs, A35 P0/P1). The bundle's
+	# copy of pyproject opts out; the dev tree keeps its defaults.
+	printf '\n[tool.uv]\ndefault-groups = []\n' >> build/mcpb/pyproject.toml
 	cp ../README.md build/mcpb/
 	cp -R src build/mcpb/src
 	find build/mcpb -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
