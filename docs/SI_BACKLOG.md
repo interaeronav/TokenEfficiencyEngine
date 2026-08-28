@@ -65,3 +65,11 @@ Format per item:
 - hurt: the MCP HTTP port binds at boot but tool dispatch waits for editor startup to settle; every short probe in that window reads "listening but did not answer as Unreal's MCP server (TeeError)" — a healthy editor looks broken, and one benchmark pass concluded "no editor" and skipped the UE scenario. Measured: same endpoint, 0-byte reply during startup, 0.18 s initialize once settled.
 - proposed: doctor's unreal hint (and the benchmark probe) should say "an editor that just launched may need ~2 minutes before MCP dispatches - retry before concluding it is broken", and probes that find the port bound by UnrealEditor should retry longer before reporting down.
 - status: done (8aa4847: doctor warn leads with the settle-and-retry hint and names the CrashReportClient squatter; longer benchmark-probe retries stay open as a nice-to-have)
+
+- **A34 follow-ups (2026-08-28):** `tee doctor` has no probe rows for the
+  new lanes — a `[web]` connectivity/cache line and a `[llm]`/local-VLM
+  endpoint line (available/unreachable + the start-the-stack fix) would
+  make degradation visible before first use. Also: web image ranking is
+  alt-text-overlap only (the Wikipedia tagline ranked #2 before the
+  svg/ico filter); a size-hint heuristic (width/height attrs) would pick
+  content images better.
