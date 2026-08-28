@@ -3681,3 +3681,95 @@ pattern "UnrealEditor" false-matched Epic's always-resident
 UnrealEditorServices daemon — anchored to "MacOS/UnrealEditor( |$)"
 before the run; also the 27B's canonical id corrected to the
 mlx-community path found in the local HF cache.
+
+## 2026-08-29 — A37 P0: entry ticket + reference-backend decision; installs gated on the owner
+
+**P0.1 — suites green, totals cited:** server **637 passed / 2 skipped**
++ ruff clean (this session, after P0-F/P0-S); voxkiln **48/1 cited to
+the A35 close** (git diff e37c789..HEAD over voxkiln/ is EMPTY — the
+rows stand for this tree). Surface re-measured this session: **17 tools
+/ 2,028 tok** (llm_switch rides virtual). Battery totals cited to the
+A35 P3 live battery (2026-08-29, zero wrong-way rows): scenes 90.3,
+extraction 93.1, fix-loop 47.9, assets 94.0, UE 93.9, kb 96.7, plaus
+95.6, web 95.3 — and the kb row re-proven live this session
+(1,865 tok / 2 calls / 96.7%, byte-identical) after the P0-F search
+change; the web scenario's service constructs with no registry, so the
+hint change cannot touch its row; nothing in P0-F/P0-S touches the
+scene/extract/asset/UE paths.
+
+**P0-F validated out of sample, live:** this session's INSTALLED 0.4.0
+co-pilot (predating the fix) produced a FOURTH kb_hint misfire —
+'furnishing.textiles' offered on a FreeCAD-release question during the
+P0 research. The same question through the fixed tree: top hit
+identical, `no strong match` note present, hint suppressed. The fix
+reaches the owner's installed extension at the next bundle update.
+
+**P0.4 — the two Gateway reference backends: `filesystem` + `memory`**
+(the official @modelcontextprotocol reference servers, run via npx —
+node v24.19.0 present). Why: both are the G0 example class — small,
+public, no auth, no network beyond the npx fetch (far under the 2 GB
+gate); filesystem's ~11-tool catalog with verbose path schemas is a
+real many-tool fronting row for the P2 benchmark, and memory adds a
+second shape (persistent knowledge-graph state) so the contract is
+exercised on two genuinely different backends. The FreeCAD backend
+(neka-nat) joins them in P2 per research 53.
+
+**P0.2 — install gates, batched for the owner (ONE ask, sizes stated):**
+free disk 1.0 TiB. (1) **FreeCAD 1.1.3** macOS arm64 dmg — ~1 GB class
+(research 52); 1.1.3 is the CURRENT maintenance release and carries
+security fixes for malicious-FCStd code execution, so it, not 1.1.0,
+is the one to install (release page read through tee_web_lookup this
+session). (2) **Home Builder 5.1** from extensions.blender.org (small,
+MB class). (3) **neka-nat/freecad-mcp** (tiny; git clone + its
+in-FreeCAD addon). None approaches the 2 GB rule. **P0.3 (TechDraw
+headless probe, neka-nat bridge probe) is blocked until these land.**
+
+P1 (gateway core on fakes = A36 G1) has no dependency on the installs
+and starts now.
+
+## 2026-08-29 — A37 P1: Gateway core, on fakes (= A36 G1) — full contract green
+
+New package `tee/gateway/` (wire + service + tools), generalizing the UE
+proxy exactly as G0 directed — the schema-compression helpers
+(signature lines, docstring summary caps) are IMPORTED from the UE
+adapter's summarize module, not rewritten.
+
+- **Wire**: a minimal synchronous MCP stdio client (newline JSON-RPC,
+  stdlib only, raw pipes + select with explicit deadlines — the DCC
+  bridge discipline). Handshake → serverInfo; tools/list paginated;
+  server-initiated requests declined politely; a dead backend answers
+  `gateway_backend_dead` with the respawn fix and its stderr log path.
+- **Registration through the EXISTING machinery**: fronted tools land
+  as prefixed virtual tools (`fx.echo`) — tee_search_tools/describe/
+  call, SI-B2 weak-match notes, and [tools].disabled all apply for
+  free. Descriptions sentence-capped (280 chars) with the untrusted
+  framing appended; schemas normalized (type pinned, phantom required
+  keys dropped, >6 KB serializations truncated with a note); a
+  `max_tokens` arg is injected unless the backend claims that name.
+- **Budgets**: results token-trimmed (default 800, cap 4000) with the
+  truncation reported and the raise-max_tokens fix named; non-text
+  content blocks counted, never forwarded.
+- **Drift firewall** (UEFN pattern): first handshake pins server
+  name/version + tool-list hash into `.tee/gateway.json`; a later
+  mismatch registers NOTHING and names the fix; `gw_accept` re-pins and
+  re-registers fresh (registry gained a tiny `unregister` for re-pins).
+- **Caching**: only tools that DECLARE readOnlyHint+idempotentHint
+  (conservative default off; `cache=false` kills even that).
+- **Lifecycle**: serve-time handshakes run off-thread (cold start
+  unaffected); dead backends respawn lazily on the next call with the
+  fingerprint re-checked; `gw_status` + a tee_status `gateway` block
+  (present only when configured) carry the states.
+
+Acceptance, all on a REAL subprocess speaking MCP stdio
+(tests/fake_mcp_backend.py — modes normal/drift/hostile, a die-mid-call
+tool, a self-declared-cacheable counter whose count proves the cache):
+**10 tests** covering discovery/describe/call through the meta-tools,
+budget + truncation note, rule-6 backend errors naming the backend,
+declared-only caching, death mid-call → loud error → auto-respawn,
+drift refuse → gw_accept → fresh re-pin (verified across three app
+generations over one project), hostile 10 KB injection description
+arriving capped and inert with the phantom required key dropped, HTTP
+config refused cleanly (stdio-only P1 decision), disabled backend dark,
+and **the always-loaded surface asserted IDENTICAL with and without a
+connected backend** (surface delta 0 by test, not by claim). Suite
+**647 passed / 2 skipped**, ruff clean.

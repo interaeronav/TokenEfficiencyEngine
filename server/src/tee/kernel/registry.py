@@ -69,6 +69,12 @@ class ToolRegistry:
             )
         self._tools[tool.name] = tool
 
+    def unregister(self, name: str) -> None:
+        """Remove one virtual tool; silently a no-op when absent. Exists for
+        surfaces that re-pin at runtime (the gateway re-registers a fronted
+        backend's tools after an accepted fingerprint drift)."""
+        self._tools.pop(name, None)
+
     def __len__(self) -> int:
         return len(self._tools)
 

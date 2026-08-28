@@ -121,6 +121,14 @@ def _attach_web(app, project: str) -> None:
     register_web_tools(app, Path(project))
 
 
+def _attach_gateway(app, project: str) -> None:
+    """Front the [gateway] backends (A37): their tools land as prefixed
+    virtual tools; no [gateway] config, no-op."""
+    from tee.gateway.tools import register_gateway
+
+    register_gateway(app, Path(project))
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -155,6 +163,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_kb(app, args.project)
     _attach_llm(app, args.project)
     _attach_web(app, args.project)
+    _attach_gateway(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

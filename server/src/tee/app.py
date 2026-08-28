@@ -130,6 +130,7 @@ class TeeApp:
         # installed by the extract module: () -> compact store recap dict
         self.extract_recap = None
         self._web = None  # lazy WebLookupService (A34)
+        self.gateway = None  # GatewayService when [gateway] backends exist (A37)
 
     @property
     def llm_cfg(self) -> dict:
@@ -293,6 +294,8 @@ class TeeApp:
         }
         if self.registry.disabled:
             payload["disabled_tools"] = sorted(self.registry.disabled)
+        if self.gateway is not None:
+            payload["gateway"] = self.gateway.status()
         if self.config.warning:
             payload["config_warning"] = self.config.warning
         alerts = {
@@ -342,6 +345,9 @@ class TeeApp:
 
     def shutdown(self) -> None:
         self.jobs.shutdown()
+        if self.gateway is not None:
+            with contextlib.suppress(Exception):
+                self.gateway.shutdown()
         for adapter in self.adapters.values():
             with contextlib.suppress(Exception):
                 self.checkpoints.discard_all(adapter)

@@ -43,6 +43,11 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
     start = "mlx_lm.server --model mlx-community/Qwen3.8-27B-bf16 --port 8081"  # managed only
     port = 8081                       # managed only, never a chat-stack port
     process = "mlx_lm.server"         # managed only: owned-process pattern
+
+    [gateway.backends.fs]             # front another MCP server (A37): its
+    command = "npx -y @modelcontextprotocol/server-filesystem /data"  # tools
+    enable = true                     # appear as fs.* via tee_search_tools;
+    max_tokens = 800                  # results budgeted; stdio only for now
 """
 
 from __future__ import annotations
@@ -63,6 +68,7 @@ class ProjectConfig:
     kb: dict[str, Any] = field(default_factory=dict)
     web: dict[str, Any] = field(default_factory=dict)
     llm: dict[str, Any] = field(default_factory=dict)
+    gateway: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -127,6 +133,12 @@ class ProjectConfig:
             config.llm = llm
         elif llm:
             problems.append("[llm] must be a table")
+
+        gateway = data.get("gateway", {})
+        if isinstance(gateway, dict):
+            config.gateway = gateway
+        elif gateway:
+            problems.append("[gateway] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)
