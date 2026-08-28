@@ -95,6 +95,7 @@ uv run tee serve --adapter fake      # explore with no DCC attached
 
 Blender: [docs/setup-blender.md](docs/setup-blender.md) ·
 Unreal: [docs/setup-unreal.md](docs/setup-unreal.md) ·
+Local models: [docs/setup-local-llm.md](docs/setup-local-llm.md) ·
 Problems: [docs/troubleshooting.md](docs/troubleshooting.md) ·
 Security model: [docs/security.md](docs/security.md)
 
