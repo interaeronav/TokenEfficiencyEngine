@@ -21,6 +21,7 @@ from tee import __version__
 from tee.app import TeeApp
 from tee.kernel.budget import columnarize, enforce_budget
 from tee.kernel.errors import TeeError, internal_error_payload
+from tee.web.tools import WEB_LOOKUP_DESCRIPTION
 
 _CAPTURE_DEFAULT_KB = 16
 _CAPTURE_MAX_KB = 256
@@ -100,6 +101,7 @@ _DESC = {
         "200 calls, 10k steps, 120s. Prefer this over chains of separate "
         "calls whose intermediate results you will not need again."
     ),
+    "tee_web_lookup": WEB_LOOKUP_DESCRIPTION,
     "tee_search_tools": (
         "Search the long tail of DCC-specific tools by keywords (e.g. 'blender "
         "material', 'bake physics'). Returns names + one-line summaries; then "
@@ -383,6 +385,13 @@ def build_server(app: TeeApp) -> MCPServer:
         return run_script(app, code, default_adapter=app.resolve_adapter(adapter))
 
     # -- progressive disclosure (meta-tools) --------------------------------
+
+    # -- web (A34) ---------------------------------------------------------
+
+    @mcp.tool(structured_output=False, description=_DESC["tee_web_lookup"])
+    @_tool(app, "tee_web_lookup")
+    def tee_web_lookup(url: str, question: str, max_tokens: int = 500, media: str = "auto"):
+        return app.web.lookup(url, question, max_tokens=max_tokens, media=media)
 
     @mcp.tool(structured_output=False, description=_DESC["tee_search_tools"])
     @_tool(app, "tee_search_tools")

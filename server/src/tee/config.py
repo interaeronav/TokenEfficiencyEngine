@@ -24,6 +24,10 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
     [kb]
     root = "../TokenEfficiencyEngine/knowledge-base"  # Expert KB corpus; defaults
     max_tokens = 800          # to the in-repo mirror when one is discoverable
+
+    [web]
+    allow_local = false       # opt-in: web_lookup may reach private addresses
+    ports = [80, 443]         # opt-in extra ports for web_lookup
 """
 
 from __future__ import annotations
@@ -42,6 +46,7 @@ class ProjectConfig:
     assets: dict[str, Any] = field(default_factory=dict)
     pins: dict[str, Any] = field(default_factory=dict)
     kb: dict[str, Any] = field(default_factory=dict)
+    web: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -94,6 +99,12 @@ class ProjectConfig:
             config.kb = kb
         elif kb:
             problems.append("[kb] must be a table")
+
+        web = data.get("web", {})
+        if isinstance(web, dict):
+            config.web = web
+        elif web:
+            problems.append("[web] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)

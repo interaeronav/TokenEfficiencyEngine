@@ -49,6 +49,36 @@ follows from that.
   phone-home code path anywhere in the server or adapters; the only
   network traffic is what the bullets above name, each user-initiated.
 
+## The web lane (A34)
+
+`tee_web_lookup` is the one tool that reaches the open internet, and it
+is read-only by construction:
+
+- **SSRF**: http/https only, ports 80/443 (config-opt-in otherwise), no
+  userinfo URLs. Hostnames are resolved first and every address checked
+  against loopback / RFC-1918 / link-local (cloud metadata) / ULA /
+  multicast / reserved ranges; the fetcher then connects to the exact
+  validated IP (never re-resolving), which closes the DNS-rebinding
+  race. Redirects are never auto-followed: each hop is re-validated,
+  max 3. `[web] allow_local` is the explicit operator opt-out.
+- **Prompt injection**: fetched content is untrusted data. The extractor
+  strips hidden channels (script/style/template/comments, hidden and
+  zero-size elements, zero-width and bidi controls); what remains is
+  returned as a budgeted quote inside a fixed schema, labeled untrusted
+  in the tool description itself. Nothing a page says can make TEE fetch
+  another URL, call a tool, or touch config — an injection that
+  "succeeds" has nothing to move. Server-side mitigation cannot make the
+  *client* model immune to a quoted instruction it chooses to obey; TEE's
+  ceiling is content that arrives inert, tiny, labeled, and cited — a
+  strictly smaller residual than any whole-page fetch tool.
+- **Copyright + etiquette**: short cited extracts only (no full-page
+  copies stored beyond a private, TTL'd, local fetch cache with ETag
+  revalidation); robots.txt and Crawl-delay honored via stdlib
+  robotparser; per-host rate limit; honest versioned UA
+  (`TEE-web/<version>`); 429/503 backoff honoring Retry-After; 5 MB text
+  cap. Paywalls are never circumvented and streaming-platform ripping is
+  an anti-goal enforced by tests.
+
 ## Reporting
 
 TEE is pre-release. Security issues: open a GitHub issue on the

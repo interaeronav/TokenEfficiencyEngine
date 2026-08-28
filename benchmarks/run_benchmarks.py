@@ -885,6 +885,125 @@ def run_jurisdiction_scenario() -> dict | None:
 
 
 # --------------------------------------------------------------------------
+# Web scenario (A34 W3): five documentation questions, page-in-context vs
+# tee_web_lookup. Network-dependent - skips cleanly offline; a page that
+# answers with a bot-challenge variant is excluded with a note, never
+# counted as if it were content.
+# --------------------------------------------------------------------------
+
+WEB_QUESTIONS = [
+    ("https://docs.blender.org/api/current/bmesh.html", "when must free() be called on a bmesh?"),
+    ("https://en.wikipedia.org/wiki/Block_paving", "how thick should the bedding sand layer be?"),
+    (
+        "https://docs.python.org/3/library/ipaddress.html",
+        "how do I test whether an address is private?",
+    ),
+    ("https://peps.python.org/pep-0008/", "what is the maximum line length and its exceptions?"),
+    (
+        "https://pypi.org/project/trimesh/",
+        "what does trimesh do and what are its core dependencies?",
+    ),
+]
+
+
+def run_web_scenario() -> dict | None:
+    try:
+        from tee.kernel.errors import TeeError
+        from tee.web.extract import extract_text
+        from tee.web.tools import WebLookupService
+    except ImportError as exc:
+        print(f"web scenario skipped ({exc})")
+        return None
+
+    project = tempfile.mkdtemp(prefix="tee-bench-web-")
+    service = WebLookupService(project)
+    rows: list[dict] = []
+    notes: list[str] = []
+    for url, question in WEB_QUESTIONS:
+        try:
+            fetched = service.fetcher.fetch(url)
+        except TeeError as exc:
+            notes.append(f"- {url} skipped: {exc.code}")
+            continue
+        if len(fetched.body) < 10_000 and b"required part of this site" in fetched.body:
+            notes.append(f"- {url} answered with its bot-challenge variant; excluded")
+            continue
+        html = fetched.body.decode("utf-8", errors="replace")
+        # The naive arm is deliberately strong: the page's clean VISIBLE
+        # text in context (what a good host-side fetch tool injects);
+        # raw HTML would be 2-30x worse (research 49).
+        naive = estimate_tokens(extract_text(html)) + estimate_tokens(question)
+        args = {"url": url, "question": question}
+        answer = service.lookup(url, question)  # cache-fresh: same bytes both arms
+        tee = estimate_tokens(
+            _json.dumps(args, separators=(",", ":"), default=str)
+        ) + estimate_tokens(_json.dumps(answer, separators=(",", ":"), default=str))
+        rows.append(
+            {
+                "question": question,
+                "naive": naive,
+                "tee": tee,
+                "saving": 100.0 * (1 - tee / naive),
+            }
+        )
+        print(f"web {url}: page text {naive} tok -> lookup {tee} tok")
+    if not rows:
+        print("web scenario skipped (no page reachable)")
+        return None
+
+    naive_total = sum(r["naive"] for r in rows)
+    tee_total = sum(r["tee"] for r in rows)
+    row = {
+        "rows": rows,
+        "notes": notes,
+        "naive_total": naive_total,
+        "tee_total": tee_total,
+        "saving": 100.0 * (1 - tee_total / naive_total),
+        "surface_delta": _web_surface_delta(),
+    }
+    print(
+        f"web lookup x{len(rows)}: page-in-context {naive_total} tok -> "
+        f"tee {tee_total} tok ({row['saving']:.1f}% saved)"
+    )
+    return row
+
+
+def _web_surface_delta() -> int | None:
+    """The always-loaded cost of the tee_web_lookup entry, measured on the
+    canonical wire (the run_surface_scenario method)."""
+    try:
+        import anyio
+        from mcp.client import Client
+
+        from tee.kernel.adapter import FakeAdapter
+        from tee.server import build_server
+    except ImportError:
+        return None
+    wire_kw = dict(by_alias=True, mode="json", exclude_none=True)
+    app = TeeApp({"fake": FakeAdapter()}, project_root=tempfile.mkdtemp())
+    try:
+        server = build_server(app)
+
+        async def fetch():
+            async with Client(server) as client:
+                return (await client.list_tools()).tools
+
+        tools = anyio.run(fetch)
+        full = estimate_tokens(
+            _json.dumps([t.model_dump(**wire_kw) for t in tools], default=str)
+        )
+        without = estimate_tokens(
+            _json.dumps(
+                [t.model_dump(**wire_kw) for t in tools if t.name != "tee_web_lookup"],
+                default=str,
+            )
+        )
+        return full - without
+    finally:
+        app.shutdown()
+
+
+# --------------------------------------------------------------------------
 # KB scenario (Phase 16): sourced answer from the Expert Knowledge Base.
 # The task: "what bedding-sand and jointing-sand spec applies to concrete
 # block paving here, with a citation?" Needs no DCC.
@@ -1152,8 +1271,9 @@ def main() -> None:
     surface_row = _safe(run_surface_scenario)
     jurisdiction_row = _safe(run_jurisdiction_scenario)
     kb_row = _safe(run_kb_scenario)
+    web_row = _safe(run_web_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
-                  surface_row, jurisdiction_row, kb_row)
+                  surface_row, jurisdiction_row, kb_row, web_row)
 
 
 def _safe(fn):
@@ -1193,7 +1313,7 @@ def _carry_forward(section_header: str) -> list[str]:
 
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
-                  kb_row=None) -> None:
+                  kb_row=None, web_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -1428,12 +1548,44 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         ]
     else:
         lines += _carry_forward("## Knowledge Base: sourced answer")
+    if web_row is not None:
+        lines += _web_section(web_row)
+    else:
+        lines += _carry_forward("## Web lookup: five documentation questions")
     lines += [
         "",
         f"*Generated by `benchmarks/run_benchmarks.py` against Blender "
         f"{_blender_version()} (headless, TEE bridge).*",
     ]
     out.write_text("\n".join(lines) + "\n")
+
+
+def _web_section(w: dict) -> list[str]:
+    lines = [
+        "",
+        "## Web lookup: five documentation questions (A34)",
+        "",
+        "The task: answer each question from its documentation page, cited.",
+        "The naive arm pays the page's own clean visible text in context -",
+        "what a good host-side fetch tool injects; raw HTML is 2-30x worse",
+        "(research 49). TEE pays the tool arguments plus the budgeted,",
+        "cited tee_web_lookup answer.",
+        "",
+        "| Question | Page text | tee_web_lookup | Saving |",
+        "|---|---|---|---|",
+    ]
+    for r in w["rows"]:
+        lines.append(f"| {r['question']} | {r['naive']:,} | {r['tee']:,} | **{r['saving']:.1f}%** |")
+    lines += [
+        "",
+        f"Total {w['naive_total']:,} -> {w['tee_total']:,} tokens "
+        f"(**{w['saving']:.1f}% saved**). The tool's one-time always-loaded "
+        f"cost is {w['surface_delta']} tokens on the canonical wire - repaid "
+        "by the first question of the session.",
+    ]
+    if w["notes"]:
+        lines += ["", *w["notes"]]
+    return lines
     print(f"\nwrote {out}")
 
 

@@ -16,7 +16,7 @@ from tee.kernel.adapter import FakeAdapter
 from tee.kernel.budget import estimate_tokens
 from tee.server import build_server
 
-MAX_TOOLS = 16
+MAX_TOOLS = 17
 MAX_DESCRIPTION_BYTES = 2_048
 MAX_TOTAL_DEFINITION_TOKENS = 8_000
 
@@ -79,7 +79,7 @@ def test_tool_names_are_prefixed_and_stable(tools):
         assert tool.name.startswith("tee_"), tool.name
 
 
-EXPECTED_TOOL_COUNT = 16
+EXPECTED_TOOL_COUNT = 17
 
 
 def test_tool_count_matches_expectation(tools):

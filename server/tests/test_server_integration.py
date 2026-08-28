@@ -223,6 +223,9 @@ MINIMAL_ARGS = {
     "tee_job": {"job_id": "job999"},
     "tee_media": {"source": "nothing-ingested"},
     "tee_script": {"code": "result = 1 + 1"},
+    # loopback refuses via the SSRF guard - a deterministic, offline,
+    # model-visible answer (the refusal names the allow_local fix)
+    "tee_web_lookup": {"url": "http://127.0.0.1/x", "question": "canary"},
     "tee_search_tools": {"query": "demo"},
     "tee_describe_tool": {"name": "bl_demo_tool"},
     "tee_call": {"name": "bl_demo_tool", "args": {"n": 1}},

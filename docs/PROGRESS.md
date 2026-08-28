@@ -2833,3 +2833,61 @@ points at the script; the campaign kickoff was written into TEE's own
 project memory via tee_remember (key a34-campaign) so the build
 session's tee_recall surfaces it — the co-pilot loop in use during
 script authoring, as directed.
+
+## 2026-08-28 — A34 build session 1: W0–W3 shipped, M0 decided (gate pending)
+
+**W0 (fixtures first, held to):** hostile-page corpus (injection via
+body/alt/hidden/comment/template/zero-width+bidi), the evil-URL matrix
+(decimal/hex/short/v4-mapped literals, metadata IP, mixed-resolution
+rebinding smell), robots/rate/cache etiquette, the answer schema and the
+untrusted-content description sentence — all committed as collect-erroring
+tests before tee.web existed (d206b10). These were the definition of done
+for W1–W2 and stayed unedited except one honest fix: the fake "public"
+host IP had landed in TEST-NET, which a correct guard must refuse.
+
+**W1 (031381d):** guard.py (resolve-then-pin; IP literals validated
+directly; any blocked address in a resolution refuses the lot) +
+fetch.py (TTL'd ETag cache, robotparser + Crawl-delay, per-host rate
+limit, TEE-web/<version> UA, single Retry-After backoff, size caps,
+per-hop re-validated redirects max 3, stale-offline degrade, pinned-IP
+transport with SNI=hostname). 47 tests green incl. a live loopback pass
+through [web] allow_local.
+
+**W2 (2f46bb0):** extract.py — sanitizing stdlib parser (hidden channels
+stripped, visible channels quoted as data), question-overlap budget cut,
+build_answer contract. Live acceptance: bmesh manual 22,752-tok visible
+text → in-budget cited extract; Wikipedia paving likewise; PyPI trimesh
+reproduced at 494 tok off the 1.2 MB page this session, but PyPI
+intermittently serves a 3 KB bot-challenge page to rapid repeats — the
+extractor quotes it faithfully (self-describing), the live test skips
+with evidence when upstream does that, and the benchmark excludes it
+with a note. Known-limits row, not a defect.
+
+**W3:** tee_web_lookup joined the always-loaded surface (17 tools now;
+lint canaries updated deliberately). Named tee_web_lookup, not
+web_lookup — the A6 release lint requires the tee_ prefix on every
+kernel tool and one exception was judged worse than the two extra
+characters. Surface delta measured on the canonical wire: 1,935 → 2,080
+tok (**+145**, vs the script's ~60–120 estimate — the four documented
+args cost 64 tok of schema before a single description word; the
+description carries only the tested untrusted sentence plus behavior the
+client acts on). Benchmark row appended to benchmarks/RESULTS.md: five
+documentation questions, page-in-context (clean visible text, the strong
+baseline) vs tee_web_lookup — **50,554 → 2,382 tok, 95.3% saved** across
+the four pages upstream served (591–607 tok per cited answer;
+run_web_scenario added to the runner with SI-B5 carry-forward). KB-first
+routing is visible: kb_search match ⇒ kb_hint in the response. Skill
+(tee-usage §Web reading), quickstart item 7, and security.md §web-lane
+(mitigation section condensed) updated. Server suite 550/2 skipped;
+ruff clean.
+
+**M0 (55a495f):** adoption research run open and dated (research 50 §M0):
+local cache holds no code-specialist model; the live pass verified
+Qwen2.5-Coder-14B-Instruct as the only candidate passing every filter
+(Apache-2.0 dense code-specialist, mlx-community 4-bit, non-thinking,
+the mlx_lm.lora-native arch); Qwen3-Coder is MoE-only in class,
+Ministral 3 is general+multimodal, R1-Distill is thinking-only. LICENSE
+fetched and fail-closed-linted (canonical Apache-2.0, no riders).
+**OWNER GATE PENDING: the ~8.3 GB weights download** (free disk 1.1 TiB;
+optionally +7B ~4.3 GB for the M3 latency ladder). M2's trap suite and
+M3's real-model rows wait on it; everything else proceeds on the fake.

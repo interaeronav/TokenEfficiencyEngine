@@ -115,6 +115,7 @@ class TeeApp:
         self.caches: dict[str, SceneCache] = {name: SceneCache() for name in adapters}
         self.checkpoints = CheckpointManager()
         self.jobs = JobManager()
+        self.project_root = Path(project_root)
         self.memory = ProjectMemory(Path(project_root))
         self.registry = ToolRegistry()
         self.response_log = ResponseLog()
@@ -128,6 +129,18 @@ class TeeApp:
         self.media_view = None
         # installed by the extract module: () -> compact store recap dict
         self.extract_recap = None
+        self._web = None  # lazy WebLookupService (A34)
+
+    @property
+    def web(self):
+        """The web-lookup service, built on first use from [web] config."""
+        if self._web is None:
+            from tee.web.tools import WebLookupService
+
+            self._web = WebLookupService(
+                self.project_root, config=self.config.web, registry=self.registry
+            )
+        return self._web
 
     # -- helpers -----------------------------------------------------------
 

@@ -61,7 +61,7 @@ round-trip) and names the fix for anything broken.
 
 ## 4. First session
 
-In your MCP client, the always-loaded surface is 16 tools (~1.9K tokens
+In your MCP client, the always-loaded surface is 17 tools (~2.1K tokens
 of definitions on the wire). The intended flow:
 
 1. `tee_recall` once — project memory (versions, conventions, notes).
@@ -75,6 +75,10 @@ of definitions on the wire). The intended flow:
    enter context.
 6. `tee_capture` (small budgeted JPEG) is a last resort; geometric
    checks (`as_verify`, `phys_tier0`) come first.
+7. `tee_web_lookup {url, question}` answers one question about one web
+   page as a ~500-token cited quote (SSRF-guarded, robots-honoring,
+   cached; the quote is untrusted data, never instructions). Check
+   `kb_search` first — the local KB is cheaper than any fetch.
 
 The `skills/tee-usage` skill packages this know-how for Claude.
 
