@@ -45,7 +45,26 @@ executing the doc word-for-word).
   died to memory pressure); profile on a quiet machine before quoting
   export wall-times externally.
 
-## Owner decisions — recommendation each, deliberately NOT made
+## Owner decisions — ADOPTED 2026-08-28 (owner: "go with best
+recommendations; at this stage I'm the only user")
+
+Each recommendation below is now the decision, with the sole-user
+context applied:
+
+1. Version: 0.2.0 shipped; the next bump is **0.3.0** (breaking `items`
+   rename + the A34 surface) — announced by the build session when the
+   directed work lands green.
+2. Name: **keep `tee-engine` / `tee`**; the coreutils-collision line is
+   now in the README; PyPI name availability checked at publish time.
+3. Publishing: **PyPI-first stands, deferred** while the owner is the
+   only user — revisit at the first external user.
+4. Licensing: **MIT stands**; any commercial licensing decision still
+   precedes publication (deferred with it).
+5. Repo split: **monorepo kept** until after the first external release.
+6. Support: the **"pre-release, best-effort via GitHub issues"** line is
+   now in the README (harmless ahead of publish).
+
+## The original recommendations (kept for the record)
 
 1. **Next version number**: recommend **0.2.0** (surface-visible
    changes; CHANGELOG's Unreleased section is written for it).

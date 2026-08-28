@@ -99,6 +99,11 @@ Local models: [docs/setup-local-llm.md](docs/setup-local-llm.md) ·
 Problems: [docs/troubleshooting.md](docs/troubleshooting.md) ·
 Security model: [docs/security.md](docs/security.md)
 
+> Pre-release: support is best-effort via GitHub issues. The `tee`
+> binary shares its name with coreutils `tee` — in shell pipelines the
+> coreutils one wins your PATH; `tee doctor --emit` already accounts
+> for this when generating client configs.
+
 Packaged artifacts (`make -C server dist`): a pip/uv-installable wheel
 (`tee-engine`; the CLI and module stay `tee`) and the Blender bridge
 extension zip. Skills for Claude live under `skills/` (`tee-usage`,
