@@ -108,13 +108,13 @@ _RERANK_SYSTEM = (
 
 
 def _endpoint(cfg: dict[str, Any] | None) -> tuple[str, str, str | None]:
-    cfg = cfg or {}
-    adapters = cfg.get("adapters") or local_llm.DEFAULT_ADAPTERS
-    return (
-        str(cfg.get("url") or local_llm.DEFAULT_URL),
-        str(cfg.get("model") or local_llm.DEFAULT_MODEL),
-        str(adapters) if adapters else None,
-    )
+    """The active switch profile's endpoint (A37 P0-S); absent profile keys
+    inherit [llm] config and its env defaults, so a profile-less setup
+    behaves exactly as before."""
+    from tee.llm import profiles
+
+    resolved = profiles.resolve(cfg)
+    return resolved["url"], resolved["model"], resolved["adapters"]
 
 
 def _ready(refine: str, url: str) -> bool:
@@ -149,13 +149,31 @@ def _run(
         raise TeeError(
             "llm_bad_arg", f"refine='{refine}' is not a mode.", fix="Use auto, local, or off."
         )
-    url, model, adapters = _endpoint(cfg)
+    from tee.llm import profiles
+
+    resolved = profiles.resolve(cfg)
+    if not resolved["ready"]:
+        # A managed switch is mid-load: answer at once, never hang (P0-S 2b).
+        if refine == "local":
+            raise TeeError(
+                "llm_loading",
+                profiles.loading_line(resolved),
+                fix="Retry shortly, or type TEE/Q14B to switch back.",
+            )
+        return None
+    url, model, adapters = resolved["url"], resolved["model"], resolved["adapters"]
     if not _ready(refine, url):
         return None
     try:
-        raw = local_llm.complete_json(
-            prompt, system=system, url=url, model=model, max_tokens=max_tokens, adapters=adapters
-        )
+        with profiles.REQUEST_LOCK:  # a managed stop waits for this chore
+            raw = local_llm.complete_json(
+                prompt,
+                system=system,
+                url=url,
+                model=model,
+                max_tokens=max_tokens,
+                adapters=adapters,
+            )
     except TeeError:
         if refine == "local":
             raise

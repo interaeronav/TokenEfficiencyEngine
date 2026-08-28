@@ -132,6 +132,14 @@ class TeeApp:
         self._web = None  # lazy WebLookupService (A34)
 
     @property
+    def llm_cfg(self) -> dict:
+        """[llm] config enriched with the state dir the switch profiles
+        persist into (A37 P0-S) - the one dict every chore consumer gets."""
+        cfg = dict(self.config.llm or {})
+        cfg["_state_dir"] = str(self.project_root / ".tee")
+        return cfg
+
+    @property
     def web(self):
         """The web-lookup service, built on first use from [web] config."""
         if self._web is None:
@@ -140,7 +148,7 @@ class TeeApp:
             self._web = WebLookupService(
                 self.project_root,
                 config=self.config.web,
-                llm=self.config.llm,
+                llm=self.llm_cfg,
                 registry=self.registry,
             )
         return self._web
@@ -273,12 +281,15 @@ class TeeApp:
             info["scene"] = self.caches[name].stamp()
             adapters[name] = info
         jobs = [j for j in self.jobs.list() if j["state"] in ("queued", "running")]
+        from tee.llm import profiles
+
         payload: dict[str, Any] = {
             "adapters": adapters,
             "active_jobs": jobs,
             "checkpoints": self.checkpoints.list()[-5:],
             "virtual_tools": len(self.registry),
             "code_exec_enabled": self.allow_code_exec,
+            "llm_profile": profiles.status_line(self.llm_cfg),
         }
         if self.registry.disabled:
             payload["disabled_tools"] = sorted(self.registry.disabled)

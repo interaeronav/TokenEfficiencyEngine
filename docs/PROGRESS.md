@@ -3621,3 +3621,63 @@ tested cross-module contract (constants imported by web/tools.py).
   registry, so it never carried hints.
 - Suite **620 passed / 2 skipped** (613 + 3 kb + 4 web), ruff clean.
   Always-loaded surface untouched (no description changed).
+
+## 2026-08-29 — A37 P0-S: local-model switch profiles (TEE/Q14B ↔ TEE/Q27B)
+
+The second ship-first item, all five script clauses landed. New module
+`tee/llm/profiles.py`; `llm_switch` ships VIRTUAL (surface scenario
+re-run: **17 tools / 2,028 tok unchanged**; virtual count +1 on the
+served flavor).
+
+**The shape:** `[llm.profiles.*]` overlays two builtins — q14b (inherits
+the adopted `[llm]` config: 14B + tee-triage-a2) and q27b
+(`mlx-community/Qwen3.8-27B-bf16`, adapters pinned EMPTY on purpose —
+a2 is 14B-trained). Active choice persists in `.tee/llm-profile.json`;
+q14b is THE default on fresh config, malformed state, unknown profile,
+stale mid-load state, and every failed fallback. Chores resolve the
+active profile per request (`chores._endpoint` → `profiles.resolve`);
+`tee_status` gains one `llm_profile` line; the chat-phrase convention
+lives in the tool description and the tee-usage skill.
+
+**Managed lifecycle** (`[llm] managed`, default off): ownership is ONLY
+a pid this module started and recorded — chat-stack servers
+(:8080/:8090/:4000 protected by default) are used when they answer,
+never started or stopped, and switching away from a borrowed server
+stops nothing. Sequence: pressure guard (ps, nothing touched on refusal)
+→ synchronous verified stop of the owned leaver under the chore
+REQUEST_LOCK (pid gone + port free + RSS released, asserted via ps) →
+warm-use check → free-RAM guard → start → readiness behind a real
+tee_job token with ETA; chores mid-load answer "qNNb loading, ~Ns —
+retry or TEE/Q14B" (loud at refine=local, silent deterministic at auto);
+failed start auto-restarts the previous profile and says so; a
+mid-load counter-switch supersedes the poller cleanly. An
+already-active-but-dead engine restarts on its own phrase (the reboot
+case).
+
+**Fixtures (17 new tests, fake process manager + the A34 fake
+endpoint):** q14b-on-fresh/invalid/stale state; persistence across
+restart; chores provably on the active profile (request body asserts
+model name AND that the a2 adapters field never rides q27b); rule-6
+unknown-profile; stop-before-start ordering with RSS-released
+assertion; out-of-bounds (borrowed server untouched); warm-use owns
+nothing; pressure and free-RAM refusals (nothing touched / previous
+restored); protected-port refusal; job-token flow with the one-line
+mid-load answers; failed-start fallback to q14b; reboot restart;
+status lines. Suite **637 passed / 2 skipped** (620 + 17), ruff clean.
+
+**Live round trip (this machine, recorded 02:21–02:22):** through the
+full wire path (TeeApp → registry llm_switch → real JobManager → real
+mlx_lm.server on ports 9414/9427). q14b up (pid 28039, ps rss 7.6 GB)
+→ triage 2.42 s grounded via a2 → TEE/Q27B: sync answer 0.31 s,
+leaver stop VERIFIED (rss_after null, port free), 27B sole occupant
+(pid 28066), mid-load chore answered the one-liner instantly,
+tee_status showed "(loading, ~120 s left)", bare triage 12.57 s
+grounded (first-completion page-in of the bf16 weights; the recorded
+probe band is 3.11–10.12 s warm) → TEE/Q14B back: stop 28066 verified,
+14B pid 28090, triage 2.35 s → idle-unload cleanup: owned engine
+stopped, ps shows zero mlx servers. Single occupancy held at every
+stage. **Live-run find the fakes could not see:** the default pressure
+pattern "UnrealEditor" false-matched Epic's always-resident
+UnrealEditorServices daemon — anchored to "MacOS/UnrealEditor( |$)"
+before the run; also the 27B's canonical id corrected to the
+mlx-community path found in the local HF cache.

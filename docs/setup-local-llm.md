@@ -66,6 +66,45 @@ works identically — the benchmarks in `benchmarks/RESULTS.md` name the
 exact model they were measured against, and a different model means
 your numbers differ.
 
+## Switch profiles: TEE/Q14B ↔ TEE/Q27B (A37 P0-S)
+
+The chore engine is switchable between **named profiles** with one chat
+phrase — the user types `TEE/Q14B` or `TEE/Q27B` and the assistant calls
+the virtual `llm_switch` tool (zero always-loaded cost). Builtins:
+**q14b** (inherits your `[llm]` config — the adopted 14B + tee-triage-a2;
+THE default on fresh config, missing state, and every failed fallback)
+and **q27b** (`Qwen3.8-27B-bf16`, deliberately bare — the a2 LoRA is
+14B-trained; traps pass bare at ~4–6× chore latency, 3.11–10.12 s
+measured). The active choice persists in `.tee/llm-profile.json` across
+restarts; `tee_status` reports it.
+
+```toml
+[llm]
+managed = false                    # opt-in: TEE stops/starts owned servers
+
+[llm.profiles.q27b]                # per-key overlay over the builtins;
+url = "http://127.0.0.1:8081/v1"   # new names may be added the same way
+start = "mlx_lm.server --model mlx-community/Qwen3.8-27B-bf16 --port 8081"  # managed only
+port = 8081
+process = "mlx_lm.server"          # owned-process pattern (managed only)
+rss_gb = 55                        # memory-guard footprint
+```
+
+**Unmanaged (default)**: a switch only re-targets chores (endpoint /
+model / adapters per request) and reports honestly when the endpoint is
+not answering. **Managed** (`managed = true`) adds a verified
+stop-before-start lifecycle with single occupancy: an in-flight chore
+finishes first; the leaver's owned server is stopped and asserted gone
+(pid + RSS via ps) before the target starts; a free-RAM guard and a
+pressure guard (UnrealEditor/voxkiln running) refuse with the reason; a
+cold load returns a `tee_job` token with the ETA while chores answer a
+one-line "loading, ~Ns — retry or TEE/Q14B"; a failed start restarts
+the previous profile automatically. **Ownership is only ever a pid TEE
+itself started**: servers on the protected chat-stack ports
+(8080/8090/4000 by default, `protected_ports` to override) are used
+when they answer but never started or stopped — switching away from a
+borrowed server stops nothing.
+
 ## Memory-pressure rules (the §2 lesson, now policy)
 
 - **Lazy-start, idle-unload.** Nothing loads until the first chore asks;

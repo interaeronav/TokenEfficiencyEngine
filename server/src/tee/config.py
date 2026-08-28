@@ -35,6 +35,14 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
     url = "http://127.0.0.1:8080/v1"  # any OpenAI-compatible local endpoint
     model = "tee-coder"               # served model name (research 50 M0)
     adapters = "…/tee-triage-a2"      # optional LoRA dir, sent per-request
+    managed = false                   # opt-in: llm_switch stops/starts servers
+                                      # the profiles below declare they own
+
+    [llm.profiles.q27b]               # switch profiles (llm_switch; the chat
+    url = "http://127.0.0.1:8081/v1"  # phrases TEE/Q14B / TEE/Q27B); builtins
+    start = "mlx_lm.server --model mlx-community/Qwen3.8-27B-bf16 --port 8081"  # managed only
+    port = 8081                       # managed only, never a chat-stack port
+    process = "mlx_lm.server"         # managed only: owned-process pattern
 """
 
 from __future__ import annotations

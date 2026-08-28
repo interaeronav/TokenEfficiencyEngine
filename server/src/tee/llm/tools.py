@@ -23,7 +23,12 @@ from tee.llm import chores
 
 
 def register_llm_tools(app, project_root: Path | str) -> None:
-    cfg = dict(getattr(app.config, "llm", {}) or {})
+    cfg = getattr(app, "llm_cfg", None) or dict(getattr(app.config, "llm", {}) or {})
+
+    def llm_switch(args):
+        from tee.llm import profiles
+
+        return profiles.switch(cfg, str(args.get("profile", "")), jobs=app.jobs)
 
     def llm_triage(args):
         result = chores.triage(
@@ -57,6 +62,26 @@ def register_llm_tools(app, project_root: Path | str) -> None:
         return result
 
     for tool in [
+        VirtualTool(
+            "llm_switch",
+            "Switch the chore engine between local-model profiles. THE CHAT "
+            "PHRASE: the user typing TEE/Q14B or TEE/Q27B is a switch "
+            "request - call this with profile='q14b'/'q27b'. q14b (14B + "
+            "tee-triage-a2) is the default; q27b passes the traps bare at "
+            "~4-6x chore latency (3.11-10.12 s measured). The choice "
+            "persists across restarts; with [llm] managed = true TEE also "
+            "stops/starts the servers each profile owns (single occupancy, "
+            "verified; a cold load returns a tee_job token and chores "
+            "answer their deterministic paths meanwhile).",
+            {
+                "type": "object",
+                "properties": {"profile": {"type": "string"}},
+                "required": ["profile"],
+            },
+            llm_switch,
+            tags=["llm", "switch", "profile", "model", "chore", "engine", "q14b", "q27b"],
+            examples=[{"profile": "q27b"}],
+        ),
         VirtualTool(
             "llm_triage",
             "One-line diagnosis + exact fix for a failure/traceback, from the "
