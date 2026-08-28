@@ -45,4 +45,5 @@ voxkiln/src/voxkiln.egg-info/
 benchmarks/rung1/data/
 benchmarks/rung1/adapters/*
 !benchmarks/rung1/adapters/tee-triage-a2/
-benchmarks/rung1/adapters/tee-triage-a2/0000*
+!benchmarks/rung1/adapters/tee-triage-b1/
+benchmarks/rung1/adapters/tee-triage-*/0000*
