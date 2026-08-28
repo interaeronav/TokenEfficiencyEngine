@@ -100,3 +100,35 @@ def test_unreal_check_warns_when_nothing_is_there(monkeypatch):
     check = doctor.check_unreal()
     assert check.status == "warn"
     assert "AllToolsets" in (check.fix or "") or "ModelContextProtocol" in (check.fix or "")
+
+
+def test_web_check_reports_posture(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tee").mkdir()
+    (tmp_path / ".tee" / "config.toml").write_text("[web]\nallow_local = true\n")
+    check = doctor.check_web()
+    assert check.status == "ok"
+    assert "allow_local=TRUE" in check.detail
+
+
+def test_llm_check_down_is_a_state_with_the_setup_fix(tmp_path, monkeypatch):
+    from tee.kernel import local_llm, local_vlm
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(local_llm, "available", lambda *a, **k: False)
+    monkeypatch.setattr(local_vlm, "available", lambda *a, **k: False)
+    check = doctor.check_llm()
+    assert check.status == "ok"
+    assert "down" in check.detail
+    assert "setup-local-llm" in (check.fix or "")
+
+
+def test_llm_check_up_needs_no_fix(tmp_path, monkeypatch):
+    from tee.kernel import local_llm, local_vlm
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(local_llm, "available", lambda *a, **k: True)
+    monkeypatch.setattr(local_vlm, "available", lambda *a, **k: False)
+    check = doctor.check_llm()
+    assert "chores UP" in check.detail
+    assert check.fix is None

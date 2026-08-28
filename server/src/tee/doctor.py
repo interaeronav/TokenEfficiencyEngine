@@ -340,6 +340,50 @@ def check_kb() -> Check:
         )
 
 
+def check_web() -> Check:
+    """Web lane: config posture + cache state. Offline-safe - no fetch."""
+    from pathlib import Path as _Path
+
+    from tee.config import ProjectConfig
+
+    web = ProjectConfig.load(".").web
+    cache = _Path(".") / ".tee" / "web" / "cache"
+    cached = len(list(cache.glob("*.body"))) if cache.is_dir() else 0
+    bits = [f"{cached} cached page(s)"]
+    if web.get("allow_local"):
+        bits.append("allow_local=TRUE - private addresses reachable")
+    if web.get("ports"):
+        bits.append(f"ports={web['ports']}")
+    if web.get("search"):
+        bits.append(f"search backend: {web['search']}")
+    return Check("web", "ok", "tee_web_lookup ready; " + "; ".join(bits))
+
+
+def check_llm() -> Check:
+    """Local model endpoints (chores + vision): a 1.5 s localhost probe
+    each. Down is a plain state - every chore degrades deterministically."""
+    from tee.config import ProjectConfig
+    from tee.kernel import local_llm, local_vlm
+
+    llm_cfg = ProjectConfig.load(".").llm
+    url = str(llm_cfg.get("url") or local_llm.DEFAULT_URL)
+    model = str(llm_cfg.get("model") or local_llm.DEFAULT_MODEL)
+    llm_up = local_llm.available(url=url, timeout=1.5)
+    vlm_up = local_vlm.available(timeout=1.5)
+    detail = (
+        f"chores {'UP' if llm_up else 'down'} at {url} ({model}); "
+        f"vision {'UP' if vlm_up else 'down'} at {local_vlm.DEFAULT_URL}"
+    )
+    if llm_up or vlm_up:
+        return Check("local models", "ok", detail)
+    return Check(
+        "local models",
+        "ok",
+        detail + " - chores degrade to their deterministic paths",
+        fix="see docs/setup-local-llm.md to enable chores and captions",
+    )
+
+
 def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
     return [
         check_python(),
@@ -350,6 +394,8 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_unreal(),
         check_voxkiln(),
         check_kb(),
+        check_web(),
+        check_llm(),
     ]
 
 
