@@ -3334,3 +3334,22 @@ as untrusted per research 49, fakes-first with a fingerprint
 drift-firewall, the battery bars as the floor, and no concurrency
 with A35 on the branch. Kickoff written to TEE project memory (key
 a36-campaign). Campaign not started; G0 is the first session's job.
+
+## 2026-08-28 — Research 52: fabrication drawings, CAD, joinery, presentations (owner pains)
+
+Owner named four pains (unsuitable technical/3D drawings, closet and
+wardrobe joinery, sim-prep presentations, Fusion trial expiring) and a
+research list. Written as `docs/research/52-fabrication-cad-lane.md`,
+grounded by a live kb_search through the installed server (the
+06_joinery_and_woodwork domain answers the closet knowledge need — 95
+files matched; the gap is tooling, not knowledge) and open-web
+research. Verdicts: FreeCAD 1.1 is the headless Fusion replacement and
+the shape of a new adapter (TechDraw headless export to be PROVEN day
+one — upstream #5710); Home Builder 5.1 gives the closet lane through
+the EXISTING Blender adapter (dimensioned layouts + cut-part
+reporting); a joinery_check rule table lifts KB facts through the A30
+re-verification gate; presentations split into TEE-made technical
+boards vs host-made decks (OpenVSP flagged for aircraft visuals);
+LibreCAD skipped, OpenFOAM parked, QGIS stays a gateway target.
+URGENT note recorded: export Fusion designs to STEP/F3D before the
+trial lapses. Building = A37 on the owner's word.
