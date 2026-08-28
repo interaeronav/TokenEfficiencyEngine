@@ -651,3 +651,21 @@ not grow — any exception is an owner decision measured in tokens.
 Not concurrent with A35 on the branch; whichever runs second
 re-baselines. Benchmark bars are the floor; version recommendation
 at close by semver (expected 0.4.0).
+
+## 2026-08-28 — A37: the fabrication lane, merged with A36 (owner decision)
+
+The owner directed building the research-52 fabrication lane AND its
+integration with the A36 roadmap build into ONE campaign, driven by
+`CLAUDE_A37_SCRIPT.md` (which supersedes `CLAUDE_A36_SCRIPT.md`;
+research 53 is the integration map). The seams that justify merging:
+the Gateway fronts the existing neka-nat FreeCAD MCP server so TEE's
+own fabrication toolset stays thin (one-bridge rule, settled by a P0
+probe with recorded pass/fail criteria — TechDraw-headless proof
+included); the adapter kit is rehearsed by building the REAL
+fabrication toolset from its docs alone; joinery_check lifts KB facts
+through A30 re-verification and returns what it learns via
+kb_propose; meter and handoff ride the fabrication sessions as live
+fixtures. All A36 laws carry over (zero surface growth, untrusted
+fronted content, bars as the floor). Home Builder 5.1 lands through
+the EXISTING Blender adapter. A35 remains separate and never
+concurrent. Expected close at 0.4.0; the owner tags.

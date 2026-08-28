@@ -1,3 +1,10 @@
+# A36 build script — SUPERSEDED
+
+**Do not work this script.** A37 (owner directive, 2026-08-28) merged
+this campaign with the fabrication lane; the merged build is driven by
+`CLAUDE_A37_SCRIPT.md` (research 53 is the integration map). This file
+stays as the A36 design record only.
+
 # A36 build script — the research-51 roadmap: gateway, meter, handoff, kit, kb_propose
 
 **What this builds** (owner directive, 2026-08-28): all five recommended

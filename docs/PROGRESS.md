@@ -3353,3 +3353,18 @@ boards vs host-made decks (OpenVSP flagged for aircraft visuals);
 LibreCAD skipped, OpenFOAM parked, QGIS stays a gateway target.
 URGENT note recorded: export Fusion designs to STEP/F3D before the
 trial lapses. Building = A37 on the owner's word.
+
+## 2026-08-28 — A37 directed: A36 merged with the fabrication lane, scripted
+
+Owner directed deep research and integration of A37 with A36. Written:
+`docs/research/53-a36-a37-integration.md` (the composition map — the
+Gateway fronts the existing neka-nat/freecad-mcp found by open
+research, the adapter kit is rehearsed by the real FreeCAD toolset,
+joinery_check ↔ kb_propose close the knowledge loop, meter/handoff
+ride as live fixtures; one-bridge rule settled by P0 probes) and
+`CLAUDE_A37_SCRIPT.md` (P0 probes → gateway fakes → gateway live →
+kit → fabrication lane from the kit → joinery + kb_propose → meter/
+handoff → boards → close-out). CLAUDE_A36_SCRIPT.md marked SUPERSEDED
+with a do-not-work banner; CLAUDE.md pointer replaced; TEE project
+memory updated (a36 key marked merged, a37 key written). Campaign not
+started; P0 is the first session's job. A35 unchanged and separate.
