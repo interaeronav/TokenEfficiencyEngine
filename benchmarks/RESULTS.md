@@ -180,12 +180,12 @@ cited tee_web_lookup answer.
 
 | Question | Page text | tee_web_lookup | Saving |
 |---|---|---|---|
-| when must free() be called on a bmesh? | 22,752 | 591 | **97.4%** |
+| when must free() be called on a bmesh? | 22,752 | 589 | **97.4%** |
 | how thick should the bedding sand layer be? | 5,225 | 585 | **88.8%** |
 | how do I test whether an address is private? | 9,569 | 604 | **93.7%** |
-| what is the maximum line length and its exceptions? | 13,008 | 588 | **95.5%** |
+| what is the maximum line length and its exceptions? | 13,008 | 589 | **95.5%** |
 
-Total 50,554 -> 2,368 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire - repaid by the first question of the session.
+Total 50,554 -> 2,367 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire - repaid by the first question of the session.
 
 - https://pypi.org/project/trimesh/ answered with its bot-challenge variant; excluded
 

@@ -30,6 +30,16 @@ Blender `tee_bridge` extension carry their own versions where noted.
   host.** The robots.txt request obeys the per-host interval but does
   not arm it; content fetches keep their ≥2 s spacing and Crawl-delay
   still wins. Loopback first-fetch 2,025 → 5 ms.
+- **Web quotes stop repeating themselves.** Budget-cut extracts skip
+  verbatim-duplicate blocks (boilerplate, repeated promos), spending the
+  budget on distinct content; live documentation battery row improved
+  2,382 -> 2,367 tok with identical citations.
+- **voxkiln: 72x faster UV unwrap and a byte-reproducible artifact**
+  (chart optimization skipped - full lever matrix in
+  voxkiln/BENCHMARKS.md; the bake's reference sampling is now seeded,
+  fixing pre-existing run-to-run texture jitter). Export 1,037 -> 151 s
+  on the frozen T fixture; two independent generations now produce
+  byte-identical GLBs.
 - **UE: scripted batches stop double-checkpointing** (the script-scope
   checkpoint owns atomicity; the inner one was two redundant
   game-thread dispatches per batch) **and snapshots run as ONE editor

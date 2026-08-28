@@ -189,12 +189,19 @@ def focus_extract(text: str, question: str, max_tokens: int) -> tuple[str, bool]
 
     ranked = sorted(range(len(paragraphs)), key=lambda i: (-score(paragraphs[i]), i))
     chosen: list[int] = []
+    seen: set[str] = set()
     used = 0
     for index in ranked:
+        # a verbatim repeat (boilerplate, nav, promo blocks) adds nothing to
+        # a quote and crowds distinct content out of the budget (A35 P3.2)
+        normalized = " ".join(paragraphs[index].split()).lower()
+        if normalized in seen:
+            continue
         cost = estimate_tokens(paragraphs[index]) + 1
         if used + cost > max_tokens:
             continue
         chosen.append(index)
+        seen.add(normalized)
         used += cost
     if not chosen:  # a single paragraph bigger than the whole budget
         head = paragraphs[0][: int(max_tokens * 3.2)]

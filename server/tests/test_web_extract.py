@@ -158,3 +158,19 @@ def test_empty_page_answers_loud() -> None:
         )
     assert excinfo.value.code == "web_no_text"
     assert excinfo.value.fix
+
+
+def test_focus_extract_dedups_verbatim_repeats():
+    """Repeated boilerplate must not crowd distinct content out of the
+    budget: a paragraph is quoted once, and the freed budget buys the
+    lower-scoring but distinct paragraph (A35 P3.2)."""
+    from tee.web.extract import focus_extract
+
+    promo = "Concrete pavers bed on thirty mm of sharp sand over compacted hardcore."
+    distinct = "Joint the pavers with kiln-dried sand brushed in dry."
+    filler = "x " * 2400  # forces the budget cut path
+    text = "\n".join([promo, promo, promo, distinct, filler])
+    quote, truncated = focus_extract(text, "how do pavers bed on sand", max_tokens=60)
+    assert truncated
+    assert quote.count(promo) == 1
+    assert distinct in quote

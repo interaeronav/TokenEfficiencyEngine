@@ -3451,3 +3451,43 @@ is now strictly stronger (artifact bytes).
 
 Commits: 6f6ddae (lazy drivers), df40ba8 (robots stamp), 0bea8d0 (UE
 dispatch cost), aa09055 (voxkiln unwrap + determinism).
+
+## 2026-08-29 — A35 P3: tokens round two — one real shave, two honest no-actions, every bar held
+
+**3.1 Surface pass (SI-1 discipline), measured then declined:** per-tool
+split of the 2,028 canonical wire = 1,016 description + 762 schema +
+~270 list envelope; top spenders tee_script 199 (helpers/sandbox/budget
+contract — every clause behavior-shaping), tee_web_lookup 163 (the
+tested untrusted-content sentence + media modes), tee_scene_summary 161.
+Virtual describe-all 8,516 tok / 81 tools (mean 105; A33's caps already
+took it from 8,998/82). No zero-semantic-loss shave beyond single
+digits found — declining to trade tested behavior wording for <1%,
+recorded A12-style as a measured no-action.
+
+**3.2 Response audit round two (the fixtures that moved least in A33):**
+- fix-loop rounds arm: reproduced byte-identical at 332 tok; post-A33
+  content is conflicts + measured drift only — no echo left to trim.
+- scene_summary paging: through the real server pipeline pages ARE
+  columnar (20 rows = 186 tok, 50 rows = 372); the fatter direct-cache
+  number that prompted the audit (276) bypasses the columnar pass —
+  no-action, both measurements recorded.
+- web_lookup quote framing: REAL defect — the selector kept verbatim
+  repeated blocks, so boilerplate could crowd distinct content out of
+  the budget (fixture: the same paragraph quoted five times in one
+  answer). Fixed: normalized-exact duplicate skip during selection
+  (regression test); live battery row 2,382 → 2,367 tok, citations
+  identical.
+
+**3.3 Full battery, live headless Blender 5.2 + live UE 5.8.1 (editor
+launched for the run, quit in-engine after, `{}` ack):** every total at
+or above its bar, zero wrong-way rows — scenes **90.3%** (donut 295 /
+populate 5,311 / materials 980 / layout 36, all identical to the RC),
+extraction **93.1%** (4,467, ±3 run noise), fix-loop **47.9%**
+(332/173 byte-identical — the P2 checkpoint change provably moved no
+token), assets **94.0%** (762), settle 222 tok / 0.00 mm, UE **93.9%**
+(2,346), surface **2,028**, jurisdiction 95.6%, kb **96.7%**, web
+**95.3%** (2,367). RESULTS.md diff is the two ±1-tok live-page
+variations plus the dedup's −1.
+
+Suites: server **613 passed / 2 skipped** (612 + dedup regression),
+ruff clean. Commit: (this one).
