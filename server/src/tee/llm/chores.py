@@ -51,11 +51,11 @@ _TRIAGE_SYSTEM = (
     "to do (for example deleting an argument just to stop the error) is "
     "NOT grounded - preserve the intent or defer. " + _BOUNDARY + " "
     "Example - failure: TypeError: read_csv() got an unexpected keyword "
-    "argument 'error_bad_lines'. Correct answer: {\"diagnosis\": \"This "
-    "pandas version no longer accepts 'error_bad_lines'.\", \"fix\": "
-    "\"Keep the behavior but verify the replacement parameter against "
-    "the installed pandas docs before changing the call.\", "
-    "\"confidence\": \"needs_verification\"} - the error names the old "
+    'argument \'error_bad_lines\'. Correct answer: {"diagnosis": "This '
+    'pandas version no longer accepts \'error_bad_lines\'.", "fix": '
+    '"Keep the behavior but verify the replacement parameter against '
+    'the installed pandas docs before changing the call.", '
+    '"confidence": "needs_verification"} - the error names the old '
     "parameter, not its replacement; dropping it would change behavior."
 )
 
@@ -276,8 +276,13 @@ def refine_extract(
 
     def validate(raw: dict[str, Any]) -> dict[str, Any] | None:
         sentences = raw.get("sentences")
-        if not isinstance(sentences, list) or not sentences:
+        if not isinstance(sentences, list):
             return None
+        if not sentences:
+            # A well-formed empty selection is honest abstention ("nothing
+            # here answers this"), not a schema failure - even under
+            # refine='local' the dumb path stands.
+            return {"quote": ""}
         kept: list[str] = []
         for sentence in sentences:
             if not isinstance(sentence, str) or not sentence.strip():
@@ -295,7 +300,7 @@ def refine_extract(
         f"Select the sentences (verbatim) that answer the question, "
         f"within about {max_tokens} tokens."
     )
-    return _run(
+    result = _run(
         _EXTRACT_SYSTEM,
         prompt,
         refine=refine,
@@ -303,6 +308,9 @@ def refine_extract(
         max_tokens=min(2 * max_tokens, 1200),
         validate=validate,
     )
+    if result is not None and not result["quote"]:
+        return None  # abstained - the consumer's dumb path stands
+    return result
 
 
 # -- chores 5-7: fact structuring, recap compression, kb rerank --------------

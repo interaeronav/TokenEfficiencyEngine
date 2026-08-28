@@ -76,7 +76,11 @@ evidence must answer `confidence: "needs_verification"` and name what
 to check. The trap suite (`server/tests/test_llm_traps.py`, `llm`
 marker) enforces this against the real model: seeded tracebacks whose
 correct fix requires an omitted API must defer; grounded controls must
-not. A trap failure blocks adoption outright. Deterministic checkers
+not. A trap failure blocks adoption outright — and did: the
+traceback-triage chore is **blocked at rung 0** (kwarg-drift traps
+answered with intent-destroying fixes across three models, 2026-08-28),
+so `llm_triage` is not registered; it returns when a rung-1 adapter
+passes the full suite. Deterministic checkers
 (lint, plaus_check, validators) stay the judges everywhere — the model
 translates findings, never overrules them.
 

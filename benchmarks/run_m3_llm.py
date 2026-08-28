@@ -43,7 +43,7 @@ from tee.web.extract import focus_extract  # noqa: E402
 # --------------------------------------------------------------------------
 
 QUALITY_CASES = [
-    ("docs/research/19-context-economics.md", "what does a screenshot cost in tokens compared to a text answer?"),
+    ("docs/research/19-context-economics.md", "what does re-viewing a frame cost in tokens compared to a stored caption?"),
     ("docs/research/04-token-efficiency-techniques.md", "how should mutations report their results?"),
     ("docs/research/49-web-lookup-multimodal.md", "what did the live vision measurement show about cost and latency?"),
     ("CLAUDE.md", "what do TEE tools return by default instead of full scene dumps?"),
@@ -93,12 +93,17 @@ def cmd_latency(args) -> None:
         ("triage", lambda: chores.triage(TRACEBACK_FIXTURE, "line 6: bm = existing.get(name)", refine="local", cfg=cfg)),
         ("repair_script", lambda: chores.repair_script(*SCRIPT_FIXTURE, refine="local", cfg=cfg)),
         ("explain_lint", lambda: chores.explain_lint(LINT_FIXTURE, refine="local", cfg=cfg)),
-        ("refine_extract", lambda: chores.refine_extract(page_text, "what does a screenshot cost?", QUALITY_BUDGET, refine="local", cfg=cfg)),
+        ("refine_extract", lambda: chores.refine_extract(page_text, QUALITY_CASES[0][1], QUALITY_BUDGET, refine="local", cfg=cfg)),
         ("structure_facts", lambda: chores.structure_facts(FACTS_FIXTURE, refine="local", cfg=cfg)),
         ("compress_recap", lambda: chores.compress_recap(RECAP_FIXTURE, refine="local", cfg=cfg)),
         ("rerank", lambda: chores.rerank(*RERANK_FIXTURE, refine="local", cfg=cfg)),
     ]:  # fmt: skip
-        median_s, result = _timed(call)
+        try:
+            median_s, result = _timed(call)
+        except Exception as exc:  # an abstention/refusal is a row, not a crash
+            rows.append({"chore": name, "outcome": f"{type(exc).__name__}: {exc}"[:120]})
+            print(f"{name}: NO ROW ({rows[-1]['outcome']})")
+            continue
         payload = {k: v for k, v in result.items() if k != "model"}
         rows.append({"chore": name, "median_s": round(median_s, 2),
                      "answer_tokens": estimate_tokens(json.dumps(payload, separators=(",", ":")))})
@@ -109,16 +114,24 @@ def cmd_latency(args) -> None:
 def cmd_quality(args) -> None:
     cfg = _cfg(args)
     cases = []
+    from tee.kernel.errors import TeeError
+
     for rel_path, question in QUALITY_CASES:
         text = (REPO / rel_path).read_text()[:16000]
         dumb_quote, _ = focus_extract(text, question, QUALITY_BUDGET)
-        refined = chores.refine_extract(text, question, QUALITY_BUDGET, refine="local", cfg=cfg)
+        why = None
+        try:
+            refined = chores.refine_extract(text, question, QUALITY_BUDGET, refine="local", cfg=cfg)
+            if refined is None:
+                why = "empty selection"
+        except TeeError as exc:  # verification/schema kill - the quality signal itself
+            refined, why = None, exc.code
         cases.append({
             "file": rel_path, "question": question, "source": text,
             "dumb": dumb_quote, "refined": None if refined is None else refined["quote"],
-            "abstained": refined is None,
+            "abstained": why,
         })  # fmt: skip
-        state = "abstained" if refined is None else f"{estimate_tokens(refined['quote'])} tok"
+        state = f"abstained ({why})" if refined is None else f"{estimate_tokens(refined['quote'])} tok"
         print(f"{rel_path}: dumb {estimate_tokens(dumb_quote)} tok, refined {state}")
 
     out = Path(args.out)

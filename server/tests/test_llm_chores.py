@@ -131,6 +131,15 @@ def test_refine_extract_invented_sentence_kills_the_lot() -> None:
         assert chores.refine_extract(PAGE_TEXT, "how thick?", 200, cfg=cfg(url)) is None
 
 
+def test_refine_extract_empty_selection_is_abstention_even_under_local() -> None:
+    reply = json.dumps({"sentences": []})
+    with fake_llm_server([reply]) as (url, _):
+        assert (
+            chores.refine_extract(PAGE_TEXT, "unrelated?", 200, refine="local", cfg=cfg(url))
+            is None
+        )
+
+
 def test_refine_extract_whitespace_normalized_still_verbatim() -> None:
     reply = json.dumps({"sentences": ["Edge restraints  go in\nbefore the blocks."]})
     with fake_llm_server([reply]) as (url, _):
