@@ -89,6 +89,84 @@ def test_no_kb_no_hint(tmp_path) -> None:
     assert "kb_hint" not in answer
 
 
+# -- the SI-B10 relevance floor (A37 P0-F) ----------------------------------
+# kb_search always crowns SOME file; the hint must honor the search's own
+# match-strength note. The three questions below are the recorded 2026-08-28
+# misfires (research 54): each got a correct extract plus an off-topic hint.
+
+MISFIRES = [
+    ("how do I merge selected vertices by distance in edit mode", "industry.case_studies"),
+    ("what is XPlaneConnect and what can it do", "industry.sa_contractors"),
+    ("what does the Ames Stereo Pipeline produce", "gxgd.game_disciplines"),
+]
+
+
+WEAK_NOTE = "weak match - only 'system' hits a title/id/tag"
+
+
+class NotedRegistry:
+    """Echoes kb_search responses the real corpus produced for the misfires."""
+
+    def __init__(self, top_id: str, note: str | None):
+        self.top_id, self.note = top_id, note
+
+    def call(self, name: str, args: dict) -> dict:
+        assert name == "kb_search"
+        out: dict[str, Any] = {"items": [{"id": self.top_id, "title": self.top_id}]}
+        if self.note:
+            out["note"] = self.note
+        return out
+
+
+def test_kb_hint_suppressed_on_recorded_misfires(tmp_path) -> None:
+    from tee.kb.search import NOTE_NO_STRONG
+
+    for question, wrong_top in MISFIRES:
+        registry = NotedRegistry(wrong_top, NOTE_NO_STRONG)
+        answer = service(tmp_path, registry=registry).lookup(URL, question)
+        assert "kb_hint" not in answer, question
+
+
+def test_kb_hint_borderline_vetoed_by_rerank(tmp_path, monkeypatch) -> None:
+    from tee.llm import chores
+
+    seen: dict[str, Any] = {}
+
+    def fake_rerank(query, candidates, **kwargs):
+        seen["ids"] = [c["id"] for c in candidates]
+        return {"order": ["none-of-these", "joinery.cabinetmaking"], "model": "m14"}
+
+    monkeypatch.setattr(chores, "rerank", fake_rerank)
+    registry = NotedRegistry("joinery.cabinetmaking", WEAK_NOTE)
+    answer = service(tmp_path, registry=registry).lookup(URL, "32 mm system hole spacing")
+    assert "kb_hint" not in answer
+    assert seen["ids"] == ["joinery.cabinetmaking", "none-of-these"]
+
+
+def test_kb_hint_borderline_kept_without_endpoint(tmp_path, monkeypatch) -> None:
+    from tee.llm import chores
+
+    monkeypatch.setattr(chores, "rerank", lambda *a, **k: None)  # absent endpoint
+    registry = NotedRegistry("joinery.cabinetmaking", WEAK_NOTE)
+    answer = service(tmp_path, registry=registry).lookup(URL, "32 mm system hole spacing")
+    assert "kb_read 'joinery.cabinetmaking'" in answer["kb_hint"]
+    assert "kb-rerank" not in answer["kb_hint"]  # floor only: no model label
+
+
+def test_kb_hint_borderline_kept_by_rerank_is_labelled(tmp_path, monkeypatch) -> None:
+    from tee.llm import chores
+
+    monkeypatch.setattr(
+        chores,
+        "rerank",
+        lambda *a, **k: {"order": ["joinery.cabinetmaking", "none-of-these"], "model": "m14"},
+    )
+    registry = NotedRegistry("joinery.cabinetmaking", WEAK_NOTE)
+    answer = service(tmp_path, registry=registry).lookup(URL, "32 mm system hole spacing")
+    assert "kb_read 'joinery.cabinetmaking'" in answer["kb_hint"]
+    assert "[kb-rerank: m14]" in answer["kb_hint"]
+
+
 def test_bad_media_and_empty_question_refused(tmp_path) -> None:
     svc = service(tmp_path)
     with pytest.raises(TeeError) as excinfo:

@@ -3570,3 +3570,54 @@ bundle pyproject 0.4.0 with `[tool.uv] default-groups = []`) — the
 **29 packages / 29 MB venv**, exact manifest argv → serverInfo 0.4.0,
 17 tools, 0.32 s first answer, 74 MB RSS. Tagged v0.4.0 and pushed;
 artifact handed to the owner at server/dist/tee-engine-0.4.0.mcpb.
+
+## 2026-08-29 — A37 P0-F: the kb_hint relevance floor (SI-B10 closed)
+
+The campaign's ship-first fix, threshold picked from measured score
+distributions on the live 401-file corpus, not by feel.
+
+**The measurement that settled the design** (scratch script over the real
+index; misfire questions reconstructed from the three recorded pages —
+two reproduce the exact recorded wrong tops): raw top score separates
+NOTHING — misfire-class questions scored 10.5–20.5 vs 5.0–15.5 for
+in-domain ones, because the additive scorer substring-matches stop words
+("the" ⊂ every summary), so longer off-domain questions outscore short
+in-domain ones. What separates cleanly is **identity hits**: content
+words (≥3 chars, stop-filtered) found word-bounded (trailing-s tolerated)
+in title/id/tags of the top record — 0 for every misfire-class question,
+1–5 for every in-domain one. In-domain identity signal lives almost
+entirely in **tags** ('bedding', 'sand', 'closet', 'wardrobe' are
+tags-only), so the floor computes kb-side where tags exist, not from
+wire rows.
+
+**Machinery (SI-B2's pattern, as the script directed):** kb_search itself
+now carries the match-strength note on weak tops — `no strong match
+(title/id/tag hits: none) - …` at 0 identity hits, `weak match - only
+'word' hits a title/id/tag` at exactly 1; ≥2 or no query words ⇒ no note,
+response unchanged. `_kb_hint` consumes it: no-strong ⇒ no hint;
+weak ⇒ the borderline band goes through the kb-rerank chore (A34 chore 7,
+reused as-shipped) ordering the top hit against a none-of-these
+sentinel — sentinel first ⇒ suppressed, hit first ⇒ kept and labelled
+`[kb-rerank: <model>]`; absent endpoint / chore abstention / any chore
+failure ⇒ floor only (hint kept — a hint may never break a lookup, so
+even refine=local degrades here instead of raising). Note prefixes are a
+tested cross-module contract (constants imported by web/tools.py).
+
+**Evidence:**
+- Live corpus: all 6 misfire-class questions (XPC ×2, ASP ×2, two
+  no-keyword bmesh-page phrasings) → NO hint; all 7 in-domain (paving
+  benchmark + fixture ×3, joinery ×3, walls) → hint kept, one via the
+  borderline band. Old hint cost on the six misfire calls: 300 tok
+  (~50/call, the SI-B10 "~40 tok" sighting confirmed) → now 0.
+- Fixtures: the three recorded misfires (bmesh→industry.case_studies,
+  XPC→industry.sa_contractors, ASP→gxgd.game_disciplines) must produce
+  no hint; the paving fixture keeps its hint (test unchanged); borderline
+  veto / keep-without-endpoint / keep-with-label each pinned; producer
+  side pinned in test_kb (no-strong note, weak note, strong-no-note incl.
+  wall↔walls stemming).
+- kb benchmark row **byte-identical**: 1,865 tok / 2 calls / 96.7% saved
+  (the benchmark query has 5 identity hits — no note by construction).
+  Web row untouched by construction: the web scenario's service has no
+  registry, so it never carried hints.
+- Suite **620 passed / 2 skipped** (613 + 3 kb + 4 web), ruff clean.
+  Always-loaded surface untouched (no description changed).

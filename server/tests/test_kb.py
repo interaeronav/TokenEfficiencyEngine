@@ -279,6 +279,36 @@ def test_search_rows_carry_flags_verbatim(kb):
     assert hit["status"] == "needs-verification"
 
 
+def test_search_off_domain_top_carries_no_strong_match_note(kb):
+    # SI-B10: the additive scorer crowns SOME file even for an off-domain
+    # question (stop words substring-match everywhere); the response must
+    # say so instead of presenting the accident as a match.
+    app, _ = kb
+    result = app.registry.call(
+        "kb_search", {"query": "what is the fastest way to select linked geometry"}
+    )
+    assert result["items"]  # a top hit exists - that is the trap
+    assert result["note"].startswith("no strong match (title/id/tag hits: none)")
+
+
+def test_search_single_identity_word_carries_weak_note(kb):
+    app, _ = kb
+    result = app.registry.call("kb_search", {"query": "how are costing decisions recorded"})
+    assert result["items"][0]["id"] == "paving.costing"
+    assert result["note"] == "weak match - only 'costing' hits a title/id/tag"
+
+
+def test_search_strong_match_carries_no_note(kb):
+    app, _ = kb
+    # the kb benchmark query's shape: several identity words hit
+    result = app.registry.call("kb_search", {"query": "block paving bedding sand"})
+    assert "note" not in result
+    # singular/plural tolerance: 'wall' must count against 'walls'
+    result = app.registry.call("kb_search", {"query": "boundary wall foundations"})
+    assert result["items"][0]["id"] == "walls.boundary"
+    assert "note" not in result
+
+
 def test_empty_result_returns_domains_not_silence(kb):
     app, _ = kb
     result = app.registry.call("kb_search", {"query": "zzzqqq nothing"})

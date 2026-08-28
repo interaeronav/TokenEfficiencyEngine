@@ -211,9 +211,16 @@ class WebLookupService:
 
     def _kb_hint(self, question: str) -> str | None:
         """KB-first routing made visible, never enforced (research 49): when
-        the local corpus matches the question, the answer says so."""
+        the local corpus matches the question, the answer says so.
+
+        SI-B10: kb_search's top hit is always SOMEBODY, so the hint honors
+        the search's own match-strength note - no-strong suppresses outright,
+        a single-word match is judged by the kb-rerank chore when a local
+        endpoint answers (floor only otherwise)."""
         if self.registry is None:
             return None
+        from tee.kb.search import NOTE_NO_STRONG, NOTE_WEAK_PREFIX
+
         try:
             found = self.registry.call("kb_search", {"query": question, "limit": 1})
         except Exception:  # kb inactive/disabled: the hint simply stays away
@@ -221,8 +228,45 @@ class WebLookupService:
         hits = found.get("items") or []
         if not hits:
             return None
+        note = str(found.get("note") or "")
+        if note.startswith(NOTE_NO_STRONG):
+            return None  # the relevance floor: an off-domain best is no hint
         top = hits[0]
+        label = ""
+        if note.startswith(NOTE_WEAK_PREFIX):
+            keep, model = self._judge_hint(question, top)
+            if not keep:
+                return None
+            if model:
+                label = f" [kb-rerank: {model}]"
         return (
             f"the local KB may already answer this: kb_read '{top.get('id')}' "
-            f"({top.get('title')}) - flagged and cited, no fetch needed"
+            f"({top.get('title')}) - flagged and cited, no fetch needed{label}"
         )
+
+    _HINT_SENTINEL = "none-of-these"
+
+    def _judge_hint(self, question: str, top: dict) -> tuple[bool, str | None]:
+        """Borderline band: the kb-rerank chore (A34 chore 7) orders the top
+        hit against a none-of-these sentinel. Sentinel first -> no hint. Any
+        failure or absent endpoint -> (True, None): the floor already passed
+        and a hint may never break the lookup, so even refine=local degrades
+        here instead of raising."""
+        from tee.llm import chores
+
+        candidates = [
+            {"id": str(top.get("id")), "title": str(top.get("title") or "")},
+            {"id": self._HINT_SENTINEL, "title": "none of these answers the question"},
+        ]
+        try:
+            result = chores.rerank(
+                question,
+                candidates,
+                refine=str(self.llm_cfg.get("refine", "auto")),
+                cfg=self.llm_cfg,
+            )
+        except Exception:
+            return True, None
+        if not result:
+            return True, None
+        return result["order"][0] != self._HINT_SENTINEL, result.get("model")
