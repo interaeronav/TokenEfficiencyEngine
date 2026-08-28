@@ -3176,3 +3176,73 @@ the benchmark bars as the floor. Also flags the pdfplumber/imagehash
 manual-install smell for P1 root-cause. Kickoff written to TEE project
 memory (key a35-campaign). Campaign not started; P0 is the first
 session's job.
+
+## 2026-08-28 — A35 P0: baseline ledger (every number from a command run this session)
+
+Entry ticket held: server `make check` = ruff clean + **608 passed / 2
+skipped** (32.9 s); voxkiln **48 passed / 1 skipped**. Machine verified
+quiet before every timing row (load ~1.4, 96% mem free, no editor, no
+model servers); the UE editor was launched twice for the unreal arm and
+quit in-engine both times (`{}` ack, ports freed, no crash reporter).
+
+| Metric | Baseline (this session) |
+|---|---|
+| artifacts (server/dist, bytes) | mcpb 566,329 / wheel 362,240 / sdist 602,791 / bridge zip 6,472 / TeeToolset zip 3,880 |
+| installed Desktop extension | **98 MB** total; `.venv` 95 MB (bin 22 / lib 74); rebuilt fresh at the 0.3.1 install (created 2026-08-28 20:47) |
+| — heaviest members (du -sm) | **ruff 21.6 MB (bin)**, PIL 15, fontTools 13, **cryptography 13**, pygments 5, pydantic_core 5, pydantic 4, mcp 3, rich 2, fpdf 2, anyio 2 |
+| — venv contents (uv pip list) | **49 packages.** Dev group PRESENT despite `--no-dev` in the serve argv (ruff, pytest 9.1.1, pytest-timeout, fpdf2→fonttools). Extras ABSENT: **no pdfplumber, no imagehash** — the hand-added ones were lost on reinstall; the installed co-pilot's extract/media lanes are dead right now. mcp[cli]+mcp drag typer/rich/pygments/shellingham + starlette/uvicorn/sse-starlette/httpx2 + cryptography/pyjwt into a stdio-only server. |
+| deps per extra (pyproject) | base 1 (mcp[cli]); extract 15; assets 4; physical 2; assets-embed 3; assets-gen 4; dev group 4 |
+| cold serve → first tee_status (Desktop UX) | **0.32 s** median (5 runs, exact Desktop argv incl. `uv run --no-dev`, real project root; scratch root identical 0.31 s); 17 tools, 0.3.1 |
+| same, dev checkout | 0.65 s (first-ever run 1.38 s) |
+| idle RSS, installed | **~75 MB** at first answer; live Desktop instances at 27 min: 73.9 and 93.5 MB (the latter serving this session) |
+| idle RSS, dev (all extras present) | **242 MB.** Attributed this session (fake adapter, RSS after each registration): kernel 22.4 → +extract +1.6 → **+assets +173.3 (eager numpy/scipy/PIL stack at registration; extract defers, assets doesn't)** → +design/physical/pins/uefn/kb +0.7 → +build_server +37.8 = 235.9. The installed venv escapes only because its extras are missing. |
+| always-loaded surface (canonical compact) | **17 tools = 2,028 tok** (2,494 model_dump); 81 virtual tools (fake flavor), flat-server 10,609 (80.9% saved), reach-one 570 |
+| benchmark totals | cited to the 0.3.0 RC live battery earlier today (scenes 90.3%, extraction 93.1%, fix-loop 47.9%, assets 94.0%, UE 93.9%, kb 96.7%, web 95.3%); `git diff 6901f96..HEAD` over server/voxkiln/adapters/benchmarks code = empty, so the rows stand for this tree. Surface independently reproduced above. |
+| voxkiln UV-unwrap hotspot | cited: 442 s on the T.png-row mesh (2026-08-27 profile entry); battery tranche 3 (2026-08-28) ran 270–1,593 s/config with the 9.5 s repair |
+
+**p50 latency per always-loaded tool (medians of 5 through the real MCP
+surface, this session).** Blender = live headless 5.2 via the tee bridge;
+Unreal = live 5.8.1 TeeZipProbe editor, quit after.
+
+| Tool | blender | unreal |
+|---|---|---|
+| tee_status / (recap) | 0.47 / 0.43 ms | — (kernel, adapter-independent) |
+| tee_recall / tee_remember | 0.16 / 0.34 ms | — |
+| tee_search_tools / tee_describe_tool | 0.22 / 0.16 ms | — |
+| tee_call (kb_search) | 1.33 ms | — |
+| tee_batch 1-create | 4.64 ms | 3.67 s |
+| tee_scene_summary | 0.21 ms | 0.44 ms |
+| tee_entity_detail / tee_diff | 0.36 / 0.37 ms | 0.30 / 0.30 ms |
+| tee_checkpoint | 2.52 ms | 0.67 s empty level; **4.33 s with 5 TEE-created actors** (cost scales with created-actor count) |
+| tee_rollback (dirty state) | 5.64 ms | 3.67 s |
+| tee_script read / 1-create | 0.21 / 6.67 ms | 0.44 ms / **13.67 s** |
+| tee_capture 16 KB | 29.9 ms | 2.73 s |
+| tee_job (done job) | 0.50 ms | — |
+| tee_media (512 px image, real ingest) | 1.85 ms | — |
+| tee_web_lookup first / cached (loopback fixture) | **2,025 ms** / 6.96 ms | — |
+
+Anomalies flagged for P2 (profile before touching, per the script):
+1. **tee_web_lookup pays a deterministic ~2.0 s on the FIRST lookup of
+   any host** — `min_interval_s = 2.0` (fetch.py) applies between the
+   robots.txt fetch and the page fetch itself. Loopback proves it is
+   TEE's own sleep, not the network. Any fix must keep the etiquette
+   honest (crawl-delay still wins; only the robots→first-page gap is in
+   question).
+2. **UE tee_script 1-create at 13.7 s vs 3.7 s for the same create via
+   tee_batch** — the script lane's auto-checkpoint (4.3 s here) plus
+   what profiling will attribute; the fix-loop scenario on UE would eat
+   this whole. 3. UE checkpoint cost scaling with created actors.
+   (UE dispatch floor itself is Epic's documented ~0.37 s/game-thread
+   dispatch — environment, not TEE.)
+
+Dogfooding friction this session → SI_BACKLOG: **SI-B8**
+(tee_checkpoint answers a nested object, tee_rollback wants its bare id
+— one failed round-trip), **SI-B9** (ex_ingest answers `job`, tee_job
+takes `job_id`). Rule-6 errors met en route were exemplary: web's
+port-block and UE's bad-op both named their exact fix.
+
+P1 premise CONFIRMED at baseline: the bundle installs its dev toolchain
+(~45 MB incl. the 21.6 MB ruff binary it will never run) and not the
+extras its declared jobs need — the pdfplumber/imagehash surgery did
+not survive today's reinstall. P0 is complete; P1 starts from this
+table.

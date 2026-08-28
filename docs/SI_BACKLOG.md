@@ -73,3 +73,17 @@ Format per item:
   alt-text-overlap only (the Wikipedia tagline ranked #2 before the
   svg/ico filter); a size-hint heuristic (width/height attrs) would pick
   content images better.
+
+## SI-B8 — tee_checkpoint answers an object; tee_rollback wants its id
+- seen: 2026-08-28, A35 P0 session (latency harness against live Blender)
+- call: `tee_checkpoint {label}` → `{"ok":true,"checkpoint":{"id":"cp6","label":...,"adapter":...,"revision":...}}`; then `tee_rollback {ref: <that object>}` → pydantic validation reject (ref must be str)
+- hurt: the natural client move — pass back what checkpoint returned — fails a round-trip; the id must be dug out of the nested payload. tee_batch responses carry the checkpoint as a bare id, so the surface is inconsistent with itself.
+- proposed: either flatten tee_checkpoint to `{"ok":true,"checkpoint":"cp6",...}` (matches the batch report; breaking, stage for 0.4.0) or accept an object/ref string union in tee_rollback (non-breaking).
+- status: open
+
+## SI-B9 — ex_ingest answers `job`; tee_job takes `job_id`
+- seen: 2026-08-28, A35 P0 session (media-lane latency row)
+- call: `ex_ingest {path}` → `{"job":"job1","files":1,"note":"poll tee_job for the report"}`; `tee_job` requires `job_id`
+- hurt: the response key and the parameter it feeds don't match; a client keying on `job_id` gets None and never polls. One failed harness pass before the eye caught it.
+- proposed: one name for the handle on both sides (`job` param alias or `job_id` response key; alias is non-breaking).
+- status: open
