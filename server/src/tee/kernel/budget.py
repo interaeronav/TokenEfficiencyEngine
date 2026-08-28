@@ -160,14 +160,41 @@ class ResponseLog:
         self._alert = alert_tokens
         self._keep = keep
         self._sizes: dict[str, list[int]] = {}
+        # the session ledger (A37 P6): request/response token sums per tool
+        self._calls: dict[str, int] = {}
+        self._tokens_in: dict[str, int] = {}
+        self._tokens_out: dict[str, int] = {}
 
-    def record(self, tool: str, payload: Any) -> int:
+    def record(self, tool: str, payload: Any, request: Any = None) -> int:
         tokens = estimate_tokens(payload)
         sizes = self._sizes.setdefault(tool, [])
         sizes.append(tokens)
         if len(sizes) > self._keep:
             del sizes[: len(sizes) - self._keep]
+        self._calls[tool] = self._calls.get(tool, 0) + 1
+        self._tokens_out[tool] = self._tokens_out.get(tool, 0) + tokens
+        if request is not None:
+            self._tokens_in[tool] = self._tokens_in.get(tool, 0) + estimate_tokens(request)
         return tokens
+
+    def ledger(self) -> dict[str, Any]:
+        """The session ledger. `virtual:<name>` rows break tee_call traffic
+        down per virtual tool; their tokens are ALREADY inside tee_call's
+        own row, so totals count only wire-level rows (no double count)."""
+        tools: dict[str, dict[str, int]] = {}
+        totals = {"calls": 0, "tokens_in": 0, "tokens_out": 0}
+        for tool in sorted(self._calls):
+            row = {
+                "calls": self._calls[tool],
+                "tokens_in": self._tokens_in.get(tool, 0),
+                "tokens_out": self._tokens_out.get(tool, 0),
+            }
+            tools[tool] = row
+            if not tool.startswith("virtual:"):
+                totals["calls"] += row["calls"]
+                totals["tokens_in"] += row["tokens_in"]
+                totals["tokens_out"] += row["tokens_out"]
+        return {"tools": tools, "totals": totals}
 
     def report(self) -> dict[str, Any]:
         out: dict[str, Any] = {}

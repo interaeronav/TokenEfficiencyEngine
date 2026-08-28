@@ -131,6 +131,9 @@ class TeeApp:
         self.extract_recap = None
         self._web = None  # lazy WebLookupService (A34)
         self.gateway = None  # GatewayService when [gateway] backends exist (A37)
+        from tee.kernel.meter import register_session_tools
+
+        register_session_tools(self)  # report_savings + handoff (A37 P6)
 
     @property
     def llm_cfg(self) -> dict:
@@ -333,6 +336,11 @@ class TeeApp:
         active = [j for j in self.jobs.list() if j["state"] in ("queued", "running")]
         if active:
             out["active_jobs"] = active
+        from tee.kernel.meter import savings_block
+
+        block = savings_block(self.response_log.ledger())
+        if block:
+            out["savings"] = block
         return out
 
     def _busy_hint(self) -> str | None:

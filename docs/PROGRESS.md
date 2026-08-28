@@ -3868,3 +3868,43 @@ is pure server work with self-contained acceptance.
   hostile ids refused kb_bad_id AND a byte-level assert that the corpus
   tree is unchanged by a good propose); domain/jurisdiction/citation
   refusals each rule-6. Suite **674 passed / 2 skipped**, ruff clean.
+
+## 2026-08-29 — A37 P6: savings meter + handoff pack (= A36 G3/G4)
+
+Worked ahead of install-blocked P4/P5.1 like P5.2; the phase's one
+blocked rider — the P5 closet run re-executed with the meter as its
+live fixture — stays open and is noted at the ledger.
+
+- **The ledger**: ResponseLog (which already sized every response) now
+  accumulates per-tool calls / tokens_in / tokens_out; the server
+  wrapper passes request kwargs so the request side is REAL, not
+  estimated. `virtual:<name>` rows break tee_call traffic down per
+  virtual tool and are excluded from wire-level totals (no double
+  count — pinned by test).
+- **The meter** (`tee/kernel/meter.py`): lanes map ledger rows to the
+  MEASURED benchmark ratios (scenes 90.3 / web 95.3 / kb 96.7 /
+  extract 93.1 / assets 94.0 / gateway 95.4, each entry carrying its
+  dated RESULTS.md source string); naive_estimate = measured/(1−ratio)
+  per lane; tools with no honest baseline (status, recall, llm_*) are
+  counted but never estimated, and the ESTIMATE label rides every
+  response shape — baseline honesty as the acceptance.
+- **Surfaces, zero always-loaded growth**: virtual `report_savings`
+  (the table) + a ~30-token `savings` block in the recap (present only
+  once calls exist); virtual `handoff` — one ≤500-token plain-text
+  brief (preamble, scene stamps with kind counts, memory facts, notes,
+  checkpoints, open jobs, both continue paths) trimmed notes-first so
+  facts survive the budget.
+- **Fixtures (7 new)**: ledger sums + virtual exclusion; lane mapping;
+  estimate math + label; recap block on/off; registration + search;
+  brief budget under a 40-note overflow with facts intact; wire-level
+  request counting through a real mcp Client round trip.
+- **Live (this machine)**: a real mini-session (4-wall batch + a real
+  corpus kb_search) answered report_savings with a sane ledger — 985
+  tok / 2 wire calls, lanes scenes 62→~639 / kb 918→~27,818, "96.6%
+  on estimated lanes", label present; recap block compact; the live
+  handoff brief came out at **127 tok** carrying project, scene state
+  (wall x4, epoch/rev), both memory facts, the note, the checkpoint
+  and both continue paths — the round-trip content check the fixture
+  pins, demonstrated live.
+
+Suite **681 passed / 2 skipped** (674 + 7), ruff clean.

@@ -140,7 +140,7 @@ def _tool(app: TeeApp, name: str) -> Callable:
                 if isinstance(result, dict):
                     result = columnarize(result)
                     result = enforce_budget(result)
-                    app.response_log.record(name, result)
+                    app.response_log.record(name, result, request=kwargs or None)
                     return json.dumps(
                         result, separators=(",", ":"), default=str, ensure_ascii=False
                     )
