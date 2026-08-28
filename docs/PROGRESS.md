@@ -3309,3 +3309,17 @@ flavors; UE deselected—no editor, adapter untouched); voxkiln untouched
 (P0's 48/1 stands). Artifacts rebuilt locally for rehearsal only — the
 released 0.3.1 stays canonical; version bump remains the owner's call
 at P4.
+
+## 2026-08-28 — Research 51: the feature roadmap (owner ask)
+
+Owner asked what features would make TEE better and more useful.
+Written as `docs/research/51-feature-roadmap.md`: open-web ecosystem
+findings (agents run 5–9 MCP servers and tool-selection accuracy drops
+above ~9; Godot/QGIS already have naive-pattern MCP servers) + internal
+grounding (SI_BACKLOG, descoped lists, A32). Six candidates scored;
+recommendation: F1 TEE Gateway (front ANY MCP server with TEE's
+progressive disclosure/budgets — the UE-proxy pattern generalized,
+93.9% precedent in-repo) → F2 tee_report savings meter → F3
+tee_handoff portable brief; adapter kit and gated kb_propose staged
+behind; first-party Godot/QGIS adapters explicitly not recommended
+(front the incumbents instead). Building anything = A36, owner's word.
