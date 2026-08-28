@@ -177,3 +177,71 @@ def test_ifc_export_roundtrip(app):
     model = ifcopenshell.open(out["path"])
     assert len(model.by_type("IfcWall")) == 5
     assert len(model.by_type("IfcBuildingStorey")) == 1
+
+
+def _run_ingest(application, path):
+    out = application.registry.call("ex_ingest", {"path": str(path)})
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        status = application.jobs.status(out["job"])
+        if status["state"] in ("done", "error"):
+            return status
+        time.sleep(0.2)
+    raise AssertionError(f"ingest never finished: {status}")
+
+
+def test_missing_optional_lane_dep_skips_file_with_fix(tmp_path, monkeypatch):
+    """A lane whose optional dependency is absent skips THAT file with the
+    exact fix in the report; the job finishes and other files still ingest
+    (the installed-bundle reality: extras are not installed by default)."""
+    from test_extract_images_media import make_photo
+
+    from tee.extract import images
+
+    media = tmp_path / "media"
+    media.mkdir()
+    make_photo(media / "photo.jpg", seed=3)
+    make_dxf(media / "plan.dxf")
+
+    def boom(path):
+        raise ModuleNotFoundError("No module named 'imagehash'", name="imagehash")
+
+    monkeypatch.setattr(images, "extract_image", boom)
+    application = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path / "proj")
+    register_extract_tools(application, tmp_path / "proj")
+    try:
+        status = _run_ingest(application, media)
+        assert status["state"] == "done", status
+        report = status["result"]
+        assert report["ingested"] == 1  # the DXF still made it
+        assert len(report["skipped"]) == 1
+        line = report["skipped"][0]
+        assert "photo.jpg" in line and "imagehash" in line and "extract" in line
+        assert report["errors"] == []
+    finally:
+        application.shutdown()
+
+
+def test_missing_tee_module_still_fails_loud(tmp_path, monkeypatch):
+    """A ModuleNotFoundError for a tee-internal module is a bug, not a
+    missing extra - the job must fail loudly, never report a polite skip."""
+    from tee.extract import images
+
+    media = tmp_path / "media"
+    media.mkdir()
+    from test_extract_images_media import make_photo
+
+    make_photo(media / "photo.jpg", seed=4)
+
+    def boom(path):
+        raise ModuleNotFoundError("No module named 'tee.extract.gone'", name="tee.extract.gone")
+
+    monkeypatch.setattr(images, "extract_image", boom)
+    application = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path / "proj")
+    register_extract_tools(application, tmp_path / "proj")
+    try:
+        status = _run_ingest(application, media)
+        assert status["state"] == "error", status
+        assert "tee.extract.gone" in status["error"]
+    finally:
+        application.shutdown()

@@ -115,6 +115,15 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
             except TeeError as exc:
                 report["errors"].append(f"{path.name}: {exc.message}")
                 continue
+            except ModuleNotFoundError as exc:
+                if (exc.name or "").startswith("tee"):
+                    raise  # a broken tee module is a bug, not a missing extra
+                report["skipped"].append(
+                    f"{path.name}: needs the '{exc.name}' package "
+                    f"(tee-engine[extract] extra) - install it in the serving "
+                    f"environment to enable this lane"
+                )
+                continue
             if "facts" in outcome:
                 report["ingested"] += 1
             elif outcome.get("skipped") == "cached":
