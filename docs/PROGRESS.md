@@ -3246,3 +3246,66 @@ P1 premise CONFIRMED at baseline: the bundle installs its dev toolchain
 extras its declared jobs need — the pdfplumber/imagehash surgery did
 not survive today's reinstall. P0 is complete; P1 starts from this
 table.
+
+## 2026-08-28 — A35 P1: smaller — installed bundle 98 → ~32 MB, no capability changed
+
+**Root cause of the dev-toolchain leak, proven by experiment:** the exact
+manifest argv (`uv run --no-dev …`) into a scratch copy of the bundle
+installs **37 packages / 37 MB and zero dev tools** — uv is innocent.
+Claude Desktop provisions the extension venv at install time with a
+plain `uv sync` (uv's default includes the dev group), and later
+`uv run --no-dev` never prunes. ~58 MB of the P0-measured 95 MB venv was
+ruff (21.6 MB) + pytest + fpdf2→fonttools the server never runs.
+Fix: `make mcpb` appends `[tool.uv] default-groups = []` to the BUNDLE's
+copy of pyproject only; the dev tree keeps its defaults.
+
+**Dependency diet:** `mcp[cli]` → bare `mcp` — the extra adds only
+typer + python-dotenv (dragging rich/pygments/shellingham/markdown-it)
+for the SDK's own CLI, which nothing in tee imports (grep + suite +
+rehearsal). −7 packages from every install. pyjwt[crypto]→cryptography
+(13 MB) is a BASE mcp dependency — not removable without vendoring;
+recorded, not touched.
+
+**The ex_ingest rule-6 defect (the real driver of the owner's manual
+pdfplumber/imagehash surgery), measured then fixed:** in a no-extras
+venv, `ex_ingest` of a folder with one image died whole-job with raw
+`ModuleNotFoundError: No module named 'imagehash'` — no fix named, the
+innocent PDF killed too. Now a missing optional lane dependency skips
+THAT file with the one-line fix (package + extra) and the job finishes;
+a missing `tee.*` module still fails loud (2 regression tests).
+Rehearsal proof (no-extras venv): photo.jpg and plan.pdf each skip with
+their exact fix line, state=done, errors=[].
+
+**Media-lanes-in-the-bundle judged against, with numbers:** installing
+pdfplumber+imagehash+pillow costs **+134 MB** (scipy 71 + numpy 22 via
+imagehash) → a 170 MB venv, 1.8× today's broken state. The script's
+degrade branch chosen. Staged for the owner (not done): a pure-python
+phash would break stored-hash stability (store keys and dedupe groups),
+so replacing scipy is an owner decision with a migration, not a diet.
+
+**Install rehearsal, Desktop-style (extract .mcpb → plain `uv sync` →
+manifest argv):** venv **29 MB / 29 packages** (P0: 95 MB / 49), no
+ruff/pytest/typer/rich, **17 tools, 0.3.1, first tee_status answer
+0.32 s** (first-ever run 2.7 s while uv settles the fresh venv), idle
+RSS 73.9 MB. Extension total ~32 MB vs P0's 98 MB → **−66 MB (−67%)**.
+Applies to the owner's machine at the next bundle install/update; the
+currently-installed venv keeps its old weight until then.
+
+**Per-extra audit (scratch installs over the 29 MB base, this session):**
+physical 55 pkgs/292 MB (ifcopenshell tree); assets 36/155 (scipy via
+imagehash again); extract 73/733 (faster-whisper+opencv+scipy+
+ifcopenshell). Overlap leads staged, nothing changed silently.
+**Wheel/data audit:** 135 files / 1,029 KiB uncompressed, largest member
+the 67 KiB CC0 materials dataset, 13 data files 115 KiB total — nothing
+shipped that no runtime path reads (SI-1.3 re-confirmed on 0.3.1).
+
+**Manifest hygiene:** the store-facing tools list was stale at 16 (no
+tee_web_lookup) — fixed, and a lint canary now pins the manifest list to
+the served surface so it cannot drift again.
+
+Acceptance: server suite **610 passed / 2 skipped** (608 + 2 new) with
+bare mcp, ruff clean; live smoke `-m dcc` **58 passed** (both Blender
+flavors; UE deselected—no editor, adapter untouched); voxkiln untouched
+(P0's 48/1 stands). Artifacts rebuilt locally for rehearsal only — the
+released 0.3.1 stays canonical; version bump remains the owner's call
+at P4.
