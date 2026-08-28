@@ -47,7 +47,8 @@ def _urlopen_for(payloads: dict[str, Any], seen: list[str]):
 
 SEARX_PAYLOAD = {
     "results": [
-        {"title": "Block paving guide", "url": "https://ex.com/paving", "content": "Bedding sand 25-40 mm."},
+        {"title": "Block paving guide", "url": "https://ex.com/paving",
+         "content": "Bedding sand 25-40 mm."},
         {"title": "Edge restraints", "url": "https://ex.com/edges", "content": "Install first."},
     ]
 }  # fmt: skip
@@ -64,7 +65,8 @@ WIKI_PAYLOAD = [
     "block paving",
     ["Block paving", "Pavement (architecture)"],
     ["", ""],
-    ["https://en.wikipedia.org/wiki/Block_paving", "https://en.wikipedia.org/wiki/Pavement_(architecture)"],
+    ["https://en.wikipedia.org/wiki/Block_paving",
+     "https://en.wikipedia.org/wiki/Pavement_(architecture)"],
 ]  # fmt: skip
 
 
