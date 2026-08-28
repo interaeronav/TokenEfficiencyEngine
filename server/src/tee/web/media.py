@@ -89,18 +89,35 @@ def collect_images(html: str, base_url: str) -> list[dict[str, str]]:
         if absolute.lower().split("?")[0].endswith((".svg", ".ico")):
             continue  # not raster food for a VLM
         seen.add(absolute)
-        out.append({"url": absolute, "alt": " ".join(attrs.get("alt", "").split())[:200]})
+        entry = {"url": absolute, "alt": " ".join(attrs.get("alt", "").split())[:200]}
+        for dim in ("width", "height"):
+            value = (attrs.get(dim) or "").rstrip("px")
+            if value.isdigit():
+                entry[dim] = int(value)
+        out.append(entry)
         if len(out) >= 20:
             break
     return out
 
 
-def rank_images(images: list[dict[str, str]], question: str) -> list[dict[str, str]]:
+def rank_images(images: list[dict], question: str) -> list[dict]:
+    """Alt-text relevance first, then declared size: real content images
+    are big, chrome (icons, taglines, spacers) is small - the follow-up
+    to the Wikipedia tagline that outranked the content photo."""
     words = {w for w in re.findall(r"[a-z0-9]+", question.lower()) if len(w) > 2}
 
-    def score(image: dict[str, str]) -> int:
-        alt_words = set(re.findall(r"[a-z0-9]+", image["alt"].lower()))
-        return len(words & alt_words)
+    def score(image: dict) -> int:
+        alt_words = set(re.findall(r"[a-z0-9]+", str(image.get("alt", "")).lower()))
+        points = 2 * len(words & alt_words)
+        dims = [image[d] for d in ("width", "height") if d in image]
+        if dims:
+            if min(dims) < 64:
+                points -= 2
+            elif min(dims) >= 200:
+                points += 2
+            elif min(dims) >= 100:
+                points += 1
+        return points
 
     return sorted(images, key=score, reverse=True)
 

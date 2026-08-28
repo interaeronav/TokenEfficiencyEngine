@@ -213,3 +213,21 @@ def test_transcript_with_no_speech_is_loud(tmp_path, monkeypatch) -> None:
     with pytest.raises(TeeError) as excinfo:
         svc.lookup("http://site.example/clip.mp3", "what is said?")
     assert excinfo.value.code == "web_media_unavailable"
+
+
+def test_size_hints_demote_chrome_and_promote_content() -> None:
+    page = """<body>
+    <img src="/spacer.gif" width="16" height="16" alt="">
+    <img src="/tagline.png" width="120" height="14" alt="the free encyclopedia tagline">
+    <img src="/roof-photo.jpg" width="640" height="480" alt="roof">
+    </body>"""
+    images = web_media.collect_images(page, "http://site.example/x")
+    ranked = web_media.rank_images(images, "what does the roof look like?")
+    assert ranked[0]["url"].endswith("/roof-photo.jpg")
+    assert ranked[-1]["url"].endswith(("/spacer.gif", "/tagline.png"))
+
+
+def test_unsized_images_keep_alt_relevance_ranking() -> None:
+    images = web_media.collect_images(PAGE_WITH_IMAGES, "http://site.example/guide")
+    ranked = web_media.rank_images(images, "weathered corrugated roof?")
+    assert ranked[0]["alt"].startswith("weathered corrugated")
