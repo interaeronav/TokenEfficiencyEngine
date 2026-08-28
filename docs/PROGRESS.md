@@ -3548,3 +3548,13 @@ Machine etiquette: every editor launch quit in-engine (`{}` ack ×5 this
 campaign), model/bridge servers stopped after use, benchmark rows on a
 verified-quiet machine. CI: push + first-run observation is the last
 step of this session.
+
+**Machine-sharing note (2026-08-29, audited):** a concurrent session
+authored A36/A37 scripts + research 51–54 + SI-B10 on this branch
+tonight (22:10–23:51), interleaved with this campaign's P2 wait
+windows. Audited before pushing: their eight commits touch docs and
+campaign scripts ONLY (empty diff over server/voxkiln/adapters/
+benchmarks/packaging), so every A35 measurement stands for the tree it
+ran on; both sessions' commits contain only their own files. Their
+push carried A35's P0–P2 commits to origin; the P2.3+P3+P4 commits go
+up with this note.
