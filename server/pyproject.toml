@@ -8,7 +8,9 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "interaeronav" }]
 dependencies = [
-    "mcp[cli]>=2.0.0,<3",
+    # bare mcp: the [cli] extra only adds typer + python-dotenv for the
+    # SDK's own `mcp` command, which TEE never invokes (tee has its own CLI)
+    "mcp>=2.0.0,<3",
 ]
 
 [project.scripts]
