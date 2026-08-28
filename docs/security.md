@@ -71,6 +71,11 @@ is read-only by construction:
   *client* model immune to a quoted instruction it chooses to obey; TEE's
   ceiling is content that arrives inert, tiny, labeled, and cited — a
   strictly smaller residual than any whole-page fetch tool.
+- **URL search**: `web_search` backends are operator configuration
+  (a self-hosted SearXNG may legitimately be private; the Brave key
+  is env-only) — trusted destinations, unlike model-supplied URLs,
+  which always face the full guard at lookup time. Engine-page
+  scraping is rejected as an anti-goal.
 - **Copyright + etiquette**: short cited extracts only (no full-page
   copies stored beyond a private, TTL'd, local fetch cache with ETag
   revalidation); robots.txt and Crawl-delay honored via stdlib

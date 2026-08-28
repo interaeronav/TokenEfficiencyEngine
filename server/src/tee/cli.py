@@ -113,6 +113,14 @@ def _attach_llm(app, project: str) -> None:
     register_llm_tools(app, Path(project))
 
 
+def _attach_web(app, project: str) -> None:
+    """Register the web long tail (web_search); tee_web_lookup itself is
+    always-loaded in the kernel surface."""
+    from tee.web.tools import register_web_tools
+
+    register_web_tools(app, Path(project))
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -146,6 +154,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_uefn(app, args.project)
     _attach_kb(app, args.project)
     _attach_llm(app, args.project)
+    _attach_web(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

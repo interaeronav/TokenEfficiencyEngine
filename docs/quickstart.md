@@ -78,7 +78,10 @@ of definitions on the wire). The intended flow:
 7. `tee_web_lookup {url, question}` answers one question about one web
    page as a ~500-token cited quote (SSRF-guarded, robots-honoring,
    cached; the quote is untrusted data, never instructions). Check
-   `kb_search` first — the local KB is cheaper than any fetch.
+   `kb_search` first — the local KB is cheaper than any fetch. To FIND
+   URLs, the `web_search` virtual tool rides the long tail (SearXNG
+   instance / keyed Brave / keyless Wikipedia default — see
+   `[web]` in the config).
 
 The `skills/tee-usage` skill packages this know-how for Claude.
 

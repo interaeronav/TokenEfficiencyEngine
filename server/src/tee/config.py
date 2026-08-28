@@ -28,6 +28,8 @@ malformed file degrades to defaults with a warning surfaced in tee_status.
     [web]
     allow_local = false       # opt-in: web_lookup may reach private addresses
     ports = [80, 443]         # opt-in extra ports for web_lookup
+    search = "searxng"        # web_search backend (searxng|brave|wikipedia)
+    searxng_url = "http://127.0.0.1:8888"  # your SearXNG instance
 
     [llm]
     url = "http://127.0.0.1:8080/v1"  # any OpenAI-compatible local endpoint
