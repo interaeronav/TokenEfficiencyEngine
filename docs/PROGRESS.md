@@ -3146,3 +3146,20 @@ in the wheel); Blender extension validates; UE zip unchanged since its
 0.2.0 rehearsal (zero adapter commits since v0.2.0 — noted, not
 re-rehearsed). Editor quit in-engine ({} ack, ports freed, no crash
 reporter). Remaining: the owner's tag.
+
+## 2026-08-28 — Probe (owner ask): Qwen3.8-27B-bf16 through the bare gates
+
+Zero-cost probe of the cached teacher as a chore-engine candidate.
+Result: **the first bare model to pass the full trap suite 6/6** and
+held-out 5/5 — the deferral judgment the 2.5-generation coders needed
+an adapter for is native to the newer generation. But latency
+disqualifies it as the chore engine: 3.11–10.12 s/chore at bf16
+(4–6× the 14B+a2, every chore over the 2 s bar; triage answers also
+2× fatter at 98 tok). Verdict: **no adoption change — 14B+a2 stays.**
+The forward-looking note this probe earns: when a newer-generation
+CODE-SPECIALIST dense mid-size lands (a Qwen3.x-coder class), it may
+pass bare AND be fast — that is the candidate profile worth
+re-gating, and a 4-bit quant of a 3.x general model is the cheap
+intermediate test if wanted. Side value: the grader model itself
+demonstrating sound trap judgment validates the graded-quality rows'
+choice of judge.
