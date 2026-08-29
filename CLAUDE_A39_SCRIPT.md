@@ -1,5 +1,11 @@
 # A39 build script — the router: AI resource management, made real
 
+**SUPERSEDED — do not work this script.** A41 (owner directive,
+2026-08-29) merged this campaign with its sibling; the merged build is
+driven by `CLAUDE_A41_SCRIPT.md` (research 57 is the integration map).
+This file stays as the design record its phases are referenced from.
+
+
 **What this builds** (owner directive, 2026-08-29): the adaptive
 cloud↔local router from `docs/research/55-cloud-local-routing.md` —
 the design of record; read it first. Mission context: A39 formalized

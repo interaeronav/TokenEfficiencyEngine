@@ -36,11 +36,11 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
 - The A38 shrink round two (post-0.5.0: faster, more efficient,
   smaller, leaner) is driven by `CLAUDE_A38_SCRIPT.md`, inheriting the
   A35/A33 rules.
-- The A39 router build (verifier-gated cloud↔local cascade) is driven
-  by `CLAUDE_A39_SCRIPT.md`; research doc 55 is its design of record.
-- The A40 reality-capture lane (Okongo: photos/drone → as-built
-  deviation report → drawings/Blender/UE updates) is driven by
-  `CLAUDE_A40_SCRIPT.md`; research doc 56 is its design of record.
+- The A41 merged build (router × reality capture: verifier-gated
+  cloud↔local cascade + Okongo photos/drone → as-built deviation →
+  drawings/Blender/UE) is driven by `CLAUDE_A41_SCRIPT.md`; research
+  docs 55, 56 and 57 are its designs of record. `CLAUDE_A39_SCRIPT.md`
+  and `CLAUDE_A40_SCRIPT.md` are superseded — do not work them.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or

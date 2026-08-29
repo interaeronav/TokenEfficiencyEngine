@@ -1,5 +1,11 @@
 # A40 build script — the Okongo reality-capture lane
 
+**SUPERSEDED — do not work this script.** A41 (owner directive,
+2026-08-29) merged this campaign with its sibling; the merged build is
+driven by `CLAUDE_A41_SCRIPT.md` (research 57 is the integration map).
+This file stays as the design record its phases are referenced from.
+
+
 **What this builds** (owner directive, 2026-08-29): the capture →
 as-built truth → updates pipeline from
 `docs/research/56-okongo-reality-capture.md` — the design of record;

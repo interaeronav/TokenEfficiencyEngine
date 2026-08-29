@@ -4554,3 +4554,15 @@ proves the fix), ingests gimbal/AGL as priors, splits multi-camera
 sets per code, keeps SRT on the extract lane, and falls through to
 the honest generic fallback on unknown codes. Resolver fixtures added
 to V2 acceptance (electronic / mechanical / RTK / unknown).
+
+## 2026-08-29 — A41: the merged campaign scripted (owner: one script)
+
+Research 57 (integration map) + CLAUDE_A41_SCRIPT.md written; A39/A40
+scripts banner-superseded; CLAUDE.md pointer consolidated; TEE memory
+updated (a39/a40 keys → merged pointers, a41 key written). Spine:
+T0 installs/probes → T1 capture protocol (deadline) → R0 dataset →
+T2 ingest/reconstruct → R1 cascade + THE GUARD SEAM (job-class load
+ledger, fixtures both directions) → T3 georef → T4 deviation (+routed
+chores once R1 green) → R2 merged meter → T5 applies → R3 calibration
+→ T6 dry run (feeds R4) → R4 four-arm on real workload → one close
+(expected 0.6.0). Neither source campaign had started — clean merge.

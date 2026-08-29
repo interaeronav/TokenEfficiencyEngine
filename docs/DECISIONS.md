@@ -765,3 +765,20 @@ optimization defined as the measured quality-ladder rows on this
 machine (preview = on-site validation, full/raw = finals), jobs +
 provenance throughout. The owner's exact Mini model is recorded at
 V0 start.
+
+## 2026-08-29 — A41: router and reality capture merged into one campaign (owner decision)
+
+The owner directed all proposed changes integrated into one script.
+`CLAUDE_A41_SCRIPT.md` supersedes the A39 and A40 scripts (banners
+added; phase content referenced unchanged — the A37 precedent).
+Research 57 records the seams that justify the merge: ONE
+machine-load ledger (reconstruction jobs are residents the router's
+memory guard respects, and vice versa — the guard fixture runs both
+directions); the capture lane's verifier-carrying chores are the
+router's first real customers (static until R1 is green — the lane
+never waits); the dry run's actual chores feed the four-arm
+benchmark's mixed-difficulty set (real workload, not synthetic); and
+the site-visit deadline rules the order — protocol and
+ingest/reconstruct ship before router ambition, with router
+fake-phases interleaving during long reconstruction jobs. Laws are
+the union with zero relaxations. Expected 0.6.0; the owner tags.
