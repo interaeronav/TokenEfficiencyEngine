@@ -4488,3 +4488,14 @@ accounting/escalation-rate in the meter → R3 calibration-or-static →
 R4 four-arm benchmark that the router must win or revert → R5
 close-out, expected 0.6.0). Kickoff in TEE memory (a39-campaign).
 Campaign not started; R0 first.
+
+## 2026-08-29 — A39 amended: router swap authority (owner)
+
+Owner: allow 51 GB+ swaps for tasks when the hardware is capable.
+Encoded in CLAUDE_A39_SCRIPT.md laws + R1 ladder, research 55
+addendum, A39 decision addendum: capability = the existing memory
+guard; single occupancy untouched (stop-before-start lifecycle);
+economic justification (verifier-failed escalation or amortization
+over queued work, constants measured in R2) + hysteresis/swap-rate
+cap, all visible in the meter; TEE/Q pin suspends roaming; the R4
+routed arm pays its swap seconds inside its own benchmark row.

@@ -99,3 +99,21 @@ tee_web_lookup), RouteLLM and FrugalGPT results as surveyed in the
 2026 routing literature (neuraltrust.ai/blog/llm-model-routing,
 truefoundry.com/blog/llm-routing-cost-quality-aware-model-selection),
 arXiv 2605.18796 (UCCI, calibrated cascade routing).
+
+## Addendum (owner amendment, 2026-08-29): swap authority granted
+
+The design above kept the router beneath the residency status quo
+("route around what is loaded, never swap for a task"). The owner
+overrode it: **the router may trigger engine swaps — 51 GB loads
+included — whenever the hardware is capable.** Consequences, encoded
+in the A39 script's laws: "capable" is decided by the existing
+memory-pressure guard (nothing new to invent); single occupancy is
+untouched (routed swaps use the verified stop-before-start lifecycle);
+swap authority carries two honesty guards — an economic one (a swap
+must be justified by a verifier-failed escalation on real work or by
+amortization over queued work; the swap-cost constants are measured
+in R2, not assumed) and a stability one (minimum-residency hysteresis
++ a swap-rate cap, both metered). An explicit owner TEE/Q pin still
+suspends roaming entirely. The R4 benchmark gains a fifth
+consideration: the routed arm's swap seconds are part of its wall
+time — the router pays for its ambition in the same row it must win.

@@ -24,10 +24,23 @@ A one-paste prompt for a fresh session:
 
 - TEE never calls a cloud API. "Escalate to cloud" = return the task
   to the CLIENT with a budgeted brief and the named local failure.
-- An explicit owner switch (TEE/Q14B / TEE/Q27B) outranks the router:
-  routing happens WITHIN the owner's chosen ceiling, never above it.
-- The single-occupancy law outranks routing ambition: no engine swap
-  is triggered for routing (route around residency, never thrash).
+- An explicit owner switch (TEE/Q14B / TEE/Q27B) PINS the engine: the
+  router does not roam while a pin is active. With no pin (the
+  default), the router roams the full LOCAL pool freely — q14b stays
+  the default starting engine (cheap-first is the cascade's nature).
+- **Swaps are allowed (owner amendment, 2026-08-29): the router may
+  trigger the managed switch — 51 GB loads included — whenever the
+  hardware is capable.** "Capable" is the existing memory-pressure
+  guard's verdict (free RAM vs footprint, no DCC/voxkiln contention),
+  not a new judgment. Single occupancy is UNCHANGED: every routed
+  swap is the verified stop-before-start lifecycle, never co-residency.
+  Two guards keep swap authority honest: (a) a swap must justify its
+  ~90 s cost — a verifier-failed escalation on real work, or enough
+  queued work to amortize the load (the swap-cost model lives in R2's
+  accounting and its constants are measured, not assumed); (b)
+  anti-thrash hysteresis — a minimum-residency window and a swap-rate
+  cap, both config knobs with measured defaults, both visible in the
+  meter (swap count, swap seconds, what justified each).
 - No silent hops: provenance names who did the work and what the
   verifier said; escalation rate joins report_savings.
 - Uncalibrated confidence never gates anything: chores without a
@@ -48,8 +61,10 @@ Suites green as the entry ticket; ledger as a dated PROGRESS table.
 
 For chores WITH deterministic verifiers (extract verification, schema
 validation, lint ground truth, triage trap-style checks): local
-default engine → verifier → on fail, the residency-aware ladder
-(bigger local ONLY if resident → client-brief return). The
+default engine → verifier → on fail, the ladder: bigger local — using
+it directly if resident, SWAPPING to it if the memory guard and the
+swap-cost rule allow (owner amendment above) — then client-brief
+return as the final tier. The
 escalation brief is a budgeted TEE response: the task, the input
 pointer, the local attempt's named failure — never the raw content
 re-dumped. Fakes first (a fake engine that fails on cue); fixtures

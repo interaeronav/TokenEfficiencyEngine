@@ -728,3 +728,10 @@ single-occupancy outranks routing (no swap thrash); no silent hops
 (provenance + escalation rate in the meter); uncalibrated confidence
 gates nothing. The R4 four-arm benchmark decides adoption — the
 router earns its complexity or reverts. Expected 0.6.0; owner tags.
+
+**A39 addendum (owner, 2026-08-29):** swap authority — the router may
+trigger managed engine swaps (51 GB included) whenever the existing
+memory guard says the hardware is capable. Single occupancy
+unchanged; economic justification + anti-thrash hysteresis required
+and metered; an explicit TEE/Q pin suspends roaming; the routed
+benchmark arm carries its swap seconds in its own wall time.
