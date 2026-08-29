@@ -162,8 +162,8 @@ def _with_fake_docker(app, tmp_path, script: str) -> str:
     fake.chmod(0o755)
     # re-register with the docker override (cfg is read at registration)
     app.config.capture = dict(app.config.capture or {}, docker=str(fake))
-    app.registry.unregister("capture_ingest")
-    app.registry.unregister("capture_reconstruct")
+    for name in ("capture_ingest", "capture_reconstruct", "capture_register", "capture_terrain"):
+        app.registry.unregister(name)
     register_capture_tools(app, app.project_root, extract_store=app._capture_store)
     return str(fake)
 

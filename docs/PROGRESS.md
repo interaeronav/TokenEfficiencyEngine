@@ -4946,3 +4946,45 @@ degrade-to-static law, and `TeeApp.shutdown` disables. Suite 744 →
 **Next: T3** (georeference + align — the QGIS lane and CloudCompare
 ICP registration to the locked datum), with every dispatch it makes
 now feeding the trace corpus.
+
+## 2026-08-29 — A42 T3: georeference + align land (ICP with a refusing gate; the terrain lane)
+
+`tee/capture/align.py` + two virtual tools (surface LAW held; suite
+752 → **759 passed / 2 skipped**, ruff + format clean).
+
+- **`capture_register` (CloudCompare ICP, headless):** the datum law
+  encoded where it belongs — the TARGET is design truth on the locked
+  site datum; the capture transforms into it, never the reverse (the
+  frame statement rides every result). Quality is a GATE, not a hint:
+  RMS above `[capture] icp_max_rms_m` (default 0.05 m) REFUSES with
+  its numbers. Parser matched to the real CLI (RMS line + the
+  registration-matrix sidecar CloudCompare writes beside the source;
+  log-rows fallback). An explicitly configured binary path that is
+  wrong refuses loudly instead of falling through.
+- **Live acceptance, both directions:** a planted transform
+  (+0.05 m, +0.02 m, 2°) on a pyramid+L-wall fixture came back as its
+  exact inverse — matrix t = (−0.0507, −0.0182), **RMS ≈ 0.0000 m**
+  (the first, plane-only fixture slid in-plane and taught the
+  fixture-design lesson; strengthened, not hidden). The
+  deliberately-wrong pair (fixture vs a displaced sphere) **refused at
+  RMS 0.4357 m** against the 0.05 gate.
+- **`capture_terrain` (qgis_process, headless):** contours /
+  hillshade / dem_diff with honest refusals (unknown op names the
+  menu; dem_diff without dem2 names the missing input). Live on the
+  REAL site DSM: contours 106 KB gpkg, hillshade tif, self-diff tif —
+  all three products delivered headless.
+- **Lane fix the acceptance surfaced:** default ODM emits NO DSM/DTM —
+  `_run_odm` now passes `--dsm --dtm` (the lane exists for the site
+  surfaces) and the artifacts pick up `dsm.tif`/`dtm.tif`. The DEM
+  rerun also hit the colima VM's 16 GiB ceiling late in the pipeline
+  (dsm.tif landed; the dtm stage OOMed) — recorded: the VM allocation,
+  not the machine, is the bound; resize with
+  `colima stop && colima start --memory 32` when the full-res T6 run
+  approaches. 7 fake-first tests (parsers, gates, param mapping).
+
+CRS note, honest: the current DSM is local-frame (video frames, no
+GPS) so deep CRS work waits for georeferenced capture; the lane
+passes CRS through and the protocol's marker discipline carries scale
+meanwhile. **Next: T4 — the deviation engine** (C2M → budgeted facts,
+severities, the decision menu; routed chores join it now that R1 is
+green).

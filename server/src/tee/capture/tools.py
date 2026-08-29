@@ -24,7 +24,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from tee.capture import dji
+from tee.capture import align, dji
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
@@ -187,6 +187,7 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
         cmd = [
             docker_cmd, "run", "--rm", "-v", f"{job_dir}:/datasets", ODM_IMAGE,
             "--project-path", "/datasets", "code",
+            "--dsm", "--dtm",  # the lane exists for the site surfaces (research 56)
         ]  # fmt: skip
         if correction_on:
             cmd.append("--rolling-shutter")
@@ -209,7 +210,8 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
         project = job_dir / "code"
         candidates = {
             "orthophoto": project / "odm_orthophoto" / "odm_orthophoto.tif",
-            "dem_dir": project / "odm_dem",
+            "dsm": project / "odm_dem" / "dsm.tif",
+            "dtm": project / "odm_dem" / "dtm.tif",
             "point_cloud": project / "odm_georeferencing" / "odm_georeferenced_model.laz",
             "textured_dir": project / "odm_texturing",
         }
@@ -385,5 +387,70 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             },
             capture_reconstruct,
             tags=["capture", "reconstruct", "photogrammetry", "odm", "job", "3d", "mesh"],
+        )
+    )
+
+    def capture_register(args: dict[str, Any]) -> dict[str, Any]:
+        return align.register_icp(
+            Path(str(args.get("source") or "")),
+            Path(str(args.get("target") or "")),
+            cfg=cfg,
+            work_dir=_out_dir(root) / "align",
+            max_rms_m=float(args["max_rms_m"]) if args.get("max_rms_m") else None,
+            overlap_percent=int(args["overlap_percent"]) if args.get("overlap_percent") else None,
+        )
+
+    def capture_terrain(args: dict[str, Any]) -> dict[str, Any]:
+        dem2 = args.get("dem2")
+        return align.terrain_op(
+            str(args.get("op") or ""),
+            Path(str(args.get("dem") or "")),
+            cfg=cfg,
+            work_dir=_out_dir(root) / "terrain",
+            dem2=Path(str(dem2)) if dem2 else None,
+            interval_m=float(args.get("interval_m", 1.0)),
+        )
+
+    reg.register(
+        VirtualTool(
+            "capture_register",
+            "ICP-register a capture cloud/mesh onto the design model "
+            "(CloudCompare headless). The target frame is design truth on the "
+            "locked site datum - the source transforms into it, never the "
+            "reverse. Reports RMS + the transform; a registration above the "
+            "RMS gate REFUSES with its numbers instead of confident nonsense.",
+            {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string"},
+                    "target": {"type": "string"},
+                    "max_rms_m": {"type": "number"},
+                    "overlap_percent": {"type": "number"},
+                },
+                "required": ["source", "target"],
+            },
+            capture_register,
+            tags=["capture", "register", "icp", "align", "cloudcompare", "datum", "as-built"],
+        )
+    )
+    reg.register(
+        VirtualTool(
+            "capture_terrain",
+            "One headless terrain product from a DEM via qgis_process: "
+            "contours (vector, interval_m), hillshade, or dem_diff (A-B "
+            "against dem2). Returns the product path; refusals name the "
+            "missing binary or input.",
+            {
+                "type": "object",
+                "properties": {
+                    "op": {"type": "string"},
+                    "dem": {"type": "string"},
+                    "dem2": {"type": "string"},
+                    "interval_m": {"type": "number"},
+                },
+                "required": ["op", "dem"],
+            },
+            capture_terrain,
+            tags=["capture", "terrain", "dem", "dtm", "contours", "hillshade", "qgis", "diff"],
         )
     )
