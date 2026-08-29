@@ -103,3 +103,17 @@ Format per item:
 - REMAINING defect (recorded, not hidden): interior cages (Doors/Interior) read Dim X/Y/Z = 1.0 defaults — some deeper carcass-driver chain doesn't bind on 5.2, so interior shelf boards derive oversize (994 mm in a 600 mm carcass). Cut list reports the model's truth; engine export excludes interior parts with the reason; joinery_check (P5.3) should catch the mismatch as a real defect case.
 - proposed: upstream patch to HB (the shim's four methods); revisit the interior chain after upstream or with a deeper probe.
 - status: open (shim shipped; interior chain open)
+
+## SI-B12 — a blocked FreeCAD GUI reads as "No FreeCAD RPC (timed out)"
+- seen: 2026-08-29, A38 S0 session (battery fabrication row failed twice)
+- call: port 9875 accepts TCP, `execute_code` never answers; stack sample proved the GUI thread parked in `DocumentRecoveryFinder::showRecoveryDialogIfNeeded()` → `QDialog::exec()` — the crash-recovery modal from an earlier killed instance (stale `FreeCAD_Doc_*` + `.lock` under `~/Library/Caches/FreeCAD/v1-1/Cache/`).
+- hurt: the wire's timeout error names server-down ("No FreeCAD RPC at ... (timed out)") when the server is up and the GUI is waiting for a human click; nothing points at the dialog. One battery pass lost; diagnosis needed a process stack sample.
+- proposed: (a) troubleshooting.md entry: symptoms, the stack signature, the fix (dismiss the dialog, or clear stale autosaves+locks before relaunch); (b) wire error wording: distinguish connect-refused ("no server on :9875") from accepted-but-silent ("FreeCAD answered TCP but never ran the code - a modal dialog (e.g. document recovery) may be holding the GUI; check the FreeCAD window").
+- status: open
+
+## SI-B13 — hb_cabinet's unknown-wall refusal doesn't name the walls that exist
+- seen: 2026-08-29, A38 S0 closet-run measurement
+- call: `hb_cabinet {wall: "wall_1", ...}` → "Home Builder op failed: RuntimeError: no wall 'wall_1'"
+- hurt: the fix (use a name from hb_room's `walls` answer) isn't in the message; hb_layout's sibling refusal ("Unknown layout view(s) ... Views: plan, elevations.") shows the house style.
+- proposed: the wall-lookup error lists current wall object names (they are one `bpy.data.objects` filter away), e.g. "no wall 'wall_1' - walls present: Wall".
+- status: open

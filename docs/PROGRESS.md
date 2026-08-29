@@ -4226,3 +4226,51 @@ dependency delta, .tee state hygiene, battery harness runtime.
 Measurement parity pinned to q14b (chore engine may sit on q27b — rows
 record their profile). Surface LAW 2,028/17 stands. Kickoff written to
 TEE project memory (a38-campaign). Campaign not started; S0 first.
+
+## 2026-08-29 — A38 S0: baseline ledger (the new lanes, measured)
+
+Entry ticket: `make check` **711 passed / 2 skipped, ruff clean**
+(36.7 s wall). Every number below is from a command run this session
+on this machine (q14b rows served fresh; conditions stated in-row).
+
+| Lane | Metric | Measured (S0) |
+|---|---|---|
+| gateway | connect = spawn + handshake + catalog + fingerprint (npx filesystem ref, 14 tools) | **667 ms**, once per backend per session (serve kicks it off-thread) |
+| gateway | discovery `search` / `describe` (catalog cached at connect) | **0.04 ms / <0.01 ms**; responses **350 / 275 tok** (describe = read_text_file) |
+| gateway | `call` overhead + responses | **0.2–0.6 ms** over the backend; list_dir 24 tok, small read 27, 2000-line log **824 tok truncated with the raise-max_tokens fix** |
+| gateway | tokens row (battery, live) | naive 35,238 → TEE 1,629 (**95.4%**) — identical to A37 close |
+| fabrication | brief→sheet(svg+pdf+dxf)+STEP wall, warm bridge | **0.16 s**: batch1 78 ms (dispatch 36 / server-side solve 42), batch2 28 ms, fc_drawing 44 ms (5 dispatches), fc_export 7 ms; 14 round-trips à 5–15 ms. Cold TechDraw first run 0.57 s |
+| fabrication | freecadcmd cost per invocation | **1.03 s cold / 0.10 s warm** (`import FreeCAD, Part`). **Premise finding: no runtime path spawns freecadcmd** — the whole lane rides the GUI bridge; S1.2's amortization target has no in-product spawn site |
+| fabrication | tokens row (battery, live FreeCAD 1.1.3) | naive 10,655 → TEE 805 (**92.4%**) — matches A37 close |
+| closet run | bridge boot (user prefs, HB loaded) | **0.5 s** |
+| closet run | full run, warm | **0.55 s**: hb_status 0 ms/47 tok · hb_room 7 ms/8 tok · hb_cabinet 22+7 ms/12 tok · **hb_cutlist 1 ms/340 tok (21 parts)** · hb_layout 516 ms/92 tok (plan+elevations PNGs) — layout render is 94% of the run |
+| chores q14b | per-chore latency (mlx_lm.server **:18080 this session**, Qwen2.5-Coder-14B-4bit + tee-triage-a2 per-request; owner's :4000 stack was down — same engine/quant/adapter as the A34 reference rows) | triage 1.33 s · repair 0.88 · lint 0.89 · extract 1.76 · facts 1.69 · recap 0.93 · rerank 0.76 — **2 s bar holds; trap suite 6/6** (9.8 s) |
+| chores | PROMPT sizes, system part (estimate_tokens) | triage **340** · repair 190 · lint 124 · extract 83 · facts 118 · recap 46 · rerank 47 = **Σ948 tok** (the S1.3 diet corpus) |
+| kb floor | added latency per web question | kb_search warm **3–6 ms** (first call 62 ms, index build); responses 157–188 tok; weak-band rerank chore adds 0.76 s only when an endpoint answers |
+| virtual flat | surface scenario (battery) | 17 always-loaded = **2,028 tok** (LAW, re-measured identical); 86 virtual flat **11,396 tok** (82.2% saved); reach-one 570 tok |
+| .tee | live co-pilot state on disk | **11.3 MB**: fluid_cache 3.0 · assets 2.5 · web 2.4 · generated 1.7 · extract 0.8 · kb 0.5 · proxies 0.16 · embed-cache 0.1 |
+| .tee | growth policy today | web fetch cache: 1 h revalidation TTL + per-fetch byte caps, **no on-disk eviction anywhere**; extract/assets/fluid/generated: unbounded; fabrication checkpoints (`tee-freecad-cp-*`) accumulate in TMPDIR (OS-purged eventually) — S3.2's target list |
+| venv | bundle rehearsal (mcpb pyproject, plain `uv sync`) | **29 MB / 29 packages** — the A35 floor holds; A37 added zero bundle runtime deps |
+| battery | harness wall time | **14.6 s warm** (web cache hot ≤1 h, uvx/npx cached, fabrication live, UE skipped w/ carry-forward); first run of the day 102.2 s = cold web fetches + ~60 s fabrication-failure timeouts (cause found & cleared, below) |
+| A35 floors | re-cited for continuity (dated rows, 2026-08-28/29) | installed bundle 37 MB · cold serve→answer 0.32 s · idle RSS ~74 MB · unwrap 12.4 s · warm web 5 ms; surface re-measured today, unchanged |
+
+**Found while measuring (the baseline's own catches):**
+
+1. **FreeCAD's crash-recovery modal silently blocks the RPC bridge.** A
+   killed FreeCAD leaves `FreeCAD_Doc_*` autosaves + stale locks in
+   `~/Library/Caches/FreeCAD/v1-1/Cache/`; next launch parks the GUI
+   thread in `DocumentRecoveryFinder::showRecoveryDialogIfNeeded()`
+   (proven by stack sample) — the port accepts but `execute_code`
+   never answers, and the wire's error says "No FreeCAD RPC (timed
+   out)", which reads as server-down. Cost this session: one failed
+   battery pass. → SI-B12 (troubleshooting doc + error wording).
+2. hb_cabinet's unknown-wall refusal doesn't list the walls that
+   exist (hb_layout's sibling refusal names its valid views) →
+   SI-B13, one-line fix class.
+3. The battery's fabrication naive arm burns a 30 s deadline when the
+   backend hangs, then the TEE arm burns a connect timeout — S1.4
+   material (fail fast on a dead bridge probe before the naive arm).
+
+Chore-row parity note: rows are labelled with their serving setup; the
+q27b live profile state was left untouched (harness cfg overrides
+resolve to q14b without touching `.tee/llm-profile.json`).
