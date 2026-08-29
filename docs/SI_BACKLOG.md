@@ -117,3 +117,9 @@ Format per item:
 - hurt: the fix (use a name from hb_room's `walls` answer) isn't in the message; hb_layout's sibling refusal ("Unknown layout view(s) ... Views: plan, elevations.") shows the house style.
 - proposed: the wall-lookup error lists current wall object names (they are one `bpy.data.objects` filter away), e.g. "no wall 'wall_1' - walls present: Wall".
 - status: open
+
+## SI-B14 — structure_facts could carry an extractive verifier
+- seen: 2026-08-29, A42 R3 (calibration-or-static survey of unverifiable chores)
+- today: structure_facts is schema-validated only ("only facts stated in the text" is instructed, not enforced), so it stays statically routed - the cascade cannot gate it.
+- proposed: verify each emitted fact's load-bearing tokens (numbers, quoted names) appear in the source text - the refine_extract/phrase_deviation pattern; a fact that fails dies and the parser's output stands. Would move the chore from static to verifier-gated routing for free.
+- status: open

@@ -5092,3 +5092,36 @@ existing A37 fabrication lane and the UE adapter), and the staged
 refusals name exactly that. Next in the spine: **R3 —
 calibration-or-static** (allowed to conclude "none ship"), then T6's
 dry run (resize colima to 32 GiB first).
+
+## 2026-08-29 — A42 R3: calibration measured — and none ship (the finding, with its numbers)
+
+The UCCI-lesson phase, run exactly as scripted: for chores whose
+correctness has no deterministic verifier, measure whether the model's
+OWN confidence is trustworthy enough to gate routing — with the
+shipping threshold declared BEFORE the run (grounded-precision ≥ 0.95
+AND defer-recall ≥ 0.95 on ≥ 100 cases INCLUDING out-of-generator
+evidence).
+
+- **Triage (q14b+a2, 140 labelled rung-1 validation cases, run
+  verbatim — the cases' own messages, no re-wrapping):** confusion
+  81/0/0/59, zero invalid — **grounded-precision 1.0, defer-recall
+  1.0, agreement 1.0**. A perfect on-distribution row — and the
+  verdict stands on the pre-declared line: the out-of-generator
+  condition is unmet by construction (valid.jsonl shares the training
+  generator's vocabulary), so **the confidence gate does not ship;
+  triage stays statically routed.** The row is the record, and T6's
+  real field chores are exactly the out-of-generator labelled
+  evidence a future gate must pass on.
+- **explain_lint / structure_facts / compress_recap:** no labelled
+  fixtures exist — **stay static, recorded.** SI-B14 filed:
+  structure_facts could carry an extractive verifier (the
+  refine_extract/phrase_deviation pattern), which would move it to
+  verifier-gated routing without any confidence machinery.
+- Harness persisted as `benchmarks/run_r3_calibration.py` (m3
+  pattern; threshold and distribution caveat printed with every run).
+
+"None ship" is the scripted, valid outcome — uncalibrated confidence
+gates nothing, and now the numbers say exactly how far the evidence
+reaches. **Next: T6 — the dry run** (two owner inputs wanted: the
+design-model export to serve as the C2M baseline, and the colima
+resize to 32 GiB for full-res reconstruction), then R4 and Gate A.
