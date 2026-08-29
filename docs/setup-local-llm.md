@@ -177,3 +177,25 @@ occupancy, and the scheduler's columns reserved in the same schema
 (`queue_age_s`, `dispatch_reason`, `shadow_delta` — filled by K1/K2,
 never migrated). The `tee_status` recap shows the one-line form only
 when routing actually happened.
+
+## The kernel scheduler (A42 K0–K4): internal machinery, zero new tools
+
+Everything TEE runs — chores, jobs, swaps, gateway calls — is a task
+with an id, a QoS class and a measured cost row, and a shadow recorder
+traces every dispatch (~27 µs each, ≤400 B lines, 50 MB cap) alongside
+what the greedy policy would have done. On top of the traces: QoS as
+law (interactive never behind batch, aging against starvation,
+admission control, one worker always reserved for interactive,
+backpressure on the batch queue) and greedy cost-aware dispatch —
+which went LIVE only after a replay of the campaign's own traces
+passed the gate declared in code, and which the mixed-load row then
+justified (interactive p95 −38% for +1.4 s makespan, stated).
+
+**The degrade-to-static promise**: the scheduler is OPTIONAL by
+construction. `[scheduler] shadow/qos/dispatch = false` restores
+today's exact behavior — plain FIFO, resident-first routing, no
+recording — each independently, each fixtured. No TEE feature requires
+the scheduler to function, the recorder's failures are swallowed, and
+the owner's TEE/Q pin outranks every policy. Decisions are data:
+`report_savings` shows the dispatch counters, queue ages and shadow
+columns; the traces live under `.tee/shadow/`.

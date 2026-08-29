@@ -5282,3 +5282,43 @@ static ran phrasing on the resident 27B for 50.09 s where greedy's
 that same outlier — the estimate table's next refinement target).
 `[scheduler] dispatch` now defaults ON (greedy), config-off restores
 static, the owner's pin outranks both — fixtured.
+
+## 2026-08-29 — A42 K4 + CLOSE: the grand campaign completes — every adoption row won
+
+**K4** (RESULTS.md row): identical live mixed workload, two arms —
+interactive p95 **11.65 → 7.18 s (−38%)**, the whole distribution
+shifted (first interactive 2.45 s vs 8.02), chores 6/6 both arms; the
++1.4 s makespan premium is the reserved worker's stated price. No
+head-of-line blocking — the named mechanism, delivered. The scheduler
+earns its existence; every off-switch remains.
+
+**The close-out, per the script:**
+- Full battery (2.9 s): every bar held — scenes 93.3/89.2/91.5/98.8,
+  extraction 93.1, fix-loop 47.9, assets 94.0, physics 202 tok, kb,
+  web 95.3, gateway 95.4, surface LAW **2,028 tok / 17 tools** with 86
+  virtual (82.0% saved, reach-one 545); UE + fabrication rows honestly
+  skipped in-battery (no live apps at battery time) — both lanes were
+  exercised LIVE today in the T5 three-lane trip; plus the campaign's
+  three new rows: the T6 deviation report, R4's four arms, K4's two.
+- Suites: **790 passed / 2 skipped**, gate exit 0. Docs complete
+  (setup-reality-capture, router + scheduler sections with the
+  degrade-to-static promise, the protocol with §B lessons).
+- Artifacts rehearsed at current metadata: wheel 454,122 B / sdist
+  717,076 B / mcpb 659,579 B (+34 KB over 0.5.1 — the whole lane and
+  scheduler's honest weight).
+- **The co-pilot measuring the optimizer** (report_savings on this
+  closing session's server): **30,164 measured tokens / 78 calls**;
+  the estimated lanes alone price naively at ~465,814 —
+  **96.0% saved on the estimated lanes**.
+- Wrong-way numbers, explained in place throughout the day's entries:
+  the T3 gate-claim errata; ODM flag guesses (twice) fixed from the
+  image's own help; the 7-DOF collapse the lane briefly accepted (now
+  a refusing guard); K4's +1.4 s makespan premium; R4's first run
+  eaten by a tail pipe (rerun to file); the replay corpus thinned by
+  standalone harnesses bypassing the recorder (finding recorded).
+
+**Version recommendation:** ONE release, **0.7.0** — the campaign
+delivered Gate A's trip-ready state AND the full scheduler arc in the
+same day; 0.6.0-then-0.7.0 remains available if the owner prefers the
+two-step record. Versions unstamped until the owner's word; the
+artifact pipeline is proven. **Tagging stays yours, as always.**

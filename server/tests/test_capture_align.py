@@ -139,9 +139,11 @@ def test_unknown_terrain_op_names_the_menu(tmp_path):
     assert "contours" in excinfo.value.fix and "hillshade" in excinfo.value.fix
 
 
-CC_COLLAPSED = CC_FAKE.replace("Final RMS: {rms}", "Final RMS: 0.0000155").replace(
-    "0.999390 -0.034899 0.000000 0.050000", "0.000001 0.000000 0.000000 0.300000"
-).replace("0.034899 0.999390 0.000000 0.020000", "0.000000 0.000001 0.000000 -0.260000")
+CC_COLLAPSED = (
+    CC_FAKE.replace("Final RMS: {rms}", "Final RMS: 0.0000155")
+    .replace("0.999390 -0.034899 0.000000 0.050000", "0.000001 0.000000 0.000000 0.300000")
+    .replace("0.034899 0.999390 0.000000 0.020000", "0.000000 0.000001 0.000000 -0.260000")
+)
 
 
 def test_degenerate_seven_dof_fit_refuses(tmp_path):

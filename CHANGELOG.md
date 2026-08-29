@@ -43,6 +43,14 @@ every new capability ships virtual).
 - **Docs**: setup-reality-capture.md; the router section of
   setup-local-llm.md with the measured swap costs and 0.30 ms route
   wall.
+- **The adoption rows, all won**: R4 four-arm — the routed cascade is
+  the only arm matching the reference tier's 24/24 verified quality,
+  at 91.5% fewer client tokens (1,667 vs 19,603); K2's replay gate
+  passed on real traces and greedy dispatch is LIVE by default; K4
+  mixed-load — interactive p95 11.65 → 7.18 s (−38%) at a stated
+  +1.4 s makespan premium. The dry run delivered a real deviation
+  report from the owner's site video (rigid-ICP RMS 3.6 cm onto the
+  design export) and its finding list is protocol §B now.
 
 ## 0.5.1 — 2026-08-29
 
