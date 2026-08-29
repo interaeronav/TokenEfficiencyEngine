@@ -27,7 +27,9 @@ from typing import Any
 from tee.kernel import local_llm
 from tee.kernel.errors import TeeError
 
-REVISION = "r3"  # r1: intent clause; r2: kwarg-drift few-shot; r3: prompt diet (A38)
+# r1 intent clause; r2 kwarg-drift few-shot; r3 prompt diet (A38);
+# r4 +phrase_deviation (A42 T4)
+REVISION = "r4"
 STAMP = f"tee-coder@{REVISION}"
 
 _PROBE_TTL_S = 30.0
@@ -102,6 +104,14 @@ _RERANK_SYSTEM = (
     "TEE's kb-rerank chore. Order the candidate ids by how well each "
     'answers the query: STRICT JSON {"order": [<ids, best first>]}. '
     "Use every given id exactly once."
+)
+
+_DEVIATION_SYSTEM = (
+    "TEE's deviation-phrasing chore. Turn each as-built deviation fact "
+    "into ONE plain sentence a builder reads on site: STRICT JSON "
+    '{"lines": [<one sentence per fact, same order>]}. Every number and '
+    "unit from the fact must appear VERBATIM in its sentence; never "
+    "round, convert, or invent values. " + _BOUNDARY
 )
 
 
@@ -410,5 +420,42 @@ def rerank(
         refine=refine,
         cfg=cfg,
         max_tokens=200,
+        validate=validate,
+    )
+
+
+def phrase_deviation(
+    facts: list[str],
+    *,
+    refine: str = "auto",
+    cfg: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Deviation facts -> one builder-readable sentence each, with the
+    extractive-numbers guarantee: every number in a fact must survive
+    VERBATIM in its sentence or the whole result is discarded - the
+    deterministic fact line stands (the lane never waits on a model)."""
+
+    def validate(raw: dict[str, Any]) -> dict[str, Any] | None:
+        lines = raw.get("lines")
+        if not isinstance(lines, list) or len(lines) != len(facts):
+            return None
+        phrased: list[str] = []
+        for fact, line in zip(facts, lines, strict=True):
+            sentence = _line(line, 240)
+            if not sentence:
+                return None
+            for number in re.findall(r"-?\d+(?:\.\d+)?", fact):
+                if number not in sentence:
+                    return None
+            phrased.append(sentence)
+        return {"lines": phrased}
+
+    listing = "\n".join(f"- {fact[:300]}" for fact in facts[:12])
+    return _run(
+        _DEVIATION_SYSTEM,
+        f"Facts:\n{listing}",
+        refine=refine,
+        cfg=cfg,
+        max_tokens=400,
         validate=validate,
     )

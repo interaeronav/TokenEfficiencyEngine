@@ -4988,3 +4988,41 @@ passes CRS through and the protocol's marker discipline carries scale
 meanwhile. **Next: T4 — the deviation engine** (C2M → budgeted facts,
 severities, the decision menu; routed chores join it now that R1 is
 green).
+
+## 2026-08-29 — A42 T4: the deviation engine — the lane's product, with its first routed chore
+
+Suite 759 → **765 passed / 2 skipped**, gate verified exit 0 this time
+(the errata lesson applied). Surface LAW held (capture_deviate is
+virtual; chores REVISION bumped r3 → r4 for the new template).
+
+- **`tee/capture/deviate.py`**: C2M through the CLI (the real flag is
+  `-C_EXPORT_FMT`, learned live), signed distances parsed from the
+  exported cloud, grid-binned union-find clustering above the noise
+  floor (default 5 mm), per-region facts with sign, peak, extent and
+  plaus_check-style severity (warn ≥ 10 mm, high ≥ 30 mm), element
+  NAMES from the design's own element boxes when given, budgeted
+  summary (default 300 tok, trims honestly with `more` counting what
+  it dropped), drill-down by id from the persisted report, and the
+  decision menu — **accept-as-built / keep-design / flag-for-site;
+  nothing is ever applied from here.**
+- **The lane's first routed chore in production**: `phrase_deviation`
+  (chores r4) turns fact lines into builder sentences under the
+  extractive-NUMBERS verifier — every value must survive verbatim or
+  the result dies and the deterministic line stands; the router hook
+  treats an escalation as "use deterministic" (the lane never waits,
+  the client is never billed for cosmetics).
+- **Live acceptance, exact**: a physically seeded pair (plane design
+  mesh + 14,400-point capture with two planted patches) through the
+  REAL CloudCompare returned precisely the planted truth — "north
+  wall: **+38 mm** … [high]", "window W3 sill: **−22 mm** … [warn]",
+  99.1% within band — and phrasing came back **routed**: the live 14B
+  phrased both lines with every number intact through the verifier.
+  The K0 recorder captured the routed hop as a chore trace, as it now
+  does for everything.
+- 7 fake-first tests (exact deltas, budget honesty, element naming,
+  the phrase hook's can-only-improve contract both ways, verifier
+  kill on a dropped number).
+
+**Next: T5 — apply lanes** (owner-approved deviations flow to the A37
+fabrication lane, the Blender adapter, and UE — checkpointed, pass
+order respected), then R2's merged meter.

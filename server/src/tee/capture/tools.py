@@ -24,7 +24,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from tee.capture import align, dji
+from tee.capture import align, deviate, dji
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
@@ -452,5 +452,82 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             },
             capture_terrain,
             tags=["capture", "terrain", "dem", "dtm", "contours", "hillshade", "qgis", "diff"],
+        )
+    )
+
+    def _phrase_via_router(lines: list[str]) -> list[str] | None:
+        """The lane's first routed chore: phrasing under the extractive-
+        numbers verifier. An escalation means the deterministic lines
+        stand - the lane never waits on the router."""
+        from tee.llm import chores, router
+
+        routed = router.route(
+            "phrase_deviation",
+            lambda hop_cfg: chores.phrase_deviation(lines, refine="local", cfg=hop_cfg),
+            cfg=app.llm_cfg,
+            ledger=app.machine,
+            input_pointer="deviation-facts",
+        )
+        return routed["result"]["lines"] if routed.get("ok") else None
+
+    def capture_deviate(args: dict[str, Any]) -> dict[str, Any]:
+        work = _out_dir(root) / "deviation"
+        if args.get("detail"):
+            reports = sorted(work.glob("report-*.json"))
+            if not reports:
+                raise TeeError(
+                    "capture_no_report",
+                    "No deviation report exists yet.",
+                    fix="Run capture_deviate with source+target first.",
+                )
+            rows = json.loads(reports[-1].read_text())
+            row = next((c for c in rows if c["id"] == str(args["detail"])), None)
+            if row is None:
+                known = ", ".join(c["id"] for c in rows[:12])
+                raise TeeError(
+                    "capture_unknown_deviation",
+                    f"No deviation '{args['detail']}' in the last report.",
+                    fix=f"Known ids: {known}.",
+                )
+            return row
+        report = deviate.deviation_report(
+            Path(str(args.get("source") or "")),
+            Path(str(args.get("target") or "")),
+            cfg=cfg,
+            work_dir=work,
+            band=str(args.get("band") or "meters-class absolute (consumer GNSS)"),
+            elements=args.get("elements"),
+            budget_tokens=int(args.get("max_tokens") or deviate.DEFAULT_BUDGET_TOKENS),
+            phrase=None if args.get("phrase") == "off" else _phrase_via_router,
+        )
+        clusters = report.pop("_clusters")
+        work.mkdir(parents=True, exist_ok=True)
+        (work / f"report-{int(time.time())}.json").write_text(json.dumps(clusters, indent=1))
+        return report
+
+    reg.register(
+        VirtualTool(
+            "capture_deviate",
+            "The as-built deviation report (CloudCompare C2M): budgeted facts "
+            "with sign, extent, severity and the capture's honesty band; ends "
+            "with the decision menu (accept-as-built / keep-design / "
+            "flag-for-site) and NEVER applies anything. detail=<id> drills "
+            "into one deviation from the last report. Fact lines may be "
+            "phrased by the routed local engine under the numbers-verbatim "
+            "verifier; phrase='off' keeps them deterministic.",
+            {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string"},
+                    "target": {"type": "string"},
+                    "band": {"type": "string"},
+                    "elements": {"type": "array", "items": {"type": "object"}},
+                    "max_tokens": {"type": "number"},
+                    "phrase": {"type": "string"},
+                    "detail": {"type": "string"},
+                },
+            },
+            capture_deviate,
+            tags=["capture", "deviation", "c2m", "as-built", "report", "severity", "menu"],
         )
     )
