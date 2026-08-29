@@ -1,0 +1,146 @@
+{
+ "engine": "q27b-bare",
+ "model": "mlx-community/Qwen3.8-27B-bf16",
+ "rows": [
+  {
+   "chore": "triage",
+   "rung": "S",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 57,
+   "median_s": 7.58,
+   "prompt_tokens": 358,
+   "answer_tokens": 91
+  },
+  {
+   "chore": "triage",
+   "rung": "M",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 233,
+   "median_s": 7.79,
+   "prompt_tokens": 534,
+   "answer_tokens": 93
+  },
+  {
+   "chore": "triage",
+   "rung": "L",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 767,
+   "median_s": 10.67,
+   "prompt_tokens": 1069,
+   "answer_tokens": 117
+  },
+  {
+   "chore": "triage",
+   "rung": "XL",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 2925,
+   "median_s": 6.79,
+   "prompt_tokens": 2030,
+   "answer_tokens": 73
+  },
+  {
+   "chore": "refine_extract",
+   "rung": "S",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 584,
+   "median_s": 1.54,
+   "prompt_tokens": 685,
+   "answer_tokens": 1
+  },
+  {
+   "chore": "refine_extract",
+   "rung": "M",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 2298,
+   "median_s": 1.0,
+   "prompt_tokens": 2400,
+   "answer_tokens": 1
+  },
+  {
+   "chore": "refine_extract",
+   "rung": "L",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 3153,
+   "median_s": 1.02,
+   "prompt_tokens": 3254,
+   "answer_tokens": 1
+  },
+  {
+   "chore": "refine_extract",
+   "rung": "XL",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 3153,
+   "median_s": 1.01,
+   "prompt_tokens": 3254,
+   "answer_tokens": 1
+  },
+  {
+   "chore": "rerank",
+   "rung": "S",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 132,
+   "median_s": 4.98,
+   "prompt_tokens": 187,
+   "answer_tokens": 26
+  },
+  {
+   "chore": "rerank",
+   "rung": "M",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 261,
+   "median_s": 10.08,
+   "prompt_tokens": 321,
+   "answer_tokens": 48
+  },
+  {
+   "chore": "rerank",
+   "rung": "L",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 521,
+   "outcome": "TeeError: The local model answered outside the chore schema twice."
+  },
+  {
+   "chore": "rerank",
+   "rung": "XL",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 1042,
+   "outcome": "TeeError: The local model answered outside the chore schema twice."
+  },
+  {
+   "chore": "compress_recap",
+   "rung": "S",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 132,
+   "median_s": 5.87,
+   "prompt_tokens": 189,
+   "answer_tokens": 29
+  },
+  {
+   "chore": "compress_recap",
+   "rung": "M",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 546,
+   "median_s": 6.54,
+   "prompt_tokens": 628,
+   "answer_tokens": 34
+  },
+  {
+   "chore": "compress_recap",
+   "rung": "L",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 1106,
+   "median_s": 6.55,
+   "prompt_tokens": 1222,
+   "answer_tokens": 34
+  },
+  {
+   "chore": "compress_recap",
+   "rung": "XL",
+   "engine": "q27b-bare",
+   "client_brief_tokens": 2243,
+   "median_s": 7.24,
+   "prompt_tokens": 1761,
+   "answer_tokens": 38
+  }
+ ]
+}

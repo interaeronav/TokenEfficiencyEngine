@@ -1,0 +1,247 @@
+{
+ "assigned": [
+  {
+   "name": "kwarg_drift",
+   "chore": "triage",
+   "kind": "needs_verification",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "trap-suite verifier (deterministic), engines live"
+  },
+  {
+   "name": "module_attr_gone",
+   "chore": "triage",
+   "kind": "needs_verification",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "trap-suite verifier (deterministic), engines live"
+  },
+  {
+   "name": "import_name_gone",
+   "chore": "triage",
+   "kind": "needs_verification",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "trap-suite verifier (deterministic), engines live"
+  },
+  {
+   "name": "none_guard",
+   "chore": "triage",
+   "kind": "grounded",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "trap-suite verifier (deterministic), engines live"
+  },
+  {
+   "name": "enum_listed",
+   "chore": "triage",
+   "kind": "grounded",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "trap-suite verifier (deterministic), engines live"
+  },
+  {
+   "name": "index_visible",
+   "chore": "triage",
+   "kind": "grounded",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "trap-suite verifier (deterministic), engines live"
+  },
+  {
+   "name": "triage_S",
+   "chore": "triage",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "triage_M",
+   "chore": "triage",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "triage_L",
+   "chore": "triage",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "triage_XL",
+   "chore": "triage",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "refine_extract_S",
+   "chore": "refine_extract",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": false
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "refine_extract_M",
+   "chore": "refine_extract",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": false
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "refine_extract_L",
+   "chore": "refine_extract",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": false
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "refine_extract_XL",
+   "chore": "refine_extract",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": false
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "rerank_S",
+   "chore": "rerank",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "rerank_M",
+   "chore": "rerank",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "rerank_L",
+   "chore": "rerank",
+   "kind": "size-ladder",
+   "difficulty": "hard",
+   "verdicts": {
+    "q14b+a2": false,
+    "q27b-bare": false
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "rerank_XL",
+   "chore": "rerank",
+   "kind": "size-ladder",
+   "difficulty": "hard",
+   "verdicts": {
+    "q14b+a2": false,
+    "q27b-bare": false
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "compress_recap_S",
+   "chore": "compress_recap",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "compress_recap_M",
+   "chore": "compress_recap",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "compress_recap_L",
+   "chore": "compress_recap",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  },
+  {
+   "name": "compress_recap_XL",
+   "chore": "compress_recap",
+   "kind": "size-ladder",
+   "difficulty": "easy",
+   "verdicts": {
+    "q14b+a2": true,
+    "q27b-bare": true
+   },
+   "assigned_by": "size-ladder verifier outcomes (deterministic), engines live 2026-08-29"
+  }
+ ],
+ "note": "difficulty = verifier outcome per engine: easy q14b-pass, medium q27b-only, hard client-tier; size-ladder cases appended 2026-08-29 (rerank L/XL = hard on both engines)"
+}

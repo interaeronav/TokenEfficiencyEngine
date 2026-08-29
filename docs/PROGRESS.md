@@ -4689,3 +4689,71 @@ stand via the KB/ODM convergence plus the live T0 helper probe.
 kb_status drift is now CLEAN (the corpus's own rebuild.py writes the
 manifest before VERIFICATION.md, so one extra index pass was needed —
 recorded here, tooling left as the author built it).
+
+## 2026-08-29 — A42 R0: the routing dataset (measure before policy)
+
+Entry ticket held this session: 716 passed / 2 skipped, ruff clean.
+Engines live on one mlx endpoint (:8081), adapters per request, models
+swapped once each way (single-resident confirmed: 8.0 GB with the 14B,
+43.7 GB with the 27B — never both). Harness:
+`benchmarks/run_r0_routing.py` (sizes + assign); artifacts:
+`r0_sizes_q14b_a2.json`, `r0_sizes_q27b-bare.json`,
+`routing_dataset.json`.
+
+**Per chore × engine (medians of 3, live today; client-brief column =
+input tokens the client would read, no cloud call ever):**
+
+| chore | q14b+a2 s | q27b-bare s | q27b answer bloat |
+|---|---|---|---|
+| triage | 1.30 | 9.69 | 94 vs 50 tok |
+| repair_script | 0.88 | 4.78 | 32 vs 28 |
+| explain_lint | 1.17 | 3.49 | 23 vs 29 |
+| refine_extract | 1.74 | 7.21* | *m3 fixture; ladder: empty |
+| structure_facts | 1.36 | 7.36 | 63 vs 41 |
+| compress_recap | 0.92 | 3.78 | 31 vs 29 |
+| rerank | 0.74 | 3.07 | 19 vs 19 |
+
+Quality columns re-verified live: **traps+controls 6/6 on BOTH
+engines** (q14b 67.3 s incl. cold load; q27b 49.7 s warm) — matching
+the A38 corpus and the 2026-08-28 27B probe (3.11–10.12 s band,
+reproduced at 3.07–9.69).
+
+**Input-size sensitivity (S/M/L/XL ladders, both engines):**
+
+- **triage** (0/8/32/128 stack frames): q14b 1.33/1.37/1.55/**2.69 s**
+  — the 2 s interactive bar holds to ~1k prompt tokens and breaks at
+  XL; the chore itself compresses (2,925 raw → 2,030 prompt tok).
+  q27b non-monotonic (10.67 s at L, 6.79 s at XL with a SHORTER
+  answer) — decode length dominates, the A38 finding re-proven.
+- **refine_extract** (2k/8k/16k/32k chars): q14b flat 1.8–1.9 s —
+  the chore's own `text[:12000]` window caps cost (L and XL byte-identical
+  at 3,254 prompt tok) while the client-brief column keeps growing
+  with raw input: local plateaus, client doesn't — the router's
+  economics tilt local as inputs grow. **q27b-bare returns EMPTY
+  selections at every rung** (fail-to-useful under the extractive
+  verifier) — the ladder is NOT monotonic: the bigger engine loses a
+  chore the smaller one wins.
+- **rerank** (8/16/32/64 candidates): q14b 1.19 s at S, 2.38 s at M,
+  **schema-verifier failure at L and XL — on BOTH engines**. A hard,
+  deterministic, size-dependent cliff: rerank above ~16 candidates is
+  client-tier (or the chore chunks — an R1 design note, not assumed).
+- **compress_recap**: flat on both engines (0.67–0.80 / 5.87–7.24 s);
+  internal caps bound the prompt (2,243 raw → 1,761 tok at XL).
+
+**The mixed-difficulty set (verifier-assigned, not by feel):**
+`routing_dataset.json`, 22 cases = 6 trap/control triage cases + 16
+size-ladder cases, difficulty from live verifier outcomes per engine:
+**20 easy / 0 medium / 2 hard** (rerank L+XL). The pointed finding:
+on the static pool the middle tier earns ZERO routes — everything
+q27b-bare passes, q14b+a2 also passes, and q27b even loses
+refine_extract. Real medium-difficulty mass must come from T6's field
+chores (drawn into R4 exactly as the A41 spine already plans); until
+then the ladder's 27B hop is unjustified by this dataset — the
+benchmark, not the metaphor, will decide it.
+
+**Engine footprints (measured today):** q14b+a2 8.0 GB RSS / cold
+load inside 67 s incl. first chore; q27b-bare 43.7 GB RSS (spec said
+55) / first warm chore well inside the 120 s chore timeout. Client
+column: cost grows with raw input unbounded by any window (2,925 tok
+at triage-XL vs the local 2,030) — and it is the only tier that never
+fails a verifier, by construction the cascade's top.
