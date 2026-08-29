@@ -6,8 +6,9 @@ EXISTING extract store (content-addressed, EXIF preserved, originals
 referenced in place) plus a set manifest under `.tee/capture/sets/`;
 reconstructions ride the jobs pattern and are gated BEFORE submission —
 disk, engine presence, image count — with refusals that name the fix.
-The ODM drone lane refuses without a Docker runtime (the T0 batched owner
-ask); the PhotogrammetrySession helper serves structure sets today.
+Structure sets ride the PhotogrammetrySession helper; drone sets run ODM
+in Docker with rolling-shutter correction per the resolver's verdict
+(both proven live 2026-08-29 — the 40-frame site probe ran 5.0 min).
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from tee.kernel.registry import VirtualTool
 DETAILS = ("preview", "reduced", "medium", "full", "raw")
 MIN_IMAGES = 10
 DEFAULT_MIN_FREE_GB = 20.0
+ODM_IMAGE = "opendronemap/odm:latest"
 
 
 def _sets_dir(root: Path) -> Path:
@@ -165,6 +167,46 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
         done = next((e for e in events if e.get("event") == "done"), {})
         return {"seconds": round(float(done.get("seconds", 0.0)), 1)}
 
+    def _run_odm(docker_cmd: str, inputs: list[Path], job_dir: Path, correction_on: bool):
+        """Stage COPIES under the job dir — the Docker VM shares $HOME, not
+        the system tmp, so originals are never assumed reachable — then run
+        the ODM container and hand back the artifact paths."""
+        images = job_dir / "code" / "images"
+        images.mkdir(parents=True, exist_ok=True)
+        for i, src in enumerate(inputs):
+            shutil.copy2(src, images / f"{i:04d}{src.suffix.lower()}")
+        cmd = [
+            docker_cmd, "run", "--rm", "-v", f"{job_dir}:/datasets", ODM_IMAGE,
+            "--project-path", "/datasets", "code",
+        ]  # fmt: skip
+        if correction_on:
+            cmd.append("--rolling-shutter")
+        start = time.time()
+        log_path = job_dir / "odm.log"
+        with log_path.open("w") as log:
+            code = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT).returncode
+        if code != 0:
+            errors = [
+                line.strip()
+                for line in log_path.read_text(errors="replace").splitlines()
+                if "ERROR" in line
+            ]
+            raise TeeError(
+                "capture_reconstruct_failed",
+                errors[-1][:300] if errors else f"odm exited {code}",
+                fix="Follow the capture protocol's overlap/grid rules "
+                f"(ODM says the same in its flying docs); full log: {log_path}",
+            )
+        project = job_dir / "code"
+        candidates = {
+            "orthophoto": project / "odm_orthophoto" / "odm_orthophoto.tif",
+            "dem_dir": project / "odm_dem",
+            "point_cloud": project / "odm_georeferencing" / "odm_georeferenced_model.laz",
+            "textured_dir": project / "odm_texturing",
+        }
+        artifacts = {name: str(path) for name, path in candidates.items() if path.exists()}
+        return {"seconds": round(time.time() - start, 1), "artifacts": artifacts}
+
     def capture_reconstruct(args: dict[str, Any]) -> dict[str, Any]:
         manifest = _manifest(str(args.get("set") or ""))
         detail = str(args.get("detail") or "preview")
@@ -176,26 +218,6 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             )
         engine = _engine_for(manifest, str(args.get("engine") or "auto"))
         _gate_disk(root, cfg)
-        if engine == "odm":
-            if shutil.which("docker") is None:
-                raise TeeError(
-                    "capture_no_docker",
-                    "The drone lane runs ODM in Docker and no runtime is installed.",
-                    fix="Install a Docker runtime (the T0 batched owner ask); "
-                    "the odm arm64 image is 566 MB compressed.",
-                )
-            raise TeeError(
-                "capture_odm_pending",
-                "Docker is present but the ODM lane lands with its live probe (T2/T6).",
-                fix="Use engine='photogrammetry' for structure sets meanwhile.",
-            )
-        helper = _helper_path(root, cfg)
-        if not helper.is_file():
-            raise TeeError(
-                "capture_helper_missing",
-                f"PhotogrammetrySession helper not built at {helper}.",
-                fix="Run `make` in helpers/photogrammetry (macOS SDK only).",
-            )
         inputs = _input_paths(manifest)
         if len(inputs) < MIN_IMAGES:
             raise TeeError(
@@ -206,14 +228,65 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             )
         out_root = _out_dir(root)
         out_root.mkdir(parents=True, exist_ok=True)
+        inputs_hash = hashlib.sha256("".join(sorted(manifest["files"])).encode()).hexdigest()[:12]
+        first_set = manifest["resolver"]["sets"][0]
+        if engine == "odm":
+            docker_cmd = str(cfg.get("docker", "docker"))
+            if shutil.which(docker_cmd) is None:
+                raise TeeError(
+                    "capture_no_docker",
+                    "The drone lane runs ODM in Docker and no runtime is installed.",
+                    fix="Install a Docker runtime (the T0 batched owner ask); "
+                    "the odm arm64 image is 566 MB compressed.",
+                )
+            image_probe = subprocess.run(
+                [docker_cmd, "image", "inspect", ODM_IMAGE], capture_output=True
+            )
+            if image_probe.returncode != 0:
+                raise TeeError(
+                    "capture_odm_image_missing",
+                    f"The {ODM_IMAGE} image is not pulled.",
+                    fix=f"docker pull {ODM_IMAGE} (566 MB compressed; arm64 verified 2026-08-29)",
+                )
+            job_dir = out_root / f"{manifest['set']}_odm.job"
+            correction_on = first_set["correction"]["mode"] == "matched"
+            provenance = {
+                "engine": f"ODM/{ODM_IMAGE}",
+                "inputs_hash": inputs_hash,
+                "cameras": [s["camera_code"] for s in manifest["resolver"]["sets"]],
+                "band": first_set["band"],
+                "rolling_shutter": first_set["correction"],
+            }
+
+            def odm_worker() -> dict[str, Any]:
+                run = _run_odm(docker_cmd, inputs, job_dir, correction_on)
+                return {
+                    "artifacts": run["artifacts"],
+                    "seconds": run["seconds"],
+                    "provenance": provenance,
+                }
+
+            job_id = app.jobs.submit(f"reconstruct {manifest['set']} @odm", odm_worker)
+            return {
+                "job": job_id,
+                "engine": "odm",
+                "files": len(inputs),
+                "note": "poll tee_job; 40-frame probe ran 5.0 min on the 8-CPU VM",
+            }
+        helper = _helper_path(root, cfg)
+        if not helper.is_file():
+            raise TeeError(
+                "capture_helper_missing",
+                f"PhotogrammetrySession helper not built at {helper}.",
+                fix="Run `make` in helpers/photogrammetry (macOS SDK only).",
+            )
         out_path = out_root / f"{manifest['set']}_{detail}.usdz"
         job_dir = out_root / f"{manifest['set']}_{detail}.job"
-        inputs_hash = hashlib.sha256("".join(sorted(manifest["files"])).encode()).hexdigest()[:12]
         provenance = {
             "engine": f"PhotogrammetrySession/macOS {platform.mac_ver()[0]}",
             "inputs_hash": inputs_hash,
             "cameras": [s["camera_code"] for s in manifest["resolver"]["sets"]],
-            "band": manifest["resolver"]["sets"][0]["band"],
+            "band": first_set["band"],
             "detail": detail,
         }
 
@@ -257,9 +330,9 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             "capture_reconstruct",
             "Reconstruct an ingested capture set as an async job (poll tee_job): "
             "structure sets ride the PhotogrammetrySession helper at a chosen "
-            "quality level (preview..raw); drone sets target ODM and refuse "
-            "loudly until its runtime lands. Gated on disk, engine presence "
-            "and image count before submission.",
+            "quality level (preview..raw); drone sets run ODM in Docker with "
+            "rolling-shutter correction per the resolver's verdict. Gated on "
+            "disk, engine presence and image count before submission.",
             {
                 "type": "object",
                 "properties": {

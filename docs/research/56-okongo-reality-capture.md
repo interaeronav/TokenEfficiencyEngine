@@ -236,3 +236,57 @@ Free disk 1.0 TiB of 1.8 TiB; suites green at probe time (716 passed
   INDEX/manifest drift reconciled (word counts only, +16 words in
   00_meta), VERIFICATION.md regenerated (236 flagged files, 399 with
   open questions), 38 domains / 402 files intact, nothing deleted.
+
+## Addendum (A42 T0 completed: owner said "install all of them", 2026-08-29)
+
+All four installs landed and every gated probe closed, same day:
+
+- **Docker runtime: colima 8-CPU/16-GiB/100-GB VM + docker CLI** (brew
+  formulas — chosen over Docker Desktop for the headless, no-license-
+  dialog path; the ask offered the substitute and the owner approved
+  the batch). Server 29.5.2 linux/arm64. Mount law learned and
+  encoded: the VM shares $HOME, not the system tmp — the lane stages
+  copies under the project's `.tee`.
+- **ODM end-to-end: PASS on real site imagery.**
+  `opendronemap/odm:latest` pulled (566,157,794 B, arm64). The probe
+  set came from the owner's own Dropbox: **the entire existing site
+  capture is VIDEO — not one still exists** (the premise the
+  protocol's stills-only rule fixes), so frames were extracted with
+  the extract lane's own bundled ffmpeg. Three runs, each a lesson:
+  13 frames @1 fps of a 13-s interior pan → honest ODM refusal (no
+  reconstruction; moving workers + no baseline); 40 frames @3 fps →
+  deep failure late in the pipeline (mesh built, then "strange
+  values", ODM's message citing its own flying docs — the same rules
+  the protocol encodes); **40 frames @2 fps of the ascent window of
+  DJI_0108.MOV → exit 0, the FULL pipeline**: 32/40 shots
+  reconstructed in one component, 28,383 sparse → 1.27 M dense
+  points, 1.48 px reprojection, orthophoto + DEM + textured model +
+  report, 5.0 min wall on the VM. **The source video's own metadata
+  answered the aircraft: FC7303 = DJI Mini 2** — the exact
+  family-gap member the T0 coverage probe recorded in advance; the
+  resolver gained the row (`electronic-no-constant`: correction off
+  with the aircraft NAMED) and its test.
+- **CloudCompare 2.13.2 (cask): C2M probe PASS to the planted
+  truth** — `-SILENT` headless on the staged fixture pair: mean
+  distance **0.038, σ 5.7e-09** (the +38 mm plant recovered exactly),
+  16 threads, 0.03 s compute.
+- **QGIS 4.2.1 (cask, `QGIS-final-4_2_1.app`): qgis_process PASS**
+  headless — 406 algorithms enumerated (`Contents/MacOS/qgis_process`;
+  note: not under `bin/` in the QGIS 4 layout).
+- **QGIS MCP plugin 0.12.0 (official directory, Nicolas Karasiak)
+  fronted through the gateway: PASS.** Plugin staged into the QGIS4
+  default profile + enabled via ini; it loads clean under QGIS 4/Qt6;
+  the socket server (localhost:9876) starts via the plugin's
+  `toggle_server(True)` (the autostart setting alone did not start it
+  headlessly — one-click in the GUI, or the `--code` launch used
+  here). Gateway backend = `uvx --from <repo zip> qgis-mcp-server`:
+  **118 tools fronted as `qgis.*`, fingerprint pinned
+  `Qgis_mcp@/77af5a90950a`**, bad calls refused with the exact
+  missing-arg line, and a live read round-trip answered
+  `qgis_version 4.2.1-Belém do Pará` from inside the running app.
+- Free disk after everything: stated in PROGRESS with the ledger.
+
+The drone lane's `capture_odm_pending` refusal is replaced the same
+day by the real ODM invocation (correction flag per the resolver's
+verdict, artifacts + provenance returned through tee_job) — tested on
+a fake docker and proven live through the registry.

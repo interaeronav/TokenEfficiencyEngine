@@ -64,6 +64,17 @@ def test_rtk_band_tightens_only_when_files_prove_it(tmp_path):
     assert "2/3" in entry["band"]
 
 
+def test_known_aircraft_without_constant_is_named_in_the_fallback(tmp_path):
+    # The owner's own case (2026-08-29): FC7303, the Mini 2, absent from
+    # ODM's readout database - correction off with the aircraft NAMED.
+    result = dji.resolve_set([write_dji_jpeg(tmp_path / "m2.jpg", "FC7303")])
+    (entry,) = result["sets"]
+    assert entry["model"] == "DJI Mini 2"
+    assert entry["correction"]["mode"] == "off"
+    assert "DJI Mini 2" in entry["correction"]["why"]
+    assert "fly slow" in entry["correction"]["why"]
+
+
 def test_unknown_code_degrades_honestly(tmp_path):
     result = dji.resolve_set([write_dji_jpeg(tmp_path / "u.jpg", "FC9999")])
     (entry,) = result["sets"]

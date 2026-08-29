@@ -4807,3 +4807,52 @@ end-to-end with metadata-matched correction constants, CloudCompare
 C2M probe (fixture staged), qgis_process + QGIS-MCP probes. **Next
 phase: R1** (verifier-gated cascade on fakes + THE GUARD SEAM +
 registry-form descriptors + QoS tags — the merge's first K-seam).
+
+## 2026-08-29 — T0 CLOSED: owner said "install all of them" — every gated probe green same-day
+
+Installs (free disk after everything: 1.0 TiB): **colima + docker CLI**
+(headless Docker runtime — no license dialogs; VM 8 CPU / 16 GiB /
+100 GB; server 29.5.2 linux/arm64; note: `colima start` is manual
+after a reboot unless the owner opts into `brew services`),
+**CloudCompare 2.13.2** (cask), **QGIS 4.2.1** (cask,
+`QGIS-final-4_2_1.app`), **QGIS MCP plugin 0.12.0** (official
+directory; staged into the QGIS4 profile + enabled via ini). Full
+probe results are the dated addendum in research 56; the headlines:
+
+- **ODM arm64 end-to-end: PASS on the owner's own site imagery.**
+  Finding first: the existing site capture is ALL VIDEO — zero stills
+  (the premise the protocol's stills-only rule fixes). Frames via the
+  extract lane's bundled ffmpeg; three runs told the whole story
+  (degenerate 13-s interior pan → honest refusal; mid case → late
+  "strange values" citing ODM's own flying docs; **ascent window of
+  DJI_0108.MOV, 40 frames → exit 0, full pipeline, 32/40 shots in one
+  component, 1.27 M dense points, 1.48 px reprojection, 5.0 min**).
+  The source video's metadata named the aircraft: **FC7303 = Mini 2**
+  — the exact family-gap member the T0 coverage probe recorded in
+  advance. Resolver gained the `electronic-no-constant` class
+  (correction off with the aircraft NAMED) + test.
+- **CloudCompare C2M: PASS to the planted truth** — mean 0.038,
+  σ 5.7e-09 on the +38 mm fixture, `-SILENT` headless, 0.03 s.
+- **qgis_process: PASS** — 406 algorithms headless (binary at
+  `Contents/MacOS/qgis_process` in the QGIS 4 layout, not bin/).
+- **QGIS MCP via gateway: PASS, fingerprint pinned** —
+  `Qgis_mcp@/77af5a90950a`, 118 tools fronted as `qgis.*`, live read
+  round-trip answered `qgis_version 4.2.1-Belém do Pará` from inside
+  the app. The socket needs the plugin's `toggle_server(True)` (GUI
+  one-click or a `--code` launch — the autostart flag alone did not
+  arm it headless; recorded, not hidden).
+
+**T2's drone half completed the same day**: `capture_odm_pending` is
+replaced by the real ODM invocation — copies staged under `.tee`
+(the colima mount law: the VM shares $HOME, not system tmp),
+`--rolling-shutter` passed exactly when the resolver says `matched`,
+artifacts + provenance through tee_job, image-missing refusal names
+the pull. Tested on a fake docker (3 new tests; suite **730 passed /
+2 skipped**, ruff + format clean) and **proven live through the
+registry: job done in 210.4 s** — orthophoto, DEM, georeferenced
+LAZ, textured model, honest correction-off provenance on the
+no-EXIF video frames.
+
+T0 is now fully closed; T1/R0/T2 closed earlier today. **Next: R1**
+(verifier-gated cascade on fakes + THE GUARD SEAM + registry-form
+descriptors + QoS tags), grounded in R0's measured rows.

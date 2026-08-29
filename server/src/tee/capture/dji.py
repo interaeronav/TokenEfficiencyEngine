@@ -36,10 +36,15 @@ from typing import Any
 
 from tee.kernel.errors import TeeError
 
-# code (EXIF Model, uppercased) -> (marketing name, shutter type)
+# code (EXIF Model, uppercased) -> (marketing name, shutter type). Electronic
+# rows split by whether ODM's RS database carries their readout constant:
+# "electronic" = matched constant exists; "electronic-no-constant" = known
+# aircraft, no constant -> the honest fallback with the aircraft NAMED
+# (first live case: FC7303, the owner's own Mini 2 site video, 2026-08-29).
 MODEL_TABLE: dict[str, tuple[str, str]] = {
     # electronic-shutter rows: constants in ODM's RS database
     "FC7203": ("DJI Mavic Mini", "electronic"),
+    "FC7303": ("DJI Mini 2", "electronic-no-constant"),
     "FC3682": ("DJI Mini 3", "electronic"),
     "FC3582": ("DJI Mini 3 Pro", "electronic"),
     "FC8482": ("DJI Mini 4 Pro", "electronic"),
@@ -164,6 +169,13 @@ def resolve_set(paths: list[Path | str]) -> dict[str, Any]:
             correction = {"mode": "off", "why": "mechanical shutter needs none"}
         elif shutter == "electronic":
             correction = {"mode": "matched", "why": "readout constant from ODM's database"}
+        elif shutter == "electronic-no-constant":
+            correction = {
+                "mode": "off",
+                "why": f"{name}: electronic shutter but no readout constant in "
+                "ODM's database - correction off and stated; fly slow, "
+                "stop-and-shoot per the capture protocol",
+            }
         else:
             correction = {"mode": "off", "why": FLY_SLOW_NOTE}
         entry: dict[str, Any] = {

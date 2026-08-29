@@ -50,6 +50,7 @@ def _make_app(tmp_path, helper_script: str | None = FAKE_HELPER):
     project.mkdir(exist_ok=True)
     app = TeeApp({"fake": FakeAdapter()}, project_root=project)
     store, _registry = register_extract_tools(app, project)
+    app._capture_store = store
     if helper_script is not None:
         helper = tmp_path / "fake-helper"
         helper.write_text(helper_script)
@@ -121,23 +122,98 @@ def test_gates_refuse_loudly(tmp_path, structure_set, monkeypatch):
     app.shutdown()
 
 
-def test_drone_sets_route_to_odm_and_refuse_without_docker(tmp_path, monkeypatch):
-    app = _make_app(tmp_path)
-    drone = [
-        write_dji_jpeg(tmp_path / f"d{i:02d}.jpg", "FC3582", RelativeAltitude="+60.0")
+FAKE_DOCKER = """#!/bin/sh
+log="$(dirname "$0")/docker_args.log"
+echo "$@" >> "$log"
+case "$1" in
+  image) exit 0 ;;
+  run)
+    while [ "$1" != "-v" ]; do shift; done
+    shift
+    hostdir="${1%%:*}"
+    mkdir -p "$hostdir/code/odm_orthophoto" "$hostdir/code/odm_dem"
+    : > "$hostdir/code/odm_orthophoto/odm_orthophoto.tif"
+    exit 0 ;;
+esac
+exit 0
+"""
+
+NO_IMAGE_DOCKER = """#!/bin/sh
+[ "$1" = "image" ] && exit 1
+exit 0
+"""
+
+
+def _drone_set(tmp_path, code="FC3582"):
+    return [
+        write_dji_jpeg(tmp_path / f"{code}-{i:02d}.jpg", code, RelativeAltitude="+60.0")
         for i in range(12)
     ]
-    out = app.registry.call("capture_ingest", {"paths": [str(p) for p in drone]})
+
+
+def _with_fake_docker(app, tmp_path, script: str) -> str:
+    fake = tmp_path / "fake-docker"
+    fake.write_text(script)
+    fake.chmod(0o755)
+    # re-register with the docker override (cfg is read at registration)
+    app.config.capture = dict(app.config.capture or {}, docker=str(fake))
+    app.registry.unregister("capture_ingest")
+    app.registry.unregister("capture_reconstruct")
+    register_capture_tools(app, app.project_root, extract_store=app._capture_store)
+    return str(fake)
+
+
+def test_drone_sets_refuse_without_docker(tmp_path, monkeypatch):
+    app = _make_app(tmp_path)
+    out = app.registry.call("capture_ingest", {"paths": [str(p) for p in _drone_set(tmp_path)]})
     monkeypatch.setattr(capture_tools.shutil, "which", lambda _n: None)
     with pytest.raises(TeeError) as excinfo:
         app.registry.call("capture_reconstruct", {"set": out["set"]})  # engine auto
     assert excinfo.value.code == "capture_no_docker"
     assert "566 MB" in excinfo.value.fix
+    app.shutdown()
 
-    monkeypatch.setattr(capture_tools.shutil, "which", lambda _n: "/usr/local/bin/docker")
+
+def test_odm_refuses_when_image_not_pulled(tmp_path):
+    app = _make_app(tmp_path)
+    _with_fake_docker(app, tmp_path, NO_IMAGE_DOCKER)
+    out = app.registry.call("capture_ingest", {"paths": [str(p) for p in _drone_set(tmp_path)]})
     with pytest.raises(TeeError) as excinfo:
         app.registry.call("capture_reconstruct", {"set": out["set"]})
-    assert excinfo.value.code == "capture_odm_pending"
+    assert excinfo.value.code == "capture_odm_image_missing"
+    assert "docker pull" in excinfo.value.fix
+    app.shutdown()
+
+
+def test_odm_runs_with_correction_per_resolver(tmp_path):
+    app = _make_app(tmp_path)
+    fake = _with_fake_docker(app, tmp_path, FAKE_DOCKER)
+    args_log = tmp_path / "docker_args.log"
+
+    # FC3582 (Mini 3 Pro): matched constant -> --rolling-shutter present
+    matched = app.registry.call(
+        "capture_ingest", {"paths": [str(p) for p in _drone_set(tmp_path, "FC3582")]}
+    )
+    started = app.registry.call("capture_reconstruct", {"set": matched["set"]})
+    status = _wait(app, started["job"])
+    assert status["state"] == "done", status
+    assert "--rolling-shutter" in args_log.read_text()
+    result = status["result"]
+    assert result["provenance"]["engine"].startswith("ODM/")
+    assert result["provenance"]["rolling_shutter"]["mode"] == "matched"
+    assert "orthophoto" in result["artifacts"]
+
+    # FC7303 (Mini 2): no constant -> correction off, no flag
+    args_log.write_text("")
+    off = app.registry.call(
+        "capture_ingest", {"paths": [str(p) for p in _drone_set(tmp_path, "FC7303")]}
+    )
+    started = app.registry.call("capture_reconstruct", {"set": off["set"]})
+    status = _wait(app, started["job"])
+    assert status["state"] == "done", status
+    assert "--rolling-shutter" not in args_log.read_text()
+    assert status["result"]["provenance"]["rolling_shutter"]["mode"] == "off"
+    assert fake in args_log.read_text() or args_log.read_text()  # args recorded
     app.shutdown()
 
 
