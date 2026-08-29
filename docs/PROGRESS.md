@@ -3908,3 +3908,41 @@ live fixture — stays open and is noted at the ledger.
   pins, demonstrated live.
 
 Suite **681 passed / 2 skipped** (674 + 7), ruff clean.
+
+## 2026-08-29 — A37 P0 complete: installs landed (owner-approved), probes settle the architecture
+
+Owner approved the batched ask ("install them"); executed and probed in
+one pass. Machine etiquette: the probe FreeCAD GUI quit and port 9875
+verified freed after; no model servers left resident.
+
+**Installs, sizes as landed:** FreeCAD 1.1.3 — 620 MB dmg (SHA256
+verified against the published sum), 2.5 GB unpacked at
+/Applications/FreeCAD.app; headless binary MOVED in 1.1.x to
+`Contents/Resources/bin/freecadcmd` (smoke: 1.1.3, Python answers).
+Home Builder 5.1.0 — 19.3 MB (hash = the extensions.blender.org URL
+digest); found ALREADY installed from blender_org (the research-52
+session), my install-file made a duplicate whose double-registration
+tripped an unregister RuntimeError — duplicate removed, single clean
+install verified headless with all seven home_builder_* operator
+namespaces live. neka-nat/freecad-mcp — 14 MB clone at
+/Users/john/TEE/freecad-mcp, MIT (lint pass); addon installed to the
+v1-1 Mod dir.
+
+**Probe A (TechDraw under freecadcmd):** modeling, dimensioned TechDraw
+pages, DXF page export and STEP all PASS headless; SVG page export does
+not exist headless and PDF is GUI-bound — **#5710 confirmed live on
+1.1.3** (full table in research 53 addendum 3).
+
+**Probe B (the bridge, fronted through TEE's own gateway):** 15 tools,
+connect 5.36 s, calls 0.01–0.05 s end to end, geometry round-trip
+verified (box volume 24000.0), bad ops = clean one-line errors with the
+backend alive after, text mode 26–38 tok/op, naive schema tax 5,422
+tok removed by the fronting. The gateway's P2 pending backend is now
+live-verified; setup-gateway.md's FreeCAD section upgraded from
+probe-pending to probed with the live fingerprint.
+
+**The one-bridge decision (research 53 addendum 3, before any lane
+code):** neka-nat's bridge IS the fabrication lane's GUI transport —
+TEE ships no second bridge; SVG/PDF sheets render via TechDrawGui
+through the same bridge (the #5710 fallback), and freecadcmd remains
+the headless CI/DXF/STEP vehicle. P4 unblocked.

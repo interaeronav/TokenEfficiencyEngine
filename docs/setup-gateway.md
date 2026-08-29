@@ -74,19 +74,23 @@ Live on 2026-08-29: `fs` fronted 14 tools
 first; calls answer through the budget with the fingerprints shown in
 `tee_status`.
 
-## The FreeCAD backend (A37 fabrication lane) — pending its probe
+## The FreeCAD backend (A37 fabrication lane) — probed live 2026-08-29
 
-The planned worked example for the fabrication campaign is
-`neka-nat/freecad-mcp` (an in-FreeCAD RPC addon + stdio server, the
-Blender-bridge topology):
+`neka-nat/freecad-mcp` (MIT): an in-FreeCAD RPC addon + stdio server,
+the Blender-bridge topology. Prerequisite: copy `addon/FreeCADMCP` into
+`~/Library/Application Support/FreeCAD/v1-1/Mod/` and start the RPC
+server from the MCP workbench (or its Auto-Start setting) — the addon
+is GUI-bound by construction (it drives FreeCADGui views).
 
 ```toml
 [gateway.backends.freecad]
-command = "uvx freecad-mcp"   # exact command settled by the P0 probe
+command = "uvx freecad-mcp --only-text-feedback"  # text mode: the token-lean flag
 ```
 
-**Not yet verified here.** The A37 P0 probe (headless-or-GUI, latency,
-token shape, bad-op behavior, license lint) is gated on the FreeCAD 1.1.3
-install and decides one-bridge-vs-own-bridge (research 53); this section
-gets its live fingerprint and any corrections when that probe runs.
-Until then treat the config above as the shape, not a tested fact.
+Probe results (research 53 addendum 3): connect 5.36 s first-fetch,
+**15 tools** as `freecad.*` pinned FreeCADMCP@/4007534df97c (incl.
+`execute_code`, FEM, parts library); call latency 0.01–0.05 s end to
+end; naive schema tax removed: 5,422 tok; bad ops answer one-line text
+errors with the backend alive after. The A37 fabrication lane rides
+THIS bridge as its GUI transport (one bridge, no second); `freecadcmd`
+stays the headless path for DXF/STEP and CI.
