@@ -1,5 +1,12 @@
 # A41 build script — the merged campaign: router (A39) × reality capture (A40)
 
+**SUPERSEDED — do not work this script.** A42 (owner directive,
+2026-08-29) merged this campaign with the kernel scheduler; the
+merged build is driven by `CLAUDE_A42_SCRIPT.md` (research 59 is the
+integration map). This file stays as the design record its phases
+are referenced from.
+
+
 **This script REPLACES `CLAUDE_A39_SCRIPT.md` and `CLAUDE_A40_SCRIPT.md`**
 (owner directive, 2026-08-29: integrate all proposed changes into one
 script). Designs of record: research 55 (+ swap addendum), 56 (+ DJI

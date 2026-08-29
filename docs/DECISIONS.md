@@ -782,3 +782,23 @@ the site-visit deadline rules the order — protocol and
 ingest/reconstruct ship before router ambition, with router
 fake-phases interleaving during long reconstruction jobs. Laws are
 the union with zero relaxations. Expected 0.6.0; the owner tags.
+
+## 2026-08-29 — A42: the kernel scheduler, merged into the grand campaign (owner decision)
+
+The owner directed the research-58 kernel scheduler built AND
+integrated with A41 into one script. `CLAUDE_A42_SCRIPT.md`
+supersedes the A41 script (banner added; the reference chain A42 →
+A41 → A39/A40 is the record). Research 59 maps the merge and its
+prize: the shadow recorder lands the moment the load ledger exists
+(K0, straight after R1), so the entire remaining campaign — chores,
+reconstructions, gateway calls, the dry run — accumulates as REAL
+workload traces; the dispatch policy goes live only after replaying
+that recorded reality (the Borg/Omega/Firmament methodology), and
+K4's mixed-load row judges it win-or-revert. Seams shipped once:
+registry-form engine descriptors from R1, one meter schema with
+scheduler columns reserved, QoS tags as annotations before they
+become law. Two release gates: Gate A after T6+R4 (trip-ready,
+recommend 0.6.0) and the final close (recommend 0.7.0). Scheduler
+laws recorded: degrade-to-static always, shadow before live, greedy
+before clever, zero new always-loaded tools. The site-visit deadline
+still rules the order.

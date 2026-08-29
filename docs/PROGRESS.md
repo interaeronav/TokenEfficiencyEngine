@@ -4599,3 +4599,18 @@ claim (wins exist only under mixed load — benchmarked, win-or-revert),
 the degrade-to-static safety law, and the build shape: campaign A42,
 sequenced AFTER A41 lands (the router and ledger are its organs).
 No decision recorded — research only; the owner directs the build.
+
+## 2026-08-29 — A42: the grand campaign scripted (owner: integrate A41 + A42)
+
+Research 59 (integration map; trace-driven scheduler evaluation
+grounded in the Borg/Omega/Firmament canon) + CLAUDE_A42_SCRIPT.md
+written; A41 script banner-superseded; CLAUDE.md consolidated; TEE
+memory updated (a41 → merged pointer, a42 key written; pre-merge
+recall verified neither campaign started). Spine: A41's T/R order
+unchanged with K0 (descriptors + task graph + SHADOW RECORDER)
+landing right after R1 so the campaign records its own workload;
+Gate A = trip-ready 0.6.0 after T6+R4; K1–K4 (QoS law, replay-
+validated dispatch, preemption, the win-or-revert mixed-load row);
+one close at 0.7.0. Laws: A41 union + degrade-to-static, shadow
+before live, greedy before clever, surface LAW (scheduler = internal
+machinery, zero new tools).
