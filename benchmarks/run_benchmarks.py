@@ -903,8 +903,13 @@ def run_web_scenario() -> dict | None:
         print(f"web scenario skipped ({exc})")
         return None
 
-    project = tempfile.mkdtemp(prefix="tee-bench-web-")
-    service = WebLookupService(project)
+    # A stable project root so the product's OWN fetch cache carries across
+    # battery runs (A38 S1.4: a throwaway root re-fetched every page live,
+    # ~6.5 s per run). Rows are unaffected: a hit serves the same bytes and
+    # a stale entry revalidates before reuse.
+    project = Path(tempfile.gettempdir()) / "tee-bench-web"
+    project.mkdir(exist_ok=True)
+    service = WebLookupService(str(project))
     rows: list[dict] = []
     notes: list[str] = []
     for url, question in WEB_QUESTIONS:
@@ -1163,10 +1168,25 @@ def run_fabrication_scenario() -> dict | None:
     try:
         from tee.adapters.freecad.adapter import FreeCADAdapter
         from tee.adapters.freecad.tools import register_freecad_tools
+        from tee.adapters.freecad.wire import FreeCADWire
         from tee.app import TeeApp
         from tee.gateway.wire import StdioBackendWire
     except ImportError as exc:
         print(f"fabrication scenario skipped ({exc})")
+        return None
+
+    # The port accepting is not the GUI dispatching (SI-B12: a startup modal
+    # such as document recovery parks the GUI thread and every call hangs).
+    # One short-deadline live dispatch turns that 60 s failure into a 5 s
+    # skip that names the fix.
+    try:
+        FreeCADWire(timeout_s=5.0).py_json('import json; print(json.dumps({"ok": True}))')
+    except Exception:
+        print(
+            "fabrication scenario skipped (FreeCAD answers TCP but never ran "
+            "the probe - a modal dialog, e.g. document recovery, may be "
+            "holding the GUI; check the FreeCAD window)"
+        )
         return None
 
     sketch = {
@@ -1450,7 +1470,14 @@ def run_unreal_scenario() -> tuple | None:
         adapter.restore(snapshot)
 
 
+def _stage(label: str, started: float) -> None:
+    """One wall-time line per harness stage (A38 S1.4): the battery is the
+    campaign's inner loop, so where its seconds go stays visible."""
+    print(f"[battery] {label}: {time.time() - started:.1f}s")
+
+
 def main() -> None:
+    t0 = time.time()
     blender = find_blender()
     port = free_port()
     proc = launch_bridge(blender, port)
@@ -1461,10 +1488,12 @@ def main() -> None:
     if not wire.probe():
         proc.kill()
         raise SystemExit("bridge never came up")
+    _stage("bridge up", t0)
 
     rows = []
     try:
         for name, scenario in SCENARIOS:
+            t_s = time.time()
             # naive run
             clear_scene(wire)
             naive_meter = Meter()
@@ -1500,12 +1529,13 @@ def main() -> None:
                 f" -> tee {tee_meter.tokens} tok / {tee_meter.round_trips} calls"
                 f" ({saving:.1f}% saved)"
             )
+            _stage(name, t_s)
     finally:
         proc.terminate()
 
-    extract_row = run_extract_scenario()
-    asset_row = run_asset_scenario()
-    physical_row = run_physical_scenario()
+    extract_row = _timed(run_extract_scenario)
+    asset_row = _timed(run_asset_scenario)
+    physical_row = _timed(run_physical_scenario)
     unreal_row = _safe(run_unreal_scenario)
     surface_row = _safe(run_surface_scenario)
     jurisdiction_row = _safe(run_jurisdiction_scenario)
@@ -1516,15 +1546,26 @@ def main() -> None:
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
                   fabrication_row)
+    _stage("total", t0)
+
+
+def _timed(fn):
+    started = time.time()
+    out = fn()
+    _stage(fn.__name__.removeprefix("run_").removesuffix("_scenario"), started)
+    return out
 
 
 def _safe(fn):
     """A live-editor scenario must never take the whole benchmark down."""
+    started = time.time()
     try:
         return fn()
     except Exception as exc:
         print(f"{fn.__name__}: skipped ({type(exc).__name__}: {exc})")
         return None
+    finally:
+        _stage(fn.__name__.removeprefix("run_").removesuffix("_scenario"), started)
 
 
 def _carry_forward(section_header: str) -> list[str]:

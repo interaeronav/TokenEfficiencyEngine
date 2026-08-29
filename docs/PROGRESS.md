@@ -4274,3 +4274,45 @@ on this machine (q14b rows served fresh; conditions stated in-row).
 Chore-row parity note: rows are labelled with their serving setup; the
 q27b live profile state was left untouched (harness cfg overrides
 resolve to q14b without touching `.tee/llm-profile.json`).
+
+## 2026-08-29 — A38 S1: faster — profiled first, attacked only where the profile said
+
+**S1.1 gateway (measured, published, unchanged):** the call path needed
+no work — catalog/fingerprint are connect-time only, and a gateway call
+adds **+0.005 ms median** over invoking the backend wire directly
+(60-call interleaved medians). setup-gateway.md now carries the honest
+bill: ~0.7 s connect once per backend (off-thread), 570-token reach,
+per-call overhead noise vs the 3,706-token schema ride the naive
+pattern pays every session. Spawn stays eager-off-thread by design
+(lazy would tax the first call 0.7 s to save one idle node process;
+not taken — behavior change without a measured problem).
+
+**S1.2 fabrication (premise finding stands):** no runtime path spawns
+freecadcmd — the S0 profile shows the lane already at 0.16 s warm with
+14 round-trips à 5–15 ms and nothing above the one-time cold TechDraw
+init. Nothing attacked; the S0 freecadcmd row (1.03 s cold / 0.10 s
+warm) stands as the bound for any future headless batch path.
+
+**S1.3 chore prompt diet (r2 → r3):** system prompts **948 → 807 tok
+(−15%)** — boundary tightened, triage's kwarg-drift example compacted
+with both lessons kept, facts/extract drop the API boundary where a
+chore-local rule already covers it, lint pinned to ONE sentence after
+the first diet made its answers longer (24→38 tok; now one actionable
+sentence, 1.19 s). Gates all green: hermetic suite, **q14b traps 6/6**,
+**q27b-bare traps 6/6** (the recorded claim re-verified live on the
+27B), chore bar <2 s holds (max 1.82 s). Honest finding: at these
+sizes **decode length, not prompt prefill, drives chore latency** —
+deeper cuts carry trap risk for no measurable win; the diet stops at
+807. REVISION bumped so rows stay attributable.
+
+**S1.4 battery harness (the campaign's inner loop):** stage timing now
+prints per scenario (`[battery] <stage>: Ns`). Profile said web 6.5 s +
+fabrication 5.1 s = 75% of the 14.6 s warm run. Fixes: (a) the web
+scenario's project root is now stable, so the PRODUCT's fetch cache
+(1 h TTL + revalidation) carries across runs — **web 6.5 → 0.5 s**,
+rows byte-identical; (b) a 5 s live-dispatch probe before the
+fabrication arms turns the SI-B12 blocked-GUI failure (60 s of
+timeouts, wrong diagnosis) into a 5 s skip naming the modal-dialog
+fix. **Warm battery 14.6 → 6.9 s (−53%)**; the remaining 3.7 s
+fabrication cost is the naive arm's own uvx spawn + per-op
+screenshots — the measured genre pattern, not harness waste.
