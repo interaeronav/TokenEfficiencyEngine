@@ -30,6 +30,9 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   is driven by `CLAUDE_A37_SCRIPT.md`; research docs 51, 52 and 53 are
   its designs of record. `CLAUDE_A36_SCRIPT.md` is superseded — do not
   work it.
+- The A38 shrink round two (post-0.5.0: faster, more efficient,
+  smaller, leaner) is driven by `CLAUDE_A38_SCRIPT.md`, inheriting the
+  A35/A33 rules.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or

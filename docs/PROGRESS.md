@@ -4213,3 +4213,16 @@ pyproject 0.5.0 with `[tool.uv] default-groups = []` — the
 argv → **serverInfo 0.5.0, 17 tools, first-ever answer 2.71 s**.
 Tagged v0.5.0 and pushed; artifact handed to the owner at
 server/dist/tee-engine-0.5.0.mcpb.
+
+## 2026-08-29 — A38 directed and scripted (owner: optimize again, TEE as co-pilot)
+
+Second shrink campaign authored as `CLAUDE_A38_SCRIPT.md`, recorded as
+A38. Premise: A35's wins are the floor (37 MB bundle, 0.32 s cold,
+74 MB RSS, 12.4 s unwrap, 5 ms warm web) — the fresh meat is A37's
+never-dieted code. Targets: gateway call path, fabrication stage split
++ freecadcmd amortization, chore prompt diets gated by the trap suite,
+new response shapes, the 11,396-tok virtual flat catalog, A37's
+dependency delta, .tee state hygiene, battery harness runtime.
+Measurement parity pinned to q14b (chore engine may sit on q27b — rows
+record their profile). Surface LAW 2,028/17 stands. Kickoff written to
+TEE project memory (a38-campaign). Campaign not started; S0 first.

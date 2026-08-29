@@ -692,3 +692,17 @@ the switch never stalls the conversation — synchronous stop, job-
 token loading with ETA, one-line not-ready answers, in-flight chores
 finish first, failed starts fall back automatically. q14b restated as
 THE default (boot, missing state, and fallback-of-last-resort).
+
+## 2026-08-29 — A38: shrink round two, post-0.5.0 (owner decision)
+
+The owner directed a second optimization campaign with TEE as
+co-pilot: faster, more efficient, smaller, leaner. Driven by
+`CLAUDE_A38_SCRIPT.md` — A35's baseline→profile→diet→ledger method
+pointed at the code A37 added (gateway call path, fabrication and
+joinery lanes, chore prompts, kb floor, boards, virtual-tool flat
+catalog, .tee state hygiene). Laws: A35's floor rows and every
+benchmark bar (incl. the two new rows) are the floor; the 2,028/17
+surface LAW stands; latency rows measured on q14b for parity; no new
+capabilities, no silent removals; report_savings quoted on the
+campaign's own closing session. Expected 0.5.1 unless shapes change;
+the owner tags.
