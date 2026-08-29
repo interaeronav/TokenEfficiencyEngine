@@ -5125,3 +5125,30 @@ gates nothing, and now the numbers say exactly how far the evidence
 reaches. **Next: T6 — the dry run** (two owner inputs wanted: the
 design-model export to serve as the C2M baseline, and the colima
 resize to 32 GiB for full-res reconstruction), then R4 and Gate A.
+
+## 2026-08-29 — A42 T5 COMPLETE: the three-lane round trip, live (owner: "free to start" both apps)
+
+Owner authorized the DCC sessions and full autonomous completion. Both
+applications launched and bridged: **OkongoSim in UE 5.8** (MCP server
+:8000, TeeToolset) and **FreeCAD 1.1** (RPC :9875, addon autostart) —
+plus the headless Blender bridge (:9877). The full fixture round trip
+then ran through ONE capture_apply call:
+
+- **blender**: b151 +0.038 m → [0, 0, 0.038], checkpoint cp4
+- **unreal**: a REAL actor in the running OkongoSim editor, +3.8 uu =
+  exactly 38 mm (the per-adapter unit map: UE speaks cm, FreeCAD mm —
+  without it a 38 mm deviation lands as 0.38 mm in UE), checkpoint cp5
+- **fabrication**: FreeCAD box moved via Placement (`at`, the
+  adapter's own prop; mm), checkpoint cp6, and **the TechDraw sheet
+  regenerated from the corrected model** — page "Sheet",
+  View_front + View_top: the A37 contract closing the loop
+- one decision line in decisions.jsonl covering all three lanes
+
+Lane facts learned live and encoded: UE creates need `asset_path`;
+FreeCAD boxes place via `at` post-create; the FreeCAD read-back's
+location echo is thin (noted, not blocking - the checkpoint and sheet
+prove the apply). `capture_register` gained 7-DOF ICP
+(`adjust_scale`, the scale REPORTED - video SfM carries arbitrary
+scale) and now saves the ALIGNED cloud (C2M must never run on the raw
+one); `[capture] odm_args` carries the max-res flags. T6's dry run is
+IN FLIGHT as this entry lands (nohup driver, staged log).

@@ -190,6 +190,7 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             "--project-path", "/datasets", "code",
             "--dsm", "--dtm",  # the lane exists for the site surfaces (research 56)
         ]  # fmt: skip
+        cmd += [str(arg) for arg in cfg.get("odm_args") or []]  # e.g. max-res flags
         if correction_on:
             cmd.append("--rolling-shutter")
         start = time.time()
@@ -399,6 +400,7 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             work_dir=_out_dir(root) / "align",
             max_rms_m=float(args["max_rms_m"]) if args.get("max_rms_m") else None,
             overlap_percent=int(args["overlap_percent"]) if args.get("overlap_percent") else None,
+            adjust_scale=bool(args.get("adjust_scale")),
         )
 
     def capture_terrain(args: dict[str, Any]) -> dict[str, Any]:
@@ -427,6 +429,7 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
                     "target": {"type": "string"},
                     "max_rms_m": {"type": "number"},
                     "overlap_percent": {"type": "number"},
+                    "adjust_scale": {"type": "boolean"},
                 },
                 "required": ["source", "target"],
             },
@@ -592,7 +595,30 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
                     )
                 )
             elif lane in ("fabrication", "unreal"):
-                raise apply_mod.staged_lane(lane)
+                adapter_name = "freecad" if lane == "fabrication" else "unreal"
+                if adapter_name not in app.adapters:
+                    raise apply_mod.staged_lane(lane)
+                entity = str(args.get(f"{lane}_entity") or args.get("entity") or "")
+                if not entity:
+                    raise TeeError(
+                        "capture_apply_needs_entity",
+                        f"The {lane} lane needs its entity to correct.",
+                        fix=f"Pass {lane}_entity=<id> (tee_scene_summary lists ids).",
+                    )
+                result = apply_mod.apply_scene_offset(
+                    app,
+                    adapter_name,
+                    entity,
+                    float(row["mean_m"]),
+                    axis=str(args.get("axis") or "z"),
+                )
+                if lane == "fabrication" and "fc_drawing" in app.registry.names():
+                    # the A37 contract: the corrected model regenerates its sheet
+                    page = app.registry.call("fc_drawing", {"objects": [entity]})
+                    result["drawing"] = {
+                        key: page[key] for key in ("ok", "page", "svg", "views") if key in page
+                    }
+                applied.append(result)
             else:
                 raise TeeError(
                     "capture_apply_unknown_lane",
@@ -636,6 +662,8 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
                     "decision": {"type": "string"},
                     "lanes": {"type": "array", "items": {"type": "string"}},
                     "entity": {"type": "string"},
+                    "unreal_entity": {"type": "string"},
+                    "fabrication_entity": {"type": "string"},
                     "adapter": {"type": "string"},
                     "axis": {"type": "string"},
                 },

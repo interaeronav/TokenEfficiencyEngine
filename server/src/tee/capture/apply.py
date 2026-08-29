@@ -22,6 +22,9 @@ from tee.kernel.errors import TeeError
 
 DECISIONS = ("accept-as-built", "keep-design", "flag-for-site")
 AXES = {"x": 0, "y": 1, "z": 2}
+# (location prop key, meters -> adapter-native factor, unit label):
+# FreeCAD places via 'at' in millimeters; UE actors in centimeters (uu).
+LANE_UNITS = {"freecad": ("at", 1000.0, "mm"), "unreal": ("location", 100.0, "uu")}
 
 
 def record_decision(work_dir: Path, entry: dict[str, Any]) -> Path:
@@ -54,13 +57,14 @@ def apply_scene_offset(
             f"No entity '{entity_id}' in the {adapter_name} scene cache.",
             fix="List ids with tee_scene_summary; refresh=true if stale.",
         )
+    prop, factor, unit = LANE_UNITS.get(adapter_name, ("location", 1.0, "m"))
     location = list(entity.summary.get("location") or [0.0, 0.0, 0.0])
     while len(location) < 3:
         location.append(0.0)
-    location[AXES[axis]] = round(float(location[AXES[axis]]) + float(delta_m), 6)
+    location[AXES[axis]] = round(float(location[AXES[axis]]) + float(delta_m) * factor, 6)
     result = app.run_batch(
         adapter_name,
-        [{"op": "set", "id": entity_id, "props": {"location": location}}],
+        [{"op": "set", "id": entity_id, "props": {prop: location}}],
         label=f"apply-deviation:{entity_id}",
     )
     readback = cache.get(entity_id)
@@ -70,6 +74,7 @@ def apply_scene_offset(
         "checkpoint": result.get("checkpoint"),
         "moved_m": {axis: round(float(delta_m), 4)},
         "location": (readback.summary.get("location") if readback else None),
+        "units": unit,
         "revision": result.get("revision"),
     }
 

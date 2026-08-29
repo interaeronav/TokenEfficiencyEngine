@@ -91,6 +91,7 @@ def register_icp(
     work_dir: Path,
     max_rms_m: float | None = None,
     overlap_percent: int | None = None,
+    adjust_scale: bool = False,
 ) -> dict[str, Any]:
     """ICP-register `source` (the capture) onto `target` (design truth).
 
@@ -110,13 +111,23 @@ def register_icp(
         max_rms_m if max_rms_m is not None else cfg.get("icp_max_rms_m", DEFAULT_MAX_RMS_M)
     )
     work_dir.mkdir(parents=True, exist_ok=True)
-    log_path = work_dir / f"icp-{int(time.time())}.log"
+    stamp = int(time.time())
+    log_path = work_dir / f"icp-{stamp}.log"
+    registered_path = work_dir / f"registered-{stamp}.asc"
     cmd = [
         binary, "-SILENT", "-LOG_FILE", str(log_path), "-AUTO_SAVE", "OFF",
+        "-C_EXPORT_FMT", "ASC", "-PREC", "6",
         "-O", str(source), "-O", str(target), "-ICP",
     ]  # fmt: skip
+    if adjust_scale:
+        # video-derived SfM carries arbitrary scale: estimate it (7-DOF ICP)
+        # and REPORT it - the honesty band names where scale came from
+        cmd += ["-ADJUST_SCALE"]
     if overlap_percent:
         cmd += ["-OVERLAP", str(int(overlap_percent))]
+    # save the ALIGNED source cloud - downstream C2M must run on the
+    # registered cloud, never the raw one
+    cmd += ["-SAVE_CLOUDS", "FILE", str(registered_path)]
     output = _run(cmd, float(cfg.get("align_timeout_s", DEFAULT_TIMEOUT_S)), log_path)
     rms_match = _RMS_LINE.search(output)
     if rms_match is None:
@@ -146,13 +157,20 @@ def register_icp(
             fix="Improve overlap (scale references, more coverage) or raise "
             "[capture] icp_max_rms_m deliberately.",
         )
-    return {
+    result = {
         "rms_m": round(rms, 4),
         "gate_m": limit,
         "matrix": matrix,
         "frame": "target = design truth (locked datum); source transformed, target untouched",
         "log": str(log_path),
     }
+    if registered_path.is_file():
+        result["registered"] = str(registered_path)
+    if adjust_scale:
+        scale_match = re.search(r"[Ss]cale: *([0-9.eE+-]+)", output)
+        result["scale"] = float(scale_match.group(1)) if scale_match else "estimated (see log)"
+        result["scale_note"] = "scale from 7-DOF ICP, not GPS - relative accuracy only"
+    return result
 
 
 def terrain_op(
