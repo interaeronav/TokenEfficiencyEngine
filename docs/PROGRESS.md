@@ -4499,3 +4499,21 @@ economic justification (verifier-failed escalation or amortization
 over queued work, constants measured in R2) + hysteresis/swap-rate
 cap, all visible in the meter; TEE/Q pin suspends roaming; the R4
 routed arm pays its swap seconds inside its own benchmark row.
+
+## 2026-08-29 — A40 directed and scripted (owner: Okongo reality capture)
+
+Owner directed Meshroom/CloudCompare/QGIS integration for the next
+site visit's capture. Research 56 written (KB grounding live via the
+co-pilot — the corpus holds an end-to-end Namibian site-mapping
+playbook; kb_search also flagged the mirror stale → V0 hygiene item);
+the honest hardware finding recorded: Meshroom is CUDA-blocked on
+Apple Silicon (pluggable slot kept), engines are PhotogrammetrySession
++ ODM (arm64 probe) + CloudCompare (arm64 CLI C2M verified by open
+research) + QGIS (qgis_process + gateway front). CLAUDE_A40_SCRIPT.md
+authored: V0 probes/installs (batched ask) → V1 capture-protocol doc
+BEFORE the visit → V2 ingest/reconstruct → V3 georef/align to the
+locked datum → V4 the deviation engine (facts, decision menu, no
+auto-apply) → V5 checkpointed apply lanes → V6 full dry run on
+existing Dropbox site imagery → V7 close. Kickoff in TEE memory
+(a40-campaign). Campaign queue: A39 (router) and A40 both open —
+either order, never concurrent.

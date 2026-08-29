@@ -735,3 +735,23 @@ memory guard says the hardware is capable. Single occupancy
 unchanged; economic justification + anti-thrash hysteresis required
 and metered; an explicit TEE/Q pin suspends roaming; the routed
 benchmark arm carries its swap seconds in its own wall time.
+
+## 2026-08-29 — A40: the Okongo reality-capture lane (owner decision)
+
+The owner directed integrating Meshroom, CloudCompare and QGIS so the
+next Okongo site visit (iPhone 17 Pro Max structure photos + drone
+imagery) flows through TEE into as-built truth: updated architectural
+drawings, refreshed UE landscape and house, and Blender work as
+needed. Research 56 is the design of record; `CLAUDE_A40_SCRIPT.md`
+drives the build. The honest hardware substitution is recorded there:
+Meshroom is CUDA-blocked on Apple Silicon (kept as a pluggable
+CUDA-box slot, never faked); the shipping engines are Apple
+PhotogrammetrySession (structures, native), ODM (drone mapping,
+arm64-probed), CloudCompare (registration + cloud-to-mesh deviation —
+the lane's product), and QGIS via qgis_process + the gateway-fronted
+MCP plugin. Laws: TEE reports deviations, the owner decides design
+truth; the site datum is immutable; accuracy claims carry their
+source's honesty band; every apply is checkpointed. The pre-visit
+deliverables outrank all else: the capture-protocol doc (V1) and the
+full dry run on existing site imagery (V6) — the trip must not be the
+first test.

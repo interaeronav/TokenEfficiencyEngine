@@ -38,6 +38,9 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   A35/A33 rules.
 - The A39 router build (verifier-gated cloud↔local cascade) is driven
   by `CLAUDE_A39_SCRIPT.md`; research doc 55 is its design of record.
+- The A40 reality-capture lane (Okongo: photos/drone → as-built
+  deviation report → drawings/Blender/UE updates) is driven by
+  `CLAUDE_A40_SCRIPT.md`; research doc 56 is its design of record.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or
