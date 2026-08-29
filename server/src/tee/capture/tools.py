@@ -151,6 +151,7 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
         link_dir.mkdir(parents=True, exist_ok=True)
         for i, src in enumerate(inputs):
             target = link_dir / f"{i:04d}{src.suffix.lower()}"
+            target.unlink(missing_ok=True)  # reruns leave stale links behind
             try:
                 os.symlink(src, target)
             except OSError:
@@ -324,6 +325,7 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
 
         def worker() -> dict[str, Any]:
             try:
+                out_path.unlink(missing_ok=True)  # the session refuses overwrites
                 run = _run_helper(helper, inputs, out_path, detail, job_dir)
             finally:
                 app.machine.release_job(ledger_key)

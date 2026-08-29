@@ -134,6 +134,14 @@ class TeeApp:
                 Path(project_root) / ".tee" / "shadow",
                 cap_mb=float(scheduler_cfg.get("cap_mb", shadow.DEFAULT_CAP_MB)),
             )
+        # K1: QoS as law (admission + rank + aging) - [scheduler] qos = false
+        # restores plain FIFO, the degrade-to-static promise.
+        self.jobs.configure(
+            machine=self.machine,
+            qos=bool(scheduler_cfg.get("qos", True)),
+            aging_s=scheduler_cfg.get("aging_s"),
+        )
+        self.machine.set_queue_probe(self.jobs.queue_ages)
         # an explicit CLI flag enables; otherwise the project config decides
         self.allow_code_exec = allow_code_exec or bool(self.config.allow_code_exec)
         self.lock = threading.RLock()

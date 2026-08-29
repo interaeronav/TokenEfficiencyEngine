@@ -92,6 +92,7 @@ class MachineLedger:
         self._routes: dict[str, dict[str, int]] = {}
         self._swaps = {"explicit": 0, "implicit": 0, "refused": 0, "seconds_known": 0.0}
         self._last_refusal: str | None = None
+        self._queue_probe = None  # installed by the app (K1): () -> {queued, max_s}
 
     def register_job(self, key: str, engine: str) -> dict[str, Any]:
         spec = ENGINES.get(engine)
@@ -147,6 +148,24 @@ class MachineLedger:
             )
         return True, f"capable: {target:.0f} GB fits in {available:.0f} GB available"
 
+    def may_admit(self, engine: str) -> tuple[bool, str]:
+        """K1 admission: refuse only work the machine can NEVER place -
+        queueing behind current residents stays legal."""
+        spec = ENGINES.get(engine)
+        if spec is None:
+            return True, "no registry row - admitted"
+        target = float(spec["footprint_gb"])
+        available = self.total_gb - RESERVE_GB
+        if target > available:
+            return False, (
+                f"{engine} needs {target:.0f} GB and the machine can never "
+                f"place it ({available:.0f} GB after the {RESERVE_GB:.0f} GB reserve)"
+            )
+        return True, "placeable"
+
+    def set_queue_probe(self, probe) -> None:
+        self._queue_probe = probe
+
     # -- the merged meter (A42 R2; ONE meter, seam 2) ----------------------
 
     def record_task(self) -> None:
@@ -199,7 +218,7 @@ class MachineLedger:
                     ),
                 },
                 "scheduler": {
-                    "queue_age_s": "reserved (K1)",
+                    "queue_age_s": (self._queue_probe() if self._queue_probe else "reserved (K1)"),
                     "dispatch_reason": "reserved (K2)",
                     "shadow_delta": "reserved (K2; recorder live since K0)",
                 },

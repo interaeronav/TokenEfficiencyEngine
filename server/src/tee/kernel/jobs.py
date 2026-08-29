@@ -11,7 +11,6 @@ and joined at shutdown.
 
 from __future__ import annotations
 
-import queue
 import threading
 import time
 import traceback
@@ -20,6 +19,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from tee.kernel.errors import TeeError
+
+# K1 (A42): QoS rank order - interactive never behind batch. LAW only when
+# configured on; off = plain FIFO, today's behavior (degrade-to-static).
+QOS_RANK = {"interactive": 0, "standard": 1, "batch": 2, "maintenance": 3}
+DEFAULT_AGING_S = 120.0  # a queued job gains one rank per aged interval
 
 
 @dataclass
@@ -51,19 +55,43 @@ class _Job:
 
 class JobManager:
     def __init__(self, workers: int = 2, keep_finished: int = 50):
-        self._queue: queue.Queue[_Job | None] = queue.Queue()
+        self._pending: list[_Job] = []
         self._fns: dict[str, Callable[[], dict[str, Any]]] = {}
         self._jobs: dict[str, _Job] = {}
         self._lock = threading.Lock()
+        self._cv = threading.Condition(self._lock)
         self._counter = 0
         self._keep_finished = keep_finished
         self._stopping = False
+        # K1 knobs, set by configure(); defaults = today's behavior
+        self._qos_enabled = False
+        self._aging_s = DEFAULT_AGING_S
+        self._machine = None
         self._threads = [
             threading.Thread(target=self._worker, name=f"tee-job-{i}", daemon=True)
             for i in range(workers)
         ]
         for thread in self._threads:
             thread.start()
+
+    def configure(
+        self, *, machine=None, qos: bool | None = None, aging_s: float | None = None
+    ) -> None:
+        """K1 wiring: the ledger for admission, the qos law switch, aging."""
+        with self._lock:
+            if machine is not None:
+                self._machine = machine
+            if qos is not None:
+                self._qos_enabled = bool(qos)
+            if aging_s is not None:
+                self._aging_s = max(0.01, float(aging_s))
+
+    def queue_ages(self) -> dict[str, Any]:
+        """The meter's queue_age_s column (K1 fills what R2 reserved)."""
+        with self._lock:
+            now = time.time()
+            ages = [now - job.submitted_at for job in self._pending]
+        return {"queued": len(ages), "max_s": round(max(ages), 1) if ages else 0.0}
 
     def submit(
         self,
@@ -76,6 +104,17 @@ class JobManager:
         with self._lock:
             if self._stopping:
                 raise TeeError("shutting_down", "The server is shutting down.")
+            if self._qos_enabled and self._machine is not None and engine:
+                # K1 admission control: never accept work the ledger can
+                # never place - refuse at the door with the honest line.
+                admitted, reason = self._machine.may_admit(engine)
+                if not admitted:
+                    raise TeeError(
+                        "job_refused_admission",
+                        f"Admission refused for '{label}': {reason}",
+                        fix="Shrink the work or raise the machine; the queue "
+                        "never holds doomed jobs.",
+                    )
             self._counter += 1
             job = _Job(
                 id=f"job{self._counter}",
@@ -87,16 +126,39 @@ class JobManager:
             )
             self._jobs[job.id] = job
             self._fns[job.id] = fn
+            self._pending.append(job)
             self._prune_locked()
-        self._queue.put(job)
+            self._cv.notify()
         return job.id
+
+    def _select_locked(self) -> _Job | None:
+        """K1 selection: rank by QoS with aging so batch never starves;
+        qos off = plain FIFO, exactly today's order."""
+        if not self._pending:
+            return None
+        if not self._qos_enabled:
+            return self._pending.pop(0)
+        now = time.time()
+
+        def key(job: _Job) -> tuple[int, float]:
+            rank = QOS_RANK.get(job.qos, 1)
+            aged = int((now - job.submitted_at) // self._aging_s)
+            return (max(0, rank - aged), job.submitted_at)
+
+        best = min(self._pending, key=key)
+        self._pending.remove(best)
+        return best
 
     def _worker(self) -> None:
         while True:
-            job = self._queue.get()
-            if job is None:
-                return
-            with self._lock:
+            with self._cv:
+                while not self._pending and not self._stopping:
+                    self._cv.wait(timeout=1.0)
+                if self._stopping and not self._pending:
+                    return
+                job = self._select_locked()
+                if job is None:
+                    continue
                 fn = self._fns.pop(job.id, None)
                 if job.state != "queued" or fn is None:
                     continue  # cancelled while queued
@@ -158,10 +220,9 @@ class JobManager:
             return [j.to_payload() for j in self._jobs.values()]
 
     def shutdown(self) -> None:
-        with self._lock:
+        with self._cv:
             self._stopping = True
-        for _ in self._threads:
-            self._queue.put(None)
+            self._cv.notify_all()
         # daemon threads: no join - a stuck DCC call must not block exit
 
     def _prune_locked(self) -> None:

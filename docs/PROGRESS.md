@@ -5152,3 +5152,31 @@ prove the apply). `capture_register` gained 7-DOF ICP
 scale) and now saves the ALIGNED cloud (C2M must never run on the raw
 one); `[capture] odm_args` carries the max-res flags. T6's dry run is
 IN FLIGHT as this entry lands (nohup driver, staged log).
+
+## 2026-08-29 — A42 K1: QoS becomes law (+ T6 in flight, its rerun lessons already encoded)
+
+Suite 772 → **778 passed / 2 skipped**, gate exit 0.
+
+- **K1, behind the degrade-to-static switch** (`[scheduler] qos`,
+  default on; off = plain FIFO, byte-for-byte today's order, fixtured):
+  the job queue selects by QoS rank — **interactive never behind
+  batch** — with **aging** promoting starved batch work one rank per
+  interval (default 120 s); **admission control** refuses at the door
+  only work the ledger can NEVER place (`job_refused_admission`, the
+  honest line; queueing behind current residents stays legal); and the
+  meter's `queue_age_s` column — reserved by R2 — now FILLS from the
+  live queue probe. Cancel-while-queued still skips under the new
+  condition-variable loop. 6 fixtures.
+- **T6 dry run in flight** (nohup driver): the max-res ODM job runs
+  with `--feature-quality ultra` — learned from the image's own
+  `--help` after two flag guesses failed loudly (`--resize-to` no
+  longer exists in ODM 3.6). **Structure sets: 5/6 reconstructed at
+  FULL detail live** (3.2–36.7 s each — the real-set ladder rows;
+  IMG_0286 refused honestly on overlap, a protocol lesson).
+  Rerun robustness paid for and encoded: stale symlinks unlinked
+  before relink; the helper's output unlinked before rerun
+  (PhotogrammetrySession refuses overwrites).
+- **R4 harness written** (`benchmarks/run_r4_benchmark.py`, four arms
+  over the mixed set + T6 field cases when they land) — runs on a
+  QUIET machine after T6, because contention would pollute the
+  adoption row.
