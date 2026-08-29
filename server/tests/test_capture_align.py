@@ -57,9 +57,7 @@ def _clouds(tmp_path):
 
 def test_icp_parses_rms_and_matrix_and_states_the_frame(tmp_path):
     src, dst = _clouds(tmp_path)
-    out = align.register_icp(
-        src, dst, cfg={"cloudcompare": _cc(tmp_path)}, work_dir=tmp_path / "w"
-    )
+    out = align.register_icp(src, dst, cfg={"cloudcompare": _cc(tmp_path)}, work_dir=tmp_path / "w")
     assert out["rms_m"] == 0.0123
     assert out["matrix"][0][3] == 0.05 and out["matrix"][1][3] == 0.02
     assert "design truth" in out["frame"] and "target untouched" in out["frame"]
@@ -78,7 +76,10 @@ def test_icp_gate_refuses_confident_misregistration(tmp_path):
 def test_icp_refuses_when_no_convergence_line(tmp_path):
     src, dst = _clouds(tmp_path)
     fake = tmp_path / "fake-empty"
-    fake.write_text('#!/bin/sh\nprev=""\nfor a in "$@"; do [ "$prev" = -LOG_FILE ] && : > "$a"; prev="$a"; done\nexit 0\n')
+    fake.write_text(
+        '#!/bin/sh\nprev=""\nfor a in "$@"; do'
+        ' [ "$prev" = -LOG_FILE ] && : > "$a"; prev="$a"; done\nexit 0\n'
+    )
     fake.chmod(0o755)
     with pytest.raises(TeeError) as excinfo:
         align.register_icp(src, dst, cfg={"cloudcompare": str(fake)}, work_dir=tmp_path / "w")
@@ -98,9 +99,7 @@ def test_explicit_wrong_binary_path_refuses_loudly(tmp_path):
 
 def test_missing_inputs_refuse(tmp_path):
     with pytest.raises(TeeError) as excinfo:
-        align.register_icp(
-            tmp_path / "absent.xyz", tmp_path / "x", cfg={}, work_dir=tmp_path / "w"
-        )
+        align.register_icp(tmp_path / "absent.xyz", tmp_path / "x", cfg={}, work_dir=tmp_path / "w")
     assert excinfo.value.code == "capture_align_missing_input"
 
 

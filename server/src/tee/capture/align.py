@@ -106,7 +106,9 @@ def register_icp(
     binary = _binary(
         cfg, "cloudcompare", _CC_DEFAULT, "brew install --cask cloudcompare (2.13.2 probed)"
     )
-    limit = float(max_rms_m if max_rms_m is not None else cfg.get("icp_max_rms_m", DEFAULT_MAX_RMS_M))
+    limit = float(
+        max_rms_m if max_rms_m is not None else cfg.get("icp_max_rms_m", DEFAULT_MAX_RMS_M)
+    )
     work_dir.mkdir(parents=True, exist_ok=True)
     log_path = work_dir / f"icp-{int(time.time())}.log"
     cmd = [
@@ -127,9 +129,7 @@ def register_icp(
     # CloudCompare writes the transform to a sidecar next to the source;
     # fall back to matrix rows in the log/console for other builds.
     matrix = None
-    sidecars = sorted(
-        Path(source).parent.glob(f"{Path(source).stem}_REGISTRATION_MATRIX*.txt")
-    )
+    sidecars = sorted(Path(source).parent.glob(f"{Path(source).stem}_REGISTRATION_MATRIX*.txt"))
     text = sidecars[-1].read_text() if sidecars else output
     rows = [
         [round(float(v), 6) for v in m.groups()]
@@ -175,9 +175,7 @@ def terrain_op(
         raise TeeError(
             "capture_align_missing_input", f"No DEM at {dem}.", fix="Point at a raster file."
         )
-    binary = _binary(
-        cfg, "qgis_process", _QGIS_DEFAULT, "brew install --cask qgis (4.2.1 probed)"
-    )
+    binary = _binary(cfg, "qgis_process", _QGIS_DEFAULT, "brew install --cask qgis (4.2.1 probed)")
     algorithm, product = TERRAIN_OPS[op]
     work_dir.mkdir(parents=True, exist_ok=True)
     suffix = ".gpkg" if op == "contours" else ".tif"
