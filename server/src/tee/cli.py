@@ -26,6 +26,9 @@ def _build_blender_app(project: str, host: str, port: int, allow_code_exec: bool
     adapter = BlenderAdapter(BlenderWire(host=host, port=port))
     app = TeeApp({"blender": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
     register_blender_tools(app, adapter)
+    from tee.adapters.blender.homebuilder import register_hb_tools
+
+    register_hb_tools(app, adapter)  # the joinery lane (A37); refuses w/ fix if HB absent
     return app
 
 

@@ -4012,3 +4012,44 @@ the brief's arithmetic exactly** → dimensioned TechDraw sheet — SVG
 budgeted capture 8,943 B. Machine etiquette: UE quit in-engine
 (`{}`-ack via execute_editor_python, port 8000 freed), the probe
 FreeCAD instance quit, ports verified freed.
+
+## 2026-08-29 — A37 P5.1: the Home Builder joinery lane + the closet run (meter on = the P6 rider)
+
+`tee/adapters/blender/homebuilder.py`: hb_status / hb_room / hb_cabinet
+/ hb_cutlist / hb_layout as virtual tools over the EXISTING Blender
+bridge — one generated script per call, mm end to end, probe-with-
+install-fix when HB is absent. 6 hermetic tests (codegen mm→m, module
+paths, refusal shapes, csv, error mapping); registered by `tee serve
+--adapter blender`.
+
+**The drift find of the campaign (SI-B11):** HB 5.1.0's own
+set_input/get_input and every modifier-input driver path use the
+`mod[identifier]` idprop idiom that **Blender 5.2 removed** (writes go
+to `mod.properties.inputs.<ident>.value` now — proven by a live probe
+matrix). The lane ships a session shim (old-idiom-first, four methods
+patched) — with it: walls, cabinets, cut lists, layouts all work.
+One deeper chain stays broken and is RECORDED, not hidden: interior
+cages read default dims, so shelf boards derive oversize; the cut list
+reports the model's truth, the engine export excludes interior parts
+with the reason in-line, and the defect is exactly joinery_check
+material (P5.3). Also found: HB's elevation auto-dimensioning only
+engages through its layout-settings path (the lane applies it; title
+block text has a headless font quirk — cosmetic, recorded).
+
+**The closet run, live, METER ON (the P6 live fixture):** brief (3.6 m
+wall, 1200×2200×600 wardrobe, 900-wide dresser) → hb_room 0.01 s +
+two hb_cabinet 0.03 s → checked model (41 entities; 9 + 12 cut parts)
+→ **hb_cutlist: 21 parts with real dimensions** (Side 2200×600×19.1;
+csv written) → **hb_layout: HB's own dimensioned plan + elevation
+rendered** (1.2 m / 0.9 m annotations visible; PNGs delivered to the
+owner in-session) → wall-scoped GLB (mesh-only, annotations + wire
+cages + the defective interior parts excluded, reasons in-line) →
+**live UE import: scale band "snap" ×0.9787, actor created; the
+read-back verifier honestly answers ok:false** — multi-mesh GLBs read
+back root-component bounds only (a real as_import limitation, now on
+record; P4's single-mesh read-back remains exact). Meter recorded the
+session (768 tok / 6 wire calls) and the handoff brief held 91 tok.
+Machine etiquette: UE quit in-engine ({} ack, port freed), all bridge
+Blenders terminated, zero strays verified.
+
+Suite **704 passed / 2 skipped** (698 + 6), ruff clean.
