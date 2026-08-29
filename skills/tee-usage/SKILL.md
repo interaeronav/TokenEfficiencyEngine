@@ -36,13 +36,18 @@ judgment on the previous step's output.
 
 ## Finding capability
 
-The 17 always-loaded tools are the kernel. Everything else (~74–82
+The 17 always-loaded tools are the kernel. Everything else (~74–95
 virtual tools, adapter-dependent) is behind `tee_search_tools` →
 `tee_describe_tool` → `tee_call`:
 `ex_*` extraction, `as_*` assets, `gd_*` design, `pin_*` marker pins
 (Unreal), modeling/physics (`wall_with_openings`, `sim_settle`,
-`plaus_check`, `mat_assign`), `uefn_*`. Search by capability words ("bake
-physics", "asset search", "verse lint") — don't guess names.
+`plaus_check`, `joinery_check`, `mat_assign`), `uefn_*`, fabrication
+(`fc_drawing`, `fc_export` on the FreeCAD adapter; `hb_*` closets and
+cut lists on Blender), gateway-fronted backends (`<backend>.<tool>`,
+e.g. `fs.read_text_file` — see gw_status), session tools
+(`report_savings`, `handoff`, `board_compose`). Search by capability
+words ("bake physics", "cut list", "drawing sheet") — don't guess
+names.
 
 ## Web reading
 

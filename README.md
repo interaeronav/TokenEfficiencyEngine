@@ -62,6 +62,16 @@ tools in the wild; 75+ further virtual tools (on the fake adapter;
 adapter-specific lanes add more) load progressively through
 `tee_search_tools`.
 
+The same discipline now reaches beyond the DCCs: the **Gateway** fronts
+any MCP stdio server through the existing meta-tools (95.4% measured on
+the filesystem reference server), the **FreeCAD fabrication lane** turns
+briefs into checked models, dimensioned drawing sheets and STEP/GLB
+(92.4% per completed drawing-set), the **Home Builder joinery lane**
+produces cut lists and dimensioned layouts with `joinery_check`'s
+source-cited rules over the result, and every session can answer for
+itself with the savings meter (`report_savings`) and a portable
+`handoff` brief.
+
 ## Scope
 
 | Surface | Languages | Interfacing targets |

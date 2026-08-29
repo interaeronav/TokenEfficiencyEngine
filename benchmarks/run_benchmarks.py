@@ -1141,6 +1141,171 @@ def run_gateway_scenario() -> dict | None:
         app.shutdown()
 
 
+
+# --------------------------------------------------------------------------
+# Fabrication scenario (A37 P8): tokens per completed drawing-set.
+# Naive = the FreeCAD-MCP genre pattern: all tool schemas in context, one
+# op per call, a screenshot with every response, the "blueprint" as pixels.
+# TEE = the P4 lane: solved-sketch batches (one script per batch), budgeted
+# read-backs, the dimensioned sheet + STEP as FILES with document-read
+# dimension values. Needs the live FreeCAD MCP bridge on :9875; skips clean.
+# --------------------------------------------------------------------------
+
+
+def run_fabrication_scenario() -> dict | None:
+    import socket as _socket
+
+    with _socket.socket() as probe_sock:
+        probe_sock.settimeout(0.5)
+        if probe_sock.connect_ex(("127.0.0.1", 9875)) != 0:
+            print("fabrication scenario skipped (no FreeCAD RPC bridge on :9875)")
+            return None
+    try:
+        from tee.adapters.freecad.adapter import FreeCADAdapter
+        from tee.adapters.freecad.tools import register_freecad_tools
+        from tee.app import TeeApp
+        from tee.gateway.wire import StdioBackendWire
+    except ImportError as exc:
+        print(f"fabrication scenario skipped ({exc})")
+        return None
+
+    sketch = {
+        "points": [
+            {"id": "a", "at": [0, 0], "fixed": True},
+            {"id": "b", "at": [590, 5], },
+            {"id": "c", "at": [604, 396]},
+            {"id": "d", "at": [-3, 402]},
+        ],
+        "lines": [
+            {"id": "ab", "from": "a", "to": "b"},
+            {"id": "bc", "from": "b", "to": "c"},
+            {"id": "cd", "from": "c", "to": "d"},
+            {"id": "da", "from": "d", "to": "a"},
+        ],
+        "constraints": [
+            {"kind": "distance", "a": "a", "b": "b", "value": 600},
+            {"kind": "distance", "a": "b", "b": "c", "value": 400},
+            {"kind": "horizontal", "line": "ab"},
+            {"kind": "vertical", "line": "bc"},
+            {"kind": "horizontal", "line": "cd"},
+            {"kind": "vertical", "line": "da"},
+        ],
+    }
+
+    # -- naive arm: raw MCP client, default screenshots -------------------
+    import base64 as _base64
+    import io as _io
+    import struct as _struct
+
+    def png_dims(data: bytes) -> tuple[int, int]:
+        if len(data) > 24 and data[:8] == b"\x89PNG\r\n\x1a\n":
+            w, h = _struct.unpack(">II", data[16:24])
+            return int(w), int(h)
+        return (960, 540)
+
+    wire = StdioBackendWire("fab-naive", "uvx freecad-mcp")
+    naive = 0
+    naive_calls = 0
+    try:
+        wire.start()
+        tools = wire.tools_list()
+        naive += estimate_tokens(tools)  # every schema in context, all session
+        steps = [
+            ("create_document", {"name": "NaiveFab"}),
+            ("execute_code", {"code": "import FreeCAD, Part\ndoc = FreeCAD.getDocument('NaiveFab')\nbox = doc.addObject('Part::Box', 'Panel')\nbox.Length, box.Width, box.Height = 600, 400, 18\ndoc.recompute()"}),
+            ("execute_code", {"code": "import FreeCAD\ndoc = FreeCAD.getDocument('NaiveFab')\ntool = doc.addObject('Part::Box', 'SlotTool')\ntool.Length, tool.Width, tool.Height = 100, 60, 6\ntool.Placement.Base = FreeCAD.Vector(250, 170, 13)\ncut = doc.addObject('Part::Cut', 'Slotted')\ncut.Base = doc.Panel\ncut.Tool = tool\ndoc.recompute()"}),
+            ("get_objects", {"doc_name": "NaiveFab"}),
+            ("get_view", {"view_name": "Isometric"}),  # the "blueprint" as pixels
+            ("execute_code", {"code": "import Part, FreeCAD\nPart.export([FreeCAD.getDocument('NaiveFab').Slotted], '/tmp/naive_fab.step')"}),
+        ]
+        for name, args in steps:
+            naive += estimate_tokens({"name": name, "arguments": args})
+            try:
+                result = wire.tools_call(name, args)
+            except Exception as exc:
+                print(f"fabrication naive step {name} failed ({exc}); counted so far")
+                break
+            naive_calls += 1
+            for block in result.get("content") or []:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "text":
+                    naive += estimate_tokens(str(block.get("text")))
+                elif block.get("type") == "image":
+                    try:
+                        raw = _base64.b64decode(str(block.get("data", "")))
+                        w, h = png_dims(raw)
+                    except Exception:
+                        w, h = 960, 540
+                    naive += image_tokens(w, h)
+        wire.tools_call("execute_code", {"code": "import FreeCAD\ntry: FreeCAD.closeDocument('NaiveFab')\nexcept Exception: pass"})
+    finally:
+        wire.close()
+
+    # -- TEE arm: the P4 lane through the meter ---------------------------
+    project = Path(tempfile.mkdtemp(prefix="tee-bench-fab-"))
+    adapter = FreeCADAdapter(doc="BenchFab")
+    adapter.wire.py("import FreeCAD\ntry: FreeCAD.closeDocument('BenchFab')\nexcept Exception: pass")
+    app = TeeApp({"freecad": adapter}, project_root=project)
+    register_freecad_tools(app, adapter)
+    tee = 0
+    tee_calls = 0
+
+    def record(request, result):
+        nonlocal tee, tee_calls
+        tee += estimate_tokens(request) + estimate_tokens(result)
+        tee_calls += 1
+
+    try:
+        ops1 = [
+            {"op": "create", "kind": "sketch", "name": "profile", "props": sketch},
+            {"op": "create", "kind": "pad", "name": "panel", "props": {"sketch": "profile", "length": 18}},
+        ]
+        record(ops1, app.run_batch("freecad", ops1, label="panel"))
+        slot = {k: (v if k != "points" else [{"id": "a", "at": [250, 170], "fixed": True}] + v[1:]) for k, v in sketch.items()}
+        slot["constraints"] = [
+            {"kind": "distance", "a": "a", "b": "b", "value": 100},
+            {"kind": "distance", "a": "b", "b": "c", "value": 60},
+            {"kind": "horizontal", "line": "ab"},
+            {"kind": "vertical", "line": "bc"},
+            {"kind": "horizontal", "line": "cd"},
+            {"kind": "vertical", "line": "da"},
+        ]
+        ops2 = [
+            {"op": "create", "kind": "sketch", "name": "slot", "props": slot},
+            {"op": "create", "kind": "pocket", "name": "slotted", "props": {"sketch": "slot", "target": "panel", "depth": 5}},
+        ]
+        record(ops2, app.run_batch("freecad", ops2, label="slot"))
+        drawing_args = {
+            "objects": ["slotted"],
+            "views": ["front", "top"],
+            "dimensions": [{"view": 1, "type": "ExtentX"}, {"view": 1, "type": "ExtentY"}, {"view": 0, "type": "ExtentY"}],
+            "formats": ["svg", "pdf", "dxf"],
+            "name": "BenchSheet",
+            "out_dir": str(project),
+        }
+        record(drawing_args, app.registry.call("fc_drawing", drawing_args))
+        export_args = {"objects": ["slotted"], "format": "step", "path": str(project / "panel.step")}
+        record(export_args, app.registry.call("fc_export", export_args))
+    finally:
+        adapter.wire.py("import FreeCAD\ntry: FreeCAD.closeDocument('BenchFab')\nexcept Exception: pass")
+        app.shutdown()
+
+    row = {
+        "naive_tokens": naive,
+        "naive_calls": naive_calls,
+        "tee_tokens": tee,
+        "tee_calls": tee_calls,
+        "saving": 100.0 * (1 - tee / naive) if naive else 0.0,
+    }
+    print(
+        f"fabrication drawing-set: naive (schemas + per-op screenshots) "
+        f"{naive:,} tok / {naive_calls} calls -> tee {tee:,} tok / {tee_calls} "
+        f"calls ({row['saving']:.1f}% saved)"
+    )
+    return row
+
+
 # --------------------------------------------------------------------------
 # Runner
 # --------------------------------------------------------------------------
@@ -1347,8 +1512,10 @@ def main() -> None:
     kb_row = _safe(run_kb_scenario)
     web_row = _safe(run_web_scenario)
     gateway_row = _safe(run_gateway_scenario)
+    fabrication_row = _safe(run_fabrication_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
-                  surface_row, jurisdiction_row, kb_row, web_row, gateway_row)
+                  surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
+                  fabrication_row)
 
 
 def _safe(fn):
@@ -1388,7 +1555,8 @@ def _carry_forward(section_header: str) -> list[str]:
 
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
-                  kb_row=None, web_row=None, gateway_row=None) -> None:
+                  kb_row=None, web_row=None, gateway_row=None,
+                  fabrication_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -1631,6 +1799,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _gateway_section(gateway_row)
     else:
         lines += _carry_forward("## Gateway: fronting a many-tool MCP backend")
+    if fabrication_row is not None:
+        lines += _fabrication_section(fabrication_row)
+    else:
+        lines += _carry_forward("## Fabrication: tokens per completed drawing-set")
     lines += [
         "",
         f"*Generated by `benchmarks/run_benchmarks.py` against Blender "
@@ -1666,6 +1838,29 @@ def _web_section(w: dict) -> list[str]:
         lines += ["", *w["notes"]]
     return lines
     print(f"\nwrote {out}")
+
+
+def _fabrication_section(f: dict) -> list[str]:
+    return [
+        "",
+        "## Fabrication: tokens per completed drawing-set (A37)",
+        "",
+        "The task: a 600x400x18 mm panel with a pocketed slot, dimensioned",
+        "drawing sheet, STEP out - against live FreeCAD 1.1.3. **Naive** is",
+        "the FreeCAD-MCP genre pattern: every tool schema in context, one op",
+        "per call, a screenshot in every response, the 'blueprint' as pixels.",
+        "**TEE** solves sketches server-side, compiles each batch to ONE",
+        "bridge script, budgets read-backs, and derives the sheet FROM the",
+        "model (dimension values read from the document - the research-52",
+        "'not suitable' failure mode structurally closed).",
+        "",
+        "| | Tokens | Calls | Saving |",
+        "|---|---|---|---|",
+        f"| naive (schemas + per-op screenshots) | {f['naive_tokens']:,} | "
+        f"{f['naive_calls']} | |",
+        f"| TEE (solved batches + sheet files) | {f['tee_tokens']:,} | "
+        f"{f['tee_calls']} | **{f['saving']:.1f}%** |",
+    ]
 
 
 def _gateway_section(g: dict) -> list[str]:

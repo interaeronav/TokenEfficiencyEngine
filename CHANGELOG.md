@@ -3,6 +3,55 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased (0.5.0 candidate) — the A37 merged campaign
+
+- **TEE Gateway**: front ANY MCP stdio server through the existing
+  meta-tools — prefixed virtual tools, untrusted-content caps, budgeted
+  results, declared-only caching, crash respawn, and a fingerprint
+  drift firewall (`gw_status` / `gw_accept`; `[gateway]` config;
+  docs/setup-gateway.md). Live row: 35,238 → 1,629 tok (95.4%) on the
+  filesystem reference server.
+- **FreeCAD fabrication lane**: a full adapter (`tee serve --adapter
+  freecad`) over the neka-nat bridge — solved-sketch/pad/pocket batches
+  compiled to one script per batch, saveCopy checkpoints, budgeted
+  capture, `fc_drawing` (TechDraw sheets with document-read dimension
+  values; svg/pdf/dxf) and `fc_export` (STEP/GLB). Row: 10,654 → 805
+  tok per completed drawing-set (92.4%). docs/setup-freecad.md.
+- **Home Builder joinery lane** (`hb_*` on the Blender adapter): rooms,
+  parametric cabinets, cut lists read from the model's geometry-node
+  inputs, HB's own dimensioned plan/elevation layouts rendered to
+  files — plus the Blender-5.2 compat shim for HB 5.1.0's removed
+  modifier-input idiom (SI-B11).
+- **joinery_check**: 7 source-cited rules (32 mm system, hinge boring/
+  collisions, hardware-first carcass/runner fit, role-aware part
+  envelopes, hanging depth), each re-verified at its cited source per
+  A30 with the verification state on every finding; missing model data
+  answers `not_evaluated`. `hb_joinery_spec` collects specs from live
+  scenes.
+- **kb_propose**: gated KB authoring into `.tee/kb-staging/` only
+  (A31 preserved by construction; owner review workflow in
+  docs/setup-kb.md).
+- **Savings meter + handoff**: a real request/response ledger,
+  `report_savings` with labelled naive estimates priced by the measured
+  benchmark ratios, a compact recap block, and a ≤500-token portable
+  `handoff` brief.
+- **Chore-engine switch profiles**: `llm_switch` (the TEE/Q14B ↔
+  TEE/Q27B chat phrases), q14b default everywhere, persisted choice,
+  opt-in managed lifecycle with verified single occupancy and job-token
+  cold loads (docs/setup-local-llm.md §Switch profiles).
+- **board_compose**: styled SVG technical boards from live artifacts
+  (renders, sheets, tables, fact lines); deck polish stays host-side by
+  design.
+- **kb_search honesty + the kb_hint floor**: weak top matches carry a
+  note (no-strong / single-word); the web answer's KB hint suppresses
+  on no-strong and routes single-word matches through the kb-rerank
+  chore (SI-B10 closed — threshold picked from measured score
+  distributions).
+- Kernel: `AdapterContract` ships in the wheel as the adapter kit's
+  runnable acceptance (docs/adapter-kit.md); `ToolRegistry.unregister`
+  for runtime re-pins. Always-loaded surface unchanged: 17 tools /
+  2,028 tok.
+
 ## 0.4.0 — 2026-08-29
 
 The A35 shrink-campaign release (owner-approved bump): smaller, faster,

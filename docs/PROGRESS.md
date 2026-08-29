@@ -4123,3 +4123,58 @@ plan, and a scene-facts panel — dimensions, part counts, the UE import
 outcome, the meter reading — every number from the model, not memory).
 
 Suite **711 passed / 2 skipped** (708 + 3), ruff clean.
+
+## 2026-08-29 — A37 P8: campaign closing ledger (the merged build: roadmap × fabrication)
+
+Eleven phases in two sessions; every acceptance recorded live in this
+file. The full battery re-ran at close on this machine (live headless
+Blender 5.2 + live UE 5.8.1 + live FreeCAD 1.1.3, editors quit
+in-engine after, ports verified freed, zero stray processes).
+
+| Metric | Campaign start (A35 close) | A37 close | Why |
+|---|---|---|---|
+| server suite | 613 / 2 skipped | **711 / 2** | +98 across gateway (10), kit (24), profiles (17), kb floor (7), meter (7), fc adapter (17), hb lane (6), joinery (4), boards (3), kb_propose (3) |
+| always-loaded surface | 2,028 tok / 17 tools | **2,028 / 17** | the campaign's LAW, held by test: eleven features, zero always-loaded growth |
+| virtual tools (fake flavor) | 81 (flat 10,609) | **86 (flat 11,396, 82.2% saved)** | the long tail grew; the wire did not |
+| benchmark bars | scenes 90.3 / extraction 93.1 / fix-loop 47.9 / assets 94.0 / UE 93.9 / plaus 95.6 / kb 96.7 / web 95.3 | **all identical at close** (extraction naive ±4 fixture noise) | zero wrong-way rows |
+| NEW: gateway row | — | **35,238 → 1,629 tok (95.4%)** live filesystem server | the UE-proxy precedent generalized to any MCP backend |
+| NEW: fabrication row | — | **10,654 → 805 tok (92.4%)** per completed drawing-set, live FreeCAD | and TEE's artifact is the better one: document-read dimensions vs pixels |
+| artifacts | five, 0.4.0 | rebuilt at 0.4.0 stamps (wheel 418,988 B, +55 KB for all A37 code); mcpb rebuilt; **wheel rehearsed in a clean venv** (serverInfo 0.4.0, 17 tools, board_compose answers over the wheel) | version bump stays the owner's call |
+| live acceptances | — | P0-S 14B→27B→14B round trip; P2 fs+mem fronted; P4 brief→model→sheet[18/400/600 from the document]→STEP/GLB→UE verify ok; P5.1 closet run meter-on (cut list, dimensioned layouts, UE snap import); P5.3 joinery_check catching a REAL defect first run; P7 two boards delivered | each recorded in its dated entry |
+
+**Decisions the probes made** (research 53 addenda): one bridge
+(neka-nat) as the fabrication GUI transport, freecadcmd headless for
+CI/DXF/STEP (#5710 confirmed live); filesystem+memory as the gateway
+references.
+
+**Found-and-fixed beyond the plan, by the campaign's own verification:**
+the fourth and fifth live kb_hint misfires (out-of-sample P0-F
+validation); the pressure-pattern false positive on Epic's idle
+services daemon; three FreeCAD 1.1.3 API drifts (getRawValue, extent
+dim types, the same-dispatch 0.0 cache) probed and encoded in tests;
+Blender 5.2's removed modifier-input idiom breaking HB 5.1.0 (SI-B11:
+session shim shipped, upstream material) with the deeper interior-cage
+chain recorded and EXCLUDED-with-reasons, then caught live by
+joinery_check as its first real finding; the as_import multi-mesh
+read-back limitation recorded honestly.
+
+**Deviations from the script, reasoned in place:** P5.2/P6/P7 were
+worked ahead of install-blocked P4/P5.1 per the interleaving allowance;
+setup-gateway's FreeCAD section shipped probe-pending first and was
+upgraded to live-verified the same day (A30 outranks the section plan);
+the P6 closet-with-meter rider ran inside P5.1's acceptance.
+
+**Owner-decision list (recommendations, deliberately not made):**
+1. **Version bump: 0.5.0 recommended** (the A37 script's expected
+   close). Additive tool surface (gateway, fc/hb lanes, joinery_check,
+   kb_propose, meter/handoff, boards, llm_switch), kb_search gains
+   notes on weak tops, batch `checkpoint` unchanged since 0.4.0.
+   CHANGELOG §Unreleased is written for it.
+2. The kb-staging draft `joinery.hinge_standards` awaits review
+   (accept/reject per docs/setup-kb.md).
+3. SI-B11's upstream patch to Home Builder (the 5.2 input-idiom shim)
+   is ready material if you want it filed.
+4. Tagging stays yours, as always.
+
+`tee_remember` updated with the close-out. CI: push + first-run
+observation is the last step of this session.
