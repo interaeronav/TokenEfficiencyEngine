@@ -474,7 +474,7 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             cfg=app.llm_cfg,
             ledger=app.machine,
             input_pointer="deviation-facts",
-            policy="greedy" if scheduler_cfg.get("dispatch") else "static",
+            policy="greedy" if scheduler_cfg.get("dispatch", True) else "static",
         )
         return routed["result"]["lines"] if routed.get("ok") else None
 

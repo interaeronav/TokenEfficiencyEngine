@@ -108,3 +108,18 @@ def test_pin_outranks_greedy(tmp_path):
     assert routed["ok"] and routed["engine"] == "q27b-bare"
     assert {c["model"] for c in calls} == {"fake-27b"}
     assert ledger.meter_block()["scheduler"]["dispatch_reason"]["pinned"] == 1
+
+
+def test_dispatch_defaults_on_after_the_replay_gate(tmp_path):
+    # K2 went live 2026-08-29: the binding replay passed (every
+    # disagreement greedy-better-by-estimate), so greedy is the default
+    # and [scheduler] dispatch = false restores static.
+    from tee.app import TeeApp
+    from tee.kernel.adapter import FakeAdapter
+
+    project = tmp_path / "proj"
+    project.mkdir()
+    app = TeeApp({"fake": FakeAdapter()}, project_root=project)
+    scheduler_cfg = dict(app.config.scheduler or {})
+    assert scheduler_cfg.get("dispatch", True) is True
+    app.shutdown()

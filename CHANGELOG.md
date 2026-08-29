@@ -3,6 +3,47 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased (0.6.0 candidate — Gate A, trip-ready)
+
+The A42 grand campaign through Gate A: the reality-capture lane, the
+verifier-gated router, and the kernel scheduler's shadow-to-law arc
+(suite 716 → 788+/2; always-loaded LAW 2,028 tok / 17 tools unchanged —
+every new capability ships virtual).
+
+- **Reality capture (`tee/capture/`)**: `capture_ingest` (extract-store
+  sets + the DJI-spectrum resolver — correction mode by shutter type,
+  honesty band from the files' own RTK evidence, priors, per-camera
+  splits), `capture_reconstruct` (PhotogrammetrySession ladder
+  preview→raw; ODM-in-Docker with `--dsm --dtm` and per-verdict
+  rolling-shutter correction; disk/engine/count gates), `capture_terrain`
+  (contours/hillshade/dem_diff headless), `capture_register` (ICP with a
+  refusing RMS gate; 7-DOF scale REPORTED and degenerate collapses
+  REFUSED; the aligned cloud feeds C2M), `capture_deviate` (budgeted
+  per-region facts, severities, element names, the decision menu — never
+  auto-applied), `capture_apply` (owner-decision only; three lanes with
+  per-adapter units — UE cm, FreeCAD mm — checkpointed with read-back;
+  the fabrication leg regenerates its TechDraw sheet). The capture
+  protocol doc ships with the dry run's lessons folded in.
+- **The router (A39 heart)**: verifier-gated cascade — resident engine
+  first, deterministic verdicts, ledger-gated swaps, a budgeted
+  pointer-only client brief; the owner's TEE/Q pin suspends roaming
+  (TEE/AUTO lifts). Swap costs measured, not assumed: 1.1 s to the
+  14B+a2, 18.0 s to the 27B bf16 — an order under the spec guesses.
+- **ONE machine ledger + merged meter**: engine registry in the K-layer
+  schema; jobs register as residents (swaps refused with the honest
+  line while they run); `report_savings` carries per-engine
+  calls/verified, escalation rate, swap and queue columns together.
+- **The kernel scheduler (K0–K3)**: task descriptors + a shadow recorder
+  tracing every dispatch at ~27 µs (off-switch honors degrade-to-
+  static); QoS as law — interactive never behind batch, aging, admission
+  control, worker reservation, backpressure — FIFO restored exactly by
+  one switch; greedy dispatch exists behind `[scheduler] dispatch` plus
+  a replay gate over the campaign's own traces.
+- **Chores r4**: `phrase_deviation` under the numbers-verbatim verifier.
+- **Docs**: setup-reality-capture.md; the router section of
+  setup-local-llm.md with the measured swap costs and 0.30 ms route
+  wall.
+
 ## 0.5.1 — 2026-08-29
 
 The A38 shrink round two: the 0.5.0 surface dieted with every bar held

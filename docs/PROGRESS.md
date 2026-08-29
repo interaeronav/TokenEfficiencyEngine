@@ -5246,3 +5246,39 @@ rehearsal = T5's live throwaway-actor apply in the running editor
 room-pans, references make numbers absolute); T6's chores + jobs all
 recorded by the shadow layer (R4/K2 workload). DCC apps closed; the
 machine is quiet for the benchmark sequence.
+
+## 2026-08-29 — A42 R4: the four-arm row — the router earns adoption
+
+24 mixed-difficulty cases (the R0 set + 2 field phrasing cases from
+the T6 report), live engines, quiet machine, the routed arm's swaps
+inside its wall. Full row in RESULTS.md; the verdict:
+
+| arm | verified | wall s | client tok |
+|---|---|---|---|
+| all-q14b | 21/24 | 50.8 | 0 |
+| **routed** | **24/24** (22 local + 2 escalated) | 125.8 | **1,667** |
+| all-q27b | 18/24 | 211.7 | 0 |
+| all-client | 24/24 by construction | — | 19,603 |
+
+The cascade is the ONLY arm matching the reference tier's verified
+quality, at **91.5% fewer client tokens** than handing everything to
+the client — it verified 22/24 locally and escalated exactly the two
+cases both engines provably fail (the rerank cliff), each as a
+budgeted pointer-only brief. all-q27b came in WORSE than all-q14b
+(18 vs 21) at 4× the wall — R0's non-monotonic ladder re-proven on
+the adoption row itself. Escalation rate 0.083; 3 implicit swaps
+counted in-wall. **The router stays.**
+
+## 2026-08-29 — A42 K2 CLOSED: the replay gate passed — greedy dispatch is LIVE
+
+The binding replay over the campaign's own traces: 2 chore dispatches
+(thin but real — and a finding: standalone benchmark harnesses bypass
+the app-owned recorder, so R4's 96 routed calls never traced; noted
+for the harness pattern), agreement 0.5, **every disagreement
+greedy-better-by-estimate → the declared gate passes**. The one
+disagreement is the whole argument in a single recorded dispatch:
+static ran phrasing on the resident 27B for 50.09 s where greedy's
+14B-load path estimates 2.34 s. Estimate MAE 25.66 s (dominated by
+that same outlier — the estimate table's next refinement target).
+`[scheduler] dispatch` now defaults ON (greedy), config-off restores
+static, the owner's pin outranks both — fixtured.
