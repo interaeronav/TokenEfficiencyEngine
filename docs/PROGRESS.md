@@ -4661,3 +4661,31 @@ correction.
 **Next:** T1 (the capture protocol — the deadline deliverable) has no
 install dependency and proceeds regardless; T0's blocked probes close
 the moment the owner says install.
+
+## 2026-08-29 — A42 T1: the capture protocol ships (the deadline deliverable)
+
+`docs/okongo-capture-protocol.md` — one printable page the owner can
+follow with no repo and no signal: pre-trip checklist (the NCAA
+confirmation duty carried as a duty, not a stale snapshot), the
+two-flight drone plan (nadir grid 80/70 with ≥50 m margin + 45°
+cross-grid and structure orbit; the sandveld more-overlap warning),
+marker + measured-distance scale discipline, per-facade arc protocol
+with corner stitching, per-room LiDAR-proxy + photo-loop-closure
+protocol with doorway frames both ways, the room/facade tick table,
+originals-only file handling (SRT logs kept), the 10-minute on-site
+validation pass (grounded in T0's measured 16 s preview run), and the
+per-aircraft appendix — Mini family default with ONE pinned mode
+(12 MP 4:3; lower readout constants and full-height frames, per the
+DB read) and the four covered RS codes named; blank template for any
+other aircraft.
+
+A30 discipline on every lifted rule: ODM flying + GCP docs read live
+this session (overlap 70–83% by scene complexity, 60% nadir + 45°
+cross-grid for full 3D, ≥5 GCPs in 3–5+ images placed 10–30 m inside
+the perimeter) — converging with KB `cartography.namibia` §2 and
+`envasset.reference_scanning` §2–3; Apple's Object Capture guide is
+JS-walled (tee_web_lookup refused loudly, as designed) so its rules
+stand via the KB/ODM convergence plus the live T0 helper probe.
+kb_status drift is now CLEAN (the corpus's own rebuild.py writes the
+manifest before VERIFICATION.md, so one extra index pass was needed —
+recorded here, tooling left as the author built it).

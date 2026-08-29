@@ -27,7 +27,7 @@
   "totals": {
     "domains": 38,
     "files": 402,
-    "words": 1402938,
+    "words": 1403015,
     "cited_sources": 2828,
     "unique_source_urls": 1812
   },
@@ -36,7 +36,7 @@
       "slug": "00_meta",
       "title": "Repository meta, schema and navigation",
       "files": 3,
-      "words": 77778
+      "words": 77855
     },
     {
       "slug": "01_architecture",
@@ -297,9 +297,9 @@
       "status": "stable",
       "confidence": "high",
       "updated": "2026-08-25",
-      "words": 52636,
-      "bytes": 426761,
-      "sha256": "bca965f24fed39fc",
+      "words": 52713,
+      "bytes": 427462,
+      "sha256": "da38e6d49ca300e1",
       "source_count": 0,
       "summary": "This repository was built by research agents working from public sources. Where a fact could not be confirmed against a primary source it was **flagged rather than invented** — that discipline is what makes the rest of the corpus trustworthy, but it means an agent using this knowledge base must read the flags."
     },

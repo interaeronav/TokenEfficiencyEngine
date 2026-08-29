@@ -15,13 +15,13 @@ sources: []
 
 # Index
 
-Complete table of contents. **38 domains, 402 files, ~1,402,938 words, 1,812 unique cited sources.** Generated 2026-08-25.
+Complete table of contents. **38 domains, 402 files, ~1,403,015 words, 1,812 unique cited sources.** Generated 2026-08-25.
 
 ## Domains at a glance
 
 | # | Domain | Files | Words |
 |---|---|---|---|
-| 00 | [Repository meta, schema and navigation](./00_meta/) | 3 | 77,778 |
+| 00 | [Repository meta, schema and navigation](./00_meta/) | 3 | 77,855 |
 | 01 | [Architecture — formation, design craft and professional practice](./01_architecture/) | 9 | 21,274 |
 | 02 | [Building construction — the competent builder's trade knowledge](./02_building_construction/) | 15 | 49,578 |
 | 03 | [Codes and standards — Namibian and South African building regulation](./03_codes_standards/) | 11 | 38,714 |
