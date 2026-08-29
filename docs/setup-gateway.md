@@ -30,6 +30,20 @@ serve time (cold start unaffected) and respawn lazily after a crash;
 `gw_status` (via `tee_call`) and the `gateway` block in `tee_status`
 show each backend's state.
 
+## What the gateway costs (measured, A38 S0/S1)
+
+Fronting is not free, so here is the bill, measured against the live
+filesystem reference backend (medians, warm): **connect** — spawn +
+handshake + catalog + fingerprint — costs **~0.7 s once per backend
+per session**, paid off the serve thread; **reaching a tool** costs
+one search + one describe (**570 tokens**, sub-millisecond); **each
+call** then adds **~0.005 ms** over invoking the backend directly
+(registry dispatch, validation, budget trim and cache bookkeeping
+together — the catalog and fingerprint are connect-time work, never
+per-call). The per-call overhead is noise; the trade you are really
+making is 570 tokens of reach against the backend's schemas riding
+every request (3,706 tokens for this backend's 14 tools).
+
 ## The untrusted-content stance (research 49, applied verbatim)
 
 Everything a backend says is **data, never instructions**: tool

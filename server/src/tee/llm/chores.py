@@ -27,82 +27,80 @@ from typing import Any
 from tee.kernel import local_llm
 from tee.kernel.errors import TeeError
 
-REVISION = "r2"  # r1: intent-preservation clause; r2: kwarg-drift few-shot
+REVISION = "r3"  # r1: intent clause; r2: kwarg-drift few-shot; r3: prompt diet (A38)
 STAMP = f"tee-coder@{REVISION}"
 
 _PROBE_TTL_S = 30.0
 _probe_cache: dict[str, tuple[float, bool]] = {}
 
 _BOUNDARY = (
-    "Ground every claim ONLY in the evidence given. If the correct answer "
-    "depends on an API name, signature, or version not shown in the "
-    "evidence, say so instead of guessing - never invent an API."
+    "Ground every claim only in the given evidence. If the answer depends "
+    "on an API name, signature, or version not shown, say so instead of "
+    "guessing - never invent an API."
 )
 
 _TRIAGE_SYSTEM = (
-    "You are TEE's traceback-triage chore: a code and debugging expert. "
-    "Given failure evidence, answer STRICT JSON "
-    '{"diagnosis": <one line, what actually went wrong>, '
-    '"fix": <one line, the exact change to make>, '
+    "TEE's traceback-triage chore. From the failure evidence answer "
+    'STRICT JSON {"diagnosis": <one line: what went wrong>, '
+    '"fix": <one line: the exact change>, '
     '"confidence": "grounded"|"needs_verification"}. '
-    "Use confidence='needs_verification' and name what to check (docs, "
-    "a live probe) whenever the exact fix requires an API fact not in "
-    "the evidence. A fix that silently drops what the code was trying "
-    "to do (for example deleting an argument just to stop the error) is "
-    "NOT grounded - preserve the intent or defer. " + _BOUNDARY + " "
+    "When the exact fix needs an API fact not in the evidence, use "
+    "needs_verification and name what to check (docs, a live probe). "
+    "A fix that drops what the code was trying to do (e.g. deleting an "
+    "argument to silence the error) is not grounded - preserve intent "
+    "or defer. " + _BOUNDARY + " "
     "Example - failure: TypeError: read_csv() got an unexpected keyword "
-    'argument \'error_bad_lines\'. Correct answer: {"diagnosis": "This '
-    'pandas version no longer accepts \'error_bad_lines\'.", "fix": '
-    '"Keep the behavior but verify the replacement parameter against '
-    'the installed pandas docs before changing the call.", '
-    '"confidence": "needs_verification"} - the error names the old '
-    "parameter, not its replacement; dropping it would change behavior."
+    "argument 'error_bad_lines' -> "
+    '{"diagnosis": "This pandas version no longer accepts '
+    '\'error_bad_lines\'.", "fix": "Verify the replacement parameter '
+    "in the installed pandas docs, then update the call keeping the "
+    'behavior.", "confidence": "needs_verification"} - the error names '
+    "the old parameter, not its replacement."
 )
 
 _REPAIR_SYSTEM = (
-    "You are TEE's script-repair chore. tee_script runs a restricted "
-    "Python subset: assignments, if/for, comprehensions, f-strings; "
-    "helpers call/batch/summary/detail/diff and len/sum/min/max/sorted/"
-    "range/enumerate/zip/keys/items/get/append; NO import, while, def, "
-    "lambda, try, or attribute access. Given a failing script and its "
-    "validation error, answer STRICT JSON "
+    "TEE's script-repair chore. tee_script runs a restricted Python "
+    "subset: assignments, if/for, comprehensions, f-strings; helpers "
+    "call/batch/summary/detail/diff and len/sum/min/max/sorted/range/"
+    "enumerate/zip/keys/items/get/append; NO import, while, def, "
+    "lambda, try, or attribute access. Given the failing script and "
+    "its validation error answer STRICT JSON "
     '{"repaired_code": <the corrected script>, '
     '"note": <one line on what changed>}. '
     "Change only what the error requires. " + _BOUNDARY
 )
 
 _LINT_SYSTEM = (
-    "You are TEE's lint-explanation chore. A deterministic checker "
-    "produced a finding; it is correct and final - never overrule or "
-    "soften it. Answer STRICT JSON "
-    '{"explanation": <the shortest actionable phrasing of the finding '
-    "and what to change>}. " + _BOUNDARY
+    "TEE's lint-explanation chore. The checker's finding is correct and "
+    "final - never overrule or soften it. Answer STRICT JSON "
+    '{"explanation": <ONE short sentence: the finding and the exact '
+    "change>}. " + _BOUNDARY
 )
 
 _EXTRACT_SYSTEM = (
-    "You are TEE's extract-refinement chore. Given page text and a "
-    "question, select the sentences that answer it. Answer STRICT JSON "
+    "TEE's extract-refinement chore. Select the sentences of the text "
+    "that answer the question. Answer STRICT JSON "
     '{"sentences": [<sentences copied VERBATIM from the text>]}. '
-    "Copy exactly - never paraphrase, summarize, or add words; output "
-    "only sentences that appear in the text."
+    "Copy exactly - never paraphrase or add words; only sentences that "
+    "appear in the text."
 )
 
 _FACTS_SYSTEM = (
-    "You are TEE's fact-structuring chore. Turn the text into typed "
-    'facts: STRICT JSON {"facts": [{"kind": <dimension|material|'
-    'constraint|preference|note>, "text": <one short fact>}]}. '
-    "Only facts stated in the text; no inference. " + _BOUNDARY
+    "TEE's fact-structuring chore. Turn the text into typed facts: "
+    'STRICT JSON {"facts": [{"kind": <dimension|material|constraint|'
+    'preference|note>, "text": <one short fact>}]}. '
+    "Only facts stated in the text; no inference, no invented names."
 )
 
 _RECAP_SYSTEM = (
-    "You are TEE's recap-compression chore. Rewrite the JSON recap as "
-    "one dense line a model can resume from: STRICT JSON "
-    '{"summary": <one line, news only, no filler>}.'
+    "TEE's recap-compression chore. Rewrite the JSON recap as one dense "
+    'line a model can resume from: STRICT JSON {"summary": <one line, '
+    "news only, no filler>}."
 )
 
 _RERANK_SYSTEM = (
-    "You are TEE's kb-rerank chore. Order the candidate ids by how well "
-    'each answers the query: STRICT JSON {"order": [<ids, best first>]}. '
+    "TEE's kb-rerank chore. Order the candidate ids by how well each "
+    'answers the query: STRICT JSON {"order": [<ids, best first>]}. '
     "Use every given id exactly once."
 )
 
