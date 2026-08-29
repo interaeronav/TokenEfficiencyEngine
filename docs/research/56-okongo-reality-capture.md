@@ -178,3 +178,13 @@ fix; gimbal/AGL become prior facts; multi-camera aircraft split sets
 per camera code; SRT video telemetry stays on the extract lane.
 Unknown codes → the generic honest fallback. The DJI Mini remains the
 owner's default profile within this spectrum.
+
+**Owner adjustment (same day): all Minis, no model question.** The
+owner flies the whole DJI Mini family; the plan must not fixate on
+one model. The metadata resolver already makes this natural — every
+set answers for itself — so the V0 model ask is DELETED and replaced
+by a family-coverage probe: verify ODM's rolling-shutter database
+against the Mini range and record in advance any member that would
+fall to the honest fallback. The protocol's mode-pinning and
+speed-cap rules are family-universal and stand unchanged; the
+"default profile" is the Mini family as a class, not a model.

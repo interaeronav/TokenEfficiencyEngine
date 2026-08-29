@@ -4566,3 +4566,13 @@ ledger, fixtures both directions) → T3 georef → T4 deviation (+routed
 chores once R1 green) → R2 merged meter → T5 applies → R3 calibration
 → T6 dry run (feeds R4) → R4 four-arm on real workload → one close
 (expected 0.6.0). Neither source campaign had started — clean merge.
+
+## 2026-08-29 — A41 adjusted: the whole Mini family, no model question (owner)
+
+Owner: don't fixate on which Mini — assume all of them. The V0
+model ask is deleted from the referenced A40 phase content and the
+A41 spine; replaced by a Mini-family coverage probe of ODM's
+rolling-shutter database (gaps recorded in advance → known honest
+fallback). Default profile rephrased as the Mini family as a class;
+per-set metadata resolution carries the rest, unchanged. Research 56
+addendum + both script files updated.

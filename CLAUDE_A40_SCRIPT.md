@@ -55,11 +55,14 @@ A one-paste prompt for a fresh session:
    CloudCompare `-SILENT` C2M on a fixture pair; `qgis_process` runs
    headless; QGIS MCP plugin fronted through the gateway (fingerprint
    pinned); ODM arm64 end-to-end on a 10-image mini-set WITH
-   rolling-shutter correction active for the owner's exact DJI Mini
-   model and pinned photo mode (ASK the owner which Mini at V0 start —
-   the readout constant differs by model AND mode, research 56
-   addendum); PhotogrammetrySession helper reconstructs a small object
-   set and exposes the full quality ladder (preview→raw).
+   rolling-shutter correction resolved from the set's own metadata
+   (owner adjustment 2026-08-29: NO model interrogation — the owner
+   flies the whole Mini family; the resolver answers per set, and the
+   V0 probe instead verifies ODM's rolling-shutter database coverage
+   ACROSS the Mini family, recording any family member it lacks so
+   the honest fallback is known in advance); PhotogrammetrySession
+   helper reconstructs a small object set and exposes the full
+   quality ladder (preview→raw).
 3. KB hygiene: the mirror is flagged stale — run the corpus's own
    `00_meta/rebuild.py` and reconcile (owner data: report, don't
    delete).
@@ -95,8 +98,10 @@ ODM. **The drone lane is aircraft-agnostic (owner allowance,
 2026-08-29)**: the camera is resolved per set from EXIF, ODM's own
 camera and rolling-shutter database supplies the constants for every
 model it knows, and per-aircraft profiles (mode-pinned readout,
-speed notes) override where the owner has one — the DJI Mini profile
-is the owner's DEFAULT, not the design. An unknown camera degrades
+speed notes) override where one exists — the owner's default is the
+DJI MINI FAMILY as a class (owner adjustment 2026-08-29: any Mini,
+resolved per set from its own metadata; no single model assumed
+anywhere). An unknown camera degrades
 honestly: reconstruction proceeds with correction off and the report
 says so, plus the fly-slow guidance line.
 

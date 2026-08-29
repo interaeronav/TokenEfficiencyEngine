@@ -35,8 +35,10 @@ any other campaign; the trip is never the first test.
 
 ### T0 — Installs + probes (= A40 V0, unchanged)
 Batched owner ask (CloudCompare, QGIS ~1.3 GB, ODM arm64 image, the
-PhotogrammetrySession helper, QGIS MCP plugin), the probe table, the
-Mini-model ask, KB `rebuild.py` hygiene, disk stated.
+PhotogrammetrySession helper, QGIS MCP plugin), the probe table —
+incl. the Mini-FAMILY coverage probe (owner adjustment 2026-08-29:
+no model interrogation; every set resolves from its own metadata) —
+KB `rebuild.py` hygiene, disk stated.
 
 ### T1 — The capture protocol (= A40 V1, unchanged; THE deadline deliverable)
 `docs/okongo-capture-protocol.md` with the DJI section and the
