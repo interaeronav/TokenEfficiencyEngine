@@ -73,6 +73,19 @@ ENGINES: dict[str, dict[str, Any]] = {
 
 
 def _total_ram_gb() -> float:
+    # TEE_MACHINE_TOTAL_GB declares capacity where the host's physical
+    # RAM is not the truth: CI runners, containers/VMs (the colima ODM
+    # allocation), and hermetic tests. Unset -> the host's real memory.
+    declared = os.environ.get("TEE_MACHINE_TOTAL_GB")
+    if declared:
+        try:
+            return float(declared)
+        except ValueError:
+            raise TeeError(
+                "machine_bad_capacity",
+                f"TEE_MACHINE_TOTAL_GB={declared!r} is not a number.",
+                fix="Set it to the machine's usable RAM in GB, e.g. 128.",
+            ) from None
     try:
         return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE") / 1e9
     except (ValueError, OSError):  # pragma: no cover - exotic platforms

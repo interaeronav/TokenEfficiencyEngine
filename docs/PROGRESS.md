@@ -5322,3 +5322,22 @@ delivered Gate A's trip-ready state AND the full scheduler arc in the
 same day; 0.6.0-then-0.7.0 remains available if the owner prefers the
 two-step record. Versions unstamped until the owner's word; the
 artifact pipeline is proven. **Tagging stays yours, as always.**
+
+## 2026-08-29 — Post-close verification: CI was red; the capacity bug fixed
+
+The A42 close-out's local suites were green, but CI had failed on the
+last three pushes (R4+K2, CLOSE, 0.7.0) — caught by this verification
+pass, not by the campaign. Cause: app-built capture-lane tests read
+the HOST's real RAM through MachineLedger's default; on a ~7 GB CI
+runner the K1 admission gate (correctly) refused the reconstruct
+engines ("can never place it") — correct product behavior,
+non-hermetic tests. Fix: `TEE_MACHINE_TOTAL_GB` declares capacity
+(CI, containers — the colima case — and tests; bad values refuse with
+the fix line), and conftest defaults the suite to a declared 128 GB
+machine (setdefault — an explicit declaration still wins, proven by a
+6 GB run where the refusals correctly fire). Canonical suite after
+the fix: 790 passed / 2 skipped. Verification note for the record:
+a `-m "not dcc"` selector override drags the live llm-marked traps
+into the run against whatever the local stack is serving — 6 spurious
+failures traced to that selector error, not to the campaign; the
+canonical invocation is plain `pytest -q`.

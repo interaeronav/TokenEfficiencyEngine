@@ -17,6 +17,14 @@ from pathlib import Path
 
 import pytest
 
+# Hermetic machine capacity: the suite must behave identically on the
+# 128 GB M5, a 7 GB CI runner, or anything else. Tests that need a
+# SPECIFIC machine construct MachineLedger(total_gb=...) directly and
+# are unaffected by this default. (The A42 close shipped with CI red
+# for three pushes because app-built tests read the runner's real RAM
+# and admission refused the reconstruct lanes - 2026-08-29.)
+os.environ.setdefault("TEE_MACHINE_TOTAL_GB", "128")
+
 BLENDER_CANDIDATES = (
     os.environ.get("TEE_BLENDER"),
     shutil.which("blender"),
