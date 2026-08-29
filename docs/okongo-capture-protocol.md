@@ -135,3 +135,19 @@ its capture rules stand here via the KB/ODM convergence and the T0
 live helper probe. Absolute accuracy without survey control is
 meters-class; measured distances carry the scale — no millimetre
 claims in the field.*
+
+## B · Lessons from the dry run (2026-08-29 — video-era capture, why these rules exist)
+
+The existing site footage (all video, no stills) was pushed through the
+full pipeline. What reconstruction itself taught:
+
+- **One coherent flight per product; never mix clips.** The merged
+  corpus and the room-by-room nadir clip both failed reconstruction;
+  the single continuous ascent succeeded and carried the whole report.
+- **Fly the survey with the site clear of moving people** — workers in
+  frame poison feature matching.
+- **Straight-down pans room-to-room do not reconstruct** (disconnected
+  views); the grid + orbit patterns in §1 are the working shapes.
+- **Without scale references, scale had to be borrowed from the design
+  envelope** — the markers + measured distances in §1/§4 are what make
+  the report's numbers absolute instead of relative.

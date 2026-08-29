@@ -137,3 +137,24 @@ def test_unknown_terrain_op_names_the_menu(tmp_path):
     with pytest.raises(TeeError) as excinfo:
         align.terrain_op("volcano", dem, cfg={}, work_dir=tmp_path / "t")
     assert "contours" in excinfo.value.fix and "hillshade" in excinfo.value.fix
+
+
+CC_COLLAPSED = CC_FAKE.replace("Final RMS: {rms}", "Final RMS: 0.0000155").replace(
+    "0.999390 -0.034899 0.000000 0.050000", "0.000001 0.000000 0.000000 0.300000"
+).replace("0.034899 0.999390 0.000000 0.020000", "0.000000 0.000001 0.000000 -0.260000")
+
+
+def test_degenerate_seven_dof_fit_refuses(tmp_path):
+    # the T6 finding as a fixture: scale collapsed to ~0, impossible RMS
+    src, dst = _clouds(tmp_path)
+    fake = tmp_path / "fake-collapse"
+    fake.write_text(CC_COLLAPSED)
+    fake.chmod(0o755)
+    with pytest.raises(TeeError) as excinfo:
+        align.register_icp(
+            src, dst, cfg={"cloudcompare": str(fake)}, work_dir=tmp_path / "w",
+            adjust_scale=True,
+        )  # fmt: skip
+    assert excinfo.value.code == "capture_bad_registration"
+    assert "Degenerate" in excinfo.value.message
+    assert "scale references" in excinfo.value.fix

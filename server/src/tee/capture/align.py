@@ -158,7 +158,7 @@ def register_icp(
             "[capture] icp_max_rms_m deliberately.",
         )
     result = {
-        "rms_m": round(rms, 4),
+        "rms_m": round(rms, 6),
         "gate_m": limit,
         "matrix": matrix,
         "frame": "target = design truth (locked datum); source transformed, target untouched",
@@ -167,9 +167,24 @@ def register_icp(
     if registered_path.is_file():
         result["registered"] = str(registered_path)
     if adjust_scale:
-        scale_match = re.search(r"[Ss]cale: *([0-9.eE+-]+)", output)
-        result["scale"] = float(scale_match.group(1)) if scale_match else "estimated (see log)"
+        scale = None
+        if matrix:  # the uniform scale is the row norm of the rotation part
+            scale = round(sum(value**2 for value in matrix[0][:3]) ** 0.5, 4)
+        result["scale"] = scale
         result["scale_note"] = "scale from 7-DOF ICP, not GPS - relative accuracy only"
+        # Degeneracy guard (T6 finding): 7-DOF ICP on poorly-constrained
+        # data collapses scale toward zero and reports an impossible RMS.
+        # A collapsed fit is confident nonsense - refuse it loudly.
+        collapsed = scale is not None and not (0.05 <= scale <= 20.0)
+        implausible = rms < 1e-3
+        if collapsed or implausible:
+            raise TeeError(
+                "capture_bad_registration",
+                f"Degenerate 7-DOF fit: scale {scale}, RMS {rms:.2e} m - a "
+                "video-derived cloud cannot genuinely fit this well.",
+                fix="Prescale the cloud from known extents and register rigid, "
+                "or capture with the protocol's scale references/GPS.",
+            )
     return result
 
 

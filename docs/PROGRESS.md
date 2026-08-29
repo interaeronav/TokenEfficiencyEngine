@@ -5205,3 +5205,44 @@ Suite 778 → **788 passed / 2 skipped**, gate exit 0.
   refused. Completion wakes reserved-out waiters (the liveness fix the
   reservation demanded). Off-switch restores today's concurrency
   exactly. 4 fixtures.
+
+## 2026-08-29 — A42 T6 CLOSED: the dry run delivered its report — and its finding list
+
+"The trip must not be the first test" did exactly its job. The entire
+pipeline ran on the owner's real site material (all video — finding
+zero), and every failure became either product code or a protocol rule.
+
+**The failure ladder, recorded as run:** mixed 462-frame corpus @ultra
+→ late "strange values" (degenerate segments + moving workers);
+DJI_0100 alone @ultra → same; @high → same (room-by-room nadir views
+are disconnected SfM geometry regardless of features); **the
+continuous ascent window (38 frames, default quality) → the FULL
+pipeline through the lane: orthophoto + DSM + DTM (32 GiB VM held) +
+1.17 M-point georeferenced cloud + textured model in 210.7 s**, then
+contours + hillshade from the real DSM.
+
+**Registration taught the campaign's sharpest lesson:** 7-DOF ICP on
+unreferenced video COLLAPSED (scale→0, RMS 15 µm, 1.17 M points in a
+0.5 mm blob) and the lane initially accepted it quietly — now it
+CANNOT: the degeneracy guard refuses impossible fits with the fix
+named (fixtured). The honest path — prescale from the design envelope
+(×6.12) + rigid ICP — landed a REAL fit: **RMS 3.6 cm** onto the
+design export (702 structural meshes from OkongoSim's own USD layers).
+
+**The show-piece report** (routed phrasing LIVE through the cascade):
+36 deviation regions, budgeted to 6 + drill-down; the numbers are
+TRUE and say so — the +5.7–8.2 m clusters over the wall zones are the
+real steel roof trusses (the walls-only baseline excludes roofs by
+construction), the +37 m spike is a shade tree, within-band 5.7%
+because the cloud covers the whole site; band line: "video-derived;
+scale prescaled from the design envelope, rigid ICP RMS 3.6 cm —
+relative accuracy only". The menu closes it; nothing applied.
+
+**Also banked:** 5/6 iPhone interior sets at FULL detail (3.2–36.7 s,
+the helper's real-set rows; one honest overlap refusal); the UE apply
+rehearsal = T5's live throwaway-actor apply in the running editor
+(checkpointed, rolled back); protocol §B folds the lessons back
+(coherent single flights, clear the site of people, no nadir
+room-pans, references make numbers absolute); T6's chores + jobs all
+recorded by the shadow layer (R4/K2 workload). DCC apps closed; the
+machine is quiet for the benchmark sequence.
