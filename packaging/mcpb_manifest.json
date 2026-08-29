@@ -1,10 +1,10 @@
 {
   "manifest_version": "0.4",
   "name": "Token Efficiency Engine",
-  "display_name": "TEE — Token Efficiency Engine",
-  "version": "0.5.0",
-  "description": "Help any AI complete tasks with minimal tokens — Blender and Unreal Engine adapters included",
-  "long_description": "TEE helps any AI optimize its token usage and improve its work efficiency. It is an MCP server between an AI model and the tools it drives — shipping with Blender and Unreal Engine adapters — whose core metric is tokens per completed task. Reads return compact summaries and diffs instead of scene dumps, mutations run as checkpointed batches, and the long tail of DCC capability is reached through progressive disclosure rather than hundreds of always-loaded tools.\n\nBlender needs the TEE bridge extension (or the official Blender Lab MCP add-on); Unreal needs UE 5.8+ with Epic's ModelContextProtocol and AllToolsets plugins enabled. See the repository for setup.",
+  "display_name": "TEE \u2014 Token Efficiency Engine",
+  "version": "0.5.1",
+  "description": "Help any AI complete tasks with minimal tokens \u2014 Blender and Unreal Engine adapters included",
+  "long_description": "TEE helps any AI optimize its token usage and improve its work efficiency. It is an MCP server between an AI model and the tools it drives \u2014 shipping with Blender and Unreal Engine adapters \u2014 whose core metric is tokens per completed task. Reads return compact summaries and diffs instead of scene dumps, mutations run as checkpointed batches, and the long tail of DCC capability is reached through progressive disclosure rather than hundreds of always-loaded tools.\n\nBlender needs the TEE bridge extension (or the official Blender Lab MCP add-on); Unreal needs UE 5.8+ with Epic's ModelContextProtocol and AllToolsets plugins enabled. See the repository for setup.",
   "author": {
     "name": "interaeronav",
     "url": "https://github.com/interaeronav/TokenEfficiencyEngine"
@@ -18,37 +18,104 @@
     "mcp_config": {
       "command": "uv",
       "args": [
-        "run", "--directory", "${__dirname}", "--no-dev",
-        "tee", "serve", "--adapter", "blender",
-        "--project", "${user_config.project_root}"
+        "run",
+        "--directory",
+        "${__dirname}",
+        "--no-dev",
+        "tee",
+        "serve",
+        "--adapter",
+        "blender",
+        "--project",
+        "${user_config.project_root}"
       ]
     }
   },
   "tools": [
-    { "name": "tee_status", "description": "Server, adapter and scene status, with an optional compact project recap" },
-    { "name": "tee_recall", "description": "Recall persistent project memory as a compact session preamble" },
-    { "name": "tee_remember", "description": "Store durable project memory: facts by key and dated notes" },
-    { "name": "tee_scene_summary", "description": "Compact, paged scene summary: entity counts and ids, filterable" },
-    { "name": "tee_entity_detail", "description": "Full cached detail for one entity by id" },
-    { "name": "tee_diff", "description": "What changed since a known (epoch, revision) stamp" },
-    { "name": "tee_batch", "description": "Run a checkpointed batch of mutations in one call" },
-    { "name": "tee_checkpoint", "description": "Create a named scene checkpoint" },
-    { "name": "tee_rollback", "description": "Roll the scene back to a checkpoint" },
-    { "name": "tee_job", "description": "Start or poll long-running jobs outside the request lock" },
-    { "name": "tee_capture", "description": "Budgeted viewport capture as inline JPEG" },
-    { "name": "tee_media", "description": "Budgeted media handling for renders and references" },
-    { "name": "tee_script", "description": "Run a budgeted mini-script of tool calls in the sandboxed interpreter" },
-    { "name": "tee_web_lookup", "description": "Answer one question about one URL: a budgeted, cited extract with optional local captioning/transcription" },
-    { "name": "tee_search_tools", "description": "Progressively discover the long tail of DCC-specific virtual tools" },
-    { "name": "tee_describe_tool", "description": "Inspect one virtual tool's full schema before calling it" },
-    { "name": "tee_call", "description": "Invoke a discovered virtual tool by name" }
+    {
+      "name": "tee_status",
+      "description": "Server, adapter and scene status, with an optional compact project recap"
+    },
+    {
+      "name": "tee_recall",
+      "description": "Recall persistent project memory as a compact session preamble"
+    },
+    {
+      "name": "tee_remember",
+      "description": "Store durable project memory: facts by key and dated notes"
+    },
+    {
+      "name": "tee_scene_summary",
+      "description": "Compact, paged scene summary: entity counts and ids, filterable"
+    },
+    {
+      "name": "tee_entity_detail",
+      "description": "Full cached detail for one entity by id"
+    },
+    {
+      "name": "tee_diff",
+      "description": "What changed since a known (epoch, revision) stamp"
+    },
+    {
+      "name": "tee_batch",
+      "description": "Run a checkpointed batch of mutations in one call"
+    },
+    {
+      "name": "tee_checkpoint",
+      "description": "Create a named scene checkpoint"
+    },
+    {
+      "name": "tee_rollback",
+      "description": "Roll the scene back to a checkpoint"
+    },
+    {
+      "name": "tee_job",
+      "description": "Start or poll long-running jobs outside the request lock"
+    },
+    {
+      "name": "tee_capture",
+      "description": "Budgeted viewport capture as inline JPEG"
+    },
+    {
+      "name": "tee_media",
+      "description": "Budgeted media handling for renders and references"
+    },
+    {
+      "name": "tee_script",
+      "description": "Run a budgeted mini-script of tool calls in the sandboxed interpreter"
+    },
+    {
+      "name": "tee_web_lookup",
+      "description": "Answer one question about one URL: a budgeted, cited extract with optional local captioning/transcription"
+    },
+    {
+      "name": "tee_search_tools",
+      "description": "Progressively discover the long tail of DCC-specific virtual tools"
+    },
+    {
+      "name": "tee_describe_tool",
+      "description": "Inspect one virtual tool's full schema before calling it"
+    },
+    {
+      "name": "tee_call",
+      "description": "Invoke a discovered virtual tool by name"
+    }
   ],
-  "keywords": ["blender", "unreal", "mcp", "token-efficiency", "3d", "dcc", "archviz", "game-dev"],
+  "keywords": [
+    "blender",
+    "unreal",
+    "mcp",
+    "token-efficiency",
+    "3d",
+    "dcc",
+    "archviz",
+    "game-dev"
+  ],
   "user_config": {
     "project_root": {
       "type": "directory",
       "title": "Project folder",
-      "description": "Folder where TEE keeps per-project state (.tee/ memory, checkpoints, extract store). Pick your working project folder — not the extension directory, which is wiped on update.",
+      "description": "Folder where TEE keeps per-project state (.tee/ memory, checkpoints, extract store). Pick your working project folder \u2014 not the extension directory, which is wiped on update.",
       "required": true,
       "default": "${HOME}/TEE"
     }

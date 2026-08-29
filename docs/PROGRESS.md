@@ -4455,3 +4455,19 @@ ratios from today's live battery).
 3. SI-B13 (hb_cabinet refusal naming the walls) — one-line class,
    yours to wave into a future pass.
 4. Tagging stays yours, as always.
+
+## 2026-08-29 — v0.5.1 released ("0.5.1 please"): the A38 shrink release
+
+Owner accepted the recommended bump. Per the RC discipline: versions
+stamped in all five places (pyproject / __init__ / Makefile / SOURCE
+mcpb manifest / CHANGELOG dated 0.5.1) + uv.lock refreshed;
+`make check` **716 passed / 2 skipped**, ruff clean; five artifacts
+rebuilt (wheel 420,329 B / sdist 673,604 / mcpb 625,237 / bridge zip
+6,472 / TeeToolset zip 3,880); the .mcpb VERIFIED BY EXTRACTION
+(manifest 0.5.1, 17 tools, bundle pyproject 0.5.1 with `[tool.uv]
+default-groups = []` — the 0.3.1-errata gate); Desktop-style install
+rehearsal: plain `uv sync` → **29 MB venv / 29 packages**, exact
+manifest argv → **serverInfo tee 0.5.1, first-ever answer 2.47 s,
+tee_status parsed ok=true**. Tagged v0.5.1 and pushed; artifact handed
+to the owner at server/dist/tee-engine-0.5.1.mcpb. Blender bridge and
+UE TeeToolset are content-unchanged by A38 (no reinstall needed).

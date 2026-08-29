@@ -3,7 +3,7 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased
+## 0.5.1 — 2026-08-29
 
 The A38 shrink round two: the 0.5.0 surface dieted with every bar held
 (suite 716/2; always-loaded LAW 2,028 tok / 17 tools unchanged).
