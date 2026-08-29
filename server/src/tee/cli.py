@@ -59,6 +59,14 @@ def _attach_extract(app, project: str, *, with_handoff: bool):
     return store
 
 
+def _attach_capture(app, project: str, extract_store) -> None:
+    """Register the reality-capture lane (A42 T2): ingest rides the extract
+    store; reconstruct gates loudly on disk, engine presence and set size."""
+    from tee.capture.tools import register_capture_tools
+
+    register_capture_tools(app, Path(project), extract_store=extract_store)
+
+
 def _attach_assets(app, project: str, extract_store) -> None:
     """Register TEE Assets tools (stdlib core; astral/shapely lanes degrade
     with actionable errors when their extra is missing)."""
@@ -175,6 +183,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         return 2
     extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
     _attach_assets(app, args.project, extract_store)
+    _attach_capture(app, args.project, extract_store)
     _attach_pins(app, args.project)
     _attach_design(app, args.project)
     _attach_physical(app, args.project)

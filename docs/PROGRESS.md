@@ -4757,3 +4757,53 @@ load inside 67 s incl. first chore; q27b-bare 43.7 GB RSS (spec said
 column: cost grows with raw input unbounded by any window (2,925 tok
 at triage-XL vs the local 2,030) — and it is the only tier that never
 fails a verifier, by construction the cascade's top.
+
+## 2026-08-29 — A42 T2: ingest + reconstruct land (resolver, lane, ladder; ODM at its gate)
+
+New package `tee/capture/` + two virtual tools (surface LAW held: zero
+always-loaded additions; suite 716 → **727 passed / 2 skipped**, ruff +
+format clean).
+
+- **The DJI-spectrum resolver** (`tee/capture/dji.py`): EXIF Make/Model
+  + the `drone-dji` XMP block parsed per file; sets split per camera
+  code; shutter type decides correction MODE (mechanical = off,
+  electronic = matched, unknown = off + the fly-slow line);
+  **the honesty band comes from the data itself** — RTK claimed only
+  when every file carries parseable RtkStd* fields, and then the band
+  states exactly what the std-devs support (mixed sets do NOT
+  tighten); gimbal/AGL land as median priors. The cited model table:
+  electronic rows are the codes ODM's RS database carries (read live
+  at T0), mechanical rows are research 56's design of record. All
+  four fixture paths tested (6 tests) with synthetic JPEGs built in
+  pure PIL + byte-assembled XMP APP1 segments — no exiftool
+  dependency.
+- **`capture_ingest`**: rides the EXISTING extract store (originals
+  referenced in place, content-addressed) + a set manifest under
+  `.tee/capture/sets/`; returns set id + per-camera resolver verdicts.
+- **`capture_reconstruct`**: async job (tee_job), gated BEFORE
+  submission — disk floor ([capture] min_free_gb, default 20),
+  helper presence (fix names `make`), >=10 images (fix names the
+  protocol), and the drone lane's Docker gate (fix names the T0
+  batched ask + the verified 566 MB pull); Docker-present-but-lane-
+  pending refuses as `capture_odm_pending` rather than pretending.
+  Helper events parsed to a compact result; provenance carries
+  engine+OS, inputs hash, camera codes, band, detail. 5 lane tests on
+  a fake helper (contract + failure-to-job path) + gates.
+- **Live acceptance run** (real helper, real registry/jobs): the
+  36-view synthetic set ingested (unknown-camera fallback stated),
+  reconstructed at preview in **3.7 s warm** — model + provenance read
+  back from the job. The measured quality ladder on that set:
+  preview 16.0 s/833 MB/404 KB, reduced 17.3 s/875 MB/1.78 MB, medium
+  6.5 s/876 MB/1.78 MB, full 6.4 s/881 MB/4.11 MB, raw 5.6 s/876 MB/
+  1.23 MB — the inversion (later levels faster) is the small-synthetic-
+  set + page-cache regime, recorded as-is; real-photo defaults remain
+  a T6-fed evidence row, as scripted.
+- SRT flight logs already ride the extract lane (DJI_SRT fixtures) —
+  nothing new needed there. `[capture]` config section added
+  (helper path + min_free_gb).
+
+**Still gated on the T0 owner ask:** the ODM arm64 pull + 10-image
+end-to-end with metadata-matched correction constants, CloudCompare
+C2M probe (fixture staged), qgis_process + QGIS-MCP probes. **Next
+phase: R1** (verifier-gated cascade on fakes + THE GUARD SEAM +
+registry-form descriptors + QoS tags — the merge's first K-seam).

@@ -69,6 +69,7 @@ class ProjectConfig:
     web: dict[str, Any] = field(default_factory=dict)
     llm: dict[str, Any] = field(default_factory=dict)
     gateway: dict[str, Any] = field(default_factory=dict)
+    capture: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -139,6 +140,12 @@ class ProjectConfig:
             config.gateway = gateway
         elif gateway:
             problems.append("[gateway] must be a table")
+
+        capture = data.get("capture", {})
+        if isinstance(capture, dict):
+            config.capture = capture
+        elif capture:
+            problems.append("[capture] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)
