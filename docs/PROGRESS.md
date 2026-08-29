@@ -4053,3 +4053,50 @@ Machine etiquette: UE quit in-engine ({} ack, port freed), all bridge
 Blenders terminated, zero strays verified.
 
 Suite **704 passed / 2 skipped** (698 + 6), ruff clean.
+
+## 2026-08-29 — A37 P5.3: joinery_check shipped — rules re-verified at source, a REAL defect caught live
+
+**The A30 gate ran FIRST, live, through the co-pilot** (kb_search →
+kb_read Sources → tee_web_lookup at the cited sources): 32 mm system
+(Ø5 / 32 mm centres / 37 mm front row, rear may be 37) verified at
+Wikipedia's system-32 page; faces = 32n − gap verified at davelers;
+wardrobe 530 mm internal (600 incl. wall) verified at Hinterland;
+LEGRABOX 40/70 kg classes verified at blum.com; the Ø35/12.8 hinge cup
+figures ship PARTIALLY verified (the cited Hettich PDF refused at
+18.7 MB — the size gate working; the EN 15570/15828 standard family
+confirmed at Wikipedia instead). Every rule carries its source AND its
+re-verification state, and both travel on every finding.
+
+**The loop closed (research 53):** what re-verification learned beyond
+the KB — the EN 15570/15828 normative layer the hardware file never
+names — went back through kb_propose: a cited, UNVERIFIED-bannered
+draft staged at `.tee/kb-staging/joinery.hinge_standards.md` for owner
+review. Dogfooding note: the re-verification lookups produced live
+hint datapoints five and six for P0-F — an off-domain hinge question
+drew 'medical_field.specialties' (misfire class, floor suppresses) and
+the two in-domain questions drew CORRECT hints (the floor keeps them).
+
+**joinery_check** (`tee/physical/joinery.py`, plaus_check pattern,
+virtual): 7 rules — system pitch/Ø, 37 mm setback, hinge cup boring +
+break-through, hinge collision, hardware-first carcass/runner fit
+(class ranges enforced), role-aware part-vs-carcass envelope (a shelf
+cannot be turned diagonal to fit — per-axis by role), wardrobe hanging
+depth (WARN). Missing model data answers `not_evaluated` with the
+reason — never a silent pass. **hb_joinery_spec** collects the spec
+from a live HB scene (cabinet envelopes + parts with roles from the
+model's own geometry-node inputs; says plainly that HB models no
+hinges/runners/holes).
+
+**Acceptance:** the seeded-defect wardrobe fixture (25 mm pitch, 50 mm
+setback, Ø26 cup, 12.8 mm cup in a 15 mm door, two cups 20 mm apart,
+NL 650 runner in a 500 carcass AND outside its 40 kg class, a 994 mm
+shelf, 500 mm hanging depth) is caught finding-by-finding, each with
+its cited fix and re-verification stamp; the clean fixture reports
+zero findings with 7/7 rules; the missing-holes fixture pins
+not_evaluated. **Live:** hb_joinery_spec on a real HB wardrobe →
+joinery_check flagged the REAL Blender-5.2 defect on its first run —
+"shelf Shelf: 994 mm exceeds the carcass depth 600 mm by 394 mm"
+(5/7 evaluated, hole rules honestly not_evaluated). The checker's
+first catch is a genuine bug, not a seed.
+
+Suite **708 passed / 2 skipped** (704 + 4), ruff clean.

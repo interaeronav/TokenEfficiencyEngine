@@ -227,6 +227,50 @@ result = {{"scenes": made, "files": files}}
 """
 
 
+_SPEC = """
+import importlib, bpy
+hb_types = importlib.import_module("{hb}.hb_types")
+cabinets, parts = [], []
+for o in bpy.data.objects:
+    if o.get("IS_FRAMELESS_CABINET_CAGE"):
+        g = hb_types.GeoNodeObject(o)
+        row = {{"id": o.name, "kind": str(o.get("CABINET_TYPE", "")).lower() or "cabinet"}}
+        for inp, key in (("Dim X", "width_mm"), ("Dim Y", "depth_mm"), ("Dim Z", "height_mm")):
+            try:
+                row[key] = round(abs(float(g.get_input(inp))) * 1000, 1)
+            except Exception:
+                pass
+        cabinets.append(row)
+for o in bpy.data.objects:
+    if o.get("CABINET_PART"):
+        part = hb_types.GeoNodeCutpart(o)
+        try:
+            L = float(part.get_input("Length"))
+            W = float(part.get_input("Width"))
+            T = float(part.get_input("Thickness"))
+        except Exception:
+            continue
+        cab = None
+        p = o.parent
+        while p is not None:
+            if p.get("IS_FRAMELESS_CABINET_CAGE"):
+                cab = p.name
+                break
+            p = p.parent
+        base = o.name.split(".")[0].lower()
+        if "door" in base or "front" in base:
+            role = "door"
+        else:
+            role = "shelf" if "shelf" in base else base
+        parts.append({{"id": o.name, "cabinet": cab, "role": role,
+                      "length_mm": round(L * 1000, 1), "width_mm": round(W * 1000, 1),
+                      "thickness_mm": round(T * 1000, 1)}})
+result = {{"spec": {{"cabinets": cabinets, "parts": parts, "hardware": []}},
+           "note": "HB 5.1 models pulls only - hinges/runners/system holes are "
+                   "absent, so those joinery_check rules answer not_evaluated"}}
+"""
+
+
 def _mm(args: dict[str, Any], key: str, default: float | None = None) -> float:
     raw = args.get(key, default)
     if raw is None:
@@ -369,6 +413,10 @@ def register_hb_tools(app, adapter) -> None:
             "(read them budgeted via tee_media)",
         }
 
+    def hb_joinery_spec(args: dict[str, Any]) -> dict[str, Any]:
+        _ensure_hb()
+        return _run(_SPEC.format(hb=HB_MODULE))
+
     for tool in [
         VirtualTool(
             "hb_status",
@@ -417,6 +465,17 @@ def register_hb_tools(app, adapter) -> None:
             hb_cabinet,
             tags=["homebuilder", "cabinet", "closet", "wardrobe", "joinery", "frameless"],
             examples=[{"type": "tall", "width_mm": 1200, "height_mm": 2200, "depth_mm": 600}],
+        ),
+        VirtualTool(
+            "hb_joinery_spec",
+            "Collect a joinery_check spec from the live Home Builder scene: "
+            "cabinets (mm envelopes) + cut parts with roles, read from the "
+            "model's own geometry-node inputs. HB models no hinges/runners/"
+            "system holes - the response says so, and joinery_check answers "
+            "not_evaluated on those rules instead of passing them.",
+            {"type": "object", "properties": {}},
+            hb_joinery_spec,
+            tags=["homebuilder", "joinery", "spec", "check", "collect"],
         ),
         VirtualTool(
             "hb_cutlist",

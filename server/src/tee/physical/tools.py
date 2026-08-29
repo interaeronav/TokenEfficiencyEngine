@@ -243,6 +243,11 @@ def register_physical_tools(app, project_root: Path | str) -> None:
     def plaus_check(args):
         return plaus_mod.check({"elements": args["elements"], "region": args.get("region", "US")})
 
+    def joinery_check(args):
+        from tee.physical import joinery
+
+        return joinery.check(dict(args.get("spec") or {}))
+
     tier2_descs = {
         "wall_with_openings": (
             "Build a wall with door/window openings as ONE watertight mesh "
@@ -484,6 +489,25 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             },
             plaus_check,
             tags=["physical", "plausibility", "structure", "code", "span"],
+        ),
+        VirtualTool(
+            "joinery_check",
+            "Fitted-furniture findings in the plaus_check pattern: 32 mm "
+            "system conformance (pitch/Ø/37 mm setback), hinge cup boring "
+            "and collisions, hardware-first carcass/runner fit, parts "
+            "inside their carcass envelope, wardrobe hanging depth. Every "
+            "rule cites its source and its A30 re-verification state; a "
+            "rule whose data the model does not carry answers "
+            "not_evaluated, never a silent pass. Takes a spec "
+            "(cabinets/parts/hardware/system_holes, mm) - hb_joinery_spec "
+            "collects one from a Home Builder scene.",
+            {
+                "type": "object",
+                "properties": {"spec": {"type": "object"}},
+                "required": ["spec"],
+            },
+            joinery_check,
+            tags=["joinery", "wardrobe", "closet", "cabinet", "32mm", "check", "hinge"],
         ),
     ]
     for name in _TIER2_OPS:
