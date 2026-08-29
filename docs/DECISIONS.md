@@ -706,3 +706,25 @@ surface LAW stands; latency rows measured on q14b for parity; no new
 capabilities, no silent removals; report_savings quoted on the
 campaign's own closing session. Expected 0.5.1 unless shapes change;
 the owner tags.
+
+## 2026-08-29 — A39: the two-pillar mission, and the router build (owner decision)
+
+The owner named what the product has become: "AI resource management
+between cloud AI and local AI." Formalized as the two-pillar mission —
+(1) make every exchange small; (2) run work on the cheapest capable
+engine — refining A32, not replacing it: the protocol pillar still
+carries the DCC savings with no local AI involved. Identity surfaces
+reworded (README, CLAUDE.md, pyproject, mcpb long_description —
+source-only, ships with the next bundle); measured claims stay scoped,
+as with A32.
+
+The build half: the adaptive router per research 55 (grounded in the
+2026 cascade literature — 97–99%-of-strong-model results on
+task-correctness labels, which TEE's deterministic verifiers supply
+natively). Driven by `CLAUDE_A39_SCRIPT.md`. Router laws recorded:
+TEE never calls a cloud API (escalation = budgeted return-to-client);
+the owner's explicit switch is a ceiling the router never exceeds;
+single-occupancy outranks routing (no swap thrash); no silent hops
+(provenance + escalation rate in the meter); uncalibrated confidence
+gates nothing. The R4 four-arm benchmark decides adoption — the
+router earns its complexity or reverts. Expected 0.6.0; owner tags.

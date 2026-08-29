@@ -4471,3 +4471,20 @@ manifest argv → **serverInfo tee 0.5.1, first-ever answer 2.47 s,
 tee_status parsed ok=true**. Tagged v0.5.1 and pushed; artifact handed
 to the owner at server/dist/tee-engine-0.5.1.mcpb. Blender bridge and
 UE TeeToolset are content-unchanged by A38 (no reinstall needed).
+
+## 2026-08-29 — A39: mission formalized (two pillars) + the router scripted (owner)
+
+Owner's observation made formal: TEE is AI resource management between
+cloud and local intelligence. Research 55 written (cascade literature
+surveyed; the freshest primary source read through tee_web_lookup —
+arXiv 2606.27457's 97–99% retention on task-correctness labels, which
+TEE's deterministic verifiers supply natively; TEE's escalation tier
+is the CLIENT itself — no cloud API in TEE, ever). Identity surfaces
+reworded evidence-scoped (README two-pillar headline, CLAUDE.md,
+pyproject, mcpb long_description source-only); A39 recorded;
+`CLAUDE_A39_SCRIPT.md` authored (R0 routing dataset → R1 verifier-
+gated cascade with residency-aware ladder and owner-ceiling law → R2
+accounting/escalation-rate in the meter → R3 calibration-or-static →
+R4 four-arm benchmark that the router must win or revert → R5
+close-out, expected 0.6.0). Kickoff in TEE memory (a39-campaign).
+Campaign not started; R0 first.

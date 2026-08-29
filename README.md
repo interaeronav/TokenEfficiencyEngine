@@ -1,12 +1,15 @@
 # Token Efficiency Engine (TEE)
 
 An engine that helps **any AI** optimize its token usage and improve its work
-efficiency.
+efficiency — an AI resource manager between cloud and local intelligence.
 
 TEE is an MCP server and API layer that sits between an AI model and the tools
-it drives, with one overriding design goal: **complete the user's task with the
-fewest tokens possible** — compact state, diff-based updates, batched
-macro-commands, budgeted responses, and progressive disclosure of tool surface.
+it drives, built on two disciplines (A39): **make every exchange small** —
+compact state, diff-based updates, batched macro-commands, budgeted responses,
+progressive disclosure of tool surface — and **run work on the cheapest capable
+engine**: heavy content is processed by local models into compact, cited
+briefs, chores run on local engines with verified results, and the metered
+cloud model spends its tokens only where its judgment is actually needed.
 It ships today with two production adapters, **Unreal Engine** and **Blender**:
 the proving ground where every pattern below is implemented and measured. The
 kernel is tool-agnostic (see [docs/DECISIONS.md](docs/DECISIONS.md), A32); the

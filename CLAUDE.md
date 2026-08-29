@@ -3,7 +3,10 @@
 ## What this project is
 
 TEE's mission is to help **any AI** optimize its token usage and improve its
-work efficiency (A32). Concretely it is an MCP server + API layer between an
+work efficiency (A32) — refined by A39 into two pillars: make every exchange
+small, and run work on the cheapest capable engine (AI resource management
+between metered cloud intelligence and unmetered local intelligence; the
+client model remains the only party that ever touches a cloud API). Concretely it is an MCP server + API layer between an
 AI model and the tools the model drives; its core metric is **tokens per
 completed user task**, and every design decision is judged by that metric
 first. Unreal Engine and Blender are the two shipped adapters and the proving
@@ -33,6 +36,8 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
 - The A38 shrink round two (post-0.5.0: faster, more efficient,
   smaller, leaner) is driven by `CLAUDE_A38_SCRIPT.md`, inheriting the
   A35/A33 rules.
+- The A39 router build (verifier-gated cloud↔local cascade) is driven
+  by `CLAUDE_A39_SCRIPT.md`; research doc 55 is its design of record.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or
