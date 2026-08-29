@@ -482,7 +482,7 @@ def live(tmp_path):
 @needs_mirror
 def test_live_status_reads_the_real_corpus(live):
     status = live.registry.call("kb_status", {})
-    assert status["totals"]["files"] == 401
+    assert status["totals"]["files"] == 402  # 401 + the accepted joinery.hinge_standards (A37)
     assert status["totals"]["domains"] == 38
     # source-register.md is known upstream drift (manifest vs its own file);
     # anything beyond that would be a real mirror problem.

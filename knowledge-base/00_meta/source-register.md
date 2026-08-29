@@ -15,7 +15,7 @@ sources: []
 
 # Source register
 
-Every external source cited anywhere in this repository, deduplicated by URL. 1811 unique URLs drawn from 2826 citations across 401 files. Generated 2026-08-25 from the frontmatter of every file.
+Every external source cited anywhere in this repository, deduplicated by URL. 1812 unique URLs drawn from 2828 citations across 402 files. Generated 2026-08-25 from the frontmatter of every file.
 
 | Publisher | Title | URL | First cited in |
 |---|---|---|---|
@@ -1398,6 +1398,7 @@ Every external source cited anywhere in this repository, deduplicated by URL. 18
 | Wikipedia | Euclid (spacecraft) | <https://en.wikipedia.org/wiki/Euclid_(spacecraft)> | `30_space_science_and_propulsion/06_space-science-and-missions.md` |
 | Wikipedia | European Chips Act | <https://en.wikipedia.org/wiki/European_Chips_Act> | `26_computer_engineering/09_computer-manufacturing-economics.md` |
 | Wikipedia | European Union Aviation Safety Agency | <https://en.wikipedia.org/wiki/European_Union_Aviation_Safety_Agency> | `31_aviation_industry/01_the-legal-framework.md` |
+| Wikipedia | Hinge - Wikipedia (European hinge section, EN references) | <https://en.wikipedia.org/wiki/European_hinge> | `06_joinery_and_woodwork/11_european-hinge-standards.md` |
 | Wikipedia | Evidence-based medicine | <https://en.wikipedia.org/wiki/Evidence-based_medicine> | `34_medical_field/00_overview.md` |
 | Wikipedia | Exagamglogene autotemcel | <https://en.wikipedia.org/wiki/Exagamglogene_autotemcel> | `34_medical_field/07_drug-discovery-and-development.md` |
 | Wikipedia | Examination for Professional Practice in Psychology | <https://en.wikipedia.org/wiki/Examination_for_Professional_Practice_in_Psychology> | `22_psychology_and_education/01_the-training-pathway.md` |

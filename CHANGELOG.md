@@ -3,7 +3,13 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased (0.5.0 candidate) — the A37 merged campaign
+## 0.5.0 — 2026-08-29
+
+The A37 merged-campaign release (owner-approved bump): the roadmap
+(gateway, meter, handoff, kit, kb_propose) times the fabrication lane
+(FreeCAD, Home Builder joinery, joinery_check, boards) — eleven
+features, zero always-loaded surface growth (17 tools / 2,028 tok,
+held by test).
 
 - **TEE Gateway**: front ANY MCP stdio server through the existing
   meta-tools — prefixed virtual tools, untrusted-content caps, budgeted

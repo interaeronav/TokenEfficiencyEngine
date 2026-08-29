@@ -15,7 +15,7 @@ sources: []
 
 # Index
 
-Complete table of contents. **38 domains, 401 files, ~1,402,755 words, 1,811 unique cited sources.** Generated 2026-08-25.
+Complete table of contents. **38 domains, 402 files, ~1,402,922 words, 1,812 unique cited sources.** Generated 2026-08-25.
 
 ## Domains at a glance
 
@@ -27,7 +27,7 @@ Complete table of contents. **38 domains, 401 files, ~1,402,755 words, 1,811 uni
 | 03 | [Codes and standards — Namibian and South African building regulation](./03_codes_standards/) | 11 | 38,714 |
 | 04 | [Masters and practice — award-winning architects and builders](./04_masters_and_practice/) | 7 | 21,242 |
 | 05 | [Companies and industry — contractors and project delivery](./05_companies_and_industry/) | 7 | 23,823 |
-| 06 | [Joinery and woodwork — cabinetmaking, timber and fitted furniture](./06_joinery_and_woodwork/) | 11 | 23,601 |
+| 06 | [Joinery and woodwork — cabinetmaking, timber and fitted furniture](./06_joinery_and_woodwork/) | 12 | 23,768 |
 | 07 | [Materials and suppliers — material science and the regional supply chain](./07_materials_and_suppliers/) | 12 | 35,134 |
 | 08 | [Glass and facades — glazing technology, standards and projects](./08_glass_and_facades/) | 9 | 27,335 |
 | 09 | [Equipment manufacturers — plant, tools and the manual library](./09_equipment_manufacturers/) | 11 | 30,373 |
@@ -210,6 +210,8 @@ Complete table of contents. **38 domains, 401 files, ~1,402,755 words, 1,811 uni
   **Summary.** There are four distinct traditions worth studying, and they teach different things. The **Anglo-American studio tradition** (Krenov, Maloof, Nakashima, Frid, Charlesworth) teaches design judgement, hand skill and the relationship between maker and
 - [`10_specifying-and-quoting-joinery.md`](./06_joinery_and_woodwork/10_specifying-and-quoting-joinery.md) — **Specifying and quoting joinery**  
   **Summary.** A joinery package is priced from four independent take-offs — **board**, **edging**, **hardware** and **labour** — plus finishing, transport and installation. The commonest cause of a loss-making joinery contract is not a pricing error but a **spe
+- [`11_european-hinge-standards.md`](./06_joinery_and_woodwork/11_european-hinge-standards.md) — **European concealed-hinge standards - EN 15570 and EN 15828**  
+  European (cup) concealed cabinet hinges are covered by the EN 15570 and EN 15828 standard family, which governs hinge strength and durability testing for furniture hardware. The KB's hardware file cites manufacturer figures (Ø35 mm cup, 12.8 mm typical depth) 
 
 ### 07_materials_and_suppliers — Materials and suppliers — material science and the regional supply chain
 

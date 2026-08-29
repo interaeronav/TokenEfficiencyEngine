@@ -4178,3 +4178,38 @@ the P6 closet-with-meter rider ran inside P5.1's acceptance.
 
 `tee_remember` updated with the close-out. CI: push + first-run
 observation is the last step of this session.
+
+## 2026-08-29 — Owner acceptance batch + v0.5.0 released ("accept all, give me 0.5.0")
+
+**KB draft ACCEPTED** per docs/setup-kb.md, at the owner's word: the
+`joinery.hinge_standards` staging draft moved to
+`knowledge-base/06_joinery_and_woodwork/11_european-hinge-standards.md`
+with honest flags (`status: draft`, `confidence: medium` — the EN
+family fact verified at source this campaign; the numeric cup figures
+still manufacturer-cited, said so in Open questions), banner and
+proposed_by dropped, corpus rebuilt (**manifest 402 files**, validate
+402/0 problems), retrieval verified (top hit with flags). Found in
+passing: the corpus's own `rebuild_verification.py` hard-codes
+`/home/claude/kb` from its original authoring machine — its
+VERIFICATION.md stage cannot run here (recorded; validate.py is the
+schema gate and passed). The live-mirror test updated 401→402 with the
+acceptance noted.
+
+**SI-B11 upstream material written**:
+`docs/upstream/home-builder-blender52-input-api.md` — the full report
+plus drop-in helpers, ready to file against Home Builder (the actual
+GitHub filing stays the owner's click, deliberately).
+
+**v0.5.0 released, per the RC discipline:** versions stamped in all
+five places (pyproject / __init__ / Makefile / SOURCE mcpb manifest /
+CHANGELOG dated 0.5.0); `make check` **711 passed / 2 skipped** (the
+one stamp-adjacent failure was the corpus-count assertion honestly
+moving 401→402); five artifacts rebuilt (wheel 418,986 B / sdist
+671,674 / mcpb 623,837 / bridge zip 6,472 / TeeToolset zip 3,880); the
+.mcpb VERIFIED BY EXTRACTION (manifest 0.5.0, 17 tools, bundle
+pyproject 0.5.0 with `[tool.uv] default-groups = []` — the
+0.3.1-errata gate); Desktop-style install rehearsal: plain `uv sync` →
+**28 MB venv / ~29 packages** (the A35 diet holds), exact manifest
+argv → **serverInfo 0.5.0, 17 tools, first-ever answer 2.71 s**.
+Tagged v0.5.0 and pushed; artifact handed to the owner at
+server/dist/tee-engine-0.5.0.mcpb.
