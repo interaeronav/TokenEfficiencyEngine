@@ -48,8 +48,12 @@ A one-paste prompt for a fresh session:
 2. Probes, pass/fail recorded as a dated addendum to research 56:
    CloudCompare `-SILENT` C2M on a fixture pair; `qgis_process` runs
    headless; QGIS MCP plugin fronted through the gateway (fingerprint
-   pinned); ODM arm64 end-to-end on a 10-image mini-set;
-   PhotogrammetrySession helper reconstructs a small object set.
+   pinned); ODM arm64 end-to-end on a 10-image mini-set WITH
+   rolling-shutter correction active for the owner's exact DJI Mini
+   model and pinned photo mode (ASK the owner which Mini at V0 start —
+   the readout constant differs by model AND mode, research 56
+   addendum); PhotogrammetrySession helper reconstructs a small object
+   set and exposes the full quality ladder (preview→raw).
 3. KB hygiene: the mirror is flagged stale — run the corpus's own
    `00_meta/rebuild.py` and reconcile (owner data: report, don't
    delete).
@@ -65,16 +69,31 @@ overlap targets, interior loop-closure habits, scale
 references/markers where GNSS control is absent, drone
 altitude/overlap pattern, iPhone capture settings, file-handling
 rules (originals, no re-compression), and a 10-minute on-site
-validation pass if time allows. Acceptance: the owner has the doc
-and can follow it without this repo open.
+validation pass if time allows. DJI-Mini section (research 56
+addendum): ONE photo mode pinned for the whole survey (the
+rolling-shutter constant depends on it), flight speed capped with
+stop-and-shoot for facades, a planned grid mission via
+Litchi/Dronelink (free grid planners export Litchi missions) with
+the manual-grid fallback, stills never video, SRT flight logs kept
+for the extract lane. Acceptance: the owner has the doc and can
+follow it without this repo open.
 
 ## V2 — Ingest + reconstruct lanes
 
 Capture sets → the extract store (content-addressed, EXIF preserved,
 set manifests). Reconstruct as jobs, disk-gated: structure sets →
-the PhotogrammetrySession helper; drone sets → ODM (orthophoto +
-DSM/DTM + dense cloud). Every artifact lands with provenance (engine,
-version, inputs hash). Acceptance: fixture sets reconstruct end to
+the PhotogrammetrySession helper (quality ladder benchmarked on this
+machine — wall/RAM/tris per level — so defaults are evidence rows:
+preview for on-site validation, full/raw for finals); drone sets →
+ODM. **The drone lane is aircraft-agnostic (owner allowance,
+2026-08-29)**: the camera is resolved per set from EXIF, ODM's own
+camera and rolling-shutter database supplies the constants for every
+model it knows, and per-aircraft profiles (mode-pinned readout,
+speed notes) override where the owner has one — the DJI Mini profile
+is the owner's DEFAULT, not the design. An unknown camera degrades
+honestly: reconstruction proceeds with correction off and the report
+says so, plus the fly-slow guidance line. Every artifact lands with
+provenance (engine, version, inputs hash, camera profile used). Acceptance: fixture sets reconstruct end to
 end via tee_job with compact progress, refusals name fixes (no
 Docker, no disk, too few images).
 

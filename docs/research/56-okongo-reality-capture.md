@@ -153,3 +153,12 @@ DEFAULTS are evidence rows, not guesses; long runs ride tee_job with
 budgeted progress; every artifact carries engine+version+inputs-hash
 provenance; preview quality serves the on-site 10-minute validation
 pass, full/raw the final reconstruction.
+
+**Owner allowance (same day): all drones.** The lane is
+aircraft-agnostic by design: camera resolved per set from EXIF, ODM's
+camera/rolling-shutter database supplies constants for every model it
+knows, per-aircraft profiles override where defined — the DJI Mini
+profile is the owner's default, not the architecture. Unknown cameras
+degrade honestly (correction off, stated in the report, fly-slow
+guidance). The protocol doc gains a per-aircraft appendix: Mini
+filled in, a blank template for any future aircraft.

@@ -4529,3 +4529,16 @@ SRT→flight-path facts tie-in; the PhotogrammetrySession helper gains
 the quality ladder with V2 benchmark rows (wall/RAM/tris per level)
 so defaults are evidence — preview serves the on-site validation
 pass. V0 asks the owner the exact Mini model before ODM tuning.
+
+## 2026-08-29 — A40 script edits completed + all-drones allowance (owner)
+
+Correction on the record: the previous commit's message claimed the
+DJI-Mini script edits, but the edit block aborted on a drifted anchor
+— research/DECISIONS/PROGRESS landed, the script did not. This commit
+completes the script edits (V0 probe with the model+mode readout ask,
+V1 protocol DJI section, V2 Mini-tuned reconstruction + helper
+quality-ladder benchmarks) AND encodes the owner's follow-up: the
+drone lane is aircraft-agnostic — EXIF-resolved cameras, ODM's own
+database for constants, per-aircraft profiles as overrides (Mini =
+the owner's default), honest degradation for unknown models, and a
+per-aircraft appendix in the protocol doc.
