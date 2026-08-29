@@ -92,10 +92,33 @@ model it knows, and per-aircraft profiles (mode-pinned readout,
 speed notes) override where the owner has one — the DJI Mini profile
 is the owner's DEFAULT, not the design. An unknown camera degrades
 honestly: reconstruction proceeds with correction off and the report
-says so, plus the fly-slow guidance line. Every artifact lands with
-provenance (engine, version, inputs hash, camera profile used). Acceptance: fixture sets reconstruct end to
-end via tee_job with compact progress, refusals name fixes (no
-Docker, no disk, too few images).
+says so, plus the fly-slow guidance line.
+
+**The full DJI spectrum, resolved from media metadata (owner,
+2026-08-29):** ingest gains a DJI metadata resolver — EXIF plus the
+DJI XMP block (`drone-dji` namespace) parsed into facts per set:
+aircraft and camera identified from the maker's camera codes (a
+small cited model table maps code → marketing name → shutter type;
+ODM's database remains the constants source); **shutter type decides
+correction** (mechanical-shutter DJI cameras — Mavic 3 wide class,
+Phantom 4 Pro — run with correction OFF because they need none;
+electronic-shutter models get their matched constant); **positioning
+class decides the honesty band from the data itself** (consumer GNSS
+= meters-class; when the XMP carries a valid RTK fix, the band
+tightens to what the RTK std-dev fields support — claimed only when
+the files prove it); gimbal angles and relative altitude ingest as
+orientation/AGL prior facts; multi-camera aircraft (tri/dual-camera
+Mavic 3 / Air 3 class) split sets per camera code before
+reconstruction; video-with-SRT keeps riding the existing extract
+lane. Unknown DJI codes fall through to the generic honest fallback.
+
+Every artifact lands with provenance (engine, version, inputs hash,
+camera profile used, positioning class). Acceptance: fixture sets
+reconstruct end to end via tee_job with compact progress, refusals
+name fixes (no Docker, no disk, too few images); resolver fixtures
+cover an electronic-shutter code, a mechanical-shutter code, an
+RTK-stamped set (band tightens) and an unknown code (honest
+fallback).
 
 ## V3 — Georeference + align
 

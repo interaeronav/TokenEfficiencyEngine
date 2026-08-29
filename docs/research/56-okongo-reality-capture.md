@@ -162,3 +162,19 @@ profile is the owner's default, not the architecture. Unknown cameras
 degrade honestly (correction off, stated in the report, fly-slow
 guidance). The protocol doc gains a per-aircraft appendix: Mini
 filled in, a blank template for any future aircraft.
+
+**Owner refinement (same day): the full DJI spectrum, from media
+metadata.** DJI writes a rich XMP block (`drone-dji` namespace) into
+every image beyond EXIF: aircraft/camera codes, gimbal attitude,
+relative altitude, and on RTK models the fix quality and std-dev
+fields. The ingest resolver therefore works metadata-first across the
+whole DJI range: camera code → (cited model table) → shutter type —
+mechanical-shutter cameras (Mavic 3 wide class, Phantom 4 Pro) need
+NO rolling-shutter correction and run with it off; electronic-shutter
+models get their model+mode constant from ODM's database; positioning
+class comes from the data itself — the deviation report's honesty
+band tightens to RTK levels ONLY when the files carry a valid RTK
+fix; gimbal/AGL become prior facts; multi-camera aircraft split sets
+per camera code; SRT video telemetry stays on the extract lane.
+Unknown codes → the generic honest fallback. The DJI Mini remains the
+owner's default profile within this spectrum.

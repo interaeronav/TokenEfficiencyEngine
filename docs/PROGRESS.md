@@ -4542,3 +4542,15 @@ drone lane is aircraft-agnostic — EXIF-resolved cameras, ODM's own
 database for constants, per-aircraft profiles as overrides (Mini =
 the owner's default), honest degradation for unknown models, and a
 per-aircraft appendix in the protocol doc.
+
+## 2026-08-29 — A40 refined: full DJI spectrum via media metadata (owner)
+
+Owner: allow the whole DJI range, resolved from the files. Script V2 +
+research 56 addendum: a DJI metadata resolver (EXIF + drone-dji XMP)
+maps camera codes to shutter type (mechanical = correction OFF —
+Mavic 3 wide/P4P class; electronic = matched constant), reads the
+positioning class from the data (RTK band claimed only when the XMP
+proves the fix), ingests gimbal/AGL as priors, splits multi-camera
+sets per code, keeps SRT on the extract lane, and falls through to
+the honest generic fallback on unknown codes. Resolver fixtures added
+to V2 acceptance (electronic / mechanical / RTK / unknown).
