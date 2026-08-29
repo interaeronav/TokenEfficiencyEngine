@@ -4100,3 +4100,26 @@ joinery_check flagged the REAL Blender-5.2 defect on its first run —
 first catch is a genuine bug, not a seed.
 
 Suite **708 passed / 2 skipped** (704 + 4), ruff clean.
+
+## 2026-08-29 — A37 P7: the board lane — two live boards recorded
+
+`tee/boards.py` + virtual `board_compose` (registered kernel-level like
+the meter): ONE styled SVG page per call — title block, panel grid
+(images embedded base64: png/jpg/svg; tables; fact lines), captions,
+footer stamp — pure stdlib so the base install composes boards with
+zero new dependencies; hostile text is escaped (pinned by test); the
+response is a compact file pointer. **Scope stated on the page itself
+and in the tool description: TEE supplies boards; deck polish is
+host-side by design** (research 52 pain 3's split, shipped as written).
+
+**Acceptance — both boards rendered from live scenes and delivered to
+the owner in-session:** the FABRICATION board (light style: HB's
+dimensioned wall elevation, the P4 panel drawing sheet with its
+document-read dimensions, the 21-part cut list table, and the
+joinery_check findings panel with the real shelf defect and the
+not_evaluated rows) and the SIM-PREP board (dark style: a live 3D
+perspective render through HB's own View3D layout machinery, the floor
+plan, and a scene-facts panel — dimensions, part counts, the UE import
+outcome, the meter reading — every number from the model, not memory).
+
+Suite **711 passed / 2 skipped** (708 + 3), ruff clean.

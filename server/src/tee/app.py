@@ -131,9 +131,11 @@ class TeeApp:
         self.extract_recap = None
         self._web = None  # lazy WebLookupService (A34)
         self.gateway = None  # GatewayService when [gateway] backends exist (A37)
+        from tee.boards import register_board_tools
         from tee.kernel.meter import register_session_tools
 
         register_session_tools(self)  # report_savings + handoff (A37 P6)
+        register_board_tools(self)  # board_compose (A37 P7)
 
     @property
     def llm_cfg(self) -> dict:
