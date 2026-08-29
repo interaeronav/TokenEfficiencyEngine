@@ -1,7 +1,7 @@
 # TEE KB — querying the Expert Knowledge Base
 
 The `kb_*` tools give any TEE client sourced, budgeted answers from the
-Expert Knowledge Base (38 domains, 401 files, ~1.4M words) without pasting
+Expert Knowledge Base (38 domains, ~400 files, ~1.4M words) without pasting
 documents into context. The corpus is imported reference (decision A30):
 every response carries the corpus's own `confidence` / `jurisdiction` /
 `status` flags verbatim, and `needs-verification` or low-confidence content

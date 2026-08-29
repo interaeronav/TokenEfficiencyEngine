@@ -3,6 +3,37 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased
+
+The A38 shrink round two: the 0.5.0 surface dieted with every bar held
+(suite 716/2; always-loaded LAW 2,028 tok / 17 tools unchanged).
+
+- **Web fetch cache is bounded on disk**: swept at fetcher start —
+  entries older than `[web] cache_max_age_days` (default 14) deleted,
+  then oldest-first down to `[web] cache_max_mb` (default 50). A cache
+  delete is always safe (refetch/revalidate).
+- **`tee doctor` gains a `state` check**: `.tee/` size by store, the
+  cache caps in effect, kb-staging drafts awaiting review, orphan
+  FreeCAD checkpoint dirs in TMPDIR; warns only past 1 GB, fix named.
+- **Chore prompts dieted (template revision r2 → r3)**: 948 → 807 tok
+  at equal trap scores (q14b 6/6 with tee-triage-a2; q27b bare 6/6);
+  lint chore pinned to one actionable sentence.
+- **Token shaves, battery-gated**: gateway describe loses its
+  in-payload budget echo (the injected max_tokens schema property
+  carries default/cap) — gateway row 1,629 → 1,614 at 95.4%; settle
+  reports carry the same determinism claims in 19 tok instead of 33
+  (222 → 202 on the fixture); eight fattest virtual-tool descriptions
+  tightened (flat catalog 11,396 → 11,274; reach-one 570 → 545);
+  kb_search's stale "401 files" dropped from the text.
+- **setup-gateway.md** now states the measured bill: ~0.7 s connect
+  once per backend, 570-token reach, +0.005 ms per call over a direct
+  backend call.
+- **Benchmark battery**: per-stage wall-time lines; the web scenario
+  reuses the product's own fetch cache across runs (byte-identical
+  rows, 6.5 → 0.5 s); a 5 s live-dispatch probe turns the blocked-GUI
+  FreeCAD hang into a clean skip naming the modal-dialog fix
+  (SI-B12). Warm battery 14.6 → ~7 s.
+
 ## 0.5.0 — 2026-08-29
 
 The A37 merged-campaign release (owner-approved bump): the roadmap

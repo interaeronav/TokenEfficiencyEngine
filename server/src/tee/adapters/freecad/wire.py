@@ -45,7 +45,18 @@ class FreeCADWire:
     def _call(self, method: str, *args: Any) -> Any:
         try:
             return getattr(self._proxy, method)(*args)
-        except (TimeoutError, ConnectionError, OSError) as exc:
+        except TimeoutError as exc:
+            # Connected but never answered: the GUI thread is not dispatching
+            # (SI-B12 - typically a startup modal such as document recovery).
+            raise TeeError(
+                "freecad_unreachable",
+                f"FreeCAD at {self.url} accepted the connection but never ran "
+                "the request (timed out).",
+                fix="A modal dialog (e.g. document recovery after a crash) may "
+                "be holding the FreeCAD GUI - check its window; "
+                "docs/troubleshooting.md#freecad-rpc-hangs.",
+            ) from exc
+        except (ConnectionError, OSError) as exc:
             raise TeeError(
                 "freecad_unreachable", f"No FreeCAD RPC at {self.url} ({exc}).", fix=_START_FIX
             ) from exc

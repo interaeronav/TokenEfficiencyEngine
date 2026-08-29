@@ -4391,3 +4391,67 @@ initialize → first tee_status answer, exact A35 method, median of 5:
 registration path; runs 0.26–0.28).
 
 Suite after S3: **716 passed / 2 skipped** (711 + 5 new), ruff clean.
+
+## 2026-08-29 — A38 S4: campaign closing ledger (shrink round two, one session)
+
+Four phases in one session, every number re-measured at close on this
+machine (live headless Blender 5.2, live FreeCAD 1.1.3 GUI bridge,
+live q14b/q27b chore endpoints served for the occasion; UE row carried
+forward as planned — not an A38 lane).
+
+| Metric | S0 baseline | S4 close | Why |
+|---|---|---|---|
+| server suite | 711 / 2 skipped | **716 / 2** | +5: cache-sweep ×3, doctor state ×2; ruff clean |
+| chore prompts (7 system templates) | 948 tok (r2) | **807 tok (r3, −15%)** | diet gated by traps: q14b 6/6 AND q27b-bare 6/6 live; lint pinned to one actionable sentence |
+| chore latency q14b | 0.76–1.76 s | **0.75–1.82 s** | within noise — the honest finding: decode length, not prompt prefill, drives latency at these sizes; the <2 s bar holds |
+| virtual flat catalog | 11,396 tok | **11,274** | eight fattest descriptions tightened, zero semantic loss; stale "401 files" gone |
+| reach-one (search+describe) | 570 tok | **545** | plaus_check describe dieted |
+| settle report fixture | 222 tok | **202** | determinism echo said the same in 19 tok |
+| gateway row (live fs ref) | 1,629 tok / 95.4% | **1,614 / 95.4%** | describe's in-payload budget echo removed |
+| gateway per-call overhead | +0.005 ms | **+0.007 ms** | noise; published in setup-gateway.md with connect ~0.7 s + reach 570 |
+| warm battery (inner loop) | 14.6 s | **6.9–9.4 s** | product fetch-cache reused across runs (web 6.5→0.5 s); stage timing lines; blocked-GUI hang → 5 s diagnosed skip |
+| .tee state | 11.3 MB, no eviction anywhere | **bounded**: [web] cache_max_mb 50 / cache_max_age_days 14, swept at start; doctor `state` row (sizes, caps, kb-staging queue, 64 TMPDIR checkpoint orphans made visible) | the one unbounded store now has a policy; owner data (memory notes, staging, checkpoints) deliberately visibility-only |
+| cold serve → first answer | 0.32 s (A35 floor) | **0.26 s** (median of 5, exact method) | fence held with the 97-virtual-tool path |
+| bundle | mcpb 623,837 B / venv 29 MB / 29 pkgs | **625,003 B (+1,166 for A38 code) / 29 MB / 29 pkgs** | rebuilt + extraction-verified (0.5.0, 17 tools, default-groups gate) + clean-venv rehearsal: serverInfo 0.5.0, first-ever answer 2.44 s |
+| closet run / fab lane | 0.55 s / 0.16 s warm | **0.58 s / 0.16–0.57 s range** | unchanged paths re-measured; fab dispatch rides the GUI thread and varies with editor state (range reported, not hidden) |
+| battery bars | scenes 93.3/89.2/91.5/98.8 · extraction 93.1 · fix-loop 47.9 · assets 94.0 · plaus 95.6 · kb 96.7 · web 95.3 · gateway 95.4 · fabrication 92.4 | **all identical at close** (extraction naive ±4 fixture noise) | zero wrong-way rows; surface LAW 2,028/17 re-asserted by the final run |
+
+**Wrong-way numbers, explained in place:** mcpb +1,166 B (the sweep,
+doctor row and wire wording are real code; no kilobyte theater —
+S3.1 found nothing to remove); lint chore 0.89 → 1.19 s (its r2
+answer restated the finding in 24 tok; r3 answers the finding AND the
+exact change in one sentence — the trade was taken knowingly);
+fabrication stage-split variance (GUI-thread scheduling, both
+endpoints re-measured on identical code).
+
+**Premise findings (the script's own assumptions, corrected by
+measurement):** S1.2's freecadcmd amortization had no target — nothing
+in the product spawns freecadcmd (recorded; the 1.03 s cold / 0.10 s
+warm bound stands for any future headless path). S1.3's premise
+(smaller prompts = faster inference) is false at this scale — decode
+length dominates; the diet was kept for its server-side compute and
+hygiene value, not a latency claim.
+
+**SI ledger:** SI-B12 closed (troubleshooting.md#freecad-rpc-hangs +
+the wire now names the modal-dialog cause on accepted-but-silent
+timeouts + the battery's diagnosed skip). SI-B13 stays open (one-line
+fix class, not reached). docs/setup-kb.md's stale corpus count fixed
+to a drift-proof "~400".
+
+**The co-pilot measuring the optimizer (report_savings on this
+session's server):** measured 8,133 tok / 23 wire calls; lanes with
+measured ratios estimate naive 45,634 tok — **96.3% saved on the
+estimated lanes** (the meter's own labelled-estimate discipline;
+ratios from today's live battery).
+
+**Owner-decision list (recommendations, deliberately not made):**
+1. **Version bump: 0.5.1 recommended** — shaves and hygiene, no
+   surface growth, response shapes only got smaller. The strict
+   semver reading of the new `[web]` cache keys + doctor `state` row
+   as "features" would argue 0.6.0; the campaign reads them as
+   bounded-maintenance. CHANGELOG §Unreleased is written either way.
+2. The wire's dist/ now holds the post-0.5.0 rebuild (the v0.5.0 tag
+   reproduces the released bytes exactly if needed).
+3. SI-B13 (hb_cabinet refusal naming the walls) — one-line class,
+   yours to wave into a future pass.
+4. Tagging stays yours, as always.

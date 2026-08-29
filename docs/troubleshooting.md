@@ -77,3 +77,26 @@ retries automatically; if you are calling the engine directly, pass an
 explicit value. Note that a zero-filled transform is not always harmless —
 a defaulted `captureTransform`, for instance, photographs the world origin
 rather than the viewport.
+
+## FreeCAD: RPC hangs {#freecad-rpc-hangs}
+
+Symptom: port 9875 accepts connections but `execute_code` (and every
+TEE call over it) times out — "accepted the connection but never ran
+the request".
+
+The RPC addon queues work to FreeCAD's GUI thread; if that thread is
+parked in a **modal dialog**, nothing dispatches. The usual culprit is
+the document-recovery dialog after a crashed or killed FreeCAD (proven
+by stack sample: `DocumentRecoveryFinder::showRecoveryDialogIfNeeded`
+→ `QDialog::exec`). Fix: bring the FreeCAD window forward and dismiss
+the dialog — or, for a headless-ish restart, quit FreeCAD and clear
+the stale autosaves before relaunching:
+
+```bash
+rm -rf ~/Library/Caches/FreeCAD/v1-1/Cache/FreeCAD_Doc_* ~/Library/Caches/FreeCAD/v1-1/Cache/FreeCAD_*.lock
+```
+
+(macOS path shown; on Linux/Windows the equivalents live under
+FreeCAD's user cache directory.) The benchmark battery probes for this
+state and skips the fabrication scenario with this page's fix instead
+of hanging.

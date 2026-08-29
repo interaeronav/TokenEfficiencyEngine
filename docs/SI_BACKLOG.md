@@ -109,7 +109,7 @@ Format per item:
 - call: port 9875 accepts TCP, `execute_code` never answers; stack sample proved the GUI thread parked in `DocumentRecoveryFinder::showRecoveryDialogIfNeeded()` → `QDialog::exec()` — the crash-recovery modal from an earlier killed instance (stale `FreeCAD_Doc_*` + `.lock` under `~/Library/Caches/FreeCAD/v1-1/Cache/`).
 - hurt: the wire's timeout error names server-down ("No FreeCAD RPC at ... (timed out)") when the server is up and the GUI is waiting for a human click; nothing points at the dialog. One battery pass lost; diagnosis needed a process stack sample.
 - proposed: (a) troubleshooting.md entry: symptoms, the stack signature, the fix (dismiss the dialog, or clear stale autosaves+locks before relaunch); (b) wire error wording: distinguish connect-refused ("no server on :9875") from accepted-but-silent ("FreeCAD answered TCP but never ran the code - a modal dialog (e.g. document recovery) may be holding the GUI; check the FreeCAD window").
-- status: open
+- status: done (A38 S4: troubleshooting.md#freecad-rpc-hangs written; the wire now answers TimeoutError with the modal-dialog line + doc anchor while refused connections keep the start fix; the battery probes and skips with the same diagnosis)
 
 ## SI-B13 — hb_cabinet's unknown-wall refusal doesn't name the walls that exist
 - seen: 2026-08-29, A38 S0 closet-run measurement
