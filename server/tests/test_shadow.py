@@ -52,10 +52,12 @@ def test_record_line_shape_and_delta(tmp_path):
 
 
 def test_greedy_choice_math():
-    # resident 14B: 1.24 beats 90 + 6.38
+    # resident 14B: 1.24 beats 18.0 + 6.38
     assert greedy_choice("chore", resident="q14b+a2")["engine"] == "q14b+a2"
-    # resident 27B: staying (6.38) beats swapping to the 14B (30 + 1.24)
-    assert greedy_choice("chore", resident="q27b-bare")["engine"] == "q27b-bare"
+    # resident 27B: with the MEASURED 1.1 s swap (R2), loading the 14B
+    # (1.1 + 1.24) now beats staying on the resident 27B (6.38) - the
+    # measurement flipped this decision, which is why R2 measures first
+    assert greedy_choice("chore", resident="q27b-bare")["engine"] == "q14b+a2"
     job = greedy_choice("job", engine="reconstruct-odm")
     assert job["estimate_s"] == 260.0  # median of the measured [210, 310]
     assert greedy_choice("gateway", engine="fs")["estimate_s"] is None

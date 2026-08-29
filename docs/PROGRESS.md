@@ -5026,3 +5026,36 @@ virtual; chores REVISION bumped r3 → r4 for the new template).
 **Next: T5 — apply lanes** (owner-approved deviations flow to the A37
 fabrication lane, the Blender adapter, and UE — checkpointed, pass
 order respected), then R2's merged meter.
+
+## 2026-08-29 — A42 R2: the merged meter + the measured swap constants
+
+Suite 765 → **769 passed / 2 skipped**, gate exit 0. Surface LAW held.
+
+- **ONE meter, in the ONE ledger** (`MachineLedger.meter_block`):
+  per-engine calls/verified, escalations + rate, swap columns
+  (explicit / implicit / refused with the last refusal's honest
+  line), job-class occupancy — and the scheduler's columns
+  **reserved in the same schema** (`queue_age_s`, `dispatch_reason`,
+  `shadow_delta`) exactly as research 59 seam 2 demands: K1/K2 fill
+  columns, they never migrate a schema. `report_savings` carries the
+  block; the `tee_status` recap shows the one-line policy form only
+  when routing actually happened (budget discipline); provenance per
+  hop rides the router's `hops` from R1.
+- **Router overhead measured**: a full `route()` including a loopback
+  fake engine walls **0.30 ms** — bookkeeping is sub-millisecond
+  noise against 0.7–10 s chores. Published in setup-local-llm.md's
+  new router section beside the swap costs.
+- **The swap-cost constants, measured not assumed** (tiny completions
+  isolating load time on the live endpoint): **swap→q14b+a2 ≈ 1.1 s**
+  (1.26 first vs 0.15 warm; spec guessed 30), **swap→q27b-bare ≈
+  18.0 s** (18.05 first vs 0.47 warm; spec guessed 90). The measured
+  numbers FLIPPED a greedy decision — loading the 14B (1.1 + 1.24)
+  now beats staying on a resident 27B (6.38) for a single chore — the
+  exact reason R2 measures before K2 ever dispatches; the shadow
+  recorder's estimates sharpen retroactively via the registry rows.
+- 4 new fixtures (meter columns through real route() runs, refused
+  swaps as a column, report_savings/recap carriage, overhead bound).
+
+**Next: T5 — apply lanes** (owner-approved deviations → fabrication /
+Blender / UE, checkpointed, pass order respected, one fixture round
+trip), then R3 calibration-or-static.

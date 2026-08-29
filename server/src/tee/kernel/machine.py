@@ -35,7 +35,7 @@ ENGINES: dict[str, dict[str, Any]] = {
         "profile": "q14b",
         "capability": ["chores"],
         "footprint_gb": 9.0,  # 8.0 measured R0 2026-08-29
-        "eta_s": 30,
+        "eta_s": 1.1,  # measured swap cost R2 2026-08-29 (spec said 30)
         "qos_default": "interactive",
         "cost": {"latency_s": [0.74, 1.74], "measured": "R0 2026-08-29"},
     },
@@ -44,7 +44,7 @@ ENGINES: dict[str, dict[str, Any]] = {
         "profile": "q27b",
         "capability": ["chores"],
         "footprint_gb": 55.0,  # 43.7 measured R0 2026-08-29
-        "eta_s": 90,
+        "eta_s": 18.0,  # measured swap cost R2 2026-08-29 (spec said 90)
         "qos_default": "interactive",
         "cost": {"latency_s": [3.07, 9.69], "measured": "R0 2026-08-29"},
     },
@@ -86,6 +86,12 @@ class MachineLedger:
         self.total_gb = float(total_gb if total_gb is not None else _total_ram_gb())
         self._jobs: dict[str, dict[str, Any]] = {}
         self._lock = threading.Lock()
+        # the merged meter's routing counters (A42 R2, seam 2)
+        self._tasks = 0
+        self._escalations = 0
+        self._routes: dict[str, dict[str, int]] = {}
+        self._swaps = {"explicit": 0, "implicit": 0, "refused": 0, "seconds_known": 0.0}
+        self._last_refusal: str | None = None
 
     def register_job(self, key: str, engine: str) -> dict[str, Any]:
         spec = ENGINES.get(engine)
@@ -140,3 +146,64 @@ class MachineLedger:
                 f"({self.total_gb:.0f} total - {RESERVE_GB:.0f} reserve)"
             )
         return True, f"capable: {target:.0f} GB fits in {available:.0f} GB available"
+
+    # -- the merged meter (A42 R2; ONE meter, seam 2) ----------------------
+
+    def record_task(self) -> None:
+        with self._lock:
+            self._tasks += 1
+
+    def record_route(self, engine: str, verified: bool) -> None:
+        with self._lock:
+            row = self._routes.setdefault(engine, {"calls": 0, "verified": 0})
+            row["calls"] += 1
+            if verified:
+                row["verified"] += 1
+
+    def record_escalation(self) -> None:
+        with self._lock:
+            self._escalations += 1
+
+    def record_swap(
+        self, *, implicit: bool = False, refused: str | None = None, seconds: float | None = None
+    ) -> None:
+        with self._lock:
+            if refused is not None:
+                self._swaps["refused"] += 1
+                self._last_refusal = refused
+                return
+            self._swaps["implicit" if implicit else "explicit"] += 1
+            if seconds is not None:
+                self._swaps["seconds_known"] += float(seconds)
+
+    def meter_block(self) -> dict[str, Any]:
+        """Escalation, swap and job-class columns TOGETHER, with the
+        scheduler's columns reserved in the same schema (research 59
+        seam 2 - no later migration)."""
+        with self._lock:
+            block: dict[str, Any] = {
+                "routed_tasks": self._tasks,
+                "engines": {name: dict(row) for name, row in self._routes.items()},
+                "escalations": self._escalations,
+                "escalation_rate": round(self._escalations / self._tasks, 3)
+                if self._tasks
+                else 0.0,
+                "swaps": {
+                    key: (round(value, 1) if isinstance(value, float) else value)
+                    for key, value in self._swaps.items()
+                },
+                "jobs": {
+                    "active": len(self._jobs),
+                    "batch_footprint_gb": round(
+                        sum(row["footprint_gb"] for row in self._jobs.values()), 1
+                    ),
+                },
+                "scheduler": {
+                    "queue_age_s": "reserved (K1)",
+                    "dispatch_reason": "reserved (K2)",
+                    "shadow_delta": "reserved (K2; recorder live since K0)",
+                },
+            }
+            if self._last_refusal:
+                block["swaps"]["last_refusal"] = self._last_refusal
+            return block

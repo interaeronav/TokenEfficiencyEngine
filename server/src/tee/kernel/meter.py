@@ -192,7 +192,13 @@ def register_session_tools(app) -> None:
     """report_savings + handoff: kernel-level, adapter-agnostic, virtual."""
 
     def report_savings(args):
-        return savings(app.response_log.ledger())
+        result = savings(app.response_log.ledger())
+        machine = getattr(app, "machine", None)
+        if machine is not None:
+            # the merged meter (A42 R2): escalation, swap and job-class
+            # columns together; scheduler columns reserved in-schema (seam 2)
+            result["routing"] = machine.meter_block()
+        return result
 
     def handoff(args):
         return handoff_brief(app)

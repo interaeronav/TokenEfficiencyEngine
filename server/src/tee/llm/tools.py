@@ -53,6 +53,9 @@ def register_llm_tools(app, project_root: Path | str) -> None:
                 ),
                 {"outcome": "switched", "pinned": True},
             )
+            machine_ledger = getattr(app, "machine", None)
+            if machine_ledger is not None:
+                machine_ledger.record_swap()  # explicit owner swap, the meter's column
         return result
 
     def llm_triage(args):

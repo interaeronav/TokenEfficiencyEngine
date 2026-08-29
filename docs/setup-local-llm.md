@@ -144,3 +144,36 @@ translates findings, never overrules them.
 Every chore answer is schema-validated fail-closed and carries a
 provenance stamp (`model: tee-coder@<revision>`, the template revision
 in `tee/llm/chores.py`).
+
+## The router (A42 R1/R2): verifier-gated cascade over the engine ladder
+
+For chores with deterministic verifiers, `tee/llm/router.py` runs the
+resident engine first, lets the chore's own verdict decide (a schema
+kill or an empty result is a deterministic failure), and escalates up
+the ladder — the bigger local engine is reached only when the ONE
+machine-load ledger says the machine is capable (no registered
+reconstruction job, footprint fits), and the final tier is a budgeted
+client brief that names the failures and points at the input instead
+of re-dumping it. Chores without a deterministic verifier stay static
+(R3 decides calibration; uncalibrated confidence gates nothing).
+
+**The owner outranks the router**: an explicit `TEE/Q14B`/`TEE/Q27B`
+switch pins the engine and suspends roaming entirely; `TEE/AUTO`
+lifts the pin.
+
+**Honest costs (measured 2026-08-29):** a full `route()` including a
+loopback fake engine walls ~0.30 ms, so the router's own bookkeeping
+is sub-millisecond noise against 0.7–10 s chores. Engine swap costs on
+the mlx endpoint, first-request-after-model-change minus warm:
+**~1.1 s to the 14B+a2** (0.15 s warm) and **~18.0 s to the 27B bf16**
+(0.47 s warm) — both far under the spec guesses (30/90 s), and cheap
+enough that the measured constants flipped one greedy-policy decision
+(loading the 14B beats staying on a resident 27B for a single chore).
+
+**The merged meter**: `report_savings` carries a `routing` block —
+per-engine calls/verified, escalations + rate, swap columns (explicit
+/ implicit / refused, with the last refusal's honest line), job-class
+occupancy, and the scheduler's columns reserved in the same schema
+(`queue_age_s`, `dispatch_reason`, `shadow_delta` — filled by K1/K2,
+never migrated). The `tee_status` recap shows the one-line form only
+when routing actually happened.

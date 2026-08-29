@@ -356,6 +356,19 @@ class TeeApp:
         block = savings_block(self.response_log.ledger())
         if block:
             out["savings"] = block
+        meter = self.machine.meter_block()
+        if meter["routed_tasks"] or meter["jobs"]["active"]:
+            swaps = meter["swaps"]["implicit"] + meter["swaps"]["explicit"]
+            line = (
+                f"{meter['routed_tasks']} routed / {meter['escalations']} escalated, "
+                f"{swaps} swaps ({meter['swaps']['refused']} refused)"
+            )
+            with contextlib.suppress(Exception):
+                from tee.llm import profiles
+
+                if profiles.load_state(self.llm_cfg).get("pinned"):
+                    line += ", pinned"
+            out["router"] = line
         return out
 
     def _busy_hint(self) -> str | None:

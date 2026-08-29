@@ -58,22 +58,28 @@ def route(
     resident = _PROFILE_TO_ENGINE.get(state["active"], LADDER[0])
     pinned = bool(state.get("pinned"))
     ladder = [resident] if pinned else [resident, *[e for e in LADDER if e != resident]]
+    ledger.record_task()
     hops: list[dict[str, Any]] = []
     for engine in ladder:
         if engine != resident:
             capable, reason = ledger.may_swap(engine)
             if not capable:
                 hops.append({"engine": engine, "skipped": reason})
+                ledger.record_swap(refused=reason)
                 continue
+            ledger.record_swap(implicit=True)  # mlx loads the model per request
         try:
             result = call(_hop_cfg(cfg, engine))
         except TeeError as exc:
             hops.append({"engine": engine, "verdict": exc.code})
+            ledger.record_route(engine, verified=False)
             continue
         if result is None:
             hops.append({"engine": engine, "verdict": "empty_result"})
+            ledger.record_route(engine, verified=False)
             continue
         hops.append({"engine": engine, "verdict": "verified"})
+        ledger.record_route(engine, verified=True)
         _record(chore, input_pointer, engine, hops, resident, started, "verified")
         return {
             "ok": True,
@@ -83,6 +89,7 @@ def route(
             "pinned": pinned,
             "qos": "interactive",
         }
+    ledger.record_escalation()
     _record(chore, input_pointer, None, hops, resident, started, "escalated")
     return {
         "ok": False,
