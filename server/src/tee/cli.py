@@ -97,6 +97,19 @@ def _attach_uefn(app, project: str) -> None:
     register_uefn_tools(app, Path(project))
 
 
+def _build_freecad_app(project: str, allow_code_exec: bool):
+    """The fabrication lane (A37): FreeCADAdapter over the neka-nat bridge
+    (the P0-decided one bridge) + fc_drawing / fc_export."""
+    from tee.adapters.freecad.adapter import FreeCADAdapter
+    from tee.adapters.freecad.tools import register_freecad_tools
+    from tee.app import TeeApp
+
+    adapter = FreeCADAdapter()
+    app = TeeApp({"freecad": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
+    register_freecad_tools(app, adapter)
+    return app
+
+
 def _attach_kb(app, project: str) -> None:
     """Register the kb_* lane when an Expert Knowledge Base corpus resolves
     ([kb] root, or a discoverable knowledge-base/ mirror); inactive otherwise."""
@@ -148,9 +161,12 @@ def cmd_serve(args: argparse.Namespace) -> int:
         app = _build_unreal_app(
             args.project, args.unreal_host, args.unreal_port, args.allow_code_exec
         )
+    elif args.adapter == "freecad":
+        app = _build_freecad_app(args.project, args.allow_code_exec)
     else:
         print(
-            f"adapter '{args.adapter}' is not recognised; available: fake, blender, unreal",
+            f"adapter '{args.adapter}' is not recognised; available: fake, blender, "
+            "unreal, freecad",
             file=sys.stderr,
         )
         return 2

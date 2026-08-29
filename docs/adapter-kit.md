@@ -94,7 +94,12 @@ implementation of exactly these semantics (~120 lines); read it once
 before writing your own. Two of its behaviors are *reference niceties*,
 not contract: netting a same-batch create+delete to an empty diff, and
 extra adapter-specific ops (`assign_material`) — add your own ops
-freely; only the three core ops and the failure shapes are demanded.
+freely. What IS demanded: the three core ops, the failure shapes, and
+**`create` accepting an arbitrary `kind` string** — the contract's
+fixtures create plain `kind: "object"` entities, so a typed adapter
+needs a generic fallback (the FreeCAD adapter stores unknown kinds as
+FeaturePython objects with dynamic properties; found by the P4
+rehearsal — this sentence is the kit-bug fix it credited).
 
 ## Prove it: the packaged contract suite
 

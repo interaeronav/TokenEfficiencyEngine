@@ -3946,3 +3946,69 @@ code):** neka-nat's bridge IS the fabrication lane's GUI transport —
 TEE ships no second bridge; SVG/PDF sheets render via TechDrawGui
 through the same bridge (the #5710 fallback), and freecadcmd remains
 the headless CI/DXF/STEP vehicle. P4 unblocked.
+
+## 2026-08-29 — A37 P4: the fabrication lane, built FROM the kit, acceptance closed live
+
+New adapter package `tee/adapters/freecad/` (wire / codegen / adapter /
+tools), built by following docs/adapter-kit.md's own steps over the
+P0-decided one bridge (xmlrpc :9875 into the FreeCAD GUI process;
+`tee serve --adapter freecad` registered).
+
+- **The wire**: stdlib xmlrpc with real timeouts; `py_json` is the
+  read-back channel (the addon captures stdout; scripts print one JSON
+  line). **Batch over chatter at the wire**: a whole tee_batch compiles
+  to ONE generated script = ONE bridge round trip, applying ops in
+  order, recomputing once, answering one JSON diff; the first failing
+  op names its index and stops (kernel checkpoint restores).
+- **sketch_solve wired as designed**: sketch ops take the
+  points/lines/constraints contract (mm end to end), py-slvs solves
+  SERVER-SIDE, and FreeCAD receives final coordinates — closure by
+  construction, never DCC-solver hope. Pads = Part::Extrusion, pockets
+  = generated tool + Part::Cut (the stabler scripting surface;
+  PartDesign bodies recorded as the upgrade path; in-FreeCAD sketches
+  carry solved geometry without re-declared constraints — parametric
+  truth lives in the op history + feature properties, stated in
+  docs/setup-freecad.md). Checkpoints = document saveCopy round trips;
+  capture = budgeted JPEG with a downscale retry.
+- **fc_drawing**: TechDraw sheets derived FROM the model — views,
+  ExtentX/ExtentY overall dimensions (TechDraw.makeExtentDim - no edge
+  guessing) or explicit edge-ref dims, title-block template, svg/pdf
+  via TechDrawGui through the bridge (#5710 fallback) + dxf; **every
+  dimension VALUE read back from the document**. **fc_export**: STEP +
+  GLB (→ as_ingest/as_import).
+- **Live API facts earned, not remembered** (each found by probe, now
+  encoded in comments/tests): DrawViewDimension lost `.Value` in 1.1.x
+  (`getRawValue()`); extent dims are `DrawViewDimExtent`; and the big
+  one — **a dimension created in the same GUI dispatch as its view
+  caches 0.0** (dispatch1 0.0 / plain dispatch2 0.0 / touch+recompute
+  dispatch2 = true value, proven with a fresh-doc matrix) — fc_drawing
+  therefore reads back in a second touching dispatch, and the hermetic
+  shim ENCODES the caching behavior so a regression re-fails in CI.
+- **Tests**: the shim's `py()` EXECUTES the generated scripts against
+  a fake FreeCAD in sys.modules — codegen runs for real in CI. The
+  PACKAGED kit contract passes (TestFreeCADAdapterContract), plus
+  batch-single-round-trip, fail-stop, solved-sketch flow (asserting
+  the SOLVED coordinates in the emitted script), saveCopy round trip,
+  drawing read-back regression, generic kinds. Live parity suite added
+  under `-m dcc` (skips without the bridge). **Suite 698 passed / 2
+  skipped**, ruff clean.
+- **Kit rehearsal credit (the P3 acceptance completes)**: one kit bug
+  found by building from the doc alone — the contract demands `create`
+  accept arbitrary kind strings (its fixtures use plain "object") but
+  the doc's "only the three core ops are demanded" understated it;
+  docs/adapter-kit.md now states the generic-kind requirement, credited
+  to this rehearsal.
+
+**The acceptance, one recorded live session (2026-08-29, evidence
+above in the transcript, artifacts in the session scratchpad):** a
+wardrobe side panel brief (600×400×18 mm, 100×60×5 mm hardware slot)
+→ solved sketches → pad → pocket (batches 0.02–0.10 s, checkpointed,
+diffs carrying volumes) → **checked model: volume 4,290,000.0 mm³ =
+the brief's arithmetic exactly** → dimensioned TechDraw sheet — SVG
+9,010 B + PDF 6,954 B + DXF 10,761 B, **document read-back
+[18.0, 400.0, 600.0]** — → STEP 12,107 B + GLB 6,108 B → **live UE
+5.8.1 import through the EXISTING as_ingest/as_import: scale_band
+"accept", read-back [0.6, 0.4, 0.018] m, verify ok, 0.47 s** →
+budgeted capture 8,943 B. Machine etiquette: UE quit in-engine
+(`{}`-ack via execute_editor_python, port 8000 freed), the probe
+FreeCAD instance quit, ports verified freed.
