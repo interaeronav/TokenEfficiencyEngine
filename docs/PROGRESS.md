@@ -4576,3 +4576,26 @@ rolling-shutter database (gaps recorded in advance → known honest
 fallback). Default profile rephrased as the Mini family as a class;
 per-set metadata resolution carries the rest, unchanged. Research 56
 addendum + both script files updated.
+
+## 2026-08-29 — Research 58: the kernel scheduler (owner ask — the "TEE CPU")
+
+Owner directed very deep research into an M5-inspired central
+coordinator over all TEE work. Written as
+`docs/research/58-kernel-scheduler.md`, grounded three ways: the
+M5-family architecture from Apple's own releases (heterogeneous
+cores, neural accelerators per GPU core, 614 GB/s unified memory —
+and the honest decoding: the M5 is modules-PLUS-scheduler, not
+anti-modular); Ray's task/object model read live through
+tee_web_lookup (during which the docs.ray.io robots.txt refusal fired
+and was honored — the A34 etiquette gate observed working in
+production); and TEE's own anatomy — the finding that TEE already
+owns the unified-memory analogue (ids over payloads; internal edges
+are token-free, so the scheduler's core law is minimize
+client-boundary crossings), the arbiter (the A41 load ledger), the
+first dispatcher (the A41 router), and measured cost tables. The doc
+specifies the missing layer (task graph, QoS law, one engine
+registry, shadow-validated greedy dispatch), the honest efficiency
+claim (wins exist only under mixed load — benchmarked, win-or-revert),
+the degrade-to-static safety law, and the build shape: campaign A42,
+sequenced AFTER A41 lands (the router and ledger are its organs).
+No decision recorded — research only; the owner directs the build.
