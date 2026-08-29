@@ -132,3 +132,24 @@ def test_llm_check_up_needs_no_fix(tmp_path, monkeypatch):
     check = doctor.check_llm()
     assert "chores UP" in check.detail
     assert check.fix is None
+
+
+def test_state_check_reports_sizes_caps_and_staging(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    staging = tmp_path / ".tee" / "kb-staging"
+    staging.mkdir(parents=True)
+    (staging / "draft.md").write_text("# pending")
+    cache = tmp_path / ".tee" / "web" / "cache"
+    cache.mkdir(parents=True)
+    (cache / "a.body").write_bytes(b"x" * 2048)
+    check = doctor.check_state()
+    assert check.status == "ok"
+    assert "web cache capped 50 MB / 14 d" in check.detail
+    assert "1 kb-staging draft(s)" in check.detail
+
+
+def test_state_check_without_tee_dir_is_plain(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    check = doctor.check_state()
+    assert check.status == "ok"
+    assert "no .tee/" in check.detail

@@ -398,3 +398,48 @@ def test_live_loopback_fetch_through_allow_local(tmp_path) -> None:
     finally:
         server.shutdown()
         thread.join(timeout=5)
+
+
+# --- cache sweep (A38 S3.2: the on-disk cache is bounded) --------------------
+
+
+def _seed_cache_entry(tmp_path, name: str, *, age_s: float, size: int) -> None:
+    import json as _json
+    import time as _time
+
+    cache = tmp_path / ".tee" / "web" / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    (cache / f"{name}.body").write_bytes(b"x" * size)
+    (cache / f"{name}.meta.json").write_text(
+        _json.dumps({"url": f"https://example.com/{name}", "fetched_at": _time.time() - age_s})
+    )
+
+
+def test_sweep_evicts_by_age_and_keeps_fresh(tmp_path) -> None:
+    _seed_cache_entry(tmp_path, "ancient", age_s=20 * 86400, size=10)
+    _seed_cache_entry(tmp_path, "fresh", age_s=60, size=10)
+    WebFetcher(tmp_path, transport=FakeTransport({}), resolve=resolve)
+    cache = tmp_path / ".tee" / "web" / "cache"
+    assert not (cache / "ancient.body").exists()
+    assert not (cache / "ancient.meta.json").exists()
+    assert (cache / "fresh.body").exists()
+
+
+def test_sweep_evicts_oldest_first_down_to_the_size_cap(tmp_path) -> None:
+    _seed_cache_entry(tmp_path, "older", age_s=3600, size=700_000)
+    _seed_cache_entry(tmp_path, "newer", age_s=60, size=700_000)
+    WebFetcher(tmp_path, transport=FakeTransport({}), resolve=resolve, cache_max_mb=1.0)
+    cache = tmp_path / ".tee" / "web" / "cache"
+    assert not (cache / "older.body").exists()
+    assert (cache / "newer.body").exists()
+
+
+def test_sweep_treats_corrupt_meta_as_oldest(tmp_path) -> None:
+    cache = tmp_path / ".tee" / "web" / "cache"
+    cache.mkdir(parents=True)
+    (cache / "broken.meta.json").write_text("{not json")
+    (cache / "broken.body").write_bytes(b"x")
+    _seed_cache_entry(tmp_path, "fine", age_s=60, size=10)
+    WebFetcher(tmp_path, transport=FakeTransport({}), resolve=resolve)
+    assert not (cache / "broken.body").exists()
+    assert (cache / "fine.body").exists()

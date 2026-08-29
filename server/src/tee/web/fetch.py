@@ -14,6 +14,7 @@ validated hostname, so the address that was checked is the address dialed.
 
 from __future__ import annotations
 
+import contextlib
 import http.client
 import json
 import socket
@@ -73,6 +74,8 @@ class WebFetcher:
         ttl_s: float = 3600.0,
         max_bytes: int = MAX_BYTES,
         timeout_s: float = 20.0,
+        cache_max_mb: float = 50.0,
+        cache_max_age_days: float = 14.0,
         transport: Transport | None = None,
         resolve=None,
         clock: Callable[[], float] = time.time,
@@ -85,6 +88,8 @@ class WebFetcher:
         self.ttl_s = ttl_s
         self.max_bytes = max_bytes
         self.timeout_s = timeout_s
+        self.cache_max_mb = float(cache_max_mb)
+        self.cache_max_age_days = float(cache_max_age_days)
         self._transport = transport or self._default_transport
         self._resolve = resolve
         self._clock = clock
@@ -92,6 +97,7 @@ class WebFetcher:
         self._robots: dict[str, tuple[urllib.robotparser.RobotFileParser | None, float]] = {}
         self._interval: dict[str, float] = {}  # per-host, crawl-delay aware
         self._last_request: dict[str, float] = {}
+        self._sweep_cache()
 
     # -- public ---------------------------------------------------------------
 
@@ -316,6 +322,46 @@ class WebFetcher:
         tmp = meta_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(payload))
         tmp.replace(meta_path)
+
+    def _sweep_cache(self) -> None:
+        """Bound the on-disk cache once per fetcher (A38 S3.2): entries older
+        than cache_max_age_days go, then oldest-first down to cache_max_mb.
+        A cache delete is always safe - a wanted URL refetches/revalidates."""
+        try:
+            metas = sorted(self.cache_dir.glob("*.meta.json"))
+        except OSError:
+            return
+        entries: list[tuple[float, Path, Path, int]] = []
+        for meta_path in metas:
+            body_path = meta_path.with_name(meta_path.name[: -len(".meta.json")] + ".body")
+            try:
+                fetched_at = float(json.loads(meta_path.read_text()).get("fetched_at", 0))
+                size = body_path.stat().st_size if body_path.exists() else 0
+            except (OSError, json.JSONDecodeError, ValueError):
+                fetched_at, size = 0.0, 0  # unreadable = oldest, evicts first
+            entries.append((fetched_at, meta_path, body_path, size))
+        max_age_s = self.cache_max_age_days * 86400.0
+        now = self._clock()
+        keep: list[tuple[float, Path, Path, int]] = []
+        for entry in entries:
+            if now - entry[0] > max_age_s:
+                self._evict(entry[1], entry[2])
+            else:
+                keep.append(entry)
+        budget = int(self.cache_max_mb * 1024 * 1024)
+        total = sum(e[3] for e in keep)
+        for entry in sorted(keep, key=lambda e: e[0]):  # oldest first
+            if total <= budget:
+                break
+            self._evict(entry[1], entry[2])
+            total -= entry[3]
+
+    @staticmethod
+    def _evict(meta_path: Path, body_path: Path) -> None:
+        for path in (meta_path, body_path):
+            # a locked file survives to the next sweep
+            with contextlib.suppress(OSError):
+                path.unlink(missing_ok=True)
 
     # -- the real transport: connect to the PINNED ip -------------------------
 

@@ -359,6 +359,59 @@ def check_web() -> Check:
     return Check("web", "ok", "tee_web_lookup ready; " + "; ".join(bits))
 
 
+def check_state() -> Check:
+    """`.tee/` on-disk state (A38 S3.2): sizes per store, the web-cache caps
+    in effect, pending kb-staging drafts, project-memory weight. Growth is a
+    plain state; only an unbounded-looking pile warns."""
+    import tempfile as _tempfile
+    from pathlib import Path as _Path
+
+    from tee.config import ProjectConfig
+
+    tee_dir = _Path(".") / ".tee"
+    if not tee_dir.is_dir():
+        return Check("state", "ok", "no .tee/ yet (nothing stored)")
+
+    def dir_kb(path: _Path) -> int:
+        total = 0
+        for child in path.rglob("*"):
+            try:
+                if child.is_file():
+                    total += child.stat().st_size
+            except OSError:
+                continue
+        return total // 1024
+
+    sizes = sorted(
+        ((dir_kb(child), child.name) for child in tee_dir.iterdir() if child.is_dir()),
+        reverse=True,
+    )
+    total_kb = sum(kb for kb, _ in sizes) + sum(
+        f.stat().st_size // 1024 for f in tee_dir.iterdir() if f.is_file()
+    )
+    web = ProjectConfig.load(".").web
+    caps = (
+        f"web cache capped {web.get('cache_max_mb', 50)} MB / {web.get('cache_max_age_days', 14)} d"
+    )
+    staged = len(list((tee_dir / "kb-staging").glob("*.md")))
+    orphans = len(list(_Path(_tempfile.gettempdir()).glob("tee-freecad-cp-*")))
+    top = ", ".join(f"{name} {kb / 1024:.1f} MB" for kb, name in sizes[:3] if kb)
+    detail = f"{total_kb / 1024:.1f} MB in .tee/ ({top or 'empty'}); {caps}"
+    if staged:
+        detail += f"; {staged} kb-staging draft(s) awaiting owner review"
+    if orphans:
+        detail += f"; {orphans} freecad checkpoint dir(s) in TMPDIR (OS-purged)"
+    if total_kb > 1024 * 1024:
+        return Check(
+            "state",
+            "warn",
+            detail,
+            fix="lower [web] cache_max_mb / cache_max_age_days in "
+            ".tee/config.toml; review kb-staging per docs/setup-kb.md",
+        )
+    return Check("state", "ok", detail)
+
+
 def check_llm() -> Check:
     """Local model endpoints (chores + vision): a 1.5 s localhost probe
     each. Down is a plain state - every chore degrades deterministically."""
@@ -395,6 +448,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_voxkiln(),
         check_kb(),
         check_web(),
+        check_state(),
         check_llm(),
     ]
 

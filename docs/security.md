@@ -78,7 +78,10 @@ is read-only by construction:
   scraping is rejected as an anti-goal.
 - **Copyright + etiquette**: short cited extracts only (no full-page
   copies stored beyond a private, TTL'd, local fetch cache with ETag
-  revalidation); robots.txt and Crawl-delay honored via stdlib
+  revalidation — bounded on disk by `[web] cache_max_mb` (default 50)
+  and `cache_max_age_days` (default 14), swept oldest-first at fetcher
+  start and reported by `tee doctor`); robots.txt and Crawl-delay
+  honored via stdlib
   robotparser; per-host rate limit; honest versioned UA
   (`TEE-web/<version>`); 429/503 backoff honoring Retry-After; 5 MB text
   cap. Paywalls are never circumvented and streaming-platform ripping is

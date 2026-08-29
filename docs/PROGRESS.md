@@ -4349,3 +4349,45 @@ Gates: suite 711/2 green after every edit; battery rows identical or
 improved (kb 96.7 / web 95.3 / plaus 95.6 / fabrication 92.4 /
 gateway 95.4; surface LAW 2,028/17 re-asserted). Warm battery 8.4 s
 this pass (web revalidation run).
+
+## 2026-08-29 — A38 S3: smaller and leaner (footprint, round two)
+
+**S3.1 dependency audit — the A37 delta is zero, explained:**
+pyproject deps are byte-identical 0.4.0 → 0.5.0 except the version
+stamp; the bundle venv re-rehearsed at 29 MB / 29 packages (S0). Line
+by line the venv is `mcp`'s own tree — cryptography 13 MB (the whale,
+mcp transitive, pre-existing and upstream's), pydantic_core 4.3,
+pydantic 2.0, mcp 1.4 — plus tee itself. A37's heavy pieces were
+already right: py-slvs sits behind the [physical] extra with a lazy
+import and a rule-6 refusal naming the extra; boards are stdlib; the
+gateway spawns node processes rather than importing anything. Nothing
+to remove; no removals made. Stricter unused-code sweep (F401/F811/
+F841) over server/src: clean.
+
+**S3.2 `.tee` state hygiene — bounded by config, reported by doctor:**
+- The web fetch cache (the one store that grew without bound) now
+  sweeps at fetcher start: entries older than `[web]
+  cache_max_age_days` (default 14) deleted, then oldest-first down to
+  `[web] cache_max_mb` (default 50). A cache delete is always safe —
+  a wanted URL refetches/revalidates. 3 new hermetic tests (age, size,
+  corrupt-meta-evicts-first); security.md documents the caps.
+- `tee doctor` gains a **state** check: `.tee/` total + top stores,
+  the cache caps in effect, kb-staging drafts awaiting owner review,
+  orphan freecad checkpoint dirs in TMPDIR (64 counted live — made
+  visible, deliberately NOT auto-deleted: checkpoint data is owner
+  material, and TMPDIR is OS-purged). Warns only past 1 GB, with the
+  config fix named. 2 new doctor tests.
+- memory.json notes append by design (14 KB live) — visibility via
+  doctor total; auto-rotation of owner notes deliberately not built
+  (flagged as the owner's call if it ever matters).
+
+**S3.3 artifact re-measure:** skipped by the script's own rule — S3.1
+found no real weight; no kilobyte theater. Artifacts rebuild at S4
+close per RC discipline regardless.
+
+**S3.4 import-time fence:** cold `uv run --no-dev tee serve` →
+initialize → first tee_status answer, exact A35 method, median of 5:
+**0.26 s** (A35 floor 0.32 s — held with the 97-virtual-tool
+registration path; runs 0.26–0.28).
+
+Suite after S3: **716 passed / 2 skipped** (711 + 5 new), ruff clean.

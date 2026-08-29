@@ -85,6 +85,8 @@ class WebLookupService:
             project_root,
             allow_local=bool(cfg.get("allow_local", False)),
             ports=ports,
+            cache_max_mb=float(cfg.get("cache_max_mb", 50.0)),
+            cache_max_age_days=float(cfg.get("cache_max_age_days", 14.0)),
         )
         self.llm_cfg = dict(llm or {})
         self.registry = registry
