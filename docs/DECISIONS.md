@@ -755,3 +755,13 @@ source's honesty band; every apply is checkpointed. The pre-visit
 deliverables outrank all else: the capture-protocol doc (V1) and the
 full dry run on existing site imagery (V6) — the trip must not be the
 first test.
+
+**A40 addendum (owner, 2026-08-29):** engines confirmed; the aircraft
+is a DJI Mini. Encoded: rolling-shutter correction with the
+model+mode-matched readout constant (mode pinned protocol-wide),
+planned grid missions via Litchi/Dronelink with manual fallback,
+stills only, SRT logs into the extract lane; PhotogrammetrySession
+optimization defined as the measured quality-ladder rows on this
+machine (preview = on-site validation, full/raw = finals), jobs +
+provenance throughout. The owner's exact Mini model is recorded at
+V0 start.

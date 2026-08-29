@@ -4517,3 +4517,15 @@ auto-apply) → V5 checkpointed apply lanes → V6 full dry run on
 existing Dropbox site imagery → V7 close. Kickoff in TEE memory
 (a40-campaign). Campaign queue: A39 (router) and A40 both open —
 either order, never concurrent.
+
+## 2026-08-29 — A40 amended: DJI Mini specifics + helper optimization (owner)
+
+Owner confirmed engines and named the drone (DJI Mini). Research 56
+addendum + script edits: ODM rolling-shutter correction with the
+model+mode readout constant (differs 12 vs 48 MP — mode pinned in the
+protocol), grid missions via Litchi/Dronelink (Mini 3/4 Pro
+supported; free planners export Litchi), stills-only, speed caps,
+SRT→flight-path facts tie-in; the PhotogrammetrySession helper gains
+the quality ladder with V2 benchmark rows (wall/RAM/tris per level)
+so defaults are evidence — preview serves the on-site validation
+pass. V0 asks the owner the exact Mini model before ODM tuning.

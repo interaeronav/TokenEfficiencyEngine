@@ -116,3 +116,40 @@ meshroomcl); CloudCompare CLI + C2M + arm64 (cloudcompare.org/doc/
 wiki Command_line_mode, cloudcompare forum C2M threads,
 formulae.brew.sh/cask/cloudcompare, openfields macOS binaries);
 research 51/52 for the QGIS stance; the KB files named above.
+
+## Addendum (owner, 2026-08-29): DJI Mini specifics + PhotogrammetrySession optimization
+
+The owner confirmed the engine choices and named the aircraft: a
+**DJI Mini**. Facts that change the protocol and the ODM defaults
+(sources: the ODM rolling-shutter database and community threads, the
+Litchi/Dronelink ecosystem):
+
+- **Electronic shutter only** — rolling-shutter distortion is the
+  Mini's photogrammetry enemy. ODM ships correction with per-model
+  readout constants, and the readout DIFFERS BY PHOTO MODE (Mini 3
+  Pro: ~26 ms at 12 MP vs ~60 ms at 48 MP; Mini 4 Pro varies by
+  mode/aspect). Consequences: the protocol PINS one photo mode for
+  the whole survey; the ODM lane sets rolling-shutter correction with
+  the constant matching the owner's exact model+mode (recorded at V0
+  when the owner names the model); flight speed capped, stop-and-
+  shoot for facades.
+- **Automated grids exist for the Mini** via third-party mission apps
+  (Litchi and Dronelink support the Mini 3/4 Pro; free grid planners
+  export Litchi missions). The protocol prescribes a planned grid
+  with fixed overlap over manual flying; manual technique stays as
+  the no-app fallback with the checklist's overlap discipline.
+- **Stills, never video frames**, for the mapping set; GPS EXIF is
+  meters-class absolute (no RTK on Minis) — the honesty bands stand;
+  scale references close relative accuracy.
+- **The Mini's SRT telemetry already has a home**: the extract lane
+  parses DJI SRT into flight-path facts (Phase 7) — flight logs
+  ingest alongside the imagery for provenance.
+
+**"Optimized with TEE" for PhotogrammetrySession, made concrete**: the
+V0 helper exposes the API's quality ladder (preview → reduced →
+medium → full → raw) and V2 benchmarks it on this M5 Max — wall time,
+peak RAM, output tris per level on a fixture set — so the lane's
+DEFAULTS are evidence rows, not guesses; long runs ride tee_job with
+budgeted progress; every artifact carries engine+version+inputs-hash
+provenance; preview quality serves the on-site 10-minute validation
+pass, full/raw the final reconstruction.
