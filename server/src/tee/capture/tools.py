@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from tee.capture import align, deviate, dji
+from tee.capture import apply as apply_mod
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
@@ -529,5 +530,118 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             },
             capture_deviate,
             tags=["capture", "deviation", "c2m", "as-built", "report", "severity", "menu"],
+        )
+    )
+
+    def capture_apply(args: dict[str, Any]) -> dict[str, Any]:
+        work = _out_dir(root) / "deviation"
+        decision = str(args.get("decision") or "")
+        if decision not in apply_mod.DECISIONS:
+            raise TeeError(
+                "capture_apply_bad_decision",
+                f"'{decision}' is not on the menu.",
+                fix=f"One of: {', '.join(apply_mod.DECISIONS)} - the owner decides.",
+            )
+        deviation_id = str(args.get("deviation") or "")
+        reports = sorted(work.glob("report-*.json"))
+        if not reports:
+            raise TeeError(
+                "capture_no_report",
+                "No deviation report exists yet.",
+                fix="Run capture_deviate first; apply acts on its ids.",
+            )
+        rows = json.loads(reports[-1].read_text())
+        row = next((c for c in rows if c["id"] == deviation_id), None)
+        if row is None:
+            known = ", ".join(c["id"] for c in rows[:12])
+            raise TeeError(
+                "capture_unknown_deviation",
+                f"No deviation '{deviation_id}' in the last report.",
+                fix=f"Known ids: {known}.",
+            )
+        if decision != "accept-as-built":
+            log = apply_mod.record_decision(
+                work, {"deviation": deviation_id, "decision": decision, "fact": row["fact"]}
+            )
+            return {
+                "decision": decision,
+                "deviation": deviation_id,
+                "applied": [],
+                "note": "recorded; nothing applied - that is what this decision means",
+                "log": str(log),
+            }
+        lanes = [str(lane) for lane in (args.get("lanes") or ["blender"])]
+        applied: list[dict[str, Any]] = []
+        for lane in lanes:
+            if lane == "blender":
+                entity = str(args.get("entity") or "")
+                if not entity:
+                    raise TeeError(
+                        "capture_apply_needs_entity",
+                        "The scene lane needs the entity to correct.",
+                        fix="Pass entity=<scene id> (tee_scene_summary lists ids).",
+                    )
+                adapter_name = str(args.get("adapter") or next(iter(app.adapters), "fake"))
+                applied.append(
+                    apply_mod.apply_scene_offset(
+                        app,
+                        adapter_name,
+                        entity,
+                        float(row["mean_m"]),
+                        axis=str(args.get("axis") or "z"),
+                    )
+                )
+            elif lane in ("fabrication", "unreal"):
+                raise apply_mod.staged_lane(lane)
+            else:
+                raise TeeError(
+                    "capture_apply_unknown_lane",
+                    f"'{lane}' is not an apply lane.",
+                    fix="Lanes: blender, fabrication, unreal.",
+                )
+        log = apply_mod.record_decision(
+            work,
+            {
+                "deviation": deviation_id,
+                "decision": decision,
+                "fact": row["fact"],
+                "lanes": lanes,
+                "applied": [
+                    {"adapter": a["adapter"], "entity": a["entity"], "checkpoint": a["checkpoint"]}
+                    for a in applied
+                ],
+            },
+        )
+        return {
+            "decision": decision,
+            "deviation": deviation_id,
+            "applied": applied,
+            "log": str(log),
+        }
+
+    reg.register(
+        VirtualTool(
+            "capture_apply",
+            "Act on ONE deviation with the owner's menu decision: "
+            "keep-design / flag-for-site are RECORDED and apply nothing; "
+            "accept-as-built moves the named scene entity by the deviation "
+            "through the checkpointed batch path (checkpoint id + diff + "
+            "read-back returned). The fabrication and unreal legs refuse "
+            "loudly until their applications are live. Every decision lands "
+            "in decisions.jsonl - the trip's paper trail.",
+            {
+                "type": "object",
+                "properties": {
+                    "deviation": {"type": "string"},
+                    "decision": {"type": "string"},
+                    "lanes": {"type": "array", "items": {"type": "string"}},
+                    "entity": {"type": "string"},
+                    "adapter": {"type": "string"},
+                    "axis": {"type": "string"},
+                },
+                "required": ["deviation", "decision"],
+            },
+            capture_apply,
+            tags=["capture", "apply", "deviation", "accept", "checkpoint", "owner", "decision"],
         )
     )

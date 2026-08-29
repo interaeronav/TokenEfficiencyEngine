@@ -5059,3 +5059,36 @@ Suite 765 → **769 passed / 2 skipped**, gate exit 0. Surface LAW held.
 **Next: T5 — apply lanes** (owner-approved deviations → fabrication /
 Blender / UE, checkpointed, pass order respected, one fixture round
 trip), then R3 calibration-or-static.
+
+## 2026-08-29 — A42 T5: apply lanes — the owner's decision drives, the scene leg proven live
+
+Suite 769 → **772 passed / 2 skipped**, gate exit 0. Surface LAW held
+(capture_apply is virtual).
+
+- **`tee/capture/apply.py` + `capture_apply`**: the menu decision IS
+  the input — keep-design / flag-for-site are RECORDED into
+  `decisions.jsonl` (the trip's paper trail) and apply NOTHING;
+  accept-as-built translates one deviation through the EXISTING
+  checkpointed batch path (checkpoint id + diff + read-back in the
+  result). Bad decisions, unknown deviations, missing entities and
+  unknown lanes all refuse with the fix; the fabrication and unreal
+  legs refuse loudly as `capture_apply_staged`, each NAMING what must
+  be live (the FreeCAD GUI bridge; the OkongoSim editor whose house
+  import + terrain scripts live in `/Users/john/OkongoSim/tools`).
+- **The live scene leg, full trip on the real headless Blender
+  bridge** (own instance, port 9877): north_wall created → the T4
+  report's d1 (+38 mm) accepted → entity moved through the
+  checkpointed batch (cp2) → live read-back `[0, 0, 0.038]` → and
+  the checkpoint proven REAL: rollback restored `[0, 0, 0]` through
+  the bridge (with the documented resync/continuity-break semantics —
+  ids reassigned, found by name after).
+- 3 fake-suite tests (accept-moves-checkpoints-logs with a real
+  rollback assert, keep-design mutates nothing, six refusal paths).
+
+**T5's remaining acceptance, staged honestly:** the full three-lane
+round trip (drawing + Blender + UE in one pass) needs FreeCAD and the
+OkongoSim editor live — the machinery contract is identical (the
+existing A37 fabrication lane and the UE adapter), and the staged
+refusals name exactly that. Next in the spine: **R3 —
+calibration-or-static** (allowed to conclude "none ship"), then T6's
+dry run (resize colima to 32 GiB first).
