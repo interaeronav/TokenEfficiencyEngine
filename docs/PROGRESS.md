@@ -4903,3 +4903,46 @@ unverifiable chores (R3), consumer wiring of routed chores (T4), QoS
 as behavior (K1). **Next: K0** — task descriptors, the graph
 substrate, and the SHADOW RECORDER (the merge's core, landing now so
 the rest of the campaign records its own traces).
+
+## 2026-08-29 — A42 K0: descriptors, the graph substrate, and the SHADOW RECORDER
+
+The merge's core lands: from this commit on, every real dispatch —
+chores, jobs, swaps, gateway calls — records a compact JSONL trace
+alongside what the shadow scheduler WOULD have done (greedy
+earliest-finish over the registry's measured tables). Zero behavior
+change, by construction: recorder off = silent no-op, every internal
+failure swallowed (fixtured with an unwritable dir), nothing on any
+dispatch path reads it, `[scheduler] shadow = false` honors the
+degrade-to-static law, and `TeeApp.shutdown` disables. Suite 744 →
+**752 passed / 2 skipped**, ruff + format clean; surface unchanged.
+
+- `tee/kernel/shadow.py`: TaskDescriptor (id/kind/qos/engine/verifier
+  + inputs/outputs by ID — internal edges pass ids, never payloads),
+  greedy_choice (the computed-never-applied policy), ShadowRecorder
+  (day-file JSONL under `.tee/shadow/`, 50 MB cap swept at enable —
+  the A38 state discipline).
+- **Four seams, one line each**: jobs' worker (wall + outcome + the
+  submitter-declared engine), the router (winner or client, hops,
+  resident context), llm_switch (swap + pin), the gateway's wire call
+  (backend + wall, error paths included).
+- **Overhead measured: 27 µs/record** (500-record bench inside the
+  suite; trace lines <400 bytes each, asserted).
+- **The dated live sample** (real engines, real reconstruction, real
+  swap — traces flowing):
+
+```
+{"ts":1788010259.84,"task":{"id":"swap:q14b","kind":"swap","qos":"maintenance","engine":"q14b+a2"},"actual":{"outcome":"switched","pinned":true},"shadow":{"engine":"q14b+a2","estimate_s":30.0,"reason":"single-engine task"},"delta":{"agrees":true}}
+{"ts":1788010274.4,"task":{"id":"job1","kind":"job","qos":"batch","engine":"reconstruct-photogrammetry"},"actual":{"outcome":"done","wall_s":14.5},"shadow":{"engine":"reconstruct-photogrammetry","estimate_s":12.0,"reason":"single-engine task"},"delta":{"agrees":true,"est_minus_actual_s":-2.5}}
+{"ts":1788010278.65,"task":{"id":"chore:triage","kind":"chore","qos":"interactive","engine":"q14b+a2","verifier":"deterministic","in":["fixture:none_guard"]},"actual":{"outcome":"verified","wall_s":3.72,"hops":1},"shadow":{"engine":"q14b+a2","estimate_s":1.24,"reason":"greedy earliest-finish, resident=q14b+a2"},"delta":{"agrees":true,"est_minus_actual_s":-2.48}}
+```
+
+  The chore delta already teaches: greedy's 1.24 s estimate omits the
+  endpoint's model-reload (mlx swapped back from the 27B mid-sample) —
+  the exact class of systematic gap the trace corpus exists to expose
+  BEFORE K2's replay gate lets any policy go live. The campaign now
+  accumulates its own Borg-style evidence as a side effect of all
+  remaining work — the merge's prize, running.
+
+**Next: T3** (georeference + align — the QGIS lane and CloudCompare
+ICP registration to the locked datum), with every dispatch it makes
+now feeding the trace corpus.

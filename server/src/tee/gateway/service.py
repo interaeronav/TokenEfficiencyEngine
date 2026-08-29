@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -318,12 +319,23 @@ class GatewayService:
             hit = backend.cache.get(cache_key)
             if hit is not None:
                 return {**hit, "cache": "hit"}
+        from tee.kernel import shadow
+
+        wire_started = time.monotonic()
+        task = shadow.TaskDescriptor(
+            id=f"gw:{backend_name}.{tool}", kind="gateway", qos="interactive", engine=backend_name
+        )
         try:
             result = backend.wire.tools_call(tool, args)
         except TeeError as exc:
             if exc.code == "gateway_backend_dead":
                 backend.state = "dead"
+            shadow.record(
+                task,
+                {"outcome": exc.code, "wall_s": round(time.monotonic() - wire_started, 2)},
+            )
             raise
+        shadow.record(task, {"outcome": "ok", "wall_s": round(time.monotonic() - wire_started, 2)})
         payload = self._shape_result(backend_name, tool, result, budget)
         if cache_key is not None:
             if len(backend.cache) >= CACHE_KEEP:

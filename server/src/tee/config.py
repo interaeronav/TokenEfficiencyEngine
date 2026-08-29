@@ -70,6 +70,7 @@ class ProjectConfig:
     llm: dict[str, Any] = field(default_factory=dict)
     gateway: dict[str, Any] = field(default_factory=dict)
     capture: dict[str, Any] = field(default_factory=dict)
+    scheduler: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -146,6 +147,12 @@ class ProjectConfig:
             config.capture = capture
         elif capture:
             problems.append("[capture] must be a table")
+
+        scheduler = data.get("scheduler", {})
+        if isinstance(scheduler, dict):
+            config.scheduler = scheduler
+        elif scheduler:
+            problems.append("[scheduler] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)

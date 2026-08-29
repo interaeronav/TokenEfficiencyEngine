@@ -17,9 +17,11 @@ a LABEL here (seam 3); K1 makes it law.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from typing import Any
 
+from tee.kernel import shadow
 from tee.kernel.budget import estimate_tokens
 from tee.kernel.errors import TeeError
 from tee.kernel.machine import ENGINES, MachineLedger
@@ -51,6 +53,7 @@ def route(
     refine='local' so a verifier kill surfaces as TeeError and an
     empty-but-valid answer as None - both are deterministic verdicts."""
     cfg = dict(cfg or {})
+    started = time.monotonic()
     state = profiles.load_state(cfg)
     resident = _PROFILE_TO_ENGINE.get(state["active"], LADDER[0])
     pinned = bool(state.get("pinned"))
@@ -71,6 +74,7 @@ def route(
             hops.append({"engine": engine, "verdict": "empty_result"})
             continue
         hops.append({"engine": engine, "verdict": "verified"})
+        _record(chore, input_pointer, engine, hops, resident, started, "verified")
         return {
             "ok": True,
             "engine": engine,
@@ -79,6 +83,7 @@ def route(
             "pinned": pinned,
             "qos": "interactive",
         }
+    _record(chore, input_pointer, None, hops, resident, started, "escalated")
     return {
         "ok": False,
         "escalate": _brief(chore, input_pointer, hops, pinned),
@@ -86,6 +91,34 @@ def route(
         "pinned": pinned,
         "qos": "interactive",
     }
+
+
+def _record(
+    chore: str,
+    pointer: str,
+    engine: str | None,
+    hops: list[dict[str, Any]],
+    resident: str,
+    started: float,
+    outcome: str,
+) -> None:
+    """The K0 shadow trace: what ran vs what greedy WOULD have placed."""
+    shadow.record(
+        shadow.TaskDescriptor(
+            id=f"chore:{chore}",
+            kind="chore",
+            qos="interactive",
+            engine=engine,
+            verifier="deterministic",
+            inputs=[pointer],
+        ),
+        {
+            "outcome": outcome,
+            "wall_s": round(time.monotonic() - started, 2),
+            "hops": len(hops),
+            "_resident": resident,
+        },
+    )
 
 
 def _brief(

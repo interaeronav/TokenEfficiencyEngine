@@ -42,6 +42,17 @@ def register_llm_tools(app, project_root: Path | str) -> None:
             state = profiles.load_state(cfg)
             state["pinned"] = True
             profiles.save_state(cfg, state)
+            from tee.kernel import machine, shadow
+
+            engine = next(
+                (n for n, s in machine.ENGINES.items() if s.get("profile") == profile), None
+            )
+            shadow.record(
+                shadow.TaskDescriptor(
+                    id=f"swap:{profile}", kind="swap", qos="maintenance", engine=engine
+                ),
+                {"outcome": "switched", "pinned": True},
+            )
         return result
 
     def llm_triage(args):

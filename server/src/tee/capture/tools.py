@@ -283,7 +283,10 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
 
             try:
                 job_id = app.jobs.submit(
-                    f"reconstruct {manifest['set']} @odm", odm_worker, qos="batch"
+                    f"reconstruct {manifest['set']} @odm",
+                    odm_worker,
+                    qos="batch",
+                    engine="reconstruct-odm",
                 )
             except TeeError:
                 app.machine.release_job(ledger_key)
@@ -328,7 +331,10 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
 
         try:
             job_id = app.jobs.submit(
-                f"reconstruct {manifest['set']} @{detail}", worker, qos="batch"
+                f"reconstruct {manifest['set']} @{detail}",
+                worker,
+                qos="batch",
+                engine="reconstruct-photogrammetry",
             )
         except TeeError:
             app.machine.release_job(ledger_key)

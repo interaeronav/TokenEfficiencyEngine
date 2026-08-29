@@ -33,6 +33,8 @@ class _Job:
     error: str | None = None
     # QoS is a LABEL for now (A42 seam 3): interactive|standard|batch|maintenance.
     qos: str = "standard"
+    # Registry engine name when the submitter knows it (shadow-trace food).
+    engine: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"job": self.id, "label": self.label, "state": self.state}
@@ -63,7 +65,14 @@ class JobManager:
         for thread in self._threads:
             thread.start()
 
-    def submit(self, label: str, fn: Callable[[], dict[str, Any]], *, qos: str = "standard") -> str:
+    def submit(
+        self,
+        label: str,
+        fn: Callable[[], dict[str, Any]],
+        *,
+        qos: str = "standard",
+        engine: str | None = None,
+    ) -> str:
         with self._lock:
             if self._stopping:
                 raise TeeError("shutting_down", "The server is shutting down.")
@@ -74,6 +83,7 @@ class JobManager:
                 state="queued",
                 submitted_at=time.time(),
                 qos=qos,
+                engine=engine,
             )
             self._jobs[job.id] = job
             self._fns[job.id] = fn
@@ -91,6 +101,7 @@ class JobManager:
                 if job.state != "queued" or fn is None:
                     continue  # cancelled while queued
                 job.state = "running"
+            run_started = time.time()
             try:
                 result = fn()
                 with self._lock:
@@ -111,6 +122,12 @@ class JobManager:
             finally:
                 with self._lock:
                     job.finished_at = time.time()
+                from tee.kernel import shadow
+
+                shadow.record(
+                    shadow.TaskDescriptor(id=job.id, kind="job", qos=job.qos, engine=job.engine),
+                    {"outcome": job.state, "wall_s": round(job.finished_at - run_started, 1)},
+                )
 
     def status(self, job_id: str) -> dict[str, Any]:
         with self._lock:

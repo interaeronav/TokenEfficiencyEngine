@@ -124,6 +124,16 @@ class TeeApp:
         self.response_log = ResponseLog()
         self.config = ProjectConfig.load(project_root)
         self.registry.disabled = set(self.config.disabled_tools)
+        # K0 shadow recorder: on by default, zero behavior change; the
+        # degrade-to-static law - [scheduler] shadow = false turns it off.
+        from tee.kernel import shadow
+
+        scheduler_cfg = dict(self.config.scheduler or {})
+        if scheduler_cfg.get("shadow", True):
+            shadow.RECORDER.enable(
+                Path(project_root) / ".tee" / "shadow",
+                cap_mb=float(scheduler_cfg.get("cap_mb", shadow.DEFAULT_CAP_MB)),
+            )
         # an explicit CLI flag enables; otherwise the project config decides
         self.allow_code_exec = allow_code_exec or bool(self.config.allow_code_exec)
         self.lock = threading.RLock()
@@ -357,6 +367,9 @@ class TeeApp:
         return None
 
     def shutdown(self) -> None:
+        from tee.kernel import shadow
+
+        shadow.RECORDER.disable()
         self.jobs.shutdown()
         if self.gateway is not None:
             with contextlib.suppress(Exception):
