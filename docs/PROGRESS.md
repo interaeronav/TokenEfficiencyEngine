@@ -4856,3 +4856,50 @@ no-EXIF video frames.
 T0 is now fully closed; T1/R0/T2 closed earlier today. **Next: R1**
 (verifier-gated cascade on fakes + THE GUARD SEAM + registry-form
 descriptors + QoS tags), grounded in R0's measured rows.
+
+## 2026-08-29 — A42 R1: the cascade, the guard seam, and the first K-seams land
+
+Suite 730 → **744 passed / 2 skipped**, ruff + format clean. Surface
+LAW held: the router is internal machinery — zero new tools.
+
+- **Seam 1+3 (`tee/kernel/machine.py`)**: registry-form engine facts
+  in research 58's K-layer schema — q14b+a2 / q27b-bare / client /
+  reconstruct-photogrammetry / reconstruct-odm, each with capability,
+  measured-cost references (the R0/T0 rows cited in place), footprint
+  and default QoS class; QOS = interactive/standard/batch/maintenance
+  as LABELS (K1 makes them law). THE ONE machine-load ledger:
+  register/release jobs, `may_swap` = deterministic bookkeeping
+  (total − reserve − registered jobs vs target footprint; the 16 GB
+  reserve is a stated placeholder until R2 measures it).
+- **The guard seam, both directions, fixtured**: a routed swap is
+  refused with the honest line naming the registered job
+  ("swap deferred: … okongo@odm (reconstruct-odm, batch)"), and a
+  reconstruction launch reports what is resident (the capture lane
+  registers its jobs in the ledger, carries qos=batch on the job
+  payload — emitted only when it differs from standard, budget
+  discipline — and releases in finally).
+- **The verifier-gated cascade (`tee/llm/router.py`)**: resident
+  engine first → the chore's own deterministic verdict (TeeError
+  kill / empty result) → the bigger local engine, reached only when
+  the ledger says capable → the budgeted client brief (task, input
+  POINTER, failures named — 200-token cap, never raw content; fixture
+  asserts the traceback text never appears). The owner's TEE/Q pin
+  suspends roaming entirely; `llm_switch` now pins on any explicit
+  choice and `profile='auto'` (TEE/AUTO) lifts the pin. A `_profile`
+  per-hop seam in `profiles.resolve` keeps hops honest regardless of
+  persisted state; chores untouched.
+- **14 new fixtures** (6 ladder/pin/brief + 6 ledger/registry + 2
+  seam asserts in the capture lane), all hops covered incl. never-swap
+  (memory math) and the pin.
+- **Live spot-run recorded** (real mlx endpoint, real swaps): routed
+  triage → verified at hop 1 on q14b+a2; routed rerank@32 → q14b
+  llm_bad_shape → swap to q27b → llm_bad_shape → client brief with
+  both failures named — the exact trajectory R0's dataset predicted
+  for the rerank cliff.
+
+Deliberately NOT here (scripted elsewhere): meter columns +
+escalation rate + measured swap-cost constants (R2), calibration for
+unverifiable chores (R3), consumer wiring of routed chores (T4), QoS
+as behavior (K1). **Next: K0** — task descriptors, the graph
+substrate, and the SHADOW RECORDER (the merge's core, landing now so
+the rest of the campaign records its own traces).

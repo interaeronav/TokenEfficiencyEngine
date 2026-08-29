@@ -111,10 +111,13 @@ class TeeApp:
         *,
         allow_code_exec: bool = False,
     ):
+        from tee.kernel.machine import MachineLedger
+
         self.adapters = adapters
         self.caches: dict[str, SceneCache] = {name: SceneCache() for name in adapters}
         self.checkpoints = CheckpointManager()
         self.jobs = JobManager()
+        self.machine = MachineLedger()  # the ONE machine-load ledger (A42 R1)
         self.project_root = Path(project_root)
         self.memory = ProjectMemory(Path(project_root))
         self.registry = ToolRegistry()

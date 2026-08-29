@@ -75,8 +75,13 @@ def test_ingest_then_reconstruct_job_with_provenance(tmp_path, structure_set):
     started = app.registry.call(
         "capture_reconstruct", {"set": out["set"], "engine": "photogrammetry"}
     )
+    # the guard seam, second direction: the launch reports what is resident,
+    # the job carries its batch QoS label, and the ledger releases at the end
+    assert "resident" in started["resident"]
+    assert app.jobs.status(started["job"])["qos"] == "batch"
     status = _wait(app, started["job"])
     assert status["state"] == "done", status
+    assert app.machine.active_jobs() == []
     result = status["result"]
     assert result["model"].endswith(f"{out['set']}_preview.usdz")
     assert result["provenance"]["engine"].startswith("PhotogrammetrySession")

@@ -53,6 +53,15 @@ def _helper_path(root: Path, cfg: dict[str, Any]) -> Path:
     return root / "helpers" / "photogrammetry" / "tee-photogrammetry"
 
 
+def _resident_line(app) -> str:
+    """What the machine currently holds - a reconstruction launch says so
+    (the A41 guard seam's second direction)."""
+    from tee.llm import profiles
+
+    resolved = profiles.resolve(app.llm_cfg)
+    return f"{resolved['profile']} resident ({resolved['model']})"
+
+
 def _gate_disk(root: Path, cfg: dict[str, Any]) -> None:
     floor_gb = float(cfg.get("min_free_gb", DEFAULT_MIN_FREE_GB))
     free_gb = shutil.disk_usage(root).free / 1e9
@@ -258,19 +267,32 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
                 "rolling_shutter": first_set["correction"],
             }
 
+            ledger_key = f"{manifest['set']}@odm"
+            app.machine.register_job(ledger_key, "reconstruct-odm")
+
             def odm_worker() -> dict[str, Any]:
-                run = _run_odm(docker_cmd, inputs, job_dir, correction_on)
+                try:
+                    run = _run_odm(docker_cmd, inputs, job_dir, correction_on)
+                finally:
+                    app.machine.release_job(ledger_key)
                 return {
                     "artifacts": run["artifacts"],
                     "seconds": run["seconds"],
                     "provenance": provenance,
                 }
 
-            job_id = app.jobs.submit(f"reconstruct {manifest['set']} @odm", odm_worker)
+            try:
+                job_id = app.jobs.submit(
+                    f"reconstruct {manifest['set']} @odm", odm_worker, qos="batch"
+                )
+            except TeeError:
+                app.machine.release_job(ledger_key)
+                raise
             return {
                 "job": job_id,
                 "engine": "odm",
                 "files": len(inputs),
+                "resident": _resident_line(app),
                 "note": "poll tee_job; 40-frame probe ran 5.0 min on the 8-CPU VM",
             }
         helper = _helper_path(root, cfg)
@@ -290,19 +312,32 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             "detail": detail,
         }
 
+        ledger_key = f"{manifest['set']}@photogrammetry"
+        app.machine.register_job(ledger_key, "reconstruct-photogrammetry")
+
         def worker() -> dict[str, Any]:
-            run = _run_helper(helper, inputs, out_path, detail, job_dir)
+            try:
+                run = _run_helper(helper, inputs, out_path, detail, job_dir)
+            finally:
+                app.machine.release_job(ledger_key)
             return {
                 "model": str(out_path),
                 "seconds": run["seconds"],
                 "provenance": provenance,
             }
 
-        job_id = app.jobs.submit(f"reconstruct {manifest['set']} @{detail}", worker)
+        try:
+            job_id = app.jobs.submit(
+                f"reconstruct {manifest['set']} @{detail}", worker, qos="batch"
+            )
+        except TeeError:
+            app.machine.release_job(ledger_key)
+            raise
         return {
             "job": job_id,
             "detail": detail,
             "files": len(inputs),
+            "resident": _resident_line(app),
             "note": "poll tee_job; preview measured ~16 s on the 36-view fixture",
         }
 

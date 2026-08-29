@@ -31,9 +31,13 @@ class _Job:
     finished_at: float | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+    # QoS is a LABEL for now (A42 seam 3): interactive|standard|batch|maintenance.
+    qos: str = "standard"
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"job": self.id, "label": self.label, "state": self.state}
+        if self.qos != "standard":  # labels only where they differ - budget discipline
+            payload["qos"] = self.qos
         if self.state in ("queued", "running"):
             payload["elapsed_s"] = round(time.time() - self.submitted_at, 1)
         if self.result is not None:
@@ -59,7 +63,7 @@ class JobManager:
         for thread in self._threads:
             thread.start()
 
-    def submit(self, label: str, fn: Callable[[], dict[str, Any]]) -> str:
+    def submit(self, label: str, fn: Callable[[], dict[str, Any]], *, qos: str = "standard") -> str:
         with self._lock:
             if self._stopping:
                 raise TeeError("shutting_down", "The server is shutting down.")
@@ -69,6 +73,7 @@ class JobManager:
                 label=label,
                 state="queued",
                 submitted_at=time.time(),
+                qos=qos,
             )
             self._jobs[job.id] = job
             self._fns[job.id] = fn

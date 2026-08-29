@@ -28,7 +28,21 @@ def register_llm_tools(app, project_root: Path | str) -> None:
     def llm_switch(args):
         from tee.llm import profiles
 
-        return profiles.switch(cfg, str(args.get("profile", "")), jobs=app.jobs)
+        profile = str(args.get("profile", "")).strip().lower()
+        if profile in ("auto", "roam"):
+            # The owner lifts the pin: the R1 router may roam the ladder.
+            state = profiles.load_state(cfg)
+            state.pop("pinned", None)
+            profiles.save_state(cfg, state)
+            return {"ok": True, "report": "pin cleared - the router may roam the ladder"}
+        result = profiles.switch(cfg, profile, jobs=app.jobs)
+        if result.get("ok"):
+            # An explicit TEE/Q choice is owner intent: roaming suspends
+            # until TEE/AUTO (the A39 owner-ceiling law).
+            state = profiles.load_state(cfg)
+            state["pinned"] = True
+            profiles.save_state(cfg, state)
+        return result
 
     def llm_triage(args):
         result = chores.triage(
@@ -72,7 +86,9 @@ def register_llm_tools(app, project_root: Path | str) -> None:
             "persists across restarts; with [llm] managed = true TEE also "
             "stops/starts the servers each profile owns (single occupancy, "
             "verified; a cold load returns a tee_job token and chores "
-            "answer their deterministic paths meanwhile).",
+            "answer their deterministic paths meanwhile). An explicit "
+            "choice PINS the engine (router roaming suspends); "
+            "profile='auto' (TEE/AUTO) lifts the pin.",
             {
                 "type": "object",
                 "properties": {"profile": {"type": "string"}},

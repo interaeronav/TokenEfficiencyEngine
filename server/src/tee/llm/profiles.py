@@ -129,10 +129,19 @@ def resolve(cfg: dict[str, Any] | None) -> dict[str, Any]:
     """The chore-facing view: endpoint/model/adapters of the active profile.
 
     Absent profile keys inherit [llm] url/model/adapters and their env
-    defaults; an explicit empty string pins 'none on purpose' (q27b bare)."""
+    defaults; an explicit empty string pins 'none on purpose' (q27b bare).
+    cfg['_profile'] resolves THAT profile instead of the persisted active
+    one - the router's per-hop seam (A42 R1); state is untouched."""
     cfg = cfg or {}
     state = load_state(cfg)
-    spec = profiles(cfg).get(state["active"], {})
+    active = str(cfg.get("_profile") or state["active"])
+    if cfg.get("_profile") and active not in profiles(cfg):
+        raise TeeError(
+            "llm_unknown_profile",
+            f"'{active}' is not a chore-engine profile.",
+            fix=f"Profiles: {', '.join(sorted(profiles(cfg)))}.",
+        )
+    spec = profiles(cfg).get(active, {})
     url = spec.get("url") or cfg.get("url") or local_llm.DEFAULT_URL
     model = spec.get("model") or cfg.get("model") or local_llm.DEFAULT_MODEL
     if "adapters" in spec:
@@ -141,7 +150,7 @@ def resolve(cfg: dict[str, Any] | None) -> dict[str, Any]:
         adapters = cfg.get("adapters") or local_llm.DEFAULT_ADAPTERS
         adapters = str(adapters) if adapters else None
     out = {
-        "profile": state["active"],
+        "profile": active,
         "url": str(url),
         "model": str(model),
         "adapters": adapters,
