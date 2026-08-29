@@ -219,10 +219,10 @@ def register_board_tools(app) -> None:
             "board_compose",
             "Compose ONE styled technical board (SVG page: title block, "
             "panel grid, captions, footer stamp) from live artifacts - "
-            "renders/sheets as image panels (png/jpg/svg embedded), tables "
-            "(cut lists, findings), fact lines. The response is a compact "
-            "file pointer. Boards feed presentations; deck polish stays "
-            "host-side by design.",
+            "image panels (png/jpg/svg embedded), tables (cut lists, "
+            "findings), fact lines. Answers a compact file pointer. "
+            "Boards feed presentations; deck polish stays host-side by "
+            "design.",
             {
                 "type": "object",
                 "properties": {

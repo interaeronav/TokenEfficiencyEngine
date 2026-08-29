@@ -476,10 +476,9 @@ def register_pin_tools(app, project_root: Path | str) -> None:
         VirtualTool(
             "pin_set",
             "Create or update a pin: a small editor-only marker actor whose "
-            "TAGS carry its record (id, name, category, notes, wishlist of "
-            "what should stand there). Upsert - fields you omit keep their "
-            "value; location is in METRES and marks where the thing's base "
-            "goes. The marker is stripped from cooked builds and never "
+            "TAGS carry its record (id, name, category, notes, wishlist). "
+            "Upsert - omitted fields keep their value; location is METRES "
+            "at the thing's base. Stripped from cooked builds; never "
             "collides.",
             {
                 "type": "object",
@@ -540,10 +539,9 @@ def register_pin_tools(app, project_root: Path | str) -> None:
         VirtualTool(
             "pin_fill",
             "Populate a pin from its wishlist. Without pick=: searches the "
-            "asset backends for the pin's wishlist terms and returns a "
-            "shortlist. With pick='source:id': imports that asset AT the pin, "
-            "facing the pin's yaw, replacing whatever the pin held, and "
-            "records the chosen key back onto the pin's tags.",
+            "asset backends and answers a shortlist. With pick='source:id': "
+            "imports that asset AT the pin, facing its yaw, replacing what "
+            "it held, recording the choice on the pin's tags.",
             {
                 "type": "object",
                 "properties": {

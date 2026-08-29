@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,467 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -73,12 +73,16 @@ verification report - zero images.
 A 4-body rigid settle (sequential frame stepping, quiescence
 early-out) reports compact facts instead of per-frame data:
 
-- settle report: ~222 tokens (0.0 s wall time, zero tokens while stepping)
+- settle report: ~202 tokens (0.0 s wall time, zero tokens while stepping)
 - two-run determinism variance floor on this machine: **0.00 mm** - settle assertions use a 5 mm tolerance, safely above it (A19: same-machine only; never asserted across builds)
 
 ## Unreal: level population + Blueprint function (Phase 5c)
 
 *(not re-run this pass - scenario skipped on this machine; last measured values kept)*
+
+
+
+
 
 
 Live UE 5.8.1 editor with Epic's official MCP server. The naive
@@ -113,14 +117,14 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,028** |
 | same, by `model_dump()` | 17 | 2,494 |
-| flat server, one tool per capability | 103 | 11,396 |
+| flat server, one tool per capability | 103 | 11,274 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
 surface - the 86 tools they contribute live behind the
-meta-tools. Reaching one costs 570 tokens (one search +
+meta-tools. Reaching one costs 545 tokens (one search +
 one describe), so the flat design only pays off in a session that
-uses more than ~19 distinct long-tail tools.
+uses more than ~20 distinct long-tail tools.
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 
@@ -209,7 +213,7 @@ fix named, which is the point).
 | | Tokens | Calls | Saving |
 |---|---|---|---|
 | naive (schemas in context + raw results) | 35,238 | 3 | |
-| TEE (meta-tool reach + budgeted results) | 1,629 | 5 | **95.4%** |
+| TEE (meta-tool reach + budgeted results) | 1,614 | 5 | **95.4%** |
 
 ## Fabrication: tokens per completed drawing-set (A37)
 

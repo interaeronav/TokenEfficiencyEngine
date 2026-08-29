@@ -4316,3 +4316,36 @@ timeouts, wrong diagnosis) into a 5 s skip naming the modal-dialog
 fix. **Warm battery 14.6 → 6.9 s (−53%)**; the remaining 3.7 s
 fabrication cost is the naive arm's own uvx spawn + per-op
 screenshots — the measured genre pattern, not harness waste.
+
+## 2026-08-29 — A38 S2: more efficient (tokens, round three) — shaves gated by the battery
+
+**S2.2 virtual-catalog diet (SI-1 discipline):** per-tool flat table
+measured first (top: plaus_check 305, kb_propose 256, ex_register 219,
+pin_set 197, joinery_check 179). Eight of the top ten descriptions
+tightened with every constraint kept (plaus_check's regime story,
+joinery's not_evaluated honesty, kb_propose's A31 rule, pin semantics,
+board scope line); **kb_search's hard-coded "401 files" was stale**
+(corpus is 402 since the acceptance) — counts dropped from the text so
+it can't drift again. Flat catalog **11,396 → 11,274 tok**; reach-one
+**570 → 545 tok** (plaus_check is the canonical describe).
+
+**S2.1 response audits on the new shapes:**
+- gateway describe carried an in-payload echo — the budget sentence
+  restated the injected max_tokens schema property. Description keeps
+  only the untrusted-data marker (deliberate stance, stays per
+  describe); default/cap moved onto the schema property. Gateway row
+  **1,629 → 1,614 tok**, saving 95.4% unchanged.
+- DETERMINISM_NOTE rode every settle report at 33 tok; tightened to
+  the same claims in 19 (**settle report 222 → 202 tok** on the
+  battery fixture).
+- meter/handoff audited clean: savings blocks are labelled estimates
+  by design, handoff self-trims to its 500 budget — news-not-echoes
+  already holds; nothing shaved.
+- joinery_check findings keep their per-finding source +
+  re-verification stamps — that redundancy IS the A30 feature the
+  acceptance shipped; audited, deliberately untouched.
+
+Gates: suite 711/2 green after every edit; battery rows identical or
+improved (kb 96.7 / web 95.3 / plaus 95.6 / fabrication 92.4 /
+gateway 95.4; surface LAW 2,028/17 re-asserted). Warm battery 8.4 s
+this pass (web revalidation run).

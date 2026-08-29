@@ -72,9 +72,7 @@ CLOTH_PRESETS = {
 }
 
 DETERMINISM_NOTE = (
-    "reproducible on this machine and build with pinned stepping; NOT "
-    "across machines or builds; assertions must sit above the measured "
-    "variance floor (benchmarks/)"
+    "same machine+build only (pinned stepping); assert above the variance floor (benchmarks/)"
 )
 
 

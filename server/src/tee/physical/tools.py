@@ -466,15 +466,14 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             "spans, headers, masonry, footings, roof pitch per covering, "
             "stairs, ceilings, fall protection, the IRC R301.1 load-path "
             "graph. Findings only - never member sizing, never a 'passes' "
-            "state. NOT an engineering review; conditions outside the "
-            "prescriptive envelope require a licensed engineer.\n"
-            "region selects the legal regime AND how much force a finding "
-            "may claim: US (IRC, default) | ZA (SANS 10400 under the NBR "
-            "Act, CODE force) | NA-local-authority | NA-settlement | "
-            "NA-communal (Namibia: SANS is not law, so CODE is capped to "
-            "STD) | NA-unresolved. Namibia's three regimes differ "
-            "completely, so bare 'NA' resolves to NA-unresolved and caps "
-            "findings until you establish which applies.",
+            "state; NOT an engineering review (outside the prescriptive "
+            "envelope needs a licensed engineer).\n"
+            "region sets the legal regime and the force a finding may "
+            "claim: US (IRC, default) | ZA (SANS 10400 under the NBR Act, "
+            "CODE force) | NA-local-authority | NA-settlement | NA-communal "
+            "(Namibia: SANS is not law - CODE capped to STD) | "
+            "NA-unresolved (bare 'NA' lands here and caps findings until "
+            "the regime is established).",
             {
                 "type": "object",
                 "properties": {
@@ -496,11 +495,10 @@ def register_physical_tools(app, project_root: Path | str) -> None:
             "system conformance (pitch/Ø/37 mm setback), hinge cup boring "
             "and collisions, hardware-first carcass/runner fit, parts "
             "inside their carcass envelope, wardrobe hanging depth. Every "
-            "rule cites its source and its A30 re-verification state; a "
-            "rule whose data the model does not carry answers "
-            "not_evaluated, never a silent pass. Takes a spec "
-            "(cabinets/parts/hardware/system_holes, mm) - hb_joinery_spec "
-            "collects one from a Home Builder scene.",
+            "rule cites its source and its A30 re-verification state; "
+            "missing data answers not_evaluated, never a silent pass. "
+            "Takes a mm spec (cabinets/parts/hardware/system_holes) - "
+            "hb_joinery_spec collects one from a Home Builder scene.",
             {
                 "type": "object",
                 "properties": {"spec": {"type": "object"}},

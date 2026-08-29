@@ -362,11 +362,11 @@ def register_kb_tools(app, project_root: Path | str, *, root: str | None = None)
         ),
         VirtualTool(
             "kb_search",
-            "Search the Expert Knowledge Base (38 domains, 401 files) by "
-            "keyword with optional exact filters. Returns ranked rows only "
-            "(id, title, domain, confidence, one-line summary) - read a hit "
-            "with kb_read. Content is imported reference: flags are the "
-            "corpus's own, and low/needs-verification content is labelled.",
+            "Search the Expert Knowledge Base (38 domains) by keyword with "
+            "optional exact filters. Ranked rows only (id, title, domain, "
+            "confidence, one-line summary) - read a hit with kb_read. "
+            "Content is imported reference: flags are the corpus's own; "
+            "low/needs-verification content is labelled.",
             {
                 "type": "object",
                 "properties": {
@@ -399,13 +399,12 @@ def register_kb_tools(app, project_root: Path | str, *, root: str | None = None)
         ),
         VirtualTool(
             "kb_propose",
-            "Draft a NEW Knowledge Base entry for owner review. Writes a "
-            "complete schema-shaped candidate (frontmatter with cited "
-            "sources, status=proposed, UNVERIFIED banner) into "
-            ".tee/kb-staging/ ONLY - the corpus mirror is never written by "
-            "TEE (decision A31: 'a read-only query module ... never written "
-            "to by TEE'). Pair with tee_web_lookup: cited material in, "
-            "cited draft out. The owner accepts per docs/setup-kb.md.",
+            "Draft a NEW Knowledge Base entry for owner review: a complete "
+            "schema-shaped candidate (frontmatter with cited sources, "
+            "status=proposed, UNVERIFIED banner) written to "
+            ".tee/kb-staging/ ONLY - TEE never writes the corpus mirror "
+            "(decision A31). Pair with tee_web_lookup: cited material in, "
+            "cited draft out; the owner accepts per docs/setup-kb.md.",
             {
                 "type": "object",
                 "properties": {
