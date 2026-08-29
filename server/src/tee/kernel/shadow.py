@@ -162,3 +162,63 @@ RECORDER = ShadowRecorder()
 
 def record(task: TaskDescriptor, actual: dict[str, Any]) -> None:
     RECORDER.record(task, actual)
+
+
+def replay(trace_dirs: list[Path | str]) -> dict[str, Any]:
+    """K2's go-live gate, the Borg/Firmament method over OUR traces: replay
+    every recorded chore dispatch and measure agreement between what ran
+    and what greedy WOULD have placed. The gate (declared here, checked by
+    the caller): agreement >= 0.8, OR every disagreement is one where
+    greedy's estimate beats the recorded actual (improvement, est-labeled).
+    Estimate error (MAE) is published either way - the policy's honesty."""
+    lines: list[dict[str, Any]] = []
+    for directory in trace_dirs:
+        for path in sorted(Path(directory).glob("traces-*.jsonl")):
+            for raw in path.read_text(errors="replace").splitlines():
+                with contextlib.suppress(json.JSONDecodeError):
+                    lines.append(json.loads(raw))
+    chore_lines = [ln for ln in lines if ln.get("task", {}).get("kind") == "chore"]
+    agreements = 0
+    errors: list[float] = []
+    disagreements: list[dict[str, Any]] = []
+    improvements = 0
+    for line in chore_lines:
+        delta = line.get("delta", {})
+        if delta.get("agrees"):
+            agreements += 1
+        else:
+            actual_wall = line.get("actual", {}).get("wall_s")
+            estimate = line.get("shadow", {}).get("estimate_s")
+            better = (
+                isinstance(actual_wall, int | float)
+                and isinstance(estimate, int | float)
+                and estimate < actual_wall
+            )
+            improvements += 1 if better else 0
+            disagreements.append(
+                {
+                    "task": line.get("task", {}).get("id"),
+                    "ran": line.get("task", {}).get("engine"),
+                    "greedy": line.get("shadow", {}).get("engine"),
+                    "actual_s": actual_wall,
+                    "estimate_s": estimate,
+                    "greedy_better_by_estimate": better,
+                }
+            )
+        est_gap = delta.get("est_minus_actual_s")
+        if isinstance(est_gap, int | float):
+            errors.append(abs(est_gap))
+    total = len(chore_lines)
+    agreement_rate = round(agreements / total, 3) if total else None
+    passes = bool(total) and (
+        (agreement_rate or 0) >= 0.8 or (bool(disagreements) and improvements == len(disagreements))
+    )
+    return {
+        "traces": len(lines),
+        "chore_dispatches": total,
+        "agreement_rate": agreement_rate,
+        "estimate_mae_s": round(sum(errors) / len(errors), 2) if errors else None,
+        "disagreements": disagreements[:10],
+        "gate": "agreement >= 0.8 OR every disagreement greedy-better-by-estimate",
+        "passes": passes,
+    }

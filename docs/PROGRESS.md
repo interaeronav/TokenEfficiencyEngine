@@ -5180,3 +5180,28 @@ Suite 772 → **778 passed / 2 skipped**, gate exit 0.
   over the mixed set + T6 field cases when they land) — runs on a
   QUIET machine after T6, because contention would pollute the
   adoption row.
+
+## 2026-08-29 — A42 K2 (machinery) + K3: replay-gated dispatch built; preemption + backpressure land
+
+Suite 778 → **788 passed / 2 skipped**, gate exit 0.
+
+- **K2 machinery** (go-live awaits the T6-inclusive trace corpus):
+  `shadow.replay()` — the Borg/Firmament method over OUR OWN traces:
+  agreement between what ran and what greedy would have placed, with
+  the gate DECLARED IN CODE (agreement ≥ 0.8 OR every disagreement
+  greedy-better-by-estimate; estimate MAE published either way). The
+  router gained `policy="greedy"` — ladder ordered by earliest-finish
+  from the measured tables — live only behind `[scheduler] dispatch`
+  and NEVER above the owner's pin; the fixture proves the R2 constants
+  flip a resident-27B case straight to a 1.1 s 14B load. Every routed
+  decision now carries its `dispatch` reason in the trace, and the
+  meter's `dispatch_reason` column (reserved by R2) FILLS.
+- **K3, TEE's honest shape**: preempting a running subprocess is
+  fiction, so the law is **worker reservation** — batch/maintenance
+  never take the LAST worker, an arriving interactive finds a slot at
+  once, a single-worker pool still runs batch (no deadlock, fixtured)
+  — plus **backpressure**: the low-priority queue is bounded
+  (`job_backpressure`, cap configurable) while interactive is never
+  refused. Completion wakes reserved-out waiters (the liveness fix the
+  reservation demanded). Off-switch restores today's concurrency
+  exactly. 4 fixtures.

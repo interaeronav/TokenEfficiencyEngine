@@ -48,16 +48,33 @@ def route(
     cfg: dict[str, Any] | None,
     ledger: MachineLedger,
     input_pointer: str,
+    policy: str = "static",
 ) -> dict[str, Any]:
     """Run `call(hop_cfg)` up the ladder; `call` must invoke the chore with
     refine='local' so a verifier kill surfaces as TeeError and an
-    empty-but-valid answer as None - both are deterministic verdicts."""
+    empty-but-valid answer as None - both are deterministic verdicts.
+
+    policy: 'static' = resident-first, today's behavior; 'greedy' = the K2
+    cost-aware earliest-finish order from the registry's measured tables -
+    live ONLY behind `[scheduler] dispatch = true`, replay-gated first.
+    The owner's pin outranks both."""
     cfg = dict(cfg or {})
     started = time.monotonic()
     state = profiles.load_state(cfg)
     resident = _PROFILE_TO_ENGINE.get(state["active"], LADDER[0])
     pinned = bool(state.get("pinned"))
-    ladder = [resident] if pinned else [resident, *[e for e in LADDER if e != resident]]
+    if pinned:
+        ladder = [resident]
+        reason = f"pinned: owner holds {resident}"
+    elif policy == "greedy":
+        choice = shadow.greedy_choice("chore", resident=resident)
+        first = choice.get("engine") or resident
+        ladder = [first, *[e for e in LADDER if e != first]]
+        reason = f"greedy: {first} est {choice.get('estimate_s')}s ({choice.get('reason')})"
+    else:
+        ladder = [resident, *[e for e in LADDER if e != resident]]
+        reason = f"static: resident-first {resident}"
+    ledger.record_dispatch("pinned" if pinned else policy, reason)
     ledger.record_task()
     hops: list[dict[str, Any]] = []
     for engine in ladder:
@@ -80,7 +97,7 @@ def route(
             continue
         hops.append({"engine": engine, "verdict": "verified"})
         ledger.record_route(engine, verified=True)
-        _record(chore, input_pointer, engine, hops, resident, started, "verified")
+        _record(chore, input_pointer, engine, hops, resident, started, "verified", reason)
         return {
             "ok": True,
             "engine": engine,
@@ -90,7 +107,7 @@ def route(
             "qos": "interactive",
         }
     ledger.record_escalation()
-    _record(chore, input_pointer, None, hops, resident, started, "escalated")
+    _record(chore, input_pointer, None, hops, resident, started, "escalated", reason)
     return {
         "ok": False,
         "escalate": _brief(chore, input_pointer, hops, pinned),
@@ -108,8 +125,10 @@ def _record(
     resident: str,
     started: float,
     outcome: str,
+    reason: str,
 ) -> None:
-    """The K0 shadow trace: what ran vs what greedy WOULD have placed."""
+    """The K0 shadow trace: what ran vs what greedy WOULD have placed,
+    plus the K2 dispatch reason - decisions are data."""
     shadow.record(
         shadow.TaskDescriptor(
             id=f"chore:{chore}",
@@ -123,6 +142,7 @@ def _record(
             "outcome": outcome,
             "wall_s": round(time.monotonic() - started, 2),
             "hops": len(hops),
+            "dispatch": reason,
             "_resident": resident,
         },
     )

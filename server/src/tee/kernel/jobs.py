@@ -63,10 +63,12 @@ class JobManager:
         self._counter = 0
         self._keep_finished = keep_finished
         self._stopping = False
-        # K1 knobs, set by configure(); defaults = today's behavior
+        # K1/K3 knobs, set by configure(); defaults = today's behavior
         self._qos_enabled = False
         self._aging_s = DEFAULT_AGING_S
         self._machine = None
+        self._workers = workers
+        self._max_pending_low = 8  # K3 backpressure cap for batch/maintenance
         self._threads = [
             threading.Thread(target=self._worker, name=f"tee-job-{i}", daemon=True)
             for i in range(workers)
@@ -75,9 +77,15 @@ class JobManager:
             thread.start()
 
     def configure(
-        self, *, machine=None, qos: bool | None = None, aging_s: float | None = None
+        self,
+        *,
+        machine=None,
+        qos: bool | None = None,
+        aging_s: float | None = None,
+        max_pending_low: int | None = None,
     ) -> None:
-        """K1 wiring: the ledger for admission, the qos law switch, aging."""
+        """K1/K3 wiring: ledger admission, the qos law switch, aging, and
+        the backpressure cap for low-priority pending work."""
         with self._lock:
             if machine is not None:
                 self._machine = machine
@@ -85,6 +93,8 @@ class JobManager:
                 self._qos_enabled = bool(qos)
             if aging_s is not None:
                 self._aging_s = max(0.01, float(aging_s))
+            if max_pending_low is not None:
+                self._max_pending_low = max(1, int(max_pending_low))
 
     def queue_ages(self) -> dict[str, Any]:
         """The meter's queue_age_s column (K1 fills what R2 reserved)."""
@@ -115,6 +125,17 @@ class JobManager:
                         fix="Shrink the work or raise the machine; the queue "
                         "never holds doomed jobs.",
                     )
+            if self._qos_enabled and QOS_RANK.get(qos, 1) >= 2:
+                # K3 backpressure: bounded low-priority queue, refused loudly
+                pending_low = sum(1 for j in self._pending if QOS_RANK.get(j.qos, 1) >= 2)
+                if pending_low >= self._max_pending_low:
+                    raise TeeError(
+                        "job_backpressure",
+                        f"{pending_low} {qos}-class jobs already queued "
+                        f"(cap {self._max_pending_low}).",
+                        fix="Wait for the queue to drain, or raise "
+                        "[scheduler] max_pending_batch deliberately.",
+                    )
             self._counter += 1
             job = _Job(
                 id=f"job{self._counter}",
@@ -133,7 +154,10 @@ class JobManager:
 
     def _select_locked(self) -> _Job | None:
         """K1 selection: rank by QoS with aging so batch never starves;
-        qos off = plain FIFO, exactly today's order."""
+        K3 reservation: batch/maintenance never take the LAST worker (so
+        an arriving interactive always finds a slot; with one worker the
+        reservation is impossible and batch still runs). qos off = plain
+        FIFO, exactly today's order."""
         if not self._pending:
             return None
         if not self._qos_enabled:
@@ -145,20 +169,30 @@ class JobManager:
             aged = int((now - job.submitted_at) // self._aging_s)
             return (max(0, rank - aged), job.submitted_at)
 
-        best = min(self._pending, key=key)
-        self._pending.remove(best)
-        return best
+        running_low = sum(
+            1 for j in self._jobs.values() if j.state == "running" and QOS_RANK.get(j.qos, 1) >= 2
+        )
+        reserve = self._workers > 1 and running_low >= self._workers - 1
+        for job in sorted(self._pending, key=key):
+            if reserve and QOS_RANK.get(job.qos, 1) >= 2:
+                continue  # the last free worker is reserved for interactive
+            self._pending.remove(job)
+            return job
+        return None
 
     def _worker(self) -> None:
         while True:
             with self._cv:
-                while not self._pending and not self._stopping:
+                job = None
+                while not self._stopping:
+                    job = self._select_locked()
+                    if job is not None:
+                        break
+                    # nothing selectable (empty, or reserved for interactive):
+                    # sleep until a submit or a completion wakes us
                     self._cv.wait(timeout=1.0)
-                if self._stopping and not self._pending:
-                    return
-                job = self._select_locked()
                 if job is None:
-                    continue
+                    return  # stopping with nothing selectable
                 fn = self._fns.pop(job.id, None)
                 if job.state != "queued" or fn is None:
                     continue  # cancelled while queued
@@ -182,8 +216,9 @@ class JobManager:
                         job.state = "error"
                         job.error = _summarize_exception(exc)
             finally:
-                with self._lock:
+                with self._cv:
                     job.finished_at = time.time()
+                    self._cv.notify_all()  # a completion frees a reserved slot
                 from tee.kernel import shadow
 
                 shadow.record(

@@ -467,12 +467,14 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
         stand - the lane never waits on the router."""
         from tee.llm import chores, router
 
+        scheduler_cfg = dict(getattr(app.config, "scheduler", {}) or {})
         routed = router.route(
             "phrase_deviation",
             lambda hop_cfg: chores.phrase_deviation(lines, refine="local", cfg=hop_cfg),
             cfg=app.llm_cfg,
             ledger=app.machine,
             input_pointer="deviation-facts",
+            policy="greedy" if scheduler_cfg.get("dispatch") else "static",
         )
         return routed["result"]["lines"] if routed.get("ok") else None
 

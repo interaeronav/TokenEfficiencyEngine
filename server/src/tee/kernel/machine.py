@@ -93,6 +93,8 @@ class MachineLedger:
         self._swaps = {"explicit": 0, "implicit": 0, "refused": 0, "seconds_known": 0.0}
         self._last_refusal: str | None = None
         self._queue_probe = None  # installed by the app (K1): () -> {queued, max_s}
+        self._dispatch = {"static": 0, "greedy": 0, "pinned": 0}
+        self._last_dispatch: str | None = None
 
     def register_job(self, key: str, engine: str) -> dict[str, Any]:
         spec = ENGINES.get(engine)
@@ -183,6 +185,11 @@ class MachineLedger:
         with self._lock:
             self._escalations += 1
 
+    def record_dispatch(self, mode: str, reason: str) -> None:
+        with self._lock:
+            self._dispatch[mode] = self._dispatch.get(mode, 0) + 1
+            self._last_dispatch = reason
+
     def record_swap(
         self, *, implicit: bool = False, refused: str | None = None, seconds: float | None = None
     ) -> None:
@@ -219,7 +226,11 @@ class MachineLedger:
                 },
                 "scheduler": {
                     "queue_age_s": (self._queue_probe() if self._queue_probe else "reserved (K1)"),
-                    "dispatch_reason": "reserved (K2)",
+                    "dispatch_reason": (
+                        {"last": self._last_dispatch, **self._dispatch}
+                        if self._last_dispatch
+                        else "reserved (K2)"
+                    ),
                     "shadow_delta": "reserved (K2; recorder live since K0)",
                 },
             }
