@@ -188,3 +188,51 @@ against the Mini range and record in advance any member that would
 fall to the honest fallback. The protocol's mode-pinning and
 speed-cap rules are family-universal and stand unchanged; the
 "default profile" is the Mini family as a class, not a model.
+
+## Addendum (A42 T0 probe table, 2026-08-29 — pass/fail as run)
+
+Free disk 1.0 TiB of 1.8 TiB; suites green at probe time (716 passed
+/ 2 skipped, ruff clean). Probes run this session:
+
+- **PhotogrammetrySession helper: PASS.** Built at
+  `helpers/photogrammetry/` (~130-line Swift CLI, macOS SDK only,
+  Swift 6.3.3) — the compiler served as the API smoke test and caught
+  one drifted case from memory (`.skippedSample`, not `.skippedImage`
+  — the SDK swiftinterface is the record). Full quality ladder
+  exposed (preview→raw), budgeted newline-JSON events (≤10 progress
+  lines), refusals name the fix. Live run: 36-view synthetic orbit
+  set (headless Blender, textured Suzanne, 960×960) → preview USDZ in
+  **16.0 s wall, 833 MB peak RSS, 404 KB model**, exit 0. Per-level
+  wall/RAM/tris rows stay a T2 deliverable as scripted.
+- **ODM arm64: PASS on availability, blocked on runtime.**
+  `opendronemap/odm:latest` ships linux/arm64 — 566,149,680 B
+  compressed, pushed 2026-08-21 (Docker Hub API, read live). No
+  Docker runtime on this machine → the pull and the 10-image
+  end-to-end probe wait on the batched owner ask.
+- **Mini-family rolling-shutter coverage: recorded.** ODM
+  `opendm/rollingshutter.py` (master, read live) holds exactly four
+  Mini-family entries: `dji fc7203` Mavic Mini v1 (19/25 ms by
+  aspect), `dji fc3682` Mini 3 (23 ms), `dji fc3582` Mini 3 Pro
+  (26/60 ms by MP mode), `dji fc8482` Mini 4 Pro (16/21/43/58 ms by
+  mode+aspect). Every other family member (Mini 2 / SE / 2 SE / 4K /
+  5 Pro — roster advisory; each set resolves from its own metadata
+  anyway) is absent and would take ODM's `DEFAULT_RS_READOUT` 30 ms —
+  the lane instead applies its scripted honest fallback (correction
+  off, stated in the report, fly-slow guidance). The covered
+  constants differ by photo mode exactly as the protocol's
+  mode-pinning rule assumes.
+- **CloudCompare C2M: blocked on install; fixture staged.**
+  `helpers/cloudcompare/c2m_fixture.py` writes the probe pair (design
+  plane + capture cloud displaced +38 mm; expected mean ≈ 38 mm,
+  near-zero spread); probe command in its docstring. Cask 2.13.2
+  confirmed current in brew — matching the version this doc verified.
+- **qgis_process / QGIS MCP plugin: blocked on install.** QGIS cask
+  4.2.1 current in brew (~1.3 GB class as stated above); the plugin
+  probe needs QGIS first.
+- **KB hygiene: DONE.** `00_meta/rebuild.py` run;
+  `rebuild_verification.py` still carried the corpus author's
+  hardcoded ROOT (`/home/claude/kb`) — fixed per the file's own
+  header instruction to match `rebuild_index.py`'s computed ROOT.
+  INDEX/manifest drift reconciled (word counts only, +16 words in
+  00_meta), VERIFICATION.md regenerated (236 flagged files, 399 with
+  open questions), 38 domains / 402 files intact, nothing deleted.

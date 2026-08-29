@@ -15,13 +15,13 @@ sources: []
 
 # Index
 
-Complete table of contents. **38 domains, 402 files, ~1,402,922 words, 1,812 unique cited sources.** Generated 2026-08-25.
+Complete table of contents. **38 domains, 402 files, ~1,402,938 words, 1,812 unique cited sources.** Generated 2026-08-25.
 
 ## Domains at a glance
 
 | # | Domain | Files | Words |
 |---|---|---|---|
-| 00 | [Repository meta, schema and navigation](./00_meta/) | 3 | 77,762 |
+| 00 | [Repository meta, schema and navigation](./00_meta/) | 3 | 77,778 |
 | 01 | [Architecture — formation, design craft and professional practice](./01_architecture/) | 9 | 21,274 |
 | 02 | [Building construction — the competent builder's trade knowledge](./02_building_construction/) | 15 | 49,578 |
 | 03 | [Codes and standards — Namibian and South African building regulation](./03_codes_standards/) | 11 | 38,714 |
@@ -71,7 +71,7 @@ Complete table of contents. **38 domains, 402 files, ~1,402,922 words, 1,812 uni
 - [`VERIFICATION.md`](./00_meta/VERIFICATION.md) — **Verification register**  
   This repository was built by research agents working from public sources. Where a fact could not be confirmed against a primary source it was **flagged rather than invented** — that discipline is what makes the rest of the corpus trustworthy, but it means an a
 - [`source-register.md`](./00_meta/source-register.md) — **Source register**  
-  Every external source cited anywhere in this repository, deduplicated by URL. 1811 unique URLs drawn from 2826 citations across 401 files. Generated 2026-08-25 from the frontmatter of every file.
+  Every external source cited anywhere in this repository, deduplicated by URL. 1812 unique URLs drawn from 2828 citations across 402 files. Generated 2026-08-25 from the frontmatter of every file.
 
 ### 01_architecture — Architecture — formation, design craft and professional practice
 

@@ -27,7 +27,7 @@ This repository was built by research agents working from public sources. Where 
 
 > ⚠️ Three categories recur across the whole corpus and should be assumed unverified everywhere: **prices and rates** (almost no Namibian or South African price list is publicly retrievable), **paywalled standards text** (SANS clause values in particular), and **labour output rates** (trade convention, not published data).
 
-## Files carrying a verification flag (235)
+## Files carrying a verification flag (236)
 
 | File | Title | Status | Confidence |
 |---|---|---|---|
@@ -56,6 +56,7 @@ This repository was built by research agents working from public sources. Where 
 | [`06_joinery_and_woodwork/05_machinery-and-tooling.md`](../06_joinery_and_woodwork/05_machinery-and-tooling.md) | Machinery and tooling for a joinery shop | stable | medium |
 | [`06_joinery_and_woodwork/09_masters-schools-and-learning.md`](../06_joinery_and_woodwork/09_masters-schools-and-learning.md) | Masters, schools and learning routes in woodwork | stable | medium |
 | [`06_joinery_and_woodwork/10_specifying-and-quoting-joinery.md`](../06_joinery_and_woodwork/10_specifying-and-quoting-joinery.md) | Specifying and quoting joinery | draft | medium |
+| [`06_joinery_and_woodwork/11_european-hinge-standards.md`](../06_joinery_and_woodwork/11_european-hinge-standards.md) | European concealed-hinge standards - EN 15570 and EN 15828 | draft | medium |
 | [`07_materials_and_suppliers/00_overview.md`](../07_materials_and_suppliers/00_overview.md) | Materials and suppliers — domain overview | stable | medium |
 | [`07_materials_and_suppliers/01_material-selection-principles.md`](../07_materials_and_suppliers/01_material-selection-principles.md) | Material selection principles and decision framework | stable | medium |
 | [`07_materials_and_suppliers/07_insulation-membranes-and-sealants.md`](../07_materials_and_suppliers/07_insulation-membranes-and-sealants.md) | Insulation, membranes, DPC/DPM and sealants | stable | medium |
@@ -276,7 +277,7 @@ This repository was built by research agents working from public sources. Where 
 | `03_codes_standards` | 4 |
 | `04_masters_and_practice` | 4 |
 | `05_companies_and_industry` | 2 |
-| `06_joinery_and_woodwork` | 4 |
+| `06_joinery_and_woodwork` | 5 |
 | `07_materials_and_suppliers` | 6 |
 | `08_glass_and_facades` | 7 |
 | `09_equipment_manufacturers` | 9 |
@@ -311,7 +312,7 @@ This repository was built by research agents working from public sources. Where 
 
 ---
 
-## Open questions, by file (398 files)
+## Open questions, by file (399 files)
 
 ### [`01_architecture/00_overview.md`](../01_architecture/00_overview.md) — Architecture domain overview
 
@@ -768,6 +769,14 @@ This repository was built by research agents working from public sources. Where 
 - Waste factors are typical industry ranges; the actual figure for a given job depends entirely on the nesting result and the décor's grain constraints.
 - No standard South African or Namibian joinery specification template (equivalent to NBS or the JBCC preliminaries) was located and incorporated; if a JBCC-based contract is being used, the tolerance and payment clauses here must be reconciled with the main contract terms.
 - Current board, edging and hardware prices are not included and must be quoted fresh — see also the open questions in `02_timber-species-southern-africa.md`.
+
+### [`06_joinery_and_woodwork/11_european-hinge-standards.md`](../06_joinery_and_woodwork/11_european-hinge-standards.md) — European concealed-hinge standards - EN 15570 and EN 15828
+
+- The EN 15570/15828 family reference was confirmed at the Wikipedia
+  source on 2026-08-29 (A37 P5.3 re-verification). The numeric cup
+  figures (Ø35 / 12.8 / 7.8 mm) remain manufacturer-cited only - the
+  Hettich brochure PDF was fetch-gated at 18.7 MB; check them there
+  before specifying against a standard.
 
 ### [`07_materials_and_suppliers/00_overview.md`](../07_materials_and_suppliers/00_overview.md) — Materials and suppliers — domain overview
 

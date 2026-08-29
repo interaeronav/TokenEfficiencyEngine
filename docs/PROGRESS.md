@@ -4614,3 +4614,50 @@ validated dispatch, preemption, the win-or-revert mixed-load row);
 one close at 0.7.0. Laws: A41 union + degrade-to-static, shadow
 before live, greedy before clever, surface LAW (scheduler = internal
 machinery, zero new tools).
+
+## 2026-08-29 — A42 T0: the ungated half lands (probes run, installs batched for the owner)
+
+The grand campaign opens at T0 (= A40 V0 by the reference chain).
+Everything not gated on an install ran this session; pass/fail is the
+dated probe-table addendum in research 56. The short form:
+
+- **PhotogrammetrySession helper: built + probed live.**
+  `helpers/photogrammetry/` (~130-line Swift CLI, macOS SDK only;
+  compiled against the SDK, which caught one memory-drifted case name
+  — `.skippedSample`). Ladder exposed preview→raw, budgeted JSON
+  events, refusals name the fix. Live: 36-view synthetic orbit set
+  (headless Blender, textured Suzanne) → preview USDZ in **16.0 s,
+  833 MB peak RSS**, exit 0. Per-level benchmark rows stay T2.
+- **ODM arm64 availability: proven without an install.**
+  `opendronemap/odm:latest` linux/arm64, 566,149,680 B compressed,
+  pushed 2026-08-21 (Docker Hub API read live via tee_web_lookup).
+- **Mini-family rolling-shutter coverage: recorded in advance.** ODM's
+  DB (read live) covers fc7203 (Mavic Mini v1), fc3682 (Mini 3),
+  fc3582 (Mini 3 Pro), fc8482 (Mini 4 Pro); every other Mini falls to
+  the scripted honest fallback (correction off, stated, fly-slow).
+  Mode-dependent constants confirm the protocol's mode-pinning rule.
+- **KB hygiene: rebuilt + reconciled.** rebuild_verification.py ROOT
+  still pointed at the corpus author's machine — fixed per the file's
+  own header; INDEX/manifest word-drift only (+16 words 00_meta);
+  38 domains / 402 files intact; nothing deleted.
+- **Suites green** (716 passed / 2 skipped, ruff clean); C2M probe
+  fixture staged at `helpers/cloudcompare/c2m_fixture.py` (+38 mm
+  planted truth, probe command in the docstring).
+
+**T0 install gates, batched for the owner (ONE ask, sizes stated):**
+free disk 1.0 TiB. (1) **A Docker runtime** — Docker Desktop
+(~1.5–2 GB class installer) or your preferred substitute
+(OrbStack/colima both serve); the ODM arm64 pull itself is 566 MB
+compressed, verified. (2) **CloudCompare 2.13.2** — brew cask, arm64
+(hundreds-of-MB class). (3) **QGIS 4.2.1** — brew cask (~1.3 GB
+class). (4) **QGIS MCP plugin** (MB class, into QGIS once present).
+No single download breaches the 2 GB gate. The PhotogrammetrySession
+helper needed no ask — built from source this session. **Blocked
+until these land:** CloudCompare C2M probe (fixture ready),
+qgis_process headless probe, QGIS-MCP-via-gateway probe (fingerprint
+pin), ODM 10-image end-to-end probe with metadata-resolved
+correction.
+
+**Next:** T1 (the capture protocol — the deadline deliverable) has no
+install dependency and proceeds regardless; T0's blocked probes close
+the moment the owner says install.

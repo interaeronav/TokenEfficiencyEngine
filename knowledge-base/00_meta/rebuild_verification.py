@@ -1,5 +1,5 @@
 import os, re, yaml, collections
-ROOT="/home/claude/kb"
+ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 today="2026-08-25"
 rows=[]; openq=[]
 for dom in sorted(os.listdir(ROOT)):
