@@ -3,7 +3,7 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased (0.6.0 candidate — Gate A, trip-ready)
+## 0.7.0 — 2026-08-29
 
 The A42 grand campaign through Gate A: the reality-capture lane, the
 verifier-gated router, and the kernel scheduler's shadow-to-law arc
