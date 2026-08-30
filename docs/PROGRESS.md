@@ -5920,3 +5920,38 @@ answered for free — 134 s saved on `verify` for the same sentence.
 
 **Next: P5** — a second project's steps run with nothing in `server/`
 changing.
+
+## 2026-08-30 — A43 P5: the second project, and what generality cost
+
+Suite **885 passed / 9 skipped**, gate exit 0. Both exchanges recorded
+side by side in `docs/pipeline-first-customer.md`.
+
+**The law held.** OkongoSim — an Unreal project whose gate runs headless
+inside Blender's bundled python — declares three steps and runs them
+with NOTHING in `server/` changing. That is checked rather than claimed:
+the whole exchange was re-run with the one lane file that did change
+reverted to its P4 state, and all three steps behaved identically.
+
+**The one lane change was a real generality bug, in the DRAFT tool.** The
+scan spent its file budget walking `Binaries/` and `DerivedDataCache/`
+and never reached `tools/`, so it proposed three engine-generated shell
+scripts instead of the project's seventeen real entry points. Build
+output is skipped now and the budget counts only files the scan would
+actually consider. The first project had no build tree big enough to
+show this.
+
+**What the two projects share is only the shape of a declaration.** One
+is a terrain build in a mamba/rasterio environment measured in hours and
+tens of gigabytes; the other drives an external binary with Blender's
+own `--` separator sitting in argv as an ordinary string. Neither
+declaration mentions TEE, and the lane knows nothing about either
+domain.
+
+**A finding for the owner in OkongoSim:** both `tools/checks/
+validate_catalog.py` and `tools/build_catalog.py` stop on `KeyError:
+'room_id'` — the catalog gate and the generator disagree with the
+current `data/furnishings.json`. The generator failing means the
+decorate-mode runtime contract cannot currently be rebuilt.
+
+**Next: P6** — benchmark, `docs/setup-pipeline.md`, SI-B15 ticked,
+artifacts rebuilt, 0.8.0.

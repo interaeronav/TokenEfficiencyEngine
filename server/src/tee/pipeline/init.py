@@ -27,6 +27,12 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Directories that hold OUTPUT rather than source. Scanning them is worse
+# than useless: a game engine's Binaries/ and DerivedDataCache/ hold
+# hundreds of thousands of files, so a scan that walks them finds shell
+# scripts the engine generated and never reaches the project's own tools.
+# Found on the second project (A43 P5) - the first one had no build tree
+# big enough to notice.
 SKIP_DIRS = {
     ".git",
     ".tee",
@@ -37,10 +43,18 @@ SKIP_DIRS = {
     ".mypy_cache",
     "build",
     "dist",
+    "target",
     "archives",
     "backups",
     "checkpoints",
+    # engine and IDE build output
+    "Binaries",
+    "Intermediate",
+    "DerivedDataCache",
+    "Saved",
 }
+# Counted in files we would actually CONSIDER, not files walked past. A
+# budget spent on assets is a budget that never reaches the scripts.
 MAX_FILES = 4000
 MAX_CANDIDATES = 30
 # Entry points whose names suggest they answer rather than build. A guess,
@@ -160,16 +174,13 @@ def scan(root: Path | str) -> list[Candidate]:
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS and not d.startswith("."))
         for filename in sorted(filenames):
+            if not filename.endswith((".py", ".sh")):
+                continue
             seen += 1
             if seen > MAX_FILES:
                 return found[:MAX_CANDIDATES]
             path = Path(dirpath) / filename
-            if filename.endswith(".py"):
-                candidate = _scan_python(path)
-            elif filename.endswith(".sh"):
-                candidate = _scan_shell(path)
-            else:
-                continue
+            candidate = _scan_python(path) if filename.endswith(".py") else _scan_shell(path)
             if candidate is None:
                 continue
             candidate.path = str(path.relative_to(root))
