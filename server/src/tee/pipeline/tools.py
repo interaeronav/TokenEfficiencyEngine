@@ -7,13 +7,14 @@ provably safe before anything can execute.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any
 
 from tee.kernel import trustctx
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
-from tee.pipeline import runner, schema
+from tee.pipeline import graph, report, runner, schema
 
 
 def register_pipeline_tools(app, project_root: Path | str) -> None:
@@ -212,3 +213,151 @@ def register_adhoc_tools(app, project_root: Path | str) -> None:
 
 
 _LAST_ADHOC: dict[str, runner.RunResult] = {}
+
+
+def register_run_tools(app, project_root: Path | str) -> None:
+    """`pipeline_run` (A43 P1): execute a DECLARED step as a job.
+
+    Everything narrow about the lane converges here: the step must be
+    declared, the declaration must be approved on this machine, the
+    params must satisfy their declared constraints, and the capability
+    must be granted. What comes back is an ANSWER - an artifact diff for
+    a produce step, the step's own budgeted output for a query - never a
+    log dump.
+    """
+    root = Path(project_root)
+
+    def pipeline_run(args: dict[str, Any]) -> dict[str, Any]:
+        pipeline = schema.load(root)
+        if not pipeline.approved:
+            raise TeeError(
+                "pipeline_unapproved",
+                f"{pipeline.path.name} is not approved on this machine ({pipeline.change}).",
+                fix=f"Read it, then write its digest {pipeline.digest} to "
+                f"{schema.pin_path(root)}. A declaration TEE has not been shown "
+                "is attacker-authored by definition - a cloned repo ships one too.",
+            )
+        target = pipeline.require(str(args.get("step") or ""))
+        values = dict(args.get("params") or {})
+        force = bool(args.get("force"))
+        # P2: the target resolves through the DECLARED graph, and only stale
+        # steps run. Every step's params are validated before anything
+        # executes - a bad value must not surface halfway through a build.
+        to_run, skipped = graph.plan(root, pipeline, target.name, values, force=force)
+        plans = [(step, schema.substitute(step, values)) for step in to_run]
+        if not plans:
+            return {
+                "target": target.name,
+                "ran": [],
+                "skipped": skipped,
+                "answer": "all fresh - nothing to do",
+            }
+
+        timeout_s = float(
+            args.get("timeout_s")
+            or max((_declared_timeout(step) for step in to_run), default=runner.DEFAULT_TIMEOUT_S)
+        )
+        footprint = max(
+            (float(step.cost.get("footprint_gb") or 2.0) for step in to_run), default=2.0
+        )
+        ledger_key = f"pipeline:{target.name}"
+        app.machine.register_job(ledger_key, "pipeline-step", footprint_gb=footprint)
+        started_at = time.strftime("%Y-%m-%d %H:%M:%S")
+
+        def run_one(step: schema.Step, argv: list[str]) -> dict[str, Any]:
+            before = report.snapshot_outputs(root, step, values) if step.kind == "produce" else {}
+            inputs_digest = report.digest_inputs(root, step, values)
+            result = runner.run(argv, cwd=root, timeout_s=timeout_s)
+            payload: dict[str, Any] = {
+                "step": step.name,
+                "kind": step.kind,
+                "exit": result.exit_code,
+                "provenance": report.provenance(
+                    step, argv, inputs_digest, started_at, result.wall_s
+                ),
+            }
+            if not result.ok:
+                # Rule 6: one honest line naming the step, plus the tail.
+                payload["error"] = result.failure_line(step.name)
+                payload["tail"] = (result.stderr_tail or result.stdout_tail)[-1200:]
+                return payload
+            if step.kind == "produce":
+                payload["artifacts"] = report.artifact_diff(root, step, values, before)
+            else:
+                payload.update(report.query_answer(step, result.stdout_tail))
+            # Only a SUCCESSFUL run is recorded, so a failure stays stale and
+            # a retry actually retries.
+            graph.record_run(root, step, inputs_digest, payload["provenance"]["argv_hash"])
+            return payload
+
+        def worker() -> dict[str, Any]:
+            ran: list[dict[str, Any]] = []
+            try:
+                for step, argv in plans:
+                    outcome = run_one(step, argv)
+                    ran.append(outcome)
+                    if outcome.get("error"):
+                        break  # never build on a broken dependency
+            finally:
+                app.machine.release_job(ledger_key)
+            if len(ran) == 1 and not skipped and ran[0]["step"] == target.name:
+                return ran[0]  # the common case stays compact
+            payload: dict[str, Any] = {"target": target.name, "ran": ran}
+            if skipped:
+                payload["skipped"] = skipped
+            if force:
+                payload["forced"] = "ran regardless of freshness (force = true)"
+            return payload
+
+        try:
+            job_id = app.jobs.submit(
+                f"pipeline {target.name}", worker, qos="batch", engine="pipeline-step"
+            )
+        except TeeError:
+            app.machine.release_job(ledger_key)
+            raise
+        answer: dict[str, Any] = {
+            "job": job_id,
+            "target": target.name,
+            "kind": target.kind,
+            "will_run": [step.name for step in to_run],
+            "note": "poll tee_job; produce steps answer with an artifact diff, "
+            "query steps with their own budgeted output",
+        }
+        if skipped:
+            answer["skipped"] = skipped
+        return answer
+
+    app.registry.register(
+        VirtualTool(
+            "pipeline_run",
+            "Run one DECLARED step from this project's .tee/pipeline.toml as a "
+            "job. Produce steps answer with an artifact diff (which declared "
+            "outputs were created/changed/unchanged, sizes, hashes); query "
+            "steps answer with their own output in the declared format, "
+            "budgeted and provenance-stamped. Refuses an unapproved "
+            "declaration, an undeclared step, or a param that breaks its "
+            "declared constraint.",
+            {
+                "type": "object",
+                "properties": {
+                    "step": {"type": "string"},
+                    "params": {"type": "object"},
+                    "timeout_s": {"type": "number"},
+                    "force": {"type": "boolean"},
+                },
+                "required": ["step"],
+            },
+            pipeline_run,
+            tags=["pipeline", "run", "step", "build", "query", "declared", "job"],
+        )
+    )
+
+
+def _declared_timeout(step: schema.Step) -> float:
+    """A step's own cost hint is the timeout it asked for - generously
+    doubled, because a hint is not a promise."""
+    wall = step.cost.get("wall_s")
+    if isinstance(wall, list) and wall:
+        return max(60.0, float(wall[-1]) * 2)
+    return runner.DEFAULT_TIMEOUT_S

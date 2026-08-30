@@ -5779,3 +5779,47 @@ and the kernel's whole point is that a model cannot grant itself one.
 
 **Next: P1** — the declared-step runner (artifact diffs for produce,
 budgeted answers for query), then P2's staleness DAG.
+
+## 2026-08-30 — A43 P1+P2: the runner answers, and the DAG only runs what is stale
+
+Suite 840 → **855 passed / 2 skipped**, gate exit 0.
+
+**P1 — answers, not logs.** `pipeline_run` executes a DECLARED step as a
+job (batch QoS, registered in the machine ledger with the declaration's
+own `footprint_gb`, timeout from its own `wall_s` hint doubled — a hint
+is not a promise). A produce step answers with an ARTIFACT DIFF over its
+declared outputs (created/changed/unchanged, sizes, 16-char hashes); a
+query step answers with its own output in the declared format, held to
+the declared `max_tokens` (8 KB of noise arrives as a trimmed line
+saying so); both carry provenance — step, argv hash, inputs hash,
+started, wall. A failing step returns ONE rule-6 line naming the step
+plus a bounded tail.
+
+**The refusals that make a declared step a bounded capability** are
+fixtured: an unapproved declaration will not run; a declaration that
+CHANGED since approval stops running until re-approved; the
+`run-declared-step` grant is required; a param that breaks its declared
+constraint never reaches argv; and untrusted content cannot trigger a
+step from an unattended task — while a LIVE TURN may run one after
+reading the web, because the human is present and the argv is fixed.
+
+**P2 — staleness and the DAG.** The graph is DERIVED from the
+declarations: if step B reads a path step A writes, B depends on A, and
+nobody writes that edge. `pipeline_run <target>` resolves the order,
+hashes declared inputs against a run manifest, and executes only what is
+stale — reporting every skip with its reason. A second immediate run is
+a compact `"all fresh - nothing to do"`. `force = true` runs anyway and
+says so in the report.
+
+**A correctness bug caught by its own fixture:** staleness measured
+before the build made every dependent look fresh (its inputs had not
+changed *yet*), so touching the seed re-ran only the first stage. Fixed
+by propagating: a step whose upstream is scheduled is stale too, with
+the reason named (`dependency rebuilt: stage_a`). Also honest by
+construction: only a SUCCESSFUL run is recorded, so a failed step stays
+stale and a retry actually retries; a failure stops the chain rather
+than building on a broken dependency; and a declared cycle is refused
+by name.
+
+**Next: P3** — register pipeline steps with the A42 scheduler (they are
+literally task-graph nodes now), then P4's first real customer.

@@ -62,6 +62,13 @@ ENGINES: dict[str, dict[str, Any]] = {
         "qos_default": "batch",
         "cost": {"wall_s": [6, 18], "measured": "T0 ladder, 36-view fixture"},
     },
+    "pipeline-step": {
+        "kind": "job",
+        "capability": ["declared-steps"],
+        "footprint_gb": 2.0,  # default; a declaration's own cost hint overrides
+        "qos_default": "batch",
+        "cost": {"wall_s": "declared per step (A43 P1)"},
+    },
     "reconstruct-odm": {
         "kind": "job",
         "capability": ["drone-sets"],
@@ -109,7 +116,9 @@ class MachineLedger:
         self._dispatch = {"static": 0, "greedy": 0, "pinned": 0}
         self._last_dispatch: str | None = None
 
-    def register_job(self, key: str, engine: str) -> dict[str, Any]:
+    def register_job(
+        self, key: str, engine: str, footprint_gb: float | None = None
+    ) -> dict[str, Any]:
         spec = ENGINES.get(engine)
         if spec is None or spec["kind"] != "job":
             known = sorted(n for n, s in ENGINES.items() if s["kind"] == "job")
@@ -121,7 +130,9 @@ class MachineLedger:
         row = {
             "key": str(key),
             "engine": engine,
-            "footprint_gb": float(spec["footprint_gb"]),
+            "footprint_gb": float(
+                footprint_gb if footprint_gb is not None else spec["footprint_gb"]
+            ),
             "qos": str(spec["qos_default"]),
         }
         with self._lock:

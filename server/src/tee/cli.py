@@ -63,10 +63,15 @@ def _attach_pipeline(app, project: str) -> None:
     """The pipeline lane (A43): declared steps for this project, if any.
     Registration is unconditional - the tool itself reports an absent
     declaration with the fix, which is friendlier than a missing tool."""
-    from tee.pipeline.tools import register_adhoc_tools, register_pipeline_tools
+    from tee.pipeline.tools import (
+        register_adhoc_tools,
+        register_pipeline_tools,
+        register_run_tools,
+    )
 
     register_pipeline_tools(app, Path(project))
     register_adhoc_tools(app, Path(project))
+    register_run_tools(app, Path(project))
 
 
 def _attach_capture(app, project: str, extract_store) -> None:
