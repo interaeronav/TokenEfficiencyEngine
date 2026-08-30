@@ -5375,3 +5375,20 @@ that was reported rather than claimed. A39's no-cloud law amended in
 DECISIONS (intent named, not lawyered); SI-B16 filed for the missing
 enforcement (`paid` flag unread, no meter spend column, router
 exclusion needed).
+
+## 2026-08-30 — qmax live-ready; the two-config trap found (SI-B17)
+
+The qmax wiring did not take because the installed co-pilot's
+project_root is `/Users/john/TEE` (Desktop extension settings), not
+the repo — so the profile written into `<repo>/.tee/config.toml` was
+invisible. Corrected: the block now lives in
+`/Users/john/TEE/.tee/config.toml` beside the `[kb]` root, valid TOML,
+and the real loader proves it — `profiles()` returns
+`['q14b','q27b','qmax']` with qmax → shim `claude-qwen-max`. The
+hosted route was smoke-tested end to end (reply "ok", 91 tokens
+billed, model echoed `claude-qwen-max`), so a restart lands on a
+working engine rather than a 401. Still pending: restart the Desktop
+extension for the running server to see the profile. SI-B17 filed —
+nothing surfaces which project_root/config the server actually loaded,
+which made an edit-that-went-nowhere look identical to a bug; a stale
+memory note claiming the root had moved compounded it (note corrected).
