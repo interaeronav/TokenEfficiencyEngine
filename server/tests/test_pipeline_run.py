@@ -93,11 +93,15 @@ def test_a_produce_step_answers_with_an_artifact_diff(tmp_path):
     started = app.registry.call("pipeline_run", {"step": "build", "params": {"tile": "north"}})
     assert started["kind"] == "produce"
     result = _finish(app, started)["result"]
-    assert result["exit"] == 0
+    assert "exit" not in result  # success is the absence of a failure line
     created = result["artifacts"]["created"]
     assert created[0]["path"] == "out/tile_north.txt"
     assert created[0]["size"] > 0 and len(created[0]["hash"]) == 16
-    assert "provenance" in result and result["provenance"]["step"] == "build"
+    # Provenance is the two hashes that let you re-derive the answer plus
+    # the wall clock - nothing the payload already says (P6: on a one-line
+    # answer the old block cost more than the answer did).
+    assert set(result["provenance"]) == {"argv_hash", "inputs_hash", "wall_s"}
+    assert result["step"] == "build"
     assert app.machine.active_jobs() == []  # the ledger released
 
     # P2: a second immediate run does not execute at all - it is fresh
@@ -219,7 +223,7 @@ def test_a_bad_param_is_refused_even_when_the_step_is_fresh(tmp_path):
     first = _finish(
         app, app.registry.call("pipeline_run", {"step": "build", "params": {"tile": "north"}})
     )["result"]
-    assert first["exit"] == 0
+    assert "exit" not in first  # a zero exit code is not worth its tokens
     again = app.registry.call("pipeline_run", {"step": "build", "params": {"tile": "north"}})
     assert again["ran"] == []  # genuinely fresh now
     with pytest.raises(TeeError) as excinfo:

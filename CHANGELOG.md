@@ -3,6 +3,70 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.8.0 — 2026-08-30
+
+The A43 build: the **trust kernel** first, then the **pipeline lane** as
+its first tenant (suite 788 → 885/9; always-loaded surface unchanged —
+every new capability ships virtual).
+
+- **Trust kernel (`tee/kernel/trust.py`, `trustctx.py`)**: one decision
+  point replacing four scattered permission flags. Capabilities are
+  verb+RESOURCE (`write-artifacts` ≠ `write-config` ≠ `write-policy`), so
+  a path cannot silently become privilege escalation. Default deny
+  outside the read tier; the read tier fails OPEN because it cannot
+  change a byte, side effects fail CLOSED. Every shipped tool carries a
+  capability — an untabled tool is a startup failure, not a runtime
+  surprise. Overhead measured at 0.2 µs per check.
+- **Taint tracking**: a task whose inputs include untrusted content may
+  never invoke a side-effecting capability, and only a live human turn
+  lifts it. Taint is a property of an ID rather than a string, which is
+  affordable precisely because TEE passes ids and not payloads; it
+  crosses the job hop with the caller DOWNGRADED (live-turn → job), and
+  it survives the persistence boundary bound to a content hash, so a
+  remembered value cannot launder its own origin.
+- **`tee_trust`**: what is granted, what the baseline covers, what this
+  task carries, recent shadow denials and recent side effects — plus the
+  rollout evidence, measured rather than asserted.
+- **Pipeline lane (`tee/pipeline/`)**: projects declare build and query
+  steps in their own tracked `.tee/pipeline.toml`. argv arrays only
+  (never a shell string, `shell=False` by construction, asserted against
+  the AST); typed params that must be bounded by `enum` or `pattern`, or
+  the step is refused as "an arbitrary-execution grant wearing a
+  declaration's clothes"; declared `env` under the same law; hash-pinned
+  approval per machine, with a changed declaration refusing until it is
+  read again.
+- **Answers, not logs**: a produce step reports an artifact diff over
+  what it declared it would write; a query step returns its own output in
+  the declared format held to the declared budget, and a successful
+  answer is recorded so the same unchanged question is answered for free.
+  A failure is one line naming the step plus a bounded tail.
+- **A DAG nobody writes**: if one step reads what another writes, the
+  edge exists. Runs hash declared inputs against a manifest and execute
+  only what is stale, naming every skip; staleness propagates to
+  dependents; only SUCCESSFUL runs are recorded, so a retry retries and a
+  failing check is never cached into looking fixed.
+- **Steps are ordinary jobs**: admitted, dispatched, ledger-registered
+  and metered beside chores and reconstructions, with the meter gaining a
+  row rather than a lane. With the scheduler off they run sequentially
+  and produce byte-identical artifacts.
+- **Three authoring routes**: `pipeline_init` drafts from the project's
+  own scripts with every block COMMENTED OUT (a scan is a guess about
+  intent, not permission to run anything); hand-write; or
+  `pipeline_adhoc` → `pipeline_adopt`, the discovery route, which opens
+  for a live human turn only and needs both an opt-in and a separate
+  grant.
+- **Two real customers**: `~/DiversionPlanner-BaseMap` declares five
+  steps from its own runbook, and `~/OkongoSim` runs three — including
+  one headless inside Blender — with nothing in `server/` changing.
+  Measured at −74.5% on a produce step, and honestly +8–40 tokens on
+  short-output queries. Closes SI-B15.
+- **Fixed**: a readiness probe that returned true when any endpoint
+  answered, so a proxy serving other model groups passed for a local
+  stack and then failed every chore with a 400; taint enforcement that
+  reused HIGH_RISK and therefore left execution and egress in the shadow
+  band; and a param that broke its declared constraint being accepted
+  whenever the step happened to be fresh.
+
 ## 0.7.0 — 2026-08-29
 
 The A42 grand campaign through Gate A: the reality-capture lane, the

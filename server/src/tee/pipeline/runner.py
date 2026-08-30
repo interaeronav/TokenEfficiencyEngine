@@ -19,6 +19,7 @@ What the runner contributes beyond `subprocess.run`:
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -28,6 +29,10 @@ from tee.kernel.errors import TeeError
 
 DEFAULT_TIMEOUT_S = 900.0
 TAIL_CHARS = 2000
+# Terminal colour and cursor control. It is formatting for a screen nobody
+# is looking at, and every escape costs ~10 characters once JSON-encoded -
+# measured at ~20 tokens on one project's test output (A43 P6).
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
 # Directories a build legitimately churns; scanning them would drown the
 # adopt proposal in noise rather than naming the artifacts.
 _SKIP_DIRS = {".git", ".tee", "__pycache__", ".venv", "node_modules", ".mypy_cache"}
@@ -56,6 +61,7 @@ class RunResult:
 
 
 def _tail(text: str) -> str:
+    text = _ANSI.sub("", text)
     if len(text) <= TAIL_CHARS:
         return text
     return "…" + text[-TAIL_CHARS:]

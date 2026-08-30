@@ -5955,3 +5955,86 @@ decorate-mode runtime contract cannot currently be rebuilt.
 
 **Next: P6** — benchmark, `docs/setup-pipeline.md`, SI-B15 ticked,
 artifacts rebuilt, 0.8.0.
+
+## 2026-08-30 — A43 P6: the benchmark, the close-out, v0.8.0
+
+Suite **885 passed / 9 skipped**, gate exit 0, ruff clean. Guide written
+(`docs/setup-pipeline.md`), SI-B15 CLOSED, artifacts rebuilt and verified
+by extraction.
+
+**The benchmark, and it does not read the way a press release would.**
+`benchmarks/run_p6_pipeline.py`, measured on this machine against both
+real projects, naive = the command pasted plus everything it prints:
+
+| step | kind | naive | lane | saved |
+|---|---|---|---|---|
+| basemap `plan` | produce | 298 | **76** | **−74.5%** |
+| basemap `selftest` | query | 51 | 59 | +15.7% |
+| okongosim `dimensions_selftest` | query | 414 | 415 | −0.2% |
+| okongosim `validate_catalog` | query (fails) | 170 | 210 | +23.5% |
+| basemap `verify` | query (fails) | 51 | 75 | +47.1% |
+| basemap `selftest` asked again | query | 51 | **42** | −17.6%, 0 s |
+| basemap `verify` asked again | query (fails) | 51 | 75 | re-ran, 133 s |
+
+The lane wins decisively where a diff replaces a log, and LOSES 8–40
+tokens where the output was already one line — those tokens buying a
+command that cannot be misremembered plus the hashes saying what the
+answer came from. Stated, not averaged away. The last row is correct
+rather than a miss: only successful runs are recorded, so a failing
+check is never cached into looking fixed.
+
+**Three trims came out of the numbers**, each measured before and after:
+provenance dropped the step name and start time it was repeating from
+the payload and the manifest (and shortened its hashes to 8 hex); ANSI
+colour is stripped from captured output (~20 tokens on one project's
+test output, each escape costing ten characters once JSON-encoded); and
+a cached answer now returns in the same compact shape as a fresh one —
+it had been arriving in a FATTER envelope than the answer it replaced,
+81 tokens against 59.
+
+**A measurement bug in the benchmark itself, caught and fixed before
+publishing:** the repeat rows timed a job SUBMIT rather than a
+completion, which reported a 133-second check as instant. It waits now.
+
+**Wrong-way numbers, explained in place:** the three losing benchmark
+rows above; the benchmark's own timing bug; and the always-loaded
+surface figure — measured at **17 tools / ~2,648 tokens**, identical
+before and after A43 (checked against the pre-A43 tree in a scratch
+worktree), which means the campaign added nothing to the always-loaded
+cost as promised, but ALSO that the "2,028 tok" repeated in earlier
+ledgers no longer matches what the estimator returns. The invariant that
+holds is "unchanged by this campaign", and that is what is claimed here.
+
+**Artifacts** at 0.8.0, five places stamped (pyproject / `__init__` /
+Makefile / source mcpb manifest / CHANGELOG), `uv.lock` refreshed: wheel
+493,153 B / sdist 767,268 B / mcpb 698,943 B (+39 KB over 0.7.0 — the
+kernel and the lane's honest weight). The `.mcpb` VERIFIED BY
+EXTRACTION: manifest 0.8.0, 17 tools, bundle pyproject 0.8.0 with
+`[tool.uv] default-groups = []`, `src/tee/pipeline/` and
+`src/tee/kernel/trust*.py` present; `npx @anthropic-ai/mcpb validate` →
+"Manifest schema validation passes!".
+
+**The co-pilot measuring the optimizer**, `report_savings` on this
+closing session's installed server: **2,948 measured tokens / 8 calls**
+— low because this campaign's work was overwhelmingly direct file and
+test work rather than DCC driving, which the lane does not change. Note
+the installed co-pilot answered WITHOUT a `pipeline` row: it is still
+running 0.7.0.
+
+**Version: 0.8.0** — additive lane plus the kernel, no breaking change
+to the always-loaded surface. The owner tags.
+
+**Owner actions outstanding:**
+1. `git tag v0.8.0 && git push origin v0.8.0` (and v0.7.0, still untagged).
+2. Reinstall `server/dist/tee-engine-0.8.0.mcpb` — the running co-pilot
+   is 0.7.0 and has neither the kernel nor the lane.
+3. Add `[trust] grants = ["call-paid-engine"]` to
+   `/Users/john/TEE/.tee/config.toml` (SI-B17: that is the config the
+   installed server actually reads) for the hosted profile.
+4. Read `~/DiversionPlanner-BaseMap/.tee/pipeline.toml` and
+   `~/OkongoSim/.tee/pipeline.toml`; delete the matching
+   `.tee/pipeline.pin` to revoke either.
+5. Two findings in his own projects, both from their own tools: the
+   basemap's `validation/rebuild_diff.json` fails `verify` as corrupt,
+   and OkongoSim's catalog gate AND generator both stop on `KeyError:
+   'room_id'` — the decorate-mode contract cannot currently be rebuilt.

@@ -301,12 +301,18 @@ def register_run_tools(app, project_root: Path | str) -> None:
             }
             # A question asked again gets its ANSWER, not a status line. The
             # inputs are unchanged, so the recorded answer is still the true
-            # one - served for nothing instead of re-derived.
+            # one - served for nothing instead of re-derived. It answers in
+            # the SAME compact shape as a fresh run: a cached answer that
+            # costs more than the answer would have is not a saving (P6
+            # measured the fat envelope at 81 tokens against 59 fresh).
             if target.kind == "query":
                 cached = graph.cached_answer(root, target)
                 if cached is not None:
-                    done.update(cached)
-                    done["answer_is"] = "cached from the last run; inputs unchanged"
+                    compact = {"step": target.name, "answer": cached.get("answer")}
+                    if cached.get("format") not in (None, "text"):
+                        compact["format"] = cached["format"]
+                    compact["cached"] = cached.get("answered_at")
+                    return compact
             return done
 
         timeout_s = float(
@@ -331,16 +337,21 @@ def register_run_tools(app, project_root: Path | str) -> None:
             )
             payload: dict[str, Any] = {
                 "step": step.name,
-                "kind": step.kind,
-                "exit": result.exit_code,
                 "provenance": report.provenance(
                     step, argv, inputs_digest, started_at, result.wall_s
                 ),
             }
             if not result.ok:
-                # Rule 6: one honest line naming the step, plus the tail.
+                # An exit code is worth its tokens only when it is not zero.
+                payload["exit"] = result.exit_code
+            if not result.ok:
+                # Rule 6: one honest line naming the step, plus enough tail
+                # to place it. 1200 characters WAS the stack-trace novel the
+                # rule forbids - and it also made the lane cost more than
+                # pasting the traceback, which is the whole thing it is
+                # supposed to beat (P6 measured +23%).
                 payload["error"] = result.failure_line(step.name)
-                payload["tail"] = (result.stderr_tail or result.stdout_tail)[-1200:]
+                payload["tail"] = (result.stderr_tail or result.stdout_tail)[-600:]
                 return payload
             if step.kind == "produce":
                 payload["artifacts"] = report.artifact_diff(root, step, values, before)

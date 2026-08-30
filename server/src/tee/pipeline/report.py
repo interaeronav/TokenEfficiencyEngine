@@ -122,12 +122,19 @@ def _budget_text(text: str, budget: int) -> str:
 
 
 def provenance(step: Step, argv: list[str], inputs_digest: str, started: str, wall_s: float):
-    """Enough to re-derive the answer, and no more."""
+    """Enough to re-derive the answer, and no more.
+
+    Measured in the P6 benchmark: on a step whose answer is one line, the
+    provenance block cost MORE than the answer, which made the lane worse
+    than pasting the command. The step name is already at the top of the
+    payload and the wall-clock start is already in the run manifest, so
+    both are redundant here; the hashes are what actually let you
+    re-derive the answer, and eight hex characters is a collision the
+    project will not see.
+    """
     return {
-        "step": step.name,
-        "argv_hash": hashlib.sha256(" ".join(argv).encode()).hexdigest()[:12],
-        "inputs_hash": inputs_digest,
-        "started": started,
+        "argv_hash": hashlib.sha256(" ".join(argv).encode()).hexdigest()[:8],
+        "inputs_hash": inputs_digest[:8],
         "wall_s": wall_s,
     }
 

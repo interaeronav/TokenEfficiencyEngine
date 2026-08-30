@@ -1,0 +1,117 @@
+[
+ {
+  "project": "basemap",
+  "step": "plan",
+  "kind": "produce",
+  "naive_tokens": 298,
+  "lane_tokens": 76,
+  "wall_s": 0.22,
+  "saved_pct": 74.5,
+  "naive_detail": {
+   "parts": {
+    "the command, pasted": 72,
+    "its stdout": 141,
+    "its stderr": 1,
+    "ls -l of the outputs": 84
+   },
+   "wall_s": 0.22
+  },
+  "lane_ok": true
+ },
+ {
+  "project": "basemap",
+  "step": "selftest",
+  "kind": "query",
+  "naive_tokens": 51,
+  "lane_tokens": 59,
+  "wall_s": 0.05,
+  "saved_pct": -15.7,
+  "naive_detail": {
+   "parts": {
+    "the command, pasted": 26,
+    "its stdout": 24,
+    "its stderr": 1
+   },
+   "wall_s": 0.05
+  },
+  "lane_ok": true
+ },
+ {
+  "project": "okongosim",
+  "step": "dimensions_selftest",
+  "kind": "query",
+  "naive_tokens": 414,
+  "lane_tokens": 415,
+  "wall_s": 0.56,
+  "saved_pct": -0.2,
+  "naive_detail": {
+   "parts": {
+    "the command, pasted": 33,
+    "its stdout": 380,
+    "its stderr": 1
+   },
+   "wall_s": 0.56
+  },
+  "lane_ok": true
+ },
+ {
+  "project": "okongosim",
+  "step": "validate_catalog",
+  "kind": "query",
+  "naive_tokens": 170,
+  "lane_tokens": 210,
+  "wall_s": 0.05,
+  "saved_pct": -23.5,
+  "naive_detail": {
+   "parts": {
+    "the command, pasted": 18,
+    "its stdout": 1,
+    "its stderr": 151
+   },
+   "wall_s": 0.05
+  },
+  "lane_ok": false
+ },
+ {
+  "project": "basemap",
+  "step": "verify",
+  "kind": "query",
+  "naive_tokens": 51,
+  "lane_tokens": 75,
+  "wall_s": 133.45,
+  "saved_pct": -47.1,
+  "naive_detail": {
+   "parts": {
+    "the command, pasted": 28,
+    "its stdout": 1,
+    "its stderr": 22
+   },
+   "wall_s": 133.45
+  },
+  "lane_ok": false
+ },
+ {
+  "project": "basemap",
+  "step": "selftest (asked again)",
+  "kind": "query",
+  "naive_tokens": 51,
+  "lane_tokens": 42,
+  "wall_s": 0.001,
+  "naive_wall_s": 0.05,
+  "served_from_record": true,
+  "lane_ok": true,
+  "saved_pct": 17.6
+ },
+ {
+  "project": "basemap",
+  "step": "verify (asked again)",
+  "kind": "query",
+  "naive_tokens": 51,
+  "lane_tokens": 75,
+  "wall_s": 133.489,
+  "naive_wall_s": 133.45,
+  "served_from_record": false,
+  "lane_ok": true,
+  "saved_pct": -47.1
+ }
+]

@@ -258,3 +258,60 @@ the entire distribution shifted, first interactive done in 2.45 s vs
 8.02. The +1.4 s makespan premium is the reserved worker's stated
 price. No head-of-line blocking — the named mechanism, delivered.
 **The scheduler earns its existence; the off-switch remains.**
+
+## The pipeline lane: two real projects (A43 P6, 2026-08-30)
+
+`benchmarks/run_p6_pipeline.py`, measured on this machine against the
+owner's own projects — nothing stubbed. The naive column is what actually
+lands in context without the lane: the command pasted in, then whatever
+the command prints, plus a listing of the outputs when artifacts are the
+point. Nothing is trimmed by hand on either side.
+
+| project | step | kind | naive tok | lane tok | saved | wall |
+|---|---|---|---|---|---|---|
+| basemap | plan | produce | 298 | **76** | **−74.5%** | 0.22 s |
+| basemap | selftest | query | 51 | 59 | +15.7% | 0.05 s |
+| okongosim | dimensions_selftest | query | 414 | 415 | −0.2% | 0.56 s |
+| okongosim | validate_catalog | query (fails) | 170 | 210 | +23.5% | 0.05 s |
+| basemap | verify | query (fails) | 51 | 75 | +47.1% | 133.5 s |
+| basemap | selftest, asked again | query | 51 | **42** | **−17.6%** | 0.00 s vs 0.05 s |
+| basemap | verify, asked again | query (fails) | 51 | 75 | +47.1% | 133.5 s — **re-ran** |
+
+**Read this honestly: the lane wins decisively in one place and loses
+slightly in another, and the losing rows are not a rounding error.**
+
+**Where it wins.** A produce step replaces a build log with a diff over
+what the step declared it would write: 298 tokens of scope counts,
+geocell totals and "wrote …" lines become 76 tokens naming three files,
+their sizes and their hashes. That is the case the lane exists for, and
+it gets better as the build gets chattier, because the answer's size is
+set by the declaration rather than by the tool's verbosity.
+
+**Where it loses.** On a query whose command is short and whose output
+is already one line, the lane returns that same line plus a step name and
+two hashes, so it costs 8–40 tokens MORE than pasting the command would.
+Those tokens buy a command that cannot be misremembered, an inputs hash
+that says what the answer was computed from, and the refusal envelope
+around it. That is a real trade and it is stated rather than averaged
+away.
+
+**The repeat rows are the interesting ones.** A successful query asked a
+second time is answered from the record: fewer tokens and no wall clock
+at all. A FAILING query asked again re-runs in full — 133 seconds — and
+that is correct, not a miss: only successful runs are recorded, so a
+failing check is never cached into looking fixed.
+
+**Not counted in the naive column, and it favours naive:** constructing
+the basemap command means reading a 40-line runbook and copying 16 argv
+elements exactly. Getting that wrong is the friction this whole project
+exists to remove, and the benchmark charges the naive path nothing for
+it.
+
+**Two lane trims came out of these numbers**, both measured before and
+after: provenance dropped the step name and start time it was repeating
+from the payload and the manifest (and shortened its hashes to 8 hex),
+and terminal colour codes are stripped from captured output — worth ~20
+tokens on one project's test output, where each escape costs ten
+characters once JSON-encoded. A cached answer also now returns in the
+same compact shape as a fresh one; it had been arriving in a fatter
+envelope than the answer it replaced, at 81 tokens against 59.
