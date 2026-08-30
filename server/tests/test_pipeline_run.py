@@ -209,3 +209,20 @@ def test_untrusted_content_cannot_trigger_a_declared_step(tmp_path):
     assert excinfo.value.code == "trust_denied"
     assert "untrusted content" in excinfo.value.fix
     app.shutdown()
+
+
+def test_a_bad_param_is_refused_even_when_the_step_is_fresh(tmp_path):
+    """Found in the P4 acceptance run against a real project: freshness was
+    checked before the value was, so garbage got 'all fresh - nothing to
+    do' - a success-shaped reply to a request that was never valid."""
+    app, _root = _project(tmp_path)
+    first = _finish(
+        app, app.registry.call("pipeline_run", {"step": "build", "params": {"tile": "north"}})
+    )["result"]
+    assert first["exit"] == 0
+    again = app.registry.call("pipeline_run", {"step": "build", "params": {"tile": "north"}})
+    assert again["ran"] == []  # genuinely fresh now
+    with pytest.raises(TeeError) as excinfo:
+        app.registry.call("pipeline_run", {"step": "build", "params": {"tile": "rm -rf /"}})
+    assert excinfo.value.code == "pipeline_bad_param"
+    app.shutdown()

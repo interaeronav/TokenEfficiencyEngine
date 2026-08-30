@@ -5861,3 +5861,62 @@ session: the six API-defer trap tests SKIP honestly instead of failing,
 because no local model is running.
 
 **Next: P4** — the first real customer, the DiversionPlanner basemap.
+
+## 2026-08-30 — A43 P4: the first real customer (DiversionPlanner basemap)
+
+Suite 872 → **885 passed / 9 skipped**, gate exit 0. Recorded exchange:
+`docs/pipeline-first-customer.md`.
+
+**Three authoring routes now exist and all three work.** `pipeline_init`
+ships here: it reads a project's own entry points (docstring, required
+flags) and drafts a candidate file. Its steps are emitted COMMENTED OUT,
+so the draft copied verbatim into `.tee/pipeline.toml` declares exactly
+zero steps — a scan is a guess about intent, and a guess must not become
+an execution grant because it happens to be valid TOML. Hand-writing and
+P0b's adopt-after-ad-hoc are unchanged.
+
+**The customer.** `.tee/pipeline.toml` in `~/DiversionPlanner-BaseMap`
+declares five steps, every flag copied from his own runbook and scripts:
+`selftest`, `verify`, `plan`, `build_cell` and `blunder_stats`. The lane
+runs the builder end to end in plan mode in 0.2 s and answers with an
+artifact diff over the three files it declared it would write. `verify`
+answers in ~95 tokens after 134 s of hashing — and reports a genuine
+failure in the project (`validation/rebuild_diff.json` corrupt). The real
+cell build is declared but never auto-run: tens of GB and hours, so it is
+something you name, not something a vague sentence resolves to.
+
+**Wrong-way numbers, in place.** Two of the owner's three real commands
+need environment variables, which a Step could not express, so `env` was
+added — under the SAME constraint law as argv, because an env var is a
+process input like any other and a free string there would reopen the
+hole less visibly (nobody reads the environment when they read a
+command). The scan also missed four working scripts that read `sys.argv`
+positionally instead of using argparse; a draft tool that only sees
+argparse quietly under-reports a project.
+
+**Two real defects the real project surfaced, both fixed with fixtures:**
+
+1. **A bad param was accepted when the step was fresh.** Freshness was
+   checked before the value was, so `cell = "rm -rf /"` came back "all
+   fresh - nothing to do". The target's params are now validated before
+   anything else looks at them.
+2. **A tainted job could start a declared build.** The taint law fired
+   but sat in the shadow band, because enforcement reused HIGH_RISK and
+   that set contains neither `run-declared-step` nor `fetch-web`. A taint
+   denial IS a safety denial (FP-2: shadow-first governs engine CHOICE,
+   never safety), so `TAINT_ENFORCED` now covers execution and egress and
+   refuses on day one. On this project the step involved downloads tens
+   of gigabytes.
+
+**And a gap:** a successful QUERY step was skipped as "fresh" and
+answered nothing, because a query has no artifact to be fresh about. Its
+answer is recorded with the run now, so the same unchanged question is
+answered for free — 134 s saved on `verify` for the same sentence.
+
+**Owner actions:** read `~/DiversionPlanner-BaseMap/.tee/pipeline.toml`
+(the pin was written after grounding every flag in his runbook; deleting
+`.tee/pipeline.pin` revokes the lot), and look at the corrupt artefact
+`verify` found.
+
+**Next: P5** — a second project's steps run with nothing in `server/`
+changing.

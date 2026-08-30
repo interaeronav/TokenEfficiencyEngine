@@ -16,6 +16,7 @@ report rather than quietly pretending freshness never mattered.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -37,11 +38,27 @@ def load_manifest(root: Path) -> dict[str, Any]:
         return {}
 
 
-def record_run(root: Path, step: Step, inputs_hash: str, argv_hash: str) -> None:
+def record_run(
+    root: Path,
+    step: Step,
+    inputs_hash: str,
+    argv_hash: str,
+    answer: dict[str, Any] | None = None,
+) -> None:
     """Only a SUCCESSFUL run is recorded - a failed step stays stale, so a
-    retry actually retries."""
+    retry actually retries.
+
+    A query's answer is recorded WITH the run, because a query has no
+    artifact on disk to be fresh about: without this a fresh query would
+    be skipped and the caller would get 'nothing to do' in place of the
+    answer they asked for. Storing it means an unchanged question is
+    answered for free instead of re-run - the whole point of the lane."""
     data = load_manifest(root)
-    data[step.name] = {"inputs_hash": inputs_hash, "argv_hash": argv_hash}
+    record: dict[str, Any] = {"inputs_hash": inputs_hash, "argv_hash": argv_hash}
+    if answer is not None:
+        record["answer"] = answer
+        record["answered_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    data[step.name] = record
     path = manifest_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
@@ -123,10 +140,12 @@ def staleness(
             if not report._expand(Path(root), pattern):
                 return f"declared output missing: {pattern}"
     else:
-        # A query's answer is not stored, so a query with no inputs has
-        # nothing to be fresh ABOUT - it re-runs, and says why.
+        # A query with no declared inputs has nothing to be fresh ABOUT.
         if not step.inputs:
             return "query step with no declared inputs (nothing to be fresh about)"
+        # ...and one whose answer was never stored has nothing to serve.
+        if not isinstance(record.get("answer"), dict):
+            return "no cached answer for this question"
     return None
 
 
@@ -163,3 +182,14 @@ def plan(
             to_run.append(step)
             scheduled.add(step.name)
     return to_run, skipped
+
+
+def cached_answer(root: Path, step: Step) -> dict[str, Any] | None:
+    """The answer a fresh query step last gave, if one was recorded."""
+    record = load_manifest(root).get(step.name)
+    if not isinstance(record, dict):
+        return None
+    answer = record.get("answer")
+    if not isinstance(answer, dict):
+        return None
+    return {**answer, "answered_at": record.get("answered_at")}

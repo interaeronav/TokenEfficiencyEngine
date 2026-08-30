@@ -129,6 +129,33 @@ def register_adhoc_tools(app, project_root: Path | str) -> None:
         payload["adopt"] = "pipeline_adopt {name: '<step name>'} turns this into a declaration"
         return payload
 
+    def pipeline_init(args: dict[str, Any]) -> dict[str, Any]:
+        """Draft a candidate file from the project's own scripts."""
+        _guard_live_turn("pipeline_init")
+        from tee.pipeline import init as init_mod
+
+        proposed = root / ".tee" / "pipeline.proposed.toml"
+        if proposed.exists() and not args.get("replace"):
+            raise TeeError(
+                "pipeline_draft_exists",
+                f"{proposed} already exists and may hold proposals you have not read.",
+                fix="Review and clear it, or call again with replace = true.",
+            )
+        candidates = init_mod.scan(root)
+        text = init_mod.draft(root, candidates)
+        proposed.parent.mkdir(parents=True, exist_ok=True)
+        proposed.write_text(text, encoding="utf-8")
+        return {
+            "drafted": str(proposed),
+            "candidates": [
+                {"name": c.name, "path": c.path, "kind_guess": c.kind_guess} for c in candidates
+            ],
+            "runnable": False,
+            "next": "Every block is commented out. Uncomment what you want, "
+            "replace each <FILL>, state inputs/outputs, then approve the "
+            f"file as {root / '.tee' / 'pipeline.toml'}.",
+        }
+
     def pipeline_adopt(args: dict[str, Any]) -> dict[str, Any]:
         """Offer the declaration TEE WOULD write - the owner moves it in."""
         _guard_live_turn("pipeline_adopt")
@@ -199,6 +226,19 @@ def register_adhoc_tools(app, project_root: Path | str) -> None:
     )
     app.registry.register(
         VirtualTool(
+            "pipeline_init",
+            "Draft a candidate .tee/pipeline.toml by scanning this project's "
+            "own scripts for entry points, their docstrings and the flags "
+            "they require. Every drafted step is written COMMENTED OUT - the "
+            "draft copied verbatim declares zero steps - because a scan is a "
+            "guess about intent, not permission to run anything.",
+            {"type": "object", "properties": {"replace": {"type": "boolean"}}},
+            pipeline_init,
+            tags=["pipeline", "init", "draft", "scan", "declare", "propose"],
+        )
+    )
+    app.registry.register(
+        VirtualTool(
             "pipeline_adopt",
             "Turn the last ad-hoc run into the declaration TEE would write - "
             "argv, kind and outputs inferred from what the run actually "
@@ -240,6 +280,12 @@ def register_run_tools(app, project_root: Path | str) -> None:
         target = pipeline.require(str(args.get("step") or ""))
         values = dict(args.get("params") or {})
         force = bool(args.get("force"))
+        # The target's params are validated BEFORE anything else looks at
+        # them - including before freshness. A bad value must be refused on
+        # its own terms; letting a fresh step swallow it would answer
+        # "nothing to do" to a request that was never valid, which is a
+        # success-shaped reply to a rejected question.
+        schema.substitute(target, values)
         # P2: the target resolves through the DECLARED graph, and only stale
         # steps run. Every step's params are validated before anything
         # executes - a bad value must not surface halfway through a build.
@@ -247,12 +293,21 @@ def register_run_tools(app, project_root: Path | str) -> None:
         plans = [(step, schema.substitute(step, values)) for step in to_run]
         if not plans:
             app.machine.record_pipeline(skipped=len(skipped))
-            return {
+            done: dict[str, Any] = {
                 "target": target.name,
                 "ran": [],
                 "skipped": skipped,
                 "answer": "all fresh - nothing to do",
             }
+            # A question asked again gets its ANSWER, not a status line. The
+            # inputs are unchanged, so the recorded answer is still the true
+            # one - served for nothing instead of re-derived.
+            if target.kind == "query":
+                cached = graph.cached_answer(root, target)
+                if cached is not None:
+                    done.update(cached)
+                    done["answer_is"] = "cached from the last run; inputs unchanged"
+            return done
 
         timeout_s = float(
             args.get("timeout_s")
@@ -268,7 +323,12 @@ def register_run_tools(app, project_root: Path | str) -> None:
         def run_one(step: schema.Step, argv: list[str]) -> dict[str, Any]:
             before = report.snapshot_outputs(root, step, values) if step.kind == "produce" else {}
             inputs_digest = report.digest_inputs(root, step, values)
-            result = runner.run(argv, cwd=root, timeout_s=timeout_s)
+            result = runner.run(
+                argv,
+                cwd=root,
+                timeout_s=timeout_s,
+                env=schema.substitute_env(step, values),
+            )
             payload: dict[str, Any] = {
                 "step": step.name,
                 "kind": step.kind,
@@ -287,8 +347,16 @@ def register_run_tools(app, project_root: Path | str) -> None:
             else:
                 payload.update(report.query_answer(step, result.stdout_tail))
             # Only a SUCCESSFUL run is recorded, so a failure stays stale and
-            # a retry actually retries.
-            graph.record_run(root, step, inputs_digest, payload["provenance"]["argv_hash"])
+            # a retry actually retries. A query's answer is stored with it.
+            graph.record_run(
+                root,
+                step,
+                inputs_digest,
+                payload["provenance"]["argv_hash"],
+                answer=None
+                if step.kind == "produce"
+                else report.query_answer(step, result.stdout_tail),
+            )
             return payload
 
         def worker() -> dict[str, Any]:

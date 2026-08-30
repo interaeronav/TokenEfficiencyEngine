@@ -428,3 +428,27 @@ def test_switching_into_a_paid_profile_needs_the_grant_and_says_so(tmp_path):
     out = app.registry.call("llm_switch", {"profile": "hosted"})
     assert "PAID, off-machine" in out["egress"]
     app.shutdown()
+
+
+def test_taint_denials_that_matter_enforce_from_day_one():
+    """FP-2 says shadow-first governs engine CHOICE, never SAFETY. A taint
+    denial IS a safety denial, so execution, egress and policy refuse
+    immediately whatever the rollout stage. Reusing HIGH_RISK here was the
+    bug: a job that had read a web page could still start a declared build
+    (A43 P4 found one that downloads tens of gigabytes)."""
+    grants = trust.Grants(granted=frozenset({"run-declared-step", "fetch-web"}))
+    for capability in ("run-declared-step", "fetch-web", "exec-code", "write-policy"):
+        decision = trust.check(
+            capability, caller="job", grants=grants, taint=("fetch-web:docs.example",)
+        )
+        assert not decision.allowed, capability
+        assert decision.enforced, f"{capability} taint denial must not sit in shadow"
+
+
+def test_a_live_human_turn_is_still_the_untaint_path():
+    """Enforcing harder must not close the door the design depends on."""
+    grants = trust.Grants(granted=frozenset({"run-declared-step"}))
+    decision = trust.check(
+        "run-declared-step", caller="live-turn", grants=grants, taint=("fetch-web:docs",)
+    )
+    assert decision.allowed  # the human is present; the argv is still fixed

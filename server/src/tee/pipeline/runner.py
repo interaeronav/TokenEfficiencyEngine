@@ -84,6 +84,7 @@ def run(
     cwd: Path,
     timeout_s: float = DEFAULT_TIMEOUT_S,
     observe: bool = False,
+    env: dict[str, str] | None = None,
 ) -> RunResult:
     """Execute one argv list. No shell, ever - the list IS the boundary."""
     if not isinstance(argv, list) or not argv or not all(isinstance(a, str) for a in argv):
@@ -105,6 +106,11 @@ def run(
         completed = subprocess.run(
             argv,
             cwd=str(cwd),
+            # The declared environment is an OVERLAY, not a replacement: the
+            # owner's scripts need the shell they were written for (HOME,
+            # PATH, a conda prefix), and a scrubbed environment would only
+            # move the breakage somewhere less legible.
+            env={**os.environ, **env} if env else None,
             capture_output=True,
             text=True,
             timeout=timeout_s,

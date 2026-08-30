@@ -53,6 +53,7 @@ KINDS = ("produce", "query")
 PARAM_TYPES = ("string", "integer", "number", "boolean")
 _NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _PLACEHOLDER = re.compile(r"\{([a-z][a-z0-9_]*)\}")
+_ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 # A param value may never be a path escape or a null byte, whatever its
 # pattern says - belt over braces (the kb_propose traversal guard, hoisted).
 _ALWAYS_REJECT = ("\x00", "..")
@@ -68,10 +69,11 @@ class Step:
     outputs: list[str] = field(default_factory=list)
     cost: dict[str, Any] = field(default_factory=dict)
     answer: dict[str, Any] = field(default_factory=dict)
+    env: dict[str, str] = field(default_factory=dict)
 
     def placeholders(self) -> set[str]:
         found: set[str] = set()
-        for element in self.argv:
+        for element in [*self.argv, *self.env.values()]:
             found.update(_PLACEHOLDER.findall(element))
         return found
 
@@ -149,6 +151,29 @@ def validate_step(raw: Any, index: int) -> Step:
             'argv = ["python", "builder/build.py"]',
         )
 
+    env_raw = raw.get("env") or {}
+    if not isinstance(env_raw, dict):
+        raise _fail(
+            "pipeline_bad_step",
+            f"step '{name}': env must be a table of NAME = \"value\".",
+            'env = { PROJ_NETWORK = "ON" }',
+        )
+    env: dict[str, str] = {}
+    for key, value in env_raw.items():
+        if not _ENV_NAME.match(str(key)):
+            raise _fail(
+                "pipeline_bad_step",
+                f"step '{name}': '{key}' is not an environment variable name.",
+                "Names are A-Z, digits and underscore: PROJ_NETWORK.",
+            )
+        if not isinstance(value, str):
+            raise _fail(
+                "pipeline_bad_step",
+                f"step '{name}': env {key} must be a string.",
+                f'{key} = "1" - quote numbers; the environment holds text.',
+            )
+        env[str(key)] = value
+
     params_raw = raw.get("params") or {}
     if not isinstance(params_raw, dict):
         raise _fail(
@@ -182,6 +207,7 @@ def validate_step(raw: Any, index: int) -> Step:
         outputs=[str(o) for o in raw.get("outputs") or []],
         cost=dict(raw.get("cost") or {}),
         answer=dict(raw.get("answer") or {}),
+        env=env,
     )
 
     used = step.placeholders()
@@ -214,29 +240,43 @@ def validate_step(raw: Any, index: int) -> Step:
     return step
 
 
+def substitute_env(step: Step, values: dict[str, Any]) -> dict[str, str]:
+    """The declared environment, with the SAME constraint law as argv.
+
+    An env var is an input to the process like any other, so a free string
+    here would reopen exactly the hole the argv rule closes - only less
+    visibly, because nobody reads the environment when they read a command.
+    """
+    return {key: _render(step, value, values) for key, value in step.env.items()}
+
+
+def _render(step: Step, element: str, values: dict[str, Any]) -> str:
+    names = _PLACEHOLDER.findall(element)
+    if not names:
+        return element
+    rendered = element
+    for key in names:
+        spec = step.params[key]
+        if key not in values:
+            if spec.get("required", True):
+                raise _fail(
+                    "pipeline_missing_param",
+                    f"step '{step.name}': parameter '{key}' is required.",
+                    f'Pass params = {{"{key}": ...}}.',
+                )
+            rendered = rendered.replace(f"{{{key}}}", str(spec.get("default", "")))
+            continue
+        rendered = rendered.replace(f"{{{key}}}", _check_value(step, key, spec, values[key]))
+    return rendered
+
+
 def substitute(step: Step, values: dict[str, Any]) -> list[str]:
     """Build the real argv. Every value is validated against its declared
     constraint and lands as exactly ONE element, whatever it contains."""
     resolved: list[str] = []
     for element in step.argv:
-        names = _PLACEHOLDER.findall(element)
-        if not names:
-            resolved.append(element)
-            continue
-        rendered = element
-        for key in names:
-            spec = step.params[key]
-            if key not in values:
-                if spec.get("required", True):
-                    raise _fail(
-                        "pipeline_missing_param",
-                        f"step '{step.name}': parameter '{key}' is required.",
-                        f'Pass params = {{"{key}": ...}}.',
-                    )
-                rendered = rendered.replace(f"{{{key}}}", str(spec.get("default", "")))
-                continue
-            rendered = rendered.replace(f"{{{key}}}", _check_value(step, key, spec, values[key]))
-        resolved.append(rendered)  # ONE element: spaces and quotes are data
+        # ONE element whatever it renders to: spaces and quotes are data
+        resolved.append(_render(step, element, values))
     return resolved
 
 

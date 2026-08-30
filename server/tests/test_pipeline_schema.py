@@ -226,3 +226,76 @@ def test_pipeline_list_shows_steps_and_approval_state(tmp_path):
     kinds = {s["name"]: s["kind"] for s in listing["steps"]}
     assert kinds == {"basemap": "produce", "blunder_stats": "query"}
     app.shutdown()
+
+
+# -- declared environment (A43 P4: the first customer needed it) -------------
+
+
+def test_a_step_may_declare_its_environment(tmp_path):
+    step = schema.validate_step(
+        {
+            "name": "build",
+            "kind": "produce",
+            "argv": ["python3", "b.py"],
+            "outputs": ["out.tif"],
+            "env": {"PROJ_NETWORK": "ON"},
+        },
+        0,
+    )
+    assert schema.substitute_env(step, {}) == {"PROJ_NETWORK": "ON"}
+
+
+def test_env_obeys_the_same_bound_as_argv(tmp_path):
+    """An env var is a process input like any other. A free string here
+    would reopen the hole the argv rule closes, only less visibly - nobody
+    reads the environment when they read a command."""
+    with pytest.raises(TeeError) as excinfo:
+        schema.validate_step(
+            {
+                "name": "build",
+                "kind": "produce",
+                "argv": ["python3", "b.py"],
+                "outputs": ["out.tif"],
+                "env": {"SOURCE_DATE_EPOCH": "{epoch}"},
+                "params": {"epoch": {"type": "string"}},  # unbounded
+            },
+            0,
+        )
+    assert excinfo.value.code == "pipeline_unbounded_param"
+
+
+def test_a_bounded_env_param_renders_and_a_bad_one_never_does(tmp_path):
+    declaration = {
+        "name": "build",
+        "kind": "produce",
+        "argv": ["python3", "b.py"],
+        "outputs": ["out.tif"],
+        "env": {"SOURCE_DATE_EPOCH": "{epoch}"},
+        "params": {"epoch": {"type": "string", "pattern": "^[0-9]{10}$"}},
+    }
+    step = schema.validate_step(declaration, 0)
+    assert schema.substitute_env(step, {"epoch": "1786665600"}) == {
+        "SOURCE_DATE_EPOCH": "1786665600"
+    }
+    with pytest.raises(TeeError) as excinfo:
+        schema.substitute_env(step, {"epoch": "0; rm -rf /"})
+    assert excinfo.value.code == "pipeline_bad_param"
+
+
+def test_env_names_and_values_are_what_an_environment_can_hold(tmp_path):
+    for bad, code in (
+        ({"lower_case": "x"}, "pipeline_bad_step"),
+        ({"EPOCH": 1786665600}, "pipeline_bad_step"),
+    ):
+        with pytest.raises(TeeError) as excinfo:
+            schema.validate_step(
+                {
+                    "name": "build",
+                    "kind": "produce",
+                    "argv": ["python3", "b.py"],
+                    "outputs": ["out.tif"],
+                    "env": bad,
+                },
+                0,
+            )
+        assert excinfo.value.code == code

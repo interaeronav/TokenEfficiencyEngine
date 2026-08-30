@@ -91,6 +91,16 @@ HIGH_RISK: frozenset[str] = frozenset(
     }
 )
 
+# A TAINT denial is a safety denial by definition, so the shadow band must
+# not cover the capabilities the law is actually about: anything that
+# executes, egresses, or writes policy refuses immediately whatever the
+# rollout stage. HIGH_RISK alone was the wrong set to reuse here - it left
+# 'run-declared-step' and 'fetch-web' in shadow, so a job that had read a
+# web page could still start a build or fetch again. Found by running the
+# lane against a real project (A43 P4), where a tainted job triggered a
+# step that downloads tens of gigabytes.
+TAINT_ENFORCED: frozenset[str] = HIGH_RISK | frozenset({"run-declared-step", "fetch-web"})
+
 # Capabilities whose RESULTS are untrusted content: invoking one taints the
 # calling task's derived ids (research 62's minting sources). KB prose and
 # third-party media grounds nothing by the A30 law; a fronted backend's
@@ -254,7 +264,10 @@ _EXPLICIT: dict[str, str] = {
     "pipeline_list": "read-state",
     "pipeline_run": "run-declared-step",
     "pipeline_adhoc": "run-adhoc",
-    "pipeline_init": "read-state",
+    # write-state, not read-state: it drafts a file. The read tier fails
+    # OPEN because nothing in it can change a byte, so anything that does
+    # must sit outside it however advisory its output is.
+    "pipeline_init": "write-state",
     "pipeline_adopt": "write-state",
     "trust_grant": "write-policy",
     "tee_trust": "read-session",
@@ -450,7 +463,7 @@ def check(
             source=grants.source,
             # Safety-critical taint denials (egress, execution, policy)
             # enforce immediately; the rest are the shadow band.
-            enforced=high_risk,
+            enforced=capability in TAINT_ENFORCED,
         )
 
     if capability in grants.granted:
