@@ -150,6 +150,36 @@ def register_fleet_tools(app) -> None:
 
         return trade.probe()
 
+    def _bi_cfg(args: dict[str, Any]) -> dict[str, Any]:
+        base = dict(getattr(app.config, "bi", {}) or {})
+        base.update(dict(args or {}))
+        return base
+
+    def bi_catalogue(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import bi
+
+        return bi.catalogue(_bi_cfg(args))
+
+    def bi_query(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import bi
+
+        return bi.query(_bi_cfg(args))
+
+    def bi_detail(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import bi
+
+        a = dict(args or {})
+        return bi.detail(
+            str(a.get("result_id", "")),
+            offset=int(a.get("offset") or 0),
+            limit=int(a.get("limit") or 100),
+        )
+
+    def bi_probe(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import bi
+
+        return bi.probe(_bi_cfg(args))
+
     for tool in [
         VirtualTool(
             "solve_program",
@@ -546,6 +576,82 @@ def register_fleet_tools(app) -> None:
                 "openalgo",
                 "safety",
             ],
+        ),
+        VirtualTool(
+            "bi_catalogue",
+            "What a Cube semantic layer can answer: cube names with their "
+            "measures and dimensions. Names only - ask bi_query for numbers.",
+            {
+                "type": "object",
+                "properties": {"url": {"type": "string"}, "token": {"type": "string"}},
+            },
+            bi_catalogue,
+            tags=[
+                "bi",
+                "cube",
+                "semantic",
+                "catalogue",
+                "measures",
+                "dimensions",
+                "analytics",
+                "warehouse",
+            ],
+        ),
+        VirtualTool(
+            "bi_query",
+            "Run a Cube query and get a COMPACT table: a cols header plus "
+            "arrays-of-arrays, numbers coerced and rounded, with the row "
+            "count and a result_id. Cube's own response is ~92% annotation; "
+            "this returns the answer.",
+            {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "object"},
+                    "rows": {"type": "integer"},
+                    "url": {"type": "string"},
+                    "token": {"type": "string"},
+                },
+                "required": ["query"],
+            },
+            bi_query,
+            tags=[
+                "bi",
+                "cube",
+                "query",
+                "analytics",
+                "aggregate",
+                "measure",
+                "dimension",
+                "sql",
+                "warehouse",
+                "report",
+            ],
+            examples=[{"query": {"measures": ["orders.count"], "dimensions": ["orders.status"]}}],
+        ),
+        VirtualTool(
+            "bi_detail",
+            "Page the full row set of an earlier bi_query by result_id. "
+            "Prefer aggregating in the query itself - a paged dump is worse "
+            "than the aggregate you actually wanted.",
+            {
+                "type": "object",
+                "properties": {
+                    "result_id": {"type": "string"},
+                    "offset": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["result_id"],
+            },
+            bi_detail,
+            tags=["bi", "cube", "detail", "rows", "page"],
+        ),
+        VirtualTool(
+            "bi_probe",
+            "Is a Cube semantic layer reachable, and what does it expose - "
+            "with the exact docker line when it is not.",
+            {"type": "object", "properties": {"url": {"type": "string"}}},
+            bi_probe,
+            tags=["bi", "cube", "probe", "reachable", "installed"],
         ),
     ]:
         app.registry.register(tool)

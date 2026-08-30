@@ -58,6 +58,11 @@ READ_TIER: frozenset[str] = frozenset(
         # caller already supplied, so they belong in the open tier.
         "read-compute",
         "read-medimg",
+        # A45 P2d: querying a headless BI layer is a READ - it changes no
+        # byte of the owner's world. It is nonetheless a TAINT SOURCE below,
+        # exactly like read-kb: the answer is data from elsewhere and may
+        # never go on to cause a side effect.
+        "read-bi",
     }
 )
 
@@ -137,6 +142,7 @@ TAINT_SOURCES: frozenset[str] = frozenset(
         "read-extract",
         "call-paid-engine",
         "call-service",
+        "read-bi",
     }
 )
 
@@ -179,7 +185,7 @@ _FAMILY: tuple[tuple[str, str], ...] = (
     # _EXPLICIT, so an untabled trade_* name is a startup error - which is
     # the point: the kernel refuses to boot rather than quietly permit.
     ("med_", "read-medimg"),  # DICOM / MONAI / Qiber3D
-    ("bi_", "call-service"),  # Cube: a service call, answer is quoted data
+    ("bi_", "read-bi"),  # Cube: a read, but the answer is quoted data
     ("svc_", "call-service"),  # generic headless-service probes
 )
 

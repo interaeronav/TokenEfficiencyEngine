@@ -172,7 +172,7 @@ def test_new_fleet_families_are_tabled():
         ("solve_milp", "read-compute"),
         ("quant_efficient_frontier", "read-compute"),
         ("med_dicom_series", "read-medimg"),
-        ("bi_query", "call-service"),
+        ("bi_query", "read-bi"),
     ):
         assert trust.capability_for(name) == expect
 

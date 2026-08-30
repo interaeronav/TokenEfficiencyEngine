@@ -6775,3 +6775,47 @@ shape worth wiring; OpenAlgo's single key spans reads and the live toggle.
 The native backtest uses pandas, which TEE already has.
 
 **Suite: 1,003 passed / 9 skipped** (988 → 1,003), ruff clean.
+
+## 2026-08-31 — A45 P2d: headless BI, where 92% of the payload was annotation
+
+`bi_catalogue`, `bi_query`, `bi_detail`, `bi_probe`. **Surface still 17
+tools / 2,028 tok**; virtual 107 → 111. Zero new dependencies — stdlib
+`urllib`; Cube Core (Apache-2.0 AND MIT) is a service the owner runs.
+
+**Verified against a live Cube 1.7.30** with a DuckDB-backed CSV model.
+Its aggregate matches a hand calculation exactly:
+
+```
+   processing  total 210.00  count 1
+   completed   total 181.50  count 3
+   shipped     total 179.99  count 2
+```
+
+**The measured reason this module is not a passthrough:** that three-row
+answer arrives from Cube as **2,541 bytes** — annotation blocks, the
+echoed query, per-member metadata. TEE returns it as a `cols` header plus
+arrays-of-arrays at **195 bytes: 92% smaller**, same information. Cube
+also serialises measures as STRINGS, so `'210'` is coerced to `210`;
+passing it through would make every downstream comparison a string
+comparison.
+
+**Capability corrected before it shipped.** `bi_` was first mapped to
+`call-service`, which is side-effecting and would have demanded a grant to
+run a read-only query — exactly the friction the owner complained about.
+A BI query changes no byte, so `read-bi` joins the READ TIER and is open by
+default; it is simultaneously a **TAINT SOURCE**, like `read-kb`, so a task
+holding BI output still cannot go on to execute code. A test asserts both
+halves.
+
+**Two hours lost to a real trap, now in the error message.** Cube saw an
+empty model directory despite the files existing on disk: Docker Desktop
+does not share `/private/tmp`. Moving the config under `/Users/john` fixed
+it instantly, and `bi_unreachable` now says so.
+
+**And a port collision worth recording:** Cube's default 4000 is the
+owner's **LiteLLM shim** — the qmax endpoint. My first probes were
+querying his paid-engine server, which answered `uvicorn` 404s. Cube moved
+to 4100; LiteLLM re-verified healthy (HTTP 200) immediately after, and the
+default in `bi.py` documents the clash.
+
+**Suite: 1,015 passed / 9 skipped**, ruff clean.
