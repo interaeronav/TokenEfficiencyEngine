@@ -1,107 +1,197 @@
-# CLAUDE_A45_SCRIPT.md — unblock, meter the money, and land the headless fleet
+# CLAUDE_A45_SCRIPT.md — unblock, meter the money, land the headless fleet
 
-**Owner directive (2026-08-30), verbatim in substance:**
+**Owner directive (2026-08-30):** (1) enable `exec-code` when it means the
+job is done better; (2) build metrics for payments and cost from the paid
+models; (3) fix the permission friction blocking product work; (4) add
+fifteen headless open resources. Then, asked whether TEE is ever
+distributed: *"its just for me, keep it simple."* Then: *"execute the
+script once completed, i give my express permission to download the
+required apps and software."*
 
-1. TEE's Python escape hatch is off and its tool surface has no camera /
-   render-engine / shader controls — *"enable exec-code when it means the
-   job can be done more efficiently and better"*.
-2. *"build in metrics to measure payments and cost from the paid model/s"*.
-3. *"fix permission issues that are slowing down TEE and just creating
-   blockages for product developments and access to resources"*.
-4. Add fifteen headless open resources (listed in P2).
+This version supersedes the pre-research draft. Every size, licence,
+version and entry point below was researched AND adversarially verified
+against primary sources; 13 of 15 verifiers actually installed and ran the
+thing on this machine. Where a claim did not survive, the correction is in
+the table, not buried.
 
-This script supersedes nothing. A43 is closed at v0.8.0; A45 builds on
-its trust kernel rather than around it.
+---
 
-## The standing law this campaign does NOT relax
+## Status
 
-The owner asked for fewer blockages, not for less defence. The line:
+- **P0 — permissions stop blocking. DONE** (commit `A45 P0`). Grants
+  reload on config change (no restart); `[trust] profile` presets;
+  refusals name file + line + covering profile; fleet families pre-tabled.
+  Taint law asserted unchanged. 901 tests.
+- **P1 — the money meter. DONE** (commit `A45 P1`). `kernel/spend.py`:
+  exact tokens/egress/endpoint, cost estimated ONLY from an owner-declared
+  rate. Verified on a live paid call. SI-B16 + SI-B18 closed. 914 tests.
+- **P2 — the fleet. THIS DOCUMENT.**
 
-- **Friction goes.** Grants that need a restart, capabilities that can
-  only be granted one at a time, refusals that do not name the fix, and
-  re-deciding the same question on every call — all defects, all fixed.
-- **The taint law stays.** Untrusted content (web pages, KB prose,
-  fronted-backend output, paid-engine replies) may never cause a side
-  effect. That is the rule that stops a scraped page from driving this
-  machine, and it is not what is slowing the owner down.
-- **TEE still never grants itself.** Every widening is a line the owner
-  writes in his own config. Tools show the exact line; they do not write
-  it (research 61, and it is why `tee_trust {action:"rollout"}` exists).
-- **No live order execution, ever.** P2 adds trading *research* engines.
-  Backtest, optimise, inspect — yes. Placing an order with real money is
-  out of scope for an autonomous tool and is left deliberately unbuilt;
-  the capability name is reserved so the absence is visible, not implied.
+---
 
-## P0 — permissions stop being blockages
+## The law for P2
 
-- **P0a** Grants reload when the config changes. Today `Grants.from_config`
-  runs once at `TeeApp` construction (`app.py:134`), so a config edit is
-  invisible until Claude Desktop restarts — the owner hit this, and so did
-  the session that wrote this script. Watch mtime; re-read on change.
-- **P0b** `[trust] profile = "..."` presets so one line grants a coherent
-  set (`readonly` / `build` / `workstation`), alongside the existing
-  explicit `grants` list. `exec-code` becomes grantable this way and is
-  documented as the escape hatch the kernel was designed to have.
-- **P0c** Per-turn decision memo so the kernel answers each
-  (capability, caller, taint) question once instead of on every call.
-- **P0d** Every refusal names the file, the exact line to add, and the
-  profile that would cover it. Extend `raise_if_denied`.
-- **P0e** A new tool must still be tabled (that guard is correct), but
-  the families gain the fleet prefixes so P2 does not touch the kernel
-  once per tool.
+1. **Nothing is claimed working that was not run.** Each resource lands
+   with a smoke test that asserts a *known answer* (a solved objective, a
+   volume, a study count), not "it imported".
+2. **Zero always-loaded growth.** 17 tools / ~2,028 tokens is the ceiling.
+   Everything here is a virtual tool behind `tee_search_tools`.
+3. **Lazy imports, honest refusal.** Absent library ⇒ one `TeeError`
+   naming the exact install command — the `web/media.py:153` pattern.
+   Never an ImportError traceback.
+4. **Compact by construction.** A solver returns status + objective + the
+   few binding facts, never the full solution vector. Detail is a second,
+   explicit call against a stable id.
+5. **No live order execution. Ever.** Not a config flag, not an env var,
+   not a "paper mode" that can be toggled. See "The trading line".
+6. **Licence is no longer the architecture** (owner's decision, recorded
+   in `docs/DECISIONS.md`), but copyleft resources stay optional extras,
+   never vendored, never hard dependencies — which costs nothing and keeps
+   the revisit cheap if TEE is ever shared.
 
-Acceptance: config edit visible without restart (proved live); a suite
-that asserts the taint law is unchanged; refusal text carries the fix.
+---
 
-## P1 — the money meter (closes SI-B16 spend half + SI-B18 egress half)
+## Verified resource table
 
-The measured fact that motivates it, from this machine: a four-word
-prompt to the hosted engine billed **101 tokens**, 29 of them reasoning
-tokens the caller never sees — ~14x its visible content, and invisible to
-`report_savings` today.
+Sizes measured on this machine by the verifiers, not estimated.
 
-- **P1a** Record per paid call: engine, profile, endpoint host, tokens
-  sent, tokens returned, reasoning tokens when the provider reports them,
-  wall time.
-- **P1b** A price table (per-1M in/out, currency, dated, source named) and
-  a spend estimate labelled an ESTIMATE, never a bill.
-- **P1c** A `sent` column — bytes/tokens that LEFT the machine, per
-  endpoint. A local-only session reads a clean zero, which is the
-  reassurance.
-- **P1d** Surface in `report_savings` and the recap block; zero
-  always-loaded growth.
+| # | resource | licence | seam | TEE-side size | notes |
+|---|---|---|---|---|---|
+| 1 | **HiGHS** (highspy 1.15.1) | MIT | in-process | 46 MB | cleanest of the three solvers |
+| 2 | **OR-Tools** 9.15 | Apache-2.0 | in-process | 183 MB | ⚠ stdout pollution, see below |
+| 3 | **SCIP** (PySCIPOpt 6.2.1) | MIT wrapper, bundled SCIP separate | in-process | 26 MB | licence of the bundle is NOT MIT |
+| 4 | **Cbc** (PuLP 3.3.2) | EPL-2.0 solver | in-process | small | x86_64 binary under Rosetta on PuLP 3.x |
+| 5 | **PyPortfolioOpt** 1.6.0 | MIT | in-process | 195 MB | needs explicit `packaging` |
+| 6 | **skfolio** 1.0.2 | BSD-3-Clause | in-process | 223 MB | smoke test reproduced byte-identical |
+| 7 | **MONAI Core** 1.6.0 | Apache-2.0 | in-process | 1.6 MB | torch already present; MPS works |
+| 8 | **Orthanc** | GPL-3.0-or-later | HTTP client | **0 bytes** | Docker arm64 verified live |
+| 9 | **Cube Core** 1.7.30 | Apache-2.0 AND MIT | HTTP client | **0 bytes** | Docker arm64 verified live |
+| 10 | **OpenAlgo** | AGPL-3.0-only | HTTP client | **0 bytes** | ⚠ see the trading line |
+| 11 | **Hummingbot** | Apache-2.0 (api MIT) | HTTP client | 20 MB | read-only only; engine not integrated |
+| 12 | **OpenSCAD** | GPL-2.0-or-later + CGAL exception | subprocess | 73 MB app | ⚠ `-D` is code injection |
+| 13 | **CadQuery** 2.8.0 | Apache-2.0 (+LGPL-3.0 dep) | subprocess venv | **1.3 GB** | heaviest single item |
+| 14 | **Jesse** 3.0.7 | MIT | separate venv | 888 MB | ⚠ `mcp` pin conflicts with TEE |
+| 15 | **Qiber3D** | MIT | separate venv | 859 MB | PyPI 0.7.x broken; pin a git SHA |
+| 16 | **NautilusTrader** 2.0.0rc3 | LGPL-3.0-only | separate venv | 135 MB | ⚠ needs Python ≥3.12; TEE is 3.11 |
 
-Acceptance: a real paid call through the owner's shim shows up with a
-non-zero `sent`, a spend estimate, and a named endpoint.
+**Never installed into TEE's own venv:** Jesse (its `mcp==1.28.1` pin
+would fight TEE's `mcp>=2`), NautilusTrader (3.12+), Qiber3D and CadQuery
+(size). Those get their own venv and are driven as subprocesses returning
+JSON on stdout.
 
-## P2 — the headless fleet
+---
 
-All ship as **optional extras + virtual tools**: lazy imports, zero
-always-loaded token cost, and an honest probe that names the exact
-install command when a library is absent. TEE's bundle does not grow.
+## Three findings that change the code
 
-| group | resources |
-|---|---|
-| `solve` | HiGHS, Google OR-Tools, SCIP, COIN-OR Cbc |
-| `quant` | skfolio, PyPortfolioOpt |
-| `trade` | NautilusTrader, Jesse, Hummingbot, OpenAlgo — research/backtest/read-only |
-| `cad2` | OpenSCAD, CadQuery |
-| `medimg` | Orthanc (DICOM), MONAI Core, Qiber3D |
-| `bi` | Cube (headless BI) |
+**1. OR-Tools corrupts the MCP stream.** Its pywraplp HiGHS backend writes
+92 bytes to **stdout** on every solve (`Running HiGHS 1.12.0 ... under MIT
+licence terms`). TEE is a JSON-RPC-over-stdio server: that is protocol
+corruption, not noise. Every fleet call that can reach native code runs
+inside a stdout redirect to stderr/devnull. This is a general rule for the
+whole fleet, not an OR-Tools special case, and it gets its own test.
 
-New capabilities: `read-compute` (read tier — solvers change no bytes),
-`read-medimg` (read tier), `call-service` (side-effecting + taint source:
-a local service's output is quoted data, never instruction).
-`place-order` is **reserved and unimplemented** on purpose.
+**2. OpenSCAD `-D` is arbitrary code, not a parameter.** It prepends
+commandline *statements* to the script. A caller-supplied `-D` is remote
+code execution against the owner's machine. Parameters are therefore
+passed **only** as a generated, validated JSON parameter file, values
+type-checked and never interpolated into source. `-D` is not exposed.
 
-Acceptance per resource: a real smoke test that solves/loads/queries
-something and asserts a known answer, or — where the resource is a server
-that is not running here — a probe that fails loudly with the exact fix
-and a contract test against a fake. What is verified and what is merely
-wired must be stated per row, never averaged.
+**3. OpenAlgo: allow-list, never deny-list.** The verifier found the
+dangerous-endpoint list wrong in both directions, and named the worst
+omission: `POST /api/v1/analyzer/toggle` flips analyzer (simulated) mode —
+i.e. it can turn a paper account live. `/api/v1/strategy/{start,stop,
+close_all}` was also missed. So TEE ships a hard **allow-list of read-only
+paths**; anything not on it is refused by construction, and a test asserts
+the allow-list contains no verb that can create, amend, cancel or toggle.
 
-## Rules inherited
+---
 
-A33/A35 rules apply: measure before and after, state wrong-way numbers in
-place, real command output into `docs/PROGRESS.md`, small commits with a
-why in the body, branch `claude/token-efficiency-engine-5jv1dj`.
+## The trading line
+
+Four resources touch money: NautilusTrader, Jesse, Hummingbot, OpenAlgo.
+
+- **Built:** backtesting, research, and read-only inspection. Historical
+  candles, portfolio maths, backtest metrics, account/position *reads*.
+- **Not built, and structurally impossible:** placing, amending or
+  cancelling an order; moving funds; starting or stopping a live strategy;
+  toggling simulated/live mode.
+- **How, not just whether.** The `place-order` capability exists in the
+  kernel and **no tool requests it** (asserted by a test since P0). The
+  OpenAlgo client carries a path allow-list. Hummingbot integrates only
+  the read endpoints of its MIT API service, never the engine. Nothing
+  reads an env var or config flag that could widen this.
+- Live trading is a decision the owner takes in his broker's own
+  interface. An autonomous tool that a model drives is the wrong place for
+  it, and no amount of confirmation prompting changes that.
+
+---
+
+## Build order
+
+Ordered by (value × certainty) ÷ risk. Each phase: build → smoke test with
+a known answer → full suite → ruff → commit → PROGRESS entry.
+
+**P2a — `solve` (HiGHS, SCIP, Cbc, OR-Tools).** Pure maths, permissive,
+verified smoke tests, no service. Establishes the stdout-guard, the lazy
+probe, and the compact answer shape the rest reuse. Tools: `solve_lp`,
+`solve_mip`, `solve_status`, `solve_detail`, `solve_probe`.
+*Compact shape:* status, objective, gap, wall, binding constraints, and
+the top-N non-zero variables with a stable `solution_id` — never the full
+vector; `solve_detail` pages it.
+
+**P2b — `quant` (PyPortfolioOpt, skfolio).** In-process, no service.
+Tools: `quant_optimize`, `quant_frontier`, `quant_metrics`,
+`quant_detail`. *Compact shape:* weights above a threshold, rounded, plus
+expected return / volatility / Sharpe — never a full covariance matrix.
+
+**P2c — `med` (Orthanc + MONAI).** Orthanc is zero-dependency HTTP and
+Docker-verified; MONAI is 1.6 MB on the torch already installed. Tools:
+`med_studies`, `med_study_tree`, `med_series_meta`, `med_volume_stats`,
+`med_transform`. *Compact shape:* counts and stable Orthanc IDs, never
+pixel data; metadata by explicit tag list.
+
+**P2d — `bi` (Cube).** Zero-dependency HTTP, Docker-verified. Tools:
+`bi_catalogue`, `bi_members`, `bi_query`, `bi_explain`. *Compact shape:*
+cube/measure/dimension names first; a query returns row count + first N
+rows + a `result_id`.
+
+**P2e — `cad` (OpenSCAD, CadQuery).** OpenSCAD via subprocess with the
+JSON-parameter discipline; CadQuery in its own venv. Tools: `cad_build`,
+`cad_measure`, `cad_export`, `cad_probe`. *Compact shape:* volume, area,
+bbox, validity, output path — never geometry.
+
+**P2f — `trade` (Jesse, NautilusTrader, Hummingbot, OpenAlgo).** Separate
+venvs, subprocess JSON, allow-listed HTTP. Tools: `trade_backtest`,
+`trade_backtest_detail`, `trade_account`, `trade_quote`, `trade_probe`.
+*Compact shape:* headline metrics only (net profit %, max drawdown, Sharpe,
+trade count) plus a `run_id`; the trade list is a paged detail call.
+
+**P2g — `fiber` (Qiber3D).** Separate venv, git-SHA pinned. Lowest value
+of the fifteen and the least certain; built last, dropped without
+ceremony if the pinned SHA does not install.
+
+---
+
+## Acceptance
+
+- Every group: a smoke test asserting a **known answer**, skipped cleanly
+  with an actionable reason when the library or service is absent.
+- `docs/setup-fleet.md`: one page, what each needs, the exact install line.
+- Always-loaded surface **still 17 tools / ~2,028 tok** — measured before
+  and after, in PROGRESS, and the campaign fails if it moved.
+- A stdout-pollution test proving no fleet call can write to stdout.
+- The trading-safety assertions above, as tests.
+- `benchmarks/RESULTS.md` gains a fleet row only where a naive baseline
+  can be honestly measured; where it cannot, the row says so rather than
+  inventing one.
+
+## Not built, and why
+
+- **Hummingbot's engine.** It exists to place orders continuously. Only
+  its read-only API service is integrated. Wiring the engine would mean
+  building the thing this script forbids.
+- **Any `place-order` path** for any of the four. Reserved capability, no
+  requester, test-enforced.
+- **OpenSCAD `-D`.** Code injection surface; JSON parameter files instead.
+- **Cube Store** in production shape (no arm64 image); dev mode only,
+  which is what a single-user machine needs anyway.
