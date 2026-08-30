@@ -246,6 +246,7 @@ def register_run_tools(app, project_root: Path | str) -> None:
         to_run, skipped = graph.plan(root, pipeline, target.name, values, force=force)
         plans = [(step, schema.substitute(step, values)) for step in to_run]
         if not plans:
+            app.machine.record_pipeline(skipped=len(skipped))
             return {
                 "target": target.name,
                 "ran": [],
@@ -300,6 +301,11 @@ def register_run_tools(app, project_root: Path | str) -> None:
                         break  # never build on a broken dependency
             finally:
                 app.machine.release_job(ledger_key)
+            app.machine.record_pipeline(
+                ran=len(ran),
+                skipped=len(skipped),
+                wall_s=sum(r["provenance"]["wall_s"] for r in ran),
+            )
             if len(ran) == 1 and not skipped and ran[0]["step"] == target.name:
                 return ran[0]  # the common case stays compact
             payload: dict[str, Any] = {"target": target.name, "ran": ran}

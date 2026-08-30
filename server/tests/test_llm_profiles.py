@@ -90,7 +90,7 @@ class FakeProcs:
     def port_free(self, port: int) -> bool:
         return True
 
-    def endpoint_answers(self, url: str) -> bool:
+    def endpoint_answers(self, url: str, model: str | None = None) -> bool:
         return url in self.answering
 
     def start(self, command: str, log_path: Path) -> int:
@@ -164,7 +164,8 @@ def test_unknown_profile_is_rule6_listing_profiles(tmp_path) -> None:
 
 
 def test_chores_use_active_profile_model_and_adapters(tmp_path) -> None:
-    with fake_llm_server([TRIAGE_REPLY, TRIAGE_REPLY]) as (url, calls):
+    served = ("m14", "mlx-community/Qwen3.8-27B-bf16")
+    with fake_llm_server([TRIAGE_REPLY, TRIAGE_REPLY], models=served) as (url, calls):
         cfg = base_cfg(tmp_path, url=url, model="m14", adapters="/lora/tee-triage-a2")
         assert chores.triage("boom", cfg=cfg) is not None
         assert calls[-1]["model"] == "m14"

@@ -44,14 +44,29 @@ _THINK_BLOCK = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
 _JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 
 
-def available(url: str = DEFAULT_URL, timeout: float = 2.0) -> bool:
-    """True when the endpoint answers; the model itself may still be cold
-    (lazy-start costs only latency, the local_vlm precedent)."""
+def available(
+    url: str = DEFAULT_URL, timeout: float = 2.0, model: str | None = DEFAULT_MODEL
+) -> bool:
+    """True when the endpoint answers AND serves the model we would call.
+
+    An endpoint answering is not the same fact as a model being served: a
+    proxy fronting other model groups replies to /models happily and then
+    400s the chore. Asking about the model turns a confusing runtime error
+    into the honest 'no local model' path. The model may still be COLD -
+    listed but not loaded - which costs only latency (the local_vlm
+    precedent), so a listing is enough.
+    """
     try:
-        urllib.request.urlopen(f"{url}/models", timeout=timeout)
-        return True
+        with urllib.request.urlopen(f"{url}/models", timeout=timeout) as response:
+            if not model:
+                return True
+            listed = json.loads(response.read().decode("utf-8") or "{}")
     except (urllib.error.URLError, OSError, ValueError):
         return False
+    rows = listed.get("data")
+    if not isinstance(rows, list) or not rows:
+        return True  # an endpoint that will not enumerate gets the benefit
+    return any(isinstance(row, dict) and row.get("id") == model for row in rows)
 
 
 def complete(

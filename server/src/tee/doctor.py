@@ -421,7 +421,7 @@ def check_llm() -> Check:
     llm_cfg = ProjectConfig.load(".").llm
     url = str(llm_cfg.get("url") or local_llm.DEFAULT_URL)
     model = str(llm_cfg.get("model") or local_llm.DEFAULT_MODEL)
-    llm_up = local_llm.available(url=url, timeout=1.5)
+    llm_up = local_llm.available(url=url, timeout=1.5, model=model)
     vlm_up = local_vlm.available(timeout=1.5)
     detail = (
         f"chores {'UP' if llm_up else 'down'} at {url} ({model}); "

@@ -89,13 +89,25 @@ CONTROLS = [
 ]
 
 
+# What a fake endpoint says it SERVES. A real /models lists real ids, and
+# TEE's readiness probe compares against them - so a fixture that
+# advertises one id while answering to another is a lie that would hide
+# exactly the misroute the probe exists to catch.
+FAKE_MODELS = ("fake", "fake-14b", "fake-27b", "tee-coder")
+
+
 @contextlib.contextmanager
-def fake_llm_server(replies: list[str] | Callable[[dict], str]):
+def fake_llm_server(
+    replies: list[str] | Callable[[dict], str],
+    models: tuple[str, ...] = FAKE_MODELS,
+):
     calls: list[dict] = []
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
-            body = json.dumps({"object": "list", "data": [{"id": "fake"}]}).encode()
+            body = json.dumps(
+                {"object": "list", "data": [{"id": name} for name in models]}
+            ).encode()
             self.send_response(200)
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()

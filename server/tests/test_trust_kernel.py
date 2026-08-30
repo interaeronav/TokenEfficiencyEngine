@@ -384,7 +384,7 @@ def test_a_paid_chore_runs_when_granted_and_taints_its_answer(tmp_path):
         {"diagnosis": "the kwarg is gone", "fix": "check the docs", "confidence": "grounded"}
     )
     grants = trust.Grants(granted=frozenset({"call-paid-engine"}))
-    with fake_llm_server([answer]) as (url, _calls):
+    with fake_llm_server([answer], models=("hosted-x",)) as (url, _calls):
         result = chores.triage(
             "boom", "line 1", refine="local", cfg=_paid_cfg(url, tmp_path, grants)
         )

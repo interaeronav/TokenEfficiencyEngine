@@ -129,3 +129,36 @@ def test_round_trip_against_fake_endpoint() -> None:
 
 def test_available_false_when_nothing_listens() -> None:
     assert local_llm.available(url="http://127.0.0.1:9/v1", timeout=0.3) is False
+
+
+def test_a_probe_asks_about_the_model_not_just_the_port():
+    """An endpoint that answers while serving OTHER models is not this
+    chore's engine. Found for real: a proxy fronting different model
+    groups replied to /models happily and then 400'd every chore, which
+    read as a broken suite rather than 'no local model here'."""
+    from fixtures_llm import fake_llm_server
+
+    from tee.kernel import local_llm
+
+    with fake_llm_server([""], models=("some-other-model",)) as (url, _):
+        assert local_llm.available(url=url, model="tee-coder") is False
+        assert local_llm.available(url=url, model="some-other-model") is True
+        # an endpoint that will not enumerate keeps the benefit of the doubt
+        assert local_llm.available(url=url, model=None) is True
+
+
+def test_a_chore_degrades_when_the_endpoint_serves_a_different_model():
+    """The consequence: the deterministic path, not a 400 mid-chore."""
+    import pytest
+    from fixtures_llm import fake_llm_server
+
+    from tee.kernel.errors import TeeError
+    from tee.llm import chores
+
+    with fake_llm_server([""], models=("some-other-model",)) as (url, calls):
+        cfg = {"url": url, "model": "tee-coder"}
+        assert chores.triage("boom", "ctx", refine="auto", cfg=cfg) is None
+        with pytest.raises(TeeError) as excinfo:
+            chores.triage("boom", "ctx", refine="local", cfg=cfg)
+    assert excinfo.value.code == "llm_unreachable"
+    assert calls == []  # never sent - refused at the probe, not at the wire

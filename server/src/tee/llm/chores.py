@@ -125,15 +125,20 @@ def _endpoint(cfg: dict[str, Any] | None) -> tuple[str, str, str | None]:
     return resolved["url"], resolved["model"], resolved["adapters"]
 
 
-def _ready(refine: str, url: str) -> bool:
-    """The refine gate. False means: use the deterministic path."""
+def _ready(refine: str, url: str, model: str | None = None) -> bool:
+    """The refine gate. False means: use the deterministic path.
+
+    Probed per (endpoint, model): an endpoint that answers while serving
+    some OTHER model group is not this chore's engine, and pretending it
+    is turns a clean degrade into a 400 mid-chore."""
     if refine == "off":
         return False
     now = time.monotonic()
-    stamp = _probe_cache.get(url)
+    key = f"{url}|{model or ''}"
+    stamp = _probe_cache.get(key)
     if stamp is None or now - stamp[0] > _PROBE_TTL_S:
-        _probe_cache[url] = (now, local_llm.available(url=url))
-    alive = _probe_cache[url][1]
+        _probe_cache[key] = (now, local_llm.available(url=url, model=model))
+    alive = _probe_cache[key][1]
     if refine == "local" and not alive:
         raise TeeError(
             "llm_unreachable",
@@ -189,7 +194,7 @@ def _run(
             if refine == "local":
                 decision.raise_if_denied(f"chore on '{resolved['profile']}'")
             return None  # auto mode degrades to the deterministic path
-    if not _ready(refine, url):
+    if not _ready(refine, url, model):
         return None
     try:
         with profiles.REQUEST_LOCK:  # a managed stop waits for this chore
@@ -204,7 +209,7 @@ def _run(
     except TeeError:
         if refine == "local":
             raise
-        _probe_cache.pop(url, None)  # a dead endpoint re-probes next time
+        _probe_cache.pop(f"{url}|{model or ''}", None)  # a dead engine re-probes next time
         return None
     if resolved.get("paid"):
         from tee.kernel import trustctx

@@ -5823,3 +5823,41 @@ by name.
 
 **Next: P3** — register pipeline steps with the A42 scheduler (they are
 literally task-graph nodes now), then P4's first real customer.
+
+## 2026-08-30 — A43 P3: pipeline steps are ordinary task-graph nodes
+
+Suite 855 → **872 passed / 9 skipped**, gate exit 0.
+
+**No new concepts, which is the point.** A declared step was already
+submitted as a job; P3 finishes the wiring so it is *governed* like one:
+K1 admits it (work the machine can never place is refused at the door,
+not queued), K3 reserves a worker so an interactive chore never waits
+behind it, the ledger holds the declaration's own `footprint_gb` for the
+duration and releases it, and the K0 recorder gets a shadow trace with
+`engine = "pipeline-step"` like every other dispatch.
+
+**The meter gained a row, not a lane**: `pipeline: {steps_run,
+skipped_fresh, wall_s}` sits beside swaps and jobs in the one merged
+block, and `report_savings` therefore carries it for free.
+
+**The acceptance is literal.** A mixed run — a pipeline step, a chore
+and a photogrammetry reconstruction in flight together — places sanely:
+the interactive chore returns while both batch jobs are still running,
+everything is released afterwards, and all three show in one meter. The
+degrade-to-static fixture runs the same step with `qos = false` and
+`dispatch = false` and asserts the artifact hashes are IDENTICAL — the
+scheduler changes when work runs, never what it produces.
+
+**A real bug found on the way, in the readiness probe.** `available()`
+returned true as soon as *any* endpoint answered `/models`, so a proxy
+fronting different model groups looked like a local stack and then 400'd
+every chore — which reads as a broken suite rather than the honest "no
+local model here". It now asks whether the model it would actually call
+is served (a listed-but-cold model still counts; an endpoint that will
+not enumerate keeps the benefit of the doubt). Two fixtures pin it, and
+the test fake now advertises the ids it answers to instead of one it
+does not, which is what let the lie survive. Consequence for this
+session: the six API-defer trap tests SKIP honestly instead of failing,
+because no local model is running.
+
+**Next: P4** — the first real customer, the DiversionPlanner basemap.

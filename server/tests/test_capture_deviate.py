@@ -130,13 +130,13 @@ def test_phrase_chore_verifier_kills_dropped_numbers(tmp_path):
     good = json.dumps(
         {"lines": ["The north wall sits +38 mm proud (peak +40 mm) across 0.5x0.5 m - high."]}
     )
-    with fake_llm_server([good]) as (url, _calls):
+    with fake_llm_server([good], models=("m",)) as (url, _calls):
         out = chores.phrase_deviation(facts, refine="local", cfg={"url": url, "model": "m"})
     assert out["lines"][0].startswith("The north wall")
 
     dropped = json.dumps({"lines": ["The north wall deviates noticeably."]})
     with (
-        fake_llm_server([dropped, dropped]) as (url, _calls),
+        fake_llm_server([dropped, dropped], models=("m",)) as (url, _calls),
         pytest.raises(TeeError) as excinfo,
     ):
         chores.phrase_deviation(facts, refine="local", cfg={"url": url, "model": "m"})

@@ -226,8 +226,8 @@ class Procs:
             sock.settimeout(0.5)
             return sock.connect_ex(("127.0.0.1", int(port))) != 0
 
-    def endpoint_answers(self, url: str) -> bool:
-        return local_llm.available(url=url, timeout=2.0)
+    def endpoint_answers(self, url: str, model: str | None = None) -> bool:
+        return local_llm.available(url=url, timeout=2.0, model=model)
 
     def start(self, command: str, log_path: Path) -> int:
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -337,7 +337,9 @@ def switch(
         restartable = (
             cfg.get("managed")
             and spec.get("start")
-            and not (procs or Procs()).endpoint_answers(resolved_target["url"])
+            and not (procs or Procs()).endpoint_answers(
+                resolved_target["url"], resolved_target.get("model")
+            )
         )
         if not restartable:
             return {
@@ -348,7 +350,9 @@ def switch(
 
     if not cfg.get("managed"):
         save_state(cfg, {"active": target_name, "ready": True, "switched_at": time.time()})
-        answering = local_llm.available(url=resolved_target["url"], timeout=2.0)
+        answering = local_llm.available(
+            url=resolved_target["url"], timeout=2.0, model=resolved_target.get("model")
+        )
         health = (
             "endpoint answering"
             if answering

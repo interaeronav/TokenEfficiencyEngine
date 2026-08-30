@@ -115,6 +115,10 @@ class MachineLedger:
         self._queue_probe = None  # installed by the app (K1): () -> {queued, max_s}
         self._dispatch = {"static": 0, "greedy": 0, "pinned": 0}
         self._last_dispatch: str | None = None
+        # A43 P3: declared steps are task-graph nodes like any other work,
+        # so they are metered beside chores and reconstructions rather than
+        # in a lane of their own.
+        self._pipeline: dict[str, Any] = {"steps_run": 0, "skipped_fresh": 0, "wall_s": 0.0}
 
     def register_job(
         self, key: str, engine: str, footprint_gb: float | None = None
@@ -209,6 +213,12 @@ class MachineLedger:
         with self._lock:
             self._escalations += 1
 
+    def record_pipeline(self, *, ran: int = 0, skipped: int = 0, wall_s: float = 0.0) -> None:
+        with self._lock:
+            self._pipeline["steps_run"] += ran
+            self._pipeline["skipped_fresh"] += skipped
+            self._pipeline["wall_s"] = round(self._pipeline["wall_s"] + wall_s, 1)
+
     def record_dispatch(self, mode: str, reason: str) -> None:
         with self._lock:
             self._dispatch[mode] = self._dispatch.get(mode, 0) + 1
@@ -242,6 +252,7 @@ class MachineLedger:
                     key: (round(value, 1) if isinstance(value, float) else value)
                     for key, value in self._swaps.items()
                 },
+                "pipeline": dict(self._pipeline),
                 "jobs": {
                     "active": len(self._jobs),
                     "batch_footprint_gb": round(
