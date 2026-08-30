@@ -6414,3 +6414,54 @@ the owner down.
 ```
 901 passed, 9 skipped, 97 deselected, 44 warnings in 82.60s
 ```
+
+## 2026-08-30 — A45 P1: the money meter (SI-B16 + SI-B18 closed)
+
+Owner: *"build in metrics to measure payments and cost from the paid
+model/s."* `kernel/spend.py` plus wiring at the one seam that matters —
+the LLM client now reports the provider's own `usage` block and the bytes
+actually serialised, and the chore path records it.
+
+**TEE ships NO price table, on purpose.** A stale rate is worse than an
+absent one: published prices move, differ by region and by contract. So
+the meter separates two kinds of number and never blends them —
+
+- **Measured, exact:** calls, tokens sent, tokens returned, reasoning
+  tokens the provider billed and never showed, cached tokens, bytes on the
+  wire, endpoint host, wall time.
+- **Estimated, labelled:** money, and only once the owner declares
+  `price_in_per_mtok` / `price_out_per_mtok` / `currency` beside the
+  profile. Until then the payload carries `cost_fix` naming the exact line.
+
+**A real paid call through the owner's own shim**, metered end to end:
+
+```
+engine replied: {'ok': True}
+engines.qmax: calls 1, tokens_sent 39, tokens_returned 5,
+              bytes_sent 257, seconds 0.88, endpoint 127.0.0.1:4000
+sent:         off_machine_calls 1, tokens 39, bytes 257,
+              endpoints ['127.0.0.1:4000']
+estimated_cost.USD: 9.4e-05   (owner-declared illustrative rate)
+cost_note: ESTIMATE ... applied to the provider's own reported usage.
+           Not a bill.
+```
+
+**The egress column is honest about what "left" means.** In a mixed
+session where a LOCAL engine handled 900 tokens and the paid one handled
+68, `sent.tokens` reads **68** — the local row is still shown, but it is
+not counted as egress. A local-only session reads a clean structural zero
+(`off_machine_calls: 0, tokens: 0, bytes: 0, endpoints: []`), which is the
+reassurance SI-B18 asked for.
+
+**The endpoint never carries a path or a key** — `endpoint_of()` keeps
+host:port only, because a ledger is a thing people paste into chats. A
+test asserts a URL with `?api_key=SECRET` reduces to `api.example.com`.
+
+**Metering cannot break the thing it measures**: the hook is called inside
+`contextlib.suppress`, and a test drives a hook that raises and asserts the
+completion still returns.
+
+Surfaced as `report_spend` (virtual, zero always-loaded growth) plus a
+`spend` line in `report_savings` and the recap.
+
+**Suite: 914 passed / 9 skipped** (901 → 914, 13 new), ruff clean.

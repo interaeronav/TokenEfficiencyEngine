@@ -196,6 +196,29 @@ def _run(
             return None  # auto mode degrades to the deterministic path
     if not _ready(refine, url, model):
         return None
+
+    # A45 P1: meter every engine call - free ones too, so a local-only
+    # session can show a clean zero rather than an absent column (SI-B18).
+    def _meter(payload, bytes_sent, seconds):
+        from tee.kernel import spend
+
+        u = spend.usage_from_payload(payload)
+        spend.record(
+            spend.PaidCall(
+                profile=str(resolved.get("profile") or "?"),
+                endpoint=spend.endpoint_of(url),
+                model=str(model or "?"),
+                paid=bool(resolved.get("paid")),
+                bytes_sent=bytes_sent,
+                seconds=seconds,
+                price_in_per_mtok=resolved.get("price_in_per_mtok"),
+                price_out_per_mtok=resolved.get("price_out_per_mtok"),
+                currency=resolved.get("currency"),
+                price_source=resolved.get("price_source"),
+                **u,
+            )
+        )
+
     try:
         with profiles.REQUEST_LOCK:  # a managed stop waits for this chore
             raw = local_llm.complete_json(
@@ -205,6 +228,7 @@ def _run(
                 model=model,
                 max_tokens=max_tokens,
                 adapters=adapters,
+                on_usage=_meter,
             )
     except TeeError:
         if refine == "local":

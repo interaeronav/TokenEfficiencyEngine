@@ -19,6 +19,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from tee.kernel import spend
 from tee.kernel.budget import estimate_tokens
 from tee.kernel.registry import VirtualTool
 
@@ -120,6 +121,9 @@ def savings_block(ledger: dict[str, Any]) -> dict[str, Any] | None:
         block["naive_estimate"] = full["naive_estimate"]
         block["saved_pct"] = full.get("saved_pct_on_estimated_lanes")
     block["note"] = "estimate per measured RESULTS.md ratios; report_savings has the table"
+    money = spend.block()
+    if money is not None:
+        block["spend"] = money
     return block
 
 
@@ -198,7 +202,15 @@ def register_session_tools(app) -> None:
             # the merged meter (A42 R2): escalation, swap and job-class
             # columns together; scheduler columns reserved in-schema (seam 2)
             result["routing"] = machine.meter_block()
+        # A45 P1: what the engines cost and what left the machine. Only
+        # present once an engine has actually been called.
+        money = spend.block()
+        if money is not None:
+            result["spend"] = money
         return result
+
+    def report_spend(args):
+        return spend.summary()
 
     def handoff(args):
         return handoff_brief(app)
@@ -213,6 +225,17 @@ def register_session_tools(app) -> None:
             {"type": "object", "properties": {}},
             report_savings,
             tags=["session", "savings", "meter", "tokens", "ledger", "report"],
+        ),
+        VirtualTool(
+            "report_spend",
+            "What the engines cost and what LEFT this machine: per engine "
+            "calls, tokens sent/returned, reasoning tokens the provider "
+            "billed but never showed, bytes on the wire and the endpoint "
+            "host - plus a cost ESTIMATE when a rate is declared beside the "
+            "profile. A local-only session reads a clean zero.",
+            {"type": "object", "properties": {}},
+            report_spend,
+            tags=["spend", "cost", "money", "egress", "sent", "paid", "billing", "meter"],
         ),
         VirtualTool(
             "handoff",

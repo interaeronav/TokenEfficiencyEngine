@@ -160,6 +160,17 @@ def resolve(cfg: dict[str, Any] | None) -> dict[str, Any]:
         # than every call site remembering (SI-B16's teeth).
         "paid": bool(spec.get("paid", False)),
     }
+    # A45 P1: the owner's declared rate travels with the profile so the
+    # meter can price the call. TEE ships no price table - see kernel/spend.
+    for key in ("price_in_per_mtok", "price_out_per_mtok"):
+        if spec.get(key) is not None:
+            try:
+                out[key] = float(spec[key])
+            except (TypeError, ValueError):
+                out[key] = None
+    for key in ("currency", "price_source"):
+        if spec.get(key) is not None:
+            out[key] = str(spec[key])
     if not out["ready"]:
         eta = float(state.get("eta_s") or 0)
         since = float(state.get("since") or time.time())

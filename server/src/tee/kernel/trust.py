@@ -239,6 +239,7 @@ _EXPLICIT: dict[str, str] = {
     # --- session / exports / boards ---
     "handoff": "read-session",
     "report_savings": "read-session",
+    "report_spend": "read-session",
     "board_compose": "write-state",
     "export_for_uefn": "write-artifacts",
     "export_preflight": "read-scene",

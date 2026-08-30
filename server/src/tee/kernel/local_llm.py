@@ -16,11 +16,14 @@ evidence in-context - API facts from weights stay banned.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 
 from tee.kernel.errors import TeeError
 
@@ -80,8 +83,13 @@ def complete(
     timeout: float = 120.0,
     response_format: dict | None = None,
     adapters: str | None = DEFAULT_ADAPTERS,
+    on_usage: Callable[[dict, int, float], None] | None = None,
 ) -> str:
-    """One chore completion: deterministic, thinking-off, budgeted."""
+    """One chore completion: deterministic, thinking-off, budgeted.
+
+    `on_usage(payload, bytes_sent, seconds)` is called after a successful
+    reply so the caller can meter it (A45 P1). The client stays ignorant of
+    money: it reports what the provider said and what went on the wire."""
     messages: list[dict] = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -99,11 +107,13 @@ def complete(
         body["response_format"] = response_format
     if adapters:
         body["adapters"] = adapters
+    encoded = json.dumps(body).encode()
     request = urllib.request.Request(
         f"{url}/chat/completions",
-        data=json.dumps(body).encode(),
+        data=encoded,
         headers={"Content-Type": "application/json", "Authorization": "Bearer local"},
     )
+    started = time.monotonic()
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.load(response)
@@ -118,6 +128,10 @@ def complete(
         raise TeeError(
             "llm_unreachable", f"No local model at {url} ({exc}).", fix=_UNREACHABLE_FIX
         ) from exc
+    if on_usage is not None:
+        # metering must never break the chore it is measuring
+        with contextlib.suppress(Exception):
+            on_usage(payload, len(encoded), time.monotonic() - started)
     try:
         text = payload["choices"][0]["message"]["content"] or ""
     except (KeyError, IndexError, TypeError) as exc:
@@ -138,6 +152,7 @@ def complete_json(
     max_tokens: int = 500,
     timeout: float = 120.0,
     adapters: str | None = DEFAULT_ADAPTERS,
+    on_usage: Callable[[dict, int, float], None] | None = None,
 ) -> dict:
     """A completion that must parse as a JSON object - retried once with a
     corrective nudge, then failed loud. Schema validation stays with the
@@ -150,6 +165,7 @@ def complete_json(
         timeout=timeout,
         response_format={"type": "json_object"},
         adapters=adapters,
+        on_usage=on_usage,
     )
     text = complete(prompt, **kwargs)
     parsed = _parse_json_object(text)
