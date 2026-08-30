@@ -825,3 +825,14 @@ declaration owner-authored and project-tracked (`pipeline_init` may
 draft, never authorize), answers not logs, and — the generality law —
 no completion claim until a SECOND project's steps run through the
 same lane unmodified. Expected 0.8.0; the owner tags.
+
+**A43 addendum (owner challenge, 2026-08-30):** "declared steps only"
+is superseded by "declared by default, ad-hoc through the owner's
+gate." TEE's own `allow_code_exec` precedent applies: `[pipeline]
+allow_adhoc` (default false, per project) permits `pipeline_adhoc`
+from a LIVE HUMAN TURN only — refused for jobs, scheduled work,
+chores, gateway-fronted calls and any fetched-provenance path, so
+untrusted content still can never cause execution. An adopt flow
+turns a successful ad-hoc run into a declared step (argv, inferred
+inputs/outputs, measured cost) for the owner to accept. Scripted as
+phase P0b.

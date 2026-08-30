@@ -29,8 +29,16 @@ A one-paste prompt for a fresh session:
 
 ## Laws (this campaign's own, from research 60)
 
-- **Declared steps only.** TEE never runs a model-invented command.
-  `argv` arrays only — no shell strings, no `shell=True`, ever.
+- **Declared by default; ad-hoc only through the owner's gate**
+  (research 60 addendum, owner challenge 2026-08-30). Declared steps
+  are the norm and the ONLY thing anything automatic may run. A
+  per-project `[pipeline] allow_adhoc` (default FALSE — the
+  `allow_code_exec` precedent) permits `pipeline_adhoc {argv}` from a
+  LIVE HUMAN TURN only: refused for jobs, queued/scheduled work,
+  chores, gateway-fronted calls, and any path whose provenance
+  includes fetched or third-party content. Untrusted content can
+  never cause execution — that invariant does not bend.
+- `argv` arrays only — no shell strings, no `shell=True`, ever.
   `{param}` substitution is typed, validated, and lands as ONE argv
   element (proven by a hostile-value fixture).
 - **The declaration belongs to the project**, in its tracked
@@ -52,6 +60,20 @@ exact fix; a param value containing shell metacharacters, spaces, and
 quotes lands as one inert argv element; unknown step names list the
 declared ones. Acceptance: schema + fixtures green with no runner in
 existence.
+
+## P0b — The ad-hoc door and the adopt flow (research 60 addendum)
+
+`[pipeline] allow_adhoc` config + `pipeline_adhoc {argv}` behind it,
+with the live-human-turn invariant enforced at the call site and
+FIXTURES for every refusal path (job caller, scheduled caller, chore
+caller, gateway-fronted caller, fetched-provenance caller). Ad-hoc
+runs are unscheduled, uncached and labelled "ad-hoc, not declared" in
+their report and provenance. **The adopt flow**: after a successful
+ad-hoc run, TEE offers the declaration it would write — argv,
+inputs/outputs inferred from what the run actually touched, measured
+cost — which the owner accepts into `.tee/pipeline.toml`. Acceptance:
+refusal fixtures green; one live ad-hoc → adopt → the adopted step
+re-runs as a declared step, recorded.
 
 ## P1 — The runner and the artifact differ
 
@@ -93,7 +115,9 @@ owner (his scripts, his flags — TEE writes no domain knowledge):
 `dem_diff` referenced as the worked example of a declared op.
 `pipeline_init` ships here too — it DRAFTS a candidate file by
 scanning a project's scripts and never writes a runnable step the
-owner has not read. Acceptance: the basemap build runs end to end
+owner has not read. Three authoring routes must all work by the end
+of this phase: init-draft, hand-write, and P0b's adopt-after-ad-hoc
+(the discovery route — expected to be the one most used in anger). Acceptance: the basemap build runs end to end
 from one sentence in a chat; a query step answers in ≤400 tokens;
 the whole exchange recorded.
 

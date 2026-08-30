@@ -135,3 +135,53 @@ parts, and generality is free if the declaration lives with the
 project instead of in TEE. First customer: the DiversionPlanner
 basemap. First proof of generality: a second project's steps running
 through the same lane, in the same benchmark table.
+
+## Addendum (owner challenge, 2026-08-30): is "declared steps only" really necessary?
+
+The owner pushed on the trust law. Examined honestly, it is right as a
+DEFAULT and wrong as the ONLY mode — and TEE's own precedent says so:
+`[server] allow_code_exec` has always been a gated escape hatch, off
+by default, opt-in per project. The pipeline lane should match its own
+house pattern rather than out-legislate it.
+
+**What the declaration genuinely buys** (keep these, they are not
+bureaucracy):
+- **Injection containment.** TEE ingests untrusted content by design —
+  web pages, KB prose, gateway backends' tool descriptions, image
+  captions. If model-authored shell were reachable from any of that,
+  prompt injection becomes remote code execution on the owner's Mac.
+  The A34 mitigations made fetched content inert; an ungated shell
+  would undo them in one line.
+- **The compact answers.** Declared inputs/outputs are what make
+  staleness, artifact diffs, scheduling hints and caching possible. An
+  undeclared command has none of them, so its only honest report is a
+  log — the very cost TEE exists to remove.
+- **Reproducibility**: a declared step is re-runnable, shareable and
+  reviewable; an ad-hoc command is a keystroke.
+
+**What it wrongly costs**: exploration. Pipelines are usually
+discovered by doing, and demanding a declaration before the first run
+is a barrier that would push the owner back to the terminal — the
+friction TEE is supposed to remove.
+
+**The resolution — an owner-gated ad-hoc door with an adopt flow:**
+- `[pipeline] allow_adhoc = true` (per project, default FALSE, the
+  `allow_code_exec` precedent) permits `pipeline_adhoc {argv}`.
+- **The invariant that must never bend**: ad-hoc execution is
+  reachable ONLY from a live human turn. It is refused when the caller
+  is a job, a scheduled/queued task, a chore, a gateway-fronted call,
+  or any path whose provenance includes fetched or third-party content
+  — the same "untrusted content can never cause an action" contract as
+  web_lookup. Fixtures prove each refusal.
+- **Adopt flow (discovery becomes authoring)**: after an ad-hoc run
+  succeeds, TEE offers the declaration it would write — argv, inferred
+  inputs/outputs from what the run touched, measured cost — and the
+  owner accepts it into `.tee/pipeline.toml`. The exploratory
+  keystroke becomes a reproducible step without anyone hand-writing
+  TOML.
+- Ad-hoc runs are unscheduled, uncached, and reported honestly as
+  "ad-hoc, not declared" with provenance saying so.
+
+Net: declared-by-default keeps the security and the compact answers;
+the gated door removes the barrier; the adopt flow converts one into
+the other. The strict-only version of this law is superseded.
