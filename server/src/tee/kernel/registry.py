@@ -13,6 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from tee.kernel import trust, trustctx
 from tee.kernel.errors import TeeError
 
 _TYPE_CHECKS: dict[str, type | tuple[type, ...]] = {
@@ -33,6 +34,12 @@ class VirtualTool:
     handler: Callable[[dict[str, Any]], dict[str, Any]]
     tags: list[str] = field(default_factory=list)
     examples: list[dict[str, Any]] = field(default_factory=list)
+    # A43 L4: the capability this tool needs. Left None, it is resolved from
+    # the trust table AT REGISTRATION - and a tool the table does not know
+    # fails at STARTUP. That is what makes kernel coverage structural rather
+    # than a habit: a new tool cannot silently escape the check, because the
+    # server refuses to boot until someone tables it.
+    capability: str | None = None
 
     @property
     def one_line(self) -> str:
@@ -54,10 +61,24 @@ class ToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, VirtualTool] = {}
         self.disabled: set[str] = set()  # per-project profile (.tee/config.toml)
+        # A43 L1/L4: what this project may do. Default = no grants, which
+        # leaves the read tier and the baseline verbs working and refuses
+        # everything else - a new project is useful immediately and cannot
+        # do anything irreversible.
+        self.grants = trust.Grants()
+        self.trust_denials: list[dict[str, Any]] = []  # shadow band, for tee_trust
 
     def register(self, tool: VirtualTool) -> None:
         if tool.name in self._tools:
             raise ValueError(f"duplicate virtual tool: {tool.name}")
+        if tool.capability is None:
+            # Raises trust_untabled_tool at STARTUP for an unknown tool.
+            tool.capability = trust.capability_for(tool.name)
+        elif tool.capability not in trust.CAPABILITIES:
+            raise ValueError(
+                f"{tool.name}: '{tool.capability}' is not a known capability "
+                f"(kernel/trust.py owns the list)"
+            )
         if tool.schema.get("type") != "object":
             raise ValueError(f"{tool.name}: schema must be a plain object schema (A6)")
         props = tool.schema.get("properties", {})
@@ -135,7 +156,39 @@ class ToolRegistry:
     def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
         tool = self._require(name)
         self._validate(tool, args or {})
-        return tool.handler(args or {})
+        self._trust(tool)
+        result = tool.handler(args or {})
+        # A capability whose RESULTS are untrusted content taints this task
+        # from here on: a KB passage or a fetched page may inform an answer,
+        # but it may never go on to cause a side effect (research 62).
+        if tool.capability in trust.TAINT_SOURCES:
+            trustctx.add_taint(f"{tool.capability}:{name}")
+        return result
+
+    def _trust(self, tool: VirtualTool) -> None:
+        """The ONE check (L4). Denials that are safety-critical raise now;
+        the taint-vs-quality band is recorded and allowed until the owner
+        signs the flip (L6/L7) - the scheduler's shadow discipline, applied
+        ONLY where it cannot open a door (research 64 FP-2)."""
+        decision = trust.check(
+            tool.capability or "read-session",
+            caller=trustctx.caller(),
+            grants=self.grants,
+            taint=trustctx.taint(),
+        )
+        if decision.allowed:
+            return
+        if decision.enforced or self.grants.enforce_quality_band:
+            decision.raise_if_denied(tool.name)
+        self.trust_denials.append(
+            {
+                "tool": tool.name,
+                "capability": decision.capability,
+                "caller": decision.caller,
+                "reason": decision.reason,
+                "shadow": True,
+            }
+        )
 
     # -- internals ---------------------------------------------------------
 

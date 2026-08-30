@@ -18,6 +18,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from tee.kernel import trustctx
 from tee.kernel.errors import TeeError
 
 # K1 (A42): QoS rank order - interactive never behind batch. LAW only when
@@ -146,7 +147,19 @@ class JobManager:
                 engine=engine,
             )
             self._jobs[job.id] = job
-            self._fns[job.id] = fn
+            # L2/FP-1: daemon threads do not inherit context, so the taint
+            # this task carries would vanish across the hop and reach the
+            # model unlabelled. Snapshot it here and re-install it in the
+            # worker - with the caller DOWNGRADED to `job`, because the
+            # human who submitted this is not present while it runs.
+            carried_taint = trustctx.taint()
+            job_caller = "scheduled" if qos == "maintenance" else "job"
+
+            def _carried(inner: Callable[[], dict[str, Any]] = fn) -> dict[str, Any]:
+                trustctx.install(job_caller, carried_taint)
+                return inner()
+
+            self._fns[job.id] = _carried
             self._pending.append(job)
             self._prune_locked()
             self._cv.notify()

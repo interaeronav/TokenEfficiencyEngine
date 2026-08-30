@@ -5554,3 +5554,75 @@ technical vocabulary (injection/attacker are load-bearing threat-model
 terms) or touch the safeguard. The A43 build can proceed under this
 policy: kernel first (L0–L7, security phases on the careful model),
 pipeline lane as first tenant. Everything within Anthropic policy.
+
+## 2026-08-30 — A43 T-1 L0–L4: the trust kernel's stack lands (default deny, taint, one check)
+
+Suite 790 → **807 passed / 2 skipped**, gate exit 0. Built bottom-up in
+research 65's mandated order; no layer skipped.
+
+- **L0 the capability map** (`kernel/trust.py`): verbs+RESOURCES, not
+  verbs alone — `write-artifacts` (inert declared outputs) is a
+  different capability from `write-config` (grants future execution)
+  and `write-policy` (issues capability), so a path can never quietly
+  become privilege escalation. **All 121 shipped tools tabled** in one
+  reviewable table; an untabled tool raises at REGISTRATION, so the
+  server refuses to boot rather than let a tool escape the kernel.
+- **L1 grants + default deny**: read tier open (it cannot change a
+  byte, so a broken trust file must never brick `kb_search` — and must
+  always brick `run-adhoc`); everything else denied with the exact line
+  to add AND **the config file actually loaded** (closes SI-B17). The
+  four legacy flags survive as aliases, fixture-proven, so every
+  existing `.tee/config.toml` keeps working untouched.
+- **L2 caller context** (`kernel/trustctx.py`): `live-turn` minted ONLY
+  at the MCP `_tool` wrapper, never accepted from below; the daemon-job
+  hop carries taint across (FP-1, which no ContextVar previously
+  crossed) **with the caller DOWNGRADED to `job`** — a hardening beyond
+  the docs: propagating `live-turn` into unattended work would let one
+  human turn mint standing authority. Absent context reads as
+  `content-derived`: a forgotten call site is harmless, not privileged.
+- **L3 taint**: a property of an ID, never a string — affordable only
+  because TEE already passes ids, not payloads. `derive(parents)` unions
+  parent taint by construction and an orphan id reads back TAINTED
+  (FP-5: laundering by omission).
+- **L4 the ONE check** in `registry.call`, beside the existing
+  `disabled` refusal; **overhead 0.2 µs/call** — 250× under the 0.05 ms
+  budget and well under the gateway's 7 µs. Safety never waits on a
+  rollout: high-risk capabilities (run-adhoc, exec-code, write-config,
+  write-policy, call-paid-engine) enforce from day one, and only the
+  taint-vs-quality band is shadow-measured (FP-2, the hole a naive
+  shadow-first would have shipped).
+- **17 acceptance fixtures** covering all of the above plus the
+  four-entry-surface coverage test that fails when a fifth appears.
+
+**The kernel caught a real composition attack unprompted.** The gateway
+suite began failing at `gw_accept`: earlier tests had called fronted
+backend tools, whose output taints the task, and the task then tried to
+re-pin *that same backend's* trust. Refused — for taint, not grants.
+That is exactly the chain research 61 said no single flag could reason
+about, demonstrated by accident on day one.
+
+**Deliberate behavior changes** (each a tightening the kernel exists to
+make): `gw_accept` is `write-policy` (accepting a third party's drifted
+fingerprint is a policy act, not a read — now needs a grant);
+`bl_execute_python` / `ue_editor_python` / `ue_script` are `exec-code`;
+gateway-fronted tools declare `front-backend` explicitly because their
+names are minted at runtime and can never be in a static table.
+
+**qmax used with the owner's explicit consent** (hosted, paid, content
+leaves the machine — the config's own warning) for one adversarial
+design review, ~500 tokens sent, its output treated as INPUT not
+authority per research 63/64. Its top finding — taint dies at the write
+boundary, so memory launders it — **confirms research 63 #1 and is
+L3's persistence work, still open**. Its remediation #2 (deny-all on
+absent caller) was REJECTED with reason: the read tier is safe because
+it cannot change a byte, and closing it would brick `kb_search` on a
+broken config; the laundering fix belongs at the write, not the read.
+
+**Machine note:** the local engines (:8080) are down; the only live
+endpoint is the paid shim (:4000). Nothing was routed there without the
+owner's consent.
+
+**Next:** L5 audit (widen the `response_log.record` already at the
+seam), persisted taint across `tee_remember`/`kb_propose` (research 63
+#1, qmax-confirmed), `tee_trust` for visibility, then L6/L7 and the
+pipeline lane as the kernel's first tenant.

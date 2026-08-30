@@ -86,6 +86,7 @@ def test_step_budget_bounds_hot_loops(app):
 def test_call_budget(app):
     app.registry.register(
         VirtualTool(
+            capability="read-session",
             name="noop",
             description="noop",
             schema={"type": "object", "properties": {}},

@@ -6,6 +6,7 @@ from tee.kernel.registry import ToolRegistry, VirtualTool
 
 def make_tool(name="bl_create_cube", tags=None):
     return VirtualTool(
+        capability="read-session",
         name=name,
         description="Create a cube mesh.\nLonger help text here.",
         schema={
@@ -28,7 +29,13 @@ def test_register_rejects_duplicates_and_non_object_schemas():
         reg.register(make_tool())
     with pytest.raises(ValueError):
         reg.register(
-            VirtualTool(name="bad", description="x", schema={"type": "array"}, handler=lambda a: {})
+            VirtualTool(
+                name="bad",
+                description="x",
+                schema={"type": "array"},
+                handler=lambda a: {},
+                capability="read-session",
+            )
         )
 
 
@@ -118,6 +125,7 @@ def test_register_rejects_required_keys_missing_from_properties():
     with pytest.raises(ValueError, match="permanently uncallable"):
         reg.register(
             VirtualTool(
+                capability="read-session",
                 name="broken",
                 description="x",
                 schema={

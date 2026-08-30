@@ -247,6 +247,14 @@ class GatewayService:
                     schema,
                     handler,
                     tags=["gateway", backend.name],
+                    # A43 L4: fronted tools carry runtime-minted names, so
+                    # they can never be in the static table - they declare
+                    # the capability instead. `front-backend` is one verb for
+                    # the whole fronted surface: granting a backend is a
+                    # single reviewable decision, and its results taint the
+                    # task (a backend's output is quoted data, never
+                    # instruction).
+                    capability="front-backend",
                 )
             )
             backend.registered.append(full)

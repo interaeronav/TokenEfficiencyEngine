@@ -19,6 +19,7 @@ from mcp.server.mcpserver import Image, MCPServer
 
 from tee import __version__
 from tee.app import TeeApp
+from tee.kernel import trustctx
 from tee.kernel.budget import columnarize, enforce_budget
 from tee.kernel.errors import TeeError, internal_error_payload
 from tee.web.tools import WEB_LOOKUP_DESCRIPTION
@@ -131,12 +132,21 @@ def _tool(app: TeeApp, name: str) -> Callable:
         @functools.wraps(fn)
         def wrapper(*args: Any, **kwargs: Any):
             with app.lock:
+                # L2: a call arriving at the MCP boundary IS a live human
+                # turn - the one place that class is minted, never accepted
+                # from below. Taint starts empty and is added by whatever
+                # untrusted content this turn touches.
+                token = trustctx.enter_live_turn()
+                taint_token = trustctx.TAINT.set(())
                 try:
                     result = fn(*args, **kwargs)
                 except TeeError as exc:
                     result = exc.to_payload()
                 except Exception as exc:
                     result = internal_error_payload(exc)
+                finally:
+                    trustctx.reset(token)
+                    trustctx.TAINT.reset(taint_token)
                 if isinstance(result, dict):
                     result = columnarize(result)
                     result = enforce_budget(result)

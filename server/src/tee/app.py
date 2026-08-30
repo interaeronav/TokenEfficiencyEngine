@@ -124,6 +124,16 @@ class TeeApp:
         self.response_log = ResponseLog()
         self.config = ProjectConfig.load(project_root)
         self.registry.disabled = set(self.config.disabled_tools)
+        # A43 L1: what this project may do, and WHICH FILE said so. Naming
+        # the loaded path in every refusal is what closes SI-B17, where an
+        # edit that went nowhere was indistinguishable from a bug.
+        from tee.kernel import trust
+
+        config_path = Path(project_root) / ".tee" / "config.toml"
+        self.registry.grants = trust.Grants.from_config(
+            self.config,
+            source=str(config_path) if config_path.is_file() else f"{config_path} (absent)",
+        )
         # K0 shadow recorder: on by default, zero behavior change; the
         # degrade-to-static law - [scheduler] shadow = false turns it off.
         from tee.kernel import shadow

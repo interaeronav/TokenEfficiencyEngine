@@ -205,3 +205,21 @@ class StubBridge:
 
     def close(self):
         self.sock.close()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_turn():
+    """Each test starts as a fresh, untrusted turn (A43 L2).
+
+    In the server, `_tool` mints the caller class and resets taint per MCP
+    call; in-process tests share one thread context, so without this the
+    taint one test earns bleeds into the next. The default here is the SAFE
+    class - a test that needs live-turn authority says so explicitly."""
+    from tee.kernel import trustctx
+
+    caller_token = trustctx.CALLER.set("content-derived")
+    taint_token = trustctx.TAINT.set(())
+    yield
+    trustctx.CALLER.reset(caller_token)
+    trustctx.TAINT.reset(taint_token)
+    trustctx.clear_for_tests()

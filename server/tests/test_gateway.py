@@ -7,6 +7,7 @@ data, and a surface delta of exactly zero."""
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -124,6 +125,16 @@ def test_drift_firewall_refuses_then_gw_accept_repins_fresh(tmp_path) -> None:
         assert excinfo.value.code == "gateway_drift"
         assert "gw_accept" in excinfo.value.fix
         assert "fx.brand_new" not in app2.registry.names()  # nothing stale registered
+        # A43: re-pinning a drifted third party is a POLICY act, so the trust
+        # kernel refuses it by default and names the line that authorizes it.
+        with pytest.raises(TeeError) as denied:
+            app2.registry.call("gw_accept", {"backend": "fx"})
+        assert denied.value.code == "trust_denied"
+        assert "write-policy" in denied.value.fix
+        app2.registry.grants = replace(
+            app2.registry.grants,
+            granted=app2.registry.grants.granted | {"write-policy"},
+        )
         accepted = app2.registry.call("gw_accept", {"backend": "fx"})
         assert accepted["state"] == "connected"
         assert app2.registry.call("fx.brand_new", {})["text"] == "hello from v2"

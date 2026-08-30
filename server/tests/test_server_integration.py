@@ -26,6 +26,7 @@ def run_session(scenario, project_root="."):
     app = TeeApp({"fake": FakeAdapter()}, project_root=project_root)
     app.registry.register(
         VirtualTool(
+            capability="read-scene",
             name="bl_demo_tool",
             description="Demo virtual tool for integration tests.",
             schema={

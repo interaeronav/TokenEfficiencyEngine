@@ -66,6 +66,7 @@ def app_with_disabled(tmp_path):
     for name in ("demo_tool", "other_tool"):
         app.registry.register(
             VirtualTool(
+                capability="read-session",
                 name=name,
                 description=f"{name} does demo things.",
                 schema={"type": "object", "properties": {}},

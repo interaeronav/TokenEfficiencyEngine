@@ -1,0 +1,465 @@
+"""The trust kernel (A43 T-1): ONE capability model, default deny, taint-aware.
+
+Defensive security on the owner's own machine: this module is the single
+decision point that answers, everywhere, **may THIS caller invoke THIS
+capability on THIS project right now?** It replaces four scattered
+permission flags (`allow_code_exec`, `allow_local`, `allow_sa`, gateway
+`enable`) which each knew only themselves and therefore could not reason
+about composition — a fronted backend steering a chore that triggers a
+step that writes files.
+
+Layers (research 65's dependency spine; this file is L0+L1, and L3/L4's
+decision function):
+
+    L0 capability map      verbs+RESOURCES; every tool tabled; unknown = refuse
+    L1 grants              per project, default deny, read tier open
+    L3 taint               a property of an ID, never of a string
+    L4 the one check       trust.check(), called from registry.call + 3 surfaces
+
+Two laws this file encodes and never bends:
+
+1. **Default deny outside the read tier.** The read tier cannot change a
+   byte, so it stays open even when the trust file is broken (fail OPEN
+   for reads, fail CLOSED for side effects — research 62). A broken
+   config must never brick `kb_search`; it must always brick `run-adhoc`.
+2. **A tainted task may never invoke a side-effecting capability.**
+   Untainting happens only in a live human turn. Capabilities are
+   verb+RESOURCE, so a write to an inert artifact and a write to a policy
+   file are different capabilities (research 63) — a path can never
+   silently become privilege escalation.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from tee.kernel.errors import TeeError
+
+# -- L0: capabilities (verb + RESOURCE) ------------------------------------
+
+# The read tier: nothing here can change a byte. Open by default (that is
+# what makes onboarding a new project a zero-risk decision) and open even
+# when the trust config is unreadable.
+READ_TIER: frozenset[str] = frozenset(
+    {
+        "read-scene",
+        "read-state",
+        "read-session",
+        "read-kb",
+        "read-extract",
+        "read-assets",
+        "read-design",
+        "read-uefn",
+    }
+)
+
+# Everything else is default-deny. Verb+resource, deliberately: `write-
+# artifacts` (inert declared outputs) is NOT `write-config` (grants future
+# execution) is NOT `write-policy` (issues capability).
+SIDE_EFFECTING: frozenset[str] = frozenset(
+    {
+        "fetch-web",
+        "write-scene",
+        "write-state",
+        "write-artifacts",
+        "write-config",
+        "write-policy",
+        "call-engine",
+        "call-paid-engine",
+        "switch-engine",
+        "front-backend",
+        "run-declared-step",
+        "run-adhoc",
+        "exec-code",
+    }
+)
+
+CAPABILITIES: frozenset[str] = READ_TIER | SIDE_EFFECTING
+
+# High-risk capabilities enforce deny-by-default from day one, shadow mode
+# or not (research 64 FP-2: shadow-first governs engine CHOICE, never
+# SAFETY — an open rollout window would be an open door, and it would feed
+# the very traces that decide when to close it).
+HIGH_RISK: frozenset[str] = frozenset(
+    {
+        "run-adhoc",
+        "exec-code",
+        "write-config",
+        "write-policy",
+        "call-paid-engine",
+    }
+)
+
+# Capabilities whose RESULTS are untrusted content: invoking one taints the
+# calling task's derived ids (research 62's minting sources). KB prose and
+# third-party media grounds nothing by the A30 law; a fronted backend's
+# output — descriptions included — is quoted data, never instruction.
+TAINT_SOURCES: frozenset[str] = frozenset(
+    {"fetch-web", "front-backend", "read-kb", "read-extract", "call-paid-engine"}
+)
+
+# Caller classes. The A42 task graph already stamps three of the six; L2
+# mints `live-turn` at the MCP boundary and NEVER accepts it from below.
+CALLER_CLASSES: frozenset[str] = frozenset(
+    {"live-turn", "chore", "job", "scheduled", "gateway-fronted", "content-derived"}
+)
+
+# -- L0: the tool table ----------------------------------------------------
+#
+# Reviewed ONCE, here, rather than as 103 scattered decisions (research 62).
+# Families carry a default; the exceptions — mutations living inside a read
+# family, and everything high-risk — are named individually and win. A tool
+# matching neither is a STARTUP ERROR, which is what makes completeness
+# structural instead of a promise: a future tool cannot silently escape the
+# kernel, because the server refuses to boot until it is tabled.
+
+_FAMILY: tuple[tuple[str, str], ...] = (
+    ("kb_", "read-kb"),
+    ("ex_", "read-extract"),
+    ("as_", "read-assets"),
+    ("gd_", "read-design"),
+    ("uefn_", "read-uefn"),
+    ("sim_", "write-scene"),
+    ("capture_", "call-engine"),
+    ("llm_", "call-engine"),
+    ("plaus_", "read-scene"),
+    ("mat_", "read-scene"),
+)
+
+_EXPLICIT: dict[str, str] = {
+    # --- always-loaded MCP surface (17) ---
+    "tee_status": "read-session",
+    "tee_recall": "read-state",
+    "tee_remember": "write-state",
+    "tee_scene_summary": "read-scene",
+    "tee_entity_detail": "read-scene",
+    "tee_diff": "read-scene",
+    "tee_batch": "write-scene",
+    "tee_checkpoint": "write-scene",
+    "tee_rollback": "write-scene",
+    "tee_job": "read-session",
+    "tee_capture": "write-scene",
+    "tee_media": "read-extract",
+    "tee_script": "exec-code",
+    "tee_web_lookup": "fetch-web",
+    "tee_search_tools": "read-session",
+    "tee_describe_tool": "read-session",
+    # tee_call dispatches INTO the registry, where the target tool's own
+    # capability is checked. Its own verb is therefore the meta-read; the
+    # inner check is what actually gates the work (fixture asserts this).
+    "tee_call": "read-session",
+    # --- assets: mutations and stores inside a read family ---
+    "as_import": "write-scene",
+    "as_place": "write-scene",
+    "as_material": "write-scene",
+    "as_photo_material": "write-scene",
+    "as_sun": "write-scene",
+    "as_sheet": "write-scene",
+    "as_ingest": "write-state",
+    "as_publish_library": "write-state",
+    "as_generate": "call-engine",
+    # --- extract: writes inside a read family ---
+    "ex_ingest": "write-state",
+    "ex_register": "write-state",
+    "ex_store_facts": "write-state",
+    "ex_prepare": "write-state",
+    # --- kb: the staging write (lineage must survive it, research 63) ---
+    "kb_propose": "write-state",
+    # --- design: the store/render writes ---
+    "gd_store": "write-state",
+    "gd_render": "write-state",
+    # --- capture: ingest stores, apply mutates the owner's scenes ---
+    "capture_ingest": "write-state",
+    "capture_apply": "write-scene",
+    # --- llm: switching engines is its own verb; a PAID target additionally
+    # demands call-paid-engine (checked at the call site, SI-B16's teeth) ---
+    "llm_switch": "switch-engine",
+    # --- uefn: mutations and the compiler ---
+    "uefn_place_device": "write-scene",
+    "uefn_entity_batch": "write-scene",
+    "uefn_compile": "call-engine",
+    "uefn_pack_channels": "call-engine",
+    # --- physical tier-2 modelling ops (mutate the scene) ---
+    "array_along": "write-scene",
+    "opening_cut": "write-scene",
+    "param_set": "write-scene",
+    "profile_extrude": "write-scene",
+    "roof": "write-scene",
+    "slab": "write-scene",
+    "stairs": "write-scene",
+    "wall_with_openings": "write-scene",
+    "mat_assign": "write-scene",
+    "joinery_check": "read-scene",
+    "sketch_solve": "read-scene",
+    "phys_tier0": "read-scene",
+    "sim_ready": "read-scene",
+    # --- session / exports / boards ---
+    "handoff": "read-session",
+    "report_savings": "read-session",
+    "board_compose": "write-state",
+    "export_for_uefn": "write-artifacts",
+    "export_preflight": "read-scene",
+    # --- Blender adapter ---
+    "bl_api_detail": "read-scene",
+    "bl_search_docs": "read-scene",
+    "bl_scene_stats": "read-scene",
+    "bl_check_against_plan": "read-scene",
+    "bl_assign_material": "write-scene",
+    "bl_build_from_plan": "write-scene",
+    "bl_render": "write-artifacts",
+    "bl_execute_python": "exec-code",  # arbitrary Python in the DCC
+    # --- FreeCAD adapter ---
+    "fc_drawing": "write-scene",
+    "fc_export": "write-artifacts",
+    # --- gateway control. Accepting a drifted backend fingerprint is a
+    # TRUST decision about a third party, not a read - so it is policy
+    # (a deliberate tightening the kernel exists to make; recorded). ---
+    "gw_status": "read-session",
+    "gw_accept": "write-policy",
+    # --- Home Builder ---
+    "hb_status": "read-scene",
+    "hb_room": "read-scene",
+    "hb_layout": "read-scene",
+    "hb_joinery_spec": "read-scene",
+    "hb_cutlist": "read-scene",
+    "hb_cabinet": "write-scene",
+    # --- pins (Unreal actor tags) ---
+    "pin_list": "read-scene",
+    "pin_show": "read-scene",
+    "pin_export": "read-scene",
+    "pin_set": "write-scene",
+    "pin_remove": "write-scene",
+    "pin_fill": "write-scene",
+    "pin_import": "write-scene",
+    # --- Unreal adapter ---
+    "ue_editor_state": "read-scene",
+    "ue_entity_detail": "read-scene",
+    "ue_scene_checks": "read-scene",
+    "ue_look": "read-scene",
+    "ue_toolset": "read-scene",
+    "ue_toolsets": "read-scene",
+    "ue_describe_tool": "read-scene",
+    "ue_graph_dsl_docs": "read-scene",
+    "ue_capture": "write-artifacts",
+    "ue_blueprint_function": "write-scene",
+    "ue_settle": "write-scene",
+    "ue_call": "write-scene",  # dispatches editor ops; assume it mutates
+    "ue_editor_python": "exec-code",  # arbitrary Python in the editor
+    "ue_script": "exec-code",
+    # --- web ---
+    "web_search": "fetch-web",
+    # --- the pipeline lane (A43 P0+), declared here so the table is the
+    # single review surface even before the lane ships ---
+    "pipeline_list": "read-state",
+    "pipeline_run": "run-declared-step",
+    "pipeline_adhoc": "run-adhoc",
+    "pipeline_init": "read-state",
+    "trust_grant": "write-policy",
+    "tee_trust": "read-session",
+}
+
+
+def capability_for(tool_name: str) -> str:
+    """The capability a tool needs. Unknown tool -> refuse (startup guard).
+
+    Explicit entries win over family defaults: a mutation living inside a
+    read family must never inherit the family's read verb."""
+    explicit = _EXPLICIT.get(tool_name)
+    if explicit is not None:
+        return explicit
+    for prefix, capability in _FAMILY:
+        if tool_name.startswith(prefix):
+            return capability
+    raise TeeError(
+        "trust_untabled_tool",
+        f"Tool '{tool_name}' has no capability in the trust table.",
+        fix="Add it to _EXPLICIT (or a family) in kernel/trust.py - the "
+        "table is the single review surface; an untabled tool cannot ship.",
+    )
+
+
+# -- L1: grants ------------------------------------------------------------
+
+
+@dataclass
+class Grants:
+    """What the owner authorized, per project. Plain TOML lines, no policy
+    language: if it ever needs a DSL it is wrong (research 61)."""
+
+    granted: frozenset[str] = frozenset()
+    source: str = "(no trust config)"
+    enforce_quality_band: bool = False  # L6/L7: the owner-signed flip
+    broken: str | None = None  # config unreadable -> fail closed for effects
+
+    @classmethod
+    def from_config(cls, config: Any, source: str = "(config)") -> Grants:
+        """Read `[trust] grants = [...]` plus the legacy flag aliases, so
+        every existing .tee/config.toml keeps working untouched."""
+        trust_cfg = dict(getattr(config, "trust", {}) or {})
+        granted: set[str] = set()
+        for name in trust_cfg.get("grants") or []:
+            text = str(name).strip()
+            if text not in CAPABILITIES:
+                raise TeeError(
+                    "trust_unknown_capability",
+                    f"[trust] grants lists '{text}', which is not a capability.",
+                    fix=f"Known: {', '.join(sorted(CAPABILITIES))}.",
+                )
+            granted.add(text)
+        # Legacy flags become aliases (research 62's migration law): the
+        # behavior each flag bought is preserved exactly, through the kernel.
+        if getattr(config, "allow_code_exec", None):
+            granted.add("exec-code")
+        assets = dict(getattr(config, "assets", {}) or {})
+        if assets.get("allow_local"):
+            granted.add("fetch-web")
+        if assets.get("allow_sa"):
+            granted.add("read-assets")
+        gateway = dict(getattr(config, "gateway", {}) or {})
+        backends = dict(gateway.get("backends") or {}).values()
+        if any(dict(b or {}).get("enable", True) for b in backends):
+            granted.add("front-backend")
+        return cls(
+            granted=frozenset(granted),
+            source=source,
+            enforce_quality_band=bool(trust_cfg.get("enforce", False)),
+        )
+
+
+# The capabilities every project holds without asking: the read tier, plus
+# the ambient verbs TEE has always exercised on its own state and engines.
+# These are what make "a new project is useful immediately, at zero risk"
+# true — and what keeps the 790-test battery behaving identically.
+BASELINE: frozenset[str] = READ_TIER | frozenset(
+    {
+        "write-scene",
+        "write-state",
+        "write-artifacts",
+        "call-engine",
+        "switch-engine",
+        "fetch-web",
+    }
+)
+
+
+@dataclass
+class Decision:
+    allowed: bool
+    capability: str
+    caller: str
+    reason: str
+    grant: str | None = None
+    source: str | None = None  # the config file actually loaded (SI-B17)
+    tainted_by: list[str] = field(default_factory=list)
+    # Is this decision enforced NOW, or is it in the shadow band?
+    # Safety never waits on a rollout: high-risk capabilities and broken-
+    # config denials enforce from day one (research 64 FP-2). Only the
+    # taint-vs-quality band is measured first and enforced after the
+    # owner's signed flip (L7).
+    enforced: bool = True
+
+    def raise_if_denied(self, tool_name: str) -> None:
+        if self.allowed:
+            return
+        raise TeeError("trust_denied", f"{tool_name}: {self.reason}", fix=self.fix())
+
+    def fix(self) -> str:
+        if self.tainted_by:
+            return (
+                "This task carries untrusted content "
+                f"({', '.join(self.tainted_by[:3])}). Untrusted content can "
+                "never cause a side effect. Re-run the step yourself in a "
+                "live turn if you have read the content and intend it."
+            )
+        where = self.source or ".tee/config.toml"
+        return (
+            f"Add '{self.capability}' to [trust] grants in {where} - that is "
+            "the config file this server actually loaded (SI-B17)."
+        )
+
+
+def check(
+    capability: str,
+    *,
+    caller: str,
+    grants: Grants,
+    taint: tuple[str, ...] = (),
+    consent: bool = False,
+) -> Decision:
+    """The ONE decision. Every entry surface routes here (L4).
+
+    Order matters and is the security argument:
+      1. an unknown capability is refused (fail closed on our own bugs);
+      2. the read tier always answers - it cannot change a byte, so a
+         broken trust file must not brick it;
+      3. the taint law - untrusted content may never cause a side effect,
+         and only a live human turn can lift that;
+      4. the grant - default deny, with the exact missing line named.
+    """
+    if capability not in CAPABILITIES:
+        return Decision(
+            allowed=False,
+            capability=capability,
+            caller=caller,
+            reason=f"'{capability}' is not a known capability (refusing rather than guessing)",
+        )
+    if caller not in CALLER_CLASSES:  # forged or unknown class: treat as the worst
+        caller = "content-derived"
+
+    if capability in READ_TIER:
+        return Decision(
+            allowed=True, capability=capability, caller=caller, reason="read tier", grant="baseline"
+        )
+
+    high_risk = capability in HIGH_RISK
+
+    if grants.broken:
+        return Decision(
+            allowed=False,
+            capability=capability,
+            caller=caller,
+            reason=f"the trust config could not be read ({grants.broken}), so side "
+            "effects fail closed while the read tier keeps answering",
+        )
+
+    # The central law. A live human turn is the ONLY untaint path, and for
+    # high-risk capabilities the human must have consented to THIS call, not
+    # merely be present (research 63's habituation limit: the human gate is
+    # the last layer, never the only one).
+    if taint and (caller != "live-turn" or (high_risk and not consent)):
+        return Decision(
+            allowed=False,
+            capability=capability,
+            caller=caller,
+            reason=f"a {caller} task carrying untrusted content may not invoke '{capability}'",
+            tainted_by=list(taint),
+            source=grants.source,
+            # Safety-critical taint denials (egress, execution, policy)
+            # enforce immediately; the rest are the shadow band.
+            enforced=high_risk,
+        )
+
+    if capability in grants.granted:
+        return Decision(
+            allowed=True,
+            capability=capability,
+            caller=caller,
+            reason="granted",
+            grant=grants.source,
+        )
+    if capability in BASELINE and not high_risk:
+        return Decision(
+            allowed=True,
+            capability=capability,
+            caller=caller,
+            reason="baseline capability",
+            grant="baseline",
+        )
+    return Decision(
+        allowed=False,
+        capability=capability,
+        caller=caller,
+        reason=f"'{capability}' is not granted for this project (default deny)",
+        source=grants.source,
+    )
