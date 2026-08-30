@@ -6819,3 +6819,57 @@ to 4100; LiteLLM re-verified healthy (HTTP 200) immediately after, and the
 default in `bi.py` documents the clash.
 
 **Suite: 1,015 passed / 9 skipped**, ruff clean.
+
+## 2026-08-31 — A45 close-out: v0.9.0
+
+Suite **1,015 passed / 9 skipped** (885 at the campaign's start), ruff
+clean, `uv.lock` refreshed for the new extras.
+
+**The always-loaded surface never moved: 17 tools / 2,028 tok on the
+wire**, measured after every phase. Virtual tools 87 → 111. That was the
+campaign's stated failure condition and it held.
+
+**Fleet compaction, measured with TEE's own estimator** against live
+services where one exists:
+
+| scenario | naive | TEE | saved |
+|---|---|---|---|
+| `solve_program`, 400 variables | 1,489 | 127 | 91.5% |
+| `quant_optimize`, 120 assets | 666 | 266 | 60.1% |
+| `bi_query`, live Cube 1.7.30 | 673 | 60 | 91.1% |
+| `trade_backtest`, 2,000 bars | 2,860 | 170 | 94.1% |
+| **total** | **5,688** | **623** | **89.0%** |
+
+The quant row is the weakest and is stated as such rather than averaged
+away: a 120-asset weight vector was never enormous, so compaction buys
+less there than on a solver or a time series.
+
+**Artifacts at 0.9.0**, five stamps: wheel 538,490 B / sdist 958,998 B /
+mcpb **882,240 B** (+183 KB over 0.8.0 — the fleet's honest weight, all
+source, no vendored libraries). Bundle VERIFIED BY EXTRACTION: manifest
+0.9.0, 17 tools, `server.type: uv`, `src/tee/fleet/` present, no
+`server/lib` or `server/venv`; `npx @anthropic-ai/mcpb validate` →
+"Manifest schema validation passes!". The source manifest was missed by
+the first build and still read 0.8.0 — caught by extracting rather than
+trusting the filename, the same check that caught it last release.
+
+**Not built, and why — stated rather than implied.** Qiber3D: 859 MB, its
+PyPI release is broken (needs a git SHA pin), and it transitively imports
+GPL `nd2reader`; lowest value of the sixteen, so it is documented in
+`docs/setup-fleet.md` as not built rather than half-built. Hummingbot's
+engine and OpenAlgo: deliberately never wired — see the trading line.
+Jesse and NautilusTrader would each need their own interpreter and are
+reported by `trade_probe`, not pretended.
+
+**Owner actions outstanding:**
+1. Reinstall `server/dist/tee-engine-0.9.0.mcpb` in Claude Desktop — the
+   running co-pilot is 0.8.0 and has none of this.
+2. Optionally add `profile = "workstation"` under `[trust]` in
+   `/Users/john/TEE/.tee/config.toml` to enable `exec-code` and ad-hoc
+   steps. It takes effect on the next call now; no restart needed.
+3. Optionally declare a rate under `[llm.profiles.qmax]`
+   (`price_in_per_mtok`, `price_out_per_mtok`, `currency`) to turn on the
+   cost column. TEE will not invent one.
+4. Two containers are left running for the tests that use them:
+   `tee-orthanc` (:8042) and `tee-cube` (:4100). `docker rm -f tee-orthanc
+   tee-cube` if unwanted; the suite skips those tests cleanly without them.
