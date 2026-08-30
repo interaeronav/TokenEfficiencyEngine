@@ -6038,3 +6038,31 @@ to the always-loaded surface. The owner tags.
    basemap's `validation/rebuild_diff.json` fails `verify` as corrupt,
    and OkongoSim's catalog gate AND generator both stop on `KeyError:
    'room_id'` — the decorate-mode contract cannot currently be rebuilt.
+
+## 2026-08-30 — Owner action 1: the releases are tagged and public
+
+Ran from the owner's Mac (tags could not be pushed from the cloud
+session). **v0.7.0 needed nothing** — it was already an annotated tag
+and already on origin; the close-out's "still untagged" was wrong:
+
+```
+$ git ls-remote --tags origin | grep v0.7.0
+c78c85bec36ed4686fc764422b045ff02ddf4dcb	refs/tags/v0.7.0
+84d815f27ebe8bfeca825ac8d8c0f8728b11d258	refs/tags/v0.7.0^{}
+```
+
+**v0.8.0 created and pushed**, annotated, at `14fd354` — HEAD rather
+than the close-out commit `18ebf50`, deliberately: the cloud session's
+`test_shadow.py` root-proofing landed after the close-out and belongs
+inside the tag, and the five version stamps still read 0.8.0 at that
+commit (`pyproject.toml:4`, `__init__.py:3`, `Makefile:8`).
+
+```
+$ git push origin v0.8.0
+ * [new tag]         v0.8.0 -> v0.8.0
+$ git ls-remote --tags origin | grep v0.8.0
+49c3622477124182d63296da95ec8e736087461f	refs/tags/v0.8.0
+14fd35433287eac5ee76b31020fec05e4c123900	refs/tags/v0.8.0^{}
+```
+
+Close-out owner action 1 CLOSED.
