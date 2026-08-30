@@ -44,6 +44,18 @@ physical = [
     "ifctester>=0.8.5",
     "py-slvs>=1.0.6",
 ]
+# A45 P2a: the solver group. All permissive (HiGHS MIT, OR-Tools Apache-2.0,
+# PySCIPOpt MIT wrapper over a separately-licensed SCIP build, Cbc EPL-2.0),
+# all lazy-imported, none loaded until a solve_* tool is called.
+# NOTE ortools and highspy each bundle their own libhighs and the dynamic
+# linker binds to whichever loads first - so CP-SAT runs in a subprocess.
+# See src/tee/fleet/_cpsat_worker.py; do not "simplify" that away.
+solve = [
+    "pulp>=3.3.2",
+    "highspy>=1.15.1",
+    "pyscipopt>=6.2.1",
+    "ortools>=9.15,<10",
+]
 # assets-embed / assets-gen are declared below but stay loosely pinned on
 # purpose: torch wheels are backend- and machine-specific (CUDA build vs the
 # Apple-Silicon build), so pinning an exact version here would break one of

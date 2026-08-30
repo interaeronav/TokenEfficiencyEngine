@@ -6465,3 +6465,61 @@ Surfaced as `report_spend` (virtual, zero always-loaded growth) plus a
 `spend` line in `report_savings` and the recap.
 
 **Suite: 914 passed / 9 skipped** (901 → 914, 13 new), ruff clean.
+
+## 2026-08-30 — A45 P2a: the solver group, and two findings that only running it could produce
+
+`solve_program` (LP/MILP on HiGHS, SCIP or COIN-OR Cbc through PuLP's
+modelling layer), `solve_cpsat` (OR-Tools CP-SAT), `solve_detail`,
+`solve_backends`. All virtual; **always-loaded surface measured before and
+after and it did not move: 17 tools / 2,028 tok on the wire.** Virtual
+count 87 → 92.
+
+**Reference problem, hand-checkable, and all three engines agree:**
+maximise 3x+4y s.t. x+2y≤14, 3x−y≥0, 0≤x,y≤10 → **38.0 at x=10, y=2**,
+with `cap` correctly reported as the binding constraint.
+
+```
+  highs  status=optimal  obj=38.0  nonzero={'x': 10.0, 'y': 2.0}  binding=['cap']
+  scip   status=optimal  obj=38.0  nonzero={'x': 10.0, 'y': 2.0}  binding=['cap']
+  cbc    status=optimal  obj=38.0  nonzero={'x': 10.0, 'y': 2.0}  binding=['cap']
+```
+
+**Finding 1 — `contextlib.redirect_stdout` does not stop native code, and
+believing it does would have corrupted the protocol.** OR-Tools' HiGHS
+backend writes a 92-byte banner on every solve. Under `redirect_stdout`
+the captured buffer was **0 bytes and the banner still reached the
+terminal** — because C++ writes to file descriptor 1 directly and never
+passes through the Python object that helper rebinds. TEE speaks JSON-RPC
+over that exact descriptor. `fleet/quiet.py` does the `os.dup2` swap
+instead; measured, it captures exactly 92 bytes and the terminal stays
+clean. A test writes raw bytes to fd 1 to pin the property, and another
+asserts a real solve emits nothing.
+
+**Finding 2 — ortools and highspy cannot share a process, and the failure
+depends on IMPORT ORDER.** Each bundles its own `libhighs`; the dynamic
+linker binds OR-Tools' symbols to whichever loaded first:
+
+```
+import ortools ; import highspy   -> fine
+import highspy ; import ortools   -> ImportError: symbol not found
+                                     __Z19setLocalOptionValue...
+```
+
+CP-SAT passed standalone and then failed inside the test file, purely
+because an earlier test had loaded highspy. A server that dispatches tools
+in model-chosen order cannot control that, and a server whose correctness
+depends on which tool ran first is not correct. **CP-SAT now runs in a
+subprocess** (`fleet/_cpsat_worker.py`, deliberately importing nothing from
+`tee` so it works identically from a venv, an editable install or the
+.mcpb). Cost: one process spawn. A regression test loads highspy, solves
+with it, and then asserts CP-SAT still returns the right answer.
+
+**Token discipline, measured.** A 400-variable model with 250 non-zeros
+answers with 12 variables, the objective, the binding constraint and a
+`solution_id` — the other 238 are a `solve_detail` call that must be asked
+for. CP-SAT knapsack verified by hand: capacity 4 over a=(w3,v5),
+b=(w2,v3), c=(w2,v4) → b+c = 7, correctly beating a alone at 5.
+
+**Suite: 936 passed / 9 skipped** (918 → 936, 18 new), ruff clean.
+Declared as the `[solve]` extra; nothing is imported until a `solve_*`
+tool is actually called.

@@ -177,6 +177,13 @@ class TeeApp:
 
         register_session_tools(self)  # report_savings + handoff (A37 P6)
         register_trust_tools(self)  # tee_trust: the kernel's visibility (A43)
+
+        # A45 P2: the headless fleet. Registration is metadata only - no
+        # solver, CAD kernel or imaging library is imported until a tool is
+        # actually called, so an uninstalled extra costs nothing at startup.
+        from tee.fleet.tools import register_fleet_tools
+
+        register_fleet_tools(self)
         register_board_tools(self)  # board_compose (A37 P7)
 
     @property
