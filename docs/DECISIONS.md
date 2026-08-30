@@ -904,3 +904,40 @@ safeguard, routing around the classifier, scrubbing accurate technical
 vocabulary to dodge detection, or using a local/uncensored model to
 avoid review (the client-policy law binds this too). Honest labeling
 and correct model choice, nothing more.
+
+## 2026-08-30 — A45: TEE is a private tool; licence shape stops driving architecture (owner)
+
+Asked directly, during the A45 fleet research: *"its just for me, keep it
+simple."*
+
+**What that settles.** Copyleft obligations (GPL, LGPL, AGPL) attach to
+DISTRIBUTION — handing the software to someone else. A tool that runs only
+on the owner's own machine and is given to nobody does not trigger them.
+So the fifteen A45 resources are integrated on **engineering merit**:
+in-process import where that is the cleanest and fastest, subprocess where
+the tool is a CLI, HTTP where the thing is genuinely a server. Licence no
+longer picks the seam.
+
+**What this deliberately does NOT change.**
+
+- `pyproject.toml` stays `license = { text = "MIT" }`. That is TEE's own
+  code, which the owner wrote and can license as he likes. Nothing about a
+  GPL dependency changes what TEE's own source is offered under while it
+  is not distributed.
+- Copyleft resources stay **optional extras**, never hard dependencies, and
+  never vendored into the repo or the `.mcpb`. They are installed by the
+  owner into his own environment. This costs nothing — it is the extras
+  pattern A45 uses anyway — and it is what keeps the revisit cheap.
+- Each such module carries a one-line licence note at the top. A note, not
+  an architecture.
+
+**The revisit trigger, recorded so it is not rediscovered the hard way.**
+If TEE is ever published, sold, bundled for someone else, or **exposed to
+other users over a network**, this decision expires and the copyleft
+resources must be re-examined before that happens. The network case is
+called out specifically because AGPL treats remote use as distribution —
+that is the one that would bite a "just for me" tool the moment it grew a
+shared endpoint.
+
+Engineering opinion, not legal advice; the owner is the one who decides
+what he does with his own software.
