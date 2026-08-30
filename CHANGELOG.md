@@ -3,6 +3,42 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.9.0 — 2026-08-31
+
+The A45 campaign: **permissions that help instead of block**, a **money
+meter**, and the **headless fleet** (suite 885 → 1,015; always-loaded
+surface unchanged at 17 tools / 2,028 tok — every new capability is
+virtual).
+
+- **Permissions (P0)**: grants reload on config change, so an edit takes
+  effect on the next call rather than the next restart. `[trust] profile`
+  presets (`readonly` / `build` / `workstation` / `workstation+paid`) grant
+  a coherent set in one line. Refusals name the loaded file, the exact
+  line, and the smallest covering profile. A config that stops parsing
+  fails closed rather than retaining the previous grants.
+- **Money meter (P1, `kernel/spend.py`)**: closes SI-B16 and SI-B18. Exact
+  tokens sent/returned, reasoning tokens the provider billed but never
+  showed, bytes on the wire and the endpoint host — plus a cost estimate
+  ONLY from a rate declared beside the profile. TEE ships no price table:
+  a stale rate is worse than none. `report_spend`, and a `spend` line in
+  `report_savings`.
+- **The fleet (P2)**: `solve_` (HiGHS / SCIP / Cbc / OR-Tools CP-SAT),
+  `quant_` (PyPortfolioOpt / skfolio), `med_` (Orthanc over HTTP + MONAI),
+  `cad_` (OpenSCAD subprocess + CadQuery), `bi_` (Cube), `trade_`
+  (backtesting). All optional extras with lazy imports and honest refusals;
+  see `docs/setup-fleet.md`.
+- **Trading safety**: `place-order` is reserved and **ungrantable**; no
+  `trade_` family prefix, so an order-shaped tool name is a startup error;
+  a registry-wide name sweep and a source assertion that the module holds
+  no HTTP client or credential. TEE places no orders and reads no live
+  broker account.
+- **Two holes closed in the same campaign that opened them**: the
+  `('trade_', 'read-compute')` prefix, and `place-order` being grantable
+  through a hot-reloaded config.
+- **Fixed**: SI-B10 reopened and re-closed — pinning the paid engine had
+  silently disabled the kb-rerank judge, and the weak-band fallback then
+  asserted an unjudged hint. The fallback now drops.
+
 ## 0.8.0 — 2026-08-30
 
 The A43 build: the **trust kernel** first, then the **pipeline lane** as

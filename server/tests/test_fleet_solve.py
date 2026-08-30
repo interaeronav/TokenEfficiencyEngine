@@ -181,9 +181,9 @@ def test_bad_specs_are_refused_before_any_solver_runs():
         ({"variables": {"x": {"type": "complex"}}}, "unknown"),
         ({"variables": {"x": {}}, "objective": {"ghost": 1}}, "undeclared"),
     ):
-        with pytest.raises(TeeError):
+        with pytest.raises(TeeError) as e:
             solve.solve(spec)
-    assert expect  # the messages are asserted by type above
+        assert expect in e.value.message, f"{spec} -> {e.value.message}"
 
 
 def test_tools_register_on_the_read_compute_capability():

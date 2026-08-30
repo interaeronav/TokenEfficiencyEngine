@@ -83,12 +83,9 @@ def _params_file(params: dict[str, Any], tmp: Path) -> Path | None:
                 f"parameter name '{key}' is not a plain identifier.",
                 fix="Names must match [A-Za-z_][A-Za-z0-9_]* - no expressions.",
             )
-        if (
-            isinstance(v, bool)
-            or isinstance(v, (int, float))
-            or isinstance(v, str)
-            or (isinstance(v, list) and all(isinstance(x, (int, float)) for x in v))
-        ):
+        scalar = isinstance(v, (bool, int, float, str))
+        numeric_list = isinstance(v, list) and all(isinstance(x, (int, float)) for x in v)
+        if scalar or numeric_list:
             clean[key] = v
         else:
             raise TeeError(

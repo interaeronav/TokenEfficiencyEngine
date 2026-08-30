@@ -164,9 +164,7 @@ def test_metering_never_breaks_the_chore_it_measures(monkeypatch):
 
     payload = {"choices": [{"message": {"content": "hello"}}], "usage": {}}
     monkeypatch.setattr(local_llm.json, "load", lambda r: payload)
-    monkeypatch.setattr(
-        local_llm.urllib.request, "urlopen", lambda *a, **k: FakeResp()
-    )
+    monkeypatch.setattr(local_llm.urllib.request, "urlopen", lambda *a, **k: FakeResp())
     text = local_llm.complete("hi", url="http://x/v1", model="m", on_usage=boom)
     assert text == "hello"
     assert calls["n"] == 1, "the hook was called and its failure was swallowed"

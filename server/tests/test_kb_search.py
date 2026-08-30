@@ -1,5 +1,3 @@
-
-
 # -- A45: SI-B10 REOPENED, with three live misfires from a real session -----
 
 
