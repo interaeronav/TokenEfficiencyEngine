@@ -6616,3 +6616,59 @@ reads an account), so **no live account reads either** — the credential is
 the hazard, not the verb.
 
 **Suite: 955 passed / 9 skipped**, ruff clean.
+
+## 2026-08-30 — A45 P2c: DICOM archives and volumes, with PHI off by default
+
+`med_archive`, `med_find_studies`, `med_study_tree`, `med_instance_tags`,
+`med_volume_stats`, `med_backends`. **Surface still 17 tools / 2,028 tok**;
+virtual 95 → 101.
+
+**Two seams, chosen for different reasons.** Orthanc is reached over plain
+HTTP with **zero new dependencies** (stdlib `urllib`) and is never
+imported — upstream's own licensing FAQ blesses "calling Orthanc from a
+third-party system (using REST API or DICOM protocol)" while stating an
+in-process plugin becomes GPL "by copyleft contamination", so TEE writes no
+plugin and links nothing. MONAI (Apache-2.0) is an ordinary lazy import.
+
+**Verified against a real archive, not a mock.** Pulled
+`orthancteam/orthanc:latest` (2.61 GB), started it with
+`DICOM_WEB_PLUGIN_ENABLED=true` — the research verifier's correction; the
+plain command does NOT load DICOMweb — and loaded five real instances from
+the public UCLouvain demo, resolving instance IDs at runtime because the
+demo's UUIDs rotate:
+
+```
+system : 1.13.0 {'patients': 3, 'studies': 3, 'series': 4, 'instances': 5}
+studies: 3 -> 3 rows
+   RT^HEAD_NECK (Adult)          CT  20091022  1 series
+   IRM cerebrale, neuro-crane    MR  20061201  2 series
+   CT2 tete, face, sinus         CT  20050927  1 series
+tags   : 67 | PixelData present? False
+PHI leaked: NONE
+phi=true -> ['PatientBirthDate', 'PatientID', 'PatientName', 'PatientSex']
+```
+
+**PHI is withheld by default** — the largest per-row saving available and
+the right default for medical data. A study list exists to find a study;
+identity is rarely the question. Asserted server-free, because it is the
+one behaviour that must never regress quietly.
+
+**MONAI half, on a real CT slice:** 512×512, **min −1000 HU** (air, by
+definition) and max 1529 (bone) — physically correct values, which is a
+stronger signal than "it returned something". Only scalars come back; a
+test asserts the voxel array never reaches the payload.
+
+**Three defects found by running it:**
+1. **My own:** IDs were truncated to 12 chars "for compactness". An
+   identifier that cannot be passed to the next call is not an identifier,
+   and an answer that forces a re-query is not compact. Full 44-char
+   Orthanc UUIDs now, ~12 tokens each, and a test asserts they round-trip.
+2. **Level names derived by slicing:** `"studies"[:-1].capitalize()` gives
+   `"Studie"` and a live 400. Protocol vocabularies are not regular; the
+   names are now spelled out, with a test.
+3. **MONAI reads neither DICOM nor NIfTI on its own** — the base install
+   registers only Numpy and PIL readers, so a valid CT failed with "cannot
+   find a suitable reader" and no hint. `pydicom` and `nibabel` are now
+   part of `[medimg]`, and the refusal names them.
+
+**Suite: 970 passed / 9 skipped** (955 → 970), ruff clean.

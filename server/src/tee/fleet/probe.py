@@ -11,9 +11,18 @@ traceback the model has to interpret.
 from __future__ import annotations
 
 import importlib
+import importlib.metadata
+import importlib.util
 from typing import Any
 
 from tee.kernel.errors import TeeError
+
+# import name -> distribution name, where they differ
+_DIST = {
+    "pypfopt": "pyportfolioopt",
+    "cv2": "opencv-python-headless",
+    "PIL": "pillow",
+}
 
 # group -> (pip extra, the resources it brings, install line)
 EXTRAS: dict[str, tuple[str, str, str]] = {
@@ -29,7 +38,7 @@ EXTRAS: dict[str, tuple[str, str, str]] = {
     ),
     "medimg": (
         "medimg",
-        "MONAI Core (Orthanc itself is a separate server you run)",
+        "MONAI Core + pydicom + nibabel (Orthanc is a separate server you run)",
         "uv pip install 'tee-engine[medimg]'",
     ),
 }
@@ -50,11 +59,15 @@ def need(module: str, group: str, *, what: str = "") -> Any:
 
 
 def have(module: str) -> bool:
-    """Cheap presence check for probe tools; never raises."""
+    """Cheap presence check; never raises, and never IMPORTS.
+
+    A probe that answers "not installed" must not first pay 344 ms to load
+    torch in order to say so. `find_spec` locates the module without
+    executing it - which also means a probe cannot be poisoned by an
+    optional dependency's import-time side effects."""
     try:
-        importlib.import_module(module)
-        return True
-    except Exception:
+        return importlib.util.find_spec(module) is not None
+    except (ImportError, ValueError, ModuleNotFoundError):
         return False
 
 
@@ -65,12 +78,12 @@ def probe_rows(modules: dict[str, str]) -> dict[str, Any]:
         present = have(mod)
         row: dict[str, Any] = {"installed": present}
         if present:
-            try:
-                m = importlib.import_module(mod)
-                v = getattr(m, "__version__", None)
-                if v:
-                    row["version"] = str(v)
-            except Exception:
-                pass
+            # version from metadata, not from importing the package
+            for dist in (_DIST.get(mod, mod), mod.replace("_", "-")):
+                try:
+                    row["version"] = importlib.metadata.version(dist)
+                    break
+                except importlib.metadata.PackageNotFoundError:
+                    continue
         rows[label] = row
     return rows

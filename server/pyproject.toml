@@ -65,6 +65,17 @@ quant = [
     "pandas>=2.0",
     "packaging",
 ]
+# A45 P2c: medical imaging. MONAI Apache-2.0, pydicom MIT, nibabel MIT.
+# MONAI alone registers only Numpy/PIL readers - pydicom and nibabel are
+# what let it open a DICOM or a NIfTI at all, so they are not optional here.
+# Orthanc is NOT listed: it is GPLv3 and is reached over HTTP as a server
+# the owner runs, never imported and never bundled.
+medimg = [
+    "monai>=1.6.0",
+    "pydicom>=3.0",
+    "nibabel>=5.3",
+    "numpy>=1.24",
+]
 # assets-embed / assets-gen are declared below but stay loosely pinned on
 # purpose: torch wheels are backend- and machine-specific (CUDA build vs the
 # Apple-Silicon build), so pinning an exact version here would break one of

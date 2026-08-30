@@ -83,6 +83,42 @@ def register_fleet_tools(app) -> None:
 
         return quant.backends()
 
+    def _med_cfg(args: dict[str, Any]) -> dict[str, Any]:
+        """Merge [med] from the project config under the call's own args."""
+        base = dict(getattr(app.config, "med", {}) or {})
+        base.update(dict(args or {}))
+        return base
+
+    def med_archive(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import med
+
+        return med.system(_med_cfg(args))
+
+    def med_find_studies(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import med
+
+        return med.find_studies(_med_cfg(args))
+
+    def med_study_tree(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import med
+
+        return med.study_tree(_med_cfg(args))
+
+    def med_instance_tags(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import med
+
+        return med.instance_tags(_med_cfg(args))
+
+    def med_volume_stats(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import med
+
+        return med.volume_stats(dict(args or {}))
+
+    def med_backends(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import med
+
+        return med.backends(_med_cfg(args))
+
     for tool in [
         VirtualTool(
             "solve_program",
@@ -251,6 +287,99 @@ def register_fleet_tools(app) -> None:
             {"type": "object", "properties": {}},
             quant_backends,
             tags=["portfolio", "quant", "backends", "installed", "probe"],
+        ),
+        VirtualTool(
+            "med_archive",
+            "Is a DICOM archive (Orthanc) reachable, and what does it hold: "
+            "version, loaded plugins, and counts of patients / studies / "
+            "series / instances. Orthanc is a server YOU run; TEE only "
+            "speaks HTTP to it and never bundles or links it.",
+            {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                    "username": {"type": "string"},
+                    "password": {"type": "string"},
+                },
+            },
+            med_archive,
+            tags=["dicom", "medical", "orthanc", "pacs", "archive", "imaging", "radiology"],
+        ),
+        VirtualTool(
+            "med_find_studies",
+            "Search a DICOM archive for studies. Compact rows - date, "
+            "description, modality, series count - with full Orthanc IDs "
+            "you can pass on. PATIENT IDENTIFIERS ARE WITHHELD unless you "
+            "pass phi=true.",
+            {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "object"},
+                    "limit": {"type": "integer"},
+                    "phi": {"type": "boolean"},
+                    "url": {"type": "string"},
+                    "username": {"type": "string"},
+                    "password": {"type": "string"},
+                },
+            },
+            med_find_studies,
+            tags=["dicom", "study", "search", "find", "orthanc", "medical", "modality", "pacs"],
+            examples=[{"query": {"ModalitiesInStudy": "CT"}, "limit": 10}],
+        ),
+        VirtualTool(
+            "med_study_tree",
+            "One study's series: modality, description, body part and "
+            "instance counts, with IDs. Never instance-level, never pixels.",
+            {
+                "type": "object",
+                "properties": {
+                    "study_id": {"type": "string"},
+                    "phi": {"type": "boolean"},
+                    "url": {"type": "string"},
+                    "username": {"type": "string"},
+                    "password": {"type": "string"},
+                },
+                "required": ["study_id"],
+            },
+            med_study_tree,
+            tags=["dicom", "study", "series", "tree", "orthanc", "medical"],
+        ),
+        VirtualTool(
+            "med_instance_tags",
+            "The DICOM header of one instance. Pixel data is never "
+            "returned; pass `tags` to select specific ones, phi=true to "
+            "include identifiers.",
+            {
+                "type": "object",
+                "properties": {
+                    "instance_id": {"type": "string"},
+                    "tags": {"type": "array"},
+                    "phi": {"type": "boolean"},
+                    "url": {"type": "string"},
+                    "username": {"type": "string"},
+                    "password": {"type": "string"},
+                },
+                "required": ["instance_id"],
+            },
+            med_instance_tags,
+            tags=["dicom", "tags", "header", "metadata", "instance", "orthanc"],
+        ),
+        VirtualTool(
+            "med_volume_stats",
+            "Scalar statistics of a LOCAL image volume via MONAI - shape, "
+            "intensity range, mean, spacing, non-zero fraction. Never the "
+            "voxel array. Reads DICOM, NIfTI, PNG and more.",
+            {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+            med_volume_stats,
+            tags=["monai", "volume", "nifti", "dicom", "statistics", "imaging", "medical", "voxel"],
+        ),
+        VirtualTool(
+            "med_backends",
+            "Which imaging libraries are installed and whether a DICOM "
+            "archive is reachable, with the exact fix for each.",
+            {"type": "object", "properties": {"url": {"type": "string"}}},
+            med_backends,
+            tags=["medical", "imaging", "backends", "probe", "installed", "orthanc", "monai"],
         ),
     ]:
         app.registry.register(tool)
