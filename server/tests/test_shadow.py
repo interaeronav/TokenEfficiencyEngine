@@ -64,12 +64,14 @@ def test_greedy_choice_math():
 
 
 def test_record_failure_is_swallowed(tmp_path):
+    # Force the write to fail with ENOTDIR (a file where a directory is
+    # expected) rather than chmod 000: root ignores permission bits, so a
+    # chmod-based block silently passes-through in containers and CI.
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory")
     shadow.RECORDER.enable(tmp_path)
-    tmp_path.chmod(0o000)
-    try:
-        shadow.record(TaskDescriptor(id="x", kind="chore"), {"outcome": "verified"})
-    finally:
-        tmp_path.chmod(0o755)
+    shadow.RECORDER._dir = blocker / "sub"  # enable() would refuse; force the broken state
+    shadow.record(TaskDescriptor(id="x", kind="chore"), {"outcome": "verified"})
     assert shadow.RECORDER.recent() == []  # nothing written, nothing raised
 
 
