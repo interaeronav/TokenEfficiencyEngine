@@ -5359,3 +5359,19 @@ project's steps run unmodified; needing a server/ change is a
 generality bug) → P6 two-project benchmark + close. Project survey
 recorded: DiversionPlanner-BaseMap has 36 py files and no `.tee/`
 yet; OkongoSim and TEE both have `.tee/`. Expected 0.8.0.
+
+## 2026-08-30 — qmax wired: a paid hosted chore profile, pin-only (owner)
+
+Owner directed Qwen-Max as the in-place chore engine and confirmed he
+knows it is hosted. Verified first: his shim carries a
+`claude-qwen-max` route to DashScope international with his own
+comment "Conversations on this model leave the machine and bill per
+token"; the key file exists (116 B); no local weights by that name.
+Wired as an unmanaged `[llm.profiles.qmax]` in the machine-local
+`.tee/config.toml` (gitignored) pointing at the shim; `tee doctor`
+loads clean. The installed Desktop server still refuses the switch —
+it read config at startup — so an extension restart is required, and
+that was reported rather than claimed. A39's no-cloud law amended in
+DECISIONS (intent named, not lawyered); SI-B16 filed for the missing
+enforcement (`paid` flag unread, no meter spend column, router
+exclusion needed).

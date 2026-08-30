@@ -130,3 +130,10 @@ Format per item:
 - hurt: every virtual tool assumes live scene state (epoch/revision, diffs, checkpoints); a file-in/file-out build pipeline has none of that, so TEE cannot drive the owner's basemap build at all. ONE op earned its place: capture_terrain's dem_diff, because it is a DECLARED HEADLESS OPERATION (qgis:rastercalculator, typed inputs/outputs, jobs pattern, compact report) — the seed pattern for the fix.
 - proposed: the pipeline lane — projects declare owner-authored steps in their own tracked .tee/pipeline.toml (name, command, inputs/outputs, cost hint); TEE runs declared steps only (never model-invented shell), as jobs: ledger-registered, QoS batch under the K-layer scheduler (steps with declared inputs/outputs ARE task-graph nodes), budgeted progress, artifact diffs (changed outputs, sizes, hashes), rule-6 failures with the failing step's tail. First customer: the DiversionPlanner basemap build. dem_diff generalizes from one wrapped op to any declared step.
 - status: open (A43 candidate — owner's word)
+
+## SI-B16 — `paid = true` is declarative; nothing enforces it
+- seen: 2026-08-30, wiring the owner's qmax (hosted Qwen-Max) profile
+- call: `[llm.profiles.qmax] paid = true` in .tee/config.toml
+- hurt: the flag documents intent but no code reads it. The router could in principle select a paid profile while unpinned (automatic off-machine spend), and report_savings has no paid-call/cost column, so spend would be invisible next to the free local rows.
+- proposed: (1) router hard-excludes profiles with `paid = true` from automatic selection — pin-only, fixture-proven; (2) the meter gains paid-call count + a spend estimate column, labelled as an estimate; (3) llm_switch's report says "PAID, off-machine" on every switch INTO such a profile.
+- status: open (next campaign; qmax is pin-only-safe meanwhile)

@@ -836,3 +836,32 @@ untrusted content still can never cause execution. An adopt flow
 turns a successful ad-hoc run into a declared step (argv, inferred
 inputs/outputs, measured cost) for the owner to accept. Scripted as
 phase P0b.
+
+## 2026-08-30 — A39 law amended: a paid hosted profile, pin-only (owner decision)
+
+The owner directed Qwen-Max as an in-place chore engine, confirming he
+knows it is hosted. Wired as `[llm.profiles.qmax]` in the machine-local
+`.tee/config.toml` (gitignored): url = the owner's LiteLLM shim on
+:4000, model = `claude-qwen-max` → Alibaba DashScope, `paid = true`.
+
+**The law this amends, stated plainly rather than lawyered:** A39/
+research 55 recorded "TEE never calls a cloud API; escalation means
+returning the task to the client." Technically TEE still calls only
+localhost — the shim makes the outbound call — but the effect is what
+the law was protecting against: chore inputs (tracebacks, file
+excerpts, KB passages, web extracts) LEAVE THE MACHINE and bill per
+token. The letter survives; the intent does not. Recorded as an
+amendment, not a loophole.
+
+Guards that preserve as much of the intent as possible: qmax is never
+the default (q14b stands, owner 2026-08-28); it is unmanaged, so
+pinning it frees local RAM rather than consuming it and the
+single-occupancy lifecycle does not apply; and it must never be an
+automatic router escalation target — the router's ladder tops out at
+return-to-client, which is free.
+
+**Enforcement gap, filed as SI-B16 and not hidden:** `paid = true` is
+declarative today. Nothing in code yet stops the router from selecting
+a paid profile while unpinned, and the meter has no paid-call column.
+Until SI-B16 lands, qmax is safe only as an explicit pin (a pin
+suspends roaming by the A39 law).
