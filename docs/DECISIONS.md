@@ -887,3 +887,20 @@ gives SI-B16's unenforced `paid = true` teeth. Guard against
 over-engineering: TOML grants only, no policy language, no roles; if
 it needs a DSL it is wrong. Built as the A43 script's new foundation
 phase T-1, with the pipeline lane as its first tenant.
+
+## 2026-08-30 — A43 working policy: defensive-intent framing + stakes-based model tiers (owner)
+
+Fable sessions running the A43 script kept escalating to Opus 4.8. Root
+cause: the work is genuinely security-sensitive AND research 60–65 read
+like offensive material out of context (~30 injection/attacker/
+exfiltration hits, no intent framing) — the escalation is the safeguard
+working, so the goal is fewer FALSE positives, never evasion.
+Integrated: a defensive-intent banner on research 60/62/63/64/65 (61
+already had framing); a model-assignment law in the A43 script (fast
+model for low-risk mechanical phases; careful model for the trust
+kernel/taint/side-effecting phases; accept escalation there); and a
+CLAUDE.md stance line. Explicitly NOT done and forbidden: disabling the
+safeguard, routing around the classifier, scrubbing accurate technical
+vocabulary to dodge detection, or using a local/uncensored model to
+avoid review (the client-policy law binds this too). Honest labeling
+and correct model choice, nothing more.

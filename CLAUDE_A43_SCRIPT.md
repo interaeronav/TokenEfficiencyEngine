@@ -88,6 +88,14 @@ A one-paste prompt for a fresh session:
   return the tail, rule-6 shaped, naming the step.
 - **Generality is proven, not asserted**: no completion claim until a
   SECOND project's steps run through the same lane unmodified.
+- **Model assignment (owner, 2026-08-30): let stakes pick the tier,
+  do not fight escalation.** Low-risk mechanical phases (schema,
+  fixtures, the pipeline runner, artifact diffs) may run on a fast
+  model; the trust kernel (T-1, L0–L7), the taint model, and anything
+  touching a side-effecting capability run on the careful model. If a
+  safety review escalates a phase, that is the guardrail working — do
+  the phase there; never disable the safeguard, route around the
+  classifier, or use a local/uncensored model to avoid review.
 - **Client-policy alignment (owner, 2026-08-30): nothing in this
   campaign may be designed to weaken or route around the AI client's
   own safety policies.** TEE is driven by clients (Claude among them)

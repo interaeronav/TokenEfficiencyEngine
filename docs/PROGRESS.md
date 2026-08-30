@@ -5540,3 +5540,17 @@ jobs admission, gateway prefix/fingerprint, router swap (gives SI-B16
 paid flag teeth via the kernel), and the client-policy law (live-turn =
 the client's own consent turn, complement not bypass). T-1 gains the
 build order; no new capability, just safe assembly.
+
+## 2026-08-30 — Safety-escalation recommendations integrated; ready to build
+
+Fable→Opus escalation on the A43 script diagnosed as the safeguard
+correctly reacting to security-sensitive, adversarially-worded content.
+Integrated the legitimate fixes repo-wide: defensive-intent banner
+added to research 60/62/63/64/65; model-assignment law in the A43
+script (stakes pick the tier, accept escalation on security phases,
+never evade); CLAUDE.md stance line; defensive-intent declaration
+already on the script header (b4fa005). Deliberately did NOT scrub
+technical vocabulary (injection/attacker are load-bearing threat-model
+terms) or touch the safeguard. The A43 build can proceed under this
+policy: kernel first (L0–L7, security phases on the careful model),
+pipeline lane as first tenant. Everything within Anthropic policy.

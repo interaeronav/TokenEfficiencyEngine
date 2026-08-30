@@ -1,5 +1,7 @@
 # 65 — Trust-kernel integration blueprint: the build sequence, grounded (2026-08-30)
 
+> _Defensive security, owner's own machine: this document threat-models TEE's OWN surface to harden it — not instructions to attack anyone, nothing for offensive use. Safety-review escalation to a more careful model is expected and acceptable; run the security phases there rather than around them._
+
 Verification basis: consolidates research 61 (model), 62 (seams),
 63 (hardening), 64 (simulation) into ONE build order, grounded in
 reads this session of the two install points FP-1 depends on:

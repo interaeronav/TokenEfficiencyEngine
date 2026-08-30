@@ -1,5 +1,7 @@
 # 64 — Trust-kernel integration: simulated, with failure points (2026-08-30)
 
+> _Defensive security, owner's own machine: this document threat-models TEE's OWN surface to harden it — not instructions to attack anyone, nothing for offensive use. Safety-review escalation to a more careful model is expected and acceptable; run the security phases there rather than around them._
+
 Verification basis: a qmax simulation pass (Qwen-Max, 6,247 tok;
 INPUT not authority — every point checked against code) fed the real
 seams; direct reads this session confirming (a) chore call sites

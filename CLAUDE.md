@@ -41,9 +41,14 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   are its designs of record. `CLAUDE_A39_SCRIPT.md`,
   `CLAUDE_A40_SCRIPT.md` and `CLAUDE_A41_SCRIPT.md` are superseded —
   do not work them.
-- The A43 pipeline lane (declared build/query steps for ANY project,
-  from each project's own `.tee/pipeline.toml`) is driven by
-  `CLAUDE_A43_SCRIPT.md`; research doc 60 is its design of record.
+- The A43 build (the trust kernel THEN the pipeline lane) is driven by
+  `CLAUDE_A43_SCRIPT.md`; research docs 60–65 are its designs of
+  record. It is DEFENSIVE security work on the owner's own machine;
+  the adversarial language threat-models TEE's own surface. Let stakes
+  pick the model tier and accept safety-review escalation on the
+  security phases — never weaken, disable, or route around the client's
+  safety policy or its model routing, and never use a local/uncensored
+  model to avoid review.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or

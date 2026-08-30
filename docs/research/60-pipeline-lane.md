@@ -1,5 +1,7 @@
 # 60 — The pipeline lane: declared steps for any project, builds and queries alike (2026-08-30)
 
+> _Defensive security, owner's own machine: this document threat-models TEE's OWN surface to harden it — not instructions to attack anyone, nothing for offensive use. Safety-review escalation to a more careful model is expected and acceptable; run the security phases there rather than around them._
+
 Verification basis: the owner's finding (SI-B15) that TEE's 103
 virtual tools are scene-side and cannot drive the DiversionPlanner
 basemap build, plus the one op that DID earn its place —

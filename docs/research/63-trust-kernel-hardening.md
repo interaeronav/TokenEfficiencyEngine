@@ -1,5 +1,7 @@
 # 63 — Trust-kernel hardening: the four soft spots, attacked and fixed (2026-08-30)
 
+> _Defensive security, owner's own machine: this document threat-models TEE's OWN surface to harden it — not instructions to attack anyone, nothing for offensive use. Safety-review escalation to a more careful model is expected and acceptable; run the security phases there rather than around them._
+
 Verification basis: an adversarial pass by the qmax engine (Qwen-Max,
 4,249 tok billed; treated as INPUT, not authority — each fix checked
 against code below); direct reads this session of `kernel/memory.py`
