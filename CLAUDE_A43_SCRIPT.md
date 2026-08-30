@@ -43,6 +43,18 @@ A one-paste prompt for a fresh session:
   element (proven by a hostile-value fixture).
 - **The declaration belongs to the project**, in its tracked
   `.tee/pipeline.toml`. TEE hard-codes no project, path, or domain.
+- **The bound is the point, not the ceremony** (addendum 2): an
+  always-allowed TEE tool must confer a BOUNDED capability. Hence:
+  narrow by construction (exact argv; no shell/globs; `params` typed
+  AND constrained by enum/pattern — an unconstrained `make {target}`
+  is refused as a laundered allowlist); **TEE never writes
+  `pipeline.toml`** (the adopt flow emits `.tee/pipeline.proposed.toml`
+  for the owner to move — fixture: any write attempt to the real file
+  fails); **trust-on-first-use per project** — the approved
+  declaration file is hash-pinned, and an unapproved or CHANGED file
+  refuses to run with the diff named (a cloned repo's pipeline.toml is
+  attacker-authored by definition); and every run is audit-logged
+  (argv, params, caller class, exit, artifacts).
 - **Answers, not logs**: produce-steps report artifact diffs;
   query-steps report their own structured output, budgeted; failures
   return the tail, rule-6 shaped, naming the step.

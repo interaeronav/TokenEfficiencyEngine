@@ -185,3 +185,53 @@ friction TEE is supposed to remove.
 Net: declared-by-default keeps the security and the compact answers;
 the gated door removes the barrier; the adopt flow converts one into
 the other. The strict-only version of this law is superseded.
+
+## Addendum 2 (second look with the qmax engine, 2026-08-30)
+
+The owner re-opened the trust question with the hosted engine active.
+Asked for the strongest argument AGAINST pre-declaration, qmax
+(Qwen-Max, 71.9 s, 3,464 tok billed — its answer treated as input, not
+authority) landed the sharpest framing yet:
+
+> "Pre-declaration turns consent into a static allowlist. Once a user
+> clicks 'always allow' for TEE, any declared step can be invoked
+> silently... It is defeated if configs become broad, repo-imported,
+> or agent-editable, because then pre-declaration is just a laundered
+> always-allow list."
+
+**This corrects the reasoning in the first addendum.** The declaration
+was justified there mainly as injection containment. The sharper truth:
+the client's own per-tool approval is the human gate — but MCP clients
+offer "always allow", after which calls are silent. So the real
+property TEE must guarantee is that **an always-allowed TEE tool
+confers a BOUNDED capability (the steps the owner wrote) rather than
+an unbounded one (any command)**. Declaration is a means to that end,
+not an end in itself — which is why the gated ad-hoc door (live human
+turn only) does not weaken it.
+
+Three hardening rules follow, and one is a hole the first pass missed:
+
+1. **Narrow by construction.** Exact argv; no shell, no globs inside
+   argv; `params` must be typed and constrained (enum or pattern) so a
+   caller cannot smuggle a different target through a free-form
+   string. A step declared as `make {target}` with an unconstrained
+   `target` IS the laundered allowlist — refused by the validator.
+2. **TEE never writes the declaration file.** The adopt flow emits a
+   PROPOSAL (`.tee/pipeline.proposed.toml`) the owner reviews and
+   moves; an agent-editable config would let injected content author
+   its own permissions. Fixture: any code path attempting to write
+   `pipeline.toml` fails.
+3. **Trust on first use, per project — THE MISSED HOLE.** A cloned or
+   third-party repository can ship its own `.tee/pipeline.toml`, which
+   is attacker-authored by definition. TEE must record a hash of the
+   declaration file the owner approved, refuse to run steps from an
+   unapproved or CHANGED file (naming the diff), and treat approval as
+   per-project and revocable. Without this, "declared" means "declared
+   by whoever wrote the repo you cloned".
+4. **Audit**: every run (declared or ad-hoc) appended to a per-project
+   log — argv, params, caller class, exit, artifacts touched.
+
+Net: the answer to "is declaration really necessary?" is *the
+declaration is not sacred; the bound is*. Keep declarations because
+they are the cheapest way to make an always-allowed tool bounded, and
+harden them per 1–3 so they cannot quietly become unbounded.

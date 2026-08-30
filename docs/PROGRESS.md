@@ -5423,3 +5423,19 @@ machine, as designed.
 Recommendation recorded: qmax is a deliberate lever, not a default —
 the evidence still favours q14b+a2 for chores. Nothing adopted; the
 owner's pin stands until he switches back.
+
+## 2026-08-30 — second look at the pipeline trust law, with qmax as reviewer
+
+Owner re-opened "is declared-steps-only really necessary?" with the
+hosted engine active. qmax's critique (71.9 s, 3,464 tok, treated as
+input not authority) reframed it better than the first pass:
+pre-declaration is "a laundered always-allow list" IF configs become
+broad, repo-imported or agent-editable. Recorded as research 60
+addendum 2 and folded into the A43 laws: the property TEE owes is that
+an ALWAYS-ALLOWED tool confers a bounded capability, not that
+declaration is sacred. Hardening: exact argv with enum/pattern-
+constrained params (unconstrained `make {target}` refused); TEE never
+writes pipeline.toml (adopt emits a .proposed file); **trust-on-first-
+use hash-pinning per project — the hole the first pass missed, since a
+cloned repo ships its own attacker-authored declarations**; and audit
+logging of every run. The gated ad-hoc door is unaffected.
