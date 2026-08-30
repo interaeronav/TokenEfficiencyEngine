@@ -63,6 +63,26 @@ def register_fleet_tools(app) -> None:
 
         return solve.backends()
 
+    def quant_optimize(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import quant
+
+        return quant.optimize(dict(args or {}))
+
+    def quant_detail(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import quant
+
+        a = dict(args or {})
+        return quant.detail(
+            str(a.get("weights_id", "")),
+            offset=int(a.get("offset") or 0),
+            limit=int(a.get("limit") or 100),
+        )
+
+    def quant_backends(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import quant
+
+        return quant.backends()
+
     for tool in [
         VirtualTool(
             "solve_program",
@@ -163,6 +183,74 @@ def register_fleet_tools(app) -> None:
             {"type": "object", "properties": {}},
             solve_backends,
             tags=["solve", "backends", "solver", "installed", "probe", "versions"],
+        ),
+        VirtualTool(
+            "quant_optimize",
+            "Portfolio optimisation over price or return series: max_sharpe, "
+            "min_volatility, hierarchical risk parity (PyPortfolioOpt) or "
+            "mean-risk (skfolio). Returns the holdings that matter plus "
+            "return / volatility / Sharpe computed on ONE basis for every "
+            "method so they are comparable - the libraries' own numbers are "
+            "not. Arithmetic, explicitly not investment advice.",
+            {
+                "type": "object",
+                "properties": {
+                    "prices": {"type": "object"},
+                    "returns": {"type": "object"},
+                    "method": {"type": "string"},
+                    "risk_free_rate": {"type": "number"},
+                    "periods_per_year": {"type": "number"},
+                    "min_weight": {"type": "number"},
+                    "max_weight": {"type": "number"},
+                    "risk_measure": {"type": "string"},
+                    "show": {"type": "integer"},
+                },
+            },
+            quant_optimize,
+            tags=[
+                "portfolio",
+                "quant",
+                "optimize",
+                "weights",
+                "allocation",
+                "sharpe",
+                "volatility",
+                "risk",
+                "efficient",
+                "frontier",
+                "markowitz",
+                "hrp",
+                "skfolio",
+                "pyportfolioopt",
+                "rebalance",
+            ],
+            examples=[
+                {"returns": {"AAA": [0.01, -0.002], "BBB": [0.003, 0.004]}, "method": "max_sharpe"}
+            ],
+        ),
+        VirtualTool(
+            "quant_detail",
+            "Page the FULL weight vector of an earlier quant_optimize by "
+            "weights_id - the opt-in half of the compact answer.",
+            {
+                "type": "object",
+                "properties": {
+                    "weights_id": {"type": "string"},
+                    "offset": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["weights_id"],
+            },
+            quant_detail,
+            tags=["portfolio", "quant", "detail", "weights", "page"],
+        ),
+        VirtualTool(
+            "quant_backends",
+            "Which portfolio engines are installed (PyPortfolioOpt, "
+            "skfolio), the methods available, and the install line.",
+            {"type": "object", "properties": {}},
+            quant_backends,
+            tags=["portfolio", "quant", "backends", "installed", "probe"],
         ),
     ]:
         app.registry.register(tool)

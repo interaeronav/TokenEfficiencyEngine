@@ -24,7 +24,7 @@ EXTRAS: dict[str, tuple[str, str, str]] = {
     ),
     "quant": (
         "quant",
-        "PyPortfolioOpt, skfolio",
+        "PyPortfolioOpt, skfolio, pandas",
         "uv pip install 'tee-engine[quant]'",
     ),
     "medimg": (

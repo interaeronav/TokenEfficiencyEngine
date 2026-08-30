@@ -6523,3 +6523,56 @@ b=(w2,v3), c=(w2,v4) → b+c = 7, correctly beating a alone at 5.
 **Suite: 936 passed / 9 skipped** (918 → 936, 18 new), ruff clean.
 Declared as the `[solve]` extra; nothing is imported until a `solve_*`
 tool is actually called.
+
+## 2026-08-30 — A45 P2b: portfolio optimisation, and a units bug worth the whole phase
+
+`quant_optimize` (max_sharpe, min_volatility, hierarchical risk parity via
+PyPortfolioOpt; mean-risk via skfolio), `quant_detail`, `quant_backends`.
+Virtual; **surface still 17 tools / 2,028 tok**, virtual 92 → 95.
+
+**The finding: the libraries' own performance numbers are not comparable,
+and comparing them would have produced a false conclusion.** First run:
+
+```
+max_sharpe  sharpe 0.255      <- the method whose entire job is maximising it
+hrp         sharpe 0.514      <- "wins" by 2x
+```
+
+A max-Sharpe portfolio losing on Sharpe is impossible, so it was measurement,
+not optimisation. Two different defaults collide inside one library:
+`HRPOpt.portfolio_performance` uses **risk_free_rate=0** and an arithmetic
+mean; `EfficientFrontier` reports against the **geometric** mu it optimised
+on with rf=0.02. Same portfolio, two answers.
+
+Fix: the engines optimise, **TEE measures** — one `_perf()` over the same
+returns, one annualisation, one risk-free rate, for every method. Now:
+
+```
+method              ret      vol   sharpe
+max_sharpe       0.0437   0.0611   0.3885   <- wins on Sharpe
+min_volatility   0.0302   0.0569   0.1785   <- wins on volatility
+hrp              0.0295   0.0574   0.1653
+mean_risk        0.0301   0.0569   0.1770
+```
+
+Each method now wins on its own metric, which is the test. The basis is
+stated in every payload rather than assumed.
+
+**A second real gap, found by a test rather than by reading:** when no
+asset's expected return clears the risk-free rate, PyPortfolioOpt raises a
+bare `ValueError`. That is a common case in a flat sample, not an edge. It
+now refuses as `quant_no_asset_beats_rf`, naming the best available return,
+the hurdle, and two methods that do not need a positive excess.
+
+**And a trap in my own test.** The fixture used `default_rng(7)`; the
+realised sample means came out **negative for all three assets** despite
+positive parameters, because over 250 observations the standard error of
+the mean is about twice the drift. The suite was asserting a property the
+data did not contain. Fixtures are now deterministic sine series whose
+realised mean IS the drift — no RNG, no numpy-version dependence.
+
+Answers stay compact: a 120-asset universe returns 15 holdings plus a
+`weights_id`; the full vector is `quant_detail`. Every payload says it is
+arithmetic over the supplied series and **not investment advice**.
+
+**Suite: 951 passed / 9 skipped** (936 → 951), ruff clean. `[quant]` extra.

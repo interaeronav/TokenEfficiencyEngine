@@ -56,6 +56,15 @@ solve = [
     "pyscipopt>=6.2.1",
     "ortools>=9.15,<10",
 ]
+# A45 P2b: portfolio optimisation. PyPortfolioOpt MIT, skfolio BSD-3-Clause.
+# `packaging` is an explicit workaround, not decoration - PyPortfolioOpt
+# imports it without declaring it.
+quant = [
+    "pyportfolioopt>=1.6.0",
+    "skfolio>=1.0.2",
+    "pandas>=2.0",
+    "packaging",
+]
 # assets-embed / assets-gen are declared below but stay loosely pinned on
 # purpose: torch wheels are backend- and machine-specific (CUDA build vs the
 # Apple-Silicon build), so pinning an exact version here would break one of
