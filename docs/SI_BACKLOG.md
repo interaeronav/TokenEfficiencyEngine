@@ -144,3 +144,10 @@ Format per item:
 - hurt: the Desktop extension's settings say `project_root = /Users/john/TEE`, so the running server reads `/Users/john/TEE/.tee/config.toml` — NOT the repo's. A config edit in the repo is invisible to the installed co-pilot, silently, with no hint anywhere that two configs exist. (A stale memory note claiming the root had moved compounded it.) Cost: three failed switches before the settings file was read.
 - proposed: `tee_status` (and doctor) report the ACTIVE project_root and the config file actually loaded; `llm_unknown_profile` (and config-shaped refusals generally) name the file they read, so "I edited the config" and "the server read a different config" cannot look identical.
 - status: open
+
+## SI-B18 — meter idea: a "sent" column (what left the machine)
+- seen: 2026-08-30, owner idea filed for later ("a send column"), raised while qmax (hosted, paid) was being wired
+- hurt: not a defect — a gap. With a paid/hosted profile pinned, chore inputs leave the machine (tracebacks, file excerpts, KB passages, web extracts). report_savings accounts for TOKENS but says nothing about EGRESS: nothing tells the owner how much content went off-machine, to which endpoint, on whose behalf.
+- proposed: a `sent` column beside the token columns — per session and per engine: calls that went off-machine, bytes/tokens sent, the endpoint, and (cheap and useful) the chore kinds involved. Local-only sessions read a clean zero, which is itself the reassurance. Pairs with SI-B16's spend column: B16 answers "what did it cost", B18 answers "what did it disclose".
+- note: if the owner meant "spend", that half is already SI-B16 — this item is filed as the egress reading; either way the two columns ship together.
+- status: open (idea, for later)
