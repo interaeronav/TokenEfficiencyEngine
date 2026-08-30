@@ -64,7 +64,8 @@ def register_trust_tools(app) -> None:
             "where": grants.source,
             "state": "enforcing" if grants.enforce_quality_band else "shadow (measuring)",
             "evidence": {
-                "shadow_denials_recorded": len(denials),
+                "shadow_denials_this_session": len(trust.SHADOW_DENIALS),
+                "shadow_denials_this_project": len(denials),
                 "capability_classes_exercised": sorted(c for c in classes_seen if c),
                 "high_risk_already_enforced": sorted(trust.HIGH_RISK),
             },

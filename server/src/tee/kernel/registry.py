@@ -189,6 +189,13 @@ class ToolRegistry:
             return
         if decision.enforced or self.grants.enforce_quality_band:
             decision.raise_if_denied(tool.name)
+        trust.record_shadow_denial(
+            {
+                "tool": tool.name,
+                "capability": decision.capability,
+                "caller": decision.caller,
+            }
+        )
         self.trust_denials.append(
             {
                 "tool": tool.name,

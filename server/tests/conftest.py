@@ -223,3 +223,18 @@ def _fresh_turn():
     trustctx.CALLER.reset(caller_token)
     trustctx.TAINT.reset(taint_token)
     trustctx.clear_for_tests()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """A43 L6 evidence: how often did the shadow band fire across the whole
+    suite? A false denial here would be a mapping defect, not a new normal."""
+    from tee.kernel import trust
+
+    denials = trust.SHADOW_DENIALS
+    if denials:
+        kinds: dict[str, int] = {}
+        for entry in denials:
+            kinds[entry["capability"]] = kinds.get(entry["capability"], 0) + 1
+        print(f"\n[trust] shadow-band denials across the suite: {len(denials)} {kinds}")
+    else:
+        print("\n[trust] shadow-band denials across the suite: 0")

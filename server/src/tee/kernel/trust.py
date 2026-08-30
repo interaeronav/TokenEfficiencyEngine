@@ -279,6 +279,18 @@ def capability_for(tool_name: str) -> str:
     )
 
 
+# Every shadow-band denial this process made, bounded. The L7 rollout view
+# reads it: the flip is an owner decision informed by evidence, and the
+# evidence has to come from somewhere other than a caller's assertion.
+SHADOW_DENIALS: list[dict[str, Any]] = []
+
+
+def record_shadow_denial(entry: dict[str, Any]) -> None:
+    SHADOW_DENIALS.append(entry)
+    if len(SHADOW_DENIALS) > 500:
+        del SHADOW_DENIALS[: len(SHADOW_DENIALS) - 500]
+
+
 # -- L1: grants ------------------------------------------------------------
 
 

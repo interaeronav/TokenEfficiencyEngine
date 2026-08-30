@@ -5626,3 +5626,56 @@ owner's consent.
 seam), persisted taint across `tee_remember`/`kb_propose` (research 63
 #1, qmax-confirmed), `tee_trust` for visibility, then L6/L7 and the
 pipeline lane as the kernel's first tenant.
+
+## 2026-08-30 — A43 T-1 COMPLETE (L0–L7): the trust kernel stands, with its rollout evidence
+
+Suite **812 passed / 2 skipped**, gate exit 0. The stack is built in
+research 65's order with no layer skipped or reordered.
+
+- **L5 audit**: the response log already fired at the MCP seam, so the
+  trail is one struct widened — capability, caller, taint, decision —
+  and it records SIDE EFFECTS ONLY, because logging every read buries
+  the entries that matter. Both surfaces feed it (MCP handlers and the
+  virtual registry).
+- **The persistence boundary closed** (research 63 #1, the qmax review's
+  top finding): `remember` stores a taint label bound to key + content
+  hash; reads rehydrate it into the reading task; a label that is
+  missing, unreadable, or no longer matching its value reads back
+  TAINTED. Fixtures prove a tainted fact stays tainted in a NEW session,
+  and that a value swapped under its label fails its hash.
+- **`tee_trust`** (virtual, zero always-loaded growth): tier, grants AND
+  the config file that granted them, recent refusals with reasons, what
+  this task is carrying, the side-effect tail; `action="rollout"` shows
+  the L7 evidence. It CANNOT flip enforcement — TEE does not write
+  policy; it prints the line and the owner writes it, so a model cannot
+  turn off a safety switch by calling a tool.
+- **`[trust]` config section** parsed (grants + enforce), with an
+  unknown capability refused loudly rather than silently ignored — the
+  bug that would otherwise make a grant look applied when it was not.
+- **L6/L7**: `[trust] enforce` is its OWN switch, separate from
+  `[scheduler] dispatch`; high-risk capabilities enforce regardless.
+
+**The rollout evidence, measured not asserted** (the suite now reports
+it every run): across all 812 tests the shadow band fired **4 times,
+all `front-backend`** — zero in the read tier, zero on scene or state
+writes. All four are backend-chaining under the non-live caller class
+(tests default to the safe class); in a live turn they pass, and for an
+unattended task being steered by backend content, refusing the next
+backend call is the intended behavior, not a false positive. That is
+the whole argument for measuring before flipping: the band is quiet on
+real work and loud exactly where the composition risk lives.
+
+**T-1 acceptance, item by item:** startup refuses a capability-less
+tool ✓; coverage test enumerates all four entry surfaces ✓; default
+deny holds with no grants file while the read tier answers ✓; each
+legacy flag behaves identically through its alias ✓; a tainted task is
+refused naming what tainted it, with the live-turn path offered ✓; a
+live-turn untaint succeeds ✓; high-risk enforces in shadow mode too ✓;
+thread-hop taint ✓; memory round-trip preserves taint ✓; derived ids
+union parent taint and orphans read tainted ✓; **overhead 0.2 µs/call**
+vs the 0.05 ms budget and the gateway's 7 µs ✓; full battery bars
+unchanged ✓.
+
+**Next: P0** — the pipeline lane's schema, validator and hostile
+fixtures, as the kernel's first tenant (no runner until the fixtures
+are green).
