@@ -5478,3 +5478,24 @@ for the read tier — never brick kb_search, always brick run-adhoc),
 migration keeps legacy flags as aliases, overhead budget ≤0.05 ms
 published beside the gateway's 0.007 ms. A43's T-1 phase updated with
 the spec and its acceptance list.
+
+## 2026-08-30 — Research 63: trust-kernel hardening (qmax adversarial pass)
+
+Deeper look at A43's T-1 foundation, with qmax attacking four soft
+spots (4,249 tok, input not authority; each fix verified against
+code). Linchpin re-confirmed: caller-class is stamped at
+server.py:_tool (the MCP boundary); chores/router/jobs run inside
+handlers, so live-turn cannot be forged from below. Findings:
+(1) LAUNDERING — memory.remember stores {key:value} with NO lineage
+(verified), so taint dies on persistence; fix = taint label bound to
+key+content-hash, reads rehydrate, missing=tainted. (2) GRANULARITY —
+one write-files verb lets a write hit .tee/pipeline.toml (future exec);
+fix = verb+resource, write-artifacts vs write-config/write-policy,
+canonicalized paths (generalize kb_propose's is_relative_to belt).
+(3) HABITUATION — irreducible; fix = typed-phrase for high-blast
+actions, human gate is the LAST layer not the only one. (4) TAINT+
+EGRESS — a paid engine is an exfiltration exit even when
+owner-configured; fix = call-paid-engine is egress, taint-denied
+without live-turn approval, response itself tainted; converges with
+SI-B16/B18. Written as research 63; T-1 acceptance extended. No new
+campaign — sharpens A43's foundation.

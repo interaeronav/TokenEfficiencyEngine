@@ -100,6 +100,27 @@ naming what tainted it and a live-turn untaint succeeds; shadow replay
 shows zero false denials before enforcement flips; overhead ≤0.05 ms
 published beside the gateway's number; full battery bars unchanged.
 
+Hardening from research 63 (qmax adversarial pass, verified): taint
+must CROSS the persistence boundary — `tee_remember`/`kb_propose`
+store a taint label bound to key+content-hash, reads rehydrate it, a
+missing label defaults TAINTED (memory.remember carries no lineage
+today — confirmed); capabilities are verb+RESOURCE — `write-artifacts`
+(declared inert prefixes only) is separate from `write-config` /
+`write-policy` / executable paths, every path canonicalized with the
+`kb_propose` symlink/traversal belt generalized into the check;
+`call-paid-engine` is side-effecting EGRESS — denied to tainted tasks
+without live-turn owner approval, its request fields allowlisted, its
+RESPONSE tainted (converges with SI-B16 spend + SI-B18 sent columns);
+grant/policy changes need a typed-phrase confirmation, not a bare
+approval, because habituation is irreducible and the human gate must
+be the LAST layer, never the only one.
+
+Extended acceptance: a memory/staging round-trip preserves taint;
+`write-artifacts` cannot touch `.tee/` or a config/policy/loader path
+(canonicalized, symlink/traversal fixture); a tainted task is denied
+`call-paid-engine` and a paid response reads back tainted; grant
+changes require the typed-phrase path.
+
 ## P0 — Schema, validator, hostile fixtures (no runner yet)
 
 The `[[step]]` schema (name, kind=produce|query, argv, params with
