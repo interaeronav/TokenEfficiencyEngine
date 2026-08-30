@@ -31,7 +31,9 @@ Two laws this file encodes and never bends:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from tee.kernel.errors import TeeError
@@ -51,6 +53,11 @@ READ_TIER: frozenset[str] = frozenset(
         "read-assets",
         "read-design",
         "read-uefn",
+        # A45 P2: solvers, optimisers and local medical-image reads change
+        # no byte of the owner's world - they are arithmetic over inputs the
+        # caller already supplied, so they belong in the open tier.
+        "read-compute",
+        "read-medimg",
     }
 )
 
@@ -72,6 +79,15 @@ SIDE_EFFECTING: frozenset[str] = frozenset(
         "run-declared-step",
         "run-adhoc",
         "exec-code",
+        # A45 P2: driving a local headless service (Orthanc, Cube, a trading
+        # research daemon). It can change that service's state, and whatever
+        # it answers is quoted data - hence a taint source below.
+        "call-service",
+        # RESERVED AND DELIBERATELY UNIMPLEMENTED. No tool in this codebase
+        # requests it and none should: placing an order moves real money, and
+        # that is a decision a human takes in their broker's own interface.
+        # Named here so its absence is visible rather than merely assumed.
+        "place-order",
     }
 )
 
@@ -88,6 +104,7 @@ HIGH_RISK: frozenset[str] = frozenset(
         "write-config",
         "write-policy",
         "call-paid-engine",
+        "place-order",
     }
 )
 
@@ -106,7 +123,14 @@ TAINT_ENFORCED: frozenset[str] = HIGH_RISK | frozenset({"run-declared-step", "fe
 # third-party media grounds nothing by the A30 law; a fronted backend's
 # output — descriptions included — is quoted data, never instruction.
 TAINT_SOURCES: frozenset[str] = frozenset(
-    {"fetch-web", "front-backend", "read-kb", "read-extract", "call-paid-engine"}
+    {
+        "fetch-web",
+        "front-backend",
+        "read-kb",
+        "read-extract",
+        "call-paid-engine",
+        "call-service",
+    }
 )
 
 # Caller classes. The A42 task graph already stamps three of the six; L2
@@ -135,6 +159,14 @@ _FAMILY: tuple[tuple[str, str], ...] = (
     ("llm_", "call-engine"),
     ("plaus_", "read-scene"),
     ("mat_", "read-scene"),
+    # --- A45 P2: the headless fleet ---
+    ("solve_", "read-compute"),  # HiGHS / OR-Tools / Cbc / SCIP
+    ("quant_", "read-compute"),  # skfolio / PyPortfolioOpt
+    ("trade_", "read-compute"),  # backtest + research ONLY (see place-order)
+    ("cad_", "read-compute"),  # OpenSCAD / CadQuery: author, then export
+    ("med_", "read-medimg"),  # DICOM / MONAI / Qiber3D
+    ("bi_", "call-service"),  # Cube: a service call, answer is quoted data
+    ("svc_", "call-service"),  # generic headless-service probes
 )
 
 _EXPLICIT: dict[str, str] = {
@@ -307,6 +339,44 @@ def record_shadow_denial(entry: dict[str, Any]) -> None:
 
 # -- L1: grants ------------------------------------------------------------
 
+# A45 P0b. One line the owner writes instead of assembling a list by hand.
+# Presets are ADDITIVE with an explicit `grants = [...]`, and every preset
+# is spelled out here so "what did I just allow" is answerable by reading,
+# not by running. No preset silently includes a HIGH_RISK capability the
+# name does not advertise.
+PROFILES: dict[str, frozenset[str]] = {
+    # look, never touch: the read tier only (baseline already covers it)
+    "readonly": frozenset(),
+    # drive this project's own declared build steps
+    "build": frozenset({"run-declared-step", "write-artifacts"}),
+    # the owner's own workstation: declared steps, ad-hoc argv, and the
+    # Python escape hatch the kernel was always designed to have.
+    "workstation": frozenset(
+        {"run-declared-step", "run-adhoc", "exec-code", "write-artifacts", "read-compute"}
+    ),
+    # workstation plus the metered, off-machine engine
+    "workstation+paid": frozenset(
+        {
+            "run-declared-step",
+            "run-adhoc",
+            "exec-code",
+            "write-artifacts",
+            "read-compute",
+            "call-paid-engine",
+        }
+    ),
+}
+
+
+def profile_covering(capability: str) -> str | None:
+    """The smallest named profile that would grant `capability` - so a
+    refusal can offer one line instead of a scavenger hunt."""
+    best: tuple[int, str] | None = None
+    for name, caps in PROFILES.items():
+        if capability in caps and (best is None or len(caps) < best[0]):
+            best = (len(caps), name)
+    return best[1] if best else None
+
 
 @dataclass
 class Grants:
@@ -317,6 +387,7 @@ class Grants:
     source: str = "(no trust config)"
     enforce_quality_band: bool = False  # L6/L7: the owner-signed flip
     broken: str | None = None  # config unreadable -> fail closed for effects
+    profile: str | None = None  # A45: the preset that widened this, if any
 
     @classmethod
     def from_config(cls, config: Any, source: str = "(config)") -> Grants:
@@ -324,6 +395,16 @@ class Grants:
         every existing .tee/config.toml keeps working untouched."""
         trust_cfg = dict(getattr(config, "trust", {}) or {})
         granted: set[str] = set()
+        profile = trust_cfg.get("profile")
+        if profile is not None:
+            key = str(profile).strip()
+            if key not in PROFILES:
+                raise TeeError(
+                    "trust_unknown_profile",
+                    f"[trust] profile = '{key}' is not a known profile.",
+                    fix=f"Known profiles: {', '.join(sorted(PROFILES))}.",
+                )
+            granted |= set(PROFILES[key])
         for name in trust_cfg.get("grants") or []:
             text = str(name).strip()
             if text not in CAPABILITIES:
@@ -350,7 +431,48 @@ class Grants:
             granted=frozenset(granted),
             source=source,
             enforce_quality_band=bool(trust_cfg.get("enforce", False)),
+            profile=str(profile).strip() if profile is not None else None,
         )
+
+
+class GrantsWatcher:
+    """A45 P0a: the owner's config is authoritative NOW, not at boot.
+
+    Grants used to be read once at `TeeApp` construction, so an edit was
+    invisible until Claude Desktop restarted - and a widening that landed
+    nowhere is indistinguishable from a bug (the trap SI-B17 named, hit
+    again by the session that wrote this). This re-reads on mtime change:
+    one stat() per decision, no daemon, no polling thread.
+
+    A config that stops parsing does NOT revert to the last good grants -
+    that would let a typo silently keep power on. It fails closed for side
+    effects via `broken`, while the read tier keeps answering."""
+
+    def __init__(self, path: Path | str, loader: Callable[[], Grants]) -> None:
+        self.path = Path(path)
+        self.loader = loader
+        self._stamp: tuple[int, int] | None = None
+        self._cached: Grants | None = None
+
+    def _mtime(self) -> tuple[int, int]:
+        try:
+            st = self.path.stat()
+            return (st.st_mtime_ns, st.st_size)
+        except OSError:
+            return (0, 0)
+
+    def __call__(self) -> Grants:
+        stamp = self._mtime()
+        if self._cached is not None and stamp == self._stamp:
+            return self._cached
+        self._stamp = stamp
+        try:
+            self._cached = self.loader()
+        except TeeError as exc:
+            self._cached = Grants(source=str(self.path), broken=exc.message)
+        except Exception as exc:  # a malformed file is the owner's typo, not a crash
+            self._cached = Grants(source=str(self.path), broken=str(exc))
+        return self._cached
 
 
 # The capabilities every project holds without asking: the read tier, plus
@@ -399,10 +521,16 @@ class Decision:
                 "live turn if you have read the content and intend it."
             )
         where = self.source or ".tee/config.toml"
-        return (
-            f"Add '{self.capability}' to [trust] grants in {where} - that is "
-            "the config file this server actually loaded (SI-B17)."
+        line = f'grants = ["{self.capability}"]'
+        fix = (
+            f"Add {line} under [trust] in {where} - that is the config file "
+            "this server actually loaded (SI-B17). It takes effect on the "
+            "next call; no restart (A45 P0a)."
         )
+        cover = profile_covering(self.capability)
+        if cover:
+            fix += f'  One line instead: profile = "{cover}".'
+        return fix
 
 
 def check(

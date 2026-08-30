@@ -65,9 +65,24 @@ class ToolRegistry:
         # leaves the read tier and the baseline verbs working and refuses
         # everything else - a new project is useful immediately and cannot
         # do anything irreversible.
-        self.grants = trust.Grants()
+        self._grants = trust.Grants()
+        # A45 P0a: when set, the owner's config file is re-read on change so
+        # a widening takes effect on the NEXT CALL rather than the next
+        # restart. Assigning `.grants` directly still works (tests, fakes).
+        self.grants_watcher: Any = None
         self.trust_denials: list[dict[str, Any]] = []  # shadow band, for tee_trust
         self.audit_log = None  # set by the app: side-effecting calls are logged
+
+    @property
+    def grants(self) -> trust.Grants:
+        if self.grants_watcher is not None:
+            return self.grants_watcher()
+        return self._grants
+
+    @grants.setter
+    def grants(self, value: trust.Grants) -> None:
+        self._grants = value
+        self.grants_watcher = None  # an explicit set wins over the watcher
 
     def register(self, tool: VirtualTool) -> None:
         if tool.name in self._tools:

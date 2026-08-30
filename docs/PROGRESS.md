@@ -6338,3 +6338,79 @@ than a worry.
 
 Scope note: this probe went through curl, so it proves the SHIM and the
 paid engine. TEE's own chore path to qmax is not exercised here.
+
+## 2026-08-30 — A45 P0: permissions stop being the blockage
+
+Owner's complaint, verbatim in substance: exec-code is off, and permission
+friction is "creating blockages for product developments and access to
+resources". Four defects, each fixed, and one law deliberately left alone.
+
+**P0a — a config edit no longer needs a restart.** `Grants.from_config`
+ran once at `TeeApp` construction, so an edit was invisible until Claude
+Desktop restarted. That is the trap SI-B17 named, and this session walked
+into it in front of the owner. `trust.GrantsWatcher` re-reads on
+mtime+size change: one `stat()` per decision, no thread, no daemon.
+Proved live against the owner's OWN config, without restarting anything:
+
+```
+read 1 : ['call-paid-engine']
+read 2 : ['call-paid-engine']            (after an edit, no restart)
+read 3 : ['call-paid-engine', 'exec-code', 'read-compute',
+          'run-adhoc', 'run-declared-step', 'write-artifacts']
+profile: workstation
+exec-code now allowed? True | granted
+restored; grants back to: ['call-paid-engine']
+```
+
+The file was restored afterwards — the owner's config is unchanged.
+
+**A typo does NOT keep the old power.** A config that stops parsing yields
+`broken`, which fails closed for side effects while the read tier keeps
+answering. Retaining the last-good grants would have been the comfortable
+choice and the wrong one.
+
+**P0b — `[trust] profile = "..."`.** One line instead of assembling a
+list: `readonly`, `build`, `workstation`, `workstation+paid`. Additive
+with an explicit `grants = [...]`. Every preset is spelled out in
+`kernel/trust.py` so "what did I just allow" is answerable by READING.
+A test asserts no preset smuggles `write-policy` or `place-order`, and
+that `workstation` does not quietly include paid egress.
+
+**P0d — the refusal carries the fix.** It now names the loaded file, the
+exact line, that no restart is needed, AND the smallest profile covering
+it:
+
+```
+Add grants = ["exec-code"] under [trust] in /Users/x/.tee/config.toml -
+that is the config file this server actually loaded (SI-B17). It takes
+effect on the next call; no restart (A45 P0a).  One line instead:
+profile = "workstation".
+```
+
+**P0e — the fleet families are tabled**, so P2 adds tools without a kernel
+edit each time: `solve_`/`quant_`/`trade_`/`cad_` → `read-compute`,
+`med_` → `read-medimg`, `bi_`/`svc_` → `call-service`. Two new read-tier
+capabilities (solvers change no byte, so they are open by default) and one
+side-effecting (`call-service`, also a TAINT SOURCE — a local service's
+answer is quoted data, never instruction). The untabled-tool startup guard
+is unchanged and still refuses.
+
+**`place-order` is reserved and unimplemented on purpose.** It exists in
+`CAPABILITIES` and `HIGH_RISK`; no tool requests it and a test asserts
+none does. Placing an order moves real money and is a decision the owner
+takes in his broker's interface, not one an autonomous tool takes for him.
+
+**What did NOT move: the taint law.** A test matrix asserts every
+automated caller class (chore / job / scheduled / gateway-fronted /
+content-derived) is still refused `exec-code`, `run-adhoc`,
+`call-paid-engine` and `run-declared-step` while carrying untrusted
+content, with `enforced=True` — not shadow. A live human turn with
+explicit consent remains the only path through. That rule is what stops a
+scraped web page from driving this machine, and it is not what was slowing
+the owner down.
+
+**Suite: 901 passed / 9 skipped** (was 885 — 16 new A45 tests), ruff clean.
+
+```
+901 passed, 9 skipped, 97 deselected, 44 warnings in 82.60s
+```

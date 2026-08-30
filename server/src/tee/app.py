@@ -131,10 +131,18 @@ class TeeApp:
 
         config_path = Path(project_root) / ".tee" / "config.toml"
         self.registry.audit_log = self.response_log
-        self.registry.grants = trust.Grants.from_config(
-            self.config,
-            source=str(config_path) if config_path.is_file() else f"{config_path} (absent)",
-        )
+        source = str(config_path) if config_path.is_file() else f"{config_path} (absent)"
+        self.registry.grants = trust.Grants.from_config(self.config, source=source)
+
+        # A45 P0a: keep reading it. The owner edits .tee/config.toml and the
+        # next call sees it - no Desktop restart, which is the friction that
+        # made a correct grant look like a broken one (SI-B17's second half).
+        def _reload() -> trust.Grants:
+            fresh = ProjectConfig.load(project_root)
+            live = str(config_path) if config_path.is_file() else f"{config_path} (absent)"
+            return trust.Grants.from_config(fresh, source=live)
+
+        self.registry.grants_watcher = trust.GrantsWatcher(config_path, _reload)
         # K0 shadow recorder: on by default, zero behavior change; the
         # degrade-to-static law - [scheduler] shadow = false turns it off.
         from tee.kernel import shadow
