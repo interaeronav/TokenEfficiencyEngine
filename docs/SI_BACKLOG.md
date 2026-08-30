@@ -136,14 +136,14 @@ Format per item:
 - call: `[llm.profiles.qmax] paid = true` in .tee/config.toml
 - hurt: the flag documents intent but no code reads it. The router could in principle select a paid profile while unpinned (automatic off-machine spend), and report_savings has no paid-call/cost column, so spend would be invisible next to the free local rows.
 - proposed: (1) router hard-excludes profiles with `paid = true` from automatic selection — pin-only, fixture-proven; (2) the meter gains paid-call count + a spend estimate column, labelled as an estimate; (3) llm_switch's report says "PAID, off-machine" on every switch INTO such a profile.
-- status: open (next campaign; qmax is pin-only-safe meanwhile)
+- status: open (the three proposals above are all unbuilt). UPDATED 2026-08-30, post-0.8.0: A43 added a FOURTH, stronger guard the entry predates — `paid = true` is now read at the call site (`llm/chores.py`), which demands the `call-paid-engine` capability, default-deny and high-risk. The owner granted it this session, so that gate now passes for untainted callers. Re-checked what the grant does NOT open: the router structurally cannot select qmax at all — it is not a registered engine (`ENGINES` holds only `q14b+a2`/`q27b-bare`; `_PROFILE_TO_ENGINE` has no `qmax` key; `LADDER` is hardcoded to the two local engines), so "automatic off-machine spend" is impossible by construction rather than by flag. Still genuinely open: the meter has no paid-call/spend column, and `llm_switch` does not say "PAID, off-machine".
 
 ## SI-B17 — the installed co-pilot's project_root is not the repo (config edits land nowhere)
 - seen: 2026-08-30, wiring the qmax profile
 - call: wrote `[llm.profiles.qmax]` into `<repo>/.tee/config.toml`; llm_switch kept refusing
 - hurt: the Desktop extension's settings say `project_root = /Users/john/TEE`, so the running server reads `/Users/john/TEE/.tee/config.toml` — NOT the repo's. A config edit in the repo is invisible to the installed co-pilot, silently, with no hint anywhere that two configs exist. (A stale memory note claiming the root had moved compounded it.) Cost: three failed switches before the settings file was read.
 - proposed: `tee_status` (and doctor) report the ACTIVE project_root and the config file actually loaded; `llm_unknown_profile` (and config-shaped refusals generally) name the file they read, so "I edited the config" and "the server read a different config" cannot look identical.
-- status: open
+- status: PARTLY DONE (A43 T-1 L1), verified 2026-08-30 post-0.8.0. Done: `tee_trust` answers with both `"project"` and `"config"` — the live call on the installed server returned `{"project":"/Users/john/TEE","config":"/Users/john/TEE/.tee/config.toml",...}` — and capability refusals name the granting file (`trust.py`: "Add '<cap>' to [trust] grants in <where>"), so an edit that landed nowhere no longer looks like a bug. Confirmed useful in practice this session: it named the right file before the qmax grant was written. STILL OPEN: `tee_status` itself reports neither `project_root` nor the loaded config path (checked live — the response carries adapters/jobs/checkpoints/virtual_tools/llm_profile and no config identity), so the original proposal is only half met; doctor unchecked. Also newly seen: grants are read ONCE at `TeeApp` construction (`app.py:134`), so a config edit is invisible to the running server until Desktop restarts, with nothing saying so — arguably the same class of trap this item is about.
 
 ## SI-B18 — meter idea: a "sent" column (what left the machine)
 - seen: 2026-08-30, owner idea filed for later ("a send column"), raised while qmax (hosted, paid) was being wired
@@ -151,3 +151,17 @@ Format per item:
 - proposed: a `sent` column beside the token columns — per session and per engine: calls that went off-machine, bytes/tokens sent, the endpoint, and (cheap and useful) the chore kinds involved. Local-only sessions read a clean zero, which is itself the reassurance. Pairs with SI-B16's spend column: B16 answers "what did it cost", B18 answers "what did it disclose".
 - note: if the owner meant "spend", that half is already SI-B16 — this item is filed as the egress reading; either way the two columns ship together.
 - status: open (idea, for later)
+
+## SI-B19 — RESULTS.md loses sibling-runner sections and grows on every re-run
+- seen: 2026-08-30, the v0.8.0 post-release health check (a plain `run_benchmarks.py` on this machine)
+- call: `uv run python ../benchmarks/run_benchmarks.py` with no UE editor and no FreeCAD RPC
+- hurt: THREE defects in one file, all from `run_benchmarks.py` rewriting RESULTS.md wholesale. (1) `_carry_forward` is called by explicit header, and only for sections this runner owns — the A42 scheduler row (`run_k4_mixed.py`) and the A43 pipeline row (`run_p6_pipeline.py`) are in neither list, so a single re-run deleted both: `git diff` −74 lines, the two most recent campaigns' headline evidence gone. (2) the `*Generated by ...*` footer sits at end of file, so whichever section is carried last swallows it and a fresh one is appended — **three had already accumulated in the tracked 0.8.0 file**. (3) stripping the old stamp left the blank line that followed it, growing each carried section by one blank per run — measured +1/run, 13 already banked in the Unreal section.
+- proposed: carry the sibling-owned sections unconditionally; strip the footer in `_carry_forward` alongside the stamp; collapse leading blanks before re-adding the stamp.
+- status: done (this session; all three fixed in `_carry_forward` / `write_results`, verified by three consecutive runs holding steady at 13 sections / 1 footer / 5 blanks, and by RESULTS.md's remaining diff being only real re-measurement)
+
+## SI-B20 — benchmarks/ is outside the lint gate
+- seen: 2026-08-30, while patching `run_benchmarks.py` for SI-B19
+- call: `uv run ruff check ../benchmarks/run_benchmarks.py` → **15 errors**, while the project gate `ruff check .` (run from `server/`) says "All checks passed!"
+- hurt: `[tool.ruff]` lives in `server/pyproject.toml` and the gate runs from `server/`, so `benchmarks/` — tracked code that produces the numbers this project is judged on — is never linted. The 15 include one real bug: `run_benchmarks.py:1903` is `print(f"\nwrote {out}")` AFTER a `return`, referencing an undefined `out` (F821). Dead today; it would raise if ever reached. Pre-existing, not a regression.
+- proposed: bring `benchmarks/` into the gate (run ruff from the repo root, or add the path to the server invocation), then fix the 15 — most are E501 in embedded FreeCAD source strings and can be `noqa`'d in place.
+- status: open
