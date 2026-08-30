@@ -36,6 +36,11 @@ EXTRAS: dict[str, tuple[str, str, str]] = {
         "PyPortfolioOpt, skfolio, pandas",
         "uv pip install 'tee-engine[quant]'",
     ),
+    "cad": (
+        "cad",
+        "CadQuery (OpenSCAD is a separate app: brew install --cask openscad)",
+        "uv pip install 'tee-engine[cad]'",
+    ),
     "medimg": (
         "medimg",
         "MONAI Core + pydicom + nibabel (Orthanc is a separate server you run)",

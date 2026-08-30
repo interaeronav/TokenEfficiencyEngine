@@ -6672,3 +6672,53 @@ test asserts the voxel array never reaches the payload.
    part of `[medimg]`, and the refusal names them.
 
 **Suite: 970 passed / 9 skipped** (955 → 970), ruff clean.
+
+## 2026-08-30 — A45 P2e: parametric CAD, with the -D injection closed
+
+`cad_scad_build` (OpenSCAD, subprocess), `cad_measure` (STEP via CadQuery;
+binary STL measured directly), `cad_probe`. **Surface still 17 tools /
+2,028 tok**; virtual 101 → 104. Phase order changed deliberately: CAD is
+far more use to this owner than headless BI, so it went before Cube.
+
+**`-D` is not exposed, and that is the security decision this phase turns
+on.** OpenSCAD's `-D` does not set a scalar - it PREPENDS STATEMENTS to
+the script, so a caller-supplied `-D` is code execution wearing the costume
+of a parameter. Parameters go through OpenSCAD's own customizer JSON
+(`-p`), names validated against `[A-Za-z_][A-Za-z0-9_]*` and values
+restricted to scalars. A test greps the module to assert `-D` appears
+nowhere, and five injection-shaped names are refused.
+
+**Capability tabling corrected while building it.** The `cad_` family
+prefix would have given a tool that WRITES a file the open read tier. Same
+lesson the trading analysis had just taught, applied before it bit:
+`cad_scad_build` → `write-artifacts`, `cad_measure`/`cad_probe` →
+`read-compute`, and an untabled `cad_*` is a startup error.
+
+**A verification mistake of mine, worth recording because the fix improved
+the product.** I first checked the parameter by comparing FACET COUNT:
+`hole_r=2` and `hole_r=4` both reported 134, and I concluded the parameter
+was ignored. It was not - facet count is insensitive to radius when `$fn`
+is fixed. I was measuring the wrong quantity. Checking file bytes showed
+23,066 vs 22,810, so the parameter had been working all along.
+
+That pushed me to measure real geometry, which made `cad_measure` properly
+useful: **binary STL volume by the signed-tetrahedron sum, with no
+dependency at all** — exact for a closed mesh. The decisive result:
+
+```
+hole_r=1: volume   984.294  expected   984.292   bbox [20, 10, 5]
+hole_r=2: volume   937.174  expected   937.168   bbox [20, 10, 5]
+hole_r=4: volume   748.698  expected   748.673   bbox [20, 10, 5]
+```
+
+Tracking `1000 − πr²·5` to three decimals across three radii proves the
+build ran, the parameter reached the model, and the measurement is real
+geometry. The residue is tessellation error and is correctly signed.
+
+**Install note, measured:** CadQuery is ~1.3 GB and its FIRST import took
+**140 s** (bytecode compilation of OCP); warm imports are **1.08 s**. That
+is survivable only because fleet imports are lazy — nothing loads until a
+`cad_*` tool is actually called. OpenSCAD 2021.01 via Homebrew cask, run
+headless: STL export in 0.31 s, and `-o -` streams to stdout.
+
+**Suite: 988 passed / 9 skipped** (970 → 988), ruff clean. `[cad]` extra.

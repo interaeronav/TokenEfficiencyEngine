@@ -76,6 +76,14 @@ medimg = [
     "nibabel>=5.3",
     "numpy>=1.24",
 ]
+# A45 P2e: CAD measurement. CadQuery Apache-2.0 (its OCP/OCCT stack carries
+# an LGPL-3.0 component). ~1.3 GB installed and ~140 s on FIRST import while
+# it compiles bytecode; 1.1 s warm. OpenSCAD is NOT here: it is GPL-2.0-or-
+# later and is run as a separate program (brew install --cask openscad),
+# never linked.
+cad = [
+    "cadquery>=2.8.0",
+]
 # assets-embed / assets-gen are declared below but stay loosely pinned on
 # purpose: torch wheels are backend- and machine-specific (CUDA build vs the
 # Apple-Silicon build), so pinning an exact version here would break one of

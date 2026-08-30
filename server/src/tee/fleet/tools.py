@@ -119,6 +119,21 @@ def register_fleet_tools(app) -> None:
 
         return med.backends(_med_cfg(args))
 
+    def cad_scad_build(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import cad
+
+        return cad.scad_build(dict(args or {}))
+
+    def cad_measure(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import cad
+
+        return cad.measure(dict(args or {}))
+
+    def cad_probe(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import cad
+
+        return cad.probe()
+
     for tool in [
         VirtualTool(
             "solve_program",
@@ -380,6 +395,68 @@ def register_fleet_tools(app) -> None:
             {"type": "object", "properties": {"url": {"type": "string"}}},
             med_backends,
             tags=["medical", "imaging", "backends", "probe", "installed", "orthanc", "monai"],
+        ),
+        VirtualTool(
+            "cad_scad_build",
+            "Build a solid from OpenSCAD source and export it (STL, 3MF, "
+            "SVG, DXF, OFF, AMF, CSG). Parameters go through OpenSCAD's "
+            "customizer JSON and are type-checked; the -D flag is NOT "
+            "exposed because it prepends arbitrary statements rather than "
+            "setting a value. Answers with facets, size and the output "
+            "path - never geometry.",
+            {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string"},
+                    "path": {"type": "string"},
+                    "params": {"type": "object"},
+                    "format": {"type": "string"},
+                    "out": {"type": "string"},
+                },
+            },
+            cad_scad_build,
+            tags=[
+                "cad",
+                "openscad",
+                "scad",
+                "solid",
+                "model",
+                "export",
+                "stl",
+                "3mf",
+                "dxf",
+                "svg",
+                "parametric",
+                "mesh",
+                "3d",
+                "print",
+            ],
+            examples=[
+                {
+                    "source": "difference(){cube([20,10,5],center=true);"
+                    "cylinder(h=20,r=hole_r,center=true,$fn=64);}",
+                    "params": {"hole_r": 4},
+                    "format": "binstl",
+                }
+            ],
+        ),
+        VirtualTool(
+            "cad_measure",
+            "Scalar geometry of an existing model: volume, surface area, "
+            "bounding box and validity. STEP via CadQuery; binary STL "
+            "measured directly (signed-tetrahedron volume, exact for a "
+            "closed mesh) with no dependency at all.",
+            {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+            cad_measure,
+            tags=["cad", "measure", "volume", "area", "bbox", "stl", "step", "geometry", "solid"],
+        ),
+        VirtualTool(
+            "cad_probe",
+            "Is OpenSCAD on PATH and is CadQuery installed - with versions, "
+            "supported export formats and the exact install line for each.",
+            {"type": "object", "properties": {}},
+            cad_probe,
+            tags=["cad", "probe", "openscad", "cadquery", "installed", "backends"],
         ),
     ]:
         app.registry.register(tool)

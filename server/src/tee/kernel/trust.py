@@ -169,7 +169,10 @@ _FAMILY: tuple[tuple[str, str], ...] = (
     # --- A45 P2: the headless fleet ---
     ("solve_", "read-compute"),  # HiGHS / OR-Tools / Cbc / SCIP
     ("quant_", "read-compute"),  # skfolio / PyPortfolioOpt
-    ("cad_", "read-compute"),  # OpenSCAD / CadQuery: author, then export
+    # DELIBERATELY NO ("cad_", ...) ENTRY either. A cad tool that BUILDS
+    # writes a file; one that MEASURES does not. A single prefix default
+    # would have given the writer the open read tier. Tabled individually
+    # below, same lesson as trade_.
     # DELIBERATELY NO ("trade_", ...) ENTRY. A prefix default would let a
     # future tool called trade_place_order inherit the OPEN read tier just
     # by being named. Every trading tool is tabled INDIVIDUALLY in
@@ -249,6 +252,10 @@ _EXPLICIT: dict[str, str] = {
     "sim_ready": "read-scene",
     # --- session / exports / boards ---
     "handoff": "read-session",
+    # A45 P2e: CAD. Build writes an artifact; measure and probe do not.
+    "cad_scad_build": "write-artifacts",
+    "cad_measure": "read-compute",
+    "cad_probe": "read-compute",
     "report_savings": "read-session",
     "report_spend": "read-session",
     "board_compose": "write-state",

@@ -164,12 +164,13 @@ def test_place_order_is_reserved_and_no_tool_requests_it():
 
 
 def test_new_fleet_families_are_tabled():
-    """NOTE trade_ is deliberately absent - see
-    test_no_family_prefix_covers_a_trading_tool."""
+    """NOTE trade_ and cad_ are deliberately absent as FAMILIES: a trading
+    tool must never inherit a capability by name, and a cad tool that
+    builds writes a file while one that measures does not. Both are tabled
+    individually in _EXPLICIT."""
     for name, expect in (
         ("solve_milp", "read-compute"),
         ("quant_efficient_frontier", "read-compute"),
-        ("cad_scad_build", "read-compute"),
         ("med_dicom_series", "read-medimg"),
         ("bi_query", "call-service"),
     ):
