@@ -6108,3 +6108,57 @@ of its own — the lane and kernel tool rows above are the evidence that
 the running code is 0.8.0, which is stronger than a self-reported number.
 
 Close-out owner action 2 CLOSED — no owner steps required.
+
+## 2026-08-30 — Owner action 3: the paid engine is granted (owner confirmed)
+
+Owner asked in-session and said yes, after being told in one sentence
+that this lets chore text leave the Mac and bill per token. Backup left
+at `.tee/config.toml.bak-pre-trust`.
+
+**Before**, from the running server — the state that made the qmax pin
+inert:
+
+```
+tee_trust -> {"project":"/Users/john/TEE",
+              "config":"/Users/john/TEE/.tee/config.toml",
+              "tier":"read+baseline",
+              "granted":["(none beyond baseline)"],
+              "high_risk_enforced_always":["call-paid-engine","exec-code",
+                 "run-adhoc","write-config","write-policy"]}
+```
+
+`[trust] grants = ["call-paid-engine"]` appended to
+`/Users/john/TEE/.tee/config.toml` — the file `tee_trust` itself names,
+which is what SI-B17 was about.
+
+**The running server did NOT pick it up, and that is correct.** Grants
+are read once at construction (`app.py:134`, `trust.Grants.from_config`),
+so the edit lands at the next Claude Desktop restart. Rather than claim
+it works, verified through the SAME code path in a fresh process:
+
+```
+granted   : ['call-paid-engine']
+source    : /Users/john/TEE/.tee/config.toml
+broken    : None
+```
+
+and then exercised `trust.check` across caller classes:
+
+```
+chore            taint=True  consent=False -> allowed=False enforced=True
+job              taint=True  consent=False -> allowed=False enforced=True
+content-derived  taint=True  consent=False -> allowed=False enforced=True
+live-turn        taint=True  consent=False -> allowed=False enforced=True
+live-turn        taint=True  consent=True  -> allowed=True   "granted"
+chore            taint=False consent=False -> allowed=True   "granted"
+```
+
+**A claim of mine corrected in place:** the first config comment said a
+tainted task "cannot reach the paid engine at all". Not true — the live
+turn WITH consent is the deliberate untaint path (`trust.py` check step
+3). The comment now says so. The grant does not weaken the taint law for
+any automated caller: every non-consented row above is `enforced=True`,
+i.e. refused immediately rather than sitting in the shadow band.
+
+Close-out owner action 3 CLOSED, pending only a Desktop restart for the
+running process to re-read it.
