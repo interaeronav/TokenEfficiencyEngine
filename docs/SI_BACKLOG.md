@@ -123,3 +123,10 @@ Format per item:
 - today: structure_facts is schema-validated only ("only facts stated in the text" is instructed, not enforced), so it stays statically routed - the cascade cannot gate it.
 - proposed: verify each emitted fact's load-bearing tokens (numbers, quoted names) appear in the source text - the refine_extract/phrase_deviation pattern; a fact that fails dies and the parser's output stands. Would move the chore from static to verifier-gated routing for free.
 - status: open
+
+## SI-B15 — the virtual surface is scene-side; build pipelines have no lane
+- seen: 2026-08-30, owner report (DiversionPlanner-BaseMap build attempt)
+- call: the 103-tool virtual surface vs ~/DiversionPlanner-BaseMap/builder/ (build_basemap.py + analysis scripts)
+- hurt: every virtual tool assumes live scene state (epoch/revision, diffs, checkpoints); a file-in/file-out build pipeline has none of that, so TEE cannot drive the owner's basemap build at all. ONE op earned its place: capture_terrain's dem_diff, because it is a DECLARED HEADLESS OPERATION (qgis:rastercalculator, typed inputs/outputs, jobs pattern, compact report) — the seed pattern for the fix.
+- proposed: the pipeline lane — projects declare owner-authored steps in their own tracked .tee/pipeline.toml (name, command, inputs/outputs, cost hint); TEE runs declared steps only (never model-invented shell), as jobs: ledger-registered, QoS batch under the K-layer scheduler (steps with declared inputs/outputs ARE task-graph nodes), budgeted progress, artifact diffs (changed outputs, sizes, hashes), rule-6 failures with the failing step's tail. First customer: the DiversionPlanner basemap build. dem_diff generalizes from one wrapped op to any declared step.
+- status: open (A43 candidate — owner's word)
