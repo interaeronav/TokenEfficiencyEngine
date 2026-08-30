@@ -6162,3 +6162,42 @@ i.e. refused immediately rather than sitting in the shadow band.
 
 Close-out owner action 3 CLOSED, pending only a Desktop restart for the
 running process to re-read it.
+
+## 2026-08-30 — Owner action 4: the two declarations reviewed, both KEPT
+
+The close-out marked this the owner's call and it was put to him as one,
+step by step, with costs stated. **Verdict: keep both files whole, keep
+both pins.** No file was edited; the decision is the deliverable.
+
+`~/DiversionPlanner-BaseMap/.tee/pipeline.toml` — 5 steps, all on the
+`terrain` mamba python: `selftest` (query, 1–3 s), `verify` (query, but
+2–3 min because it re-hashes every persisted tile), `plan` (produce, the
+full pipeline WITHOUT `--execute`, 1–5 s, downloads nothing),
+`build_cell` (produce, the real fetch, **~40 GB and 1–6 h per cell**),
+`blunder_stats` (query).
+
+`~/OkongoSim/.tee/pipeline.toml` — 3 steps: `dimensions_selftest`
+(query, headless Blender), `validate_catalog` (query),
+`build_catalog` (produce, 1–30 s).
+
+**Flagged to the owner before he chose**, and both stand as findings:
+
+1. `build_cell` is the only expensive, irreversible step in either file,
+   and it is also the only produce step with **no side-copy default** —
+   `plan` defaults to `build_plan/` and `build_catalog` to
+   `data/catalog_check/`, but `build_cell` writes straight into `build/`.
+   Kept deliberately: a declared step runs only when named, and nothing
+   automatic can resolve to it.
+2. Two declared steps currently FAIL, in the owner's projects rather than
+   in TEE (close-out finding 5, still open): basemap `verify` reports
+   `validation/rebuild_diff.json` corrupt, OkongoSim `validate_catalog`
+   stops on `KeyError: 'room_id'`.
+
+**Both pins verified live** rather than assumed, through `schema.load`:
+
+```
+DiversionPlanner-BaseMap   approved=True  digest=5a18c63c steps=5 change=None
+OkongoSim                  approved=True  digest=76c53f44 steps=3 change=None
+```
+
+Close-out owner action 4 CLOSED.
