@@ -5341,3 +5341,21 @@ a `-m "not dcc"` selector override drags the live llm-marked traps
 into the run against whatever the local stack is serving — 6 spurious
 failures traced to that selector error, not to the campaign; the
 canonical invocation is plain `pytest -q`.
+
+## 2026-08-30 — A43 directed and scripted (owner: make the pipeline general)
+
+Owner's SI-B15 finding, then his directive that the fix serve other
+projects and queries. Research 60 written (declared steps in each
+project's own `.tee/pipeline.toml`; produce vs query kinds — the
+latter is what serves QUERIES; steps become K-layer task-graph nodes
+so A42's scheduler dispatches them unchanged; the trust law: declared
+steps only, argv arrays, typed params, owner-authored declarations,
+`pipeline_init` drafts but never authorizes). `CLAUDE_A43_SCRIPT.md`
+authored: P0 schema+hostile fixtures (no runner) → P1 runner +
+artifact differ → P2 staleness/DAG → P3 scheduler integration
+(degrade-to-static holds) → P4 first customer, the DiversionPlanner
+basemap, authored WITH the owner → P5 THE GENERALITY LAW (a second
+project's steps run unmodified; needing a server/ change is a
+generality bug) → P6 two-project benchmark + close. Project survey
+recorded: DiversionPlanner-BaseMap has 36 py files and no `.tee/`
+yet; OkongoSim and TEE both have `.tee/`. Expected 0.8.0.

@@ -802,3 +802,26 @@ recommend 0.6.0) and the final close (recommend 0.7.0). Scheduler
 laws recorded: degrade-to-static always, shadow before live, greedy
 before clever, zero new always-loaded tools. The site-visit deadline
 still rules the order.
+
+## 2026-08-30 — A43: the pipeline lane, general by construction (owner decision)
+
+The owner found the structural gap (SI-B15): TEE's 103 virtual tools
+are scene-side, so a file-in/file-out build — his DiversionPlanner
+basemap — could not be driven at all; the one op that worked,
+`capture_terrain`'s `dem_diff`, worked because it is a DECLARED
+headless operation. He then directed that the fix serve "other
+projects and queries not just diversion planner." Research 60 is the
+design of record; `CLAUDE_A43_SCRIPT.md` drives the build.
+
+Shape: each project declares its own steps in its own tracked
+`.tee/pipeline.toml` (the `[kb]`/`[pins]` precedent) — two kinds,
+`produce` (artifacts → an artifact diff) and `query` (an answer →
+the step's structured output, budgeted), which is what makes the lane
+serve queries and not only builds. Declared inputs/outputs make steps
+literal K-layer task-graph nodes, so the A42 scheduler dispatches them
+with no new concepts. Laws: declared steps only, argv arrays never
+shell strings, typed params landing as single inert elements, the
+declaration owner-authored and project-tracked (`pipeline_init` may
+draft, never authorize), answers not logs, and — the generality law —
+no completion claim until a SECOND project's steps run through the
+same lane unmodified. Expected 0.8.0; the owner tags.
