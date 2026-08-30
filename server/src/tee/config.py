@@ -71,6 +71,7 @@ class ProjectConfig:
     gateway: dict[str, Any] = field(default_factory=dict)
     capture: dict[str, Any] = field(default_factory=dict)
     scheduler: dict[str, Any] = field(default_factory=dict)
+    trust: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -153,6 +154,12 @@ class ProjectConfig:
             config.scheduler = scheduler
         elif scheduler:
             problems.append("[scheduler] must be a table")
+
+        trust_section = data.get("trust", {})
+        if isinstance(trust_section, dict):
+            config.trust = trust_section
+        elif trust_section:
+            problems.append("[trust] must be a table")
 
         if problems:
             config.warning = f"{path.name}: " + "; ".join(problems)

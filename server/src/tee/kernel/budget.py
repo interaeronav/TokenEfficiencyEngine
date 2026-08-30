@@ -13,6 +13,7 @@ keeps the payload's scalar fields (ok, checkpoint ids, scene stamps).
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 DEFAULT_MAX_TOKENS = 20_000
@@ -149,6 +150,20 @@ def _collection_size(value: Any) -> int:
         return 1
 
 
+_READ_ONLY_AUDIT_SKIP = frozenset(
+    {
+        "read-scene",
+        "read-state",
+        "read-session",
+        "read-kb",
+        "read-extract",
+        "read-assets",
+        "read-design",
+        "read-uefn",
+    }
+)
+
+
 class ResponseLog:
     """Per-tool response-size log (standing rule: measure before optimizing).
 
@@ -164,9 +179,38 @@ class ResponseLog:
         self._calls: dict[str, int] = {}
         self._tokens_in: dict[str, int] = {}
         self._tokens_out: dict[str, int] = {}
+        # A43 L5: the audit trail. This record already fired on every call at
+        # the MCP seam, so auditing is one struct widened rather than a new
+        # call site - and the trail covers side effects only, because logging
+        # every read would bury the entries that matter.
+        self.audit: list[dict[str, Any]] = []
+        self._audit_keep = 200
 
-    def record(self, tool: str, payload: Any, request: Any = None) -> int:
+    def record(
+        self,
+        tool: str,
+        payload: Any,
+        request: Any = None,
+        *,
+        capability: str | None = None,
+        caller: str | None = None,
+        taint: tuple[str, ...] = (),
+        decision: str = "allowed",
+    ) -> int:
         tokens = estimate_tokens(payload)
+        if capability is not None and capability not in _READ_ONLY_AUDIT_SKIP:
+            entry: dict[str, Any] = {
+                "at": time.strftime("%H:%M:%S"),
+                "tool": tool,
+                "capability": capability,
+                "caller": caller or "content-derived",
+                "decision": decision,
+            }
+            if taint:
+                entry["taint"] = list(taint)[:3]
+            self.audit.append(entry)
+            if len(self.audit) > self._audit_keep:
+                del self.audit[: len(self.audit) - self._audit_keep]
         sizes = self._sizes.setdefault(tool, [])
         sizes.append(tokens)
         if len(sizes) > self._keep:

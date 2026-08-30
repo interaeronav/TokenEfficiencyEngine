@@ -19,7 +19,7 @@ from mcp.server.mcpserver import Image, MCPServer
 
 from tee import __version__
 from tee.app import TeeApp
-from tee.kernel import trustctx
+from tee.kernel import trust, trustctx
 from tee.kernel.budget import columnarize, enforce_budget
 from tee.kernel.errors import TeeError, internal_error_payload
 from tee.web.tools import WEB_LOOKUP_DESCRIPTION
@@ -150,7 +150,14 @@ def _tool(app: TeeApp, name: str) -> Callable:
                 if isinstance(result, dict):
                     result = columnarize(result)
                     result = enforce_budget(result)
-                    app.response_log.record(name, result, request=kwargs or None)
+                    app.response_log.record(
+                        name,
+                        result,
+                        request=kwargs or None,
+                        capability=trust.capability_for(name),
+                        caller="live-turn",
+                        taint=trustctx.taint(),
+                    )
                     return json.dumps(
                         result, separators=(",", ":"), default=str, ensure_ascii=False
                     )

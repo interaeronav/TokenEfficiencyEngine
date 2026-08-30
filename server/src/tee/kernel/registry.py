@@ -67,6 +67,7 @@ class ToolRegistry:
         # do anything irreversible.
         self.grants = trust.Grants()
         self.trust_denials: list[dict[str, Any]] = []  # shadow band, for tee_trust
+        self.audit_log = None  # set by the app: side-effecting calls are logged
 
     def register(self, tool: VirtualTool) -> None:
         if tool.name in self._tools:
@@ -158,6 +159,14 @@ class ToolRegistry:
         self._validate(tool, args or {})
         self._trust(tool)
         result = tool.handler(args or {})
+        if self.audit_log is not None:
+            self.audit_log.record(
+                f"virtual:{name}",
+                result,
+                capability=tool.capability,
+                caller=trustctx.caller(),
+                taint=trustctx.taint(),
+            )
         # A capability whose RESULTS are untrusted content taints this task
         # from here on: a KB passage or a fetched page may inform an answer,
         # but it may never go on to cause a side effect (research 62).

@@ -130,6 +130,7 @@ class TeeApp:
         from tee.kernel import trust
 
         config_path = Path(project_root) / ".tee" / "config.toml"
+        self.registry.audit_log = self.response_log
         self.registry.grants = trust.Grants.from_config(
             self.config,
             source=str(config_path) if config_path.is_file() else f"{config_path} (absent)",
@@ -164,8 +165,10 @@ class TeeApp:
         self.gateway = None  # GatewayService when [gateway] backends exist (A37)
         from tee.boards import register_board_tools
         from tee.kernel.meter import register_session_tools
+        from tee.kernel.trust_tools import register_trust_tools
 
         register_session_tools(self)  # report_savings + handoff (A37 P6)
+        register_trust_tools(self)  # tee_trust: the kernel's visibility (A43)
         register_board_tools(self)  # board_compose (A37 P7)
 
     @property
