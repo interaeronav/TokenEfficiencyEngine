@@ -147,6 +147,25 @@ Extended acceptance: a memory/staging round-trip preserves taint;
 `call-paid-engine` and a paid response reads back tainted; grant
 changes require the typed-phrase path.
 
+## T-1 BUILD ORDER (research 65 — dependency-safe, grounded)
+
+Build the kernel as a STACK, bottom-up; no layer skipped or reordered:
+L0 capability map (verbs+resources, 103 tools tabled by module) → L1
+grants + default-deny (read tier open, else closed) → **L2 caller
+ContextVar** set at `server.py:_tool` and SNAPSHOTTED via
+`copy_context()` into the daemon worker at `jobs.submit` (verified
+~5 lines, two sites; chore entry fail-closed on absent) → L3 taint +
+`derive(parents)` (orphan id = tainted) → L4 the ONE `trust.check` in
+`registry.call` + REQUIRED `VirtualTool.capability` (startup guard) +
+four-surface coverage test, composing with the existing
+`jobs.may_admit` (trust first) → L5 audit by widening the
+`response_log.record` call already at `_tool` → **high-risk
+capabilities enforce NOW** → L6 shadow the QUALITY-denial band only
+(`[trust] enforce` is its OWN switch, separate from `[scheduler]
+dispatch`) → L7 owner typed-phrase flip across coverage+canaries.
+L2 and L6 MUST land before any side-effect enforcement. THEN P0/P0b
+below, as the kernel's first tenant.
+
 ## P0 — Schema, validator, hostile fixtures (no runner yet)
 
 The `[[step]]` schema (name, kind=produce|query, argv, params with

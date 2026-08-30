@@ -5521,3 +5521,22 @@ tainted. Pattern: every leak is at a boundary (thread/time/schema/
 rollout/derivation); every fix makes safe behavior structural there.
 FP-1 and FP-2 MUST land before any enforcement. Folded into T-1; no
 new campaign.
+
+## 2026-08-30 — Research 65: the trust-kernel integration blueprint (build order)
+
+Consolidated 61-64 into ONE dependency-safe build order, grounded in
+the two FP-1 install points (verified): `_tool` is a sync choke that
+already calls response_log.record (audit half-built there); jobs.submit
+stashes fn as a thunk so copy_context()+ctx.run is a ~5-line two-site
+fix. The stack: L0 capability map → L1 grants/default-deny → L2 caller
+ContextVar (the two sites, fail-closed chore entry) → L3 taint+derive
+→ L4 the one check + startup capability guard + four-surface coverage
+test (composes with may_admit, trust first) → L5 audit via widening the
+existing record call → high-risk capabilities enforce NOW → L6 shadow
+the QUALITY-denial band only ([trust] enforce is its own switch, not
+[scheduler] dispatch) → L7 owner typed-phrase flip. L2+L6 mandatory
+before any side-effect enforcement. Interaction audit: composes with
+jobs admission, gateway prefix/fingerprint, router swap (gives SI-B16
+paid flag teeth via the kernel), and the client-policy law (live-turn =
+the client's own consent turn, complement not bypass). T-1 gains the
+build order; no new capability, just safe assembly.
