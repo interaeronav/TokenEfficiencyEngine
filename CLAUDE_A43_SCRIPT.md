@@ -60,6 +60,15 @@ A one-paste prompt for a fresh session:
   return the tail, rule-6 shaped, naming the step.
 - **Generality is proven, not asserted**: no completion claim until a
   SECOND project's steps run through the same lane unmodified.
+- **Client-policy alignment (owner, 2026-08-30): nothing in this
+  campaign may be designed to weaken or route around the AI client's
+  own safety policies.** TEE is driven by clients (Claude among them)
+  whose usage policies and consent models are part of the operating
+  environment: the live-turn consent gates COMPLEMENT the client's
+  approval flow rather than substituting for it, untrusted content
+  never causes execution, egress is taint-gated and visible, and no
+  capability exists whose purpose is evading a client-side control.
+  Where a client refuses an action, TEE never offers a bypass.
 
 ## T-1 — The trust kernel FIRST (research 61; the pipeline is its first tenant)
 
