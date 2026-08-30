@@ -5392,3 +5392,34 @@ extension for the running server to see the profile. SI-B17 filed —
 nothing surfaces which project_root/config the server actually loaded,
 which made an edit-that-went-nowhere look identical to a bug; a stale
 memory note claiming the root had moved compounded it (note corrected).
+
+## 2026-08-30 — qmax measured against the pre-declared bar (owner: test it)
+
+The hosted profile put through the same trap suite every candidate
+engine faced, same fixtures, real chore path (`chores.triage`,
+`refine="local"`, env-pointed at the shim; adapters empty — a2 is
+14B-trained).
+
+| engine | traps | latency / chore | resident | cost |
+|---|---|---|---|---|
+| q14b + tee-triage-a2 (adopted) | 6/6 | 0.75–1.82 s (A38 rows) | ~8 GB | free |
+| q27b bare | 6/6 | 3.11–10.12 s (A34 probe) | ~51 GB | free |
+| **qmax (hosted Qwen-Max)** | **6/6** (11.70 s for the suite ≈ 1.95 s/chore; one instrumented call 2.58 s) | ~1.95–2.58 s | **0 GB** | **393 tok billed/chore** (318 prompt + 75 completion, measured) |
+
+**Verdict: no measured quality improvement.** qmax matches — does not
+beat — the bar the free, local, adapter-trained 14B already meets:
+3 traps deferred, 3 controls stayed grounded, same as both local
+engines. It sits between them on latency, frees all local RAM (nothing
+resident while pinned), and bills ~393 tokens per chore with the
+inputs leaving the machine.
+
+Two findings worth keeping: (1) the chore scaffolding is load-bearing
+on this engine — the same fixture sent WITHOUT the thinking-off,
+JSON-constrained prompt ran past a 90 s timeout, so qmax is only fast
+inside the chore path; (2) the local q14b endpoint was DOWN during the
+test — pinning an unmanaged hosted profile really does free the
+machine, as designed.
+
+Recommendation recorded: qmax is a deliberate lever, not a default —
+the evidence still favours q14b+a2 for chores. Nothing adopted; the
+owner's pin stands until he switches back.
