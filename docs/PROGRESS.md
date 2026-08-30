@@ -6066,3 +6066,45 @@ $ git ls-remote --tags origin | grep v0.8.0
 ```
 
 Close-out owner action 1 CLOSED.
+
+## 2026-08-30 — Owner action 2: the co-pilot is already on 0.8.0
+
+The close-out said the installed server was still 0.7.0 and asked for a
+reinstall. **It had already been reinstalled** between the close-out and
+this session, and no rebuild was needed either — nothing under
+`server/src` is newer than the bundle:
+
+```
+$ stat -f '%Sm %N' server/dist/tee-engine-0.8.0.mcpb
+2026-08-30 19:15:01 server/dist/tee-engine-0.8.0.mcpb
+$ find server/src -type f -newer server/dist/tee-engine-0.8.0.mcpb
+server/src/tee/__pycache__/__init__.cpython-311.pyc      (bytecode only)
+```
+
+Bundle re-verified by extraction rather than by filename: manifest
+`version 0.8.0`, 17 tools, `src/tee/pipeline/` and `src/tee/kernel/`
+both present.
+
+**Installed copy** at `~/Library/Application Support/Claude/Claude
+Extensions/local.mcpb.interaeronav.token-efficiency-engine`, written
+`19:48` (33 min AFTER the bundle was built): manifest `version 0.8.0`,
+17 tools, `src/tee/kernel` and `src/tee/pipeline` on disk. Settings
+file: `"isEnabled": true`, `project_root = /Users/john/TEE`.
+
+**Proved live, not just on disk** — asked the RUNNING server for tools
+0.7.0 could not have had:
+
+```
+tee_search_tools "pipeline declared steps"
+  -> pipeline_list, pipeline_run, pipeline_adhoc, pipeline_init, pipeline_adopt
+tee_search_tools "trust grant permission"
+  -> tee_trust  ("the capability tier, the active grants AND the config
+                  file that granted them, what was refused recently")
+```
+
+`tee_status` on that server: `virtual_tools: 109`, `llm_profile: qmax`,
+blender adapter connected. Note `tee_status` reports no version string
+of its own — the lane and kernel tool rows above are the evidence that
+the running code is 0.8.0, which is stronger than a self-reported number.
+
+Close-out owner action 2 CLOSED — no owner steps required.
