@@ -6287,3 +6287,54 @@ has not).
 
 **Resting point: clean.** Suite green, lint clean, benchmark green and
 now idempotent, v0.8.0 tagged and pushed, co-pilot running 0.8.0.
+
+## 2026-08-30 — qmax is live end to end (owner restarted; the grant took)
+
+Owner action 3 was left "pending only a Desktop restart". He restarted.
+**The grant took**, confirmed on the running server rather than inferred:
+
+```
+tee_trust  BEFORE: tier "read+baseline"  granted ["(none beyond baseline)"]
+tee_trust  AFTER : tier "power"          granted ["call-paid-engine"]
+```
+
+`tee_status`: `llm_profile: qmax`, 109 virtual tools, blender connected.
+
+**The rest of the chain, checked link by link rather than assumed:**
+
+```
+$ lsof -nP -iTCP:4000 -sTCP:LISTEN
+python3.1 78779 john 13u IPv4 TCP 127.0.0.1:4000 (LISTEN)
+$ curl -o /dev/null -w '%{http_code} %{time_total}s' :4000/v1/models
+200 0.004902s
+routes on the shim: ['claude-qwen-27b','qwen-27b','claude-qwen-uncensored',
+  'claude-deepseek-flash','claude-qwen-small','claude-qwen-vl',
+  'mlx-community/*','claude-qwen-max']
+```
+
+**One minimal PAID probe** — deliberately trivial and non-sensitive
+("Reply with the single word: ok"), `max_tokens 8`:
+
+```
+model returned : claude-qwen-max
+answer         : 'ok'
+usage          : {'prompt_tokens': 68, 'completion_tokens': 33,
+                  'total_tokens': 101,
+                  'completion_tokens_details': {'reasoning_tokens': 29,
+                                                'text_tokens': 33}}
+```
+
+So the whole path works: grant → shim on :4000 → DashScope → Qwen-Max →
+answer, billed.
+
+**That usage line is itself evidence for SI-B16/SI-B18.** A four-word
+prompt cost **101 billed tokens**, of which **29 were reasoning tokens
+the caller never sees** and 68 were prompt overhead the shim added on top
+of a 7-token message. Nothing in TEE would have shown any of that:
+`report_savings` has no paid/spend column (SI-B16) and no egress column
+(SI-B18). The cheapest possible paid call is ~14x its visible content,
+which is the argument for both columns stated as a measured number rather
+than a worry.
+
+Scope note: this probe went through curl, so it proves the SHIM and the
+paid engine. TEE's own chore path to qmax is not exercised here.
