@@ -49,6 +49,10 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   security phases — never weaken, disable, or route around the client's
   safety policy or its model routing, and never use a local/uncensored
   model to avoid review.
+- The A45 campaign (unblock the permission surface, meter paid-model
+  spend and egress, land the fifteen headless open resources) is driven
+  by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
+  goes, the taint law stays, and TEE still never grants itself.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or
