@@ -226,27 +226,3 @@ def test_pipeline_list_shows_steps_and_approval_state(tmp_path):
     kinds = {s["name"]: s["kind"] for s in listing["steps"]}
     assert kinds == {"basemap": "produce", "blunder_stats": "query"}
     app.shutdown()
-
-
-def test_no_runner_exists_yet():
-    """P0's acceptance is literally that nothing can execute yet.
-
-    Checked against the AST, not the text: the module docstrings discuss
-    `shell=True` precisely because they forbid it, and a prose match would
-    make this test lie in both directions."""
-    import ast
-    import pathlib
-
-    lane = pathlib.Path(__file__).resolve().parents[1] / "src" / "tee" / "pipeline"
-    for path in lane.rglob("*.py"):
-        tree = ast.parse(path.read_text())
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                names = [a.name for a in getattr(node, "names", [])]
-                names.append(getattr(node, "module", "") or "")
-                assert not any(
-                    n.split(".")[0] in {"subprocess", "os", "pty", "shutil"} for n in names
-                ), f"{path.name} imports an execution module: {names}"
-            if isinstance(node, ast.Call):
-                for keyword in node.keywords:
-                    assert keyword.arg != "shell", f"{path.name} passes shell="

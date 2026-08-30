@@ -348,3 +348,83 @@ def test_unknown_capability_in_grants_refuses_loudly(tmp_path):
     with pytest.raises(TeeError) as excinfo:
         TeeApp({"fake": FakeAdapter()}, project_root=project)
     assert excinfo.value.code == "trust_unknown_capability"
+
+
+# -- egress: a paid engine is still an exit (research 63 #4) ----------------
+
+
+def _paid_cfg(url: str, state_dir, grants: trust.Grants) -> dict:
+    return {
+        "_state_dir": str(state_dir),
+        "_grants": grants,
+        "profiles": {"q14b": {"url": url, "model": "hosted-x", "adapters": "", "paid": True}},
+    }
+
+
+def test_a_paid_chore_is_denied_without_the_capability(tmp_path):
+    from tee.llm import chores
+
+    cfg = _paid_cfg("http://127.0.0.1:9/v1", tmp_path, trust.Grants())
+    with pytest.raises(TeeError) as excinfo:
+        chores.triage("boom", "line 1", refine="local", cfg=cfg)
+    assert excinfo.value.code == "trust_denied"
+    assert "call-paid-engine" in excinfo.value.fix
+    # auto mode degrades quietly to the deterministic path instead
+    assert chores.triage("boom", "line 1", refine="auto", cfg=cfg) is None
+
+
+def test_a_paid_chore_runs_when_granted_and_taints_its_answer(tmp_path):
+    import json
+
+    from fixtures_llm import fake_llm_server
+
+    from tee.llm import chores
+
+    answer = json.dumps(
+        {"diagnosis": "the kwarg is gone", "fix": "check the docs", "confidence": "grounded"}
+    )
+    grants = trust.Grants(granted=frozenset({"call-paid-engine"}))
+    with fake_llm_server([answer]) as (url, _calls):
+        result = chores.triage(
+            "boom", "line 1", refine="local", cfg=_paid_cfg(url, tmp_path, grants)
+        )
+    assert result["confidence"] == "grounded"
+    # untrusted in -> untrusted out: the provider's answer is not first-party
+    assert any("call-paid-engine" in t for t in trustctx.taint())
+
+
+def test_a_tainted_task_may_not_reach_the_paid_engine(tmp_path):
+    from tee.llm import chores
+
+    grants = trust.Grants(granted=frozenset({"call-paid-engine"}))
+    trustctx.add_taint("fetch-web:docs.example")
+    with pytest.raises(TeeError) as excinfo:
+        chores.triage(
+            "boom", "ctx", refine="local", cfg=_paid_cfg("http://127.0.0.1:9/v1", tmp_path, grants)
+        )
+    assert excinfo.value.code == "trust_denied"
+    assert "untrusted content" in excinfo.value.fix  # exfiltration through a trusted endpoint
+
+
+def test_switching_into_a_paid_profile_needs_the_grant_and_says_so(tmp_path):
+    from tee.llm.tools import register_llm_tools
+
+    project = tmp_path / "proj"
+    (project / ".tee").mkdir(parents=True)
+    (project / ".tee" / "config.toml").write_text(
+        '[llm.profiles.hosted]\nurl = "http://127.0.0.1:9/v1"\nmodel = "m"\npaid = true\n'
+    )
+    app = TeeApp({"fake": FakeAdapter()}, project_root=project)
+    register_llm_tools(app, project)
+    trustctx.CALLER.set("live-turn")
+    with pytest.raises(TeeError) as excinfo:
+        app.registry.call("llm_switch", {"profile": "hosted"})
+    assert excinfo.value.code == "trust_denied"
+    assert "call-paid-engine" in excinfo.value.fix
+
+    app.registry.grants = replace(
+        app.registry.grants, granted=app.registry.grants.granted | {"call-paid-engine"}
+    )
+    out = app.registry.call("llm_switch", {"profile": "hosted"})
+    assert "PAID, off-machine" in out["egress"]
+    app.shutdown()

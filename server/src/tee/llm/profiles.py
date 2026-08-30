@@ -155,6 +155,10 @@ def resolve(cfg: dict[str, Any] | None) -> dict[str, Any]:
         "model": str(model),
         "adapters": adapters,
         "ready": bool(state.get("ready", True)),
+        # A43: a hosted profile is an EGRESS. Carrying the flag here is what
+        # lets one check at the chore seam gate spend and disclosure, rather
+        # than every call site remembering (SI-B16's teeth).
+        "paid": bool(spec.get("paid", False)),
     }
     if not out["ready"]:
         eta = float(state.get("eta_s") or 0)

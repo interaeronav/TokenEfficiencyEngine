@@ -72,6 +72,7 @@ class ProjectConfig:
     capture: dict[str, Any] = field(default_factory=dict)
     scheduler: dict[str, Any] = field(default_factory=dict)
     trust: dict[str, Any] = field(default_factory=dict)
+    pipeline: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -154,6 +155,12 @@ class ProjectConfig:
             config.scheduler = scheduler
         elif scheduler:
             problems.append("[scheduler] must be a table")
+
+        pipeline_section = data.get("pipeline", {})
+        if isinstance(pipeline_section, dict):
+            config.pipeline = pipeline_section
+        elif pipeline_section:
+            problems.append("[pipeline] must be a table")
 
         trust_section = data.get("trust", {})
         if isinstance(trust_section, dict):

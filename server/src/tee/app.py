@@ -177,6 +177,7 @@ class TeeApp:
         persist into (A37 P0-S) - the one dict every chore consumer gets."""
         cfg = dict(self.config.llm or {})
         cfg["_state_dir"] = str(self.project_root / ".tee")
+        cfg["_grants"] = self.registry.grants  # A43: the paid-engine gate
         return cfg
 
     @property

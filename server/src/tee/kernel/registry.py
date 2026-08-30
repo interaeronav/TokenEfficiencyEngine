@@ -256,4 +256,7 @@ class ToolRegistry:
                     raise TeeError(
                         "bad_argument_type",
                         f"{tool.name}: '{key}' must be {expected}, got {type(value).__name__}.",
+                        fix=f"Schema: tee_describe_tool(name='{tool.name}'). An "
+                        "array argument is a LIST of values, never one string "
+                        "containing them.",
                     )

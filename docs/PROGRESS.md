@@ -5718,3 +5718,64 @@ AST, so P0 cannot quietly grow a runner.
 false) with the live-human-turn invariant and a refusal fixture per
 caller class, then the adopt flow that turns a successful ad-hoc run
 into a declaration the owner accepts.
+
+## 2026-08-30 — A43 P0b: the ad-hoc door + the adopt flow; and the paid engine finally has teeth
+
+Suite 826 → **840 passed / 2 skipped**, gate exit 0.
+
+**P0b — the discovery door, opened narrowly.** Declared steps are the
+norm and the only thing anything automatic may run; ad-hoc exists
+because the owner does not know the step until he has run the command
+once. So the door needs THREE independent keys: the project's opt-in
+(`[pipeline] allow_adhoc`, default false — the `allow_code_exec`
+precedent), the kernel's `run-adhoc` grant, and a LIVE HUMAN TURN.
+
+- **One refusal fixture per caller class** (job, scheduled, chore,
+  gateway-fronted, content-derived) plus the load-bearing one: a live
+  turn that has read the web is NOT a clean turn — `pipeline_tainted_turn`,
+  because untrusted content can never cause execution, and that
+  invariant does not bend. Both layers are asserted separately, so
+  neither is load-bearing alone: the kernel refuses first (run-adhoc is
+  high-risk), and the door refuses independently when granted.
+- **The runner** (`pipeline/runner.py`) is the lane's only execution
+  path and can only ever run an argv LIST. There is no code path that
+  accepts a command string, and an AST fixture asserts no `shell=`,
+  `os.system`, `eval` or `exec` anywhere in the lane — P0's "no runner
+  yet" guard EVOLVED into the permanent one rather than being deleted.
+  Output is tail-bounded (a failing step returns one honest line plus a
+  tail, never a flood — proven against a 5,000-line failure).
+- **The adopt flow**: after a successful ad-hoc run TEE proposes the
+  declaration it WOULD write — argv verbatim, kind and outputs inferred
+  from what the run actually touched, a measured cost hint — into
+  `.tee/pipeline.proposed.toml`. The end-to-end fixture runs ad-hoc →
+  adopt → moves the block in → the step parses as a real declaration and
+  is still UNAPPROVED. TEE wrote nothing and approved nothing.
+- **Rule-6 repair found on the way**: `bad_argument_type` shipped with
+  no fix line (all 121 tools). It now names the schema and says an array
+  argument is a LIST, never one string containing them.
+
+**The paid engine now has teeth (SI-B16, research 63 #4).** The owner
+is running a hosted profile this session, which makes every chore an
+egress and a bill. `resolve()` carries the `paid` flag; the chore seam
+checks `call-paid-engine` before any hosted call — denied to a tainted
+task outright (exfiltration through a *trusted* endpoint is still
+exfiltration), denied without the grant, and degrading quietly to the
+deterministic path in `auto` mode rather than failing the work. The
+provider's ANSWER is tainted in turn (untrusted in → untrusted out), and
+`llm_switch` into a paid profile requires the same capability and
+reports **"PAID, off-machine"** on success. Local engines remain a
+first-class option — nothing here removes them; the gate is about which
+side of the machine boundary a call crosses.
+
+**Owner action, one line.** The installed co-pilot reads
+`/Users/john/TEE/.tee/config.toml` (SI-B17). To keep the hosted profile
+working through it, add:
+
+    [trust]
+    grants = ["call-paid-engine"]
+
+TEE deliberately does not write that line itself — a grant is policy,
+and the kernel's whole point is that a model cannot grant itself one.
+
+**Next: P1** — the declared-step runner (artifact diffs for produce,
+budgeted answers for query), then P2's staleness DAG.

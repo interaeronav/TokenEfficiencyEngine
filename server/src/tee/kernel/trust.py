@@ -255,6 +255,7 @@ _EXPLICIT: dict[str, str] = {
     "pipeline_run": "run-declared-step",
     "pipeline_adhoc": "run-adhoc",
     "pipeline_init": "read-state",
+    "pipeline_adopt": "write-state",
     "trust_grant": "write-policy",
     "tee_trust": "read-session",
 }

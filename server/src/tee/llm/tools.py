@@ -35,7 +35,24 @@ def register_llm_tools(app, project_root: Path | str) -> None:
             state.pop("pinned", None)
             profiles.save_state(cfg, state)
             return {"ok": True, "report": "pin cleared - the router may roam the ladder"}
+        target = profiles.profiles(cfg).get(profile) or {}
+        if target.get("paid"):
+            from tee.kernel import trust, trustctx
+
+            decision = trust.check(
+                "call-paid-engine",
+                caller=trustctx.caller(),
+                grants=app.registry.grants,
+                taint=trustctx.taint(),
+                consent=True,  # an explicit TEE/Q switch IS the owner asking
+            )
+            decision.raise_if_denied(f"llm_switch to '{profile}'")
         result = profiles.switch(cfg, profile, jobs=app.jobs)
+        if target.get("paid") and result.get("ok"):
+            result["egress"] = (
+                "PAID, off-machine: chore inputs sent while this profile is "
+                "active leave this machine and bill per token"
+            )
         if result.get("ok"):
             # An explicit TEE/Q choice is owner intent: roaming suspends
             # until TEE/AUTO (the A39 owner-ceiling law).

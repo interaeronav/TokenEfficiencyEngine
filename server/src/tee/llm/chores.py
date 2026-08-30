@@ -170,6 +170,25 @@ def _run(
             )
         return None
     url, model, adapters = resolved["url"], resolved["model"], resolved["adapters"]
+    if resolved.get("paid"):
+        # A43 (research 63 #4): a paid engine is still an EXIT. "Owner-
+        # configured" does not mean "not an egress" - this content leaves
+        # the machine and bills, so it needs the capability, and a tainted
+        # task may not reach it at all.
+        from tee.kernel import trust, trustctx
+
+        grants = (cfg or {}).get("_grants") or trust.Grants()
+        decision = trust.check(
+            "call-paid-engine",
+            caller=trustctx.caller(),
+            grants=grants,
+            taint=trustctx.taint(),
+            consent=bool((cfg or {}).get("_consent")),
+        )
+        if not decision.allowed:
+            if refine == "local":
+                decision.raise_if_denied(f"chore on '{resolved['profile']}'")
+            return None  # auto mode degrades to the deterministic path
     if not _ready(refine, url):
         return None
     try:
@@ -187,6 +206,10 @@ def _run(
             raise
         _probe_cache.pop(url, None)  # a dead endpoint re-probes next time
         return None
+    if resolved.get("paid"):
+        from tee.kernel import trustctx
+
+        trustctx.add_taint(f"call-paid-engine:{resolved['profile']}")
     result = validate(raw)
     if result is None and refine == "local":
         raise TeeError(
