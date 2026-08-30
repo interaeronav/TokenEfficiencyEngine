@@ -124,6 +124,23 @@ grant/policy changes need a typed-phrase confirmation, not a bare
 approval, because habituation is irreducible and the human gate must
 be the LAST layer, never the only one.
 
+Simulation hardening (research 64 — the "survives contact" pass):
+taint reaches the model by ONE mechanism, not N call-site edits — a
+ContextVar set at `_tool()`, SNAPSHOTTED by `jobs.submit` and
+re-installed in the daemon worker (threads don't inherit it), read at
+the chore entrypoint, FAIL-CLOSED when absent (verified: jobs are
+daemon threads, zero contextvars today); shadow-first governs ENGINE
+CHOICE ONLY — high-risk capabilities (run-adhoc, write-config/policy,
+call-paid-engine) enforce deny-by-default even in shadow, only
+quality/taint denials are shadow-measured (FP-2, a hole the naive
+shadow-first would ship); the enforcement flip needs owner
+typed-phrase sign-off across coverage + canaries, never a single
+gameable scalar; derived ids are minted only via `derive(parents)`
+which unions parent taint, a directly-built id defaults tainted, an
+audit sweep flags orphans; gateway tool DESCRIPTIONS are tainted
+quoted data and a collision with a LOCAL tool name is refused (prefix
++ fingerprint already blunt rename-impersonation).
+
 Extended acceptance: a memory/staging round-trip preserves taint;
 `write-artifacts` cannot touch `.tee/` or a config/policy/loader path
 (canonicalized, symlink/traversal fixture); a tainted task is denied

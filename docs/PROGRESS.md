@@ -5499,3 +5499,25 @@ owner-configured; fix = call-paid-engine is egress, taint-denied
 without live-turn approval, response itself tainted; converges with
 SI-B16/B18. Written as research 63; T-1 acceptance extended. No new
 campaign — sharpens A43's foundation.
+
+## 2026-08-30 — Research 64: trust-kernel simulated, five boundary leaks found
+
+qmax simulation of the integration (6,247 tok, input not authority,
+verified against code). The kernel is sound IN the model but leaks at
+five BOUNDARIES it doesn't cover: FP-1 [high] taint can't cross the
+submit→daemon-worker hop (verified: daemon threads, zero contextvars)
+— fix = a ContextVar snapshotted into the worker, fail-closed when
+absent; FP-2 [high, a hole naive shadow-first ships] the unenforced
+collection window is an open door AND its traces are poisonable — fix
+= shadow governs engine choice ONLY, high-risk capabilities enforce
+from day one; FP-3 [high, partially mitigated] backend tool
+descriptions are untrusted model-visible text — fix = taint them,
+refuse local-name collisions (prefix+fingerprint already blunt
+rename-impersonation); FP-4 [high] "zero false denials" is a gameable
+scalar (force premature flip / DoS the rollout) — fix = owner
+typed-phrase sign-off across coverage+canaries; FP-5 [med] derived ids
+launder taint — fix = derive(parents) unions taint, orphans default
+tainted. Pattern: every leak is at a boundary (thread/time/schema/
+rollout/derivation); every fix makes safe behavior structural there.
+FP-1 and FP-2 MUST land before any enforcement. Folded into T-1; no
+new campaign.
