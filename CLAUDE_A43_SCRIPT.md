@@ -1,14 +1,24 @@
-# A43 build script — the pipeline lane: declared steps for any project
+# A43 build script — the trust kernel, then the pipeline lane
 
-**What this builds** (owner directive, 2026-08-30): the general
-pipeline lane from `docs/research/60-pipeline-lane.md` — the design of
-record; read it first. Origin: SI-B15 — TEE's 103 virtual tools are
-scene-side and could not drive the DiversionPlanner basemap build;
+**What this builds** (owner directive, 2026-08-30): TWO things in
+dependency order — (1) the **trust kernel** (T-1), one capability
+model that turns TEE's four scattered permission flags into a single
+default-deny decision point with taint tracking; then (2) the
+**pipeline lane** (P0–P6), declared build/query steps for ANY project,
+as the kernel's FIRST TENANT. Origin: SI-B15 — TEE's 103 virtual tools
+are scene-side and could not drive the DiversionPlanner basemap build;
 `capture_terrain`'s `dem_diff` earned its place by being a DECLARED
-HEADLESS OPERATION, and this campaign generalizes that shape. The lane
-must serve **any project and both kinds of work** — builds that
-produce artifacts and queries that return answers — with
-DiversionPlanner as first customer, never as the definition.
+HEADLESS OPERATION, and this campaign generalizes that shape while
+making it safe to run any project's code.
+
+Designs of record, read in this order: research **61** (capability
+model) → **62** (integration seams) → **63** (hardening) → **64**
+(simulation + the five boundary leaks) → **65** (the build-order
+blueprint) for the kernel; research **60** (the pipeline + the ad-hoc
+door) for the lane. The lane must serve **any project and both kinds
+of work** — builds that produce artifacts and queries that return
+answers — with DiversionPlanner as first customer, never the
+definition.
 
 Inherits every standing law by reference (A33 rules; surface LAW
 2,028/17 — the lane ships as virtual tools, zero always-loaded growth;
@@ -19,13 +29,17 @@ touching the scheduler).
 
 A one-paste prompt for a fresh session:
 
-> Read CLAUDE.md, then CLAUDE_A43_SCRIPT.md, then research doc 60,
-> then the last dated entries of docs/PROGRESS.md. Call tee_status and
-> tee_recall first and use TEE's own tools as co-pilot throughout.
-> Work the phases in order from where the evidence says they stand —
-> schema and hostile fixtures before any runner, two projects before
-> any generality claim, benchmarks before claims. Stop and report if
-> any phase's premise no longer holds.
+> Read CLAUDE.md, then CLAUDE_A43_SCRIPT.md, then research docs 61, 62,
+> 63, 64, 65 and 60, then the last dated entries of docs/PROGRESS.md.
+> Call tee_status and tee_recall first and use TEE's own tools as
+> co-pilot throughout. Build the TRUST KERNEL first, in the L0→L7 order
+> — L2 (caller context) and L6 (shadow governs engine CHOICE only;
+> safety enforces now) MUST land before any side-effect enforcement —
+> then the pipeline lane as its first tenant. Fakes and hostile
+> fixtures before any runner, shadow before enforcement, two projects
+> before any generality claim, benchmarks before claims. Nothing may
+> weaken or route around the client's own safety policy. Stop and
+> report if any phase's premise no longer holds.
 
 ## Laws (this campaign's own, from research 60)
 
