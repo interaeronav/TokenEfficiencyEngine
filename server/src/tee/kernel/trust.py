@@ -93,6 +93,13 @@ SIDE_EFFECTING: frozenset[str] = frozenset(
 
 CAPABILITIES: frozenset[str] = READ_TIER | SIDE_EFFECTING
 
+# Capabilities no config may grant, ever, by any route. `place-order` is
+# reserved so its ABSENCE is visible; without this it sat in CAPABILITIES
+# and `Grants.from_config` accepted it silently - and since A45 P0a made
+# grants hot-reload, a single edited line would have activated it with no
+# restart and no prompt. The guard is that the line cannot parse at all.
+NEVER_GRANTABLE: frozenset[str] = frozenset({"place-order"})
+
 # High-risk capabilities enforce deny-by-default from day one, shadow mode
 # or not (research 64 FP-2: shadow-first governs engine CHOICE, never
 # SAFETY — an open rollout window would be an open door, and it would feed
@@ -162,8 +169,12 @@ _FAMILY: tuple[tuple[str, str], ...] = (
     # --- A45 P2: the headless fleet ---
     ("solve_", "read-compute"),  # HiGHS / OR-Tools / Cbc / SCIP
     ("quant_", "read-compute"),  # skfolio / PyPortfolioOpt
-    ("trade_", "read-compute"),  # backtest + research ONLY (see place-order)
     ("cad_", "read-compute"),  # OpenSCAD / CadQuery: author, then export
+    # DELIBERATELY NO ("trade_", ...) ENTRY. A prefix default would let a
+    # future tool called trade_place_order inherit the OPEN read tier just
+    # by being named. Every trading tool is tabled INDIVIDUALLY in
+    # _EXPLICIT, so an untabled trade_* name is a startup error - which is
+    # the point: the kernel refuses to boot rather than quietly permit.
     ("med_", "read-medimg"),  # DICOM / MONAI / Qiber3D
     ("bi_", "call-service"),  # Cube: a service call, answer is quoted data
     ("svc_", "call-service"),  # generic headless-service probes
@@ -405,9 +416,24 @@ class Grants:
                     f"[trust] profile = '{key}' is not a known profile.",
                     fix=f"Known profiles: {', '.join(sorted(PROFILES))}.",
                 )
+            smuggled = PROFILES[key] & NEVER_GRANTABLE
+            if smuggled:  # unreachable today; asserted by test, kept as a tripwire
+                raise TeeError(
+                    "trust_never_grantable",
+                    f"profile '{key}' contains {sorted(smuggled)}, which can never be granted.",
+                    fix="This is a TEE bug - report it.",
+                )
             granted |= set(PROFILES[key])
         for name in trust_cfg.get("grants") or []:
             text = str(name).strip()
+            if text in NEVER_GRANTABLE:
+                raise TeeError(
+                    "trust_never_grantable",
+                    f"'{text}' can never be granted. It is reserved so that its "
+                    f"absence is auditable, not to be switched on.",
+                    fix="TEE does not place orders or move funds under any "
+                    "configuration. Do that in your broker's own interface.",
+                )
             if text not in CAPABILITIES:
                 raise TeeError(
                     "trust_unknown_capability",

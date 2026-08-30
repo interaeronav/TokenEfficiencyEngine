@@ -6576,3 +6576,43 @@ Answers stay compact: a 120-asset universe returns 15 holdings plus a
 arithmetic over the supplied series and **not investment advice**.
 
 **Suite: 951 passed / 9 skipped** (936 → 951), ruff clean. `[quant]` extra.
+
+## 2026-08-30 — A45: two trading-safety holes closed, both in code shipped hours earlier
+
+The A45 research workflow finished — **35 agents, 0 errors, 4.4 M subagent
+tokens, 87 min**. Its adversarial trading-safety analysis found two live
+defects in code written earlier the same night. Both are the same class of
+mistake: a guard that relied on nobody adding a thing, rather than on the
+thing being impossible.
+
+**Hole 1 — a family prefix would have granted a trading tool the open read
+tier by NAME.** P0e added `("trade_", "read-compute")` to `_FAMILY` so P2f
+could add tools without a kernel edit. That convenience meant a future tool
+called `trade_place_order` would inherit the OPEN read tier purely from its
+prefix: no review, no grant, and no startup error. Deleted. Trading tools
+are now tabled individually, so an untabled `trade_*` name is a boot
+failure — which is the point.
+
+**Hole 2 — `place-order` was grantable, and P0a made that worse.**
+`place-order` sat in `CAPABILITIES` so `Grants.from_config` accepted
+`grants = ["place-order"]` without complaint. The capability existed to
+make its own ABSENCE auditable, and it was one config line from being
+present. P0a's hot reload then removed the last friction: no restart, no
+prompt. Now `NEVER_GRANTABLE` is checked BEFORE the capability lookup, so
+the line does not parse at all — and because a broken config fails closed,
+the reload path leaves the capability off rather than on. A test drives
+exactly that sequence through `GrantsWatcher`.
+
+**The analysis's framing, adopted:** *the guard is ABSENCE, not refusal.*
+A tool that exists and refuses is discoverable, describable, retryable and
+one code change from working. TEE places no orders and moves no funds — not
+in live mode, not in paper mode, not behind a confirmation, not with a
+config flag. That is a decision the owner takes in his broker's interface.
+
+Also recorded from the same analysis, for the phases still to come: three
+of the four platforms' "paper" modes are not safe boundaries (OpenAlgo's
+`/api/v1/analyzer/toggle` flips simulated to live with the same key that
+reads an account), so **no live account reads either** — the credential is
+the hazard, not the verb.
+
+**Suite: 955 passed / 9 skipped**, ruff clean.

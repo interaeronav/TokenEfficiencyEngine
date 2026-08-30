@@ -164,10 +164,11 @@ def test_place_order_is_reserved_and_no_tool_requests_it():
 
 
 def test_new_fleet_families_are_tabled():
+    """NOTE trade_ is deliberately absent - see
+    test_no_family_prefix_covers_a_trading_tool."""
     for name, expect in (
         ("solve_milp", "read-compute"),
         ("quant_efficient_frontier", "read-compute"),
-        ("trade_backtest", "read-compute"),
         ("cad_scad_build", "read-compute"),
         ("med_dicom_series", "read-medimg"),
         ("bi_query", "call-service"),
@@ -199,3 +200,56 @@ def test_registering_a_fleet_tool_needs_no_kernel_edit():
         )
     )
     assert reg._tools["solve_lp"].capability == "read-compute"
+
+
+# -- A45 P2: two holes the adversarial trading-safety analysis found -------
+#
+# Both were live in code shipped earlier the same night, and both were the
+# same class of mistake: a guard that depended on nobody adding a thing,
+# rather than on the thing being impossible.
+
+
+def test_no_family_prefix_covers_a_trading_tool():
+    """A ('trade_', 'read-compute') prefix existed. It would have let a tool
+    called trade_place_order inherit the OPEN read tier purely by being
+    named - no review, no grant, no startup error. Trading tools must be
+    tabled INDIVIDUALLY so an untabled one cannot boot."""
+    assert not any(p == "trade_" for p, _ in trust._FAMILY)
+    with pytest.raises(TeeError) as e:
+        trust.capability_for("trade_place_order")
+    assert e.value.code == "trust_untabled_tool"
+
+
+def test_place_order_can_never_be_granted_by_a_config_line():
+    """It sat in CAPABILITIES, so `grants = ["place-order"]` parsed happily.
+    Combined with A45 P0a's hot reload, one edited line would have activated
+    it with no restart and no prompt. The line must now fail to parse."""
+    with pytest.raises(TeeError) as e:
+        trust.Grants.from_config(_cfg(grants=["place-order"]), source="x")
+    assert e.value.code == "trust_never_grantable"
+    assert "broker" in e.value.fix
+
+
+def test_no_profile_can_smuggle_a_never_grantable_capability():
+    for name, caps in trust.PROFILES.items():
+        assert not (caps & trust.NEVER_GRANTABLE), name
+
+
+def test_never_grantable_survives_the_hot_reload_path(tmp_path):
+    """The reload is the attack surface P0a created; assert it too."""
+    path = tmp_path / "config.toml"
+    path.write_text("[trust]\n")
+    state = {"grants": []}
+
+    def loader():
+        return trust.Grants.from_config(_cfg(grants=list(state["grants"])), source=str(path))
+
+    w = trust.GrantsWatcher(path, loader)
+    assert w().granted == frozenset()
+    state["grants"] = ["place-order"]
+    time.sleep(0.01)
+    path.write_text("[trust]\ngrants = ['place-order']\n")
+    g = w()
+    assert g.broken, "an ungrantable line must break the config, not activate"
+    assert "place-order" not in g.granted
+    assert not trust.check("place-order", caller="live-turn", grants=g, consent=True).allowed
