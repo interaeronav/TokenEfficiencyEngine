@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,467 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -112,14 +112,14 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,028** |
 | same, by `model_dump()` | 17 | 2,494 |
-| flat server, one tool per capability | 121 | 13,305 |
+| flat server, one tool per capability | 124 | 13,648 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 104 tools they contribute live behind the
+surface - the 107 tools they contribute live behind the
 meta-tools. Reaching one costs 545 tokens (one search +
 one describe), so the flat design only pays off in a session that
-uses more than ~24 distinct long-tail tools.
+uses more than ~25 distinct long-tail tools.
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 

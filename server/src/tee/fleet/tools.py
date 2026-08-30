@@ -134,6 +134,22 @@ def register_fleet_tools(app) -> None:
 
         return cad.probe()
 
+    def trade_backtest(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import trade
+
+        return trade.backtest(dict(args or {}))
+
+    def trade_detail(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import trade
+
+        a = dict(args or {})
+        return trade.detail(str(a.get("run_id", "")), points=int(a.get("points") or 40))
+
+    def trade_probe(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.fleet import trade
+
+        return trade.probe()
+
     for tool in [
         VirtualTool(
             "solve_program",
@@ -457,6 +473,79 @@ def register_fleet_tools(app) -> None:
             {"type": "object", "properties": {}},
             cad_probe,
             tags=["cad", "probe", "openscad", "cadquery", "installed", "backends"],
+        ),
+        VirtualTool(
+            "trade_backtest",
+            "Backtest a DECLARATIVE rule (sma_cross, threshold, buy_hold) "
+            "over a price series: total return, CAGR, max drawdown, Sharpe, "
+            "trade count, win rate, exposure, and buy-and-hold for "
+            "comparison. Signals act on the bar AFTER they form, so there "
+            "is no look-ahead. RESEARCH ONLY - TEE places no orders and "
+            "reads no broker account.",
+            {
+                "type": "object",
+                "properties": {
+                    "prices": {"type": "array"},
+                    "rule": {"type": "object"},
+                    "fee_bps": {"type": "number"},
+                    "periods_per_year": {"type": "number"},
+                    "risk_free_rate": {"type": "number"},
+                },
+                "required": ["prices"],
+            },
+            trade_backtest,
+            tags=[
+                "backtest",
+                "trading",
+                "strategy",
+                "signal",
+                "sma",
+                "crossover",
+                "momentum",
+                "drawdown",
+                "sharpe",
+                "equity",
+                "returns",
+                "quant",
+            ],
+            examples=[
+                {"prices": [100, 101, 99], "rule": {"kind": "sma_cross", "fast": 10, "slow": 40}}
+            ],
+        ),
+        VirtualTool(
+            "trade_detail",
+            "The equity curve of an earlier backtest, RESAMPLED to a "
+            "readable number of points rather than paged - the shape is the "
+            "answer, not the rows.",
+            {
+                "type": "object",
+                "properties": {
+                    "run_id": {"type": "string"},
+                    "points": {"type": "integer"},
+                },
+                "required": ["run_id"],
+            },
+            trade_detail,
+            tags=["backtest", "equity", "curve", "detail", "trading"],
+        ),
+        VirtualTool(
+            "trade_probe",
+            "What trading research is available here, which engines run in "
+            "their own interpreter and why, and - explicitly - what TEE "
+            "never builds: order placement, fund movement, live strategy "
+            "control, or reading a live broker account.",
+            {"type": "object", "properties": {}},
+            trade_probe,
+            tags=[
+                "trading",
+                "probe",
+                "backends",
+                "jesse",
+                "nautilus",
+                "hummingbot",
+                "openalgo",
+                "safety",
+            ],
         ),
     ]:
         app.registry.register(tool)

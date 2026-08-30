@@ -252,6 +252,14 @@ _EXPLICIT: dict[str, str] = {
     "sim_ready": "read-scene",
     # --- session / exports / boards ---
     "handoff": "read-session",
+    # A45 P2f: trading RESEARCH only. Named one by one, never by prefix.
+    # Each is pure arithmetic over series the caller supplied: no network,
+    # no broker, no credential, no order verb. There is deliberately no
+    # trade_place_*, trade_order_*, trade_account_* or trade_funds_* here,
+    # and an untabled trade_* name is a startup error rather than a default.
+    "trade_backtest": "read-compute",
+    "trade_detail": "read-compute",
+    "trade_probe": "read-compute",
     # A45 P2e: CAD. Build writes an artifact; measure and probe do not.
     "cad_scad_build": "write-artifacts",
     "cad_measure": "read-compute",

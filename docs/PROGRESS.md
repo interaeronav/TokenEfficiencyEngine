@@ -6722,3 +6722,56 @@ is survivable only because fleet imports are lazy — nothing loads until a
 headless: STL export in 0.31 s, and `-o -` streams to stdout.
 
 **Suite: 988 passed / 9 skipped** (970 → 988), ruff clean. `[cad]` extra.
+
+## 2026-08-31 — A45 P2f: trading research, where the guard is absence
+
+`trade_backtest`, `trade_detail`, `trade_probe`. **Surface still 17 tools /
+2,028 tok**; virtual 104 → 107.
+
+**What is deliberately NOT built, and how.** No order placement, no fund
+movement, no live strategy control, no simulated/live toggle — **and no
+live account reads either**, because the credential is the hazard, not the
+verb: on OpenAlgo the same API key that reads an account also reaches
+`POST /api/v1/analyzer/toggle`, which flips paper to live. Four
+independent layers, each asserted:
+
+1. `place-order` is reserved and **ungrantable** (`NEVER_GRANTABLE`).
+2. `trade_*` has **no family prefix**, so `trade_place_order`,
+   `trade_account`, `trade_funds` and `trade_cancel` are all startup
+   errors rather than open-tier defaults.
+3. A regex sweep over the WHOLE registry asserts no tool name matches
+   `place_order|cancel|amend|withdraw|funds|balance|analyzer|...`.
+4. A source assertion that the trade module body contains no `requests`,
+   `urllib.request`, `httpx`, `api_key` or `secret` — it cannot reach a
+   broker because it has nothing to reach one with.
+
+**Signals are declarative, not code.** A rule is
+`{"kind":"sma_cross","fast":10,"slow":40}`. Passing
+`{"kind": "__import__('os').system('id')"}` is refused as an unknown rule —
+accepting an expression would be `exec` with a friendly name.
+
+**Correctness, on a deterministic rise-then-fall series:**
+
+```
+  buy_hold     ret +0.2108   maxDD -0.4589   trades 1   exposure 1.00
+  sma_cross    ret +0.8081   maxDD -0.0566   trades 2   exposure 0.45
+  threshold    ret +0.9550   maxDD -0.0415   trades 2   exposure 0.47
+```
+
+Buy-and-hold rides the reversal to a −46% drawdown; both trend rules exit
+and cap it near −5%. That is what those rules are supposed to do.
+
+**No look-ahead, and it is tested as a property**: tripling the LAST bar
+must not change the equity curve before it. A signal formed on bar *t* is
+acted on at *t+1* — which is also why buy-and-hold measures 0.9975
+exposure rather than 1.0, since nothing can be held on bar 0. My first
+assertion expected exactly 1.0 and was simply wrong about the semantics.
+
+**The heavy engines run in their own interpreters, or not at all.**
+`trade_probe` reports why rather than pretending: Jesse pins `mcp==1.28.1`
+against TEE's `mcp>=2`; NautilusTrader needs Python ≥3.12 while TEE is
+3.11; Hummingbot exists to place orders continuously and has no read-only
+shape worth wiring; OpenAlgo's single key spans reads and the live toggle.
+The native backtest uses pandas, which TEE already has.
+
+**Suite: 1,003 passed / 9 skipped** (988 → 1,003), ruff clean.
