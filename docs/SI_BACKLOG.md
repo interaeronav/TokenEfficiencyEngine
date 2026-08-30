@@ -94,6 +94,32 @@ Format per item:
 - hurt: three for three off-topic hints on questions outside the KB's domains — the hint spends ~40 tok/response teaching the client to distrust it; there is no score floor, so the best of 401 files is offered even when the best is irrelevant.
 - proposed: relevance floor on the hint (suppress below threshold) — same machinery as SI-B2's weak-match note; the kb-rerank chore (A34 M2 chore 7) is the deeper fix.
 - status: done (A37 P0-F: raw score measured to separate NOTHING — misfires 10.5–20.5 vs in-domain 5.0–15.5, stop-word substring inflation — so the floor is identity hits: content words word-bounded in title/id/tags. 0 hits ⇒ kb_search carries the SI-B2-style "no strong match" note and the hint stays away; 1 hit ⇒ "weak match" note, hint routed through the kb-rerank chore against a none-of-these sentinel when an endpoint answers (labelled `[kb-rerank: model]`), floor-only keep otherwise; ≥2 ⇒ hint as before. All six misfire-class questions suppressed on the live corpus, all seven in-domain kept; kb benchmark row byte-identical 1,865 tok/96.7%.)
+- **REOPENED and re-closed 2026-08-30 (A45).** The A37 fix held for its own
+  test cases and still failed live, three times in one session, on
+  `tee_web_lookup` licence questions. Three distinct causes, all fixed:
+  1. **The judge was structurally unreachable.** A37's weak band defers to
+     the kb-rerank chore. A web lookup taints the task by definition
+     (`fetch-web` is a taint source), so once the owner pinned a PAID
+     profile the A43 trust kernel refused that chore EVERY time - correctly.
+     Pinning qmax silently resurrected SI-B10.
+  2. **The fallback was `keep`.** `_judge_hint` returned `(True, None)` on
+     any failure, so an unreachable judge produced a hint that looked
+     judged - no `[kb-rerank]` label to show otherwise. INVERTED to drop:
+     no judgement, no hint. The fix is never to route around the taint law;
+     it is to stop asserting what could not be checked.
+  3. **Duplicate words inflated the band.** `identity_hits` counted every
+     occurrence, so "What licence ... State the exact licence name" scored 2
+     on ONE distinct word and was promoted from the judged band to the
+     unjudged strong band. Now deduplicated.
+  Also: a `_META` stop set for words that describe the act of asking
+  (`file`, `title`, `version`, `quote`, `repository`, `page`, `document`)
+  which are not subjects in this corpus. A frequency defence was tried
+  FIRST and measured to be useless - `file` is in 1.2% of identity fields,
+  rare and meaningless at once - so the stop list is the honest instrument.
+  Deliberately conservative: `line`, `source`, `licence`, `section`,
+  `value`, `state` stay OUT because each is a real subject somewhere here.
+  Regression tests use the three live misfires verbatim; in-domain controls
+  assert no floor was raised onto real questions. Suite 918 passed.
 
 ## SI-B11 — Home Builder 5.1.0 is API-broken on Blender 5.2 (shimmed; upstream material)
 - seen: 2026-08-29, A37 P5.1 live closet run

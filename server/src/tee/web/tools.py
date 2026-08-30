@@ -250,10 +250,25 @@ class WebLookupService:
 
     def _judge_hint(self, question: str, top: dict) -> tuple[bool, str | None]:
         """Borderline band: the kb-rerank chore (A34 chore 7) orders the top
-        hit against a none-of-these sentinel. Sentinel first -> no hint. Any
-        failure or absent endpoint -> (True, None): the floor already passed
-        and a hint may never break the lookup, so even refine=local degrades
-        here instead of raising."""
+        hit against a none-of-these sentinel. Sentinel first -> no hint.
+
+        A45 — the fallback INVERTED, from keep to drop. A37 chose keep on the
+        reasoning that the floor had already passed. Live evidence says that
+        was wrong, and wrong in a way that hid itself:
+
+        * The judge is unavailable far more often than A37 assumed. A web
+          lookup taints the task by definition (`fetch-web` is a taint
+          source), so once the owner pins a PAID profile the rerank chore is
+          refused by the trust kernel every single time - correctly. The
+          hint then fired unjudged, with no `[kb-rerank]` label to show it
+          had skipped. Pinning qmax silently resurrected SI-B10.
+        * The band means "we do not know". For an OPTIONAL suggestion, the
+          right move under uncertainty is silence. A wrong hint costs ~40
+          tokens and teaches the client to distrust every later hint; a
+          missing hint costs nothing the caller cannot get from kb_search.
+
+        So: no judgement, no hint. The fix is never to route around the
+        taint law - it is to stop asserting what we could not check."""
         from tee.llm import chores
 
         candidates = [
@@ -268,7 +283,7 @@ class WebLookupService:
                 cfg=self.llm_cfg,
             )
         except Exception:
-            return True, None
+            return False, None  # could not judge -> stay quiet
         if not result:
-            return True, None
+            return False, None  # no endpoint, or refused by the taint law
         return result["order"][0] != self._HINT_SENTINEL, result.get("model")

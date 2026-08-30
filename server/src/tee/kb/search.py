@@ -39,6 +39,37 @@ NOTE_NO_STRONG = (
 )
 NOTE_WEAK_PREFIX = "weak match - only "
 
+# A45: words that describe the ACT OF ASKING or the shape of a document,
+# never a subject this corpus is about. They were slipping through as
+# identity evidence: "Which GNU licence and which version is this file?"
+# scored a hit on "Portfolio and breaking in - the practical career file"
+# through the single word `file`, and the corpus-frequency defence does not
+# help (measured: `file` is in 1.2% of identity fields - it is RARE, just
+# meaningless here). Deliberately conservative: `line`, `source`, `licence`,
+# `section`, `value` and `state` are NOT listed, because each is a genuine
+# subject somewhere in this corpus.
+_META = frozenset(
+    [
+        "file",
+        "files",
+        "title",
+        "titles",
+        "version",
+        "versions",
+        "quote",
+        "quotes",
+        "exact",
+        "exactly",
+        "repository",
+        "repositories",
+        "repo",
+        "page",
+        "pages",
+        "document",
+        "documents",
+    ]
+)
+
 _STOP = frozenset(
     [
         "a",
@@ -177,6 +208,8 @@ _STOP = frozenset(
     ]
 )
 
+_STOP = _STOP | _META
+
 
 def _content_words(query: str) -> list[str]:
     """The words that can attest relevance: 3+ chars and not stop words."""
@@ -184,15 +217,24 @@ def _content_words(query: str) -> list[str]:
 
 
 def identity_hits(query: str, record: dict[str, Any]) -> list[str]:
-    """Content words of the query found word-bounded in title/id/tags
-    (a trailing s is tolerated both ways: wall<->walls)."""
+    """DISTINCT content words of the query found word-bounded in title/id/tags
+    (a trailing s is tolerated both ways: wall<->walls).
+
+    A45: distinct is the whole point, and it was not. `_content_words` keeps
+    duplicates, so a question that happened to say one word twice - "What
+    licence is Orthanc released under? State the exact licence name" - scored
+    2 on a single distinct word and was promoted from the weak band (which
+    consults the rerank judge) to the strong band (which asks nobody). One
+    word is one piece of evidence however many times it is uttered."""
     tags = record.get("tags") or []
     hay = " ".join(
         [str(record.get("title", "")), str(record.get("id", ""))]
         + [str(t) for t in (tags if isinstance(tags, list) else [tags])]
     ).lower()
-    hit = []
+    hit: list[str] = []
     for w in _content_words(query):
+        if w in hit:
+            continue  # one word is one piece of evidence, however often said
         stems = [w] + ([w[:-1]] if w.endswith("s") and len(w) >= 4 else [])
         if any(re.search(rf"\b{re.escape(s)}s?\b", hay) for s in stems):
             hit.append(w)

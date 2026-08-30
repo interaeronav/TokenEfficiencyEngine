@@ -102,9 +102,7 @@ def test_profile_grants_a_named_set():
 
 
 def test_profile_and_explicit_grants_compose():
-    g = trust.Grants.from_config(
-        _cfg(profile="build", grants=["exec-code"]), source="x"
-    )
+    g = trust.Grants.from_config(_cfg(profile="build", grants=["exec-code"]), source="x")
     assert "run-declared-step" in g.granted  # from the profile
     assert "exec-code" in g.granted  # from the explicit list
 
@@ -192,5 +190,12 @@ def test_read_compute_is_open_by_default():
 
 def test_registering_a_fleet_tool_needs_no_kernel_edit():
     reg = ToolRegistry()
-    reg.register(VirtualTool(name="solve_lp", description="s", schema={"type": "object", "properties": {}}, handler=lambda a: {}))
+    reg.register(
+        VirtualTool(
+            name="solve_lp",
+            description="s",
+            schema={"type": "object", "properties": {}},
+            handler=lambda a: {},
+        )
+    )
     assert reg._tools["solve_lp"].capability == "read-compute"

@@ -143,14 +143,34 @@ def test_kb_hint_borderline_vetoed_by_rerank(tmp_path, monkeypatch) -> None:
     assert seen["ids"] == ["joinery.cabinetmaking", "none-of-these"]
 
 
-def test_kb_hint_borderline_kept_without_endpoint(tmp_path, monkeypatch) -> None:
+def test_kb_hint_borderline_dropped_without_endpoint(tmp_path, monkeypatch) -> None:
+    """A45 - INVERTED from A37's keep. The judge is unavailable far more often
+    than A37 assumed: a web lookup taints the task, so a pinned PAID profile
+    has the rerank chore refused by the trust kernel every time. Keeping on
+    silence meant the hint fired unjudged and unlabelled - SI-B10 resurrected
+    by nothing more than pinning qmax. No judgement, no hint."""
     from tee.llm import chores
 
     monkeypatch.setattr(chores, "rerank", lambda *a, **k: None)  # absent endpoint
     registry = NotedRegistry("joinery.cabinetmaking", WEAK_NOTE)
     answer = service(tmp_path, registry=registry).lookup(URL, "32 mm system hole spacing")
-    assert "kb_read 'joinery.cabinetmaking'" in answer["kb_hint"]
-    assert "kb-rerank" not in answer["kb_hint"]  # floor only: no model label
+    assert "kb_hint" not in answer
+
+
+def test_kb_hint_dropped_when_the_judge_is_refused(tmp_path, monkeypatch) -> None:
+    """The exact live shape: the trust kernel refuses the paid chore because
+    the task carries fetch-web taint. The lookup must still answer."""
+    from tee.kernel.errors import TeeError
+    from tee.llm import chores
+
+    def refused(*a, **k):
+        raise TeeError("trust_denied", "tainted task may not call the paid engine", fix="...")
+
+    monkeypatch.setattr(chores, "rerank", refused)
+    registry = NotedRegistry("joinery.cabinetmaking", WEAK_NOTE)
+    answer = service(tmp_path, registry=registry).lookup(URL, "32 mm system hole spacing")
+    assert answer["ok"] is True, "a hint may never break the lookup"
+    assert "kb_hint" not in answer
 
 
 def test_kb_hint_borderline_kept_by_rerank_is_labelled(tmp_path, monkeypatch) -> None:
