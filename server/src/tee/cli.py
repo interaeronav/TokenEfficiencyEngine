@@ -59,6 +59,15 @@ def _attach_extract(app, project: str, *, with_handoff: bool):
     return store
 
 
+def _attach_pipeline(app, project: str) -> None:
+    """The pipeline lane (A43): declared steps for this project, if any.
+    Registration is unconditional - the tool itself reports an absent
+    declaration with the fix, which is friendlier than a missing tool."""
+    from tee.pipeline.tools import register_pipeline_tools
+
+    register_pipeline_tools(app, Path(project))
+
+
 def _attach_capture(app, project: str, extract_store) -> None:
     """Register the reality-capture lane (A42 T2): ingest rides the extract
     store; reconstruct gates loudly on disk, engine presence and set size."""
@@ -184,6 +193,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
     _attach_assets(app, args.project, extract_store)
     _attach_capture(app, args.project, extract_store)
+    _attach_pipeline(app, args.project)
     _attach_pins(app, args.project)
     _attach_design(app, args.project)
     _attach_physical(app, args.project)

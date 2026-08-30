@@ -5679,3 +5679,42 @@ unchanged ✓.
 **Next: P0** — the pipeline lane's schema, validator and hostile
 fixtures, as the kernel's first tenant (no runner until the fixtures
 are green).
+
+## 2026-08-30 — A43 P0: the pipeline lane's declaration surface (no runner in existence)
+
+Suite 812 → **826 passed / 2 skipped**, gate exit 0. The kernel's first
+tenant, built the way the script demands: schema, validator and hostile
+fixtures FIRST, with nothing able to execute — a test asserts that by
+AST, so P0 cannot quietly grow a runner.
+
+- **`tee/pipeline/schema.py`**: the `[[step]]` declaration (name, kind =
+  produce|query, argv, typed params, inputs, outputs, cost, answer),
+  owned by the project in its own tracked `.tee/pipeline.toml`. TEE
+  hard-codes no project, path or domain.
+- **The laws, enforced not asserted**: a shell string is refused BY NAME
+  ("argv is a LIST … TEE never runs a shell, so a string could only be
+  misread"); `{param}` substitution is typed, constrained and lands as
+  exactly ONE argv element; traversal and null bytes are refused
+  whatever the declared pattern permits (the `kb_propose` guard hoisted
+  into the lane).
+- **The bound is the point, not the ceremony**: a param used in argv
+  with no `enum` or `pattern` is REFUSED as *"an arbitrary-execution
+  grant wearing a declaration's clothes"* — `make {target}` cannot be
+  laundered into an allowlist.
+- **Trust on first use**: the declaration is hash-pinned per project; an
+  unapproved file (a cloned repo ships one too) or a CHANGED file is not
+  trusted, and the report names the change and how the OWNER approves
+  it. TEE never approves its own inputs and never writes the project's
+  file — both guarded by fixtures.
+- **`pipeline_list`** ships as a virtual tool through the trust kernel
+  (`read-state`), reporting an absent declaration with the fix rather
+  than vanishing from the surface.
+- 14 fixtures, including the inertness proof: with a pattern that
+  deliberately PERMITS quotes, semicolons and `$(...)`, the value
+  `a b"c'; rm -rf ~ | cat & $(whoami)` arrives as one verbatim
+  argument — data, never syntax.
+
+**Next: P0b** — the ad-hoc door (`[pipeline] allow_adhoc`, default
+false) with the live-human-turn invariant and a refusal fixture per
+caller class, then the adopt flow that turns a successful ad-hoc run
+into a declaration the owner accepts.
