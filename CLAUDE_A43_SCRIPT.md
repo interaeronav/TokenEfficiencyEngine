@@ -73,9 +73,32 @@ the config file actually loaded (closes SI-B17), and per-project audit
 logging. Retrofit the four existing flags as capability aliases with
 fixtures proving identical behavior. Shadow-measure taint decisions
 against A42's recorded traces BEFORE enforcement goes live (the
-scheduler precedent). Acceptance: default-deny proven; every existing
-gate behaves identically through the kernel; a tainted fixture task is
-refused with what tainted it named; overhead measured and published.
+scheduler precedent).
+
+Integration specifics are research 62 (verified against the code):
+the check slots into `ToolRegistry.call` beside the existing
+`disabled` refusal; completeness is STRUCTURAL, not vigilance —
+`VirtualTool` gains a REQUIRED `capability` field so a capability-less
+tool fails at STARTUP, plus a coverage test enumerating all four entry
+surfaces (registry, MCP handlers, `jobs.submit`, engine/backend
+clients); taint is a property of an ID, not a string — affordable
+precisely because `TaskDescriptor.inputs` are already
+"ids/pointers, never payloads" — with `caller` and `taint` added as
+optional fields; enforcement rides `ShadowRecorder`/`replay` and flips
+on only when replay over A42's real traces shows zero false denials;
+failure modes decided in advance (fail CLOSED for side-effecting
+capabilities, fail OPEN for the read tier — a broken trust file must
+never brick `kb_search` and must always brick `run-adhoc`); migration
+maps the 103 tools by module in one table and keeps legacy flags as
+aliases so existing configs are untouched.
+
+Acceptance: startup refuses a capability-less tool; the coverage test
+enumerates all four surfaces; default-deny holds with no grants file
+while the read tier still answers; each legacy flag behaves
+identically through its alias; a tainted fixture task is refused
+naming what tainted it and a live-turn untaint succeeds; shadow replay
+shows zero false denials before enforcement flips; overhead ≤0.05 ms
+published beside the gateway's number; full battery bars unchanged.
 
 ## P0 — Schema, validator, hostile fixtures (no runner yet)
 

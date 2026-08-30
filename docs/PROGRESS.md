@@ -5455,3 +5455,26 @@ grant and the loaded config file (SI-B17); audit logging; alias
 retrofit of existing flags with identical-behavior fixtures (gives
 SI-B16's `paid` flag teeth). Anti-over-engineering guard recorded:
 TOML grants only, no policy DSL.
+
+## 2026-08-30 — Research 62: the trust kernel's integration seams, verified
+
+Owner asked for deep research on A43's foundation phase and how it
+integrates. Written as `docs/research/62-trust-kernel-integration.md`
+from direct reads of registry.py, shadow.py and app.py. Four findings:
+(1) `ToolRegistry.call` is a real choke point that ALREADY refuses on
+per-project policy (the `disabled` set with a rule-6 fix), so the
+trust check is a second predicate beside an existing one, not a new
+concept; (2) it is not the only entry surface — MCP handlers, jobs,
+chores/router and backend clients also enter — so completeness must be
+STRUCTURAL: a required `capability` field on VirtualTool (a
+capability-less tool fails at startup) plus a four-surface coverage
+test; (3) taint is affordable only because TaskDescriptor inputs are
+already "ids/pointers, never payloads" — the same discipline that
+makes TEE token-efficient makes taint a dict lookup, where
+payload-level tracking would be impossible; (4) A42's ShadowRecorder +
+replay is exactly the machinery to validate enforcement before it
+bites. Failure modes pre-decided (fail closed for side-effecting, open
+for the read tier — never brick kb_search, always brick run-adhoc),
+migration keeps legacy flags as aliases, overhead budget ≤0.05 ms
+published beside the gateway's 0.007 ms. A43's T-1 phase updated with
+the spec and its acceptance list.
