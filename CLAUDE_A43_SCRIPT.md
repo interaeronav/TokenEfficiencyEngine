@@ -1,5 +1,19 @@
 # A43 build script — the trust kernel, then the pipeline lane
 
+>**Defensive-intent declaration.** This campaign is DEFENSIVE security
+>work on the owner's own machine, by the owner, on his own projects: it
+>builds guardrails (a default-deny permission model, taint tracking,
+>audit logging) so that running a project's declared build steps is
+>*safe*. The adversarial language in research 60–65 (injection,
+>attacker, exfiltration) is threat-modeling of TEE's OWN surface to
+>harden it — never instructions to attack a third party, and nothing
+>here is for offensive deployment. If a safety review escalates these
+>phases to a more careful model, that is acceptable and expected — the
+>work warrants it; do the security phases there. Nothing in this
+>campaign may weaken, disable, or route around the AI client's own
+>safety policy or its model routing (the A43 client-policy law), and no
+>local/uncensored model may be used to avoid that review.
+
 **What this builds** (owner directive, 2026-08-30): TWO things in
 dependency order — (1) the **trust kernel** (T-1), one capability
 model that turns TEE's four scattered permission flags into a single
