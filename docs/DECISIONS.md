@@ -865,3 +865,25 @@ declarative today. Nothing in code yet stops the router from selecting
 a paid profile while unpinned, and the meter has no paid-call column.
 Until SI-B16 lands, qmax is safe only as an explicit pin (a pin
 suspends roaming by the A39 law).
+
+## 2026-08-30 — A44: the trust kernel (owner question → architecture)
+
+The owner asked how to integrate the pipeline's trust logic so TEE
+serves MORE projects without becoming exploitable. The survey answered
+it: TEE already carries four unrelated permission flags and
+provenance concepts spread across eight kernel modules — it grew a
+permission system without naming it, and capabilities now COMPOSE
+(a fronted backend can steer a chore that could trigger a step).
+Research 61 is the design of record: ONE decision point
+(capability × grant × caller class, default deny), the taint law
+stated once and propagated along the A42 task graph (untrusted inputs
+⇒ no side-effecting capability; untaint only by live human turn),
+progressive trust tiers whose read-only default is genuinely useful
+(so breadth across projects costs no risk decision), `tee_trust` for
+visibility, refusals that name the missing grant and the config file
+actually loaded (closes SI-B17), audit logging, and a
+behavior-identical retrofit of the existing flags — which finally
+gives SI-B16's unenforced `paid = true` teeth. Guard against
+over-engineering: TOML grants only, no policy language, no roles; if
+it needs a DSL it is wrong. Built as the A43 script's new foundation
+phase T-1, with the pipeline lane as its first tenant.

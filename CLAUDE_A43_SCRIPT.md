@@ -61,6 +61,22 @@ A one-paste prompt for a fresh session:
 - **Generality is proven, not asserted**: no completion claim until a
   SECOND project's steps run through the same lane unmodified.
 
+## T-1 — The trust kernel FIRST (research 61; the pipeline is its first tenant)
+
+Do not give the pipeline a fifth private flag. Build the single
+decision point: capabilities (verbs), grants (per project, default
+deny), caller classes read from the A42 task graph, and the taint law
+(a task with untrusted inputs may never invoke a side-effecting
+capability; untainting only by live human turn). Ship `tee_trust`
+(virtual) for visibility, rule-6 refusals naming the missing grant AND
+the config file actually loaded (closes SI-B17), and per-project audit
+logging. Retrofit the four existing flags as capability aliases with
+fixtures proving identical behavior. Shadow-measure taint decisions
+against A42's recorded traces BEFORE enforcement goes live (the
+scheduler precedent). Acceptance: default-deny proven; every existing
+gate behaves identically through the kernel; a tainted fixture task is
+refused with what tainted it named; overhead measured and published.
+
 ## P0 — Schema, validator, hostile fixtures (no runner yet)
 
 The `[[step]]` schema (name, kind=produce|query, argv, params with

@@ -5439,3 +5439,19 @@ writes pipeline.toml (adopt emits a .proposed file); **trust-on-first-
 use hash-pinning per project — the hole the first pass missed, since a
 cloned repo ships its own attacker-authored declarations**; and audit
 logging of every run. The gated ad-hoc door is unaffected.
+
+## 2026-08-30 — A44 scripted: the trust kernel becomes A43's foundation
+
+Owner asked how to integrate the trust logic across more projects
+safely. Research 61 written; recorded as A44; the A43 script gains
+T-1 (trust kernel) ahead of the pipeline schema. Survey that drove it:
+four scattered flags (allow_code_exec, allow_local, allow_sa, backend
+enable) + provenance/caller concepts already in eight kernel modules.
+Design: one capability×grant×caller decision point with default deny;
+the taint law stated once and carried by the A42 task graph; four
+progressive tiers whose read-only default is useful (breadth costs no
+risk decision); tee_trust visibility; refusals naming the missing
+grant and the loaded config file (SI-B17); audit logging; alias
+retrofit of existing flags with identical-behavior fixtures (gives
+SI-B16's `paid` flag teeth). Anti-over-engineering guard recorded:
+TOML grants only, no policy DSL.
