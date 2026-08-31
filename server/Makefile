@@ -41,7 +41,7 @@ mcpb:
 	@echo "  lock and drops anything installed on top. Restore afterwards:"
 	@echo ""
 	@echo "    uv pip install --python \"$$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python\" \\"
-	@echo "      'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]'"
+	@echo "      'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' 'tee-engine[extract]'"
 	@echo ""
 	@echo "  See docs/setup-fleet.md. 'cad' is excluded on purpose (sidecar)."
 

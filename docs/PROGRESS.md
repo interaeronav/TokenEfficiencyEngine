@@ -7356,3 +7356,94 @@ itself, so it appears next to every bundle that will cause it. A proper fix
 — a doctor check, or recording installed extras in `~/TEE/.tee` state so
 the server can say "these were installed and are now missing" — is queued
 separately.
+
+### Reality-capture engine comparison on the Okongo imagery (2026-08-31)
+
+Owner asked whether anything on this machine beats openMVG. Ran both
+against the **same 31 frames** — the DJI_0100 pass, the largest coherent
+single-clip subset of `data/source/drone-2026-05-02/frames`.
+
+**First, what the input actually is.** The README is honest and worth
+re-reading: frames are a *survey extraction* at ~6 s cadence from four
+separate clips, made for visual forensic reading, not a mapping capture.
+Measured:
+
+```
+site-photos   59 files, SIX aspect ratios (464x1040 x24, 1500x2000 x11,
+              2000x1500 x7, 1040x464 x5, 1080x810 x4, 1080x608 x2)
+drone frames  82 files from 4 clips, 1920x1080 (+4 at 3840x2160)
+EXIF          NONE - no APP1/Exif marker, no XMP. Frame extraction
+              stripped camera model, focal length and GPS.
+```
+
+**Apple PhotogrammetrySession** — built, native, and it ran:
+
+```
+preview  6.47 s   4,094 verts   8,140 tris    1.0 MB usdz
+medium  15.86 s  25,139 verts  50,000 tris   20.5 MB usdz
+2 samples skipped
+```
+
+Both produced a **fragmentary blob, not a house** — rendered and looked at
+both. Medium has 6x the triangles and identical broken topology, which is
+the tell: the failure is at correspondence, not meshing, and no detail
+setting can fix absent overlap.
+
+**openMVG** — built from source to run this (no Homebrew formula, no public
+container). Four blockers, each fixed: cmake 4.x rejects its old policies
+(`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`); vendored Ceres 1.13 cannot parse
+modern Homebrew Eigen's version macros (hide it, use the bundled 3.4.0);
+pointing `EIGEN3_INCLUDE_DIR` into the source tree breaks target export;
+and `rerun_sdk` drags Apache Arrow, which fails to configure
+(`-DOpenMVG_USE_RERUN=OFF`). 43 binaries, ~5 min on 16 cores.
+
+No EXIF, so focal was supplied as openMVG's documented fallback for an
+unknown camera, 1.2 x 1920 = 2304 px.
+
+```
+features (SIFT ULTRA)  31/31   keypoints min 105 / median 13,018 / max 41,789
+exhaustive matching    7 s     816 KB putative -> 99 KB after geometric filter
+incremental SfM        #Camera calibrated: 12 from 31 input images
+                       #Tracks, #3D points: 3,250
+                       residual median 0.225 px, mean 0.359 px
+```
+
+**The verdict is about the data, not the engines.** Both failed, and
+openMVG says why: only **12 of 31** frames could be related to each other.
+Six-second cadence from a moving drone does not give the 60–80% overlap
+photogrammetry needs. The 0.225 px median residual says the poses it *did*
+solve are accurate — the geometry is sound, there is just not enough of it.
+
+**Which is better depends on what you want.**
+
+| | Apple PhotogrammetrySession | openMVG |
+|---|---|---|
+| output | textured mesh (USDZ) | sparse cloud + camera poses |
+| time | 6–16 s | ~1 min pipeline |
+| install | already built | source build, four patches |
+| on failure | a broken mesh, no explanation | "12 from 31 calibrated", residuals, HTML report |
+
+Apple's is faster, already here, and gives a usable artefact when the input
+is good. openMVG is the better *instrument*: it tells you the input was bad
+and quantifies it. That diagnostic honesty is what this dataset needed.
+
+**What would make the comparison real.** The source clips still exist
+(4.6 GB in ~/Downloads, GPS in all four). Re-extracting at ~1 s cadence with
+EXIF and GPS preserved would give a genuine dataset from footage already
+flown. Research 56's law — *"the trip must not be the first test"* — is
+exactly this, and the test has now been run: the current extraction cannot
+reconstruct, and that is better learned now than on site.
+
+### Extract lane — three dependencies missing after the upgrade
+
+Reported from another session mid-task. Confirmed: **12 of 15** `[extract]`
+dependencies present, missing `faster_whisper`, `imageio_ffmpeg` and
+`scenedetect` — the entire video/audio half of the lane.
+
+Cause is the upgrade trap above, plus my own incomplete restore: I
+reinstalled medimg/quant/solve and never checked `extract`. The lane did not
+error; it behaved as though video and audio inputs were unsupported.
+
+Installed; all three now import. The restore command in `docs/setup-fleet.md`,
+in the `make mcpb` reminder and in project memory now includes `[extract]`,
+with a note to check every group rather than the ones you remember.

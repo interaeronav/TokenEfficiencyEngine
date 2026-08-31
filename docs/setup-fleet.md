@@ -31,8 +31,14 @@ After any upgrade, restore with:
 
 ```bash
 uv pip install --python "$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python" \
-  'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]'
+  'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' 'tee-engine[extract]'
 ```
+
+**Check every group, not the ones you remember.** The first restore after
+0.10.0 listed only medimg/quant/solve, and the extract lane came back
+12-of-15 complete: `faster_whisper`, `imageio_ffmpeg` and `scenedetect` -
+the whole video/audio half - were still missing, and nothing said so. The
+lane simply behaved as though those inputs were unsupported.
 
 `cad` is **not** in that list on purpose: A46 P1b moved CadQuery to a
 sidecar at `~/TEE/.tee/sidecars/cad`, which an upgrade does not touch.
