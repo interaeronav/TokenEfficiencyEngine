@@ -1,5 +1,14 @@
 # 66 — Senses for models that lack them: the modality bridge (2026-08-31)
 
+> **Revised the same day, after the owner supplied the topology.** The first
+> draft assumed DeepSeek was a chore engine *inside* TEE, reached through the
+> LiteLLM shim. It is not. The owner's case is **opencode in the terminal,
+> DeepSeek running locally as the HOST model, driving TEE over MCP** — and
+> TEE told him machine vision was not a feature it offered. That is a
+> different and more serious defect than the one first written up, and the
+> shim findings below, while true, are about a path his case never takes.
+> The root cause is in section "The actual defect (revised)".
+
 Verification basis: everything below was measured on this machine today,
 against the owner's own LiteLLM shim and local models. No claim here rests
 on documentation or recall. The owner's ask, verbatim: *"a new feature for
@@ -7,7 +16,48 @@ tee which is machine vision and sound to allow models that don't have this
 feature to be able to use machine vision and sound. my particular case is
 with the deep seek model on my machine, it does'nt have vision."*
 
-## The finding that reframes the request
+## The actual defect (revised)
+
+**TEE's extraction architecture assumes the host model can see.** From
+`extract/vlm.py`, decision A9, verbatim:
+
+> *the DEFAULT driver is in-band: `ex_prepare` hands the host model file
+> paths (**it reads media with its own tools**), a schema fragment and
+> storing instructions; the host writes back via `ex_store_facts`.*
+
+That was written when the host was always Claude. With a blind host, both
+shipped drivers fail:
+
+| driver | outcome with DeepSeek as host |
+|---|---|
+| in-band (default) | the host IS the model that cannot see |
+| `ApiDriver` | needs `ANTHROPIC_API_KEY` — a paid cloud call, which defeats the point of running locally |
+
+Meanwhile `kernel/local_vlm.py` — a working local vision client, free,
+already measured at 7.5 s on a real site frame — is reachable from
+**`web/media.py` and `web/tools.py` only**. It is never exposed as a tool
+and never offered as an extraction driver.
+
+**Reproduced from the host's side.** Asking TEE's own tool search
+`"describe what is in an image, machine vision, look at a photo"` returns
+`as_photo_material`, `med_instance_tags`, `med_volume_stats`, `ex_estimate`,
+`quant_optimize`, `trade_backtest`. Nothing describes an image, and two
+results advertise the opposite — *"Pixel data is never returned"*, *"Never
+the voxel array"*. A blind host reading that surface correctly concludes
+TEE offers no machine vision. **It was right.**
+
+`tee_capture` and `tee_media` make it worse in a quiet way: both return
+*pixels* (`tee_media`: "a small inline JPEG sized to max_tokens"). To a
+seeing host that is the efficient answer. To a blind one it is a payload it
+cannot read, spending tokens to deliver nothing.
+
+**The fix is a third driver, not new machinery.** `LocalVlmDriver` on the
+existing `local_vlm` client gives the in-band channel a fallback that is
+local, free, and already written. Plus one plain tool — `sense_describe` —
+so a blind host can ask for a description directly rather than being handed
+pixels.
+
+## Secondary finding: the shim already bridges vision (a path this case does not take)
 
 **The vision bridge already exists, and the owner built it.** Not in TEE —
 in the LiteLLM pre-call hook at `~/.claude/qwen-local/normalize_for_qwen.py`,

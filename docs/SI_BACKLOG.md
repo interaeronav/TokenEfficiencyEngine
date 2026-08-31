@@ -244,29 +244,42 @@ Format per item:
 - proposed: nothing. Recorded so the request is not re-opened as missing.
 - status: closed on inspection
 
-## SI-B24 — models without vision or hearing cannot borrow them, and do not say so
-- seen: 2026-08-31, owner request; researched as `docs/research/66-senses-for-blind-models.md`
-- call: rendered a card reading `PLINTH K-4713 / CURE 21 DAYS` — unguessable
-  content — and asked three routes to read it
-- hurt: all three read it exactly, **including `claude-qwen-27b`, a text-only
-  checkpoint**. The owner's LiteLLM pre-call hook silently reroutes any
-  image-bearing request to Qwen3-VL. So DeepSeek genuinely has no vision and
-  the system genuinely gives it vision, and nothing anywhere says so — which
-  is why the owner asked for a feature they had already built. Three further
-  gaps behind it: `machine.ENGINES` declares no modality for any engine, so
-  the router cannot reason about senses at all; the reroute **evicts the
-  84 GB session model** to load the 17 GB vision model, measured at **~10 s
-  per modality alternation against 0.67–0.82 s warm**, and that cost appears
-  in no ledger or answer; and there is no audio bridge at all, though
-  faster-whisper transcribes verbatim in 0.62 s locally.
-- proposed: a kernel-level `sense` bridge. Declare senses on `ENGINES`
-  (including `evicts`, the mutual exclusion the hook already knows and TEE
-  does not) so `MachineLedger.may_swap` can price a modality switch the way
-  it already prices an engine swap. Add `sense_describe` / `sense_transcribe`
-  returning a budgeted text fact that always names its provider, the engine
-  that lacked the sense, and the swap seconds — the token case is strong on
-  its own (2,065 local input tokens compress to a 63-token answer, 33x, all
-  free). Batch pending vision questions while the provider is resident
-  rather than alternating. Refuse when no provider exists; never let a blind
-  model improvise, which is the failure this exists to prevent.
+## SI-B24 — a blind HOST model cannot use TEE's media lanes at all
+- seen: 2026-08-31, owner request. First researched against the wrong
+  topology; corrected when the owner said the real case is **opencode in
+  the terminal, DeepSeek running locally as the HOST model** driving TEE
+  over MCP, where TEE reported machine vision as a feature it does not offer.
+  Full write-up: `docs/research/66-senses-for-blind-models.md`.
+- call: `tee_search_tools "describe what is in an image, machine vision,
+  look at a photo"` — the question a blind host would actually ask
+- hurt: the answer contains nothing that describes an image
+  (`as_photo_material`, `med_instance_tags`, `med_volume_stats`,
+  `ex_estimate`, `quant_optimize`, `trade_backtest`), and two results
+  advertise the opposite — "Pixel data is never returned", "Never the voxel
+  array". **TEE was telling the truth.** The cause is decision A9 in
+  `extract/vlm.py`: the default extraction channel is in-band, where
+  `ex_prepare` hands the host file paths because "it reads media with its
+  own tools". That assumed the host was Claude. With a blind host both
+  shipped drivers fail — in-band because the host is the blind model, and
+  `ApiDriver` because it needs `ANTHROPIC_API_KEY`, a paid cloud call that
+  defeats running locally. `tee_capture`/`tee_media` compound it by
+  returning pixels, spending tokens to deliver something the host cannot
+  read. Meanwhile `kernel/local_vlm.py` is a working local vision client -
+  free, measured at 7.5 s on a real frame - wired to the web lane ONLY.
+- proposed: (1) `LocalVlmDriver` as a third extraction driver on the
+  existing `local_vlm` client, so the in-band channel has a local free
+  fallback instead of requiring either sight or a cloud key; (2)
+  `sense_describe` / `sense_transcribe` as plain tools, so a blind host can
+  ask for text rather than being handed pixels — faster-whisper is already
+  installed and transcribes verbatim in 0.62 s; (3) declare senses on
+  `machine.ENGINES` so the surface can say what it can and cannot perceive
+  instead of leaving a host to infer it from an empty search. Every answer
+  names its provider: a description is a summary someone else wrote, and
+  the model reasoning over it never saw the pixels.
+- secondary (different path, still true): the owner's LiteLLM hook already
+  reroutes image-bearing requests to Qwen3-VL, silently, and that reroute
+  evicts the 84 GB session model for the 17 GB vision model — measured at
+  ~10 s per modality alternation against 0.67-0.82 s warm, a cost that
+  appears in no ledger or answer. Relevant to Claude Desktop, not to the
+  opencode case.
 - status: open (researched, not built)
