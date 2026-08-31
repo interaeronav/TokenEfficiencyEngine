@@ -147,6 +147,9 @@ def test_siglip_beats_keyword_ranking_on_synonym_queries(tmp_path):
 
 
 @pytest.mark.ml
+# 25 s alone, and the recorded v0.13.0 flake: under full-suite load the
+# default 60 s timeout trips. Real local diffusion earns a real timeout.
+@pytest.mark.timeout(240)
 def test_local_diffusion_generates_a_real_image(tmp_path):
     from PIL import Image
 

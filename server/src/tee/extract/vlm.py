@@ -4,8 +4,17 @@ Channel decision A9: MCP sampling is dead, so the DEFAULT driver is in-band:
 `ex_prepare` hands the host model file paths (it reads media with its own
 tools), a schema fragment and storing instructions; the host writes back via
 `ex_store_facts`. The OPTIONAL ApiDriver runs off-session extraction as an
-async job when ANTHROPIC_API_KEY is configured. One interface, two drivers,
-same fact store.
+async job when ANTHROPIC_API_KEY is configured.
+
+A47 adds the third: `LocalVlmDriver`, reachable as `ex_prepare(driver=
+"local")`. A9 assumed the host could read media - true while the host was
+always Claude, and false the moment the owner drove TEE from opencode with
+a local DeepSeek, which has no vision. In-band asks a blind host to look;
+ApiDriver asks it to pay a cloud vendor, which defeats running locally.
+The local driver reads the media HERE, free, and stores the facts itself.
+
+One interface, THREE drivers, same fact store. In-band stays the default:
+a host that can see is still the cheapest reader.
 """
 
 from __future__ import annotations

@@ -368,6 +368,102 @@ def program_restore(path: str) -> str:
     )
 
 
+def program_capture_look(
+    path: str,
+    width: int,
+    height: int,
+    quality: int,
+    samples: int,
+    target: str,
+    azimuth_deg: float,
+    elevation_deg: float,
+    distance: float,
+) -> str:
+    """Render from a TEMPORARY aimed camera - the active-camera sense.
+
+    Same restore contract as program_capture: the scene is left EXACTLY as
+    found. The temp camera is positioned on a sphere around the target (a
+    named object, or the whole visible scene when target is empty) and aimed
+    with a look-at matrix; it never becomes scene.camera for longer than the
+    render and is removed in the finally block.
+    """
+    return f"""
+import math
+import bpy
+from mathutils import Vector
+scene = bpy.context.scene
+render = scene.render
+prev = (render.engine, render.resolution_x, render.resolution_y,
+        render.resolution_percentage, render.filepath,
+        render.image_settings.file_format, render.image_settings.quality,
+        scene.cycles.samples, scene.cycles.use_denoising, scene.camera)
+temp_cam = None
+try:
+    target_name = {json.dumps(target)}
+    if target_name:
+        obj = bpy.data.objects.get(target_name)
+        if obj is None:
+            raise RuntimeError('no object named ' + target_name)
+        pts = [obj.matrix_world @ Vector(c) for c in obj.bound_box]
+    else:
+        meshes = [o for o in bpy.data.objects if o.type == 'MESH' and not o.hide_render]
+        if not meshes:
+            raise RuntimeError('no renderable mesh in the scene')
+        # Backdrop guard: a studio cyc wall dwarfs the subject and drags the
+        # whole-scene frame out until the camera is staring at white. Objects
+        # whose largest dimension is >6x the median largest dimension are
+        # treated as environment, not subject - unless they are all we have.
+        def _extent(o):
+            corners = [o.matrix_world @ Vector(c) for c in o.bound_box]
+            return max(
+                max(c.x for c in corners) - min(c.x for c in corners),
+                max(c.y for c in corners) - min(c.y for c in corners),
+                max(c.z for c in corners) - min(c.z for c in corners),
+            )
+        extents = sorted(_extent(o) for o in meshes)
+        median = extents[len(extents) // 2]
+        subject = [o for o in meshes if _extent(o) <= 6 * max(median, 1e-6)]
+        pts = [o.matrix_world @ Vector(c) for o in (subject or meshes) for c in o.bound_box]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    ctr = (lo + hi) / 2
+    radius = max((hi - lo).length / 2, 0.001) * max(float({distance}), 1.05)
+    az = math.radians(float({azimuth_deg}))
+    el = math.radians(max(-89.0, min(89.0, float({elevation_deg}))))
+    pos = ctr + Vector((radius * math.cos(el) * math.cos(az),
+                        radius * math.cos(el) * math.sin(az),
+                        radius * math.sin(el)))
+    cam_data = bpy.data.cameras.new('TEE_LookCamera')
+    temp_cam = bpy.data.objects.new('TEE_LookCamera', cam_data)
+    scene.collection.objects.link(temp_cam)
+    temp_cam.location = pos
+    direction = ctr - pos
+    temp_cam.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
+    scene.camera = temp_cam
+    render.engine = 'CYCLES'
+    scene.cycles.samples = {samples}
+    scene.cycles.use_denoising = True  # the consumer is a vision model; noise reads as damage
+    render.resolution_x = {width}
+    render.resolution_y = {height}
+    render.resolution_percentage = 100
+    render.filepath = {json.dumps(path)}
+    render.image_settings.file_format = 'JPEG'
+    render.image_settings.quality = {quality}
+    bpy.ops.render.render(write_still=True)
+finally:
+    (render.engine, render.resolution_x, render.resolution_y,
+     render.resolution_percentage, render.filepath,
+     render.image_settings.file_format, render.image_settings.quality,
+     scene.cycles.samples, scene.cycles.use_denoising, prev_camera) = prev
+    scene.camera = prev_camera
+    if temp_cam is not None:
+        cam_data = temp_cam.data
+        bpy.data.objects.remove(temp_cam, do_unlink=True)
+        bpy.data.cameras.remove(cam_data)
+result = {{"rendered": True}}
+"""
+
+
 def program_capture(path: str, width: int, height: int, quality: int, samples: int) -> str:
     """Render a small JPEG, leaving the scene EXACTLY as found: render/cycles
     settings, scene.camera, and any temp camera are all restored/removed."""

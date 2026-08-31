@@ -80,14 +80,14 @@ _DESC = {
     ),
     "tee_capture": (
         "Viewport capture as a small inline JPEG (default budget 16KB). Expensive "
-        "relative to text: prefer tee_scene_summary / geometric checks first "
-        "(P3). max_kb caps the image budget (<=256)."
+        "relative to text: prefer tee_scene_summary or geometric checks. "
+        "Cannot read images? sense_describe returns text. max_kb caps it (<=256)."
     ),
     "tee_media": (
-        "Budgeted view of an ingested source (photo crop, video frame by "
-        "timestamp, PDF page): a small inline JPEG sized to max_tokens "
-        "(default 800, cap 4784). Facts (ex_facts/ex_search) are cheaper - "
-        "use pixels only when text cannot answer."
+        "Budgeted view of an ingested source (photo crop, video frame, "
+        "PDF page): a small inline JPEG sized to max_tokens "
+        "(default 800, cap 4784). Facts (ex_facts/ex_search) are cheaper. "
+        "Cannot read images? sense_describe returns text."
     ),
     "tee_script": (
         "Run a short bounded script that composes MANY tool calls into ONE "

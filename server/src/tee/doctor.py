@@ -439,8 +439,8 @@ def check_senses() -> Check:
         fix=None
         if both
         else (
-            "vision: start the local model stack (litellm --config "
-            "~/.claude/qwen-local/litellm.yaml). "
+            "vision: point [senses] vision_url at any OpenAI-style "
+            "endpoint serving a vision model (or set TEE_LOCAL_VLM_URL). "
             "audio: uv pip install 'tee-engine[extract]'."
         ),
     )

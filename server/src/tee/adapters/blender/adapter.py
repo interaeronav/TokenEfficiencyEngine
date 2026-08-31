@@ -91,6 +91,45 @@ class BlenderAdapter:
             )
         self._call(codegen.program_restore(path), timeout=_RESTORE_TIMEOUT)
 
+    def capture_look(
+        self,
+        max_bytes: int,
+        *,
+        target: str = "",
+        azimuth_deg: float = 45.0,
+        elevation_deg: float = 20.0,
+        distance: float = 2.2,
+    ) -> bytes:
+        """Aimed temp-camera render (A47): same two-rung budget ladder and
+        the same leave-the-scene-exactly-as-found contract as capture()."""
+        path = os.path.join(self.workdir, "look.jpg")
+        first = _CAPTURE_FULL if max_bytes >= 12 * 1024 else _CAPTURE_SMALL
+        last_size = 0
+        for width, height, quality in (first, _CAPTURE_FLOOR):
+            self._call(
+                codegen.program_capture_look(
+                    path,
+                    width,
+                    height,
+                    quality,
+                    _CAPTURE_SAMPLES,
+                    target,
+                    azimuth_deg,
+                    elevation_deg,
+                    distance,
+                ),
+                timeout=_CAPTURE_TIMEOUT,
+            )
+            data = _read_file(path)
+            last_size = len(data)
+            if last_size <= max_bytes:
+                return data
+        raise TeeError(
+            "capture_over_budget",
+            f"Smallest render is {last_size} bytes; budget is {max_bytes}.",
+            fix="Raise max_kb.",
+        )
+
     def capture(self, view: str, max_bytes: int) -> bytes:
         """At most two renders (P8): one at a rung picked from the budget,
         one retry at the floor rung if the first came out over budget."""

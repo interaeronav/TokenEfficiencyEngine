@@ -72,6 +72,7 @@ class ProjectConfig:
     capture: dict[str, Any] = field(default_factory=dict)
     scheduler: dict[str, Any] = field(default_factory=dict)
     trust: dict[str, Any] = field(default_factory=dict)
+    senses: dict[str, Any] = field(default_factory=dict)
     pipeline: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
@@ -137,6 +138,12 @@ class ProjectConfig:
             config.llm = llm
         elif llm:
             problems.append("[llm] must be a table")
+
+        senses = data.get("senses", {})
+        if isinstance(senses, dict):
+            config.senses = senses
+        elif senses:
+            problems.append("[senses] must be a table")
 
         gateway = data.get("gateway", {})
         if isinstance(gateway, dict):

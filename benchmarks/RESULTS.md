@@ -110,9 +110,9 @@ fields no client ever sees, so it overstates the surface by ~20%.
 
 | | Tools | Tokens |
 |---|---|---|
-| TEE always-loaded (wire) | 17 | **2,028** |
-| same, by `model_dump()` | 17 | 2,494 |
-| flat server, one tool per capability | 129 | 14,326 |
+| TEE always-loaded (wire) | 17 | **2,034** |
+| same, by `model_dump()` | 17 | 2,500 |
+| flat server, one tool per capability | 129 | 14,422 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
@@ -187,7 +187,7 @@ cited tee_web_lookup answer.
 | how do I test whether an address is private? | 9,569 | 604 | **93.7%** |
 | what is the maximum line length and its exceptions? | 13,008 | 589 | **95.5%** |
 
-Total 50,554 -> 2,367 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire - repaid by the first question of the session.
+Total 50,554 -> 2,367 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 181 tokens on the canonical wire - repaid by the first question of the session.
 
 - https://pypi.org/project/trimesh/ answered with its bot-challenge variant; excluded
 

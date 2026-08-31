@@ -195,6 +195,8 @@ _EXPLICIT: dict[str, str] = {
     # named next, and these read files and POST to 127.0.0.1. They mutate
     # nothing and nothing leaves the machine, so: the read tier.
     "sense_describe": "read-extract",
+    "sense_viewport": "read-scene",
+    "sense_camera": "read-scene",
     "sense_transcribe": "read-extract",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",

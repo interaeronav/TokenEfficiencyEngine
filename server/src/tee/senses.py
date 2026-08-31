@@ -41,6 +41,41 @@ from typing import Any
 
 from tee.kernel.errors import TeeError
 
+# Any machine's own facts land here from [senses] in .tee/config.toml; the
+# code carries NO owner-specific value. `machine.ENGINES` keeps this
+# machine's measured rows as the documented example, and config overrides
+# them wholesale for other users:
+#
+#   [senses]
+#   vision_url   = "http://127.0.0.1:4000/v1"   # any OpenAI-style endpoint
+#   vision_model = "claude-qwen-vl"
+#   vision_footprint_gb = 17.0
+#   vision_evicts = ["dsflash"]     # models this machine must park first
+#   vision_swap_s = 10.0            # what that costs, if measured
+_CFG: dict[str, Any] = {}
+
+
+def configure(senses_cfg: dict[str, Any] | None) -> None:
+    """Called at registration with [senses] from the project config."""
+    _CFG.clear()
+    _CFG.update(senses_cfg or {})
+
+
+def _vision_facts() -> tuple[str | None, str | None, dict[str, Any]]:
+    """(url, model, engine-row facts) - config first, ENGINES as fallback."""
+    from tee.kernel.machine import ENGINES
+
+    row = dict(ENGINES.get("qvl") or {})
+    if "vision_footprint_gb" in _CFG:
+        row["footprint_gb"] = _CFG["vision_footprint_gb"]
+    if "vision_evicts" in _CFG:
+        row["evicts"] = list(_CFG["vision_evicts"])
+        row.setdefault("cost", {})
+    if "vision_swap_s" in _CFG:
+        row.setdefault("cost", {})["swap_s"] = _CFG["vision_swap_s"]
+    return _CFG.get("vision_url"), _CFG.get("vision_model"), row
+
+
 # Re-encoded to JPEG before sending: the VL server takes what browsers take,
 # and HEIC (the owner's iPhone format) is not on that list.
 _RECODE = frozenset({".heic", ".heif", ".hif", ".heics", ".avif"})
@@ -140,7 +175,6 @@ def _image_payload(path: Path) -> tuple[bytes, str]:
 def describe(spec: dict[str, Any], *, state_dir: Path | None = None) -> dict[str, Any]:
     """Borrow an eye: one question about one image, answered as text."""
     from tee.kernel import local_vlm
-    from tee.kernel.machine import ENGINES
 
     raw = str(spec.get("path") or "").strip()
     if not raw:
@@ -155,7 +189,8 @@ def describe(spec: dict[str, Any], *, state_dir: Path | None = None) -> dict[str
     question = str(spec.get("question") or "Describe this image in two sentences.").strip()
     context = str(spec.get("context") or "").strip()
     budget = max(32, min(int(spec.get("max_tokens") or ANSWER_TOKENS_DEFAULT), ANSWER_TOKENS_CAP))
-    model = local_vlm.DEFAULT_MODEL
+    url, cfg_model, qvl = _vision_facts()
+    model = cfg_model or local_vlm.DEFAULT_MODEL
 
     payload, media_type = _image_payload(path)
     key = _cache_key(payload, question, context, model)
@@ -171,15 +206,16 @@ def describe(spec: dict[str, Any], *, state_dir: Path | None = None) -> dict[str
         answer, wall, cached = hit["answer"], 0.0, True
     else:
         started = time.monotonic()
-        answer = local_vlm.describe(
-            payload, asked, model=model, media_type=media_type, max_tokens=budget
-        ).strip()
+        kwargs: dict[str, Any] = {"model": model, "media_type": media_type,
+                                  "max_tokens": budget}  # fmt: skip
+        if url:
+            kwargs["url"] = url
+        answer = local_vlm.describe(payload, asked, **kwargs).strip()
         wall = time.monotonic() - started
         cached = False
         cache[key] = {"answer": answer}
         _save_cache(state_dir, cache)
 
-    qvl = ENGINES.get("qvl", {})
     out: dict[str, Any] = {
         "ok": True,
         "answer": answer,
@@ -275,10 +311,192 @@ def transcribe(spec: dict[str, Any], *, state_dir: Path | None = None) -> dict[s
     return out
 
 
+def viewport(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any]:
+    """Look at what a DCC is actually showing, and answer in text.
+
+    Unreal has had this since 3.7 as `ue_look`. Blender never got it: its
+    adapter honours the same `capture(view, max_bytes)` contract and returns
+    raw JPEG bytes, which a host that cannot read images has no use for. So
+    a blind model driving Blender through TEE was flying instruments-only -
+    it could mutate the scene and never see the result.
+
+    The image goes to the LOCAL model and never enters the host's context,
+    which has a pleasant consequence: the byte budget can be GENEROUS.
+    Bigger capture, better answer, identical host cost.
+    """
+    from tee.kernel import local_vlm
+
+    name = str(spec.get("adapter") or "").strip().lower()
+    if not adapters:
+        raise TeeError(
+            "sense_no_adapter",
+            "No DCC is connected, so there is no viewport to look at.",
+            fix="Start Blender or Unreal with the TEE bridge and reconnect.",
+        )
+    if name and name not in adapters:
+        raise TeeError(
+            "sense_unknown_adapter",
+            f"No adapter named '{name}'.",
+            fix=f"Connected: {', '.join(sorted(adapters))}.",
+        )
+    if not name:
+        name = sorted(adapters)[0]
+    adapter = adapters[name]
+
+    question = str(spec.get("question") or "").strip()
+    if not question:
+        question = "Describe what is visible in this viewport in two sentences."
+    # 96 KB by default, matching ue_look: the host never sees these bytes.
+    max_kb = max(8, min(int(spec.get("max_kb") or 96), 512))
+    view = str(spec.get("view") or "camera")
+
+    started = time.monotonic()
+    try:
+        data = adapter.capture(view, max_kb * 1024)
+    except TeeError:
+        raise
+    except Exception as exc:
+        raise TeeError(
+            "sense_capture_failed",
+            f"{name} could not produce a viewport image: {str(exc)[:160]}",
+            fix="Check the DCC is responsive and a camera exists in the scene.",
+        ) from exc
+    url, cfg_model, qvl = _vision_facts()
+    kwargs: dict[str, Any] = {"media_type": "image/jpeg",
+                              "max_tokens": int(spec.get("max_tokens") or 300)}  # fmt: skip
+    if url:
+        kwargs["url"] = url
+    if cfg_model:
+        kwargs["model"] = cfg_model
+    answer = local_vlm.describe(data, question, **kwargs).strip()
+    wall = time.monotonic() - started
+
+    out: dict[str, Any] = {
+        "ok": True,
+        "answer": answer,
+        "sense": "vision",
+        "adapter": name,
+        "view": view,
+        "provided_by": f"{cfg_model or local_vlm.DEFAULT_MODEL} "
+        f"(local, {qvl.get('footprint_gb', '?')} GB)",
+        "cost": {
+            "capture_kb": round(len(data) / 1024, 1),
+            "host_tokens_for_the_image": 0,
+            "wall_s": round(wall, 2),
+            "off_machine_calls": 0,
+        },
+        "note": "A description of the viewport, not the viewport. The image "
+        "was read by a local model and never entered your context - which is "
+        "why the capture budget can be generous.",
+    }
+    if wall >= COLD_START_S and (qvl.get("evicts") or []):
+        out["swap_note"] = (
+            f"the vision provider was cold, which evicts "
+            f"{', '.join(qvl['evicts'])} - the next text turn pays a reload."
+        )
+    return out
+
+
+def camera(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any]:
+    """The ACTIVE camera: aim, then look.
+
+    `sense_viewport` answers about whatever the scene camera already shows.
+    This one lets a blind model direct its own eye - name an object, pick an
+    angle, and TEE positions a TEMPORARY camera (the scene is left exactly
+    as found, the same restore contract the capture path has always had),
+    renders within budget, and answers in text.
+
+    Blender only: Unreal's `ue_look` already carries its own camera
+    metadata, and aiming the editor viewport there is a different contract.
+    """
+    from tee.kernel import local_vlm
+
+    blender = adapters.get("blender")
+    if blender is None:
+        raise TeeError(
+            "sense_no_adapter",
+            "sense_camera aims a Blender camera and no Blender is connected.",
+            fix="Start Blender with the TEE bridge. For Unreal use ue_look.",
+        )
+    if not hasattr(blender, "capture_look"):
+        raise TeeError(
+            "sense_no_adapter",
+            "This Blender adapter predates the aimed camera.",
+            fix="Reconnect with the current TEE build.",
+        )
+    question = str(spec.get("question") or "Describe what is visible.").strip()
+    context = str(spec.get("context") or "").strip()
+    if context:
+        question = f"Context: {context}\n\nQuestion: {question}"
+    target = str(spec.get("target") or "").strip()
+    azimuth = float(spec.get("azimuth_deg") or 45.0)
+    elevation = float(spec.get("elevation_deg") or 20.0)
+    distance = max(1.05, float(spec.get("distance") or 2.2))
+    max_kb = max(8, min(int(spec.get("max_kb") or 96), 512))
+
+    started = time.monotonic()
+    try:
+        data = blender.capture_look(
+            max_kb * 1024,
+            target=target,
+            azimuth_deg=azimuth,
+            elevation_deg=elevation,
+            distance=distance,
+        )
+    except TeeError:
+        raise
+    except Exception as exc:
+        raise TeeError(
+            "sense_capture_failed",
+            f"Blender could not render the aimed view: {str(exc)[:160]}",
+            fix="Check the target object exists (tee_scene_summary lists names).",
+        ) from exc
+
+    url, cfg_model, qvl = _vision_facts()
+    kwargs: dict[str, Any] = {
+        "media_type": "image/jpeg",
+        "max_tokens": int(spec.get("max_tokens") or 300),
+    }
+    if url:
+        kwargs["url"] = url
+    if cfg_model:
+        kwargs["model"] = cfg_model
+    answer = local_vlm.describe(data, question, **kwargs).strip()
+    wall = time.monotonic() - started
+
+    out: dict[str, Any] = {
+        "ok": True,
+        "answer": answer,
+        "sense": "vision",
+        "aimed_at": target or "(whole scene)",
+        "azimuth_deg": azimuth,
+        "elevation_deg": elevation,
+        "provided_by": f"{cfg_model or local_vlm.DEFAULT_MODEL} "
+        f"(local, {qvl.get('footprint_gb', '?')} GB)",
+        "cost": {
+            "capture_kb": round(len(data) / 1024, 1),
+            "host_tokens_for_the_image": 0,
+            "wall_s": round(wall, 2),
+            "off_machine_calls": 0,
+        },
+        "note": "Rendered from a temporary camera that no longer exists; "
+        "the scene was left exactly as found. A description, not the image.",
+    }
+    if wall >= COLD_START_S and (qvl.get("evicts") or []):
+        out["swap_note"] = (
+            f"the vision provider was cold, which evicts "
+            f"{', '.join(qvl['evicts'])} - the next text turn pays a reload."
+        )
+    return out
+
+
 def register_sense_tools(app, project_root: str | Path) -> None:
-    """Register sense_* as virtual tools (the surface stays 17)."""
+    """Register sense_* as virtual tools (the surface stays 17). Reads
+    [senses] from the project config so another user's endpoint, model and
+    eviction facts come from THEIR machine, not this one's."""
     from tee.kernel.registry import VirtualTool
 
+    configure(getattr(getattr(app, "config", None), "senses", None))
     state = Path(project_root) / ".tee"
 
     def sense_describe(args: dict[str, Any]) -> dict[str, Any]:
@@ -333,6 +551,111 @@ def register_sense_tools(app, project_root: str | Path) -> None:
                     "question": "Does the gable match the spec? What differs?",
                 }
             ],
+        )
+    )
+
+    def sense_viewport(args: dict[str, Any]) -> dict[str, Any]:
+        return viewport(args, adapters=app.adapters)
+
+    def sense_camera(args: dict[str, Any]) -> dict[str, Any]:
+        return camera(args, adapters=app.adapters)
+
+    app.registry.register(
+        VirtualTool(
+            name="sense_camera",
+            description=(
+                "ACTIVE camera for a model that cannot see: aim at a named "
+                "object (or the whole scene) from an angle you choose, and "
+                "get a TEXT answer about what the render shows. Blender "
+                "only; the temporary camera is removed and the scene left "
+                "exactly as found. azimuth_deg 0 looks from +X, 90 from +Y; "
+                "elevation_deg tilts up."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string"},
+                    "target": {
+                        "type": "string",
+                        "description": "Object name from tee_scene_summary; empty = whole scene.",
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "What you already know (e.g. what the target is); "
+                        "the answer addresses it.",
+                    },
+                    "azimuth_deg": {"type": "number"},
+                    "elevation_deg": {"type": "number"},
+                    "distance": {
+                        "type": "number",
+                        "description": "Multiple of the target's size, default 2.2.",
+                    },
+                    "max_kb": {"type": "integer"},
+                    "max_tokens": {"type": "integer"},
+                },
+            },
+            handler=sense_camera,
+            tags=[
+                "sense",
+                "vision",
+                "camera",
+                "aim",
+                "look at",
+                "angle",
+                "orbit",
+                "inspect",
+                "blender",
+                "frame",
+                "point",
+            ],  # fmt: skip
+            examples=[
+                {
+                    "target": "arm-pad-L",
+                    "azimuth_deg": 180,
+                    "elevation_deg": 10,
+                    "question": "Is the arm pad orange and undamaged?",
+                }
+            ],
+        )
+    )
+
+    app.registry.register(
+        VirtualTool(
+            name="sense_viewport",
+            description=(
+                "SEE the scene you are building: captures the connected "
+                "DCC's viewport (Blender or Unreal) and answers a question "
+                "about it in TEXT. Use this when you cannot read images but "
+                "need to check what your edits actually did. The capture "
+                "goes to a local model and never enters your context, so it "
+                "costs you nothing in image tokens."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string"},
+                    "adapter": {"type": "string", "description": "blender | unreal"},
+                    "view": {"type": "string", "description": "camera (default) or a named view."},
+                    "max_kb": {"type": "integer", "description": "Capture budget, default 96."},
+                    "max_tokens": {"type": "integer"},
+                },
+            },
+            handler=sense_viewport,
+            tags=[
+                "sense",
+                "vision",
+                "viewport",
+                "scene",
+                "look",
+                "see",
+                "blender",
+                "unreal",
+                "render",
+                "check",
+                "camera",
+                "screenshot",
+            ],  # fmt: skip
+            examples=[{"question": "Is the chair back mesh visible and orange?"}],
         )
     )
 

@@ -409,6 +409,34 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
 
     def ex_prepare(args: dict[str, Any]) -> dict[str, Any]:
         source = store.resolve(args["source"])
+        driver = str(args.get("driver") or "in_band").lower()
+        if driver not in ("in_band", "local"):
+            raise TeeError(
+                "extract_bad_driver",
+                f"'{driver}' is not a driver.",
+                fix='Use "in_band" (you read the media) or "local" (TEE reads it here).',
+            )
+        if driver == "local":
+            if not vlm.LocalVlmDriver.available():
+                raise TeeError(
+                    "extract_local_unavailable",
+                    "The local vision driver needs this machine's model shim, "
+                    "which is not answering.",
+                    fix="Start it (litellm --config ~/.claude/qwen-local/litellm.yaml), "
+                    'or use driver "in_band" and read the files yourself.',
+                )
+            job = app.jobs.submit(
+                f"extract {source['hash'][:8]} @local-vlm",
+                lambda: _extract_locally(source),
+                qos="batch",
+                engine="qvl",
+            )
+            return {
+                "job": job,
+                "driver": "local",
+                "note": "TEE is reading this media on the local vision model. "
+                "Poll tee_job. The first call may pay a ~10s model swap.",
+            }
         captions = {
             fact.get("ref")
             for fact in store.facts(source["hash"], kind="caption")
@@ -419,15 +447,84 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
         )
         if source["media_type"] == "audio":
             packet["guidance"] = audio_lane.REQUIREMENTS_PROMPT
-        packet["api_driver"] = (
-            "available" if vlm.ApiDriver.available() else "not configured (in-band only)"
-        )
-        packet["local_vlm_driver"] = (
-            "available (free, on-machine)"
-            if vlm.LocalVlmDriver.available()
-            else "unreachable (in-band only)"
-        )
+        # A47 P3: each driver line now says HOW to invoke it. This block
+        # used to advertise `local_vlm_driver: "available (free,
+        # on-machine)"` while NO code path could invoke it - a sign on a
+        # door with no door behind it, and the reason a blind host
+        # reasonably concluded TEE offered no vision.
+        packet["drivers"] = {
+            "in_band": {
+                "how": "read the paths above yourself, write back via ex_store_facts",
+                "available": True,
+                "note": "the default and the cheapest - if you CAN read media, do this",
+            },
+            "local": {
+                "how": 'call ex_prepare again with {"driver": "local"}',
+                "available": vlm.LocalVlmDriver.available(),
+                "note": "TEE reads the media on this machine's vision model and "
+                "stores the facts itself. For hosts that cannot read images.",
+            },
+            "api": {
+                "how": "set ANTHROPIC_API_KEY; extraction runs off-session",
+                "available": vlm.ApiDriver.available(),
+                "note": "off-machine and metered",
+            },
+        }
         return packet
+
+    def _extract_locally(source: dict[str, Any]) -> dict[str, Any]:
+        """Run the local vision driver over a source AS THE JOB.
+
+        The in-band channel asks the host to read the media. A host that
+        cannot read media has no move: `ApiDriver` needs a cloud key, which
+        defeats running locally. This is the third door - TEE looks, TEE
+        stores, the host gets facts.
+        """
+        driver = vlm.LocalVlmDriver()
+        paths = [Path(p) for p in source["paths"]]
+        media_type = source["media_type"]
+        facts: list[dict[str, Any]] = []
+        for path in paths:
+            if not path.is_file():
+                continue
+            if media_type == "document":
+                try:
+                    payload = driver.extract_document_page(path, vlm._PLAN_SCHEMA_HINT)
+                    facts.append({"kind": "plan", "ref": path.name, **payload})
+                    continue
+                except Exception:
+                    pass  # fall through to a caption rather than losing the page
+            facts.append({"kind": "caption", "ref": path.name, "text": driver.caption_image(path)})
+        if not facts:
+            raise TeeError(
+                "extract_local_empty",
+                "The local driver read nothing from this source.",
+                fix="Check the source has readable image files.",
+            )
+        stored = store.store_facts(
+            source["hash"],
+            f"vlm-{media_type}",
+            "1",
+            facts,
+            provenance={
+                "driver": "local",
+                "model": driver.model,
+                "off_machine_calls": 0,
+                "note": "TEE read this media on the local vision model; the host "
+                "never opened the files. Descriptions, not the pixels.",
+            },
+        )
+        return {
+            "ok": True,
+            "driver": "local",
+            "source": source["hash"][:8],
+            "facts_stored": stored,
+            "kinds": sorted({f["kind"] for f in facts}),
+            "provided_by": f"{driver.model} (local)",
+            "off_machine_calls": 0,
+            "note": "Facts extracted by TEE, not by you. Query them with "
+            "ex_facts / ex_search as usual.",
+        }
 
     reg.register(
         VirtualTool(
@@ -436,11 +533,21 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
                 "Extraction packet for one source: file paths to read "
                 "yourself, guidance on what to transcribe (never measure "
                 "pixels), the plan schema, and how to write back via "
-                "ex_store_facts."
+                "ex_store_facts. CANNOT read media yourself? Pass driver: "
+                '"local" and TEE reads it here on this machine\'s vision '
+                "model and stores the facts for you (async - poll tee_job)."
             ),
             schema={
                 "type": "object",
-                "properties": {"source": {"type": "string"}},
+                "properties": {
+                    "source": {"type": "string"},
+                    "driver": {
+                        "type": "string",
+                        "enum": ["in_band", "local"],
+                        "description": "in_band (default, you read the files) or "
+                        '"local" (TEE reads them on this machine).',
+                    },
+                },
                 "required": ["source"],
             },
             handler=ex_prepare,

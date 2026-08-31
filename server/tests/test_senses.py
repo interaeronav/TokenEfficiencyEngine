@@ -28,6 +28,12 @@ SCRATCH = Path(
 CARD = SCRATCH / "probe.png"
 SPOKEN = SCRATCH / "spoken.aiff"
 
+# Live-provider tests: a cold vision start is ~36 s measured, and under
+# full-suite contention (the provider evicted by earlier activity) the
+# default 60 s per-test timeout flakes. The long timeout is the honest
+# price of testing against the real provider rather than a mock.
+live_slow = pytest.mark.timeout(240)
+
 needs_vision = pytest.mark.skipif(
     not __import__("tee.kernel.local_vlm", fromlist=["x"]).available(timeout=1.0)
     or not CARD.is_file(),
@@ -44,6 +50,7 @@ needs_audio = pytest.mark.skipif(
 
 
 @needs_vision
+@live_slow
 def test_every_answer_names_who_actually_looked(tmp_path):
     r = senses.describe({"path": str(CARD), "question": "Read the card."}, state_dir=tmp_path)
     assert "qwen-vl" in r["provided_by"]
@@ -52,6 +59,7 @@ def test_every_answer_names_who_actually_looked(tmp_path):
 
 
 @needs_vision
+@live_slow
 def test_the_answer_is_not_dressed_up_as_sight(tmp_path):
     """The note is not decoration. A model reading this is reading a summary
     another model wrote, and must be told so in the same payload."""
@@ -61,6 +69,7 @@ def test_the_answer_is_not_dressed_up_as_sight(tmp_path):
 
 
 @needs_vision
+@live_slow
 def test_nothing_leaves_the_machine(tmp_path):
     r = senses.describe({"path": str(CARD)}, state_dir=tmp_path)
     assert r["cost"]["off_machine_calls"] == 0
@@ -68,6 +77,7 @@ def test_nothing_leaves_the_machine(tmp_path):
 
 
 @needs_vision
+@live_slow
 def test_it_reads_what_no_model_could_guess(tmp_path):
     """The fixture says PLINTH K-4713 - unguessable, so a correct answer is
     proof of sight rather than of plausible invention."""
@@ -79,6 +89,7 @@ def test_it_reads_what_no_model_could_guess(tmp_path):
 
 
 @needs_vision
+@live_slow
 def test_context_is_used_not_merely_carried(tmp_path):
     """Measured before the build: given a spec, the provider answers the
     DELTA against it. That is what makes this useful for site forensics
@@ -99,6 +110,7 @@ def test_context_is_used_not_merely_carried(tmp_path):
 
 
 @needs_vision
+@live_slow
 def test_the_same_question_twice_costs_the_provider_once(tmp_path):
     spec = {"path": str(CARD), "question": "Read the card.", "max_tokens": 60}
     first = senses.describe(spec, state_dir=tmp_path)
