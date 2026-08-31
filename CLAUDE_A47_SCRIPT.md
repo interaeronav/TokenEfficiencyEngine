@@ -182,6 +182,13 @@ frame, (a) seeing host via `tee_media` pixels, (b) blind host via
 RESULTS.md — the 33x claim gets a reproducible number or gets corrected.
 Re-measure the modality-alternation cost through the TOOL (not the raw
 shim) and record the swap threshold chosen in P1.
+Also audition ONE small VLM (2-8B class, ~2-5 GB at 4-bit) against the
+same two probes the big one passed — the unguessable card verbatim, and
+the gable-vs-spec delta. The 17 GB model is 27 vision layers riding a
+48-layer / 128-expert language brain; a small one that passes both probes
+would coexist with the 84 GB host and dissolve the ~10 s eviction
+entirely. Adopt it as the default provider ONLY if both probes pass
+exactly; otherwise record the failure and keep the 30B.
 *Acceptance:* RESULTS.md rows with real numbers; PROGRESS entry; version
 bump + bundle; the extras trap note in the release text.
 
