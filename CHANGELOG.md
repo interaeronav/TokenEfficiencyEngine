@@ -3,6 +3,35 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.13.0 — 2026-08-31
+
+**TEE notices when an upgrade deletes its own extras.**
+
+Installing a bundle rebuilds the extension venv from its lock and drops
+anything added on top — and the fleet extras live on top by design, since
+A46 P1 keeps them out to hold the base venv at 586 MB. Three upgrades in a
+row wiped them (0.10.0, 0.11.0, 0.12.0), each taking the venv from ~1.1 GB
+to 34 MB.
+
+The defect was never the deletion; it was the message afterwards.
+`probe.need()` said *"uv pip install 'tee-engine[medimg]'"* — which reads as
+**you never set this up**, to someone who did. Two rounds of documentation
+did not help, because the reader was being sent to the wrong problem.
+
+TEE now records which groups are installed and, when one goes missing, says
+so and dates it:
+
+```
+[medimg] was installed here on 2026-08-30 and is missing now. Installing a
+new TEE bundle rebuilds the venv from its lock and drops anything added on
+top - this is that, not a setup you never did.
+```
+
+`tee doctor` reports the same, with the restore command for exactly the
+groups that vanished. `cad` is exempt — it lives in a sidecar by design, so
+its absence is correct. TEE installs nothing itself; restoring stays the
+owner's command.
+
 ## 0.12.0 — 2026-08-31
 
 **ODM runs now report what they achieved, not just where they wrote.**

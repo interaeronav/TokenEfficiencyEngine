@@ -359,6 +359,38 @@ def check_web() -> Check:
     return Check("web", "ok", "tee_web_lookup ready; " + "; ".join(bits))
 
 
+def check_extras(project_root: Any = None) -> Check:
+    """Did an upgrade quietly delete the optional extras?
+
+    Installing a bundle rebuilds the venv from its lock and drops anything
+    added on top; the fleet extras live on top by design. This is where
+    someone looks when a tool says "not installed" and they know they
+    installed it.
+    """
+    from pathlib import Path as _Path
+
+    from tee.kernel import extras as _extras
+
+    state = _Path(project_root or _Path.home() / "TEE") / ".tee"
+    gone = _extras.lost(state)
+    here = sorted(_extras.present())
+    if gone:
+        names = ", ".join(f"{g} (last seen {d})" for g, d in sorted(gone.items()))
+        return Check(
+            name="fleet extras",
+            status="warn",
+            detail=f"MISSING after an upgrade: {names}. Present: {', '.join(here) or 'none'}.",
+            fix="uv pip install --python '<extension venv>/bin/python' "
+            + " ".join(f"'tee-engine[{g}]'" for g in sorted(gone)),
+        )
+    return Check(
+        name="fleet extras",
+        status="ok",
+        detail=f"{len(here)} group(s) installed: {', '.join(here) or 'none'}"
+        + " (cad lives in its own sidecar by design)",
+    )
+
+
 def check_state() -> Check:
     """`.tee/` on-disk state (A38 S3.2): sizes per store, the web-cache caps
     in effect, pending kb-staging drafts, project-memory weight. Growth is a
@@ -449,6 +481,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_kb(),
         check_web(),
         check_state(),
+        check_extras(),
         check_llm(),
     ]
 

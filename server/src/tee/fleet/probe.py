@@ -49,6 +49,17 @@ EXTRAS: dict[str, tuple[str, str, str]] = {
 }
 
 
+# Set once at startup so a refusal can tell "never installed" from "an
+# upgrade removed it". None means the app never recorded a state dir, in
+# which case the refusal is the plain one and nothing is claimed.
+_state_dir: list[Any] = [None]
+
+
+def bind_state_dir(state_dir: Any) -> None:
+    """Called by TeeApp so `need()` can consult the extras record."""
+    _state_dir[0] = state_dir
+
+
 def need(module: str, group: str, *, what: str = "") -> Any:
     """Import `module` or refuse loudly with the exact fix."""
     try:
@@ -56,9 +67,21 @@ def need(module: str, group: str, *, what: str = "") -> Any:
     except ImportError as exc:
         extra, brings, line = EXTRAS.get(group, (group, module, f"uv pip install {module}"))
         detail = f" ({what})" if what else ""
+        # An extra that WAS here and is gone is an upgrade artefact, not a
+        # setup the owner skipped. Saying "install this" to someone who did
+        # install it sends them looking in the wrong place - measured three
+        # upgrades running.
+        note = None
+        try:
+            from tee.kernel import extras as _extras
+
+            note = _extras.loss_note(group, _state_dir[0])
+        except Exception:  # a diagnostic must never replace the real error
+            note = None
         raise TeeError(
             f"{group}_unavailable",
-            f"This needs the [{extra}] extra{detail}: {module} is not installed.",
+            (f"{note} " if note else "")
+            + f"This needs the [{extra}] extra{detail}: {module} is not installed.",
             fix=f"{line}  - brings {brings}.",
         ) from exc
 

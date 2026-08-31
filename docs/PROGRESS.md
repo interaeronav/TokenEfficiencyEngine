@@ -7745,3 +7745,55 @@ read that as absent. The artifact filter is still right as defensive code,
 but it was not observed behaviour.
 
 **Suite: 1,062 passed / 9 skipped**, ruff clean.
+
+### v0.13.0 — TEE notices when an upgrade eats its own extras
+
+Third upgrade in a row that wiped the fleet extras (0.10.0, 0.11.0,
+0.12.0), each dropping the extension venv from ~1.1 GB to 34 MB. Twice the
+response was documentation. Documentation did not work.
+
+**The defect was never that the extras go** — that is what `uv sync` does,
+and A46 P1 deliberately keeps them out of the lock to hold the base venv at
+586 MB. The defect is that `probe.need()` then refuses with *"uv pip install
+'tee-engine[medimg]'"*, which reads as **you never set this up**. The owner
+did set it up. Being told to do a thing you already did sends you looking in
+entirely the wrong place, which is why two rounds of docs did not help.
+
+So TEE remembers. `kernel/extras.py` records which groups are satisfiable,
+`TeeApp` refreshes that at startup, and a group that was present and is not
+any more changes the refusal:
+
+```
+before: This needs the [medimg] extra: pydicom is not installed.
+after : [medimg] was installed here on 2026-08-30 and is missing now.
+        Installing a new TEE bundle rebuilds the venv from its lock and
+        drops anything added on top - this is that, not a setup you never
+        did.  This needs the [medimg] extra: pydicom is not installed.
+```
+
+The install command still travels in `fix`. `tee doctor` carries the same
+finding, since a refusal only reaches whoever called that one tool while
+doctor is where you look when you do not yet know what is wrong.
+
+Three things deliberately built in:
+
+- **The record never forgets on its own.** A group that disappears keeps its
+  last-seen date, because that date is the evidence it was ever there.
+- **`cad` is exempt.** A46 P1b moved CadQuery to a sidecar, so its absence
+  from TEE's venv is correct and must never read as damage.
+- **The diagnostic cannot break a tool call.** If the bookkeeping raises,
+  the caller still gets the real ImportError refusal — a test pins this.
+
+TEE still installs nothing itself; restoring remains the owner's command.
+
+**Cost measured, because A46 forbids slowing the core:** `TeeApp` construct
+0.5–0.7 ms, `extras.present()` 0.14 ms, and `find_spec` imports nothing —
+all five witnesses confirmed absent from `sys.modules` afterwards.
+
+**One flake seen and not hidden:** `test_local_diffusion_generates_a_real_image`
+timed out at 60 s in one full-suite run and passed in the next, taking 25 s
+when run alone. It performs real local diffusion; the suite timeout is the
+constraint, not the code. Pre-existing, unrelated to this change, recorded
+rather than re-run until quiet.
+
+**Suite: 1,072 passed / 9 skipped**, ruff clean.

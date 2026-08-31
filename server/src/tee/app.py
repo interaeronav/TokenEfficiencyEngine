@@ -119,6 +119,21 @@ class TeeApp:
         self.jobs = JobManager()
         self.machine = MachineLedger()  # the ONE machine-load ledger (A42 R1)
         self.project_root = Path(project_root)
+        # Remember which optional extras are installed, so a later refusal
+        # can say "an upgrade removed this" instead of "you never installed
+        # it". Installing a bundle rebuilds the venv from its lock and drops
+        # everything added on top; measured three upgrades running.
+        try:
+            from datetime import date
+
+            from tee.fleet import probe as _probe
+            from tee.kernel import extras as _extras
+
+            _state = self.project_root / ".tee"
+            _extras.remember(_state, today=date.today().isoformat())
+            _probe.bind_state_dir(_state)
+        except Exception:  # bookkeeping must never stop the server booting
+            pass
         self.memory = ProjectMemory(Path(project_root))
         self.registry = ToolRegistry()
         self.response_log = ResponseLog()
