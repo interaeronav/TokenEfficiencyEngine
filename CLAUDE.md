@@ -53,6 +53,12 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   spend and egress, land the fifteen headless open resources) is driven
   by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
   goes, the taint law stays, and TEE still never grants itself.
+- The A49 build (Godot as a headless first-class adapter: socket bridge,
+  declarative commands, the run-scene game lane) is driven by
+  `CLAUDE_A49_SCRIPT.md`. Its design rests on measured facts recorded in
+  the script itself — including that headless Godot CANNOT render (dummy
+  rasterizer), so capture refuses honestly and game evidence flows
+  through run_scene output instead.
 - The A48 build (close A47 P5, then the PDF write/edit lane:
   `pdf_compose` on fpdf2, `pdf_edit` on pypdf, round-tripped through the
   existing extract lane) is driven by `CLAUDE_A48_SCRIPT.md`. It is

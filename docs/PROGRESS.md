@@ -8124,3 +8124,38 @@ correctly, suite unchanged at 1,121.
 
 Licences in DECISIONS.md: fpdf2 LGPL-3.0, pypdf BSD-3. Neither ships in the
 `.mcpb`; both arrive with the extra. Docs: `docs/pdf-lane.md`.
+
+### A49 script written — Godot headless integration (2026-08-31)
+
+Deep-researched live before a line of design. Godot 4.7.2 installed via
+brew (cask, MIT). Five facts measured, each now load-bearing in the script:
+
+```
+--import first        a never-imported project HANGS godot --headless -s
+                      with no output (hit live; the probe sat 600 s)
+socket bridge         TCPServer in a SceneTree _process pump round-tripped
+                      JSON on 127.0.0.1:9878 - the Blender wire shape works
+scene write           PackedScene + ResourceSaver produced a valid .tscn
+                      (238 bytes; children need `owner` set to pack)
+headless render       DOES NOT EXIST: dummy rasterizer, get_image() null
+                      ("texture_storage.h Parameter t is null") - capture
+                      must refuse with this reason, never a black frame
+GDScript traps        `var x := unknowable` is a parse ERROR; SceneTree's
+                      `root` IS the viewport; put_data needs poll + a beat
+```
+
+Design: an `Adapter`-protocol implementation, so `tee_scene_summary`,
+`tee_batch`, `tee_diff` and checkpoints drive Godot with **zero new
+always-loaded tools**; declarative command set (the trade-rule lesson)
+with `gd_execute` as a separate exec-code door; and the game-design payoff
+is `run_scene` — run a scene N frames headless, collect prints and script
+errors — adopted as a declared pipeline step in P3.
+
+**Carried correction, verified both ways:** `q27b-bare` is declared
+`senses: []` and that is FALSE — its on-disk config is
+`Qwen3_5ForConditionalGeneration` with `vision_config` (the owner said so;
+the config proves it). DeepSeek checked identically: `DeepseekV4ForCausalLM`,
+no vision_config — genuinely blind, so A47's premise stands for the model
+it was built for. The script's P0 fixes the row and pins the METHOD:
+senses are read from the model's own config on disk, never inferred from
+shim behaviour, because the shim reroutes image traffic and masks the truth.
