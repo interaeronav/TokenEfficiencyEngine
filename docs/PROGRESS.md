@@ -7447,3 +7447,82 @@ error; it behaved as though video and audio inputs were unsupported.
 Installed; all three now import. The restore command in `docs/setup-fleet.md`,
 in the `make mcpb` reminder and in project memory now includes `[extract]`,
 with a note to check every group rather than the ones you remember.
+
+### Okongo re-extraction — the dataset now reconstructs (2026-08-31)
+
+Acted on the finding from the engine comparison. Re-extracted the four
+source clips at **1 fps, native 3840x2160**, into
+`~/OkongoSim/data/source/drone-2026-05-02/frames-1s` (341 frames, 515 MB;
+`data/source/` is gitignored there, so nothing large enters that repo).
+
+**The clips had to be recovered first.** The README says they live in
+`~/Downloads`; they do not any more. Found in `~/.Trash` (all four) and
+`~/.cache/tee-t6-source` (three of four). **DJI_0101 exists only in the
+Trash** — emptying it loses that clip.
+
+Same pipeline, same site, old set vs new:
+
+```
+                        frames (6 s, 1080p)   frames-1s (1 s, 4K)
+cameras calibrated       12 of 31  (39%)      120 of 147  (82%)
+sparse 3D points         3,250                31,717
+filtered matches         99 KB                4,843 KB
+residual median          0.225 px             0.344 px
+```
+
+Plotted the structure and camera centres: a coherent rectangular building
+footprint with wall lines, and the flight path running over it. This is a
+usable reconstruction where the previous set produced fragments.
+
+**What was stamped into EXIF, and what deliberately was not.**
+
+Stamped: `Make=DJI`, `Model=FC7303` (resolves against openMVG's own sensor
+database — `DJI FC7303;6.16`), and real per-frame `DateTimeOriginal` from
+each clip's true start plus the 1 s offset. Clip starts recovered from the
+containers: 08:43:13, 08:46:25, 08:49:40, 08:50:37 — matching the flight
+window in the capture README.
+
+**GPS deliberately omitted.** Each clip carries ONE coordinate, the home
+point, with `Speed X/Y/Z = +0.00`, and there are no `.SRT` telemetry
+sidecars. Writing that on all 341 frames would tell ODM the drone never
+moved — worse than no GPS. The datum is recorded in the manifest instead of
+fabricated per frame.
+
+**FocalLength deliberately omitted**, and this turned into the most useful
+finding. No authoritative value exists here: none in the video metadata, and
+no still from this drone anywhere on the machine to copy from. So the focal
+was solved from the imagery — and the two datasets disagree in a way that is
+itself diagnostic:
+
+```
+old set (31 frames)   guess 2304 px -> refined 3098 px   implies ~80 mm lens
+new set (147 frames)  guess 4608 px -> refined 3040 px   implies ~30 mm lens
+```
+
+An 80 mm lens on a wide-angle drone is impossible. Focal and depth trade off
+against each other, so weak geometry lets bundle adjustment run *away* from
+the truth while still reporting a tidy 0.225 px residual. **A low residual
+is not evidence of a good solve.** The new set's ~30 mm is plausible for a
+4K video crop, and it was constrained by geometry rather than asserted.
+
+Manifest written to the dataset directory. `../frames/` is untouched and
+remains correct for the visual forensic reading it was made for.
+
+### Three owner-requested fixes queued (2026-08-31)
+
+Recorded as SI-B21/22/23 with what inspection found:
+
+- **HEIC read/write (SI-B21)** — verified genuinely broken:
+  `UnidentifiedImageError` in the live venv, Pillow 12.3.0 has no HEIF
+  plugin, and *every* image path in TEE goes through `PIL.Image.open`
+  (7 call sites). The capture protocol says photos arrive "HEIC/DNG/JPG as
+  shot", so the extract lane silently rejects the owner's native format.
+- **Estimated dimensions (SI-B22)** — a policy change, designed before
+  coded: an estimate is allowed only when it names the mitigation that made
+  it possible, carries an honest accuracy band, and is marked estimated in
+  a field that can never be read as measured. This extends the existing A40
+  law ("accuracy claims carry their source's honesty band") to a new source
+  rather than relaxing it.
+- **hb_status 32 mm warning (SI-B23)** — **already shipped.** `hb_status`
+  returns it unconditionally, and the same fact appears in `hb_cutlist` and
+  the cabinet-spec builder. Recorded as closed so it is not re-opened.

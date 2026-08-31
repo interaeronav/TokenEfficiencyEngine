@@ -191,3 +191,55 @@ Format per item:
 - hurt: `[tool.ruff]` lives in `server/pyproject.toml` and the gate runs from `server/`, so `benchmarks/` — tracked code that produces the numbers this project is judged on — is never linted. The 15 include one real bug: `run_benchmarks.py:1903` is `print(f"\nwrote {out}")` AFTER a `return`, referencing an undefined `out` (F821). Dead today; it would raise if ever reached. Pre-existing, not a regression.
 - proposed: bring `benchmarks/` into the gate (run ruff from the repo root, or add the path to the server invocation), then fix the 15 — most are E501 in embedded FreeCAD source strings and can be `noqa`'d in place.
 - status: open
+
+## SI-B21 — TEE cannot open HEIC, the format the owner's iPhone shoots
+- seen: 2026-08-31, owner request; verified against the live extension venv
+- call: `Image.open("/Users/john/Downloads/IMG_2984.HEIC")` in the installed venv
+- hurt: `UnidentifiedImageError: cannot identify image file`. Pillow 12.3.0
+  registers no HEIF plugin, and **every image TEE reads goes through
+  `PIL.Image.open`** — `extract/images.py` (3 call sites), `extract/video.py`,
+  `capture/dji.py`, `uefn/export.py`, `adapters/unreal/vision.py`,
+  `fleet/med.py`. So the whole extract lane silently rejects the native
+  format of the owner's capture device, and
+  `docs/okongo-capture-protocol.md` explicitly says photos arrive
+  "HEIC/DNG/JPG as shot". Research 12 anticipated this and deferred it —
+  "add `exifread` only if HEIC/RAW ingestion is in scope". It is now.
+- proposed: `pillow-heif` (registers a real Pillow plugin, so read AND write
+  land at every existing `Image.open`/`save` call with no call-site changes)
+  as an extract-extra dependency, registered once at import. Check its
+  licence before adopting — it wraps libheif, and the codec's terms matter
+  more than the wrapper's. Confirm DNG/RAW separately rather than assuming
+  the same plugin covers it.
+- status: open (queued by owner for the next update)
+
+## SI-B22 — extraction discipline forbids estimated dimensions outright
+- seen: 2026-08-31, owner request
+- call: the extract lane reports measurements only where a measurement exists
+- hurt: the rule is too strict for the case it most often meets. On a site
+  photo with no scale bar and no drawing, TEE currently returns nothing
+  rather than a qualified estimate, so a usable answer is withheld because
+  it cannot be a perfect one. The owner wants estimation permitted **where
+  its accuracy can be mitigated** — a reference object of known size, a
+  known camera height, a door or brick course, a solved camera pose.
+- proposed: allow an estimate ONLY when it carries (a) the mitigation that
+  made it possible, named, (b) an honest accuracy band, and (c) a field
+  that marks it as estimated, never merged into a measured field. An
+  estimate with no stated mitigation stays refused. This mirrors the A40
+  law already in `docs/DECISIONS.md` — "accuracy claims carry their
+  source's honesty band" — so the discipline is being *extended* to a new
+  source, not weakened. Design the schema before writing code: the danger
+  is an estimate that later reads as a measurement.
+- status: open (queued by owner for the next update)
+
+## SI-B23 — hb_status 32 mm warning: ALREADY SHIPPED, no work needed
+- seen: 2026-08-31, owner request to add it
+- call: `hb_status` in `adapters/blender/homebuilder.py:308`
+- hurt: none — it already returns
+  `"HB 5.1 models no 32 mm system holes; hb_cutlist reports dimensions only
+  and says so"`, unconditionally (outside the installed/not-installed
+  branch, so it shows even when Home Builder is absent). The same fact is
+  stated in two more places: `hb_cutlist`'s note and the cabinet-spec
+  builder's note, which says the affected `joinery_check` rules answer
+  `not_evaluated` rather than passing.
+- proposed: nothing. Recorded so the request is not re-opened as missing.
+- status: closed on inspection
