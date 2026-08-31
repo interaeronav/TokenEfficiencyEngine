@@ -31,6 +31,7 @@ this module importing them.
 from __future__ import annotations
 
 import math
+import sys
 import time
 from typing import Any
 
@@ -225,7 +226,22 @@ def probe() -> dict[str, Any]:
         },
         "nautilus_trader": {
             "installed_in_tee": have("nautilus_trader"),
-            "why_not_in_tee": "requires Python >=3.12; TEE runs 3.11",
+            # Report the interpreter ACTUALLY running, not a baked-in claim.
+            # The repo venv is 3.11 and the Claude Desktop extension is 3.13,
+            # so a hardcoded "TEE runs 3.11" was already wrong in one of the
+            # two places this ships.
+            "why_not_in_tee": (
+                f"requires Python >=3.12; this interpreter is "
+                f"{sys.version_info.major}.{sys.version_info.minor}"
+                + (
+                    " - so the version is fine, but it stays a sidecar: "
+                    "LGPL and 135 MB for a backtest engine TEE already has "
+                    "a native equivalent of"
+                    if sys.version_info >= (3, 12)
+                    else " - too old"
+                )
+            ),
+            "python_here": f"{sys.version_info.major}.{sys.version_info.minor}",
             "licence": "LGPL-3.0-only",
             "research_entrypoint": "nautilus_trader.backtest.BacktestEngine",
         },

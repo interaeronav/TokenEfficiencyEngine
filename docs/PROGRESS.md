@@ -6873,3 +6873,53 @@ reported by `trade_probe`, not pretended.
 4. Two containers are left running for the tests that use them:
    `tee-orthanc` (:8042) and `tee-cube` (:4100). `docker rm -f tee-orthanc
    tee-cube` if unwanted; the suite skips those tests cleanly without them.
+
+## 2026-08-31 — A45: the fleet made usable in Claude Desktop (two defects found by using it)
+
+The owner installed 0.9.0 and asked for all four extras. Installing them
+surfaced a gap the repo tests could not: **the Desktop extension has its
+OWN venv** (Python 3.13), separate from the repo's (3.11). The fleet
+shipped inside the bundle but every backend probe correctly reported "not
+installed" — the refusal worked, the capability was unusable.
+
+All four extras installed into the extension's interpreter and **verified
+through the live installed server**, not the repo:
+
+```
+solve_backends -> highs 1.15.1, scip 6.2.1, cbc 3.3.2,
+                  cp-sat 9.15.6755, pulp 3.3.2   (default highs)
+solve_program  -> objective 38.0, x=10, y=2, binding ['cap']
+quant_backends -> pyportfolioopt 1.6.0, skfolio 1.0.2, pandas 3.0.5
+cad_probe      -> OpenSCAD 2021.01 + CadQuery 2.8.0
+med_volume_stats -> shape [8,8,4], 256 voxels, min -50, max 100,
+                    nonzero_fraction 0.0078  (exactly what was encoded)
+```
+
+**Defect 1 — a probe that could not reach the thing it probes.**
+`med_backends` declared only `url` in its schema while every other `med_`
+tool accepted `username`/`password`. Since Orthanc requires auth — as every
+real archive does — the probe could never report a reachable archive. Found
+by calling it for real against the live server. `bi_probe` had the same
+narrowness (no `token`). Both widened; a test now asserts the probe schemas
+match their tools' credentials.
+
+**Defect 2 — a baked-in claim that was already false.** `trade_probe` said
+"requires Python >=3.12; TEE runs 3.11". True of the repo venv, FALSE of
+the Desktop extension, which runs 3.13. It now reports the interpreter
+actually executing and adjusts its reasoning accordingly. A hardcoded fact
+about the environment is a bug waiting for a second environment, and this
+shipped with two.
+
+**Also fixed, unrelated to TEE:** the owner's `unityMCP` server had been
+crashing on every Desktop launch — `uvx --offline` could not fetch
+`platformdirs==4.11.5`, a transitive dependency of `mcpforunityserver`.
+Not caused by installing TEE; surfaced by the restart it required. Cache
+warmed with no config change; the command now reaches "Starting MCP
+server".
+
+**Suite: 1,017 passed / 9 skipped**, ruff clean.
+
+**Note for the next release:** tool SCHEMAS register at startup, so the two
+fixes above need a Desktop restart (or a rebuild) to take effect there —
+unlike grants, which A45 P0a made hot-reloading. The installed copy has
+been patched in place so the fixes are live after the next restart.

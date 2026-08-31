@@ -438,7 +438,14 @@ def register_fleet_tools(app) -> None:
             "med_backends",
             "Which imaging libraries are installed and whether a DICOM "
             "archive is reachable, with the exact fix for each.",
-            {"type": "object", "properties": {"url": {"type": "string"}}},
+            {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                    "username": {"type": "string"},
+                    "password": {"type": "string"},
+                },
+            },
             med_backends,
             tags=["medical", "imaging", "backends", "probe", "installed", "orthanc", "monai"],
         ),
@@ -649,7 +656,10 @@ def register_fleet_tools(app) -> None:
             "bi_probe",
             "Is a Cube semantic layer reachable, and what does it expose - "
             "with the exact docker line when it is not.",
-            {"type": "object", "properties": {"url": {"type": "string"}}},
+            {
+                "type": "object",
+                "properties": {"url": {"type": "string"}, "token": {"type": "string"}},
+            },
             bi_probe,
             tags=["bi", "cube", "probe", "reachable", "installed"],
         ),

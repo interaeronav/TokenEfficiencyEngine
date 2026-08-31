@@ -189,3 +189,16 @@ def test_registration_on_read_compute():
     app = TeeApp({}, project_root=tempfile.mkdtemp())
     for n in ("trade_backtest", "trade_detail", "trade_probe"):
         assert app.registry._tools[n].capability == "read-compute"
+
+
+def test_the_probe_reports_the_live_interpreter_not_a_baked_in_claim():
+    """It hardcoded 'TEE runs 3.11'. The repo venv is 3.11 and the Claude
+    Desktop extension is 3.13, so the sentence was already wrong in one of
+    the two places it ships."""
+    import sys as _sys
+
+    r = trade.probe()
+    nt = r["sidecars"]["nautilus_trader"]
+    here = f"{_sys.version_info.major}.{_sys.version_info.minor}"
+    assert nt["python_here"] == here
+    assert here in nt["why_not_in_tee"]

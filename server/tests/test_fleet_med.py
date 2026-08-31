@@ -216,3 +216,19 @@ def test_backends_reports_both_halves_without_a_server():
     assert "libraries" in r
     assert r["orthanc"]["reachable"] is False
     assert "orthancteam" in r["orthanc"]["fix"]
+
+
+def test_probe_schemas_accept_the_same_credentials_as_their_tools():
+    """med_backends declared only `url` while every other med_ tool took
+    username/password - so the probe could not reach an authenticated
+    archive, which is every real one. Caught by calling it for real."""
+    import tempfile
+
+    from tee.app import TeeApp
+
+    app = TeeApp({}, project_root=tempfile.mkdtemp())
+    for name in ("med_archive", "med_find_studies", "med_study_tree", "med_backends"):
+        props = set(app.registry._tools[name].schema.get("properties", {}))
+        assert {"url", "username", "password"} <= props, f"{name} is missing credentials"
+    bi_props = set(app.registry._tools["bi_probe"].schema.get("properties", {}))
+    assert {"url", "token"} <= bi_props
