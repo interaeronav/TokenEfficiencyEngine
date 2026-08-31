@@ -17,11 +17,30 @@ from tee.app import TeeApp
 from tee.kernel.machine import ENGINES
 
 
-def test_the_blind_engines_are_declared_blind():
-    """Not an absence of data - a stated fact. dsflash cannot see, and now
-    something in TEE knows it."""
-    for name in ("dsflash", "q27b-bare", "q14b+a2"):
-        assert ENGINES[name]["senses"] == []
+def test_every_senses_claim_cites_where_it_came_from():
+    """A49 P0. A47 declared q27b-bare blind on the strength of watching the
+    LiteLLM shim - which reroutes image-bearing requests to a VL server, so
+    every model appears to see through it and no model's own sight can be
+    observed that way. The 27B's own config.json says
+    Qwen3_5ForConditionalGeneration with a vision_config: it sees natively.
+
+    A senses claim is a claim about a model's weights, so it must name the
+    file it was read from. An uncited claim is a guess wearing a fact's
+    clothes."""
+    for name, spec in ENGINES.items():
+        if spec.get("kind") != "llm":
+            continue
+        source = spec.get("senses_source", "")
+        assert source, f"{name} declares senses with no cited source"
+        assert "config.json" in source or "unverified" in source, (
+            f"{name} cites '{source}' - senses come from the model config on "
+            "disk, never from shim behaviour"
+        )
+
+
+def test_the_models_this_machine_serves_are_declared_correctly():
+    assert ENGINES["q27b-bare"]["senses"] == ["vision"]
+    assert ENGINES["dsflash"]["senses"] == []  # DeepseekV4ForCausalLM, verified
 
 
 def test_the_providers_carry_measured_costs():

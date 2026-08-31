@@ -8159,3 +8159,48 @@ no vision_config — genuinely blind, so A47's premise stands for the model
 it was built for. The script's P0 fixes the row and pins the METHOD:
 senses are read from the model's own config on disk, never inferred from
 shim behaviour, because the shim reroutes image traffic and masks the truth.
+
+### A49 P0/P1 — the senses correction, and a Godot bridge that works (2026-08-31)
+
+**P0 — a wrong fact removed, and the method that produced it.** A47
+declared `q27b-bare` blind. The model's own `config.json` says
+`Qwen3_5ForConditionalGeneration` with a `vision_config` and image/vision
+token ids: **it sees natively**. The owner said so; the file agreed.
+
+The original claim came from watching the LiteLLM shim, which reroutes any
+image-bearing request to a VL server — so **every** model appears to see
+through it and no model's own sight can be observed that way. Every LLM row
+now carries `senses_source` naming the file it was read from, and a test
+refuses a senses claim that cites anything but a config on disk (or
+declares itself unverified). DeepSeek re-checked the same way is genuinely
+blind — `DeepseekV4ForCausalLM`, no vision_config — so A47's premise holds
+for the model it was built for.
+
+**P1 — the bridge, proven against real headless Godot 4.7.2.**
+
+```
+ping     {"can_render": false, "display": "headless", "godot": "4.7.2-stable"}
+add      MeshInstance3D "Cube" (mesh, position) + Camera3D "Cam"
+list     [{path:/Cube, type:MeshInstance3D}, {path:/Cam, type:Camera3D}]
+50 ops   OK in 1.2s, 50 nodes
+save     res://built.tscn written (3,296 bytes)
+save#2   "res://built.tscn exists; pass overwrite true to replace it"
+gd       {"seen": 50}   bad script -> "GDScript failed to compile (43)"
+refusals 'Spaceship' is not an allowed node type. Allowed: Node, Node2D, ...
+         unknown op 'teleport'. Use add_node, set_props, ...
+```
+
+Commands are declarative and enumerable; arbitrary GDScript is a separate
+`{"type":"gd"}` door for P2 to gate behind exec-code. `can_render: false`
+is reported by the bridge itself rather than discovered at capture time.
+
+**The GDScript trap that cost the first run:** a dictionary value may not
+begin on the line after its colon —
+
+```gdscript
+return {"status": "error", "message":
+        "op %d: ..." % [index, name]}      # Parse Error
+```
+
+Twelve occurrences, all now building the message into a local first. Added
+to the script's recorded gotchas so the next session does not pay it again.

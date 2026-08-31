@@ -39,6 +39,9 @@ ENGINES: dict[str, dict[str, Any]] = {
     "q14b+a2": {
         "kind": "llm",
         "profile": "q14b",
+        # Not served on this machine (the shim has no 14B route), so nothing
+        # on disk to read. Unclaimed rather than asserted blind.
+        "senses_source": "not present on this machine - unverified",
         "capability": ["chores"],
         "senses": [],  # A47 P0: blind and deaf, declared
         "footprint_gb": 9.0,  # 8.0 measured R0 2026-08-29
@@ -50,7 +53,20 @@ ENGINES: dict[str, dict[str, Any]] = {
         "kind": "llm",
         "profile": "q27b",
         "capability": ["chores"],
-        "senses": [],  # A47 P0: blind and deaf, declared
+        # A49 P0 correction. A47 declared this blind. It is not: the model's
+        # own config.json on disk says architectures
+        # ["Qwen3_5ForConditionalGeneration"] and carries a `vision_config`
+        # plus image/vision token ids. The owner said so and the file agreed.
+        #
+        # The METHOD matters more than the row. The original claim came from
+        # watching the LiteLLM shim, which reroutes any image-bearing request
+        # to a dedicated VL server - so EVERY model appears to see through it,
+        # and no model's own sight can be observed that way. Senses are read
+        # from the model's config on disk. DeepSeek checked the same way is
+        # genuinely blind (DeepseekV4ForCausalLM, no vision_config), so A47's
+        # premise holds for the model it was built for.
+        "senses": ["vision"],
+        "senses_source": "config.json architectures/vision_config, read 2026-08-31",
         "footprint_gb": 55.0,  # 43.7 measured R0 2026-08-29
         "eta_s": 18.0,  # measured swap cost R2 2026-08-29 (spec said 90)
         "qos_default": "interactive",
@@ -90,7 +106,8 @@ ENGINES: dict[str, dict[str, Any]] = {
         "kind": "llm",
         "profile": "dsflash",
         "capability": ["chores"],
-        "senses": [],  # A47 P0: blind and deaf, declared
+        "senses": [],
+        "senses_source": "config.json DeepseekV4ForCausalLM, no vision_config, read 2026-08-31",
         # No resident process observed across a live 900-token generation
         # (polled 15 s at 0.7 s). Served on demand and not held, so there
         # is no steady footprint to charge the ledger for. NOT a measured
