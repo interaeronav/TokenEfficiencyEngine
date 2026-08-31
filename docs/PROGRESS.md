@@ -7589,3 +7589,39 @@ rebuilt.
 
 **Suite: 1,054 passed / 9 skipped**, ruff clean. Bundle 879 KB, verified
 from a clean unzip: handshake reports 0.11.0 and exactly 17 tools.
+
+### The openMVG comparison, completed — and an earlier claim corrected
+
+The comparison was left half-done: both engines were run on the *bad*
+frames, then the data was fixed and only openMVG was re-run. Apple's engine
+had never seen `frames-1s`. Owner asked whether the question was actually
+answered; it was not. Run now, same 147 frames, same subset openMVG used:
+
+```
+                      openMVG                Apple PhotogrammetrySession
+registered            120 of 147 (82%)       21 of 147 samples REJECTED
+output                31,717 pts, coherent   83,509 tris, disconnected planes
+                      building footprint
+wall time             ~60 s pipeline         201 s
+```
+
+**The earlier conclusion was wrong.** PROGRESS previously said Apple's
+engine "is faster, already here, and gives a usable artefact when the input
+is good". The input is now good — 4K, 1 s cadence, EXIF — and it still
+returns fragments. The limiting factor was never input quality for this
+engine; it is **subject type**. `PhotogrammetrySession` is an object-capture
+API: orbit a discrete object against a background. Research 56 said exactly
+this at design time — *"object-to-room scale; not a site mapper"* — and the
+measurement now confirms it. A drone pass over a building is not an object
+capture, and better frames cannot make it one.
+
+**So: for aerial site work, openMVG is better than what was already
+installed, and it is the answer to the owner's original question.** For an
+object — a chair, a fitting, a room interior — Apple's remains the right
+tool and the far cheaper one to run.
+
+**Still untested: ODM**, which is the engine actually designed for this
+(georeferenced orthophoto, DSM/DTM, dense cloud) and is already on the
+machine as a 2.19 GB image. It was chosen for the drone lane in research 56
+and has not been run against `frames-1s`. That is the next measurement, not
+a conclusion drawn here.
