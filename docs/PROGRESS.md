@@ -7923,3 +7923,26 @@ carry `senses` and an `evicts` list, and `llm` rows must declare
 `senses == []`.
 
 **Suite: 1,098 passed / 9 skipped**, ruff clean.
+
+### v0.14.0 shipped — the senses are reachable (2026-08-31)
+
+P0–P2 released. Verified from a clean unzip over real MCP stdio, which is
+how a terminal host actually meets TEE:
+
+```
+init                    {'name': 'tee', 'version': '0.14.0'}
+always-loaded tools     17
+surface                 2028 tok on the wire (unchanged)
+a blind host searching
+"describe what is in an image, machine vision"
+                     -> ['sense_describe', 'pipeline_list', 'sense_transcribe']
+```
+
+Before this release the same query returned `med_instance_tags` — whose
+summary reads *"Pixel data is never returned"*. Truthful, and the reason
+the owner was told machine vision was not a feature TEE offered.
+
+P3 (an `ex_prepare` driver that extracts AS the job for hosts that cannot
+read files), P4 (blind-host pointers on the pixel tools) and P5 (the
+benchmark and the small-VLM audition that could dissolve the ~10 s
+eviction) remain unbuilt.

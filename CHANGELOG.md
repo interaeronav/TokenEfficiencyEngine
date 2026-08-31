@@ -3,6 +3,54 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.14.0 — 2026-08-31
+
+**Senses a model can borrow when it has none of its own.**
+
+The owner ran DeepSeek locally as the HOST model, in opencode, and asked
+TEE about an image. TEE answered that machine vision was not a feature it
+offered. That was **true**: decision A9 makes the default extraction
+channel in-band — `ex_prepare` hands the host file paths because *"it reads
+media with its own tools"* — which assumed the host was Claude, and
+`tee_media`/`tee_capture` return pixels a blind host cannot read.
+
+### New: `sense_describe` and `sense_transcribe`
+
+Ask one question about one image and get **text** back, or turn speech into
+text. Both run on this machine — free, nothing leaves it.
+
+```
+search "describe what is in an image"  ->  sense_describe RANKS FIRST
+   (before: med_instance_tags, whose summary reads
+    "Pixel data is never returned" — truthful, and useless)
+```
+
+`context` is honoured, so the answer addresses what you already know rather
+than merely captioning: given *"the drawings say gable G3 is solid plastered
+brick"*, it reports the **delta** against that spec. HEIC works with no
+conversion. Repeats are served from an exact-content cache. Every answer
+names the provider that actually looked, and says plainly: *a description,
+not the image — the model reading this never saw the pixels.*
+
+### The machine now declares what it can perceive
+
+`tee doctor` states both senses with measured costs, and the cost nobody
+could see before: on a 128 GB machine an 84 GB session model and the 17 GB
+vision model cannot coexist, so an image **evicts** the host's model and
+its next turn pays ~10 s. Ask image questions together to pay it once.
+
+### `tee_status` says where it is rooted
+
+`serve --project` defaults to the launching client's cwd, so a terminal host
+that omits it boots away from its grants and loses tiers without being told.
+Status and doctor now name the root, the grants file, and the exact fix.
+**They report; they never grant.**
+
+Corrected before release: the first version of that report hardcoded a tier
+list and named `mutate-scene` denied. `mutate-scene` gates **zero** tools;
+scene edits are governed by `write-scene`, granted all along. The list is
+now derived from capabilities that gate real tools.
+
 ## 0.13.0 — 2026-08-31
 
 **TEE notices when an upgrade deletes its own extras.**
