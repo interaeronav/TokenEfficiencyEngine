@@ -380,7 +380,10 @@ def check_extras(project_root: Any = None) -> Check:
             name="fleet extras",
             status="warn",
             detail=f"MISSING after an upgrade: {names}. Present: {', '.join(here) or 'none'}.",
-            fix="uv pip install --python '<extension venv>/bin/python' "
+            # sys.executable IS the venv that lost them - TEE is running
+            # inside it. A placeholder path turns a copy-pasteable command
+            # into a puzzle, which is the difference between a fix and a hint.
+            fix=f"uv pip install --python '{sys.executable}' "
             + " ".join(f"'tee-engine[{g}]'" for g in sorted(gone)),
         )
     return Check(

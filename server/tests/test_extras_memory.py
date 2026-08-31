@@ -115,6 +115,12 @@ def test_doctor_reports_the_loss_where_someone_will_look(tmp_path, monkeypatch):
     assert c.status == "warn"
     assert "MISSING after an upgrade" in c.detail and "medimg" in c.detail
     assert "tee-engine[medimg]" in c.fix
+    # A real interpreter path, not a placeholder: the difference between a
+    # command you can paste and one you have to solve.
+    import sys as _sys
+
+    assert _sys.executable in c.fix
+    assert "<" not in c.fix
 
 
 def test_doctor_is_quiet_when_nothing_was_lost(tmp_path, monkeypatch):
