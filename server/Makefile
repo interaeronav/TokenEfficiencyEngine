@@ -35,6 +35,15 @@ mcpb:
 	find build/mcpb -name '*.pyc' -delete
 	cd build/mcpb && zip -qr ../../dist/tee-engine-$(TEE_SERVER_VERSION).mcpb .
 	@echo "built dist/tee-engine-$(TEE_SERVER_VERSION).mcpb"
+	@echo ""
+	@echo "  REMINDER: installing this wipes the fleet extras from the Desktop"
+	@echo "  venv - Desktop provisions with 'uv sync', which rebuilds from the"
+	@echo "  lock and drops anything installed on top. Restore afterwards:"
+	@echo ""
+	@echo "    uv pip install --python \"$$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python\" \\"
+	@echo "      'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]'"
+	@echo ""
+	@echo "  See docs/setup-fleet.md. 'cad' is excluded on purpose (sidecar)."
 
 lint:
 	uv run ruff check src tests

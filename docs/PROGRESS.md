@@ -7316,3 +7316,43 @@ install `dist/tee-engine-0.10.0.mcpb` and restart Claude Desktop to pick up
 the local-engine routing, the token floor and the status fix. Two Docker
 containers from A45 testing are still running (`tee-orthanc` :8042,
 `tee-cube` :4100); stop them if you want the memory back.
+
+### A46 postscript — the upgrade trap, found by upgrading
+
+Installing 0.10.0 silently removed every fleet extra. The Desktop
+extension venv fell from **586 MB to 34 MB**:
+
+```
+numpy MISSING    pandas MISSING   scipy  MISSING
+pydicom MISSING  nibabel MISSING  skfolio MISSING
+pypfopt MISSING  highspy MISSING  ortools MISSING
+```
+
+Claude Desktop provisions the bundle with `uv sync`, which rebuilds
+strictly from `uv.lock` and discards anything installed on top of it — and
+the extras are on top by design, because A46 P1 cut the base venv from
+2.2 GB to 586 MB precisely by keeping them out.
+
+**The reason it is dangerous is that it is quiet.** Nothing errors. The
+fleet tools report `{"installed": false}` and suggest an install command,
+which reads as *you never set this up* rather than *your upgrade removed
+it*. TEE's own `med_backends` was the thing that surfaced it, while being
+asked an unrelated question about a Docker container.
+
+Restored, and confirmed through TEE rather than the install log:
+
+```
+med_backends -> "numpy": {"installed": true, "version": "2.5.2"}
+                orthanc reachable, 1.13.0, 3 studies / 5 instances
+venv 460 MB, all nine libraries importable
+```
+
+460 MB rather than the previous 586 MB because `cad` is correctly absent:
+P1b moved CadQuery to a sidecar that upgrades do not touch.
+
+Documented in two places that are hard to miss: a warning at the top of
+`docs/setup-fleet.md`, and the restore command printed by `make mcpb`
+itself, so it appears next to every bundle that will cause it. A proper fix
+— a doctor check, or recording installed extras in `~/TEE/.tee` state so
+the server can say "these were installed and are now missing" — is queued
+separately.

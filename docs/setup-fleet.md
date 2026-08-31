@@ -10,6 +10,42 @@ Where something is *not* wired, this page says so rather than implying it.
 
 ---
 
+## Read this before you upgrade TEE
+
+**Installing a new `.mcpb` deletes everything on this page.** Claude Desktop
+provisions the bundle with `uv sync`, which rebuilds the extension venv
+strictly from `uv.lock` and discards anything installed on top of it. The
+extras *are* installed on top, deliberately — A46 P1 cut the base venv from
+2.2 GB to 586 MB by keeping them out of it.
+
+Measured going 0.9.0 -> 0.10.0 on 2026-08-31: the venv fell from **586 MB to
+34 MB**, taking numpy, pandas, scipy, pydicom, nibabel, skfolio, pypfopt,
+highspy and ortools with it.
+
+The failure is quiet rather than loud. The tools do not error — they report
+`{"installed": false}` and suggest an install command, which reads as *you
+never set this up* rather than *your upgrade removed it*. So check on
+purpose; do not wait to notice.
+
+After any upgrade, restore with:
+
+```bash
+uv pip install --python "$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python" \
+  'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]'
+```
+
+`cad` is **not** in that list on purpose: A46 P1b moved CadQuery to a
+sidecar at `~/TEE/.tee/sidecars/cad`, which an upgrade does not touch.
+
+To confirm it worked, ask TEE rather than trusting the install log — a
+backend probe reports the libraries it can actually import:
+
+```
+med_backends  -> "numpy": {"installed": true, "version": "2.5.2"}
+```
+
+---
+
 ## The one-line version
 
 | you want to | install | then call |
