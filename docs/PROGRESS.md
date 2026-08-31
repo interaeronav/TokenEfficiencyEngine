@@ -7946,3 +7946,37 @@ P3 (an `ex_prepare` driver that extracts AS the job for hosts that cannot
 read files), P4 (blind-host pointers on the pixel tools) and P5 (the
 benchmark and the small-VLM audition that could dissolve the ~10 s
 eviction) remain unbuilt.
+
+### A47 acceptance — DeepSeek, the actual case, end to end (2026-08-31)
+
+The test the whole campaign existed for. DeepSeek as HOST, offered
+`sense_describe` as a tool, and **no image in the payload** — deliberate,
+because the owner's shim reroutes any image-bearing request to Qwen3-VL,
+which would have tested the shim rather than TEE.
+
+```
+TURN 1  deepseek, text + one tool, 14.8 s
+        -> CALLED sense_describe({"path": ".../probe.png"})
+           TEE ran the local vision model
+           returned 'PLINTH K-4713 / CURE 21 DAYS' via claude-qwen-vl (local, 17.0 GB)
+TURN 2  deepseek reads what came back
+        -> "The card in the image prints: PLINTH K-4713, CURE 21 DAYS"
+```
+
+DeepSeek recognised it could not see, chose the tool unprompted, and read
+back content no model could have guessed. The bridge is real: a blind host
+model now has working machine vision through TEE, locally and free.
+
+**The upgrade trap caught itself, for the first time.** Installing 0.14.0
+wiped the extras as always — but 0.13.0 had written the baseline, so
+instead of the old misleading "not installed", TEE reported:
+
+```
+detected as lost: ['assets', 'extract', 'medimg', 'quant', 'solve']
+[assets] was installed here on 2026-08-31 and is missing now. Installing a
+new TEE bundle rebuilds the venv from its lock and drops anything added on
+top - this is that, not a setup you never did.
+```
+
+Restored; all 14 libraries present; doctor reports both senses UP with
+measured costs.
