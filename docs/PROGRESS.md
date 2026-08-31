@@ -8304,3 +8304,43 @@ protocol). Verified from a clean unzip over MCP stdio: handshake 0.17.0,
 17 tools, `GodotAdapter` present and protocol-conformant. Docs:
 `docs/godot-lane.md`; licence and the three design decisions in
 DECISIONS.md.
+
+### Efficiency pass — the search reply was 38% waste (2026-08-31)
+
+Asked to debug and improve efficiency, so the target came from measurement
+rather than intuition. `tee_search_tools` is the most frequent call TEE
+makes on its own behalf — every virtual-tool reach begins with one — and it
+returned **10 items at ~370 tokens**.
+
+Measured recall over 19 realistic queries (14 direct, 5 deliberately vague)
+against a 42-tool registry:
+
+```
+limit 3   18/19        limit 5   19/19
+limit 8   19/19        limit 10  19/19
+```
+
+**Five finds everything ten finds.** Three does not: *"check the drawing"*
+lands at rank 4, which is why the default is 5 and not the smallest number
+that would have looked defensible. Reply cost **~370 → ~229 tokens**, a 38%
+cut on the most frequent call, with **zero recall lost**.
+
+`more` now names how many results were suppressed, so a caller can tell
+"that is everything" from "that is the top five" — 3 tokens to remove an
+ambiguity that would otherwise be resolved by guessing.
+
+**The fix that nearly did not reach anyone.** Changing
+`ToolRegistry.search`'s default alone left every real caller paying the old
+price: `server.py` declares its own `limit: int = 10` in the MCP signature,
+and that is the default a MODEL sees. Verified over real MCP stdio after
+fixing both:
+
+```
+declared default : {'default': 5, 'type': 'integer'}
+reply over wire  : ~228 tok, items=5
+```
+
+A test now pins both defaults together, because they are two different
+numbers that must agree and only one of them is visible to a caller.
+
+Surface unchanged: 17 tools / 2,034 tok. Suite 1,157 passed / 9 skipped.

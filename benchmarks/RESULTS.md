@@ -117,7 +117,7 @@ fields no client ever sees, so it overstates the surface by ~20%.
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
 surface - the 112 tools they contribute live behind the
-meta-tools. Reaching one costs 545 tokens (one search +
+meta-tools. Reaching one costs 548 tokens (one search +
 one describe), so the flat design only pays off in a session that
 uses more than ~26 distinct long-tail tools.
 
@@ -208,7 +208,7 @@ fix named, which is the point).
 | | Tokens | Calls | Saving |
 |---|---|---|---|
 | naive (schemas in context + raw results) | 35,238 | 3 | |
-| TEE (meta-tool reach + budgeted results) | 1,614 | 5 | **95.4%** |
+| TEE (meta-tool reach + budgeted results) | 1,425 | 5 | **96.0%** |
 
 ## Senses — what an image question costs the HOST (A47/A48 P0)
 
@@ -220,7 +220,7 @@ Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
 | seeing | `tee_media`, default budget (1002x563) | 756 |
 | blind | `sense_describe` (local model reads it) | 65 |
 
-**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 36.9s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
+**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 32.6s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
 
 This supersedes an informal *33x* quoted during A47, which compared the
 PROVIDER's input tokens against the answer rather than what a host pays.

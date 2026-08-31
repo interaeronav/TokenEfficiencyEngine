@@ -424,7 +424,12 @@ def build_server(app: TeeApp) -> MCPServer:
 
     @mcp.tool(structured_output=False, description=_DESC["tee_search_tools"])
     @_tool(app, "tee_search_tools")
-    def tee_search_tools(query: str, limit: int = 10):
+    def tee_search_tools(query: str, limit: int = 5):
+        # 5, not 10: measured over 19 realistic queries against a 42-tool
+        # registry, five finds everything ten finds and the reply drops from
+        # ~370 to ~229 tokens. This signature is the default a MODEL sees -
+        # changing only the registry's default would have left every real
+        # caller paying the old price.
         return {"ok": True, **app.registry.search(query, limit)}
 
     @mcp.tool(structured_output=False, description=_DESC["tee_describe_tool"])

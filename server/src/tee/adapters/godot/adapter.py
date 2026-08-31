@@ -399,4 +399,4 @@ class GodotAdapter:
         self._proc = None
 
 
-__all__ = ["GodotAdapter", "find_godot", "DEFAULT_PORT"]
+__all__ = ["DEFAULT_PORT", "GodotAdapter", "find_godot"]
