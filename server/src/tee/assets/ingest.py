@@ -92,9 +92,10 @@ def texture_sets(paths: list[Path]) -> dict[str, dict[str, str]]:
 def _phash(path: Path) -> str | None:
     try:
         import imagehash
-        from PIL import Image
 
-        with Image.open(path) as img:
+        from tee.kernel.imaging import open_image
+
+        with open_image(path) as img:
             return str(imagehash.phash(img))
     except Exception:
         return None

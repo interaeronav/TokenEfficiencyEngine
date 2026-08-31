@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from tee.kernel.errors import TeeError
+from tee.kernel.imaging import open_image
 
 IMAGE_EXTRACTOR = ("image", "1")
 PATCH = 28
@@ -40,10 +41,10 @@ def size_for_budget(width: int, height: int, token_budget: int) -> tuple[int, in
 
 def extract_image(path: Path) -> list[dict[str, Any]]:
     import imagehash
-    from PIL import ExifTags, Image, ImageOps
+    from PIL import ExifTags, ImageOps
 
     facts: list[dict[str, Any]] = []
-    with Image.open(path) as img:
+    with open_image(path) as img:
         img = ImageOps.exif_transpose(img)
         fact: dict[str, Any] = {
             "kind": "photo",
@@ -146,7 +147,7 @@ def contact_sheet(
         x = pad + c * (cell + pad)
         y = pad + r * (cell + label_h + pad)
         try:
-            with Image.open(entry["path"]) as img:
+            with open_image(entry["path"]) as img:
                 img.thumbnail((cell, cell))
                 sheet.paste(img, (x, y + label_h))
         except OSError:
@@ -169,9 +170,9 @@ def budgeted_jpeg(
     budget; returns (jpeg bytes, info)."""
     import io
 
-    from PIL import Image, ImageOps
+    from PIL import ImageOps
 
-    with Image.open(path) as img:
+    with open_image(path) as img:
         img = ImageOps.exif_transpose(img).convert("RGB")
         if region:
             if len(region) != 4:

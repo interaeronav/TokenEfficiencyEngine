@@ -3,6 +3,50 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.11.0 — 2026-08-31
+
+**Two owner-requested fixes.**
+
+### HEIC reads and writes (SI-B21)
+
+TEE could not open the format the owner's iPhone shoots. `PIL.Image.open`
+was called bare in **nine places across seven modules** and Pillow ships no
+HEIF plugin, so every one raised `UnidentifiedImageError` — while the
+capture protocol says photos arrive "HEIC/DNG/JPG as shot".
+
+`tee/kernel/imaging.py` is now the single door for opening and saving image
+files, registering the plugin once before the first open. A test walks the
+AST of the whole source tree and fails on any new bare `Image.open(<path>)`
+— reaching nine call sites unnoticed is what made this invisible.
+
+Licence recorded in DECISIONS.md: pillow-heif's *wheels* are GPLv2 via
+bundled codecs. TEE is not distributed and this is an optional extra the
+owner installs, so nothing GPL ships in the `.mcpb`.
+
+### Estimated dimensions, under a named mitigation (SI-B22)
+
+New tool `ex_estimate`: a length in millimetres from a photograph, using
+something of known size in the same plane. It extends the A40 law rather
+than relaxing it —
+
+- **no reference, no estimate** (the refusal is the feature);
+- the band propagates reference tolerance and pixel-picking error in
+  quadrature, and an *unstated* tolerance assumes 2%, so vagueness widens
+  the band rather than hiding in it;
+- the value lands in `estimated_mm` with `measured: false`, so nothing
+  reading for a measurement can find it;
+- `coplanar` must be affirmed — a scale off the near wall does not measure
+  the far wall, and no arithmetic here can notice.
+
+**TEE never supplies the reference's own size.** A hallucinated "standard
+door height" becomes a structural dimension downstream. The only built-in
+sizes are ISO 216 paper, which is exact by standard.
+
+### Also
+
+`hb_status`'s 32 mm system-holes warning was requested and found **already
+shipping** — recorded closed rather than built twice.
+
 ## 0.10.0 — 2026-08-31
 
 **A46: leaner, faster, and fitted to this machine.**

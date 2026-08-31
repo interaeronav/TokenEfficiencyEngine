@@ -224,14 +224,14 @@ def detect_hdri_sun_azimuth(path: Path) -> dict[str, Any]:
     """Brightest-pixel azimuth in an equirectangular HDRI (0 = +X seam,
     degrees CW when viewed from above). Cached by callers as a fact."""
     try:
-        from PIL import Image
+        from tee.kernel.imaging import open_image
     except ImportError as exc:
         raise TeeError(
             "extract_extra_missing",
             "HDRI analysis needs Pillow (the [extract] extra).",
             fix="uv sync --extra extract",
         ) from exc
-    with Image.open(path) as img:
+    with open_image(path) as img:
         img = img.convert("L")
         img.thumbnail((512, 256))
         width, _height = img.size

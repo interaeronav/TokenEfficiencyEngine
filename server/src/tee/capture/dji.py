@@ -84,20 +84,16 @@ _RTK_STD_KEYS = ("RtkStdLat", "RtkStdLon", "RtkStdHgt")
 
 def read_metadata(path: Path) -> dict[str, Any]:
     """EXIF Make/Model + the drone-dji XMP attributes of one image file."""
-    try:
-        from PIL import Image
-    except ImportError as exc:  # pragma: no cover - environment-dependent
-        raise TeeError(
-            "extract_missing",
-            "The capture resolver needs Pillow (the extract extra).",
-            fix="Install the server with the 'extract' extra.",
-        ) from exc
+    # open_image raises its own structured refusal when Pillow or the HEIF
+    # plugin is missing, so this no longer needs a guard of its own.
+    from tee.kernel.imaging import open_image
+
     path = Path(path)
     if not path.is_file():
         raise TeeError(
             "capture_missing_file", f"No such image: {path}", fix="Pass files that exist."
         )
-    with Image.open(path) as img:
+    with open_image(path) as img:
         exif = img.getexif()
         make = str(exif.get(271) or "").strip()
         model = str(exif.get(272) or "").strip()

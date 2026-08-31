@@ -45,7 +45,8 @@ def extract_video(path: Path, derived: Path) -> list[dict[str, Any]]:
     for continuous walkthrough/drone footage (research 13)."""
     import cv2
     import imagehash
-    from PIL import Image
+
+    from tee.kernel.imaging import open_image
 
     duration = probe_duration_s(path)
     facts: list[dict[str, Any]] = [
@@ -79,7 +80,7 @@ def extract_video(path: Path, derived: Path) -> list[dict[str, Any]]:
         if gray is None:
             continue
         sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-        with Image.open(frame_path) as img:
+        with open_image(frame_path) as img:
             phash = imagehash.phash(img)
         candidates.append({"path": frame_path, "pts": pts, "sharpness": sharpness, "phash": phash})
 

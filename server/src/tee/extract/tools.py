@@ -184,6 +184,67 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
 
         return media_type_of(path) in INGESTIBLE
 
+    def ex_estimate(args: dict[str, Any]) -> dict[str, Any]:
+        from tee.extract import estimate
+
+        return estimate.estimate_length(args)
+
+    reg.register(
+        VirtualTool(
+            name="ex_estimate",
+            description=(
+                "Estimate a length in millimetres from a photo, using "
+                "something of KNOWN size in the same plane. Returns "
+                "estimated_mm with an error band - never a measurement. "
+                "Refuses without a reference: TEE does not supply the "
+                "reference's size itself. Where a drawing or survey exists, "
+                "that governs and this must not be used."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "reference_mm": {
+                        "type": "number",
+                        "description": "What the reference really measures.",
+                    },
+                    "reference_tolerance_mm": {
+                        "type": "number",
+                        "description": "How sure you are of it. Unstated assumes 2%.",
+                    },
+                    "reference_iso216": {
+                        "type": "string",
+                        "description": "Instead of reference_mm: 'a4' etc, exact by standard.",
+                    },
+                    "reference_edge": {
+                        "type": "string",
+                        "enum": ["short", "long"],
+                        "description": "Which edge of the ISO sheet was measured.",
+                    },
+                    "reference_px": {"type": "number"},
+                    "target_px": {"type": "number"},
+                    "coplanar": {
+                        "type": "boolean",
+                        "description": "Affirm the reference and target share one plane.",
+                    },
+                    "label": {"type": "string"},
+                },
+                "required": ["reference_px", "target_px", "coplanar"],
+            },
+            handler=ex_estimate,
+            tags=["extract", "estimate", "dimension", "photo", "scale", "measure"],
+            examples=[
+                {
+                    "reference_iso216": "a4",
+                    "reference_edge": "long",
+                    "reference_px": 240,
+                    "target_px": 1310,
+                    "coplanar": True,
+                    "label": "window opening width",
+                }
+            ],
+        )
+    )
+
     reg.register(
         VirtualTool(
             name="ex_ingest",

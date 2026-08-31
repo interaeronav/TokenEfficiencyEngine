@@ -210,7 +210,7 @@ Format per item:
   licence before adopting — it wraps libheif, and the codec's terms matter
   more than the wrapper's. Confirm DNG/RAW separately rather than assuming
   the same plugin covers it.
-- status: open (queued by owner for the next update)
+- status: DONE 2026-08-31 - tee/kernel/imaging.py, nine call sites rewired, pillow-heif added to [extract], AST guard against regression, licence position recorded in DECISIONS.md
 
 ## SI-B22 — extraction discipline forbids estimated dimensions outright
 - seen: 2026-08-31, owner request
@@ -229,7 +229,7 @@ Format per item:
   source's honesty band" — so the discipline is being *extended* to a new
   source, not weakened. Design the schema before writing code: the danger
   is an estimate that later reads as a measurement.
-- status: open (queued by owner for the next update)
+- status: DONE 2026-08-31 - tee/extract/estimate.py + ex_estimate; refuses without a named mitigation, band widens when the caller is vague, value lands in estimated_mm and never mm
 
 ## SI-B23 — hb_status 32 mm warning: ALREADY SHIPPED, no work needed
 - seen: 2026-08-31, owner request to add it

@@ -141,9 +141,9 @@ def kmeans_palette(
 
 def image_palette(path: Path, k: int = 6, sample: int = 48) -> list[dict]:
     """Palette of one image as compact facts: [{name, lab, weight}]."""
-    from PIL import Image
+    from tee.kernel.imaging import open_image
 
-    with Image.open(path) as img:
+    with open_image(path) as img:
         img = img.convert("RGB")
         img.thumbnail((sample, sample))
         pixels = list(img.getdata())

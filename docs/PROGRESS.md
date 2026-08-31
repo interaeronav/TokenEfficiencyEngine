@@ -7526,3 +7526,66 @@ Recorded as SI-B21/22/23 with what inspection found:
 - **hb_status 32 mm warning (SI-B23)** — **already shipped.** `hb_status`
   returns it unconditionally, and the same fact appears in `hb_cutlist` and
   the cabinet-spec builder. Recorded as closed so it is not re-opened.
+
+### v0.11.0 — HEIC support and estimated dimensions (2026-08-31)
+
+**SI-B21 — HEIC.** `PIL.Image.open` was called bare in nine places across
+seven modules; Pillow ships no HEIF plugin, so all nine raised
+`UnidentifiedImageError` on the owner's own capture format. The first grep
+found seven — the assets lane held two more, which is the point: a fix
+applied per call site would have missed them.
+
+Root fix: `tee/kernel/imaging.py`, one door for opening and saving image
+files, registering the plugin once (idempotent, thread-safe, cached). It
+also owns the missing-Pillow case, so two call sites that carried their own
+`try/except ImportError` guards got simpler rather than more complex.
+
+Verified on a real file, end to end through the extract lane:
+
+```
+before:  UnidentifiedImageError: cannot identify image file IMG_2984.HEIC
+after:   {'kind': 'gps',   'lat': 25.384825, 'lon': 51.53171944}
+         {'kind': 'photo', 'width': 3024, 'height': 4032,
+          'taken_at': '2026:08:24 20:29:50'}
+write:   640x853 .heic written (268 KB) and read back, format=HEIF
+         .jpg round trip unaffected
+```
+
+The regression guard walks the AST of the whole tree and fails on any new
+bare `Image.open(<path>)`, skipping `BytesIO` (in-memory UE frames, not
+files). Licence position recorded in DECISIONS.md: pillow-heif's *wheels*
+are GPLv2 through bundled codecs; TEE is not distributed and this is an
+optional extra, so nothing GPL enters the `.mcpb`.
+
+**SI-B22 — estimated dimensions.** New `ex_estimate`. The discipline was
+extended, not relaxed:
+
+```
+A4 long edge 240 px, window 1310 px, coplanar
+  -> estimated_mm 1621.1  band_mm 20.2  (1.24%)
+     estimated: true, measured: false
+     mitigation: "ISO 216 A4 long edge (297 mm, exact by standard)"
+
+refusals:  no reference      -> estimate_no_reference
+           coplanar: false   -> estimate_not_coplanar
+           reference 12 px   -> estimate_reference_too_small
+```
+
+Three design points worth keeping:
+
+- **Vagueness costs accuracy.** An unstated reference tolerance assumes 2%,
+  so the same measurement returns ±114.5 mm unqualified against ±59.1 mm
+  when the caller states ±1 mm. A caller is never rewarded for withholding
+  what they know.
+- **TEE never supplies the reference's size.** A "standard door height"
+  answered from a model's memory becomes a structural dimension two steps
+  later. Only ISO 216 paper is built in, because it is exact by standard.
+- **Errors combine in quadrature**, not by addition — summing independent
+  errors would overstate every band and make honest estimates look useless.
+
+**SI-B23 — closed on inspection.** The `hb_status` 32 mm warning already
+shipped, unconditionally, plus in two sibling notes. Recorded rather than
+rebuilt.
+
+**Suite: 1,054 passed / 9 skipped**, ruff clean. Bundle 879 KB, verified
+from a clean unzip: handshake reports 0.11.0 and exactly 17 tools.

@@ -87,9 +87,9 @@ def derive_maps_marigold(
     ensemble: int = DEFAULT_ENSEMBLE,
 ) -> dict[str, Any]:
     """Marigold-refined maps, same return shape as photo_pbr.derive_maps."""
-    from PIL import Image
+    from tee.kernel.imaging import open_image
 
-    image = Image.open(base_color).convert("RGB")
+    image = open_image(base_color).convert("RGB")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     normals = _pipe("normals")

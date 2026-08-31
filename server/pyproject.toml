@@ -1,7 +1,7 @@
 [project]
 # distribution name (PyPI-safe); the import package and CLI stay `tee`
 name = "tee-engine"
-version = "0.10.0"
+version = "0.11.0"
 description = "Token Efficiency Engine - helps any AI minimize tokens per completed task; protocol discipline plus cloud/local compute routing; MCP server with Unreal Engine and Blender adapters"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -27,6 +27,7 @@ extract = [
     "opencv-python-headless>=5.0.0.93",
     "pdfplumber>=0.11.10",
     "pillow>=12.3.0",
+    "pillow-heif>=1.5.0",
     "pymap3d>=3.2.0",
     "pypdfium2>=5.13.0",
     "pyproj>=3.7.2",

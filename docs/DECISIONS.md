@@ -941,3 +941,61 @@ shared endpoint.
 
 Engineering opinion, not legal advice; the owner is the one who decides
 what he does with his own software.
+
+## 2026-08-31 — HEIC support, and what its licence actually is
+
+TEE opened images with a bare `PIL.Image.open` in nine places across seven
+modules, and Pillow ships no HEIF plugin — so every one raised
+`UnidentifiedImageError` on the format the owner's iPhone shoots, while
+`docs/okongo-capture-protocol.md` says photos arrive "HEIC/DNG/JPG as shot".
+The extract lane was rejecting the camera it was built for.
+
+Fixed at the root rather than per call site: `tee/kernel/imaging.py` is now
+the single door (`open_image` / `save_image`), registering the HEIF plugin
+once, idempotently and thread-safely, before the first open. A test walks
+the AST of the whole tree and fails on any new bare `Image.open(<path>)`,
+because reaching nine call sites is exactly how this became invisible.
+
+**The licence, recorded now rather than discovered later.** `pillow-heif`'s
+source is BSD-3-Clause, but its own bundled manifest says: *"License for
+'pillow-heif' binary wheels: GPLv2, due to base library licenses"* (libheif
+LGPLv3, plus GPLv2 codecs). Two things make this a non-issue here and both
+should stay true: TEE is private and **not distributed**, so no copyleft
+obligation is triggered; and it is an OPTIONAL extra the owner installs
+themselves, so nothing GPL ships inside the `.mcpb`. If TEE is ever
+distributed, this is the first dependency to re-examine.
+
+## 2026-08-31 — estimated dimensions are allowed, under a named mitigation
+
+Owner decision: the extraction discipline may estimate dimensions from
+photographs where no measurement exists, **provided the accuracy can be
+mitigated**. Previously the lane returned nothing, withholding a usable
+number because it could not be a perfect one.
+
+This EXTENDS the A40 law — "accuracy claims carry their source's honesty
+band" — to a new source. It does not relax it. An estimate is produced only
+when all three hold:
+
+1. **A mitigation is named.** Something of known size, measured in the same
+   pixels. No reference, no estimate.
+2. **A band travels with it.** Reference tolerance and pixel-picking error
+   propagate in quadrature into `band_mm`. An unstated tolerance is not a
+   zero tolerance — it assumes 2%, so vagueness widens the band and the
+   caller is never rewarded for withholding what they know.
+3. **It cannot be read as measured.** The value lands in `estimated_mm`,
+   never `mm`, alongside `estimated: true` / `measured: false`.
+
+**TEE never supplies the reference's own size.** Asking a model what a
+"standard door" measures is how a hallucinated 2032 mm becomes a structural
+dimension — door leaves, brick courses and window modules all vary by region
+and era. The caller supplies the size they know. The single exception is
+ISO 216 paper, an international standard with exact millimetre sizes, which
+makes an A4 sheet taped to a wall the cheapest scale reference on any site.
+
+**The assumption that invalidates it all** is coplanarity: a scale in
+mm-per-pixel holds only in the plane the reference sits in, and nothing in
+the arithmetic can detect a violation. So `coplanar` must be affirmed by the
+caller — a deliberate speed bump — and every result restates it, along with
+the fact that a drawing or survey outranks the estimate where one exists.
+
+Tool: `ex_estimate`, read tier via the `ex_` family prefix.

@@ -214,6 +214,8 @@ def pack_channels(
     """Spec=R, Metal=G, Rough=B utility map (server-side PIL)."""
     try:
         from PIL import Image
+
+        from tee.kernel.imaging import open_image
     except ImportError as exc:
         raise TeeError(
             "extract_extra_missing",
@@ -226,7 +228,7 @@ def pack_channels(
     def load_channel(path: Path | None, default: int) -> Image.Image:
         if path is None:
             return Image.new("L", (size, size), default)
-        with Image.open(path) as img:
+        with open_image(path) as img:
             return img.convert("L").resize((size, size))
 
     packed = Image.merge(

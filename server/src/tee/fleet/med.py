@@ -337,9 +337,9 @@ def _read_volume(path: str):
             pass
     if have("PIL"):
         try:
-            from PIL import Image
+            from tee.kernel.imaging import open_image
 
-            return np.asarray(Image.open(p)), {}
+            return np.asarray(open_image(p)), {}
         except Exception:
             pass
     raise TeeError(
