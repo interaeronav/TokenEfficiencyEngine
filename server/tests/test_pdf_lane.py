@@ -168,8 +168,14 @@ def test_split_writes_one_file_per_page(tmp_path):
     pdf.compose({"out": str(tmp_path / "two.pdf"), "blocks": [
         {"kind": "paragraph", "text": "one"}, {"kind": "page_break"},
         {"kind": "paragraph", "text": "two"}]})  # fmt: skip
-    r = pdf.edit({"op": "split", "input": str(tmp_path / "two.pdf"),
-                  "out": str(tmp_path / "ignored.pdf"), "out_dir": str(tmp_path / "parts")})  # fmt: skip
+    r = pdf.edit(
+        {
+            "op": "split",
+            "input": str(tmp_path / "two.pdf"),
+            "out": str(tmp_path / "ignored.pdf"),
+            "out_dir": str(tmp_path / "parts"),
+        }
+    )  # fmt: skip
     assert len(r["files"]) == 2
 
 

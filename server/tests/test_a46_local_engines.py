@@ -111,7 +111,9 @@ def test_the_ladder_is_ordered_cheapest_first_from_the_measured_table():
     from tee.llm.router import LADDER
 
     costs = [machine.ENGINES[n]["cost"]["latency_s"][1] for n in LADDER]
-    assert costs == sorted(costs), f"ladder out of cost order: {list(zip(LADDER, costs))}"
+    assert costs == sorted(costs), (
+        f"ladder out of cost order: {list(zip(LADDER, costs, strict=True))}"
+    )
     assert "dsflash" in LADDER, "the free local engine must be reachable"
 
 
