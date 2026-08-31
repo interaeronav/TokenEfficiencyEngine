@@ -228,7 +228,10 @@ def _run(
     # chores here asked for 160-220, i.e. under the floor, so a correct
     # engine looked like a model that answered badly. Raise, never lower:
     # a caller asking for MORE room knows something we do not.
-    budget = max(int(max_tokens), machine.MIN_CHORE_TOKENS)
+    # Per-engine, not global: Qwen3.6-35B needs 1024 where dsflash needs
+    # 256, because its reasoning pass alone is ~974 tokens. A shared floor
+    # would have handed the 35B an empty answer on every chore.
+    budget = max(int(max_tokens), machine.min_chore_tokens(resolved.get("profile")))
 
     try:
         with profiles.REQUEST_LOCK:  # a managed stop waits for this chore

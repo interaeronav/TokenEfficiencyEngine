@@ -38,6 +38,7 @@ def _cfg(url: str, state_dir) -> dict:
             "q14b": {"model": "fake-14b", "adapters": ""},
             "q27b": {"model": "fake-27b", "adapters": ""},
             "dsflash": {"model": "fake-dsflash", "adapters": ""},
+            "q35b": {"model": "fake-35b", "adapters": ""},
         },
     }
 
@@ -77,9 +78,14 @@ def test_ladder_escalates_on_verifier_kill(tmp_path):
     with fake_llm_server(_by_model({"fake-27b"})) as (url, _calls):
         routed = _route(url, tmp_path)
     assert routed["ok"] and routed["engine"] == "q27b-bare"
-    # Every rung above the winner fails the verifier and is escalated past.
+    # Every rung ABOVE the winner fails and is escalated past - derived from
+    # where the winner sits, not from the ladder's length. The A46 version
+    # assumed the winner was always last; adding q35b put a fourth rung
+    # BELOW q27b-bare and the assumption broke.
+    winner = routed["engine"]
+    above = router.LADDER.index(winner)
     assert [h.get("verdict") for h in routed["hops"]] == [
-        *["llm_bad_shape"] * (len(router.LADDER) - 1),
+        *["llm_bad_shape"] * above,
         "verified",
     ]
 

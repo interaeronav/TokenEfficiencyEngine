@@ -22,11 +22,57 @@ import pytest
 from tee import senses
 from tee.kernel.errors import TeeError
 
-SCRATCH = Path(
-    "/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/54493178-b179-4f16-8309-d9a53217aa2f/scratchpad"
-)
-CARD = SCRATCH / "probe.png"
-SPOKEN = SCRATCH / "spoken.aiff"
+# Fixtures are BUILT here, never borrowed from a session scratchpad. The
+# first version pointed at scratch files; they vanished between sessions and
+# five tests failed for a reason that had nothing to do with the code.
+_FIXTURES = Path(__file__).parent / "_fixtures_senses"
+
+
+def _card() -> Path:
+    """The unguessable card - content no model could invent."""
+    card = _FIXTURES / "probe.png"
+    if card.is_file():
+        return card
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError:
+        return card
+    _FIXTURES.mkdir(exist_ok=True)
+    img = Image.new("RGB", (700, 260), (250, 250, 245))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([20, 20, 680, 240], outline=(200, 60, 40), width=6)
+    draw.text((60, 90), "PLINTH  K-4713", fill=(20, 20, 20))
+    draw.text((60, 140), "CURE  21 DAYS", fill=(20, 20, 20))
+    img.save(card)
+    return card
+
+
+def _spoken() -> Path:
+    """Speech whose words are known before it is transcribed."""
+    spoken = _FIXTURES / "spoken.aiff"
+    if spoken.is_file():
+        return spoken
+    import shutil as _shutil
+    import subprocess
+
+    if _shutil.which("say") is None:
+        return spoken
+    _FIXTURES.mkdir(exist_ok=True)
+    subprocess.run(
+        [
+            "say",
+            "-o",
+            str(spoken),
+            "The gable brickwork is complete but the roof sheeting has not been installed.",
+        ],
+        check=False,
+        capture_output=True,
+    )
+    return spoken
+
+
+CARD = _card()
+SPOKEN = _spoken()
 
 # Live-provider tests: a cold vision start is ~36 s measured, and under
 # full-suite contention (the provider evicted by earlier activity) the

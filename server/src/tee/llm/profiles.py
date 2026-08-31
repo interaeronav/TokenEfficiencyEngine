@@ -327,7 +327,8 @@ def switch(
         raise TeeError(
             "llm_unknown_profile",
             f"'{target_name}' is not a chore-engine profile.",
-            fix=f"Profiles: {names}. The chat phrases TEE/Q14B and TEE/Q27B map to q14b/q27b.",
+            fix=f"Profiles: {names}. Chat phrases map to profiles: TEE/Q14B, "
+            f"TEE/Q27B, TEE/35B, TEE/DSFLASH, TEE/QMAX.",
         )
     spec = known[target_name]
     state = load_state(cfg)

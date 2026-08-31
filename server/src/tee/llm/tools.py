@@ -110,10 +110,13 @@ def register_llm_tools(app, project_root: Path | str) -> None:
         VirtualTool(
             "llm_switch",
             "Switch the chore engine between local-model profiles. THE CHAT "
-            "PHRASE: the user typing TEE/Q14B or TEE/Q27B is a switch "
-            "request - call this with profile='q14b'/'q27b'. q14b (14B + "
-            "tee-triage-a2) is the default; q27b passes the traps bare at "
-            "~4-6x chore latency (3.11-10.12 s measured). The choice "
+            "PHRASE: the user typing TEE/Q14B, TEE/Q27B, TEE/35B, "
+            "TEE/DSFLASH or TEE/QMAX is a switch request - call this with "
+            "the matching profile ('q14b', 'q27b', 'q35b', 'dsflash', "
+            "'qmax'). q14b (14B + tee-triage-a2) is the default; q27b "
+            "passes the traps bare at ~4-6x chore latency (3.11-10.12 s "
+            "measured); q35b is Qwen3.6-35B, local and vision-capable, at "
+            "~16 s a chore and a 1024-token floor. The choice "
             "persists across restarts; with [llm] managed = true TEE also "
             "stops/starts the servers each profile owns (single occupancy, "
             "verified; a cold load returns a tee_job token and chores "

@@ -130,3 +130,45 @@ def test_an_undeclared_engine_is_skipped_not_blamed():
     skip_at = src.index("profile not declared here")
     call_at = src.index("result = call(")
     assert skip_at < call_at, "the declaration check must precede the call"
+
+
+# -- A50: the 35B, and why one global floor was not enough ------------------
+
+
+def test_the_chore_floor_is_per_engine_not_global():
+    """A46 set a single 256 from two models that both cleared it. Qwen3.6-35B
+    broke that on arrival: warm, at temperature 0, it returns an EMPTY answer
+    3/3 at 256 because its reasoning pass alone is ~974 tokens. A floor is a
+    property of one model's appetite for thinking, so it lives on that
+    model's row."""
+    assert machine.min_chore_tokens("q35b") == 1024
+    assert machine.min_chore_tokens("dsflash") == machine.MIN_CHORE_TOKENS
+    assert machine.min_chore_tokens("nonexistent") == machine.MIN_CHORE_TOKENS
+
+
+def test_the_35b_floor_clears_its_thinking_rather_than_touching_it():
+    """512 was not merely tight, it was UNRELIABLE - usable in one run of
+    three and empty in another, because this MoE's reasoning length varies
+    between identical calls at temperature 0. 1024 was 4/4 with a natural
+    stop at 974, so the floor clears the thinking pass with room."""
+    row = machine.ENGINES["q35b"]
+    assert row["min_chore_tokens"] == 1024
+    assert "UNRELIABLE" in machine.__doc__ or "min_chore_tokens" in str(row)
+    assert row["qos_default"] == "batch"  # ~16 s is not an interactive latency
+
+
+def test_the_35b_declares_the_vision_it_actually_has():
+    row = machine.ENGINES["q35b"]
+    assert row["senses"] == ["vision"]
+    assert "config.json" in row["senses_source"]
+
+
+def test_every_chore_call_site_uses_the_per_engine_floor():
+    """Asserted on the source: the floor must be resolved from the RESOLVED
+    profile, not from the module constant, or a 35B chore silently truncates."""
+    import pathlib
+
+    src = pathlib.Path(machine.__file__).parent.parent / "llm" / "chores.py"
+    body = src.read_text()
+    assert "machine.min_chore_tokens(resolved" in body
+    assert "max(int(max_tokens), machine.MIN_CHORE_TOKENS)" not in body

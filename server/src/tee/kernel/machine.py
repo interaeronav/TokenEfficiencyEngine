@@ -29,6 +29,23 @@ QOS = ("interactive", "standard", "batch", "maintenance")
 # budget ran out". Measured, both engines, 2026-08-31.
 MIN_CHORE_TOKENS = 256
 
+
+def min_chore_tokens(profile: str | None) -> int:
+    """The output floor for one engine, not for all of them.
+
+    A46 set a single global 256 from two models that both cleared it. Adding
+    Qwen3.6-35B broke that assumption immediately: warm and at temperature 0
+    it returns an EMPTY answer 3/3 at 256, because its reasoning pass alone
+    is ~974 tokens. A floor is a property of a model's appetite for thinking,
+    so it belongs on the model's row. `MIN_CHORE_TOKENS` remains the default
+    for engines that have not been measured.
+    """
+    for spec in ENGINES.values():
+        if spec.get("profile") == profile and spec.get("min_chore_tokens"):
+            return int(spec["min_chore_tokens"])
+    return MIN_CHORE_TOKENS
+
+
 # The client stack + OS headroom the machine always keeps. A stated
 # placeholder until R2 measures the real constant.
 RESERVE_GB = 16.0
@@ -152,6 +169,33 @@ ENGINES: dict[str, dict[str, Any]] = {
             "latency_s": [0.62, 1.36],  # base / tiny on a spoken fixture
             "load_s": 0.8,  # per-call model load; no sidecar needed
             "measured": "A47 P0 2026-08-31",
+        },
+    },
+    "q35b": {
+        "kind": "llm",
+        "profile": "q35b",
+        "capability": ["chores"],
+        # Qwen3_5MoeForConditionalGeneration WITH a vision_config - it sees,
+        # read from the model's own config on disk (the A49 method: never
+        # inferred from shim behaviour, which reroutes images and hides it).
+        "senses": ["vision"],
+        "senses_source": (
+            "config.json Qwen3_5MoeForConditionalGeneration + vision_config, 2026-08-31"
+        ),
+        "footprint_gb": 65.0,  # measured on disk: Qwen3.6-35B-A3B bf16
+        "qos_default": "batch",  # ~16 s a chore; not an interactive latency
+        # THE number that matters. Measured warm, temperature 0, one
+        # snake_case rename:
+        #     256   3/3 EMPTY   (the global floor silently breaks this model)
+        #     512   inconsistent - usable in one run of three, empty in another
+        #     1024  4/4 usable, stopping naturally at 974 tokens
+        # 512 is not merely tight, it is UNRELIABLE: this MoE's reasoning
+        # length varies between identical calls at temperature 0, so the
+        # floor has to clear the thinking pass with room, not merely touch it.
+        "min_chore_tokens": 1024,
+        "cost": {
+            "latency_s": [15.9, 16.7],  # at the 1024 floor, 4 runs
+            "measured": "A50 2026-08-31",
         },
     },
     "client": {

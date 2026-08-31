@@ -13,9 +13,12 @@ from __future__ import annotations
 
 import shutil
 import time
-from pathlib import Path
 
 import pytest
+
+# Built by test_senses, not borrowed from a session scratchpad - the first
+# version pointed at scratch files that vanished between sessions.
+from test_senses import CARD
 
 from tee.app import TeeApp
 from tee.extract import vlm
@@ -23,9 +26,6 @@ from tee.extract.tools import register_extract_tools
 from tee.kernel import local_vlm
 from tee.kernel.errors import TeeError
 
-CARD = Path(
-    "/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/54493178-b179-4f16-8309-d9a53217aa2f/scratchpad/probe.png"
-)
 needs_vision = pytest.mark.skipif(
     not local_vlm.available(timeout=1.0) or not CARD.is_file(),
     reason="local vision provider not reachable",

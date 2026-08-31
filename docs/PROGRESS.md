@@ -8344,3 +8344,56 @@ A test now pins both defaults together, because they are two different
 numbers that must agree and only one of them is visible to a caller.
 
 Surface unchanged: 17 tools / 2,034 tok. Suite 1,157 passed / 9 skipped.
+
+### A50 — Qwen3.6-35B slots in, and breaks a global assumption (2026-08-31)
+
+Owner: *"slot in qwen 3.6 35B as a local model option with TEE, TEE/35B"*.
+
+The model was **already on disk (65 GB) and already served** by the shim as
+`claude-qwen-35b`. TEE simply did not know it existed. Read from its own
+config (the A49 method, never from shim behaviour):
+`Qwen3_5MoeForConditionalGeneration`, 256 experts / 8 active, 262k context,
+**with a `vision_config` — it sees natively.**
+
+**Adding it exposed a real design defect.** A46 set one global
+`MIN_CHORE_TOKENS = 256` from two models that both cleared it. The 35B does
+not, warm and at temperature 0:
+
+```
+max_tokens=256   3/3 EMPTY answers   (reasoning consumed the whole budget)
+max_tokens=512   UNRELIABLE - usable in one run of three, empty in another
+max_tokens=1024  4/4 usable, stopping naturally at 974 tokens
+```
+
+512 is not merely tight; this MoE's reasoning length **varies between
+identical calls at temperature 0** (measured 974 / 935 / 1006 / 393 out
+tokens at a 1536 budget), so a floor must clear the thinking pass with room
+rather than touch it. The floor is now **per-engine** — a property of one
+model's appetite for thinking, living on that model's row — with 256 kept
+as the default for engines that have not been measured.
+
+**A false start recorded.** An early sweep showed 768 and 1024 returning
+empty while 512 worked, which looked non-monotonic and alarming. Re-running
+warm showed those were during model load; warm the model is consistent. The
+sweep was repeated before any conclusion was drawn from it.
+
+`TEE/35B` now maps to profile `q35b`, and the switch tool's description
+lists every phrase (TEE/Q14B, TEE/Q27B, TEE/35B, TEE/DSFLASH, TEE/QMAX)
+rather than the two it was written with. Verified live: the phrase resolves
+to a free local engine, applies the 1024 floor, and answers a real Blender
+triage correctly in 3.0 s.
+
+**Nine tests failed on the way, in two honest classes.**
+
+*Five were my own hygiene defect.* The senses and local-driver tests pointed
+at fixture files in a session scratchpad. Those vanish between sessions, so
+the tests failed for a reason unrelated to the code. They now BUILD their
+fixtures — the unguessable card via PIL, the spoken clip via `say` — and
+keep them under `tests/_fixtures_senses/`.
+
+*Four were the ladder growing a rung.* The router fixture did not declare
+`q35b`, and one assertion assumed the winning rung was always last — which
+was true with three rungs and false with four. Fixed by deriving the
+winner's position rather than the ladder's length.
+
+**Suite: 1,153 passed / 17 skipped**, ruff clean.
