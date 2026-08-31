@@ -7271,3 +7271,48 @@ grant as the other two adopted projects — `run-declared-step`, with
 `run-adhoc` deliberately absent.
 
 Lives at `~/Downloads/cosm-inspired-chair` (outside this repo).
+
+### A46 close-out — v0.10.0
+
+All phases resolved: P1a, P1b, P2a, P2b, P3a, P3b, P3c **done**; P2c
+measured and deliberately unchanged; P1c **declined** with the measurements
+that killed its premise.
+
+**One more two-sources-of-truth defect, found while shipping.** The 0.10.0
+bundle installed with metadata saying 0.10.0 while `tee --version` and the
+MCP handshake both said **0.9.0** — `tee/__init__.py` restated the version
+as a literal, and a release bump touches three files, so this was a fourth
+nobody edited. Exactly the P2a shape: one question, two answers. It now
+reads the installed distribution, with a test that fails if it is ever
+hardcoded again.
+
+**Health check on the shipped bundle**, driven over real MCP stdio:
+
+```
+handshake: {'name': 'tee', 'version': '0.10.0'}
+always-loaded tools over the wire: 17
+```
+
+**Benchmarks** — the surface invariant is intact and savings held:
+
+```
+surface: 17 always-loaded tools = 2028 tok on the wire;
+         111 virtual tools would cost 14028 tok flat (85.5% saved)
+donut-class modelling            93.3% saved
+100-object populate + diff       89.2% saved
+material pass over 10 objects    91.5% saved
+layout verification              98.8% saved
+extraction ingest-once           93.1% saved
+kb paving lookup                 96.8% saved
+web lookup x4                    95.3% saved
+gateway (14 tools)               95.4% saved
+```
+
+**Suite: 1,036 passed / 9 skipped**, ruff clean. Bundle 868 KB, verified
+installable from a clean unzip + `uv sync`.
+
+**Left for the owner:** the running Desktop server is still on 0.9.0 —
+install `dist/tee-engine-0.10.0.mcpb` and restart Claude Desktop to pick up
+the local-engine routing, the token floor and the status fix. Two Docker
+containers from A45 testing are still running (`tee-orthanc` :8042,
+`tee-cube` :4100); stop them if you want the memory back.

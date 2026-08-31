@@ -112,7 +112,7 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,028** |
 | same, by `model_dump()` | 17 | 2,494 |
-| flat server, one tool per capability | 128 | 14,004 |
+| flat server, one tool per capability | 128 | 14,028 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded

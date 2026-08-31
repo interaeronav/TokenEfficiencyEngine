@@ -3,6 +3,59 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.10.0 — 2026-08-31
+
+**A46: leaner, faster, and fitted to this machine.**
+
+### The local engines are reachable (P3a, P3b)
+
+`.tee/config.toml` declared only the PAID `qmax`, and the persisted active
+profile *was* `qmax` — so every chore either billed or fell back to the
+deterministic path, and the free models on this machine could not be
+reached at all. The shim's real routes are now declared and registered,
+with the active profile on the free one.
+
+- Both local engines are **reasoning models**, and the chores were asking
+  for 160–220 output tokens. Below 256 the reasoning pass consumes the
+  whole budget: `q27b` returns `content: ""` with the text stranded in
+  `reasoning_content`, and `dsflash` returns its own scratchpad. Neither
+  reads as an exhausted budget; both read as a model that answered badly.
+  `MIN_CHORE_TOKENS = 256` is enforced in `_run` so no call site can
+  undercut it.
+- The routing ladder is **derived from the measured cost table** instead of
+  hand-written. The old one led with a 14B this machine does not serve and
+  never reached the engine that answers in 4.41 s.
+- The paid engine stays structurally unreachable: `qmax` has no `ENGINES`
+  row, so no ordering or policy can promote it.
+- Fixed: a rung whose profile a machine had not declared was recorded as a
+  *verification failure*, inflating the escalation rate with hardware that
+  was never asked anything.
+
+### Lighter (P1)
+
+Extension venv **2,246 MB → 586 MB (−74%)**, no capability lost. MONAI/torch
+replaced by direct reader dispatch; CadQuery moved to a sidecar. Guarded by
+a test that fails if a heavyweight re-enters the interpreter.
+
+### Honest state (P2a)
+
+`tee_status` reported the pre-A43 `allow_code_exec` flag while `tee_trust`
+reported the capability, so one payload answered the same question both
+ways. It now reports what the kernel would enforce.
+
+### Measured and deliberately not changed
+
+- **P2c — tool search.** 0.098 ms median at 133 tools, 0.272 ms at 400.
+  Not slow, so not touched.
+- **P1c — the bundle strip.** Would save ~262 KB of an 868 KB bundle and
+  make `uv pip install 'tee-engine[solve]'` unsatisfiable. Not taken.
+
+### Pipeline lane
+
+`cosm-inspired-chair` adopted (P3c), after writing and verifying the render
+and export steps it had never had. TEE refused the first declaration for a
+free-string output path; both are enums now.
+
 ## 0.9.0 — 2026-08-31
 
 The A45 campaign: **permissions that help instead of block**, a **money
