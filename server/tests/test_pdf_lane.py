@@ -52,7 +52,7 @@ def test_a_page_break_makes_a_page_and_a_table_survives(tmp_path):
                     "kind": "table",
                     "header": True,
                     "rows": [["Element", "Spec"], ["Gable G3", "plastered"]],
-                },  # fmt: skip
+                },
                 {"kind": "page_break"},
                 {"kind": "paragraph", "text": "Second page."},
             ],
@@ -83,7 +83,7 @@ def test_an_existing_file_is_never_silently_replaced(tmp_path):
             "out": str(tmp_path / "a.pdf"),
             "overwrite": True,
             "blocks": [{"kind": "paragraph", "text": "replaced on purpose"}],
-        }  # fmt: skip
+        }
     )
     assert r["ok"]
 
@@ -114,14 +114,31 @@ def test_a_missing_image_refuses_before_writing_anything(tmp_path):
 def test_merge_then_delete_then_stamp(tmp_path):
     _doc(tmp_path, "a.pdf")
     _doc(tmp_path, "b.pdf", [{"kind": "paragraph", "text": "Appendix B."}])
-    m = pdf.edit({"op": "merge", "inputs": [str(tmp_path / "a.pdf"), str(tmp_path / "b.pdf")],
-                  "out": str(tmp_path / "m.pdf")})  # fmt: skip
+    m = pdf.edit(
+        {
+            "op": "merge",
+            "inputs": [str(tmp_path / "a.pdf"), str(tmp_path / "b.pdf")],
+            "out": str(tmp_path / "m.pdf"),
+        }
+    )
     assert m["pages"] == 2
-    d = pdf.edit({"op": "delete_pages", "input": str(tmp_path / "m.pdf"), "pages": [2],
-                  "out": str(tmp_path / "d.pdf")})  # fmt: skip
+    d = pdf.edit(
+        {
+            "op": "delete_pages",
+            "input": str(tmp_path / "m.pdf"),
+            "pages": [2],
+            "out": str(tmp_path / "d.pdf"),
+        }
+    )
     assert d["pages"] == 1 and d["deleted"] == [2]
-    s = pdf.edit({"op": "stamp", "input": str(tmp_path / "d.pdf"), "text": "DRAFT",
-                  "out": str(tmp_path / "s.pdf")})  # fmt: skip
+    s = pdf.edit(
+        {
+            "op": "stamp",
+            "input": str(tmp_path / "d.pdf"),
+            "text": "DRAFT",
+            "out": str(tmp_path / "s.pdf"),
+        }
+    )
     assert s["stamped_pages"] == [1]
     with pdfplumber.open(tmp_path / "s.pdf") as doc:
         assert len(doc.pages) == 1
@@ -130,8 +147,14 @@ def test_merge_then_delete_then_stamp(tmp_path):
 def test_the_input_is_never_modified(tmp_path):
     _doc(tmp_path, "a.pdf")
     before = (tmp_path / "a.pdf").read_bytes()
-    pdf.edit({"op": "rotate", "input": str(tmp_path / "a.pdf"), "degrees": 90,
-              "out": str(tmp_path / "r.pdf")})  # fmt: skip
+    pdf.edit(
+        {
+            "op": "rotate",
+            "input": str(tmp_path / "a.pdf"),
+            "degrees": 90,
+            "out": str(tmp_path / "r.pdf"),
+        }
+    )
     assert (tmp_path / "a.pdf").read_bytes() == before
 
 
@@ -141,8 +164,9 @@ def test_rewriting_text_is_refused_with_the_reason(tmp_path):
     than declining."""
     _doc(tmp_path, "a.pdf")
     with pytest.raises(TeeError) as e:
-        pdf.edit({"op": "replace_text", "input": str(tmp_path / "a.pdf"),
-                  "out": str(tmp_path / "x.pdf")})  # fmt: skip
+        pdf.edit(
+            {"op": "replace_text", "input": str(tmp_path / "a.pdf"), "out": str(tmp_path / "x.pdf")}
+        )
     assert e.value.code == "pdf_bad_op"
     assert "positioned glyph runs" in e.value.fix
     assert "stamp" in e.value.fix and "pdf_compose" in e.value.fix
@@ -151,23 +175,42 @@ def test_rewriting_text_is_refused_with_the_reason(tmp_path):
 def test_a_quarter_turn_is_the_only_rotation_a_pdf_has(tmp_path):
     _doc(tmp_path, "a.pdf")
     with pytest.raises(TeeError) as e:
-        pdf.edit({"op": "rotate", "input": str(tmp_path / "a.pdf"), "degrees": 45,
-                  "out": str(tmp_path / "x.pdf")})  # fmt: skip
+        pdf.edit(
+            {
+                "op": "rotate",
+                "input": str(tmp_path / "a.pdf"),
+                "degrees": 45,
+                "out": str(tmp_path / "x.pdf"),
+            }
+        )
     assert "quarter turns" in e.value.fix
 
 
 def test_pages_outside_the_document_refuse_by_number(tmp_path):
     _doc(tmp_path, "a.pdf")
     with pytest.raises(TeeError) as e:
-        pdf.edit({"op": "delete_pages", "input": str(tmp_path / "a.pdf"), "pages": [9],
-                  "out": str(tmp_path / "x.pdf")})  # fmt: skip
+        pdf.edit(
+            {
+                "op": "delete_pages",
+                "input": str(tmp_path / "a.pdf"),
+                "pages": [9],
+                "out": str(tmp_path / "x.pdf"),
+            }
+        )
     assert "1-1" in e.value.message and "1-based" in e.value.fix
 
 
 def test_split_writes_one_file_per_page(tmp_path):
-    pdf.compose({"out": str(tmp_path / "two.pdf"), "blocks": [
-        {"kind": "paragraph", "text": "one"}, {"kind": "page_break"},
-        {"kind": "paragraph", "text": "two"}]})  # fmt: skip
+    pdf.compose(
+        {
+            "out": str(tmp_path / "two.pdf"),
+            "blocks": [
+                {"kind": "paragraph", "text": "one"},
+                {"kind": "page_break"},
+                {"kind": "paragraph", "text": "two"},
+            ],
+        }
+    )
     r = pdf.edit(
         {
             "op": "split",
@@ -175,7 +218,7 @@ def test_split_writes_one_file_per_page(tmp_path):
             "out": str(tmp_path / "ignored.pdf"),
             "out_dir": str(tmp_path / "parts"),
         }
-    )  # fmt: skip
+    )
     assert len(r["files"]) == 2
 
 

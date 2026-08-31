@@ -8204,3 +8204,45 @@ return {"status": "error", "message":
 
 Twelve occurrences, all now building the message into a local first. Added
 to the script's recorded gotchas so the next session does not pay it again.
+
+### A49 P2 — GodotAdapter, driving real headless Godot (2026-08-31)
+
+`Adapter`-protocol implementation, so Godot arrives with **zero new
+always-loaded tools** — `tee_scene_summary`, `tee_batch`, `tee_diff`,
+`tee_checkpoint` and `tee_rollback` already know this shape. Live against
+Godot 4.7.2:
+
+```
+ensure_bridge {'started': True, 'port': 9882, 'pid': 57182}   (auto --import)
+info          {'product': 'Godot', 'version': '4.7.2-stable',
+               'display': 'headless', 'can_render': False}
+execute       created ["Player","Sun"]; details name the type and the props
+              actually applied (mesh, position)
+entities      [('/Player','MeshInstance3D'), ('/Sun','DirectionalLight3D')]
+checkpoint    user://tee_checkpoint_before-edit_1788198898.tscn
+remove        ['/Sun']
+restore       ['/Root', '/Root/Player', '/Root/Sun']
+capture       REFUSED: "Headless Godot cannot render: DisplayServer is
+              'headless' and the rasterizer is the dummy one..."
+```
+
+**An honest limit recorded rather than hidden:** restore returns the scene
+**nested one level deeper** (`/Root/Player`, not `/Player`). `PackedScene`
+cannot pack the SceneTree's Window, so the bridge wraps the children in a
+holder to pack them. Content and properties round-trip; absolute paths gain
+a level, and the docstring tells callers to re-list after a rollback.
+
+Checkpoints are written to `user://`, outside the owner's project — a
+rollback must not leave debris in someone's game.
+
+Ten adapter tests run on a `FakeWire`, so CI needs no game engine. CLI:
+`tee serve --adapter godot --project <dir> [--godot-port 9879]`.
+
+**A test my own correction invalidated.** P0 changed `q27b-bare` to
+`senses: ["vision"]`, and `test_machine.py` asserted every LLM row was
+blind — an assertion that was true when written and became false when the
+fact was corrected. The schema now requires that a senses claim EXISTS and
+cites its source, not that it is empty. Fixing the claim rather than the
+fact.
+
+**Suite: 1,147 passed / 9 skipped**, ruff clean.

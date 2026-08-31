@@ -31,7 +31,12 @@ def test_registry_rows_carry_the_k_layer_schema():
             assert spec["senses"], name
             assert isinstance(spec["evicts"], list), name
         if spec["kind"] == "llm":
-            assert spec["senses"] == [], name
+            # A49 P0: a chore engine's senses are whatever its own config
+            # says - q27b-bare really does see. What the schema requires is
+            # that the claim EXISTS and cites where it was read from, not
+            # that it is empty.
+            assert isinstance(spec["senses"], list), name
+            assert spec.get("senses_source"), f"{name} declares senses with no source"
 
 
 def test_register_release_and_footprint():

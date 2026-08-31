@@ -44,6 +44,18 @@ def _build_unreal_app(project: str, host: str, port: int, allow_code_exec: bool)
     return app
 
 
+def _build_godot_app(project: str, port: int, allow_code_exec: bool):
+    """A49: Godot headless. The adapter imports the project first if it has
+    never been imported - a project without a .godot directory hangs
+    `--headless -s` silently, which is a duty rather than a caveat."""
+    from tee.adapters.godot import GodotAdapter, GodotWire
+    from tee.app import TeeApp
+
+    adapter = GodotAdapter(wire=GodotWire(port=port), project=Path(project))
+    adapter.ensure_bridge(repo_root=Path(__file__).resolve().parents[3])
+    return TeeApp({"godot": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
+
+
 def _attach_extract(app, project: str, *, with_handoff: bool):
     """Register TEE Extract tools when the extract extra is installed;
     silently skip otherwise (the kernel works without it)."""
@@ -210,10 +222,12 @@ def cmd_serve(args: argparse.Namespace) -> int:
         )
     elif args.adapter == "freecad":
         app = _build_freecad_app(args.project, args.allow_code_exec)
+    elif args.adapter == "godot":
+        app = _build_godot_app(args.project, args.godot_port, args.allow_code_exec)
     else:
         print(
             f"adapter '{args.adapter}' is not recognised; available: fake, blender, "
-            "unreal, freecad",
+            "unreal, freecad, godot",
             file=sys.stderr,
         )
         return 2
@@ -293,7 +307,12 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     serve = sub.add_parser("serve", help="run the MCP server on stdio")
-    serve.add_argument("--adapter", default="fake", help="adapter to serve (fake|blender|unreal)")
+    serve.add_argument(
+        "--adapter", default="fake", help="adapter to serve (fake|blender|unreal|godot)"
+    )
+    serve.add_argument(
+        "--godot-port", type=int, default=9879, help="Godot bridge port (9876/9877 are Blender's)"
+    )
     serve.add_argument("--project", default=".", help="project root for .tee/ memory")
     serve.add_argument("--blender-host", default="127.0.0.1", help="Blender bridge host")
     serve.add_argument("--blender-port", type=int, default=9876, help="Blender bridge port")
