@@ -210,6 +210,24 @@ fix named, which is the point).
 | naive (schemas in context + raw results) | 35,238 | 3 | |
 | TEE (meta-tool reach + budgeted results) | 1,614 | 5 | **95.4%** |
 
+## Senses — what an image question costs the HOST (A47/A48 P0)
+
+Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
+
+| host | how it sees | host tokens |
+|---|---|---|
+| seeing | `tee_media`, full frame | 10,764 |
+| seeing | `tee_media`, default budget (1002x563) | 756 |
+| blind | `sense_describe` (local model reads it) | 65 |
+
+**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 18.2s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
+
+This supersedes an informal *33x* quoted during A47, which compared the
+PROVIDER's input tokens against the answer rather than what a host pays.
+Both arms here are measured host-side. The provider still reads ~2,065
+tokens of pixels — for free, on a model that bills nothing, which is the
+point rather than the headline.
+
 ## Fabrication: tokens per completed drawing-set (A37)
 
 *(not re-run this pass - scenario skipped on this machine; last measured values kept)*

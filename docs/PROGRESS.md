@@ -8009,3 +8009,63 @@ pypdf BSD-3, private use), explicit trust tabling on write-artifacts, and
 every output read back through the existing extract lane — with
 `sense_describe` visually confirming stamps on rendered pages, the senses
 lane checking the pdf lane.
+
+### A48 P0 — A47's carried work closed (2026-08-31)
+
+**P0.1 — the image-QA benchmark is now reproducible.** `run_senses_scenario`
+lives in `benchmarks/` and writes its own RESULTS section:
+
+```
+frame DJI_0100_0060.jpg (3840x2160), one question, two hosts
+  seeing, tee_media full frame            10,764 host tokens
+  seeing, tee_media default budget           756 host tokens
+  blind,  sense_describe                      65 host tokens
+  -> 11.6x vs budgeted, 165.6x vs full, off_machine_calls 0
+```
+
+This **supersedes the informal "33x"** quoted during A47, which compared
+the provider's input tokens against the answer rather than what a host
+pays. Both arms are host-side now, and RESULTS.md says so in place.
+
+**P0.2 — a magic number died, correctly.** `COLD_START_S = 6.0` inferred an
+eviction from the vision call's own latency. Measured through the module:
+
+```
+text 10.75s | vision 3.03s | vision 0.85s | text 10.34s | text 0.79s
+```
+
+The eviction is **not paid by the vision call**. It is paid by the NEXT
+TEXT TURN when the host's own model reloads — 10.34 s against 0.79 s warm.
+The vision call was 3.03 s and would never have crossed a 6 s threshold, so
+the warning that exists to disclose this cost **never fired once**. Replaced
+with the configured fact: if the provider row declares `evicts` and the
+provider was actually called, say so; a cached answer evicts nothing, and a
+machine whose eye coexists with its host says nothing at all.
+
+**P0.3 — the small-VLM audition FAILED. The 30B stays.** Two candidates
+under the 2 GB cap:
+
+| candidate | size | outcome |
+|---|---|---|
+| SmolVLM-Instruct-4bit | 1.46 GB | will not load — mlx_vlm finds no image processor class |
+| Qwen2-VL-2B-Instruct-4bit | 1.26 GB (1.40 GB resident) | loads, reads text, **inverts judgment** |
+
+The 2B passed probe 1 exactly — `PLINTH K-4713 / CURE 21 DAYS` in 2.4 s.
+It failed probe 2 in the most dangerous way available:
+
+```
+30B: "the gable does NOT match ... exposed bricks, not plastered"
+2B : "The gable in the photo MATCHES the SOLID PLASTERED specification"
+```
+
+Same photo, opposite verdict, fluent either way. **And the audition's own
+keyword rubric scored it PASS** — it matched on "difference" and "brick"
+while the sentence said the reverse. A rubric that can pass a wrong answer
+is worse than no rubric; the verdict came from reading the sentence.
+
+Recorded as the reason the ~10 s eviction stays: a 1.4 GB eye that would
+coexist with the 86 GB host is worth real money in latency, and not at the
+price of inverted site findings. Retest when a small VLM can hold a
+comparison against a stated spec — probe 1 alone is not a licence.
+
+**P0.4 pending:** ship 0.15.0.

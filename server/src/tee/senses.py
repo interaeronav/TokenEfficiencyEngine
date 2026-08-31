@@ -85,16 +85,44 @@ _DIRECT = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
 ANSWER_TOKENS_DEFAULT = 300
 ANSWER_TOKENS_CAP = 1200
 
-# Above this, the provider was cold and the host's model was evicted to make
-# room. Measured 2026-08-31: warm vision calls land at 0.8-4.0 s, a cold
-# start (which kills the 84 GB session model first) at 7.5-10 s.
-COLD_START_S = 6.0
+# A48 P0.2 killed a magic number. `COLD_START_S = 6.0` tried to infer an
+# eviction from the vision call's own latency, and measuring the real
+# sequence through this module showed the inference was backwards:
+#
+#   text 10.75s | vision 3.03s | vision 0.85s | text 10.34s | text 0.79s
+#
+# The eviction is not paid by the vision call. It is paid by the NEXT TEXT
+# TURN, when the host's own model reloads - 10.34 s against 0.79 s warm.
+# The vision call was 3.03 s and would never have crossed a 6 s threshold,
+# so the warning that exists to disclose this cost never fired once.
+#
+# So stop guessing from a stopwatch. Whether a modality switch costs
+# anything is a property of the CONFIGURATION - `evicts` on the provider
+# row - and of whether the provider was actually called. A cached answer
+# touches no provider and evicts nothing.
 
 NOT_SIGHT = (
     "A description, not the image. The model reading this never saw the "
     "pixels - it is reading a summary another model wrote, including that "
     "model's choices about what was worth mentioning."
 )
+
+
+def _eviction_note(qvl: dict[str, Any]) -> str | None:
+    """What using the eye costs the host, when the config says it costs
+    something. Silent on machines whose provider coexists with the host -
+    most of them - because there is nothing to disclose."""
+    evicts = qvl.get("evicts") or []
+    if not evicts:
+        return None
+    swap = (qvl.get("cost") or {}).get("swap_s")
+    cost = f"~{swap}s" if swap else "a reload"
+    return (
+        f"using the eye parks {', '.join(evicts)} on this machine, so your "
+        f"NEXT TEXT TURN pays {cost} to bring it back - not this call, which "
+        "is why the delay arrives later than you expect. Ask every image "
+        "question together to pay it once."
+    )
 
 
 def _cache_path(state_dir: Path) -> Path:
@@ -230,13 +258,10 @@ def describe(spec: dict[str, Any], *, state_dir: Path | None = None) -> dict[str
         },
         "note": NOT_SIGHT,
     }
-    evicts = qvl.get("evicts") or []
-    if not cached and wall >= COLD_START_S and evicts:
-        out["swap_note"] = (
-            f"the vision provider was cold, which evicts {', '.join(evicts)} on "
-            f"this machine - the next text turn pays ~{qvl.get('cost', {}).get('swap_s', '?')}s "
-            "to reload it. Ask all image questions together to pay this once."
-        )
+    if not cached:
+        note = _eviction_note(qvl)
+        if note:
+            out["swap_note"] = note
     return out
 
 
@@ -389,11 +414,9 @@ def viewport(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any
         "was read by a local model and never entered your context - which is "
         "why the capture budget can be generous.",
     }
-    if wall >= COLD_START_S and (qvl.get("evicts") or []):
-        out["swap_note"] = (
-            f"the vision provider was cold, which evicts "
-            f"{', '.join(qvl['evicts'])} - the next text turn pays a reload."
-        )
+    note = _eviction_note(qvl)
+    if note:
+        out["swap_note"] = note
     return out
 
 
@@ -482,11 +505,9 @@ def camera(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any]:
         "note": "Rendered from a temporary camera that no longer exists; "
         "the scene was left exactly as found. A description, not the image.",
     }
-    if wall >= COLD_START_S and (qvl.get("evicts") or []):
-        out["swap_note"] = (
-            f"the vision provider was cold, which evicts "
-            f"{', '.join(qvl['evicts'])} - the next text turn pays a reload."
-        )
+    note = _eviction_note(qvl)
+    if note:
+        out["swap_note"] = note
     return out
 
 

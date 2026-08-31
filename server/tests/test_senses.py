@@ -229,3 +229,32 @@ def test_registration_does_not_depend_on_the_provider_being_up(tmp_path, monkeyp
     app = TeeApp({}, project_root=tmp_path)
     register_sense_tools(app, tmp_path)
     assert "sense_describe" in app.registry._tools
+
+
+# -- the eviction disclosure (A48 P0.2) -------------------------------------
+
+
+def test_the_eviction_note_is_configured_not_guessed_from_a_stopwatch():
+    """It used to fire on `wall >= COLD_START_S`. Measured through this
+    module, the sequence was text 10.75 / vision 3.03 / vision 0.85 / text
+    10.34 / text 0.79 - the eviction is paid by the NEXT TEXT TURN, not by
+    the vision call, which never crossed the threshold. The warning that
+    existed to disclose the cost never fired once."""
+    note = senses._eviction_note({"evicts": ["dsflash"], "cost": {"swap_s": 10.0}})
+    assert "NEXT TEXT TURN" in note and "~10.0s" in note
+    assert "later than you expect" in note
+
+
+def test_a_machine_whose_eye_coexists_says_nothing():
+    """Most machines. Silence is correct - there is nothing to disclose."""
+    assert senses._eviction_note({"evicts": [], "cost": {}}) is None
+
+
+@needs_vision
+@live_slow
+def test_a_cached_answer_evicts_nothing_and_says_nothing(tmp_path):
+    spec = {"path": str(CARD), "question": "Read the card.", "max_tokens": 40}
+    senses.describe(spec, state_dir=tmp_path)
+    second = senses.describe(spec, state_dir=tmp_path)
+    assert second["cached"] is True
+    assert "swap_note" not in second

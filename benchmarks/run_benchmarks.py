@@ -1157,6 +1157,75 @@ def run_gateway_scenario() -> dict | None:
 # --------------------------------------------------------------------------
 
 
+def run_senses_scenario() -> dict | None:
+    """A47/A48 P0: what a question about an image costs a HOST model.
+
+    Two hosts, one question, one 4K site frame. A seeing host is served
+    pixels by `tee_media` and pays for them in its own context every time
+    it reads them. A blind host calls `sense_describe`, the local vision
+    model reads the pixels for free, and only the answer text crosses into
+    the host's context.
+
+    This replaces an informal "33x" quoted earlier in A47, which compared
+    the PROVIDER's input tokens against the answer - not what a host pays.
+    The honest comparison is host-side on both arms.
+    """
+    frame = None
+    for candidate in (
+        Path.home() / "OkongoSim/data/source/drone-2026-05-02/frames-1s/DJI_0100_0060.jpg",
+        Path.home() / "OkongoSim/data/source/drone-2026-05-02/frames/DJI_0100_t0006s.jpg",
+    ):
+        if candidate.is_file():
+            frame = candidate
+            break
+    if frame is None:
+        print("senses scenario skipped (no site frame)")
+        return None
+    try:
+        from tee import senses
+        from tee.extract.images import image_tokens, size_for_budget
+        from tee.kernel import local_vlm
+        from tee.kernel.imaging import open_image
+    except ImportError as exc:
+        print(f"senses scenario skipped ({exc})")
+        return None
+    if not local_vlm.available(timeout=2.0):
+        print("senses scenario skipped (no local vision provider)")
+        return None
+
+    with open_image(frame) as im:
+        width, height = im.size
+    full_tokens = image_tokens(width, height)
+    served_w, served_h = size_for_budget(width, height, 800)
+    budgeted_tokens = image_tokens(served_w, served_h)
+
+    question = "What stage of construction is the building at? Two sentences."
+    started = time.time()
+    answer = senses.describe({"path": str(frame), "question": question, "max_tokens": 200})
+    wall = time.time() - started
+    answer_tokens = math.ceil(len(answer["answer"]) / 4)
+
+    print(
+        f"image QA on {frame.name} ({width}x{height}): seeing host pays "
+        f"{budgeted_tokens} tok (budgeted) / {full_tokens} tok (full) -> blind host "
+        f"via sense_describe {answer_tokens} tok "
+        f"({budgeted_tokens / answer_tokens:.1f}x / {full_tokens / answer_tokens:.1f}x saved)"
+    )
+    return {
+        "frame": frame.name,
+        "source": f"{width}x{height}",
+        "full_tokens": full_tokens,
+        "budgeted_tokens": budgeted_tokens,
+        "served": f"{served_w}x{served_h}",
+        "answer_tokens": answer_tokens,
+        "ratio_budgeted": round(budgeted_tokens / answer_tokens, 1),
+        "ratio_full": round(full_tokens / answer_tokens, 1),
+        "wall_s": round(wall, 1),
+        "off_machine_calls": answer["cost"]["off_machine_calls"],
+        "provider": answer["provided_by"],
+    }
+
+
 def run_fabrication_scenario() -> dict | None:
     import socket as _socket
 
@@ -1543,9 +1612,10 @@ def main() -> None:
     web_row = _safe(run_web_scenario)
     gateway_row = _safe(run_gateway_scenario)
     fabrication_row = _safe(run_fabrication_scenario)
+    senses_row = _safe(run_senses_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
-                  fabrication_row)
+                  fabrication_row, senses_row)
     _stage("total", t0)
 
 
@@ -1612,7 +1682,7 @@ def _carry_forward(section_header: str) -> list[str]:
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
                   kb_row=None, web_row=None, gateway_row=None,
-                  fabrication_row=None) -> None:
+                  fabrication_row=None, senses_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -1853,6 +1923,8 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _carry_forward("## Web lookup: five documentation questions")
     if gateway_row is not None:
         lines += _gateway_section(gateway_row)
+    if senses_row is not None:
+        lines += _senses_section(senses_row)
     else:
         lines += _carry_forward("## Gateway: fronting a many-tool MCP backend")
     if fabrication_row is not None:
@@ -1924,6 +1996,32 @@ def _fabrication_section(f: dict) -> list[str]:
         f"{f['naive_calls']} | |",
         f"| TEE (solved batches + sheet files) | {f['tee_tokens']:,} | "
         f"{f['tee_calls']} | **{f['saving']:.1f}%** |",
+    ]
+
+
+def _senses_section(s: dict) -> list[str]:
+    return [
+        "",
+        "## Senses — what an image question costs the HOST (A47/A48 P0)",
+        "",
+        f"Frame `{s['frame']}` ({s['source']}), one question, two hosts.",
+        "",
+        "| host | how it sees | host tokens |",
+        "|---|---|---|",
+        f"| seeing | `tee_media`, full frame | {s['full_tokens']:,} |",
+        f"| seeing | `tee_media`, default budget ({s['served']}) | {s['budgeted_tokens']:,} |",
+        f"| blind | `sense_describe` (local model reads it) | {s['answer_tokens']} |",
+        "",
+        f"**{s['ratio_budgeted']}x** cheaper than a budgeted image, "
+        f"**{s['ratio_full']}x** than the full frame. "
+        f"{s['wall_s']}s wall, `off_machine_calls: {s['off_machine_calls']}`, "
+        f"provider {s['provider']}.",
+        "",
+        "This supersedes an informal *33x* quoted during A47, which compared the",
+        "PROVIDER's input tokens against the answer rather than what a host pays.",
+        "Both arms here are measured host-side. The provider still reads ~2,065",
+        "tokens of pixels — for free, on a model that bills nothing, which is the",
+        "point rather than the headline.",
     ]
 
 
