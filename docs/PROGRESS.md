@@ -7661,9 +7661,9 @@ onto 341 frames.
 *The orthophoto is fragmented* — disconnected patches on nodata, 4704x815.
 That is not an ODM failure. Orthophoto and DSM generation assume nadir
 coverage flown as a grid; DJI_0100 is a pan. The survey products need a
-survey flight, and no post-processing recovers one from a pan. The
-textured OBJ also came out empty (196-byte .mtl, no geometry) — worth a
-look if texturing is wanted, but the cloud and DEMs are the deliverables.
+survey flight, and no post-processing recovers one from a pan. ~~The textured OBJ also came out empty~~ — **wrong, corrected below:** it is
+50,609 bytes and perfectly real. `ls -la` formatted as MB showed "0.0 MB"
+and I read that as empty. The cloud and DEMs remain the deliverables.
 
 **What this means for the site visit.** The capture protocol should specify
 a planned grid mission with GPS enabled and nadir camera, not a pan, if the
@@ -7682,3 +7682,66 @@ survey products, and now that is measured rather than assumed.
 - **Apple PhotogrammetrySession** — object capture, not site capture. Right
   tool for a chair or a fitting; wrong tool for a building, at any input
   quality. Confirmed twice, on bad frames and good.
+
+### ODM integration — reporting what a run achieved (v0.12.0)
+
+Owner asked for ODM to be integrated. It already was: `capture/tools.py`
+runs the container with `--dsm --dtm`, collects orthophoto/DSM/DTM/LAZ,
+applies rolling-shutter correction from the resolver, and stages copies
+under `$HOME` because the Docker VM does not share the system tmp.
+
+**The real gap was that a run reported paths and a duration and nothing
+else.** `capture_reconstruct` answered `{artifacts, seconds, provenance}`,
+so a caller could not tell 137-of-147 images from 12-of-147 — both write
+files, and both "succeed". Every number needed to tell them apart was
+already sitting in ODM's own `odm_report/stats.json`; TEE never opened it.
+The whole three-engine comparison above ran on figures TEE could have
+reported and did not.
+
+Now returned, verified against the live Okongo project:
+
+```json
+{ "images_used": 137, "images_total": 147, "images_used_fraction": 0.932,
+  "points": 123755,
+  "georeferenced": false,
+  "frame": "LOCAL - no GPS in the inputs, so scale and position are not
+            established. Distances and any area figure are in an arbitrary
+            frame and must not be reported as site measurements.",
+  "orthophoto_coverage": 0.294,
+  "orthophoto_warning": "orthophoto is 29% covered - orthophoto and DSM
+            assume nadir coverage flown as a grid. A pan or an orbit
+            reconstructs geometry fine and cannot make a map." }
+```
+
+Three judgements encoded, each from a measured case:
+
+- **A weak run says so, and says where to look.** Below 75% of images
+  reconstructed the answer carries a warning naming the capture rather than
+  the engine — because 12-of-31 was the real case, and the engine was fine.
+- **No GPS is stated loudly.** Without it the geometry is sound and every
+  distance is meaningless, yet ODM still reports an "area covered" in the
+  arbitrary frame. That is exactly the number someone quotes at a site
+  meeting, so the frame is named in the same payload.
+- **A thin orthophoto names its cause.** 29% coverage is not a broken
+  renderer, it is a pan being asked to be a map.
+
+**Three defects found while building it**, all by tests rather than
+inspection:
+
+1. `odm_worker` cherry-picked `{artifacts, seconds, provenance}` out of the
+   run, so the new quality block was computed and silently discarded. Now
+   spread, not picked.
+2. The HEIC AST guard from v0.11.0 caught the `Image.open` I added in the
+   coverage reader — the guard working, one release after it was written.
+   Rewired to `open_image`.
+3. The capture-lane fake wrote a **zero-byte** orthophoto, which the new
+   "an empty file is not an artifact" filter correctly rejected. The fixture
+   was unfaithful — real ODM never writes one — so it now writes real bytes
+   and a stats.json, and asserts the quality block reaches the caller.
+
+**Correction to the entry above:** I recorded the textured OBJ as empty. It
+is 50,609 bytes. `ls -la` printed "0.0 MB" under a `%.1f` MB format and I
+read that as absent. The artifact filter is still right as defensive code,
+but it was not observed behaviour.
+
+**Suite: 1,062 passed / 9 skipped**, ruff clean.

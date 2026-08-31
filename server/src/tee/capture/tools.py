@@ -33,6 +33,10 @@ DETAILS = ("preview", "reduced", "medium", "full", "raw")
 MIN_IMAGES = 10
 DEFAULT_MIN_FREE_GB = 20.0
 ODM_IMAGE = "opendronemap/odm:latest"
+# Below these, say so. Both measured on the Okongo pass (2026-08-31):
+# 137/147 images was a good run; the orthophoto at 12% was not a map.
+ODM_WEAK_FRACTION = 0.75
+ODM_THIN_ORTHO = 0.5
 
 
 def _sets_dir(root: Path) -> Path:
@@ -73,6 +77,87 @@ def _gate_disk(root: Path, cfg: dict[str, Any]) -> None:
             "reconstructions are tens of GB.",
             fix="Free disk space or lower [capture] min_free_gb deliberately.",
         )
+
+
+def _odm_quality(project: Path, artifacts: dict[str, str]) -> dict[str, Any]:
+    """What the run actually achieved, not just where it wrote files.
+
+    `capture_reconstruct` used to answer with artifact paths and a
+    duration, so a caller could not tell 137-of-147 images from
+    12-of-147 — both "succeed" and write files. ODM records the honest
+    numbers in odm_report/stats.json; TEE simply never read them.
+
+    Measured 2026-08-31 on the Okongo DJI_0100 pass: 137/147 images,
+    6.9 M dense points, and an orthophoto only 29% covered because
+    the flight was a PAN, not a nadir grid. All three facts were
+    available and none were reported.
+    """
+    out: dict[str, Any] = {}
+    stats_path = project / "odm_report" / "stats.json"
+    if stats_path.is_file():
+        try:
+            stats = json.loads(stats_path.read_text())
+        except (OSError, ValueError):
+            stats = {}
+        rec = stats.get("reconstruction_statistics") or {}
+        used = rec.get("reconstructed_shots_count")
+        total = rec.get("initial_shots_count")
+        if used is not None and total:
+            out["images_used"] = used
+            out["images_total"] = total
+            out["images_used_fraction"] = round(used / total, 3)
+            if used / total < ODM_WEAK_FRACTION:
+                out["warning"] = (
+                    f"only {used} of {total} images reconstructed - the "
+                    "capture, not the engine, is usually the limit "
+                    "(overlap below ~70%, or frames from separate passes)"
+                )
+        if rec.get("reconstructed_points_count") is not None:
+            out["points"] = rec["reconstructed_points_count"]
+        if rec.get("reprojection_error") is not None:
+            out["reprojection_error_px"] = round(float(rec["reprojection_error"]), 3)
+        # GPS decides whether any of the spatial numbers mean anything.
+        out["georeferenced"] = bool(stats.get("gps_errors"))
+        if not out["georeferenced"]:
+            out["frame"] = (
+                "LOCAL - no GPS in the inputs, so scale and position are "
+                "not established. Distances and any area figure are in an "
+                "arbitrary frame and must not be reported as site measurements."
+            )
+    cover = _ortho_coverage(artifacts.get("orthophoto"))
+    if cover is not None:
+        out["orthophoto_coverage"] = cover
+        if cover < ODM_THIN_ORTHO:
+            out["orthophoto_warning"] = (
+                f"orthophoto is {cover:.0%} covered - orthophoto and DSM "
+                "assume nadir coverage flown as a grid. A pan or an orbit "
+                "reconstructs geometry fine and cannot make a map."
+            )
+    return out
+
+
+def _ortho_coverage(path: str | None) -> float | None:
+    """Fraction of the orthophoto that is not nodata, from the alpha
+    band at thumbnail size. Cheap, and it catches the pan-not-a-grid
+    case that produces a technically-valid mostly-empty map."""
+    if not path:
+        return None
+    try:
+        from PIL import Image
+
+        from tee.kernel.imaging import open_image
+
+        Image.MAX_IMAGE_PIXELS = None
+        with open_image(path) as im:
+            if "A" not in (im.mode or ""):
+                return None
+            alpha = im.getchannel("A")
+            alpha.thumbnail((256, 256))
+            hist = alpha.histogram()
+        total = sum(hist)
+        return round((total - hist[0]) / total, 3) if total else None
+    except Exception:
+        return None  # never fail a finished reconstruction over a preview
 
 
 def register_capture_tools(app, project_root: Path | str, extract_store=None) -> None:
@@ -218,8 +303,24 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
             "point_cloud": project / "odm_georeferencing" / "odm_georeferenced_model.laz",
             "textured_dir": project / "odm_texturing",
         }
-        artifacts = {name: str(path) for name, path in candidates.items() if path.exists()}
-        return {"seconds": round(time.time() - start, 1), "artifacts": artifacts}
+        # An empty file is not an artifact: a zero-byte output still exists
+        # on disk, and reporting its directory tells the caller a model was
+        # produced. Defensive rather than observed - the run that prompted
+        # this wrote a real 50 KB .obj.
+        artifacts = {
+            name: str(path)
+            for name, path in candidates.items()
+            if path.exists() and (path.is_dir() or path.stat().st_size > 0)
+        }
+        if "textured_dir" in artifacts and not any(
+            f.stat().st_size > 0 for f in (project / "odm_texturing").glob("*.obj")
+        ):
+            artifacts.pop("textured_dir")
+        return {
+            "seconds": round(time.time() - start, 1),
+            "artifacts": artifacts,
+            **_odm_quality(project, artifacts),
+        }
 
     def capture_reconstruct(args: dict[str, Any]) -> dict[str, Any]:
         manifest = _manifest(str(args.get("set") or ""))
@@ -280,11 +381,10 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
                     run = _run_odm(docker_cmd, inputs, job_dir, correction_on)
                 finally:
                     app.machine.release_job(ledger_key)
-                return {
-                    "artifacts": run["artifacts"],
-                    "seconds": run["seconds"],
-                    "provenance": provenance,
-                }
+                # Spread `run` rather than picking from it: it now carries
+                # the quality block (images used, points, coordinate frame,
+                # orthophoto coverage) and cherry-picking silently dropped it.
+                return {**run, "provenance": provenance}
 
             try:
                 job_id = app.jobs.submit(

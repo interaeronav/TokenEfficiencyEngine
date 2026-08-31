@@ -136,8 +136,16 @@ case "$1" in
     while [ "$1" != "-v" ]; do shift; done
     shift
     hostdir="${1%%:*}"
-    mkdir -p "$hostdir/code/odm_orthophoto" "$hostdir/code/odm_dem"
-    : > "$hostdir/code/odm_orthophoto/odm_orthophoto.tif"
+    mkdir -p "$hostdir/code/odm_orthophoto" "$hostdir/code/odm_dem" \
+             "$hostdir/code/odm_report"
+    # NON-empty: a zero-byte orthophoto is not an artifact, and TEE now
+    # filters those out, so a fake writing one tested nothing.
+    echo "fake-orthophoto" > "$hostdir/code/odm_orthophoto/odm_orthophoto.tif"
+    # ODM writes its own scorecard; TEE reads it for the quality block.
+    cat > "$hostdir/code/odm_report/stats.json" <<'JSON'
+{"reconstruction_statistics": {"reconstructed_shots_count": 9,
+  "initial_shots_count": 10, "reconstructed_points_count": 4242}}
+JSON
     exit 0 ;;
 esac
 exit 0
@@ -214,6 +222,11 @@ def test_odm_runs_with_correction_per_resolver(tmp_path):
     assert result["provenance"]["engine"].startswith("ODM/")
     assert result["provenance"]["rolling_shutter"]["mode"] == "matched"
     assert "orthophoto" in result["artifacts"]
+    # The run now reports what it ACHIEVED, not only where it wrote.
+    assert result["images_used"] == 9 and result["images_total"] == 10
+    assert result["points"] == 4242
+    assert result["georeferenced"] is False
+    assert "must not be reported as site measurements" in result["frame"]
 
     # FC7303 (Mini 2): no constant -> correction off, no flag
     args_log.write_text("")

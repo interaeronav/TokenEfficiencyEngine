@@ -3,6 +3,34 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.12.0 — 2026-08-31
+
+**ODM runs now report what they achieved, not just where they wrote.**
+
+ODM was already integrated — container run, `--dsm --dtm`, artifact
+collection, rolling-shutter correction from the resolver. What it did not
+do was tell you whether the reconstruction worked. `capture_reconstruct`
+returned `{artifacts, seconds, provenance}`, so **137-of-147 images and
+12-of-147 were indistinguishable**: both write files and both succeed.
+
+Every figure needed was already in ODM's own `odm_report/stats.json`. TEE
+now reads it and returns `images_used` / `images_total` / fraction,
+`points`, and `reprojection_error_px`, plus two judgements that came out of
+running it for real on the Okongo footage:
+
+- **`georeferenced` and `frame`.** With no GPS the geometry is sound and
+  every distance is meaningless — yet ODM still reports an "area covered"
+  in its arbitrary frame. The payload now says so in the same breath.
+- **`orthophoto_coverage` and its warning.** 29% coverage is not a broken
+  renderer; it is a pan being asked to be a map. Orthophoto and DSM
+  generation assume nadir coverage flown as a grid.
+
+A run below 75% of images reconstructed carries a warning naming the
+capture rather than the engine, because that was the real case: the engine
+was fine and the frames were 6 seconds apart.
+
+Also: an empty output file is no longer reported as an artifact.
+
 ## 0.11.0 — 2026-08-31
 
 **Two owner-requested fixes.**
