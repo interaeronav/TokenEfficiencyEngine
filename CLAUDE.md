@@ -53,6 +53,10 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   spend and egress, land the fifteen headless open resources) is driven
   by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
   goes, the taint law stays, and TEE still never grants itself.
+- The A46 campaign (leaner, faster, fitted to this machine: cut the 2.2 GB
+  extension venv, stop blocking on first imports, and wire TEE to the
+  owner's ACTUAL local engines) is driven by `CLAUDE_A46_SCRIPT.md`. It is
+  measured-before-and-after by law; a phase without a number did not happen.
 - Progress state lives in `docs/PROGRESS.md`. Read it at session start; update
   it (check items off, note blockers) before ending any session.
 - Research grounding lives in `docs/research/`. Consult it before designing or
