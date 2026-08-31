@@ -6984,3 +6984,80 @@ TEE actually uses re-verified importable afterwards.
 
 **Suite: 1,019 passed / 9 skipped**, ruff clean. No capability was removed
 to achieve any of this.
+
+### A46 P2a — `tee_status` and `tee_trust` no longer disagree
+
+The two answered the same question differently in one payload the owner was
+reading: `tee_status` said `code_exec_enabled: false` while `tee_trust`
+reported `exec-code` granted, and `tee_script` really did run `2 + 2`.
+`tee_status` was reporting the pre-A43 `allow_code_exec` flag — one of two
+inputs the kernel ORs — as if it were the answer. It now reports the
+capability the kernel would actually enforce.
+
+```
+granted exec-code : True
+status reports    : True   <- must agree
+no grant -> status: False
+```
+
+### A46 P3a — the local engines, reachable at last
+
+`.tee/config.toml` declared only the PAID `qmax`, and the persisted active
+profile *was* `qmax`. Every chore on this machine either billed or fell
+through to the deterministic path; the free models were unreachable. Probed
+the shim's real routes rather than trusting the config:
+
+```
+claude-qwen-27b        answered   50.4 GB resident on :8080
+claude-deepseek-flash  answered   no resident process - served on demand
+claude-qwen-small      no answer  server up on :8082 but 0.0 GB - not loaded
+```
+
+All local backends are `127.0.0.1`; only `qmax` leaves the machine
+(dashscope-intl.aliyuncs.com). `claude-qwen-uncensored` was deliberately
+NOT declared — CLAUDE.md's A43 rule forbids routing around safety review.
+
+**The second defect, found while fixing the first.** Both local engines are
+reasoning models: they spend output budget thinking before answering. Swept
+`max_tokens` on one snake_case rename at temperature 0:
+
+```
+                  64 tok                     256 tok            1024 tok
+dsflash    21.92 s  scratchpad as answer   4.41 s  correct    4.41 s  correct
+q27b       13.70 s  content EMPTY         27.78 s  correct    27.77 s  correct
+```
+
+The chores were asking for 160–220. Under budget, q27b returns `content:
+""` with the text stranded in `reasoning_content`, and dsflash emits its
+own scratchpad — neither looks like an exhausted budget, both look like a
+model that answered badly. `MIN_CHORE_TOKENS = 256` is now applied in
+`_run`, so no call site can undercut it; it raises and never lowers.
+
+An earlier "1.49 s" figure for dsflash was measured at `max_tokens=48` and
+was a *truncated, unusable* answer. The honest warm cost of a real chore is
+4.41 s against 27.78 s — dsflash is ~6× faster, so it is the default and
+`qmax` stays pin-only.
+
+**Acceptance, run end to end against the owner's own config:**
+
+```
+engine: profile=dsflash model=claude-deepseek-flash paid=False url=http://127.0.0.1:4000/v1
+chore wall: 3.80s
+answer: {"diagnosis": "The operator call uses 'locations' ... the actual
+         Blender operator property is named 'location' (singular)"}
+report_spend -> {"sent": {"off_machine_calls": 0, "tokens": 0, "bytes": 0}}
+```
+
+A correct answer, on a free engine, with nothing leaving the machine. The
+persisted active profile is now `dsflash`.
+
+**A defect I introduced and caught.** Registering the re-measured 27B as a
+second row gave two engines the same `profile: "q27b"`. The router had two
+answers to one identity and quietly took the newer one — nothing raised,
+two routing tests simply started naming a different engine. Removed: the
+27B keeps its single row, and the new 27.78 s observation is recorded
+*alongside* its R0 3.07–9.69 s rather than over it, because different
+prompt, budget and path make them incomparable. A uniqueness test now fails
+loudly instead.
+
+**Suite: 1,027 passed / 9 skipped**, ruff clean, surface invariant intact.

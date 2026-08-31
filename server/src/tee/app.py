@@ -323,6 +323,8 @@ class TeeApp:
         return {"ok": True, "restored": cp.to_payload(), **cache.stamp()}
 
     def status(self) -> dict[str, Any]:
+        from tee.kernel import trust as _trust
+
         adapters = {}
         for name, adapter in self.adapters.items():
             try:
@@ -344,7 +346,20 @@ class TeeApp:
             "active_jobs": jobs,
             "checkpoints": self.checkpoints.list()[-5:],
             "virtual_tools": len(self.registry),
-            "code_exec_enabled": self.allow_code_exec,
+            # A46 P2a: report the CAPABILITY, not the pre-A43 flag. These
+            # disagreed in the same payload the owner was reading:
+            # tee_status said code_exec_enabled false while tee_trust said
+            # exec-code was granted and tee_script actually ran. The legacy
+            # `allow_code_exec` flag is one of two inputs the kernel ORs
+            # together, so reporting it alone was reporting a premise as
+            # though it were the conclusion.
+            "code_exec_enabled": _trust.check(
+                "exec-code",
+                caller="live-turn",
+                grants=self.registry.grants,
+                consent=True,
+            ).allowed
+            or bool(self.allow_code_exec),
             "llm_profile": profiles.status_line(self.llm_cfg),
         }
         if self.registry.disabled:

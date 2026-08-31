@@ -162,6 +162,7 @@ def _run(
         raise TeeError(
             "llm_bad_arg", f"refine='{refine}' is not a mode.", fix="Use auto, local, or off."
         )
+    from tee.kernel import machine
     from tee.llm import profiles
 
     resolved = profiles.resolve(cfg)
@@ -219,6 +220,16 @@ def _run(
             )
         )
 
+    # A46 P3a. Every local engine on this machine is a REASONING model: it
+    # spends output budget thinking before it answers. Measured 2026-08-31
+    # on one snake_case rename at temperature 0 - at 64 tokens q27b returns
+    # content="" with the text stranded in `reasoning_content`, and dsflash
+    # emits its scratchpad as the answer; at 256 both answer cleanly. The
+    # chores here asked for 160-220, i.e. under the floor, so a correct
+    # engine looked like a model that answered badly. Raise, never lower:
+    # a caller asking for MORE room knows something we do not.
+    budget = max(int(max_tokens), machine.MIN_CHORE_TOKENS)
+
     try:
         with profiles.REQUEST_LOCK:  # a managed stop waits for this chore
             raw = local_llm.complete_json(
@@ -226,7 +237,7 @@ def _run(
                 system=system,
                 url=url,
                 model=model,
-                max_tokens=max_tokens,
+                max_tokens=budget,
                 adapters=adapters,
                 on_usage=_meter,
             )

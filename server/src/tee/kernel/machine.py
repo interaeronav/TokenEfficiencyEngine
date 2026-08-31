@@ -23,6 +23,12 @@ from tee.kernel.errors import TeeError
 
 QOS = ("interactive", "standard", "batch", "maintenance")
 
+# A46 P3a. Below this, the local reasoning models return a truncated
+# scratchpad instead of an answer - and q27b returns an EMPTY string,
+# which reads as "the model had nothing to say" rather than "the
+# budget ran out". Measured, both engines, 2026-08-31.
+MIN_CHORE_TOKENS = 256
+
 # The client stack + OS headroom the machine always keeps. A stated
 # placeholder until R2 measures the real constant.
 RESERVE_GB = 16.0
@@ -46,7 +52,50 @@ ENGINES: dict[str, dict[str, Any]] = {
         "footprint_gb": 55.0,  # 43.7 measured R0 2026-08-29
         "eta_s": 18.0,  # measured swap cost R2 2026-08-29 (spec said 90)
         "qos_default": "interactive",
-        "cost": {"latency_s": [3.07, 9.69], "measured": "R0 2026-08-29"},
+        "cost": {
+            "latency_s": [3.07, 9.69],
+            "measured": "R0 2026-08-29",
+            # A46 P3a re-measured this engine through the owner's LiteLLM
+            # shim on a reasoning-heavy chore at max_tokens=256 and saw
+            # 27.78 s, with 50.4 GB resident on :8080. NOT written over the
+            # R0 figure above: different prompt, different budget, different
+            # path, so the two are not comparable and averaging them would
+            # invent a number neither run produced.
+            "a46_shim_observation_s": 27.78,
+        },
+    },
+    # -- A46 P3a: the engines this machine ACTUALLY serves ---------------
+    # Until now the table described q14b/q27b generically while
+    # .tee/config.toml declared only the PAID qmax, so no chore could
+    # reach a free engine. These two are measured, live, on the owner's
+    # LiteLLM shim (127.0.0.1:4000 -> 127.0.0.1 backends; nothing here
+    # leaves the machine).
+    #
+    # BOTH ARE REASONING MODELS. Measured 2026-08-31 on one chore
+    # (snake_case rename, temperature 0), sweeping max_tokens:
+    #
+    #                 64 tok        256 tok             1024 tok
+    #   dsflash    truncated     4.41 s, usable      4.41 s, usable
+    #   q27b       EMPTY         27.78 s, usable     27.77 s, usable
+    #
+    # At 64 the reasoning pass eats the whole budget: dsflash leaks its
+    # scratchpad into `content`, and q27b returns content="" with the
+    # text in `reasoning_content`. Neither is a failure the caller can
+    # see without checking - it looks like a model that answered badly.
+    # Hence MIN_CHORE_TOKENS below, which is a correctness floor, not a
+    # tuning knob.
+    "dsflash": {
+        "kind": "llm",
+        "profile": "dsflash",
+        "capability": ["chores"],
+        # No resident process observed across a live 900-token generation
+        # (polled 15 s at 0.7 s). Served on demand and not held, so there
+        # is no steady footprint to charge the ledger for. NOT a measured
+        # zero for a loaded model - it is an absence of one.
+        "footprint_gb": 0.0,
+        "eta_s": 3.0,  # 2.27 s first call vs 1.49 s warm, measured
+        "qos_default": "interactive",
+        "cost": {"latency_s": [4.41, 4.41], "measured": "A46 P3a 2026-08-31"},
     },
     "client": {
         "kind": "client",

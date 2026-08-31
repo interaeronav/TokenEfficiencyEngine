@@ -254,3 +254,22 @@ def test_never_grantable_survives_the_hot_reload_path(tmp_path):
     assert g.broken, "an ungrantable line must break the config, not activate"
     assert "place-order" not in g.granted
     assert not trust.check("place-order", caller="live-turn", grants=g, consent=True).allowed
+
+
+def test_status_and_trust_agree_about_exec_code(tmp_path):
+    """A46 P2a. They disagreed in the same session the owner was reading:
+    tee_status said code_exec_enabled false, tee_trust said exec-code was
+    granted, and tee_script actually ran. tee_status was reporting the
+    pre-A43 `allow_code_exec` flag - one of two inputs the kernel ORs -
+    as though it were the answer."""
+    from tee.app import TeeApp
+
+    (tmp_path / ".tee").mkdir()
+    (tmp_path / ".tee" / "config.toml").write_text('[trust]\nprofile = "workstation"\n')
+    app = TeeApp({}, project_root=tmp_path)
+    granted = "exec-code" in app.registry.grants.granted
+    assert granted is True
+    assert app.status()["code_exec_enabled"] == granted
+
+    bare = TeeApp({}, project_root=tmp_path.parent / "nothing-here")
+    assert bare.status()["code_exec_enabled"] is False
