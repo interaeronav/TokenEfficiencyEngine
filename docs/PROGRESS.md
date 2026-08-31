@@ -7164,3 +7164,44 @@ always-loaded tools declared in `server.py`, not a virtual one. Search
 covers the long tail; the model already holds `tee_diff`. **No change made.**
 
 **Suite: 1,034 passed / 9 skipped**, ruff clean.
+
+### A46 P1c — declined, because the premise was wrong
+
+The phase assumed the bundle's extras "are never installed from the
+bundle", so stripping `[project.optional-dependencies]` before locking
+would be free. Checked the venv Claude Desktop actually built:
+
+```
+tee-engine 0.9.0
+Provides-Extra: assets, assets-embed, assets-gen, cad, extract,
+                medimg, physical, quant, solve
+```
+
+Those extras come from the bundle's pyproject, and they are exactly how
+A45's documented `uv pip install 'tee-engine[solve]'` resolves — the
+command the owner used to install all four fleet groups.
+
+The saving is real: **1041.6 → 183.1 KB** uncompressed, **319.9 → 57.5 KB**
+gzipped, about **262 KB off an 868 KB bundle**. The cost is also real:
+
+```
+uv pip install 'tee-engine[solve]'
+x No solution found when resolving dependencies:
+|-> Because there are no versions of tee-engine[solve] ... unsatisfiable
+```
+
+The obvious compromise — declare the extras but ship a base-only lock —
+fails too. Claude Desktop provisions with a **plain** `uv sync`, not
+`--frozen`, and a plain sync re-locks:
+
+```
+lock before: 187,538 bytes
+lock after : 1,066,876 bytes   -> uv re-expanded the extras
+```
+
+So it saves nothing at install and adds a network resolve to every one.
+
+**Not taken.** 262 KB on a file installed once, against the documented
+route to every fleet capability. P1's own rule is that no capability may be
+lost to save space, and the install path is part of the capability. The
+bundle stays 868 KB, and the A46 script is amended to say so.

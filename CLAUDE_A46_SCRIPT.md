@@ -97,10 +97,35 @@ a real render/export workflow — is not.
   *Acceptance:* `cad_measure` on a STEP file returns the same volume it
   does today, with `cadquery` absent from TEE's own venv.
 
-- **P1c — a bundle that does not carry what it cannot install.** Strip
-  `[project.optional-dependencies]` from the bundle's pyproject before
-  locking, so `uv.lock` covers base deps only.
-  *Acceptance:* `.mcpb` shrinks; `uv sync` + `tee --version` still green.
+- **P1c — DECLINED after measuring. The premise was wrong.** The phase
+  assumed extras "are never installed from the bundle". They are: the
+  bundle-installed distribution advertises them, and that is precisely how
+  A45's documented `uv pip install 'tee-engine[solve]'` resolves.
+
+  ```
+  Provides-Extra: assets, assets-embed, assets-gen, cad, extract,
+                  medimg, physical, quant, solve
+  ```
+
+  Stripping the table does shrink the lock — 1041.6 KB to 183.1 KB
+  uncompressed, 319.9 KB to 57.5 KB gzipped, ~262 KB off an 868 KB bundle
+  — but then:
+
+  ```
+  uv pip install 'tee-engine[solve]'
+  x No solution found when resolving dependencies:
+  |-> Because there are no versions of tee-engine[solve] ... unsatisfiable
+  ```
+
+  Keeping the extras declared while shipping a base-only lock does not
+  work either: Claude Desktop runs a PLAIN `uv sync`, which re-locks and
+  re-expands 187,538 -> 1,066,876 bytes, saving nothing and adding a
+  network resolve to every install.
+
+  So the trade is 262 KB on a once-installed file against the documented
+  path to every fleet capability. **Not taken** — P1's own rule is that no
+  capability may be lost to save space, and the install path is part of
+  the capability. The bundle stays 868 KB.
 
 ## P2 — faster, and honest about state
 
