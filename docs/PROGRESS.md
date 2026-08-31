@@ -7625,3 +7625,60 @@ tool and the far cheaper one to run.
 machine as a 2.19 GB image. It was chosen for the drone lane in research 56
 and has not been run against `frames-1s`. That is the next measurement, not
 a conclusion drawn here.
+
+### ODM on frames-1s — the three-way comparison completed (2026-08-31)
+
+Run on the identical 147-frame DJI_0100 subset the other two engines used.
+Docker, 31.3 GB / 8 CPUs, `--feature-quality high --pc-quality medium
+--dsm --dtm`. ~19 minutes.
+
+```
+                       Apple PhotogrammetrySession   openMVG          ODM
+images reconstructed   21 of 147 REJECTED            120/147 (82%)    137/147 (93%)
+geometry               83,509 tris, disconnected     31,717 sparse    6,949,157 DENSE
+wall time              201 s                         ~60 s            ~19 min
+products               textured USDZ                 cloud + poses    cloud, DSM, DTM,
+                                                                      orthophoto, LAZ
+```
+
+**ODM wins on this subject, as research 56 predicted when it chose ODM for
+the drone lane.** Plotted, the dense cloud shows a closed rectangular
+building with legible wall lines and a filled interior — the first
+reconstruction in this whole exercise that reads unambiguously as the
+house. 6.9 M points against openMVG's 31.7 K is a 220x difference in
+density, which is the gap between "camera poses I can build on" and "a
+surface I can measure against".
+
+**Two honest limits on that result.**
+
+*No GPS, so no georeferencing.* Everything is in an arbitrary local frame.
+ODM's own `stats.json` reports "area covered: 19.4 m2", which is a number
+in that arbitrary frame and means nothing about the site. The geometry is
+sound; the scale and position are not established. This follows directly
+from the deliberate decision not to stamp a single home-point coordinate
+onto 341 frames.
+
+*The orthophoto is fragmented* — disconnected patches on nodata, 4704x815.
+That is not an ODM failure. Orthophoto and DSM generation assume nadir
+coverage flown as a grid; DJI_0100 is a pan. The survey products need a
+survey flight, and no post-processing recovers one from a pan. The
+textured OBJ also came out empty (196-byte .mtl, no geometry) — worth a
+look if texturing is wanted, but the cloud and DEMs are the deliverables.
+
+**What this means for the site visit.** The capture protocol should specify
+a planned grid mission with GPS enabled and nadir camera, not a pan, if the
+orthophoto/DSM products are wanted — which is what `CLAUDE_A42`-era research
+56 already said ("planned grid missions via Litchi/Dronelink with manual
+fallback"). The existing footage is good enough for geometry and not for
+survey products, and now that is measured rather than assumed.
+
+**Engine dispositions, settled:**
+
+- **ODM** — the drone/site engine. Best reconstruction here by a wide
+  margin, and the only one producing survey products at all.
+- **openMVG** — the instrument. Fastest to a usable answer, and the only
+  one that reports honestly *why* a dataset failed (the 12-of-31 diagnosis
+  that started all of this). Keep for triage.
+- **Apple PhotogrammetrySession** — object capture, not site capture. Right
+  tool for a chair or a fitting; wrong tool for a building, at any input
+  quality. Confirmed twice, on bad frames and good.
