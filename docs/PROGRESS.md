@@ -7205,3 +7205,69 @@ So it saves nothing at install and adds a network resolve to every one.
 route to every fleet capability. P1's own rule is that no capability may be
 lost to save space, and the install path is part of the capability. The
 bundle stays 868 KB, and the A46 script is amended to say so.
+
+### A46 P3c — `cosm-inspired-chair` adopted into the pipeline lane
+
+The project had **no scripts**. The renders in `renders-aurax/` and the
+meshes in `model/` were made by driving Blender inline, which left no way
+to make the same image twice. The lane may only declare steps a project
+already supports, so the steps had to become real before they could be
+declared: `tools/render.py` and `tools/export.py` were written and run
+against the project's own `model/aura-x-chair.blend` on Blender 5.2.0 LTS.
+
+```
+export.py  -> EXPORTED format=stl meshes=32            1.8 s
+render.py  -> RENDERED camera=cam_hero samples=16      140 KB PNG
+render.py  -> ERROR: no camera named 'cam_nope'.
+              Cameras: _prev, cam_detail, cam_explode, cam_front,
+                       cam_hero, cam_side, cam_step
+```
+
+Measured the export with TEE's own native STL reader — zero dependencies,
+the P1b path:
+
+```
+triangles 3,389,680   volume 81.74   bbox [16.8, 9.5, 3.91]   3.72 s
+```
+
+3.4 M triangles is why the STL is 161 MB: the woven mesh is genuinely that
+dense. Real geometry, not a defect.
+
+**TEE refused my first declaration, and it was right.**
+
+```
+step 'render_view': param 'out' is a free string, so this step is an
+arbitrary-execution grant wearing a declaration's clothes.
+```
+
+A caller who picks the path picks *any* path. Both `out` params are now
+enums whose defaults write to preview/check names, so replacing a
+delivered render or the committed `aura-chair-full.stl` has to be asked
+for by name — the same shape OkongoSim uses.
+
+**The lane, end to end:**
+
+```
+pipeline_run render_view (cam_front, 16 samples, 25%)  -> job1
+job1 done in 2.21 s
+artifacts.created: renders-aurax/preview.png  134,812 bytes  hash 23b31a74
+provenance: argv_hash b6301570  inputs_hash 07de3d15
+```
+
+The answer is an artifact diff, not the image. Opened the PNG: it is the
+front view of the chair.
+
+**The pin fails closed.** Appending an undeclared `sneaky` step stops the
+*whole* lane, not just the new step — `render_view` is refused too, so
+nothing can be smuggled in beside known-good steps:
+
+```
+sneaky       -> refused: declaration changed since approved (8ed69513 -> 09dd47f2)
+render_view  -> refused: declaration changed since approved (8ed69513 -> 09dd47f2)
+```
+
+Restoring the file restores approval. The project carries the same single
+grant as the other two adopted projects — `run-declared-step`, with
+`run-adhoc` deliberately absent.
+
+Lives at `~/Downloads/cosm-inspired-chair` (outside this repo).
