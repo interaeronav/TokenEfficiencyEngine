@@ -8,6 +8,7 @@ that must never regress quietly.
 
 from __future__ import annotations
 
+import pathlib
 import tempfile
 import urllib.error
 import urllib.request
@@ -232,3 +233,34 @@ def test_probe_schemas_accept_the_same_credentials_as_their_tools():
         assert {"url", "username", "password"} <= props, f"{name} is missing credentials"
     bi_props = set(app.registry._tools["bi_probe"].schema.get("properties", {}))
     assert {"url", "token"} <= bi_props
+
+
+def test_the_core_readers_need_no_torch(monkeypatch):
+    """A46 P1a. med_volume_stats used MONAI's LoadImage, which imports torch:
+    505 MB installed and >60 s on first import - it had already timed out a
+    live tool call. DICOM, NIfTI and numpy now dispatch directly. Simulated
+    by hiding MONAI entirely."""
+    import numpy as np
+
+    from tee.fleet import med as _med
+
+    monkeypatch.setattr(_med, "have", lambda mod: False if mod == "monai" else True)
+    import tempfile as _tf
+    from pathlib import Path as _P
+
+    d = _P(_tf.mkdtemp())
+    vol = np.zeros((4, 4, 2), dtype=np.float32)
+    vol[0, 0, 0] = 7.5
+    np.save(d / "v.npy", vol)
+    r = _med.volume_stats({"path": str(d / "v.npy")})
+    assert r["max"] == pytest.approx(7.5)
+    assert r["voxels"] == 32
+    assert "torch" not in repr(r)
+
+
+def test_a_dicom_without_pixels_says_so_rather_than_crashing():
+    """RTSTRUCT, SR and encapsulated PDF are everywhere in a real archive
+    and carry no image."""
+    from tee.fleet import med as _med
+
+    assert "med_no_pixels" in pathlib.Path(_med.__file__).read_text()

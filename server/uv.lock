@@ -4769,11 +4769,14 @@ extract = [
     { name = "shapely" },
 ]
 medimg = [
-    { name = "monai" },
     { name = "nibabel" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pydicom" },
+]
+medimg-monai = [
+    { name = "monai" },
+    { name = "torch" },
 ]
 physical = [
     { name = "ifctester" },
@@ -4815,7 +4818,7 @@ requires-dist = [
     { name = "imagehash", marker = "extra == 'extract'", specifier = ">=4.3.2" },
     { name = "imageio-ffmpeg", marker = "extra == 'extract'", specifier = ">=0.6.0" },
     { name = "mcp", specifier = ">=2.0.0,<3" },
-    { name = "monai", marker = "extra == 'medimg'", specifier = ">=1.6.0" },
+    { name = "monai", marker = "extra == 'medimg-monai'", specifier = ">=1.6.0" },
     { name = "nibabel", marker = "extra == 'medimg'", specifier = ">=5.3" },
     { name = "numpy", marker = "extra == 'extract'", specifier = ">=2.4.6" },
     { name = "numpy", marker = "extra == 'medimg'", specifier = ">=1.24" },
@@ -4842,10 +4845,11 @@ requires-dist = [
     { name = "skfolio", marker = "extra == 'quant'", specifier = ">=1.0.2" },
     { name = "torch", marker = "extra == 'assets-embed'", specifier = ">=2.4" },
     { name = "torch", marker = "extra == 'assets-gen'", specifier = ">=2.4" },
+    { name = "torch", marker = "extra == 'medimg-monai'", specifier = ">=2.8" },
     { name = "transformers", marker = "extra == 'assets-embed'", specifier = ">=4.50" },
     { name = "transformers", marker = "extra == 'assets-gen'", specifier = ">=4.50" },
 ]
-provides-extras = ["extract", "assets", "physical", "solve", "quant", "medimg", "cad", "assets-embed", "assets-gen"]
+provides-extras = ["extract", "assets", "physical", "solve", "quant", "medimg", "medimg-monai", "cad", "assets-embed", "assets-gen"]
 
 [package.metadata.requires-dev]
 dev = [

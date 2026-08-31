@@ -6923,3 +6923,64 @@ server".
 fixes above need a Desktop restart (or a rebuild) to take effect there —
 unlike grants, which A45 P0a made hot-reloading. The installed copy has
 been patched in place so the fixes are live after the next restart.
+
+## 2026-08-31 — A46 P1: 2.2 GB → 586 MB, with nothing lost
+
+Measured on the installed Claude Desktop extension, before and after.
+
+```
+extension venv   2,246 MB  ->  586 MB     -1,660 MB  (-74%)
+```
+
+**P1a — `med_` no longer needs MONAI or torch.** MONAI's `LoadImage` is a
+reader DISPATCHER; TEE used it to obtain an array and take four scalars.
+That cost **torch: 505 MB installed and >60 s on first import** — it had
+already timed out a live tool call. Dispatch is now direct: `.dcm` →
+pydicom (with RescaleSlope/Intercept applied, so values are true
+Hounsfield units), `.nii/.nii.gz` → nibabel, `.npy/.npz` → numpy, other →
+MONAI **if present**, else pillow.
+
+Same file, same answer, and it is not close:
+
+```
+                    MONAI path        direct path
+min / max           -1000 / 1529      -1000 / 1529
+mean / std          -875.5347 /       -875.5347 /
+                     312.7043          312.7043
+cold wall           > 60 s (timeout)  0.07 s
+torch imported      yes               no
+spacing reported    no                [0.9766, 0.9766, 2.0]
+```
+
+The direct path is *better*, not merely lighter: it returns pixel spacing
+MONAI's path did not, and it refuses a pixel-less DICOM (RTSTRUCT, SR,
+encapsulated PDF) by name instead of raising. MONAI moves to an opt-in
+`medimg-monai` extra for anyone who wants its own readers or bundles.
+
+**P1b — CadQuery becomes a sidecar.** Reading one number from a STEP file
+was buying vtkmodules (592 MB, a renderer TEE never renders with), casadi
+(159 MB, an assembly solver TEE never assembles with), llvmlite (129 MB, a
+JIT TEE never triggers) and OCP (225 MB, the only part actually needed).
+STEP genuinely needs a BREP kernel, so the capability MOVED rather than
+went: `_cad_worker.py` in its own venv, driven as a subprocess like
+`_cpsat_worker.py`. In-process is still used when cadquery is importable,
+so the dev environment exercises both paths.
+
+Identical results, measured on a hand-checkable solid:
+
+```
+expected (1000 - pi*4^2*5)   748.672588
+in-process                   748.672588   0.003 s
+sidecar                      748.672588   1.214 s warm  (154 s cold, once)
+```
+
+1.2 s per STEP measurement to keep 1.1 GB out of the interpreter that
+serves every tool call. Binary STL still measures natively with **zero**
+dependencies and is untouched.
+
+**Orphans swept:** numba/llvmlite (pandas needs them only for its
+`performance` extra) and the trame stack — another 162 MB. Every library
+TEE actually uses re-verified importable afterwards.
+
+**Suite: 1,019 passed / 9 skipped**, ruff clean. No capability was removed
+to achieve any of this.

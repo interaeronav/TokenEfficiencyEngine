@@ -35,7 +35,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from tee.fleet.probe import have, need, probe_rows
+from tee.fleet.probe import have, probe_rows
 from tee.kernel.errors import TeeError
 
 FORMATS = ("stl", "binstl", "asciistl", "3mf", "off", "amf", "dxf", "svg", "csg")
@@ -199,13 +199,108 @@ def _first_error(stderr: str) -> str | None:
     return stderr.splitlines()[-1][:220] if stderr else None
 
 
-def measure(spec: dict[str, Any]) -> dict[str, Any]:
-    """Scalar geometry facts about an existing solid, via CadQuery."""
-    need("cadquery", "cad", what="CadQuery")
-    import cadquery as cq
+# A46 P1b: where the BREP kernel lives. In-process if cadquery happens to
+# be importable (the repo dev env), otherwise a dedicated sidecar venv, so
+# TEE's own interpreter is not carrying 1.1 GB of vtk/casadi/llvmlite to
+# read one number. Configurable for a non-default location.
+SIDECAR_PY = Path.home() / "TEE" / ".tee" / "sidecars" / "cad" / "bin" / "python"
 
+
+def _sidecar_python(spec: dict[str, Any]) -> Path | None:
+    p = spec.get("cad_python")
+    cand = Path(str(p)).expanduser() if p else SIDECAR_PY
+    return cand if cand.is_file() else None
+
+
+def _measure_step(path: Path, spec: dict[str, Any], started: float) -> dict[str, Any]:
+    """STEP/BREP via CadQuery - in-process if present, else the sidecar."""
+    if have("cadquery"):
+        import cadquery as cq
+
+        try:
+            if path.suffix.lower() in (".step", ".stp"):
+                shape = cq.importers.importStep(str(path))
+            else:
+                shape = cq.Workplane(obj=cq.Shape.importBrep(str(path)))
+            solid = shape.val()
+            bb = solid.BoundingBox()
+            payload = {
+                "kind": "solid",
+                "volume": float(solid.Volume()),
+                "area": float(solid.Area()),
+                "bbox": [bb.xlen, bb.ylen, bb.zlen],
+                "valid": bool(solid.isValid()),
+                "where": "in-process",
+            }
+        except Exception as exc:
+            raise TeeError(
+                "cad_unreadable",
+                f"Could not read {path.name}: {str(exc)[:180]}",
+                fix="Check the file is a valid solid model.",
+            ) from exc
+    else:
+        py = _sidecar_python(spec)
+        if py is None:
+            raise TeeError(
+                "cad_no_kernel",
+                f"Measuring {path.suffix or 'STEP'} needs a BREP kernel, and "
+                f"neither an in-process CadQuery nor the sidecar is here.",
+                fix=f"Create the sidecar once:  uv venv {SIDECAR_PY.parent.parent} "
+                f"&& uv pip install --python {SIDECAR_PY} cadquery"
+                f"   (kept out of TEE's own venv: it brings ~1.1 GB of vtk, "
+                f"casadi and llvmlite that TEE never uses). Binary STL needs "
+                f"none of this and measures natively.",
+            )
+        worker = Path(__file__).parent / "_cad_worker.py"
+        try:
+            proc = subprocess.run(
+                [str(py), str(worker)],
+                input=json.dumps({"path": str(path)}),
+                capture_output=True,
+                text=True,
+                timeout=BUILD_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise TeeError(
+                "cad_timeout",
+                f"The CAD sidecar did not answer within {BUILD_TIMEOUT:.0f}s.",
+                fix="A very large assembly may need longer; simplify it.",
+            ) from exc
+        if proc.returncode != 0 or not proc.stdout.strip():
+            raise TeeError(
+                "cad_sidecar_failed",
+                f"The CAD sidecar exited {proc.returncode}.",
+                fix=(proc.stderr or "").strip()[-300:] or "Check the sidecar venv.",
+            )
+        payload = json.loads(proc.stdout)
+        if payload.get("error"):
+            raise TeeError(
+                "cad_unreadable",
+                str(payload.get("message") or payload["error"])[:200],
+                fix="Check the file is a valid solid model.",
+            )
+        payload["where"] = "sidecar"
+
+    return {
+        "ok": True,
+        "path": str(path),
+        "kind": "solid",
+        "volume": round(float(payload["volume"]), 6),
+        "area": round(float(payload["area"]), 6),
+        "bbox": [round(float(x), 6) for x in payload["bbox"]],
+        "valid": bool(payload["valid"]),
+        "engine": payload.get("where"),
+        "wall_s": round(time.monotonic() - started, 3),
+    }
+
+
+def measure(spec: dict[str, Any]) -> dict[str, Any]:
+    """Scalar geometry facts about an existing solid.
+
+    Binary STL is measured HERE with no dependency at all. STEP and BREP
+    need a real kernel and go in-process or to the sidecar (A46 P1b)."""
     path = Path(str(spec.get("path") or "")).expanduser()
-    if not str(path) or not path.is_file():
+    if not str(spec.get("path") or "") or not path.is_file():
         raise TeeError(
             "cad_bad_spec",
             f"No such file: {path}",
@@ -213,41 +308,15 @@ def measure(spec: dict[str, Any]) -> dict[str, Any]:
         )
     started = time.monotonic()
     suffix = path.suffix.lower()
-    try:
-        if suffix in (".step", ".stp"):
-            shape = cq.importers.importStep(str(path))
-        elif suffix in (".stl",):
-            shape = cq.Workplane(obj=cq.Shape.importBrep(str(path))) if False else None
-            if shape is None:
-                # CadQuery has no first-class STL importer; measure the mesh
-                return _measure_stl(path, started)
-        else:
-            raise TeeError(
-                "cad_unsupported",
-                f"'{suffix}' is not a format cad_measure reads.",
-                fix="Use STEP (.step/.stp) for solids, or STL for a mesh.",
-            )
-    except TeeError:
-        raise
-    except Exception as exc:
-        raise TeeError(
-            "cad_unreadable",
-            f"Could not read {path.name}: {str(exc)[:180]}",
-            fix="Check the file is a valid solid model.",
-        ) from exc
-
-    solid = shape.val()
-    bb = solid.BoundingBox()
-    return {
-        "ok": True,
-        "path": str(path),
-        "kind": "solid",
-        "volume": round(float(solid.Volume()), 6),
-        "area": round(float(solid.Area()), 6),
-        "bbox": [round(bb.xlen, 6), round(bb.ylen, 6), round(bb.zlen, 6)],
-        "valid": bool(solid.isValid()),
-        "wall_s": round(time.monotonic() - started, 3),
-    }
+    if suffix == ".stl":
+        return _measure_stl(path, started)
+    if suffix in (".step", ".stp", ".brep"):
+        return _measure_step(path, spec, started)
+    raise TeeError(
+        "cad_unsupported",
+        f"'{suffix}' is not a format cad_measure reads.",
+        fix="Use STEP (.step/.stp) or BREP for solids, or STL for a mesh.",
+    )
 
 
 def _measure_stl(path: Path, started: float) -> dict[str, Any]:

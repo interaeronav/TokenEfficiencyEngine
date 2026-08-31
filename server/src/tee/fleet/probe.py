@@ -43,7 +43,7 @@ EXTRAS: dict[str, tuple[str, str, str]] = {
     ),
     "medimg": (
         "medimg",
-        "MONAI Core + pydicom + nibabel (Orthanc is a separate server you run)",
+        "pydicom + nibabel + numpy - no torch (Orthanc is a separate server you run)",
         "uv pip install 'tee-engine[medimg]'",
     ),
 }

@@ -38,9 +38,10 @@ import json
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 
-from tee.fleet.probe import need, probe_rows
+from tee.fleet.probe import have, need, probe_rows
 from tee.kernel.errors import TeeError
 
 DEFAULT_URL = "http://127.0.0.1:8042"
@@ -272,41 +273,113 @@ def instance_tags(spec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# Reader dispatch, done here rather than by MONAI. `LoadImage` is a
+# dispatcher, and importing it costs **torch: 505 MB installed and over 60
+# seconds on first import** - measured, and it had already timed out a live
+# tool call. TEE wanted an array and four scalars. pydicom, nibabel and
+# numpy give exactly that for a few MB and a few milliseconds. MONAI is
+# still USED when present (it reads formats these do not), it is simply no
+# longer required to compute a mean.
+def _read_volume(path: str):
+    """-> (array, meta). Raises TeeError naming the package that reads it."""
+    import numpy as np
+
+    p = Path(path).expanduser()
+    suffix = "".join(p.suffixes).lower()
+
+    if suffix.endswith(".npy") or suffix.endswith(".npz"):
+        data = np.load(p, allow_pickle=False)
+        if hasattr(data, "files"):  # npz
+            data = data[data.files[0]]
+        return np.asarray(data), {}
+
+    if suffix.endswith(".nii") or suffix.endswith(".nii.gz"):
+        nib = need("nibabel", "medimg", what="the NIfTI reader")
+        img = nib.load(str(p))
+        return np.asarray(img.dataobj), {"pixdim": list(img.header["pixdim"])}
+
+    if suffix.endswith(".dcm") or suffix.endswith(".dicom"):
+        pydicom = need("pydicom", "medimg", what="the DICOM reader")
+        ds = pydicom.dcmread(str(p))
+        if not hasattr(ds, "pixel_array"):
+            raise TeeError(
+                "med_no_pixels",
+                f"{p.name} is a DICOM object with no pixel data "
+                f"(Modality {getattr(ds, 'Modality', '?')}).",
+                fix="RTSTRUCT, SR and encapsulated PDF carry no image; "
+                "use med_instance_tags to read them.",
+            )
+        arr = np.asarray(ds.pixel_array, dtype=np.float32)
+        # Hounsfield units, if the file declares the rescale
+        slope = float(getattr(ds, "RescaleSlope", 1) or 1)
+        intercept = float(getattr(ds, "RescaleIntercept", 0) or 0)
+        if (slope, intercept) != (1.0, 0.0):
+            arr = arr * slope + intercept
+        meta = {}
+        spacing = getattr(ds, "PixelSpacing", None)
+        thickness = getattr(ds, "SliceThickness", None)
+        if spacing is not None:
+            meta["pixdim"] = [1.0, float(spacing[0]), float(spacing[1])] + (
+                [float(thickness)] if thickness else []
+            )
+        return arr, meta
+
+    # Everything else: try MONAI if it happens to be here, then pillow.
+    # A failure in either must still end in a message naming the reader,
+    # never a bare library traceback.
+    if have("monai"):
+        try:
+            from monai.transforms import LoadImage
+
+            data, meta = LoadImage(image_only=False)(str(p))
+            return np.asarray(data), dict(meta or {})
+        except Exception:
+            pass
+    if have("PIL"):
+        try:
+            from PIL import Image
+
+            return np.asarray(Image.open(p)), {}
+        except Exception:
+            pass
+    raise TeeError(
+        "med_unreadable",
+        f"No reader here handles '{p.suffix or p.name}'.",
+        fix="uv pip install 'tee-engine[medimg]' covers DICOM (.dcm), NIfTI "
+        "(.nii/.nii.gz) and numpy (.npy) directly - no torch needed. Other "
+        "formats need MONAI, which does pull torch.",
+    )
+
+
 def volume_stats(spec: dict[str, Any]) -> dict[str, Any]:
-    """Scalar statistics of a local image volume via MONAI - shape, range,
-    spacing, foreground fraction. Never the voxel array."""
-    need("monai", "medimg", what="MONAI Core")
+    """Scalar statistics of a local image volume - shape, range, spacing,
+    non-zero fraction. Never the voxel array."""
     need("numpy", "medimg", what="numpy")
     import numpy as np
-    from monai.transforms import LoadImage
 
     path = str(spec.get("path") or "").strip()
     if not path:
         raise TeeError(
             "med_bad_spec",
-            "path is required (NIfTI, DICOM series directory, PNG, ...).",
-            fix="A local file or directory MONAI's LoadImage can read.",
+            "path is required (.dcm, .nii/.nii.gz, .npy, or an image).",
+            fix="A local file this machine can read.",
         )
+    if not Path(path).expanduser().exists():
+        raise TeeError("med_bad_spec", f"No such file: {path}", fix="Check the path.")
     started = time.monotonic()
     try:
-        data, meta = LoadImage(image_only=False)(path)
+        arr, meta = _read_volume(path)
+    except TeeError:
+        raise
     except Exception as exc:
-        # MONAI's base install registers only Numpy and PIL readers, so a
-        # perfectly valid DICOM or NIfTI fails with "cannot find a suitable
-        # reader" and no hint about which package supplies one.
-        hint = ""
-        if "suitable reader" in str(exc):
-            hint = (
-                " The [medimg] extra installs pydicom (DICOM) and nibabel "
-                "(NIfTI); MONAI alone reads neither."
-            )
         raise TeeError(
             "med_unreadable",
-            f"MONAI could not read {path}: {str(exc)[:180]}",
-            fix=f"uv pip install 'tee-engine[medimg]'.{hint}",
+            f"Could not read {Path(path).name}: {str(exc)[:180]}",
+            fix="Check the file is a valid image or volume.",
         ) from exc
-    arr = np.asarray(data)
-    finite = arr[np.isfinite(arr)]
+
+    arr = np.asarray(arr)
+    finite = arr[np.isfinite(arr)] if arr.size else arr
     out = {
         "ok": True,
         "path": path,
@@ -317,7 +390,7 @@ def volume_stats(spec: dict[str, Any]) -> dict[str, Any]:
         "max": round(float(finite.max()), 4) if finite.size else None,
         "mean": round(float(finite.mean()), 4) if finite.size else None,
         "std": round(float(finite.std()), 4) if finite.size else None,
-        "nonzero_fraction": round(float((arr != 0).mean()), 6),
+        "nonzero_fraction": round(float((arr != 0).mean()), 6) if arr.size else None,
         "wall_s": round(time.monotonic() - started, 3),
     }
     spacing = (meta or {}).get("pixdim")

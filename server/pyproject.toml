@@ -70,11 +70,23 @@ quant = [
 # what let it open a DICOM or a NIfTI at all, so they are not optional here.
 # Orthanc is NOT listed: it is GPLv3 and is reached over HTTP as a server
 # the owner runs, never imported and never bundled.
+# A46 P1a: MONAI is NO LONGER REQUIRED. It hard-depends on torch (505 MB
+# installed, >60 s on first import - it timed out a live tool call), and TEE
+# used it only as a reader dispatcher to get an array and four scalars.
+# pydicom, nibabel and numpy do that directly in 0.07 s, return identical
+# values on a real CT (min -1000 HU, max 1529), and additionally give pixel
+# spacing that MONAI's path did not. MONAI is still USED when present, for
+# formats these three do not read - see the `medimg-monai` extra.
 medimg = [
-    "monai>=1.6.0",
     "pydicom>=3.0",
     "nibabel>=5.3",
     "numpy>=1.24",
+]
+# Opt in only if you need MONAI's own readers, transforms or bundles. This
+# is the extra that pulls torch.
+medimg-monai = [
+    "monai>=1.6.0",
+    "torch>=2.8",
 ]
 # A45 P2e: CAD measurement. CadQuery Apache-2.0 (its OCP/OCCT stack carries
 # an LGPL-3.0 component). ~1.3 GB installed and ~140 s on FIRST import while
