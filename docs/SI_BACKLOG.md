@@ -243,3 +243,30 @@ Format per item:
   `not_evaluated` rather than passing.
 - proposed: nothing. Recorded so the request is not re-opened as missing.
 - status: closed on inspection
+
+## SI-B24 — models without vision or hearing cannot borrow them, and do not say so
+- seen: 2026-08-31, owner request; researched as `docs/research/66-senses-for-blind-models.md`
+- call: rendered a card reading `PLINTH K-4713 / CURE 21 DAYS` — unguessable
+  content — and asked three routes to read it
+- hurt: all three read it exactly, **including `claude-qwen-27b`, a text-only
+  checkpoint**. The owner's LiteLLM pre-call hook silently reroutes any
+  image-bearing request to Qwen3-VL. So DeepSeek genuinely has no vision and
+  the system genuinely gives it vision, and nothing anywhere says so — which
+  is why the owner asked for a feature they had already built. Three further
+  gaps behind it: `machine.ENGINES` declares no modality for any engine, so
+  the router cannot reason about senses at all; the reroute **evicts the
+  84 GB session model** to load the 17 GB vision model, measured at **~10 s
+  per modality alternation against 0.67–0.82 s warm**, and that cost appears
+  in no ledger or answer; and there is no audio bridge at all, though
+  faster-whisper transcribes verbatim in 0.62 s locally.
+- proposed: a kernel-level `sense` bridge. Declare senses on `ENGINES`
+  (including `evicts`, the mutual exclusion the hook already knows and TEE
+  does not) so `MachineLedger.may_swap` can price a modality switch the way
+  it already prices an engine swap. Add `sense_describe` / `sense_transcribe`
+  returning a budgeted text fact that always names its provider, the engine
+  that lacked the sense, and the swap seconds — the token case is strong on
+  its own (2,065 local input tokens compress to a 63-token answer, 33x, all
+  free). Batch pending vision questions while the provider is resident
+  rather than alternating. Refuse when no provider exists; never let a blind
+  model improvise, which is the failure this exists to prevent.
+- status: open (researched, not built)
