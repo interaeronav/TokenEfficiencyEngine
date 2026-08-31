@@ -53,6 +53,11 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   spend and egress, land the fifteen headless open resources) is driven
   by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
   goes, the taint law stays, and TEE still never grants itself.
+- The A48 build (close A47 P5, then the PDF write/edit lane:
+  `pdf_compose` on fpdf2, `pdf_edit` on pypdf, round-tripped through the
+  existing extract lane) is driven by `CLAUDE_A48_SCRIPT.md`. It is
+  written for a cold session: orientation, the upgrade trap, and the
+  measured facts it builds on are all inside the script.
 - The A47 campaign (senses for blind hosts: machine vision and sound for
   host models that lack them, the opencode/DeepSeek case) is driven by
   `CLAUDE_A47_SCRIPT.md`; research doc 66 (revised) is its design of

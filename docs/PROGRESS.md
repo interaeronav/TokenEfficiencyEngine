@@ -7980,3 +7980,32 @@ top - this is that, not a setup you never did.
 
 Restored; all 14 libraries present; doctor reports both senses UP with
 measured costs.
+
+### A47 camera senses landed; A48 script written (2026-08-31)
+
+`sense_viewport` and `sense_camera` shipped to the repo (commit 25908fe):
+the blind-host eye can now be AIMED — named target, azimuth/elevation,
+temporary camera under the existing leave-the-scene-exactly-as-found
+contract, verified live against the running chair scene (56 objects and an
+identical camera list before and after). Two fixes came from looking at a
+real render instead of trusting the wire: the look path denoises (Cycles
+noise reads as surface damage to a vision model), and whole-scene framing
+excludes backdrop-scale outliers (a studio cyc wall dragged the frame to
+pure white — the orbit script's trap, hit again and now guarded in code).
+The lane is portable per the owner: `[senses]` config carries any user's
+endpoint, model and eviction facts; this machine's measured values are the
+fallback, not the code.
+
+Owner then redirected: write the remaining work as a script runnable by a
+fresh Opus session, and add a PDF write/edit feature. `CLAUDE_A48_SCRIPT.md`
+written: P0 carries A47 P5 (benchmark rows with the corrected 11.6x/165x
+figures, the alternation re-measure, the ≤2 GB small-VLM audition, ship
+0.15.0), then `pdf_compose` (fpdf2, currently a dev-group habit used
+inline for the chair PDFs with no kept script) and `pdf_edit` (pypdf page
+surgery plus stamp overlays; true in-place text rewriting REFUSED with the
+reason — layout-fragmented spans corrupt silently). Laws: no silent
+overwrites, summaries never payloads, licences recorded (fpdf2 LGPL-3.0 /
+pypdf BSD-3, private use), explicit trust tabling on write-artifacts, and
+every output read back through the existing extract lane — with
+`sense_describe` visually confirming stamps on rendered pages, the senses
+lane checking the pdf lane.
