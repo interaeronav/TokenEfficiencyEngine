@@ -7099,3 +7099,68 @@ fixture would have quietly dropped the new engine out of every cascade test
 while still passing.
 
 **Suite: 1,027 passed / 9 skipped**, ruff clean.
+
+### A46 P2b — nothing blocks on a first import any more
+
+Measured in the venv the owner actually runs (the Claude Desktop extension,
+Python 3.13), not the repo venv:
+
+```
+numpy 0.05s   pandas 0.22s   scipy 0.04s   pydicom 0.08s
+nibabel 0.08s  PIL 0.00s  highspy 0.03s  skfolio 0.89s  pypfopt 0.49s
+tee.app 0.02s
+```
+
+The 60–140 s blocking is gone, because P1 removed its cause: torch (via
+MONAI) and the CadQuery stack. A full `cad_measure` round trip through the
+sidecar, three consecutive fresh processes:
+
+```
+run 1: 1.10s  volume=748.673
+run 2: 1.12s  volume=748.673
+run 3: 1.09s  volume=748.673
+expected:     748.673
+```
+
+**A wrong hypothesis, corrected by measuring it.** I assumed the old 154 s
+sidecar cold start was bytecode compilation and precompiled all 4,163 files
+to prove it — `compileall` finished in **1.5 s**. Bytecode was never the
+cost; it was install/first-link. The sidecar is now 100% precompiled
+anyway, which is free and harmless, but it is not what fixed this.
+
+The guard is `test_a46_no_heavy_imports.py`, and it is deliberately **not a
+stopwatch** — a timing assertion on a shared machine is a flake generator.
+It asserts the thing actually worth pinning: that no heavyweight re-enters
+the interpreter serving every tool call. Verified it can fail by planting a
+sentinel. It also drives a real `med.volume_stats` call, because the fleet
+imports lazily — which is why the module-load check returns in 0.03 s and
+would not, on its own, catch a heavyweight pulled in at call time.
+
+### A46 P2c — tool search measured, and left alone
+
+The script's instruction was to fix this *only if measured slow*. It is not.
+Padding the registry with clones to measure at scale:
+
+```
+ 28 tools -> median 0.023 ms | max 0.075 ms
+133 tools -> median 0.098 ms | max 0.128 ms
+400 tools -> median 0.272 ms | max 0.365 ms
+```
+
+Linear, and negligible at any surface this project will have. Quality at
+the real surface — the right tool in the top 3:
+
+```
+OK   'measure a step file'       -> cad_measure, bi_catalogue, bi_query
+OK   'dicom study'               -> med_study_tree, med_find_studies, med_archive
+OK   'backtest a moving average' -> trade_backtest, trade_detail, bi_catalogue
+OK   'portfolio optimisation'    -> quant_optimize, quant_backends, quant_detail
+OK   'solve a schedule'          -> solve_program, solve_backends, solve_cpsat
+--   'what changed'              -> does not return tee_diff
+```
+
+The last is correct behaviour, not a miss: `tee_diff` is one of the 17
+always-loaded tools declared in `server.py`, not a virtual one. Search
+covers the long tail; the model already holds `tee_diff`. **No change made.**
+
+**Suite: 1,034 passed / 9 skipped**, ruff clean.
