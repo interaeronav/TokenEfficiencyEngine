@@ -250,3 +250,63 @@ nobody looked at.
 3. Can `sense_describe` cache by content hash? The same frame asked twice
    costs 2,065 tokens twice today. `phash` dedupe already exists in
    `extract/images.py`.
+
+## Addendum (same day): the full denial audit for a local host
+
+The owner asked what ELSE denies a local host model access to TEE's tools.
+Audited live, not from memory. Five classes found, one suspected class
+cleared.
+
+**Class 1 — the grantless root (almost certainly the owner's literal
+experience).** `tee serve --project` defaults to `.`, the launching
+client's cwd. The owner's grants (`workstation` profile) live in
+`/Users/john/TEE/.tee/config.toml` — the Desktop project. An opencode
+connection that does not pass `--project /Users/john/TEE` boots from an
+ungranted root. Probed with no grants, caller live-turn:
+
+```
+read-scene / read-extract / read-compute / write-state   ALLOWED
+exec-code  mutate-scene  run-declared-step  run-adhoc    denied
+call-service  call-paid-engine  place-order              denied
+```
+
+So a terminal host keeps reads and memory but loses **the entire mutation
+surface** — `tee_batch` mutations, `tee_script`, pipelines, service calls.
+Combined with class 2 (no way to see media), "TEE denies access to all the
+tools" is a fair user-level summary of what DeepSeek experienced. This is
+the A43 kernel working as designed — the gap is *discoverability*: nothing
+tells a first-contact host which root was loaded, which file grants would
+come from, and what one line would fix it. TEE must never grant itself
+(A45 law), but it can say precisely where the owner grants.
+
+**Class 2 — in-band media homework** (the A9 family, core of this doc):
+`ex_prepare` hands file paths; `tee_media`/`tee_capture` return pixels;
+`extract/images.py` contact sheets are labeled IMAGES to look at; the
+FreeCAD adapter returns base64 previews. All dead ends for a blind host.
+Notably the UE lane already solved this for itself — `adapters/unreal/
+vision.py` answers viewport questions through `local_vlm`, "costs the host
+model only the answer text". **The borrowed-eye pattern now counts three
+prior implementations** (web, UE, and the parked extract driver); A47
+generalizes what three lanes each built privately.
+
+**Class 3 — the only cloud escape is Anthropic-shaped.** `ApiDriver`
+requires `ANTHROPIC_API_KEY` + the `anthropic` sdk — the sole off-session
+extraction path assumes the host's vendor. (A47 P3 fixes this with the
+local driver; no other `import anthropic` exists in the tree.)
+
+**Class 4 — image token budgeting assumes Claude's tokenizer.**
+`extract/images.py` prices every image at `ceil(w/28) x ceil(h/28)` —
+PATCH=28 is Claude's patch economics. Budgets handed to a *seeing*
+non-Claude host are mis-calibrated. Minor today (the blind host never gets
+that far); worth one honest line in the budget notes.
+
+**Class 5 — guidance delivery assumes the client shows MCP instructions.**
+TEE's epoch/diff discipline rides the server `instructions` block; clients
+that do not surface it (terminal hosts vary) leave the host without the
+"track (epoch, revision), prefer tee_diff" contract. Tool descriptions must
+carry enough to survive an instructions-blind client.
+
+**Cleared — consent is host-agnostic.** Suspected that consent flowed from
+a Claude-only UI. It does not: consent is expressed in-band (`_consent` in
+config, or an explicit TEE/Q switch phrase counting as the owner asking).
+No denial class here; recorded so it is not re-suspected.

@@ -76,7 +76,10 @@ machine.
 5. **Cache by exact content hash, never phash.** A near-duplicate's
    description is not this image's description — serving a cached card
    reading for a different card is precisely failure mode #2.
-6. Local providers only by default; nothing here may route to a paid or
+6. **A denial must teach.** Any refusal a first-contact host can hit
+   (grants, senses, drivers) names the root cause and the owner's exact
+   fix — the audit's lesson is that TEE was truthful but unteaching.
+7. Local providers only by default; nothing here may route to a paid or
    off-machine engine, and `spend.py` must show `off_machine_calls: 0`
    for every sense call in the acceptance runs.
 
@@ -91,6 +94,27 @@ declared fact. `tee doctor` gains a senses line: what this machine can
 see and hear, and with what. Respect the one-profile-per-engine
 uniqueness test (the A46 P3a lesson).
 *Acceptance:* doctor names both providers with measured costs; suite green.
+
+## P0.5 — the grantless host can find the door
+
+The denial audit (research 66 addendum) showed the likely literal cause of
+"denied access to all the tools": `serve --project` defaults to the
+launching client's cwd, so a terminal host (opencode) boots from an
+ungranted root and loses every mutation tier while the owner's grants sit
+in `/Users/john/TEE/.tee/config.toml`. TEE never grants itself — the fix
+is pure discoverability:
+
+- `tee_status` states the loaded project root, the grants file path (or
+  "none found"), and the granted/denied tier split in one compact block.
+- `tee doctor` gains a first-contact check: serving from an ungranted
+  root -> name the root, the file a grant would live in, and the two
+  owner options (`--project /Users/john/TEE`, or a `[trust]` block here).
+- `docs/` gains the terminal-host connection guide (opencode/DeepSeek):
+  the launch line with `--project`, what works grantless, what needs
+  grants.
+
+*Acceptance:* a TeeApp at a fresh empty root reports its rootedness
+honestly in status and doctor; nothing is auto-granted; suite green.
 
 ## P1 — `sense_describe` (drive the parked driver)
 
