@@ -14,7 +14,7 @@ from tee.kernel.machine import ENGINES, QOS, RESERVE_GB, MachineLedger
 def test_registry_rows_carry_the_k_layer_schema():
     assert QOS == ("interactive", "standard", "batch", "maintenance")
     for name, spec in ENGINES.items():
-        assert spec["kind"] in ("llm", "job", "client"), name
+        assert spec["kind"] in ("llm", "job", "client", "sense"), name
         assert spec["capability"], name
         assert spec["footprint_gb"] >= 0, name
         assert spec["qos_default"] in QOS, name
@@ -22,6 +22,16 @@ def test_registry_rows_carry_the_k_layer_schema():
     # llm rows bind to their switch profiles
     assert ENGINES["q14b+a2"]["profile"] == "q14b"
     assert ENGINES["q27b-bare"]["profile"] == "q27b"
+    # A47: sense rows are a distinct kind - they convert media rather than
+    # reason, so they carry `senses` and an `evicts` list. Every llm row
+    # declares its senses too, because "this model is blind" is a fact the
+    # router needs stated, not inferred from an absent key.
+    for name, spec in ENGINES.items():
+        if spec["kind"] == "sense":
+            assert spec["senses"], name
+            assert isinstance(spec["evicts"], list), name
+        if spec["kind"] == "llm":
+            assert spec["senses"] == [], name
 
 
 def test_register_release_and_footprint():

@@ -40,6 +40,7 @@ ENGINES: dict[str, dict[str, Any]] = {
         "kind": "llm",
         "profile": "q14b",
         "capability": ["chores"],
+        "senses": [],  # A47 P0: blind and deaf, declared
         "footprint_gb": 9.0,  # 8.0 measured R0 2026-08-29
         "eta_s": 1.1,  # measured swap cost R2 2026-08-29 (spec said 30)
         "qos_default": "interactive",
@@ -49,6 +50,7 @@ ENGINES: dict[str, dict[str, Any]] = {
         "kind": "llm",
         "profile": "q27b",
         "capability": ["chores"],
+        "senses": [],  # A47 P0: blind and deaf, declared
         "footprint_gb": 55.0,  # 43.7 measured R0 2026-08-29
         "eta_s": 18.0,  # measured swap cost R2 2026-08-29 (spec said 90)
         "qos_default": "interactive",
@@ -88,6 +90,7 @@ ENGINES: dict[str, dict[str, Any]] = {
         "kind": "llm",
         "profile": "dsflash",
         "capability": ["chores"],
+        "senses": [],  # A47 P0: blind and deaf, declared
         # No resident process observed across a live 900-token generation
         # (polled 15 s at 0.7 s). Served on demand and not held, so there
         # is no steady footprint to charge the ledger for. NOT a measured
@@ -96,6 +99,43 @@ ENGINES: dict[str, dict[str, Any]] = {
         "eta_s": 3.0,  # 2.27 s first call vs 1.49 s warm, measured
         "qos_default": "interactive",
         "cost": {"latency_s": [4.41, 4.41], "measured": "A46 P3a 2026-08-31"},
+    },
+    # -- A47 P0: sense providers. A model that cannot see borrows an eye.
+    #
+    # These are not chore engines: nothing routes work here for reasoning.
+    # They convert media the asking model cannot read into text it can, and
+    # they are declared so the ledger can PRICE that conversion instead of
+    # it happening invisibly (which is what the owner's shim does today).
+    "qvl": {
+        "kind": "sense",
+        "profile": "qvl",
+        "capability": ["sense-vision"],
+        "senses": ["vision"],
+        "footprint_gb": 17.0,  # measured on disk: the 4-bit 30B-A3B weights
+        # The fact the shim knows and TEE did not: on a 128 GB machine an
+        # 84 GB session model and this cannot both be resident (the owner's
+        # hook proved it - 90 GB swap, pressure critical), so an image
+        # request EVICTS the host's model and its next turn pays a reload.
+        "evicts": ["dsflash"],
+        "qos_default": "interactive",
+        "cost": {
+            "latency_s": [4.0, 7.5],  # gable-vs-spec 4.0, 4K site frame 7.5
+            "swap_s": 10.0,  # measured alternation penalty vs 0.67-0.82 warm
+            "measured": "A47 P0 2026-08-31",
+        },
+    },
+    "whisper": {
+        "kind": "sense",
+        "capability": ["sense-audio"],
+        "senses": ["audio"],
+        "footprint_gb": 0.5,  # faster-whisper base, int8 on CPU
+        "evicts": [],  # small enough to coexist with anything here
+        "qos_default": "interactive",
+        "cost": {
+            "latency_s": [0.62, 1.36],  # base / tiny on a spoken fixture
+            "load_s": 0.8,  # per-call model load; no sidecar needed
+            "measured": "A47 P0 2026-08-31",
+        },
     },
     "client": {
         "kind": "client",

@@ -190,6 +190,12 @@ _FAMILY: tuple[tuple[str, str], ...] = (
 )
 
 _EXPLICIT: dict[str, str] = {
+    # A47: senses a blind host borrows. Tabled EXPLICITLY, not by family
+    # prefix - A45's lesson was that a prefix silently admits whatever is
+    # named next, and these read files and POST to 127.0.0.1. They mutate
+    # nothing and nothing leaves the machine, so: the read tier.
+    "sense_describe": "read-extract",
+    "sense_transcribe": "read-extract",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",

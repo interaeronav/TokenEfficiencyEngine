@@ -100,6 +100,17 @@ def _attach_pins(app, project: str) -> None:
     register_pin_tools(app, Path(project))
 
 
+def _attach_senses(app, project: str) -> None:
+    """Register sense_* (A47). Vision needs the local shim and audio needs
+    the extract extra; both refuse with their exact fix at call time, so
+    registration is unconditional - a tool that vanishes when its provider
+    is down is indistinguishable from one that never existed, which is the
+    confusion this lane was built to end."""
+    from tee.senses import register_sense_tools
+
+    register_sense_tools(app, Path(project))
+
+
 def _attach_design(app, project: str) -> None:
     """Register TEE Design tools (pure stdlib - always on)."""
     from tee.design.tools import register_design_tools
@@ -202,6 +213,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_pipeline(app, args.project)
     _attach_pins(app, args.project)
     _attach_design(app, args.project)
+    _attach_senses(app, args.project)
     _attach_physical(app, args.project)
     _attach_uefn(app, args.project)
     _attach_kb(app, args.project)

@@ -7832,3 +7832,73 @@ measured ~10 s modality-swap cost (P5). The law: never silent (every
 answer names its provider and its swap cost), refuse rather than improvise,
 surface stays 17 tools, no weights in the venv, local providers only with
 `off_machine_calls: 0` asserted in acceptance.
+
+### A47 P0–P2 — a blind host can see and hear (2026-08-31)
+
+**P0 — the machine declares what it can perceive.** `machine.ENGINES` gains
+two `kind: "sense"` rows and every LLM row gains `senses: []`, so "dsflash
+is blind" becomes a stated fact rather than an absent key. `qvl` carries
+`evicts: ["dsflash"]` and `swap_s: 10.0` — the cost the owner's shim knew
+and TEE did not. Sense rows are excluded from the chore ladder by
+construction: they convert media, they do not reason.
+
+```
+[ok] senses: vision UP (qvl, 17.0 GB, 7.5s measured);
+     audio UP (faster-whisper, 0.5 GB, 0.62s measured);
+     vision evicts dsflash (~10.0s reload on the next text turn)
+```
+
+**P0.5 — the grantless host finds the door.** `tee_status` gains
+`rooted_at`. The owner's literal experience, reproduced:
+
+```
+project_root : /var/folders/.../tmp0c3yhyqb
+grants_file  : none found
+denied_tiers : exec-code, mutate-scene, run-declared-step, call-service
+why          : reads and project memory work; these tiers need a grant in
+               the project this session is rooted at
+fix          : launch with --project <the granted project>, or add a
+               [trust] grants line to <root>/.tee/config.toml
+```
+
+`tee doctor` warns on first contact with the same fix. **It reports; it
+never grants** — a test asserts the grant set is still empty after a status
+call. Surfaced something unasked: even the owner's granted root denies
+`mutate-scene` and `call-service`.
+
+**P1/P2 — `sense_describe` and `sense_transcribe`.** Virtual tools on the
+existing `local_vlm` client and the existing faster-whisper machinery. No
+new provider, no weights in the venv. Acceptance, all run live:
+
+```
+(a) search "describe what is in an image"  -> sense_describe RANKS FIRST
+    (before this lane: med_instance_tags, "Pixel data is never returned")
+(b) the unguessable card, through the tool -> 'PLINTH K-4713 CURE 21 DAYS'
+    provided_by: claude-qwen-vl (local, 17.0 GB)
+(c) same call twice -> cached=True, wall 0.0s, provider untouched
+(d) report_spend    -> off_machine_calls 0
+(e) a .heic input   -> described with no manual conversion (v0.11.0's door)
+    audio           -> 'The gable brick work is complete, but the roof
+                        sheeting has not been installed.' (verbatim, 1.41s)
+```
+
+Three decisions worth keeping:
+
+- **The cache key is an exact sha256, never a phash.** `extract/images.py`
+  has perceptual dedupe and it is the wrong tool here: two frames a
+  hamming-5 apart are the same photo for grouping and emphatically not for
+  *what does this label say*. Serving a cached reading of a nearly
+  identical card is the confident wrong answer this lane exists to prevent.
+- **Registration does not depend on the provider being up.** A tool that
+  vanishes when its shim is down is indistinguishable from one that never
+  existed — the exact confusion that started this. It registers always and
+  refuses at call time with the fix.
+- **Every payload states what it is not.** *"A description, not the image.
+  The model reading this never saw the pixels."* For audio: tone, speaker
+  identity and non-speech sound are not captured.
+
+The K-layer schema test was extended rather than widened: `sense` rows must
+carry `senses` and an `evicts` list, and `llm` rows must declare
+`senses == []`.
+
+**Suite: 1,098 passed / 9 skipped**, ruff clean.

@@ -337,6 +337,37 @@ class TeeApp:
         cache.resync(adapter)  # continuity break + rebuild from restored state
         return {"ok": True, "restored": cp.to_payload(), **cache.stamp()}
 
+    def _rootedness(self) -> dict[str, Any]:
+        """The project root, where grants would come from, and the tier
+        split that follows. Compact by design: three lines that turn a
+        confusing denial into a one-line fix."""
+        from tee.kernel import trust as _t
+
+        cfg_file = self.project_root / ".tee" / "config.toml"
+        granted = sorted(self.registry.grants.granted)
+        tiers = ("exec-code", "mutate-scene", "run-declared-step", "call-service")
+        denied = [
+            c
+            for c in tiers
+            if not _t.check(c, caller="live-turn", grants=self.registry.grants).allowed
+        ]
+        out: dict[str, Any] = {
+            "project_root": str(self.project_root),
+            "grants_file": str(cfg_file) if cfg_file.is_file() else "none found",
+            "granted": granted or [],
+        }
+        if denied:
+            out["denied_tiers"] = denied
+            out["why"] = (
+                "reads and project memory work; these tiers need a grant "
+                "in the project this session is rooted at"
+            )
+            out["fix"] = (
+                f"launch with --project <the granted project>, or add a "
+                f"[trust] grants line to {cfg_file}"
+            )
+        return out
+
     def status(self) -> dict[str, Any]:
         from tee.kernel import trust as _trust
 
@@ -376,6 +407,19 @@ class TeeApp:
             ).allowed
             or bool(self.allow_code_exec),
             "llm_profile": profiles.status_line(self.llm_cfg),
+            # A47 P0.5: where this session is ROOTED, and what that costs.
+            #
+            # `tee serve --project` defaults to the launching client's cwd.
+            # A terminal host (opencode) that does not pass --project boots
+            # from a root with no grants file, keeps the read tiers, and
+            # silently loses every mutation tier - while the owner's grants
+            # sit in another directory. The owner read that as "TEE denies
+            # access to all the tools", and TEE never said which root it had
+            # loaded or where a grant would come from. It does now.
+            #
+            # This REPORTS; it never grants. TEE granting itself is exactly
+            # what A45 forbids.
+            "rooted_at": self._rootedness(),
         }
         if self.registry.disabled:
             payload["disabled_tools"] = sorted(self.registry.disabled)

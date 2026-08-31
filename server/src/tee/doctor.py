@@ -359,6 +359,93 @@ def check_web() -> Check:
     return Check("web", "ok", "tee_web_lookup ready; " + "; ".join(bits))
 
 
+def check_rooted(project_root: Any = None) -> Check:
+    """First contact: is this session rooted where its grants are?
+
+    A47 P0.5. `serve --project` defaults to the launching client's cwd, so
+    a terminal host that omits it boots from an ungranted root, keeps the
+    read tiers, and loses every mutation tier. That reads as "TEE denies
+    everything" when it is really "TEE is standing in the wrong room".
+    Reporting only - never grants.
+    """
+    from pathlib import Path as _Path
+
+    from tee.app import TeeApp
+
+    root = _Path(project_root) if project_root else _Path.cwd()
+    try:
+        rooted = TeeApp({}, project_root=root).status()["rooted_at"]
+    except Exception as exc:  # a diagnostic must not be the thing that breaks
+        return Check(name="project root", status="warn", detail=f"unreadable: {exc}"[:120])
+    denied = rooted.get("denied_tiers") or []
+    if not rooted.get("granted"):
+        return Check(
+            name="project root",
+            status="warn",
+            detail=f"{rooted['project_root']} has no grants ({rooted['grants_file']}); "
+            f"reads work, {len(denied)} mutation tier(s) denied: {', '.join(denied)}",
+            fix=rooted.get("fix"),
+        )
+    return Check(
+        name="project root",
+        status="ok",
+        detail=f"{rooted['project_root']} grants {', '.join(rooted['granted'])}"
+        + (f"; still denied: {', '.join(denied)}" if denied else ""),
+    )
+
+
+def check_senses() -> Check:
+    """What this machine can see and hear, and with what.
+
+    A47 P0. A host model that lacks a sense cannot discover whether TEE can
+    lend it one by trying and failing - the providers are services, not
+    imports, so absence looks identical to misconfiguration. State it.
+    """
+    from tee.kernel import local_vlm
+    from tee.kernel.machine import ENGINES
+
+    rows = []
+    vision_up = local_vlm.available(timeout=1.5)
+    qvl = ENGINES.get("qvl", {})
+    rows.append(
+        f"vision {'UP' if vision_up else 'down'} "
+        f"({qvl.get('profile', '?')}, {qvl.get('footprint_gb', '?')} GB, "
+        f"{qvl.get('cost', {}).get('latency_s', ['?'])[-1]}s measured)"
+    )
+    try:
+        from importlib.util import find_spec
+
+        audio_up = find_spec("faster_whisper") is not None
+    except (ImportError, ValueError):
+        audio_up = False
+    wh = ENGINES.get("whisper", {})
+    rows.append(
+        f"audio {'UP' if audio_up else 'down'} "
+        f"(faster-whisper, {wh.get('footprint_gb', '?')} GB, "
+        f"{wh.get('cost', {}).get('latency_s', ['?'])[0]}s measured)"
+    )
+    # The cost that is invisible today and must not stay invisible.
+    evicts = qvl.get("evicts") or []
+    if vision_up and evicts:
+        rows.append(
+            f"vision evicts {', '.join(evicts)} "
+            f"(~{qvl.get('cost', {}).get('swap_s', '?')}s reload on the next text turn)"
+        )
+    both = vision_up and audio_up
+    return Check(
+        name="senses",
+        status="ok" if both else "warn",
+        detail="; ".join(rows),
+        fix=None
+        if both
+        else (
+            "vision: start the local model stack (litellm --config "
+            "~/.claude/qwen-local/litellm.yaml). "
+            "audio: uv pip install 'tee-engine[extract]'."
+        ),
+    )
+
+
 def check_extras(project_root: Any = None) -> Check:
     """Did an upgrade quietly delete the optional extras?
 
@@ -485,6 +572,8 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_web(),
         check_state(),
         check_extras(),
+        check_senses(),
+        check_rooted(),
         check_llm(),
     ]
 
