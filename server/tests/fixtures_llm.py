@@ -93,7 +93,7 @@ CONTROLS = [
 # TEE's readiness probe compares against them - so a fixture that
 # advertises one id while answering to another is a lie that would hide
 # exactly the misroute the probe exists to catch.
-FAKE_MODELS = ("fake", "fake-14b", "fake-27b", "tee-coder")
+FAKE_MODELS = ("fake", "fake-14b", "fake-27b", "fake-dsflash", "tee-coder")
 
 
 @contextlib.contextmanager

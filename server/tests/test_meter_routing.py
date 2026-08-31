@@ -12,19 +12,25 @@ from fixtures_llm import fake_llm_server
 from test_llm_router import GOOD, _by_model, _route
 
 from tee.kernel.machine import MachineLedger
+from tee.llm.router import LADDER
 
 
 def test_route_fills_the_merged_meter(tmp_path):
     ledger = MachineLedger(total_gb=128)
-    with fake_llm_server(_by_model(set())) as (url, _calls):  # both engines fail
+    with fake_llm_server(_by_model(set())) as (url, _calls):  # every engine fails
         routed = _route(url, tmp_path, ledger=ledger)
     assert routed["ok"] is False
     block = ledger.meter_block()
     assert block["routed_tasks"] == 1 and block["escalations"] == 1
     assert block["escalation_rate"] == 1.0
-    assert block["engines"]["q14b+a2"] == {"calls": 1, "verified": 0}
-    assert block["engines"]["q27b-bare"] == {"calls": 1, "verified": 0}
-    assert block["swaps"]["implicit"] == 1 and block["swaps"]["refused"] == 0
+    # Derived from the ladder, not hardcoded: this asserted "2 engines" and
+    # broke the moment A46 P3b registered a third. The invariant is that
+    # EVERY rung was tried once and none verified, whatever the ladder holds.
+    for engine in LADDER:
+        assert block["engines"][engine] == {"calls": 1, "verified": 0}
+    # One implicit swap per non-resident rung; the resident rung is free.
+    assert block["swaps"]["implicit"] == len(LADDER) - 1
+    assert block["swaps"]["refused"] == 0
     assert block["scheduler"]["queue_age_s"].startswith("reserved")
     assert block["scheduler"]["shadow_delta"].startswith("reserved")
 
@@ -35,7 +41,8 @@ def test_refused_swap_is_a_meter_column(tmp_path):
     with fake_llm_server(_by_model(set())) as (url, _calls):
         _route(url, tmp_path, ledger=ledger)
     block = ledger.meter_block()
-    assert block["swaps"]["refused"] == 1
+    # A registered job blocks a swap to every non-resident rung.
+    assert block["swaps"]["refused"] == len(LADDER) - 1
     assert "okongo@odm" in block["swaps"]["last_refusal"]
     assert block["jobs"]["active"] == 1 and block["jobs"]["batch_footprint_gb"] == 16.0
 

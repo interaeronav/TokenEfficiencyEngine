@@ -7061,3 +7061,41 @@ prompt, budget and path make them incomparable. A uniqueness test now fails
 loudly instead.
 
 **Suite: 1,027 passed / 9 skipped**, ruff clean, surface invariant intact.
+
+### A46 P3b — cheapest-capable routing
+
+The ladder was hand-written as `("q14b+a2", "q27b-bare")`. On this machine
+that leads with a 14B the shim does not serve — a dead first hop — then
+lands on the 27B, while the free DeepSeek-Flash route was **not in the
+ladder at all**. It is now derived from the measured table:
+
+```
+before: ('q14b+a2', 'q27b-bare')
+after : ('q14b+a2', 'dsflash', 'q27b-bare')
+          [0.74,1.74]  [4.41,4.41]  [3.07,9.69] s
+paid reachable: False
+```
+
+Deriving it means registering an engine is enough to make it reachable, and
+a machine that *does* serve a 14B still gets it first because its measured
+cost says so.
+
+**The paid engine stays structurally unreachable.** `qmax` is a config
+profile with no row in `ENGINES`, so no ordering, policy or config can
+promote it into the ladder — verified from both ends, not by a filter that
+could be edited out.
+
+**A metering defect fixed on the way.** A rung whose profile a machine has
+not declared used to raise `llm_unknown_profile` *inside* the call and land
+in the `except TeeError` arm — recording a verification failure against an
+engine that was never asked anything, inflating the escalation rate with
+absent hardware. Undeclared rungs are now skipped with a reason. Registering
+an engine centrally must not defame it on machines that do not serve it.
+
+**Four tests broke, and they were right to.** All four hardcoded a
+two-engine ladder. Rather than bump the constants to three, they now derive
+from `LADDER`, and the router fixture declares every rung — an incomplete
+fixture would have quietly dropped the new engine out of every cascade test
+while still passing.
+
+**Suite: 1,027 passed / 9 skipped**, ruff clean.

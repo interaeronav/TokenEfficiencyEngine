@@ -27,9 +27,40 @@ from tee.kernel.errors import TeeError
 from tee.kernel.machine import ENGINES, MachineLedger
 from tee.llm import profiles
 
+
 # Ladder order among local engines; the resident engine is always tried
 # first (it costs nothing to use what is already loaded).
-LADDER = ("q14b+a2", "q27b-bare")
+def _ladder() -> tuple[str, ...]:
+    """Cheapest-capable first, ORDERED BY THE MEASURED TABLE rather than by
+    hand (A46 P3b).
+
+    The hand-written ladder was ("q14b+a2", "q27b-bare"), which on this
+    machine leads with a 14B the shim does not serve - a dead first hop -
+    and then lands on the 27B at a measured 27.78 s, while the free
+    DeepSeek-Flash route answers the same chore in 4.41 s and was not in
+    the ladder at all. Deriving the order means registering an engine is
+    enough to make it reachable, and a machine that DOES serve a 14B still
+    gets it first because its measured cost says so.
+
+    A dead hop is not an error: the router already treats an unreachable
+    engine as a failed hop and moves down. Paid engines are absent from
+    ENGINES entirely, so no ordering can promote one into the ladder.
+    """
+
+    def cost(name: str) -> float:
+        c = ENGINES[name].get("cost") or {}
+        lat = c.get("latency_s")
+        return float(lat[1]) if isinstance(lat, list) and len(lat) > 1 else 1e6
+
+    chore_engines = [
+        n
+        for n, spec in ENGINES.items()
+        if spec.get("kind") == "llm" and "chores" in (spec.get("capability") or [])
+    ]
+    return tuple(sorted(chore_engines, key=cost))
+
+
+LADDER = _ladder()
 BRIEF_TOKEN_CAP = 200
 
 _PROFILE_TO_ENGINE = {
@@ -77,7 +108,18 @@ def route(
     ledger.record_dispatch("pinned" if pinned else policy, reason)
     ledger.record_task()
     hops: list[dict[str, Any]] = []
+    declared = profiles.profiles(cfg)
     for engine in ladder:
+        # A rung whose profile this machine has not declared is NOT a failed
+        # attempt (A46 P3b). It used to raise llm_unknown_profile inside the
+        # call and land in the `except TeeError` arm, which recorded a
+        # verification failure against an engine that was never asked
+        # anything - inflating the escalation rate with absent hardware.
+        # Registering an engine centrally must not defame it on machines
+        # that do not serve it.
+        if ENGINES[engine]["profile"] not in declared:
+            hops.append({"engine": engine, "skipped": "profile not declared here"})
+            continue
         if engine != resident:
             capable, reason = ledger.may_swap(engine)
             if not capable:

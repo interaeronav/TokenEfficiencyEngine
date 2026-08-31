@@ -84,3 +84,47 @@ def test_the_floor_raises_but_never_lowers():
     """A caller asking for MORE room knows something the floor does not."""
     for asked, expected in ((160, 256), (220, 256), (256, 256), (1200, 1200)):
         assert max(asked, machine.MIN_CHORE_TOKENS) == expected
+
+
+# -- P3b: cheapest-capable routing ------------------------------------------
+
+
+def test_the_paid_engine_can_never_enter_the_ladder():
+    """The A46 law: the paid engine is pin-only and never an automatic
+    target. The guard is structural rather than a filter - a paid engine has
+    no row in ENGINES at all, so no ordering, policy or config can promote
+    one into the ladder. Asserted from both ends."""
+    from tee.llm.router import LADDER
+
+    for name in LADDER:
+        row = machine.ENGINES[name]
+        assert not row.get("paid"), f"{name} is paid and reachable automatically"
+    assert all(not e.get("paid") for e in machine.ENGINES.values())
+    # qmax is a config PROFILE, deliberately not an engine row.
+    assert "qmax" not in {e.get("profile") for e in machine.ENGINES.values()}
+
+
+def test_the_ladder_is_ordered_cheapest_first_from_the_measured_table():
+    """It used to be the hand-written ("q14b+a2", "q27b-bare") - which on
+    this machine leads with a 14B the shim does not serve and never reaches
+    the free engine that answers in 4.41 s."""
+    from tee.llm.router import LADDER
+
+    costs = [machine.ENGINES[n]["cost"]["latency_s"][1] for n in LADDER]
+    assert costs == sorted(costs), f"ladder out of cost order: {list(zip(LADDER, costs))}"
+    assert "dsflash" in LADDER, "the free local engine must be reachable"
+
+
+def test_an_undeclared_engine_is_skipped_not_blamed():
+    """A rung this machine has not declared never ran, so it must not be
+    recorded as a verification failure - that inflated the escalation rate
+    with absent hardware."""
+    import inspect
+
+    from tee.llm import router
+
+    src = inspect.getsource(router.route)
+    assert "profile not declared here" in src
+    skip_at = src.index("profile not declared here")
+    call_at = src.index("result = call(")
+    assert skip_at < call_at, "the declaration check must precede the call"

@@ -30,9 +30,14 @@ def _cfg(url: str, state_dir) -> dict:
     return {
         "url": url,
         "_state_dir": str(state_dir),
+        # Every rung of the ladder, so a newly registered engine is
+        # EXERCISED here rather than silently skipped as undeclared. When
+        # A46 P3b added dsflash, an incomplete fixture would have quietly
+        # dropped it out of every cascade test.
         "profiles": {
             "q14b": {"model": "fake-14b", "adapters": ""},
             "q27b": {"model": "fake-27b", "adapters": ""},
+            "dsflash": {"model": "fake-dsflash", "adapters": ""},
         },
     }
 
@@ -72,7 +77,11 @@ def test_ladder_escalates_on_verifier_kill(tmp_path):
     with fake_llm_server(_by_model({"fake-27b"})) as (url, _calls):
         routed = _route(url, tmp_path)
     assert routed["ok"] and routed["engine"] == "q27b-bare"
-    assert [h.get("verdict") for h in routed["hops"]] == ["llm_bad_shape", "verified"]
+    # Every rung above the winner fails the verifier and is escalated past.
+    assert [h.get("verdict") for h in routed["hops"]] == [
+        *["llm_bad_shape"] * (len(router.LADDER) - 1),
+        "verified",
+    ]
 
 
 def test_guard_seam_swap_refused_during_registered_job(tmp_path):
@@ -82,7 +91,9 @@ def test_guard_seam_swap_refused_during_registered_job(tmp_path):
         routed = _route(url, tmp_path, ledger=ledger)
     assert routed["ok"] is False
     skipped = [h for h in routed["hops"] if "skipped" in h]
-    assert len(skipped) == 1 and "okongo@odm" in skipped[0]["skipped"]
+    # One per non-resident rung: the held machine refuses every swap.
+    assert len(skipped) == len(router.LADDER) - 1
+    assert all("okongo@odm" in h["skipped"] for h in skipped)
     # the 27B rung was never called: only the 14B model reached the wire
     assert {c["model"] for c in calls} == {"fake-14b"}
 
@@ -91,7 +102,8 @@ def test_never_swap_when_memory_cannot_fit(tmp_path):
     ledger = MachineLedger(total_gb=32)  # 27B (55 GB) can never fit
     with fake_llm_server(_by_model(set())) as (url, _calls):
         routed = _route(url, tmp_path, ledger=ledger)
-    (skip,) = [h for h in routed["hops"] if "skipped" in h]
+    skips = [h for h in routed["hops"] if "skipped" in h]
+    skip = next(h for h in skips if h["engine"] == "q27b-bare")
     assert "55 GB" in skip["skipped"]
 
 
