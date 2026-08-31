@@ -248,30 +248,15 @@ func _wrap_root() -> Node:
 	return holder
 
 
-func _run_scene(res: String, frames: int) -> Dictionary:
-	# The game-design payoff: run logic headless and report what it did.
-	# Errors are counted by watching the scene instantiate and _ready run.
-	var started := Time.get_ticks_msec()
-	var scene = load(res)
-	if scene == null:
-		return {"op": "run_scene", "ok": false, "why": "cannot load '%s'" % res}
-	var instance = scene.instantiate()
-	root.add_child(instance)
-	var counted := 0
-	for _i in max(1, min(frames, 6000)):
-		counted += 1
-	var elapsed := Time.get_ticks_msec() - started
-	var summary := {
-		"op": "run_scene",
-		"ok": true,
-		"res": res,
-		"frames_requested": frames,
-		"frames_run": counted,
-		"nodes_after_ready": instance.get_child_count(),
-		"wall_ms": elapsed,
-	}
-	instance.queue_free()
-	return summary
+func _run_scene(res: String, _frames: int) -> Dictionary:
+	# Deliberately NOT implemented in the bridge. This script IS the
+	# SceneTree's main loop, so it cannot also hand the loop to a game and
+	# advance its frames - an in-process attempt only ever counted a for
+	# loop while _process never ran, which looks like execution and is not.
+	# The adapter runs the scene as its own `godot --headless --quit-after N`
+	# process and reports the real frames and the real printed output.
+	return {"op": "run_scene", "ok": false, "res": res,
+			"why": "run_scene is an adapter-level operation: the bridge cannot yield its own main loop. Use GodotAdapter.run_scene()."}
 
 
 func _run_gd(code: String) -> Dictionary:

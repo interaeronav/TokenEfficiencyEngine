@@ -8246,3 +8246,61 @@ cites its source, not that it is empty. Fixing the claim rather than the
 fact.
 
 **Suite: 1,147 passed / 9 skipped**, ruff clean.
+
+### A49 P3–P5 — the game lane, the render answer, and v0.17.0 (2026-08-31)
+
+**P3 — a real game runs through the pipeline lane.** Created
+`~/GodotProjects/tee-sample` (a scene whose `_ready` spawns three crates
+and prints), declared and hash-pinned `.tee/pipeline.toml`, granted only
+`run-declared-step`. End to end through TEE:
+
+```
+pipeline_run smoke_run (frames=120) -> job done in 1.5s
+  provenance {argv_hash da194647, inputs_hash 221cb7bf, wall_s 1.07}
+  answer     "TEE_SAMPLE ready: spawning props / TEE_SAMPLE spawned=3"
+```
+
+**A weakness in my own bridge, found by building the sample.** The bridge's
+`run_scene` counted a for-loop while `_process` never ran — execution-shaped
+and not execution. A SceneTree script *is* the main loop; it cannot hand
+that loop to a game. It now refuses and points at the adapter, where
+`run_scene` spawns `godot --headless --quit-after N` and gets real frames.
+
+**Script errors are counted because the exit code lies.** Broke the sample
+deliberately (`null.does_not_exist` in `_ready`):
+
+```
+broken game -> {"ok": false, "script_errors": 1, "exit_code": 0}
+first error : SCRIPT ERROR: Invalid access to property or key
+              'does_not_exist' on a base object of type 'Nil'.
+```
+
+**Exit 0 on a broken game.** A lane trusting the exit code would have
+passed it.
+
+**P4 — the render question, answered rather than assumed.** Headless cannot
+render under ANY driver:
+
+```
+--rendering-driver vulkan   image=false   Parameter "t" is null
+--rendering-driver opengl3  image=false   Parameter "t" is null
+--rendering-driver dummy    image=false   Parameter "t" is null
+```
+
+Non-headless renders fine. So `capture()` keeps refusing, and an opt-in
+`capture_windowed()` exists that opens a real window — documented as such,
+never automatic, useless over SSH.
+
+**The eye caught the gap in the pen, again.** The first windowed capture of
+`main.tscn` came back empty grey, and `sense_describe` answered **"0"**
+boxes. That was *correct*: the scene is authored for gameplay and has no
+`Camera3D`, so Godot rendered an empty viewport faithfully. Added a framing
+camera; the same scene now reads back **"3 cubes"** — exactly what `_ready`
+spawns.
+
+**P5 — shipped 0.17.0.** Suite 1,151 / 9 skipped, ruff clean, surface
+**2,034 tok / 17 tools** unchanged (the whole point of using the Adapter
+protocol). Verified from a clean unzip over MCP stdio: handshake 0.17.0,
+17 tools, `GodotAdapter` present and protocol-conformant. Docs:
+`docs/godot-lane.md`; licence and the three design decisions in
+DECISIONS.md.

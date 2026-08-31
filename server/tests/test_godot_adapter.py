@@ -146,3 +146,65 @@ def test_launching_without_a_project_refuses_by_name(tmp_path):
     with pytest.raises(TeeError) as e:
         adapter.ensure_bridge(repo_root=tmp_path)
     assert e.value.code in ("godot_no_project", "godot_missing")
+
+
+# -- run_scene: the headless evidence channel -------------------------------
+
+
+def test_run_scene_needs_a_project(tmp_path):
+    a = GodotAdapter(wire=FakeWire())
+    with pytest.raises(TeeError) as e:
+        a.run_scene(frames=10)
+    assert e.value.code in ("godot_no_project", "godot_missing")
+
+
+def test_run_scene_counts_script_errors_because_the_exit_code_lies(monkeypatch, tmp_path):
+    """Measured: a game whose _ready raises still exits 0. Godot does not
+    fail the process on a script error, so a lane that trusted the exit code
+    would call a broken game a pass."""
+    import subprocess as sp
+
+    from tee.adapters.godot import adapter as mod
+
+    (tmp_path / "project.godot").write_text("config_version=5\n")
+    monkeypatch.setattr(mod, "find_godot", lambda: "/bin/echo")
+
+    class Done:
+        returncode = 0
+        stdout = (
+            "Godot Engine v4.7.2\nTEE_SAMPLE ready\n"
+            "SCRIPT ERROR: Invalid access to property 'x' on a base object of type 'Nil'.\n"
+        )
+        stderr = ""
+
+    monkeypatch.setattr(sp, "run", lambda *a, **k: Done())
+    result = GodotAdapter(wire=FakeWire(), project=tmp_path).run_scene(frames=20)
+    assert result["exit_code"] == 0
+    assert result["ok"] is False and result["script_errors"] == 1
+    assert "TEE_SAMPLE ready" in result["output"]
+    assert not any("Godot Engine v" in line for line in result["output"])
+
+
+def test_the_bridge_no_longer_pretends_to_run_scenes():
+    """The bridge script IS the SceneTree main loop, so it cannot hand that
+    loop to a game. Its first version counted a for-loop while _process
+    never ran - execution-shaped and not execution."""
+    from pathlib import Path
+
+    bridge = Path(__file__).resolve().parents[2] / "adapters/godot/tee_bridge/bridge.gd"
+    source = bridge.read_text()
+    assert "adapter-level operation" in source
+    assert "cannot yield its own main loop" in source
+
+
+def test_capture_windowed_is_opt_in_and_says_it_opens_a_window():
+    """Headless cannot render under ANY driver - measured across vulkan,
+    opengl3 and dummy. Pixels cost a real window, so this never happens by
+    itself and capture() still refuses."""
+    import inspect
+
+    source = inspect.getsource(GodotAdapter.capture_windowed)
+    assert "opens a window" in source
+    assert "never opens itself" in source
+    refusal = inspect.getsource(GodotAdapter.capture)
+    assert "capture_windowed" in refusal and "opt-in" in refusal

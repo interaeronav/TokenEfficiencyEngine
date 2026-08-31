@@ -3,6 +3,52 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.17.0 — 2026-08-31
+
+**Godot, headlessly, as a first-class adapter.**
+
+```bash
+tee serve --adapter godot --project ~/GodotProjects/my-game
+```
+
+Because it honours the `Adapter` protocol, Godot arrives with **no new
+always-loaded tools** — `tee_scene_summary`, `tee_batch`, `tee_diff` and
+the checkpoint machinery already drive it. Surface unchanged at 17.
+
+### Building and running
+
+Declarative ops (`add_node`, `set_props`, `remove_node`, `save_scene`,
+`load_scene`) refuse unknown types and ops **with the allowed list**.
+Arbitrary GDScript is a separate door behind `exec-code`.
+
+`run_scene` runs your game's real logic headless — `_ready` fires,
+`_process` advances — and returns the game's own printed output:
+
+```json
+{"ok": true, "frames": 120, "script_errors": 0,
+ "output": ["TEE_SAMPLE ready: spawning props", "TEE_SAMPLE spawned=3"]}
+```
+
+**Script errors are counted, not inferred from the exit code**: measured, a
+game whose `_ready` raises still exits 0, so a lane trusting the exit code
+would call a broken game a pass.
+
+### Rendering is refused, honestly
+
+Headless Godot **cannot render** — measured across `--rendering-driver`
+vulkan, opengl3 and dummy, the viewport texture yields no image.
+`tee_capture` says exactly that instead of returning a black frame that
+looks like an answer. Text is the evidence channel.
+
+An opt-in `capture_windowed()` renders with a real display server, which
+**opens a window on your screen** — your trade to make, never automatic.
+
+### First launch
+
+A Godot project that has never been imported hangs `--headless -s` with no
+output at all. The adapter runs `--import` for you, as a duty rather than a
+footnote.
+
 ## 0.16.0 — 2026-08-31
 
 **TEE can write and edit PDFs.**

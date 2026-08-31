@@ -1024,3 +1024,33 @@ document) instead, and the refusal states the reason and both options. This
 is the same principle as the A47 rule that a description is never dressed
 up as sight: the tool declines what it cannot do correctly instead of
 approximating it.
+
+## 2026-08-31 — Godot joins as a headless adapter (A49)
+
+Owner: *"integrate godot with TEE headlessy (godot is used for game
+designs)"*. Godot 4.7.2, **MIT**, installed via brew cask; nothing is
+vendored into TEE and nothing ships in the `.mcpb`.
+
+**Adapter protocol, not a new tool family.** Godot honours `Adapter`, so
+the always-loaded surface stays at 17 tools and the existing scene/batch/
+diff/checkpoint machinery drives it. A game engine that needed its own
+always-loaded tools would have cost the invariant this project is built on.
+
+**Declarative commands, with the escape hatch behind its own door.** The
+bridge accepts an enumerable op set (`add_node`, `set_props`,
+`remove_node`, `save_scene`, `load_scene`) and refuses anything else by
+name with the allowed list. Arbitrary GDScript is `{"type": "gd"}`, gated
+on `exec-code` — the same split the trading lane uses, for the same reason:
+a set of things that can be enumerated can be reasoned about.
+
+**Rendering is refused, with the measurement behind it.** Headless Godot
+cannot render under any driver tried (vulkan, opengl3, dummy all yield a
+null viewport texture). `capture()` raises with that finding rather than
+returning a black frame, which would look like an answer. An opt-in
+`capture_windowed()` renders with a real display server and is documented
+as opening a window on the owner's screen — never automatic.
+
+**Script errors are counted rather than inferred.** A Godot game whose
+`_ready` raises still exits 0. `run_scene` reports `ok` only when the exit
+is clean AND no `SCRIPT ERROR` lines appeared, because the exit code alone
+would pass a broken game.

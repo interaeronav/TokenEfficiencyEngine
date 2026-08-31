@@ -172,10 +172,151 @@ class GodotAdapter:
             "godot_no_render",
             _NO_RENDER,
             fix="Ask for the scene as text instead: tee_scene_summary lists "
-            "the node tree, and a run_scene op reports what the game's logic "
-            "actually did. If you need pixels, run Godot with a display "
-            "server (not headless) and capture outside TEE.",
+            "the node tree, and run_scene reports what the game's logic "
+            "actually did. If you truly need pixels, GodotAdapter."
+            "capture_windowed() renders with a real display server - which "
+            "opens a window on the screen for a moment and is therefore "
+            "opt-in, never automatic.",
         )
+
+    def run_scene(
+        self,
+        scene: str = "",
+        frames: int = 60,
+        timeout_s: float = 120.0,
+        repo_root: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Run the game's logic headless for N frames and report what it did.
+
+        This is the game-design payoff, and it is deliberately a SEPARATE
+        Godot process rather than something the bridge does. The bridge
+        script IS a SceneTree main loop; it cannot hand that loop to a game
+        and advance its frames. An in-process attempt counts a for-loop
+        while `_process` never runs - which looks like execution and is not.
+
+        `--quit-after N` gives real frames, real `_ready`, real `_process`,
+        and the game's own `print()` output as evidence. There are no pixels
+        here and there never will be headlessly, so the printed line IS the
+        observation channel.
+        """
+        binary = find_godot()
+        if binary is None:
+            raise TeeError(
+                "godot_missing",
+                "Godot is not installed.",
+                fix="brew install --cask godot, or set TEE_GODOT_BIN.",
+            )
+        if self.project is None:
+            raise TeeError(
+                "godot_no_project",
+                "run_scene needs a project directory.",
+                fix="Construct the adapter with project=<dir containing project.godot>.",
+            )
+        frames = max(1, min(int(frames), 100_000))
+        argv = [binary, "--headless", "--path", str(self.project), "--quit-after", str(frames)]
+        if scene:
+            argv.append(scene)
+        started = time.monotonic()
+        try:
+            proc = subprocess.run(
+                argv, capture_output=True, text=True, timeout=timeout_s, check=False
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise TeeError(
+                "godot_run_timeout",
+                f"The scene ran past {timeout_s:.0f}s without finishing {frames} frames.",
+                fix="Lower `frames`, raise `timeout_s`, or look for a blocking "
+                "loop in the scene's _ready.",
+            ) from exc
+        blob = (proc.stdout or "") + (proc.stderr or "")
+        lines = [line.rstrip() for line in blob.splitlines() if line.strip()]
+        errors = [
+            line
+            for line in lines
+            if line.startswith(("SCRIPT ERROR", "ERROR:", "USER ERROR")) or "Parse Error" in line
+        ]
+        printed = [
+            line for line in lines if line not in errors and not line.startswith("Godot Engine v")
+        ]
+        return {
+            "ok": proc.returncode == 0 and not errors,
+            "scene": scene or "(main scene)",
+            "frames": frames,
+            "exit_code": proc.returncode,
+            "wall_s": round(time.monotonic() - started, 2),
+            "script_errors": len(errors),
+            "errors": errors[:10],
+            "output": printed[:80],
+            "note": "Headless run: printed output is the evidence, there are "
+            "no pixels. Frames really advanced - _ready and _process ran.",
+        }
+
+    def capture_windowed(
+        self,
+        max_bytes: int = 96 * 1024,
+        width: int = 640,
+        height: int = 360,
+        scene: str = "",
+        repo_root: str | Path | None = None,
+        timeout_s: float = 90.0,
+    ) -> bytes:
+        """OPT-IN render. Not headless, and it opens a window - say so.
+
+        A49 P4 measured this properly rather than assuming: headless Godot
+        cannot render under ANY driver (vulkan, opengl3 and dummy all yield
+        a null viewport texture), while a normal Godot with a display server
+        renders fine. So pixels are available on this machine only at the
+        price of a real window appearing briefly on the owner's screen.
+
+        `capture()` therefore still refuses. This is the door for a caller
+        who has decided that trade is acceptable, and it never opens itself.
+        """
+        binary = find_godot()
+        if binary is None or self.project is None:
+            raise TeeError(
+                "godot_no_project",
+                "A windowed capture needs Godot and a project directory.",
+                fix="brew install --cask godot and pass project=<dir>.",
+            )
+        shot = Path(repo_root or Path.cwd()) / "adapters/godot/tee_bridge/shot.gd"
+        if not shot.is_file():
+            raise TeeError("godot_no_bridge", f"shot.gd not found at {shot}", fix="Reinstall TEE.")
+        staged = self.project / "tee_shot.gd"
+        staged.write_bytes(shot.read_bytes())
+        out = Path(self.workdir) / "godot_shot.jpg"
+        argv = [
+            binary,
+            "--path",
+            str(self.project),
+            "-s",
+            "tee_shot.gd",
+            "--",
+            "--out",
+            str(out),
+            "--width",
+            str(width),
+            "--height",
+            str(height),
+        ]
+        if scene:
+            argv += ["--scene", scene]
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout_s, check=False)
+        if not out.is_file():
+            blob = ((proc.stdout or "") + (proc.stderr or "")).strip()[-300:]
+            raise TeeError(
+                "godot_capture_failed",
+                f"The windowed capture produced no image: {blob}",
+                fix="This path needs a real display server - it will not work "
+                "over SSH or in CI. Headless Godot cannot render at all.",
+            )
+        data = out.read_bytes()
+        if len(data) > max_bytes:
+            raise TeeError(
+                "capture_over_budget",
+                f"The render is {len(data)} bytes; budget is {max_bytes}.",
+                fix="Lower width/height, or raise the budget.",
+            )
+        return data
 
     # -- launch management -------------------------------------------------
 
