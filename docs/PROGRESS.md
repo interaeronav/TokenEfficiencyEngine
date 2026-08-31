@@ -7854,7 +7854,7 @@ construction: they convert media, they do not reason.
 ```
 project_root : /var/folders/.../tmp0c3yhyqb
 grants_file  : none found
-denied_tiers : exec-code, mutate-scene, run-declared-step, call-service
+denied_tiers : {"exec-code": "1 tool(s)"}   <- corrected, see below
 why          : reads and project memory work; these tiers need a grant in
                the project this session is rooted at
 fix          : launch with --project <the granted project>, or add a
@@ -7863,8 +7863,29 @@ fix          : launch with --project <the granted project>, or add a
 
 `tee doctor` warns on first contact with the same fix. **It reports; it
 never grants** — a test asserts the grant set is still empty after a status
-call. Surfaced something unasked: even the owner's granted root denies
-`mutate-scene` and `call-service`.
+call.
+
+**Correction, same day.** The first version hardcoded the tier list, and I
+read its output as evidence the owner's own root was crippled — reporting
+`mutate-scene` and `call-service` denied and telling him so. Checked when
+he pushed back:
+
+```
+write-scene    allowed=True   gates 33 tools   <- what really governs edits
+mutate-scene   allowed=False  gates  0 tools   <- alarming, meaningless
+```
+
+**`mutate-scene` gates nothing.** No tool in the trust table uses it, and
+`tee_batch` / `tee_checkpoint` — the actual scene-edit path — need
+`write-scene`, which was granted all along. There was never a scene-edit
+problem; I manufactured one by probing a capability name I assumed was the
+gate. `denied_tiers` is now DERIVED from capabilities that gate really
+registered tools (virtual registry plus the always-loaded surface, where
+the mutation tools live), and counts them. The owner's root reports no
+denials at all; a grantless root reports `exec-code`, one tool, true.
+
+A denial report naming capabilities nothing uses invents outages. Three
+tests hold that line.
 
 **P1/P2 — `sense_describe` and `sense_transcribe`.** Virtual tools on the
 existing `local_vlm` client and the existing faster-whisper machinery. No

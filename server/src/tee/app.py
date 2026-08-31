@@ -345,19 +345,39 @@ class TeeApp:
 
         cfg_file = self.project_root / ".tee" / "config.toml"
         granted = sorted(self.registry.grants.granted)
-        tiers = ("exec-code", "mutate-scene", "run-declared-step", "call-service")
-        denied = [
-            c
-            for c in tiers
-            if not _t.check(c, caller="live-turn", grants=self.registry.grants).allowed
-        ]
+        # Derive the tiers from what actually gates REGISTERED tools, never
+        # from a hardcoded list. The first version of this hardcoded one,
+        # and reported `mutate-scene` denied - which sounds alarming and
+        # gates zero tools, while the capability that really governs scene
+        # edits (`write-scene`, 33 tools) was granted all along. A denial
+        # report that names capabilities nothing uses invents outages.
+        # Every tool this session could actually be asked for: the virtual
+        # registry PLUS the always-loaded surface, which is where the
+        # mutation tools (tee_batch, tee_script) live. Counting only the
+        # registry missed them and reported a grantless root as unrestricted.
+        caps: dict[str, int] = {}
+        for tool in self.registry._tools.values():
+            cap = getattr(tool, "capability", None)
+            if cap:
+                caps[cap] = caps.get(cap, 0) + 1
+        for name, cap in _t._EXPLICIT.items():
+            if name.startswith("tee_"):
+                caps[cap] = caps.get(cap, 0) + 1
+        blocked = {
+            cap: n
+            for cap, n in caps.items()
+            if not _t.check(
+                cap, caller="live-turn", grants=self.registry.grants, consent=True
+            ).allowed
+        }
+        denied = sorted(blocked)
         out: dict[str, Any] = {
             "project_root": str(self.project_root),
             "grants_file": str(cfg_file) if cfg_file.is_file() else "none found",
             "granted": granted or [],
         }
         if denied:
-            out["denied_tiers"] = denied
+            out["denied_tiers"] = {c: f"{blocked[c]} tool(s)" for c in denied}
             out["why"] = (
                 "reads and project memory work; these tiers need a grant "
                 "in the project this session is rooted at"

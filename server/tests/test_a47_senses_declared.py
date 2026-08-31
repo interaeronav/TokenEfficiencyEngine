@@ -93,3 +93,37 @@ def test_doctor_states_the_machines_senses():
     assert "vision" in c.detail and "audio" in c.detail
     # measured numbers, not adjectives
     assert "GB" in c.detail and "s measured" in c.detail
+
+
+def test_denied_tiers_name_only_capabilities_that_gate_real_tools():
+    """The first version hardcoded a tier list and reported `mutate-scene`
+    denied. `mutate-scene` gates ZERO tools; the capability that actually
+    governs scene edits is `write-scene`, which was granted all along. A
+    denial report naming capabilities nothing uses invents outages - it sent
+    the owner looking for a scene-edit bug that did not exist."""
+    from tee.kernel import trust
+
+    assert not [n for n, c in trust._EXPLICIT.items() if c == "mutate-scene"]
+    rooted = TeeApp({}, project_root=Path(tempfile.mkdtemp())).status()["rooted_at"]
+    for cap in rooted.get("denied_tiers", {}):
+        used = [n for n, c in trust._EXPLICIT.items() if c == cap]
+        assert used, f"{cap} is reported denied but gates no tool"
+
+
+def test_the_granted_root_is_not_slandered():
+    """The owner's own project must not be reported as crippled. Everything
+    its registered surface can be asked for is reachable."""
+    rooted = TeeApp({}, project_root=Path("/Users/john/TEE")).status()["rooted_at"]
+    if Path("/Users/john/TEE/.tee/config.toml").is_file():
+        assert not rooted.get("denied_tiers"), rooted.get("denied_tiers")
+
+
+def test_scene_edits_are_governed_by_write_scene_and_it_is_open():
+    """The capability that gates tee_batch and tee_checkpoint."""
+    from tee.kernel import trust
+
+    app = TeeApp({}, project_root=Path(tempfile.mkdtemp()))
+    assert trust.capability_for("tee_batch") == "write-scene"
+    assert trust.check(
+        "write-scene", caller="live-turn", grants=app.registry.grants, consent=True
+    ).allowed
