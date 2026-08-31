@@ -11,7 +11,6 @@ ex_prepare, and could not be invoked by anything.
 
 from __future__ import annotations
 
-import os
 import shutil
 import time
 from pathlib import Path

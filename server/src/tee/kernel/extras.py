@@ -36,6 +36,7 @@ WITNESS = {
     "quant": "skfolio",
     "medimg": "pydicom",
     "extract": "ezdxf",
+    "pdf": "fpdf",
     "assets": "imagehash",
     "cad": "cadquery",
 }

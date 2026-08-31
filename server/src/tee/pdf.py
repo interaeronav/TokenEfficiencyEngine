@@ -417,7 +417,7 @@ def register_pdf_tools(app, project_root: str | Path) -> None:
                 "generate pdf",
                 "export",
                 "paperwork",
-            ],  # fmt: skip
+            ],
             examples=[
                 {
                     "out": "docs/site-note.pdf",
@@ -451,7 +451,7 @@ def register_pdf_tools(app, project_root: str | Path) -> None:
                         "type": "array",
                         "items": {"type": "string"},
                         "description": "merge only.",
-                    },  # fmt: skip
+                    },
                     "out": {"type": "string"},
                     "out_dir": {"type": "string", "description": "split only."},
                     "pages": {"description": '[1,3] or "1-3,7"; 1-based. Default: all.'},
@@ -474,7 +474,7 @@ def register_pdf_tools(app, project_root: str | Path) -> None:
                 "pages",
                 "combine pdf",
                 "delete page",
-            ],  # fmt: skip
+            ],
             examples=[{"op": "stamp", "input": "report.pdf", "out": "draft.pdf", "text": "DRAFT"}],
         )
     )

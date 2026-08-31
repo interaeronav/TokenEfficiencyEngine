@@ -564,7 +564,7 @@ def register_sense_tools(app, project_root: str | Path) -> None:
                 "caption",
                 "ocr",
                 "read image",
-            ],  # fmt: skip
+            ],
             examples=[
                 {
                     "path": "site/frame_012.jpg",
@@ -628,7 +628,7 @@ def register_sense_tools(app, project_root: str | Path) -> None:
                 "blender",
                 "frame",
                 "point",
-            ],  # fmt: skip
+            ],
             examples=[
                 {
                     "target": "arm-pad-L",
@@ -675,7 +675,7 @@ def register_sense_tools(app, project_root: str | Path) -> None:
                 "check",
                 "camera",
                 "screenshot",
-            ],  # fmt: skip
+            ],
             examples=[{"question": "Is the chair back mesh visible and orange?"}],
         )
     )
@@ -713,7 +713,7 @@ def register_sense_tools(app, project_root: str | Path) -> None:
                 "voice",
                 "recording",
                 "subtitle",
-            ],  # fmt: skip
+            ],
             examples=[{"path": "site/walkthrough.m4a", "model_size": "base"}],
         )
     )
