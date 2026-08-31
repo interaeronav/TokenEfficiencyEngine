@@ -53,6 +53,12 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   spend and egress, land the fifteen headless open resources) is driven
   by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
   goes, the taint law stays, and TEE still never grants itself.
+- The A47 campaign (senses for blind hosts: machine vision and sound for
+  host models that lack them, the opencode/DeepSeek case) is driven by
+  `CLAUDE_A47_SCRIPT.md`; research doc 66 (revised) is its design of
+  record. The core finding: `extract/vlm.py` already holds a working
+  `LocalVlmDriver` that nothing can invoke — the campaign gives it a
+  steering wheel rather than building new machinery.
 - The A46 campaign (leaner, faster, fitted to this machine: cut the 2.2 GB
   extension venv, stop blocking on first imports, and wire TEE to the
   owner's ACTUAL local engines) is driven by `CLAUDE_A46_SCRIPT.md`. It is

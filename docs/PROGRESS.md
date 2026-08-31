@@ -7797,3 +7797,38 @@ constraint, not the code. Pre-existing, unrelated to this change, recorded
 rather than re-run until quiet.
 
 **Suite: 1,072 passed / 9 skipped**, ruff clean.
+
+### A47 script written — senses for blind hosts (2026-08-31)
+
+Deep-researched and scripted, not yet executed. The decisive discovery came
+from reading rather than designing: **`extract/vlm.py:158` already contains
+a working `LocalVlmDriver`** — `caption_image`, `extract_document_page`,
+riding the local Qwen3-VL — and `ex_prepare` even advertises it
+("available, free, on-machine"), but a grep proves **no code path ever
+calls either method**. TEE tells a blind host a local driver exists and
+gives it no way to run it.
+
+Three open questions from research 66 were answered by measurement before
+the script was written:
+
+```
+context  the VL model USES supplied context - given "drawings say gable G3
+         is solid plastered", it answered the delta against spec (4.0 s),
+         so sense calls can carry the chore's context
+audio    per-call whisper load is 0.8 s, transcribe 0.62 s - no sidecar
+cache    exact sha256 keying, NEVER phash: a near-duplicate's description
+         is not this image's description, and serving a cached reading of
+         a different card is exactly the confident-wrong-answer failure
+trust    sense_* has no family prefix, so untabled = boot error; the
+         script tables both names explicitly (the A45 lesson)
+```
+
+Six phases: declare senses on ENGINES (P0), `sense_describe` driving the
+parked driver (P1), `sense_transcribe` on the existing whisper machinery
+(P2), an `ex_prepare` driver="local" that runs extraction AS the job for
+hosts that cannot read files (P3), token-neutral blind-host pointers on the
+pixel tools (P4), and a reproducible benchmark of the 33x claim plus the
+measured ~10 s modality-swap cost (P5). The law: never silent (every
+answer names its provider and its swap cost), refuse rather than improvise,
+surface stays 17 tools, no weights in the venv, local providers only with
+`off_machine_calls: 0` asserted in acceptance.

@@ -282,4 +282,4 @@ Format per item:
   ~10 s per modality alternation against 0.67-0.82 s warm, a cost that
   appears in no ledger or answer. Relevant to Claude Desktop, not to the
   opencode case.
-- status: open (researched, not built)
+- status: script written (`CLAUDE_A47_SCRIPT.md`, 2026-08-31) - not yet executed
