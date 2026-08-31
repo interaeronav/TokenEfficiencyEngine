@@ -3,6 +3,101 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.16.0 — 2026-08-31
+
+**TEE can write and edit PDFs.**
+
+`uv pip install 'tee-engine[pdf]'`
+
+### `pdf_compose`
+
+Build a document from blocks — headings, paragraphs, tables, images, page
+breaks. **HEIC embeds with no conversion**, straight off the phone. Returns
+a summary (`path`, `pages`, `bytes`), never the document: a PDF in a
+model's context is a token catastrophe that answers no question.
+
+### `pdf_edit`
+
+`merge`, `split`, `reorder`, `rotate`, `delete_pages`, `extract_pages`, and
+`stamp` for watermarks and image overlays. Every operation **reads A and
+writes B** — the input is never modified, `out` is always required, and an
+existing file refuses unless you pass `overwrite: true`.
+
+### What it refuses, and why
+
+**Rewriting the text inside an existing PDF is declined by name.** A PDF
+stores positioned glyph runs, not paragraphs — line breaks and kerning were
+baked in by a layout engine that is no longer present. Re-flowing them
+produces a document that opens perfectly and is subtly wrong. The refusal
+gives the reason and the two honest alternatives: `stamp` to add a mark, or
+`pdf_compose` to build a corrected document.
+
+### Verified by TEE's own eye
+
+A stamped watermark is drawn, not text — pdfplumber cannot extract it. So
+the test renders the page and asks `sense_describe`, which answers: *"Yes,
+there is a large diagonal watermark word across this page. The word is
+'DRAFT'."* The senses lane checking the PDF lane.
+
+### Also
+
+Tool search dropped one- and two-letter query words. Matching is by
+substring, so the "a" in *"add a watermark to a document"* scored against
+every tool whose name merely contains an 'a' — outranking the tool that
+actually stamps watermarks.
+
+## 0.15.0 — 2026-08-31
+
+**Aim the borrowed eye, and stop guessing what it costs.**
+
+### `sense_viewport` and `sense_camera`
+
+Unreal has had `ue_look` since 3.7 — viewport to local model to text.
+Blender never got one, so a model that cannot read images could mutate a
+scene and never see the result. Both now exist for either DCC, and
+`sense_camera` goes further: **aim** at a named object from an angle you
+choose. The temporary camera is removed and the scene left exactly as
+found (verified live: identical object and camera lists before and after).
+
+The capture goes to the local model and never enters your context, so the
+byte budget is generous — bigger image, better answer, **zero image tokens
+for the host**.
+
+### The eviction warning now works
+
+It was driven by a stopwatch: *if the vision call takes over 6 s, assume it
+evicted the host's model.* Measured properly, the inference was backwards —
+
+```
+text 10.75s | vision 3.03s | vision 0.85s | text 10.34s | text 0.79s
+```
+
+The cost is paid by the **next text turn**, not the vision call, which
+never crossed the threshold. The warning had never fired once. It is now
+driven by the configured fact (`evicts` on the provider row) and stays
+silent on machines whose eye coexists with the host.
+
+### Portable for other users
+
+A `[senses]` config section carries any machine's endpoint, model,
+footprint and eviction facts. This machine's measured values are a
+fallback example, not baked into the code.
+
+### Benchmarked
+
+New RESULTS section: one question about a 4K site frame costs a seeing host
+**756 tokens** (budgeted) or **10,764** (full frame); a blind host using
+`sense_describe` pays **65** — 11.6x and 165.6x. This supersedes an
+informal "33x" quoted earlier, which measured the provider's side rather
+than what a host pays.
+
+### A small vision model was auditioned and rejected
+
+Qwen2-VL-2B (1.4 GB, would coexist with the 86 GB host and remove the ~10 s
+eviction) read an unguessable test card perfectly — then **inverted a
+judgment**, reporting that a wall *matches* a plastered spec the 30B
+correctly reports it violates. The 17 GB model stays.
+
 ## 0.14.0 — 2026-08-31
 
 **Senses a model can borrow when it has none of its own.**

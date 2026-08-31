@@ -8069,3 +8069,58 @@ price of inverted site findings. Retest when a small VLM can hold a
 comparison against a stated spec — probe 1 alone is not a licence.
 
 **P0.4 pending:** ship 0.15.0.
+
+### A48 P1–P3 — TEE can write and edit PDFs (v0.16.0, 2026-08-31)
+
+TEE could read a PDF well and not write one. `fpdf2` sat in the dev
+dependency group where no user could reach it, and the AURA-X chair
+deliverables were built by running it inline with no script kept — the
+pattern the pipeline lane exists to end. New `[pdf]` extra (fpdf2 + pypdf),
+new `tee/pdf.py`, two virtual tools on `write-artifacts`.
+
+**P1 — `pdf_compose`.** Blocks in, document out. Acceptance run live: a
+2-page note with a heading, a paragraph, a 3-row table and a **HEIC image
+embedded with no conversion**, then read back through TEE's *existing*
+extract lane:
+
+```
+pdfplumber sees 2 pages
+  OK 'Okongo site note'   OK 'solid plastered brick'   OK 'Gable G3'
+  OK 'exposed brick'      OK 'Evidence'                images embedded: 1
+```
+
+**P2 — `pdf_edit`.** merge → 3 pages, delete page 2 → 2 pages, stamp DRAFT
+→ both pages, input byte-identical afterwards. One number looked wrong
+mid-run (3 KB output) and was checked rather than assumed: deleting page 2
+removes the *image* page, so a two-text-page file at 3 KB is correct.
+
+**The verification that mattered.** A stamp is drawn, not text —
+pdfplumber cannot extract it, so "did the watermark land" is unanswerable
+from the text layer. Rendered the page with pypdfium2 and asked
+`sense_describe`:
+
+> *"Yes, there is a large diagonal watermark word across this page. The
+> word is 'DRAFT'."*
+
+The eye built in A47 verifying the pen built in A48.
+
+**The refusal is the feature.** Rewriting text inside an existing PDF is
+declined by name: a PDF stores positioned glyph runs, not paragraphs, and
+re-flowing them yields a document that opens perfectly and is silently
+wrong. The `fix` states the reason and both honest alternatives (`stamp`,
+or `pdf_compose` for a corrected document). Same principle as A47's rule
+that a description is never dressed up as sight.
+
+**A search defect found and fixed on the way.** *"add a watermark to a
+document"* ranked `report_savings` first. Matching is by SUBSTRING, so the
+single letter "a" scored against every tool whose name merely contains an
+'a'. Query words of one or two letters are now dropped — they carry no
+topic and, being substrings, maximum noise. All five probe queries now rank
+correctly, suite unchanged at 1,121.
+
+**Shipped 0.16.0**, verified from a clean unzip over MCP stdio: handshake
+0.16.0, 17 always-loaded tools, surface 2,034 tok (budget ±10 around
+2,028), `"write a pdf and add a watermark"` → `pdf_edit`, `pdf_compose`.
+
+Licences in DECISIONS.md: fpdf2 LGPL-3.0, pypdf BSD-3. Neither ships in the
+`.mcpb`; both arrive with the extra. Docs: `docs/pdf-lane.md`.

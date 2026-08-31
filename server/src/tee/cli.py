@@ -100,6 +100,16 @@ def _attach_pins(app, project: str) -> None:
     register_pin_tools(app, Path(project))
 
 
+def _attach_pdf(app, project: str) -> None:
+    """Register pdf_* (A48). fpdf2/pypdf live in the [pdf] extra and refuse
+    with their install line at call time, so registration is
+    unconditional - a tool that vanishes when its extra is missing is
+    indistinguishable from one that never existed."""
+    from tee.pdf import register_pdf_tools
+
+    register_pdf_tools(app, Path(project))
+
+
 def _attach_senses(app, project: str) -> None:
     """Register sense_* (A47). Vision needs the local shim and audio needs
     the extract extra; both refuse with their exact fix at call time, so
@@ -214,6 +224,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_pins(app, args.project)
     _attach_design(app, args.project)
     _attach_senses(app, args.project)
+    _attach_pdf(app, args.project)
     _attach_physical(app, args.project)
     _attach_uefn(app, args.project)
     _attach_kb(app, args.project)

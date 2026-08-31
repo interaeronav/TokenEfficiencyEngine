@@ -3539,6 +3539,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pypdf"
+version = "6.16.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/66/54212e75406afd9f3e933d0dda23072f6aecc55c5a273077dc2e0b028b23/pypdf-6.16.2.tar.gz", hash = "sha256:595647f6191de6f402cfde1d0c455d6cbccbd509aac32b34783009c032de5d6e", size = 7008996, upload-time = "2026-08-23T13:50:07.135Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/f1/a2da3b55acd4ab737bf728c97edaaed5ec1d3c1236acb639dcdfa97e42c7/pypdf-6.16.2-py3-none-any.whl", hash = "sha256:c8b09a59399062fb45a1b8156c18a787a10a3dae03ac9674397a226712c94604", size = 385060, upload-time = "2026-08-23T13:50:05.349Z" },
+]
+
+[[package]]
 name = "pypdfium2"
 version = "5.13.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4779,7 +4788,7 @@ wheels = [
 
 [[package]]
 name = "tee-engine"
-version = "0.14.0"
+version = "0.16.0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
@@ -4835,6 +4844,10 @@ medimg-monai = [
     { name = "monai" },
     { name = "torch" },
 ]
+pdf = [
+    { name = "fpdf2" },
+    { name = "pypdf" },
+]
 physical = [
     { name = "ifctester" },
     { name = "py-slvs" },
@@ -4854,7 +4867,6 @@ solve = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "fpdf2" },
     { name = "pytest" },
     { name = "pytest-timeout" },
     { name = "ruff" },
@@ -4868,6 +4880,7 @@ requires-dist = [
     { name = "diffusers", marker = "extra == 'assets-gen'", specifier = ">=0.35" },
     { name = "ezdxf", marker = "extra == 'extract'", specifier = ">=1.4.4" },
     { name = "faster-whisper", marker = "extra == 'extract'", specifier = ">=1.2.1" },
+    { name = "fpdf2", marker = "extra == 'pdf'", specifier = ">=2.8.8" },
     { name = "highspy", marker = "extra == 'solve'", specifier = ">=1.15.1" },
     { name = "ifcopenshell", marker = "extra == 'extract'", specifier = ">=0.8.5" },
     { name = "ifctester", marker = "extra == 'physical'", specifier = ">=0.8.5" },
@@ -4891,6 +4904,7 @@ requires-dist = [
     { name = "py-slvs", marker = "extra == 'physical'", specifier = ">=1.0.6" },
     { name = "pydicom", marker = "extra == 'medimg'", specifier = ">=3.0" },
     { name = "pymap3d", marker = "extra == 'extract'", specifier = ">=3.2.0" },
+    { name = "pypdf", marker = "extra == 'pdf'", specifier = ">=5.1.0" },
     { name = "pypdfium2", marker = "extra == 'extract'", specifier = ">=5.13.0" },
     { name = "pyportfolioopt", marker = "extra == 'quant'", specifier = ">=1.6.0" },
     { name = "pyproj", marker = "extra == 'extract'", specifier = ">=3.7.2" },
@@ -4907,11 +4921,10 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'assets-embed'", specifier = ">=4.50" },
     { name = "transformers", marker = "extra == 'assets-gen'", specifier = ">=4.50" },
 ]
-provides-extras = ["extract", "assets", "physical", "solve", "quant", "medimg", "medimg-monai", "cad", "assets-embed", "assets-gen"]
+provides-extras = ["extract", "assets", "physical", "solve", "quant", "pdf", "medimg", "medimg-monai", "cad", "assets-embed", "assets-gen"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "fpdf2", specifier = ">=2.8.8" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-timeout", specifier = ">=2.3" },
     { name = "ruff", specifier = ">=0.8" },

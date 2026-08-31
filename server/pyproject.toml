@@ -1,7 +1,7 @@
 [project]
 # distribution name (PyPI-safe); the import package and CLI stay `tee`
 name = "tee-engine"
-version = "0.14.0"
+version = "0.16.0"
 description = "Token Efficiency Engine - helps any AI minimize tokens per completed task; protocol discipline plus cloud/local compute routing; MCP server with Unreal Engine and Blender adapters"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -78,6 +78,11 @@ quant = [
 # values on a real CT (min -1000 HU, max 1529), and additionally give pixel
 # spacing that MONAI's path did not. MONAI is still USED when present, for
 # formats these three do not read - see the `medimg-monai` extra.
+pdf = [
+    "fpdf2>=2.8.8",
+    "pypdf>=5.1.0",
+]
+
 medimg = [
     "pydicom>=3.0",
     "nibabel>=5.3",
@@ -122,7 +127,7 @@ assets-gen = [
 
 [dependency-groups]
 dev = [
-    "fpdf2>=2.8.8",
+    # fpdf2 now ships in the [pdf] extra; dev installs it from there.
     "pytest>=8.0",
     "pytest-timeout>=2.3",
     "ruff>=0.8",

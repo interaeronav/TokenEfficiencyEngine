@@ -999,3 +999,28 @@ caller — a deliberate speed bump — and every result restates it, along with
 the fact that a drawing or survey outranks the estimate where one exists.
 
 Tool: `ex_estimate`, read tier via the `ex_` family prefix.
+
+## 2026-08-31 — the PDF lane, and its licences
+
+Owner asked for a feature to write and edit PDFs. Two libraries adopted
+into a new `[pdf]` extra:
+
+- **fpdf2 — LGPL-3.0.** Composition. Already present in the dev dependency
+  group (used inline to build the AURA-X chair PDFs), now promoted to a
+  real extra so a user can reach it.
+- **pypdf — BSD-3-Clause.** Page surgery and overlay merging.
+
+The LGPL matters only on distribution, and TEE is private and not
+distributed — the same position recorded for pillow-heif, and the same
+caveat: **if TEE is ever distributed, fpdf2 is the first dependency to
+re-examine.** Neither ships inside the `.mcpb`; both arrive when the owner
+installs the extra.
+
+**In-place text rewriting is refused, deliberately.** A PDF stores
+positioned glyph runs rather than paragraphs, so re-flowing them corrupts
+layout in a way that opens without complaint and is silently wrong. The
+lane offers `stamp` (an overlay, honestly named) and `pdf_compose` (a new
+document) instead, and the refusal states the reason and both options. This
+is the same principle as the A47 rule that a description is never dressed
+up as sight: the tool declines what it cannot do correctly instead of
+approximating it.

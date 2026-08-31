@@ -194,6 +194,10 @@ _EXPLICIT: dict[str, str] = {
     # prefix - A45's lesson was that a prefix silently admits whatever is
     # named next, and these read files and POST to 127.0.0.1. They mutate
     # nothing and nothing leaves the machine, so: the read tier.
+    # A48: the PDF lane writes files, so it sits on write-artifacts -
+    # tabled explicitly, never by family prefix (the A45 lesson).
+    "pdf_compose": "write-artifacts",
+    "pdf_edit": "write-artifacts",
     "sense_describe": "read-extract",
     "sense_viewport": "read-scene",
     "sense_camera": "read-scene",

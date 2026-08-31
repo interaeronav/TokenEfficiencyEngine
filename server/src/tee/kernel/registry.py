@@ -126,7 +126,12 @@ class ToolRegistry:
         Returns {"items": [...]} plus a "note" when nothing scored well, so
         a weak result is distinguishable from a good one without spending
         describe round-trips to find out (SI-B2)."""
-        words = [w for w in re.split(r"[^a-z0-9]+", query.lower()) if w]
+        # Words of one or two letters are dropped: matching is by SUBSTRING,
+        # so "a" in "add a watermark to a document" scores against every
+        # tool whose name merely contains an 'a' - which outranked the tool
+        # that actually stamps watermarks (A48). Short tokens carry no
+        # topic and, being substrings, carry maximum noise.
+        words = [w for w in re.split(r"[^a-z0-9]+", query.lower()) if len(w) > 2]
         scored: list[tuple[float, str]] = []
         for name, tool in self._tools.items():
             if name in self.disabled:
