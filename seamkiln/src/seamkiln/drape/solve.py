@@ -604,12 +604,14 @@ def drape(
     fabric: str | Fabric = "cotton_jersey",
     settings: DrapeSettings | None = None,
     pins: np.ndarray | None = None,
+    pin_target: np.ndarray | None = None,
 ) -> DrapeResult:
     """Run the drape. Returns positions and a compact report.
 
-    `pins` is a boolean mask over particles: a pinned particle is held where
-    it started and nothing in a substep can move it. That is what symmetric
-    pinching, lacing anchors and a hanging specimen all reduce to.
+    `pins` is a mask over particles: a pinned particle is held at its target
+    and nothing in a substep can move it. With `pin_target` it is pulled
+    somewhere instead of held - which is what a pinch, a lacing anchor and a
+    hand on a hem all reduce to.
     """
     import time
 
@@ -640,6 +642,10 @@ def drape(
     groups: list[tuple[np.ndarray, np.ndarray, float]] = []
     groups += _coloured_groups(garment.structural, garment.structural_rest, stretch, n)
     groups += _coloured_groups(garment.seams, garment.seam_rest, opts.seam_compliance, n)
+    if garment.extra is not None and garment.extra.shape[0]:
+        # lacing and anything else added after the pattern was built. A lace
+        # is barely stretchy, so it joins on the seam's compliance.
+        groups += _coloured_groups(garment.extra, garment.extra_rest, opts.seam_compliance, n)
 
     h = opts.dt / opts.substeps
     ii, jj, rest, starts, alphas = _flatten(groups)
@@ -661,7 +667,12 @@ def drape(
         if pins is not None
         else np.zeros(n, dtype=np.float64)
     )
-    pin_target = np.ascontiguousarray(x.copy())
+    # Where the pins hold. Default: where the particle already is (a hold).
+    # Give it somewhere else and the pin PULLS - which is what a pinch, a
+    # lacing anchor and a hand on a hem all are.
+    targets = np.ascontiguousarray(
+        x.copy() if pin_target is None else np.asarray(pin_target, dtype=np.float64)
+    )
 
     run = _kernel()
     started = time.perf_counter()
@@ -694,7 +705,7 @@ def drape(
         air_density,
         opts.drag if hasattr(opts, "drag") else room.drag_coefficient,
         pin_mask,
-        pin_target,
+        targets,
         h,
         1.0 - opts.damping,
         opts.frames,

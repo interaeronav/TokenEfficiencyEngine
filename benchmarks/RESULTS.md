@@ -112,11 +112,11 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,033** |
 | same, by `model_dump()` | 17 | 2,500 |
-| flat server, one tool per capability | 137 | 15,454 |
+| flat server, one tool per capability | 139 | 15,851 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 120 tools they contribute live behind the
+surface - the 122 tools they contribute live behind the
 meta-tools. Reaching one costs 548 tokens (one search +
 one describe), so the flat design only pays off in a session that
 uses more than ~28 distinct long-tail tools.
@@ -220,7 +220,7 @@ Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
 | seeing | `tee_media`, default budget (1002x563) | 756 |
 | blind | `sense_describe` (local model reads it) | 65 |
 
-**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 14.6s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
+**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 14.5s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
 
 This supersedes an informal *33x* quoted during A47, which compared the
 PROVIDER's input tokens against the answer rather than what a host pays.
@@ -255,11 +255,11 @@ diff, and one `sk_fit` call.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (outlines + draped mesh) | 80,553 | 5 |
-| tee (batch + diff + sk_fit) | 573 | 2 |
+| naive (outlines + draped mesh) | 80,520 | 5 |
+| tee (batch + diff + sk_fit) | 597 | 2 |
 | **saved** | **99.3%** | |
 
-Drape took 5.1 s; seams closed to 0.584 mm mean; worn: True.
+Drape took 6.0 s; seams closed to 1.386 mm mean; worn: True.
 The always-loaded surface is unchanged at 17 tools - seamkiln joins through
 the Adapter protocol and six `sk_*` virtual tools.
 

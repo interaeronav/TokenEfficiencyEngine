@@ -354,7 +354,10 @@ def _translate(op: dict[str, Any], index: int) -> list[dict[str, Any]]:
                 },
             },
         ]
-    if verb in ("drape", "export"):
+    # A54 verbs pass straight through: they are already seamkiln Commands and
+    # the adapter has nothing to translate. One tuple means a verb added to
+    # the session reaches TEE by being named once.
+    if verb in _PASSTHROUGH:
         return [{"op": verb, "args": props}]
     raise TeeError(
         "seamkiln_bad_op",
@@ -363,7 +366,20 @@ def _translate(op: dict[str, Any], index: int) -> list[dict[str, Any]]:
     )
 
 
-_WIRE_OPS = ("create", "set", "delete", "arrange", "drape", "export")
+_PASSTHROUGH = (
+    "drape",
+    "export",
+    "grade",
+    "cut",
+    "rip",
+    "pinch",
+    "lace",
+    "finish",
+    "animate",
+    "techpack",
+    "fit",
+)
+_WIRE_OPS = ("create", "set", "delete", "arrange", *_PASSTHROUGH)
 
 
 def _apply_translated(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
@@ -426,6 +442,22 @@ def _record(adapter: SeamkilnAdapter, verb: str, result: dict, diff: Diff) -> No
         diff.modified.append("export")
         diff.details.setdefault("export", {}).update(result)
         diff.notes.append(f"exported: {result.get('path')}")
+    elif verb in ("grade", "cut"):
+        for panel in adapter.session.pattern.panels:
+            entity = _panel_entity(panel)
+            diff.modified.append(entity.id)
+            diff.upserts.append(entity)
+        diff.details[verb] = result
+    elif verb in ("rip", "pinch", "lace", "finish", "animate"):
+        diff.modified.append("garment")
+        diff.details[verb] = result
+        if verb == "rip" and result.get("tears"):
+            diff.notes.append(
+                f"{len(result['tears'])} seam(s) gave way; "
+                f"{result['fray']['threads']} frayed threads"
+            )
+    elif verb in ("fit", "techpack"):
+        diff.details[verb] = result
 
 
 def _panel_entity(panel) -> Entity:

@@ -47,11 +47,24 @@ world.node_tree.nodes["Background"].inputs[1].default_value = 1.6
 
 def load(path, colour, alpha=1.0):
     before = set(bpy.data.objects)
-    bpy.ops.wm.obj_import(filepath=path, forward_axis="NEGATIVE_Z", up_axis="Y")
+    if path.endswith(".ply"):
+        # PLY, not OBJ, when the mesh carries per-vertex colour: OBJ has no
+        # portable vertex-colour channel, so a denim wash exported through it
+        # arrives as flat cloth and the finish silently does nothing.
+        bpy.ops.wm.ply_import(filepath=path, forward_axis="NEGATIVE_Z", up_axis="Y")
+    else:
+        bpy.ops.wm.obj_import(filepath=path, forward_axis="NEGATIVE_Z", up_axis="Y")
     objects = [o for o in bpy.data.objects if o not in before]
     material = bpy.data.materials.new("m"); material.use_nodes = True
     bsdf = material.node_tree.nodes["Principled BSDF"]
     bsdf.inputs["Base Color"].default_value = (*colour, 1.0)
+    vertex_colour = next(
+        (o for o in objects if o.data.color_attributes), None
+    )
+    if vertex_colour is not None:
+        node = material.node_tree.nodes.new("ShaderNodeVertexColor")
+        node.layer_name = vertex_colour.data.color_attributes[0].name
+        material.node_tree.links.new(node.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.75
     if alpha < 1.0:
         bsdf.inputs["Alpha"].default_value = alpha
@@ -145,7 +158,10 @@ def render(
             body.export(path)
             specs.append({"path": str(path), "colour": [0.75, 0.72, 0.70]})
         if garment is not None:
-            path = Path(tmp) / "garment.obj"
+            coloured = hasattr(garment.visual, "vertex_colors") and len(
+                getattr(garment.visual, "vertex_colors", [])
+            ) == len(garment.vertices)
+            path = Path(tmp) / ("garment.ply" if coloured else "garment.obj")
             garment.export(path)
             specs.append({"path": str(path), "colour": [0.18, 0.35, 0.62]})
         if not specs:

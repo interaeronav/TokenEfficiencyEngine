@@ -248,6 +248,7 @@ _EXPLICIT: dict[str, str] = {
     # --- seamkiln: the two that leave a file behind (A53 P4) ---
     "sk_plot": "write-artifacts",
     "sk_techpack": "write-artifacts",
+    "sk_materials": "write-artifacts",  # its export/import actions touch files
     "sk_interchange": "write-artifacts",
     # --- design: the store/render writes ---
     "gd_store": "write-state",

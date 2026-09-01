@@ -71,16 +71,26 @@ def test_unknown_verbs_list_the_known_ones() -> None:
     with pytest.raises(CommandError, match="seamkiln accepts"):
         Session().apply(Command("knit"))
     assert set(VERBS) == {
+        # the pattern lane
         "block",
         "panel",
         "seam",
         "allowance",
+        "delete",
+        "cut",
+        "grade",
+        # the drape lane
         "body",
         "arrange",
         "drape",
-        "export",
+        "pinch",
+        "rip",
+        "lace",
+        "animate",
+        # what comes out
+        "finish",
         "fit",
-        "delete",
+        "export",
         "techpack",
     }
 

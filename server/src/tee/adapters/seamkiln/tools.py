@@ -43,9 +43,68 @@ def _need():
 def register_seamkiln_tools(app) -> None:
     """Register sk_* (the surface stays 17)."""
 
+    def room(args: dict[str, Any]) -> dict[str, Any]:
+        _need()
+        from seamkiln.drape.environment import GRAVITY_PRESETS, Environment
+
+        if not args:
+            return {
+                "standard": Environment().describe(),
+                "gravity_presets": {k: round(v, 3) for k, v in GRAVITY_PRESETS.items()},
+                "note": "pass gravity/wind/temperature_c/humidity/pressure_kpa to see "
+                "the room it makes; a drape takes it via settings.environment",
+            }
+        gravity = args.get("gravity")
+        if isinstance(gravity, str):
+            built = Environment.preset(gravity)
+        elif gravity is not None:
+            built = Environment(gravity=float(gravity))
+        else:
+            built = Environment()
+        for key in ("temperature_c", "humidity", "pressure_kpa", "wind_gust"):
+            if key in args:
+                setattr(built, key, float(args[key]))
+        if "wind" in args:
+            built.wind = tuple(float(v) for v in args["wind"])
+        return {
+            **built.describe(),
+            "conditioning": built.conditioning(str(args.get("fibre", "cotton"))),
+        }
+
+    def materials(args: dict[str, Any]) -> dict[str, Any]:
+        _need()
+        from seamkiln import materials as library
+
+        action = str(args.get("action", "list"))
+        if action == "list":
+            return {
+                "materials": library.library(args.get("category"), tier=args.get("tier")),
+                "categories": sorted(library.CATEGORIES),
+            }
+        if action == "compare":
+            return library.compare([str(n) for n in args.get("names", [])])
+        if action == "derive":
+            card = library.derive(
+                str(args["base"]),
+                str(args["name"]),
+                **{k: float(v) for k, v in (args.get("changes") or {}).items()},
+            )
+            library.add(card, category=str(args.get("category", "custom")), overwrite=True)
+            return card.describe()
+        if action == "export":
+            return library.to_file(args.get("names"), str(args["path"]))
+        if action == "import":
+            return {"loaded": library.from_file(str(args["path"]), overwrite=True)}
+        raise TeeError(
+            "seamkiln_bad_material_action",
+            f"no material action {action!r}.",
+            fix="Actions: list, compare, derive, export, import.",
+        )
+
     def blocks(args: dict[str, Any]) -> dict[str, Any]:
         _need()
         from seamkiln.pattern.fixtures import tee_block
+        from seamkiln.session import VERBS
 
         pattern = tee_block()
         return {
@@ -58,6 +117,27 @@ def register_seamkiln_tools(app) -> None:
                     "units": "mm",
                 }
             ],
+            # The verbs are driven through tee_batch, not as tools of their
+            # own - which is right, but it means a search for "rip a seam"
+            # finds nothing unless the vocabulary is written down somewhere a
+            # searcher lands. This is that somewhere.
+            "batch_verbs": {
+                "block": "start from a built-in block",
+                "panel / seam / delete": "build a pattern by hand",
+                "allowance": "record a seam allowance (the outline stays the sew line)",
+                "grade": "scale to measurements, or to_body",
+                "cut": "op = cut | dart | spread | pleat",
+                "body": "kind = anny | mannequin",
+                "arrange": "place the panels on the body",
+                "drape": "solve; fabric, frames, and the environment",
+                "rip": "tear a seam, or auto=true to let the load choose",
+                "pinch": "grabs, mirrored by default",
+                "lace": "eyelets, style and tension between two panels",
+                "finish": "kind = wash | fur",
+                "animate": "blend-shape keyframes",
+                "fit / techpack / export": "what comes out",
+            },
+            "verbs": list(VERBS),
             "note": "create one with {'op':'create','kind':'block','props':{'block':'tee'}}",
         }
 
@@ -252,9 +332,10 @@ def register_seamkiln_tools(app) -> None:
         VirtualTool(
             name="sk_blocks",
             description=(
-                "List seamkiln's built-in pattern blocks and the parameters each takes. "
-                "A block is a starting garment - draft from it with a create/block op, "
-                "then edit panels through the normal batch verbs."
+                "seamkiln's built-in pattern blocks AND the batch verb vocabulary - "
+                "grade, cut, dart, pleat, rip a seam, pinch, lace, wash, fur, animate. "
+                "Those are driven through tee_batch rather than as tools of their own, "
+                "so this is where to look them up."
             ),
             schema={"type": "object", "properties": {}},
             handler=blocks,
@@ -430,5 +511,86 @@ def register_seamkiln_tools(app) -> None:
             handler=look,
             tags=["seamkiln", "look", "vision", "render", "check", "garment", "advice"],
             examples=[{}, {"question": "Does the sleeve sit correctly on the shoulder?"}],
+        )
+    )
+    app.registry.register(
+        VirtualTool(
+            name="sk_room",
+            description=(
+                "The environment a garment is tested in: gravity (any strength, any "
+                "direction), wind with a deterministic gust, and temperature / humidity / "
+                "pressure, which reach the cloth through moisture regain. Called bare it "
+                "returns the ISO 139 standard atmosphere and the gravity presets."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "gravity": {
+                        "description": "a preset (earth|moon|mars|jupiter|zero|half|"
+                        "double) or a number in m/s^2"
+                    },
+                    "wind": {"type": "array", "description": "[x, y, z] in m/s"},
+                    "wind_gust": {"type": "number", "description": "0..1 of `wind`"},
+                    "temperature_c": {"type": "number"},
+                    "humidity": {"type": "number", "description": "relative, 0..1"},
+                    "pressure_kpa": {"type": "number"},
+                    "fibre": {"type": "string", "description": "which sorption curve"},
+                },
+            },
+            handler=room,
+            tags=[
+                "seamkiln",
+                "environment",
+                "gravity",
+                "wind",
+                "temperature",
+                "humidity",
+                "pressure",
+                "room",
+                "climate",
+                "test",
+            ],
+            examples=[{}, {"gravity": "moon", "wind": [4, 0, 0], "humidity": 0.9}],
+        )
+    )
+    app.registry.register(
+        VirtualTool(
+            name="sk_materials",
+            description=(
+                "The material library: list by what a cloth is for, compare cards side by "
+                "side, derive a variant, or move a library in and out of a file. Deriving "
+                "DROPS the tier to `plausible`, because a measured cloth's test report "
+                "does not describe one you made heavier."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "description": "list (default) | compare | derive | export | import",
+                    },
+                    "category": {"type": "string"},
+                    "tier": {"type": "string"},
+                    "names": {"type": "array"},
+                    "base": {"type": "string"},
+                    "name": {"type": "string"},
+                    "changes": {"type": "object"},
+                    "path": {"type": "string"},
+                },
+            },
+            handler=materials,
+            tags=[
+                "seamkiln",
+                "material",
+                "fabric",
+                "library",
+                "cloth",
+                "catalogue",
+                "denim",
+                "fur",
+                "wash",
+                "compare",
+            ],
+            examples=[{}, {"action": "compare", "names": ["denim_12oz", "chiffon"]}],
         )
     )

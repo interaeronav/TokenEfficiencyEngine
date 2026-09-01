@@ -9381,3 +9381,87 @@ over an almost-constant radius profile reports twenty folds in a flat disc,
 so a fold now has to have depth before it counts as one.
 
 seamkiln **121 passed / 8 skipped**; TEE **1,214 passed**; ruff clean.
+
+### A54 P2 — the feature set: grading, cutting, tearing, pinching, lacing, finishing, animation (2026-09-01)
+
+All of it lands as **session verbs**, so every feature is a recorded Command
+that replays — a garment graded, darted, draped, ripped and washed still
+reproduces to an identical fingerprint. seamkiln **149 passed / 8 skipped**,
+TEE **1,214 passed**, ruff clean, surface still **17 tools / 2,033 tok** with
+**122** virtual tools.
+
+**Parametric grading.** `Measurements` are the numbers a tape gives;
+`grade_to_measurements` scales girth on x and length on y, sleeves on their
+own ratio. `Measurements.from_body` measures a parametric body and grades to
+*it* — the point of having a parametric body and a parametric pattern in one
+tool. A grade outside 0.80–1.25 refuses: past two sizes a pattern maker
+re-drafts rather than grades. `size_run` brackets the block.
+
+**Cutting and design.** `cut`, `dart`, `slash_spread`, `pleat`, with the
+arithmetic checked: a dart of width w and depth d removes exactly wd/2; a
+knife pleat costs 2× its depth and a box pleat 4× — the sum people get wrong
+by hand. Three refusals: a cut that misses, one that grazes the outline, and
+one that shatters a concave panel into three.
+
+**Ripping and tearing.** A seam is a set of zero-length constraints, so
+ripping one is exactly what it sounds like. `auto_rip` lets the LOAD choose —
+every seam reports its gap, and any over its strength gives way from whichever
+end is pulling harder. That is what "rips naturally along its seams" means:
+nobody picks the seam. Frayed edges are geometry, not a texture — threads
+along the boundary, deterministic, exportable.
+
+**Symmetric pinching.** A pinch is a pin with somewhere to go. Mirrored grabs
+are built as one set and applied in one solve, because pinching one side and
+then the other is a different result — the first grab has already dragged the
+cloth. Measured: 32 particles held, 221 mm of pull, 89 mm of surrounding cloth
+following.
+
+**Lacing.** Eyelets picked off the draped positions, three styles
+(criss-cross, straight-bar, spiral, which pull differently and that is the
+point), and a lace that is a load path rather than a decoration: at tension
+0.55 a 196 mm opening closed to 87.5 mm.
+
+**Denim washes are abrasion, and abrasion follows the creases.** A laundry
+does not paint whiskers on; it abrades cloth that is already folded there.
+seamkiln has the draped geometry, so it finds the creases the same way — high
+mean curvature on an OUTWARD-facing surface, because an inward fold is
+shielded. Seven wash levels ramp from raw indigo to bleached over that wear
+field, as per-vertex colour that survives a glTF export.
+
+**Fur** scatters by triangle AREA, so density is uniform per square centimetre
+rather than per triangle — the classic giveaway is a pelt on the fine regions
+and a bald patch on the coarse. **411,214 strands in 66 ms: 6.2 million
+strands per second.**
+
+**Blend-shape animation.** Keyframes on Anny's phenotype channels, smoothstep
+between them, and the garment solved ALONG the track — carrying the cloth
+forward rather than re-draping, which is why the hem rides up from 0.913 to
+0.955 as the body fills out instead of popping between shapes. The report
+splits solve time from collision-field rebake (44% rebake on the test run) so
+nobody optimises the wrong one.
+
+**Materials** gained a library around the cards: categories by what a cloth is
+*for*, comparison, files, and validation that refuses a card that is not a
+cloth (a 9,000 g/m² "fabric" is a units mistake) or one claiming tier
+`measured` with no test report — "a solver constant wearing a lab coat".
+Deriving a variant DROPS the tier, because a measured denim's report does not
+describe a denim you made 20% heavier.
+
+**Three findings worth keeping:**
+
+1. **A cut invalidates seams, and failing the batch was the wrong answer.**
+   Edges are derived from corners, so a dart that changes the corner count
+   moves every edge index after it. The guard fired correctly and made the
+   feature unusable — a pattern maker cuts first and re-sews after. Invalid
+   seams are now dropped *by name* (`seams_dropped: ["side-left",
+   "armhole-left-front"]`), which is the difference between "that broke" and
+   "those two need re-sewing".
+2. **Vertex colours do not survive OBJ.** The denim wash rendered as flat
+   cloth for a whole pass because the preview lane exported OBJ, which has no
+   portable vertex-colour channel. Now: PLY when the mesh is coloured, plus a
+   Color Attribute node wired into the shader.
+3. **A test's own assertion was confounded.** `colours.std()` over the whole
+   array mixes the spread BETWEEN channels with the spread across vertices —
+   and indigo's channels are far apart while a bleached grey's are close, so
+   the comparison reversed. Fixed to compare spatial variation per channel:
+   raw is exactly 0, a wash is not.

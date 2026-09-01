@@ -101,6 +101,9 @@ class GarmentMesh:
     seam_rest: np.ndarray  # metres; 0 for a plain seam
     particle_distance_mm: float = 0.0
     seam_orientation: dict[str, str] = field(default_factory=dict)
+    seam_spans: dict[str, tuple[int, int]] = field(default_factory=dict)
+    extra: np.ndarray | None = None  # lacing and other added constraints
+    extra_rest: np.ndarray | None = None
 
     @property
     def n_points(self) -> int:
@@ -384,7 +387,7 @@ def build_garment(
 
     structural = _unique_edges(tris)
     bending = bending_quads(tris)
-    seams, orientations = _seam_pairs(pattern, meshes, slices, points)
+    seams, orientations, spans = _seam_pairs(pattern, meshes, slices, points)
 
     return GarmentMesh(
         points=points,
@@ -407,6 +410,7 @@ def build_garment(
         seam_rest=np.zeros(seams.shape[0], dtype=np.float64),
         particle_distance_mm=particle_distance,
         seam_orientation=orientations,
+        seam_spans=spans,
     )
 
 
@@ -453,7 +457,7 @@ def _seam_pairs(
     meshes: dict[str, PanelMesh],
     slices: dict[str, tuple[int, int]],
     points: np.ndarray,
-) -> tuple[np.ndarray, dict[str, str]]:
+) -> tuple[np.ndarray, dict[str, str], dict[str, tuple[int, int]]]:
     """Pair every seam, choosing each one's orientation by measurement.
 
     Two panels laid out counter-clockwise traverse their shared edge in
@@ -467,6 +471,7 @@ def _seam_pairs(
     """
     pairs: list[tuple[int, int]] = []
     orientation: dict[str, str] = {}
+    spans: dict[str, tuple[int, int]] = {}
     for seam in pattern.seams:
         try:
             direct = _pair_one_seam(pattern, meshes, slices, seam, flip=False)
@@ -477,10 +482,12 @@ def _seam_pairs(
             chosen, label = flipped, "flipped (declared)"
         else:
             chosen, label = _closer(direct, flipped, points)
+        start = len(pairs)
         pairs.extend(chosen)
+        spans[seam.id] = (start, len(pairs))
         orientation[seam.id] = label
     array = np.asarray(pairs, dtype=np.int32) if pairs else np.zeros((0, 2), dtype=np.int32)
-    return array, orientation
+    return array, orientation, spans
 
 
 def _closer(
