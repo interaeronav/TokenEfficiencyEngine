@@ -8800,3 +8800,80 @@ available without an analytic solution. torch-MPS is float32 and differs by
 list and its replacements in a comment), `solver/problem.py` (the XPBD problem
 + colour groups, with an arithmetic check that the grid colouring cannot
 silently drop constraints), four backends, `bench/bakeoff.py`, and 18 tests.
+
+### A53 P1 — the pattern kernel, and a DXF round-trip that loses nothing (2026-09-01)
+
+`seamkiln.pattern`: geometry, model, allowance, DXF interchange, plotting,
+fabric. 55 tests, ruff clean, no Blender / GPU / network anywhere in them.
+
+**The design decision worth recording: an edge is derived, not stored.** A
+panel is a closed polyline whose vertices are tagged *turn point* (corner) or
+*curve point*, and an edge is the run between two consecutive corners. That is
+how a pattern maker speaks ("the side seam"), how ASTM stores a boundary, and
+it means an edge cannot disagree with the outline it belongs to.
+
+**The DXF round-trip is lossless, not "within tolerance".** Writing the
+tee block to ASTM and reading it back:
+
+```
+FRONT     area  316518.7 -> 316518.7  (0.0000% drift)  edges 8->8  marks 3->3
+BACK      area  320753.7 -> 320753.7  (0.0000% drift)  edges 8->8  marks 4->4
+SLEEVE_L  area   89136.4 ->  89136.4  (0.0000% drift)  edges 5->5  marks 1->1
+SLEEVE_R  area   89136.4 ->  89136.4  (0.0000% drift)  edges 5->5  marks 1->1
+```
+
+The acceptance bar was 0.1%. It is exactly zero because the turn/curve tags
+travel through **the standard's own layers 2 and 3** rather than being
+re-inferred from angles on the way back in. `$INSUNITS` survives too, and an
+inch file converts on read (25.4 mm/unit, checked).
+
+**Three measured facts about ezdxf 1.4.4 shaped the writer:**
+
+1. **It cannot write R13** — `Unsupported DXF version "AC1012"` — and ASTM
+   D6673 is defined on R13. We write R2000 and `provenance["dxfversion"]`
+   says so rather than implying R13.
+2. **R12 does not export `$INSUNITS`**, which would drop the unit
+   declaration a pattern depends on. Another reason for R2000.
+3. **Every DXF carries `*Model_Space` and `*Paper_Space` blocks**, and a
+   strict ASTM importer expects every block to be a piece. The reader skips
+   `*`-prefixed blocks; the writer reports them in `layout_blocks_present`
+   instead of leaving it to be discovered.
+
+**Dialects are data with provenance.** `ASTM.verified is True` (the 23-layer
+table from doc 67 §4); `AAMA.verified is False` (its layer names come from
+secondary sources), and a test asserts that flag so nobody quietly promotes
+it. AAMA defines no internal-cutout layer, so writing a cutout to AAMA
+**refuses by name** rather than putting a cut line on layer 8 where a cutter
+would read it as decoration.
+
+**Two real bugs found by the tests, both silent-wrong rather than loud:**
+
+- **`unfold` returned area 0.0.** It built on `mirror`, which restores
+  counter-clockwise winding — correct for a mirrored piece, wrong as a
+  building block: walking the original forward and a re-wound copy forward
+  traces a figure-eight whose halves cancel exactly. Rewritten to walk the
+  reflected half backwards, with the reason in the docstring.
+- **An explicitly closed ring grew a zero-length final edge.** Curve
+  constructors that end where they began hand over a repeated first vertex,
+  and the phantom edge measured 0.0 mm — a seam that matches anything.
+  Normalised once in `Panel.__post_init__`.
+
+**The plotter is 1:1 and the test proves it from the file.** A 100×50 mm
+rectangle is written to PDF, then the page's own content stream is parsed and
+the drawn segments measured: a 100.0 mm horizontal and a 50.0 mm vertical must
+be present. Page metadata saying "A4" says nothing about whether the drawing
+was scaled, so it is not what is asserted. Tiling works (a tee is 35 A4 pages,
+or one 1.37 m plotter sheet) and every tile carries a 100 mm ruler.
+
+**The fixture is a garment, not four shapes.** `tee_block()` — front, back,
+two sleeves, **10 seams** (2 side, 2 shoulder, 4 armhole, 2 underarm), all
+closing within 0.01 mm. The sleeve cap measures 219.3 mm against a 214.8 mm
+armhole; that 2.1% is **sleeve-head ease** and is declared as `gather`, so it
+reads as 0.00 rather than standing as a permanent 4.5 mm false alarm in every
+report. Rendered and looked at: it is a tee.
+
+**Fabric rows carry a tier flag and every bundled row is `plausible`**, with a
+test that fails if one ever claims `measured`. Weight and thickness are
+published facts; the stiffnesses are solver constants. ArcSim's measured set
+remains unshippable (doc 34), and `yardage()` labels itself an estimate
+because marker making is out of scope.
