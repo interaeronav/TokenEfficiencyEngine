@@ -71,4 +71,7 @@ select = ["E", "F", "I", "B", "SIM", "UP", "RUF"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-markers = ["slow: runs a full BS 5058 drape battery (minutes)"]
+markers = [
+    "slow: runs a full BS 5058 drape battery (minutes)",
+    "dcc: needs a real DCC (Blender) on this machine; skips cleanly without one",
+]

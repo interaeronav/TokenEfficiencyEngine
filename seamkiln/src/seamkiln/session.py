@@ -78,6 +78,7 @@ class Session:
     # list because a placket has many and they are fastened in order.
     zippers: dict[str, Any] = field(default_factory=dict)
     buttons: list[Any] = field(default_factory=list)
+    handoffs: list[Any] = field(default_factory=list)
 
     # -- the script ---------------------------------------------------------
 
@@ -911,6 +912,34 @@ def _v_button(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _v_handoff(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Hand the garment to the next application, in ITS coordinates."""
+    from seamkiln.handoff import bundle, ops_for
+
+    _need_garment(session, "hand off")
+    out = args.get("out")
+    if not out:
+        raise CommandError("handoff needs 'out' - the directory to write into.")
+    try:
+        made = bundle(
+            session,
+            out,
+            target=str(args.get("target", "blender")),
+            fmt=str(args["format"]) if "format" in args else None,
+            hardware=bool(args.get("hardware", True)),
+        )
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    session.handoffs.append(made)
+    result = made.summary()
+    try:
+        result["ops"] = ops_for(made)
+    except ValueError as exc:
+        result["ops"] = None
+        result["why_no_ops"] = str(exc)
+    return result
+
+
 def _v_unfasten(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.hardware.buttons import apply, unfasten
 
@@ -954,6 +983,7 @@ _VERBS = {
     "unzip": _v_unzip,
     "button": _v_button,
     "unfasten": _v_unfasten,
+    "handoff": _v_handoff,
 }
 
 VERBS = tuple(sorted(_VERBS))

@@ -386,6 +386,7 @@ _PASSTHROUGH = (
     "unzip",
     "button",
     "unfasten",
+    "handoff",
 )
 _WIRE_OPS = ("create", "set", "delete", "arrange", *_PASSTHROUGH)
 
@@ -480,6 +481,12 @@ def _record(adapter: SeamkilnAdapter, verb: str, result: dict, diff: Diff) -> No
                 if result.get("closed_gap_mm")
                 else ""
             )
+        )
+    elif verb == "handoff":
+        diff.details["handoff"] = result
+        diff.notes.append(
+            f"handoff to {result['target']}: {', '.join(sorted(result['files']))} "
+            f"({result['units']}, {result['up']}-up)"
         )
     elif verb in ("button", "unfasten"):
         diff.modified.append("garment")
