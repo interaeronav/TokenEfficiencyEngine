@@ -388,6 +388,9 @@ _PASSTHROUGH = (
     "unfasten",
     "handoff",
     "walk",
+    "pull",
+    "fold",
+    "ease",
 )
 _WIRE_OPS = ("create", "set", "delete", "arrange", *_PASSTHROUGH)
 
@@ -483,6 +486,15 @@ def _record(adapter: SeamkilnAdapter, verb: str, result: dict, diff: Diff) -> No
                 else ""
             )
         )
+    elif verb in ("pull", "fold", "ease"):
+        diff.modified.append("garment")
+        diff.details[verb] = result
+        rate = result.get("rate") or {}
+        if rate.get("ms_per_step"):
+            diff.notes.append(
+                f"{verb}: {rate['steps']} step(s) at {rate['ms_per_step']} ms "
+                f"({rate['fps']} fps on {rate['particles']} particles)"
+            )
     elif verb == "walk":
         diff.modified.append("garment")
         diff.details["walk"] = result

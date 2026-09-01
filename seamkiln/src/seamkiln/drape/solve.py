@@ -19,6 +19,7 @@ measure the garment off the arrangement.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -177,6 +178,10 @@ class DrapeResult:
     conditioning: dict[str, Any] = field(default_factory=dict)
     seconds: float = 0.0
     fingerprint: str = ""
+    # Carried out so an interactive step can carry it back IN. Without it a
+    # drag restarts the cloth from rest on every step, which does not look
+    # like heavy fabric - it looks like the integrator forgetting.
+    velocity: np.ndarray | None = None
 
     def report(self) -> dict[str, Any]:
         """The compact drape report - never a vertex dump (hard rule 1)."""
@@ -679,24 +684,77 @@ def vertex_triangle_csr(n_points: int, triangles: np.ndarray):
     return starts, index
 
 
-def drape(
+@dataclass(slots=True)
+class Prepared:
+    """Everything a solve needs that does NOT change while you drag cloth.
+
+    Colouring the constraint graph, flattening it, building the bending quads
+    and the vertex->triangle index cost about 30 ms on a 4,500-particle
+    garment, and `drape` rebuilt all of it on every call. That is invisible on
+    a 280-frame settle and it is most of the budget on a one-frame drag step:
+    measured, a single frame cost 54 ms rebuilt and 24 ms prepared, which is
+    18 fps against 42.
+
+    What invalidates it is exactly what it is keyed on - the topology, the
+    fabric, the attachments and the solver settings. Anything else (positions,
+    velocities, pins, the body) is passed in fresh every step, which is why a
+    drag can reuse one of these and a re-mesh cannot.
+    """
+
+    key: tuple
+    inv_mass: np.ndarray
+    share: np.ndarray
+    ii: np.ndarray
+    jj: np.ndarray
+    rest: np.ndarray
+    starts: np.ndarray
+    alphas: np.ndarray
+    bq: np.ndarray
+    bend_rest: np.ndarray
+    bend_starts: np.ndarray
+    bend_alphas: np.ndarray
+    tri: np.ndarray
+    tri_start: np.ndarray
+    tri_index: np.ndarray
+    conditioning: dict
+    cloth: Fabric
+    opts: DrapeSettings
+
+
+def _prepare_key(garment: GarmentMesh, cloth: Fabric, opts: DrapeSettings) -> tuple:
+    return (
+        id(garment),
+        garment.n_points,
+        int(garment.triangles.shape[0]),
+        int(garment.structural.shape[0]),
+        int(garment.seams.shape[0]),
+        tuple(sorted((k, len(v), v.compliance) for k, v in garment.attachments.items())),
+        cloth.name,
+        opts.grain_angle_deg,
+        opts.seam_compliance,
+        opts.dt,
+        opts.substeps,
+        opts.fibre,
+        # By CONTENT, not identity: `DrapeSettings.room` builds a fresh
+        # Environment on every access when none was set, so keying on
+        # `id(opts.room)` meant a prepared solve could never match anything -
+        # including the settings object it was built from.
+        json.dumps(opts.room.describe(), sort_keys=True, default=str),
+    )
+
+
+def prepare(
     garment: GarmentMesh,
-    sdf: BodySDF,
     *,
     fabric: str | Fabric = "cotton_jersey",
     settings: DrapeSettings | None = None,
-    pins: np.ndarray | None = None,
-    pin_target: np.ndarray | None = None,
-) -> DrapeResult:
-    """Run the drape. Returns positions and a compact report.
+) -> Prepared:
+    """Build everything a solve needs that survives a change of POSITION.
 
-    `pins` is a mask over particles: a pinned particle is held at its target
-    and nothing in a substep can move it. With `pin_target` it is pulled
-    somewhere instead of held - which is what a pinch, a lacing anchor and a
-    hand on a hem all reduce to.
+    Call it once and hand it to `drape` repeatedly - that is what makes a drag
+    interactive. See `Prepared` for the measured saving and for what
+    invalidates it.
     """
-    import time
-
     cloth = fabric if isinstance(fabric, Fabric) else fabric_by_name(fabric)
     opts = settings or DrapeSettings()
     room = opts.room
@@ -734,18 +792,91 @@ def drape(
         if len(block):
             groups += _coloured_groups(block.pairs, block.rest, block.compliance, n)
 
-    h = opts.dt / opts.substeps
     ii, jj, rest, starts, alphas = _flatten(groups)
     bq, bend_rest, bend_starts, bend_alphas = _flatten_quads(
         garment.bending, garment.bending_rest, bend, n
     )
 
-    x = np.ascontiguousarray(garment.points, dtype=np.float64)
-    v = np.zeros_like(x)
-    prev = np.zeros_like(x)
-
     tri = np.ascontiguousarray(garment.triangles, dtype=np.int64)
     tri_start, tri_index = vertex_triangle_csr(n, tri)
+
+    return Prepared(
+        key=_prepare_key(garment, cloth, opts),
+        inv_mass=inv_mass,
+        share=np.ascontiguousarray(share),
+        ii=ii,
+        jj=jj,
+        rest=rest,
+        starts=starts,
+        alphas=alphas,
+        bq=bq,
+        bend_rest=bend_rest,
+        bend_starts=bend_starts,
+        bend_alphas=bend_alphas,
+        tri=np.ascontiguousarray(garment.triangles, dtype=np.int64),
+        tri_start=tri_start,
+        tri_index=tri_index,
+        conditioning=conditioning,
+        cloth=cloth,
+        opts=opts,
+    )
+
+
+def drape(
+    garment: GarmentMesh,
+    sdf: BodySDF,
+    *,
+    fabric: str | Fabric = "cotton_jersey",
+    settings: DrapeSettings | None = None,
+    pins: np.ndarray | None = None,
+    pin_target: np.ndarray | None = None,
+    prepared: Prepared | None = None,
+    velocity: np.ndarray | None = None,
+) -> DrapeResult:
+    """Run the drape. Returns positions and a compact report.
+
+    `pins` is a mask over particles: a pinned particle is held at its target
+    and nothing in a substep can move it. With `pin_target` it is pulled
+    somewhere instead of held - which is what a pinch, a lacing anchor and a
+    hand on a hem all reduce to.
+    """
+    import time
+
+    cloth = fabric if isinstance(fabric, Fabric) else fabric_by_name(fabric)
+    opts = settings or DrapeSettings()
+    room = opts.room
+    n = garment.n_points
+    if prepared is not None and prepared.key != _prepare_key(garment, cloth, opts):
+        raise ValueError(
+            "this Prepared solve does not match this garment, fabric or settings. It "
+            "caches the constraint GRAPH, so anything that changes the graph - a "
+            "re-mesh, a different fabric, a new attachment, a changed timestep - needs "
+            "a fresh one. Rebuild it rather than solving against a stale graph."
+        )
+    if prepared is None:
+        prepared = prepare(garment, fabric=cloth, settings=opts)
+    conditioning = prepared.conditioning
+    share, inv_mass = prepared.share, prepared.inv_mass
+    ii, jj, rest, starts, alphas = (
+        prepared.ii,
+        prepared.jj,
+        prepared.rest,
+        prepared.starts,
+        prepared.alphas,
+    )
+    bq, bend_rest, bend_starts, bend_alphas = (
+        prepared.bq,
+        prepared.bend_rest,
+        prepared.bend_starts,
+        prepared.bend_alphas,
+    )
+    tri, tri_start, tri_index = prepared.tri, prepared.tri_start, prepared.tri_index
+
+    x = np.ascontiguousarray(garment.points, dtype=np.float64)
+    v = np.zeros_like(x) if velocity is None else np.ascontiguousarray(velocity, dtype=np.float64)
+    prev = np.zeros_like(x)
+    h = opts.dt / opts.substeps
+    # per-CALL: these depend on how many frames THIS call runs
     wind_schedule = WindField.of(room).samples(opts.frames * opts.substeps + 1)
     air_density = room.air_density() if float(np.linalg.norm(room.wind)) > 0.0 else 0.0
 
@@ -816,6 +947,7 @@ def drape(
         conditioning=conditioning,
         seconds=seconds,
         fingerprint=sha256(np.round(x, 6).tobytes()).hexdigest()[:16],
+        velocity=v,
     )
 
 

@@ -108,6 +108,9 @@ def test_unknown_verbs_list_the_known_ones() -> None:
         "unfasten",
         "handoff",
         "walk",
+        "pull",
+        "fold",
+        "ease",
     }
 
 

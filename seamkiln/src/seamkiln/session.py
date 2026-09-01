@@ -81,6 +81,7 @@ class Session:
     handoffs: list[Any] = field(default_factory=list)
     avatar: dict[str, Any] = field(default_factory=dict)
     gait: Any = None
+    live: Any = None  # seamkiln.interact.LiveSession, built on first pull
 
     # -- the script ---------------------------------------------------------
 
@@ -210,7 +211,7 @@ def _v_block(session: Session, args: dict[str, Any]) -> dict[str, Any]:
             opening="zipper" if name == "jacket-zip" else "placket", **numeric
         )
     session.name = session.pattern.name
-    session.garment = session.drape = None
+    session.garment = session.drape = session.live = None
     return {"panels": [p.id for p in session.pattern.panels], "seams": len(session.pattern.seams)}
 
 
@@ -232,7 +233,7 @@ def _v_panel(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     ]
     panel = Panel(id=str(args.get("id") or f"P{len(session.pattern.panels) + 1}"), outline=vertices)
     session.pattern.panels.append(panel)
-    session.garment = session.drape = None
+    session.garment = session.drape = session.live = None
     return {"id": panel.id, "area_mm2": round(panel.area_mm2, 1), "edges": len(panel.edges())}
 
 
@@ -265,7 +266,7 @@ def _v_seam(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         id=str(args.get("id") or ""),
     )
     pattern.seams.append(seam)
-    session.garment = session.drape = None
+    session.garment = session.drape = session.live = None
     return {"id": seam.id}
 
 
@@ -339,7 +340,7 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         )
     session.body_spec = {"kind": kind, "stature_m": stature}
     session.sdf = sdf_from_mesh(session.body, voxel_mm=float(args.get("voxel_mm", 8.0)))
-    session.garment = session.drape = None
+    session.garment = session.drape = session.live = None
     out = {"kind": kind, "measurements": body_measurements(session.body)}
     if session.avatar:
         out["avatar"] = session.avatar
@@ -388,7 +389,7 @@ def _v_delete(session: Session, args: dict[str, Any]) -> dict[str, Any]:
             # a seam whose panel is gone is not a seam; dropping it here beats
             # a dangling reference that fails later, further from the cause
             pattern.seams = [s for s in pattern.seams if target not in (s.a.panel, s.b.panel)]
-            session.garment = session.drape = None
+            session.garment = session.drape = session.live = None
             return {"deleted": target, "panels": len(pattern.panels)}
     known = ", ".join(p.id for p in pattern.panels) or "(none)"
     raise CommandError(f"no panel {target!r}. Panels: {known}.")
@@ -545,7 +546,7 @@ def _v_grade(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     except GradingError as exc:
         raise CommandError(str(exc)) from exc
     session.pattern = graded
-    session.garment = session.drape = None
+    session.garment = session.drape = session.live = None
     return {"target": target.as_dict(), **report.as_dict()}
 
 
@@ -589,7 +590,7 @@ def _v_cut(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         raise CommandError(str(exc)) from exc
     except KeyError as exc:
         raise CommandError(f"cutting op {operation!r} needs {exc}") from exc
-    session.garment = session.drape = None
+    session.garment = session.drape = session.live = None
     return {**out, **_resew(session)}
 
 
@@ -947,6 +948,73 @@ def _v_button(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _live(session: Session):
+    """The live session, built on first use and reused after.
+
+    Rebuilt whenever the garment's identity changes, because a LiveSession
+    caches the constraint graph and a stale graph is refused by the solver
+    rather than silently used.
+    """
+    from seamkiln.interact import LiveSession
+
+    garment = _need_garment(session, "pull")
+    if session.live is None or session.live.garment is not garment:
+        session.live = LiveSession(garment, session.sdf, fabric=session.fabric)
+    return session.live
+
+
+def _v_pull(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Grab the cloth, drag it, and let go. The live gesture, as one command.
+
+    A script records the NET gesture and not every mouse sample on purpose: a
+    two-second drag is a hundred frames of nothing anybody wants replayed, and
+    the interesting content of a pull is where it started, where it ended and
+    what the cloth did. `steps` is how finely the drag is interpolated, which
+    is what changes the answer - a pull taken in one jump is a different
+    physical event from the same pull taken in twenty.
+    """
+    live = _live(session)
+    try:
+        handle = live.grab(
+            (float(args["x"]), float(args["y"]), float(args["z"])),
+            radius_mm=float(args.get("radius_mm", 40.0)),
+        )
+        start = handle.at.copy()
+        finish = [float(args["to_x"]), float(args["to_y"]), float(args["to_z"])]
+        steps = max(int(args.get("steps", 12)), 1)
+        for k in range(1, steps + 1):
+            live.drag(handle, tuple(start + (finish - start) * (k / steps)))
+        report = live.release(handle, frames=int(args.get("settle", 40)))
+    except (KeyError, ValueError) as exc:
+        raise CommandError(str(exc)) from exc
+    return {**handle.summary(), **report, "rate": live.rate()}
+
+
+def _v_fold(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    live = _live(session)
+    try:
+        return {
+            **live.fold(
+                (float(args["x"]), float(args["y"]), float(args["z"])),
+                depth_mm=float(args.get("depth_mm", 40.0)),
+                direction=tuple(args.get("direction", (0.0, 0.0, -1.0))),
+                radius_mm=float(args.get("radius_mm", 50.0)),
+                settle=int(args.get("settle", 30)),
+            ),
+            "rate": live.rate(),
+        }
+    except (KeyError, ValueError) as exc:
+        raise CommandError(str(exc)) from exc
+
+
+def _v_ease(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    live = _live(session)
+    try:
+        return live.ease(str(args["seam"]), float(args.get("mm", 0.0)))
+    except (KeyError, ValueError) as exc:
+        raise CommandError(str(exc)) from exc
+
+
 def _v_walk(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     """Drape along a walk or a run, carrying the cloth forward frame to frame.
 
@@ -1072,6 +1140,9 @@ _VERBS = {
     "unfasten": _v_unfasten,
     "handoff": _v_handoff,
     "walk": _v_walk,
+    "pull": _v_pull,
+    "fold": _v_fold,
+    "ease": _v_ease,
 }
 
 VERBS = tuple(sorted(_VERBS))
