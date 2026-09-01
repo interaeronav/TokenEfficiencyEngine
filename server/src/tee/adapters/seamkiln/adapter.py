@@ -387,6 +387,7 @@ _PASSTHROUGH = (
     "button",
     "unfasten",
     "handoff",
+    "walk",
 )
 _WIRE_OPS = ("create", "set", "delete", "arrange", *_PASSTHROUGH)
 
@@ -481,6 +482,13 @@ def _record(adapter: SeamkilnAdapter, verb: str, result: dict, diff: Diff) -> No
                 if result.get("closed_gap_mm")
                 else ""
             )
+        )
+    elif verb == "walk":
+        diff.modified.append("garment")
+        diff.details["walk"] = result
+        diff.notes.append(
+            f"{result['gait']}: {result['frames']} frames over {result['duration_s']}s, "
+            f"hem swing {result['hem_swing_mm']} mm, worn throughout: {result['worn_throughout']}"
         )
     elif verb == "handoff":
         diff.details["handoff"] = result

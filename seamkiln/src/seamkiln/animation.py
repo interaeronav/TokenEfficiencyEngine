@@ -16,7 +16,7 @@ solve from the rebake so nobody optimises the wrong one.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
@@ -121,7 +121,7 @@ def animate(
     *,
     fabric: str = "cotton_jersey",
     fps: float = 8.0,
-    frames_per_step: int = 60,
+    frames_per_step: int | None = None,
     voxel_mm: float = 12.0,
     body_factory=None,
     settings=None,
@@ -149,7 +149,35 @@ def animate(
                 **{k: v for k, v in values.items() if k in PHENOTYPES},
             )
 
-    options = settings or DrapeSettings(frames=frames_per_step)
+    options = settings or DrapeSettings()
+    # How much CLOTH TIME one animation frame gets. This is not a free
+    # parameter: the body advances 1/fps seconds between frames, so the cloth
+    # must advance 1/fps seconds too.
+    #
+    # It was a free parameter, and that was a real bug with a measured cost. A
+    # run gait at 8 fps with the old default of 60 steps gave the cloth 1.0 s
+    # of gravity for every 0.125 s the body moved - eight times too much - and
+    # a t-shirt SLID 270 MM DOWN the body over one stride while every frame
+    # still reported `worn=True`, because it was still touching. Matching the
+    # two took the slip to 37 mm at 8 fps and 13 mm at 16 fps; at 32 fps the
+    # shirt is thrown 19 mm UP, which is what a run does to a shirt.
+    #
+    # The lesson for anyone tempted to raise this for accuracy: accuracy comes
+    # from `substeps`, which subdivides the same second of cloth time. `frames`
+    # buys MORE SECONDS, and more seconds than the body took is not accuracy,
+    # it is a different animation.
+    natural = max(round((1.0 / fps) / options.dt), 1)
+    if frames_per_step is None:
+        frames_per_step = natural
+    elif abs(frames_per_step - natural) > max(1, natural // 5):
+        raise ValueError(
+            f"frames_per_step={frames_per_step} gives the cloth "
+            f"{frames_per_step * options.dt:.3f} s per animation frame while the body "
+            f"advances {1.0 / fps:.3f} s. The garment will slide - measured at 270 mm "
+            f"down a body in one stride when this was 8x out. Use {natural} (or leave "
+            f"it unset), and raise `substeps` if you want a more accurate solve."
+        )
+    options = replace(options, frames=frames_per_step)
     out: list[AnimationFrame] = []
     points = None
     for time_s, values in track.sample(fps):

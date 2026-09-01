@@ -383,7 +383,7 @@ def test_the_garment_is_dragged_along_the_track_not_re_draped(body, sdf) -> None
         track,
         fabric="cotton_jersey",
         fps=3.0,
-        frames_per_step=30,
+        # derived from fps: see the note in animate() about the 270 mm slide
         voxel_mm=16.0,
         body_factory=stand_in,
         settings=DrapeSettings(frames=30, substeps=10),

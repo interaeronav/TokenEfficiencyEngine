@@ -79,6 +79,8 @@ class Session:
     zippers: dict[str, Any] = field(default_factory=dict)
     buttons: list[Any] = field(default_factory=list)
     handoffs: list[Any] = field(default_factory=list)
+    avatar: dict[str, Any] = field(default_factory=dict)
+    gait: Any = None
 
     # -- the script ---------------------------------------------------------
 
@@ -300,15 +302,48 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         session.body = anny_body(stature_m=stature, **phenotypes)
     elif kind == "mannequin":
         session.body = mannequin(height=stature, chest=float(args.get("chest_m", 1.0)))
+    elif kind in ("posed", "custom"):
+        from seamkiln.avatar import Pose, adjust, custom_avatar, describe, posed_mannequin
+
+        if kind == "posed":
+            session.body = posed_mannequin(
+                Pose.from_values({k: float(v) for k, v in (args.get("pose") or {}).items()}),
+                height=stature,
+                chest=float(args.get("chest_m", 1.0)),
+            )
+        else:
+            path = args.get("path")
+            if not path:
+                raise CommandError("a custom avatar needs 'path' - the mesh file to load.")
+            try:
+                session.body = custom_avatar(
+                    path,
+                    units=str(args.get("units", "auto")),
+                    up=str(args.get("up", "auto")),
+                    forward_z=bool(args.get("forward_z", True)),
+                )
+            except (OSError, ValueError) as exc:
+                raise CommandError(str(exc)) from exc
+            if "height_m" in args or "girth_scale" in args:
+                session.body = adjust(
+                    session.body,
+                    height_m=float(args["height_m"]) if "height_m" in args else None,
+                    girth_scale=float(args.get("girth_scale", 1.0)),
+                )
+            session.avatar = describe(session.body)
     else:
         raise CommandError(
-            f"no body kind {kind!r}. Bodies: 'anny' (parametric, Apache-2.0) "
-            "or 'mannequin' (stand-in, no download)."
+            f"no body kind {kind!r}. Bodies: 'anny' (parametric, Apache-2.0), "
+            "'mannequin' (stand-in, no download), 'posed' (the mannequin at "
+            "joint angles) or 'custom' (your own mesh, from 'path')."
         )
     session.body_spec = {"kind": kind, "stature_m": stature}
     session.sdf = sdf_from_mesh(session.body, voxel_mm=float(args.get("voxel_mm", 8.0)))
     session.garment = session.drape = None
-    return {"kind": kind, "measurements": body_measurements(session.body)}
+    out = {"kind": kind, "measurements": body_measurements(session.body)}
+    if session.avatar:
+        out["avatar"] = session.avatar
+    return out
 
 
 def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
@@ -772,7 +807,7 @@ def _v_animate(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         track,
         fabric=session.fabric,
         fps=float(args.get("fps", 6.0)),
-        frames_per_step=int(args.get("frames_per_step", 60)),
+        frames_per_step=int(args["frames_per_step"]) if "frames_per_step" in args else None,
         body_factory=factory,
     )
     session.animation = frames
@@ -912,6 +947,58 @@ def _v_button(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _v_walk(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Drape along a walk or a run, carrying the cloth forward frame to frame.
+
+    The frame rate is the only timing knob on purpose: how much cloth time one
+    animation frame gets is DERIVED from it, because it is not free. See the
+    note in `animation.animate` about the 270 mm slide.
+    """
+    from seamkiln.animation import animation_report
+    from seamkiln.avatar import gait as make_gait
+    from seamkiln.avatar import walk as walk_along
+    from seamkiln.drape.solve import DrapeSettings
+
+    garment = _need_garment(session, "walk")
+    try:
+        track = make_gait(
+            str(args.get("gait", "walk")),
+            cycles=float(args.get("cycles", 1.0)),
+            samples_per_cycle=int(args.get("samples_per_cycle", 8)),
+        )
+        frames = walk_along(
+            garment,
+            track,
+            fabric=session.fabric,
+            fps=float(args.get("fps", 12.0)),
+            voxel_mm=float(args.get("voxel_mm", 10.0)),
+            height=float(session.body_spec.get("stature_m", 1.75)),
+            settings=DrapeSettings(substeps=int(args.get("substeps", 24))),
+        )
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    session.gait = track
+    if frames:
+        session.garment.points = frames[-1].points
+        session.drape = None  # the last frame is a POSE, not the rest drape
+    hem = [float(f.points[:, 1].min()) for f in frames]
+    return {
+        **track.as_dict(),
+        **animation_report(frames),
+        "hem_swing_mm": round((max(hem) - min(hem)) * 1000.0, 1),
+        "rise_mm": round(
+            (float(frames[0].points[:, 1].mean()) - float(frames[-1].points[:, 1].mean()))
+            * -1000.0,
+            1,
+        )
+        if frames
+        else 0.0,
+        "seam_max_mm": round(max(f.report["seam_gaps"]["max_gap_mm"] for f in frames), 1)
+        if frames
+        else 0.0,
+    }
+
+
 def _v_handoff(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     """Hand the garment to the next application, in ITS coordinates."""
     from seamkiln.handoff import bundle, ops_for
@@ -984,6 +1071,7 @@ _VERBS = {
     "button": _v_button,
     "unfasten": _v_unfasten,
     "handoff": _v_handoff,
+    "walk": _v_walk,
 }
 
 VERBS = tuple(sorted(_VERBS))
