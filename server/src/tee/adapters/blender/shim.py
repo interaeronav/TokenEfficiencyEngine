@@ -92,6 +92,43 @@ _F = [
         "brush.sculpt_tool became brush.sculpt_brush_type in 5.0 "
         "(all *_tool brush enums are now *_brush_type).",
     ),
+    # A61: four drift faults caught the hard way - each of these cost a real
+    # headless run before it was catalogued, which is the exact cost this
+    # firewall exists to remove.
+    FaultLine(
+        "sky_nishita_renamed",
+        re.compile(r"""["']NISHITA["']|\bdust_density\b"""),
+        lambda v: v >= (5, 0, 0),
+        "ShaderNodeTexSky on 5.x has no 'NISHITA': the physical sky is "
+        "sky_type='MULTIPLE_SCATTERING' (or 'SINGLE_SCATTERING'), and "
+        "dust_density is now aerosol_density.",
+    ),
+    FaultLine(
+        "ffmpeg_needs_video_media_type",
+        re.compile(r"""image_settings\.file_format\s*=\s*["']FFMPEG["']"""),
+        lambda v: v >= (5, 0, 0),
+        "5.x splits image from video output: set "
+        "render.image_settings.media_type = 'VIDEO' BEFORE file_format = "
+        "'FFMPEG', or the enum does not contain it.",
+    ),
+    FaultLine(
+        "sequence_editor_sequences_renamed",
+        re.compile(r"\bsequence_editor\.sequences\b|\bsequences\.new_(?:image|movie|sound)\b"),
+        lambda v: v >= (5, 0, 0),
+        "sequence_editor.sequences became .strips in 5.0. Test for it with "
+        "`is None`, not truthiness - an EMPTY strip collection is falsy and a "
+        "`getattr(...) or ...` fallback will fire when the attribute exists.",
+    ),
+    FaultLine(
+        "class_rna_capability_probe",
+        re.compile(r"bpy\.types\.\w+\.bl_rna\.properties\[[^\]]+\]\.enum_items"),
+        lambda v: v >= (0, 0, 0),
+        "Probing capability on the CLASS rna reports the unfiltered enum. "
+        "Blender filters these per instance and per context - "
+        "bpy.types.ImageFormatSettings says FFMPEG is available when the "
+        "scene's own settings do not offer it. Probe the object you will "
+        "actually assign to.",
+    ),
     FaultLine(
         "file_output_node_api",
         re.compile(r"\.file_slots\b|\.layer_slots\b"),

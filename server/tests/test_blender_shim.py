@@ -75,3 +75,43 @@ def test_firewall_still_catches_string_engine_ids():
     assert "eevee_next_id_on_5x" in codes(
         "scene.render.engine = 'BLENDER_EEVEE_NEXT'  # set engine", V52
     )
+
+
+def test_a61_drift_faults_caught_in_a_real_headless_run() -> None:
+    """Four Blender 5.x drift faults, each of which cost a live run before it
+    was catalogued - which is the exact cost this firewall exists to remove.
+
+    They came out of rendering an actual shot in Blender 5.2, not out of a
+    changelog, so each pattern is the code that was really written and each
+    hint is what really fixed it.
+    """
+    # the physical sky was renamed, and so was one of its inputs
+    assert "sky_nishita_renamed" in codes('sky.sky_type = "NISHITA"', (5, 2, 0))
+    assert "sky_nishita_renamed" in codes("sky.dust_density = 2.4", (5, 2, 0))
+    assert "sky_nishita_renamed" not in codes('sky.sky_type = "NISHITA"', (4, 2, 0))
+
+    # video output is behind a media_type switch on 5.x
+    ffmpeg = 'scene.render.image_settings.file_format = "FFMPEG"'
+    assert "ffmpeg_needs_video_media_type" in codes(ffmpeg, (5, 2, 0))
+    assert "ffmpeg_needs_video_media_type" not in codes(ffmpeg, (4, 2, 0))
+
+    # sequences -> strips, plus the falsy-empty-collection trap in the hint
+    assert "sequence_editor_sequences_renamed" in codes(
+        "book = scene.sequence_editor.sequences", (5, 2, 0)
+    )
+    hint = next(
+        h["hint"]
+        for h in firewall_check("scene.sequence_editor.sequences", (5, 2, 0))
+        if h["code"] == "sequence_editor_sequences_renamed"
+    )
+    assert "is None" in hint and "falsy" in hint
+
+    # probing the CLASS rna reports capability the instance does not have
+    probe = 'bpy.types.ImageFormatSettings.bl_rna.properties["file_format"].enum_items'
+    assert "class_rna_capability_probe" in codes(probe, (5, 2, 0))
+    # and that one is not version-gated: it was never right on any version
+    assert "class_rna_capability_probe" in codes(probe, (3, 6, 0))
+
+    # none of them fire on code that is correct for the connected version
+    assert codes('scene.render.engine = "BLENDER_EEVEE"', (5, 2, 0)) == set()
+    assert codes('sky.sky_type = "MULTIPLE_SCATTERING"', (5, 2, 0)) == set()
