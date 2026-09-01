@@ -78,6 +78,10 @@ class Fabric:
     bend_warp: float  # flexural rigidity, mN.mm, along the warp
     bend_weft: float  # ... and across it
     friction: float = 0.35
+    # How much of an impact comes back. Cloth is not a bouncing ball - a woven
+    # dissipates almost everything - so these are small by nature, and a card
+    # with a large one is describing something that is not fabric.
+    restitution: float = 0.02
     tier: Tier = Tier.PLAUSIBLE
     source: str = ""
     notes: str = ""

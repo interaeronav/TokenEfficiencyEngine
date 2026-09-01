@@ -259,6 +259,8 @@ def _kernel():
         drag_cd,
         pin_mask,
         pin_target,
+        restitution,
+        contact_n,
         h,
         retain,
         frames,
@@ -508,6 +510,14 @@ def _kernel():
                     x[k, 0] += wnx * push
                     x[k, 1] += wny * push
                     x[k, 2] += wnz * push
+                    # Restitution is applied to the VELOCITY, in the pass
+                    # below - not here as an extra position push. Pushing the
+                    # particle out a second time double-counts the separation:
+                    # at a restitution of 0.02, which is barely a bounce, it
+                    # took the tee's worst seam gap from 33 mm to 248 mm.
+                    contact_n[k, 0] = wnx
+                    contact_n[k, 1] = wny
+                    contact_n[k, 2] = wnz
                     # Coulomb friction, not viscous drag. The first version
                     # removed a fixed FRACTION of the tangential motion each
                     # substep, which is drag: it slows a slide without ever
@@ -534,6 +544,24 @@ def _kernel():
                             x[k, 2] -= take * tz2
 
                 for k in prange(n):
+                    # restitution, on the velocity, where it belongs
+                    if restitution > 0.0 and (
+                        contact_n[k, 0] != 0.0 or contact_n[k, 1] != 0.0 or contact_n[k, 2] != 0.0
+                    ):
+                        approach = (
+                            v[k, 0] * contact_n[k, 0]
+                            + v[k, 1] * contact_n[k, 1]
+                            + v[k, 2] * contact_n[k, 2]
+                        )
+                        if approach < 0.0:
+                            give = -(1.0 + restitution) * approach
+                            v[k, 0] += contact_n[k, 0] * give
+                            v[k, 1] += contact_n[k, 1] * give
+                            v[k, 2] += contact_n[k, 2] * give
+                        contact_n[k, 0] = 0.0
+                        contact_n[k, 1] = 0.0
+                        contact_n[k, 2] = 0.0
+
                     # pins last, so nothing the substep did can drag a pinned
                     # particle off its target - that is what a pin means
                     if pin_mask[k] > 0.0:
@@ -760,6 +788,8 @@ def drape(
         opts.drag if hasattr(opts, "drag") else room.drag_coefficient,
         pin_mask,
         targets,
+        float(getattr(cloth, "restitution", 0.0)),
+        np.zeros_like(x),
         h,
         1.0 - opts.damping,
         opts.frames,

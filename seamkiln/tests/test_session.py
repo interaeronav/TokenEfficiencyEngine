@@ -98,6 +98,9 @@ def test_unknown_verbs_list_the_known_ones() -> None:
         "fit",
         "export",
         "techpack",
+        # A55
+        "lock",
+        "unlock",
     }
 
 

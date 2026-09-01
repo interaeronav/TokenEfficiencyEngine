@@ -73,6 +73,7 @@ class Session:
     frayed: Any = None
     lace: Any = None
     animation: Any = None
+    locks: Any = None  # seamkiln.locking.Locks, built on first use
 
     # -- the script ---------------------------------------------------------
 
@@ -125,6 +126,14 @@ class Session:
 
     # -- applying commands --------------------------------------------------
 
+    @property
+    def lock_state(self):
+        from seamkiln.locking import Locks
+
+        if self.locks is None:
+            self.locks = Locks()
+        return self.locks
+
     def apply(self, command: Command | dict[str, Any]) -> dict[str, Any]:
         """Carry out one command and record it. The ONLY way state changes."""
         if isinstance(command, dict):
@@ -157,6 +166,19 @@ class Session:
 
 
 # -- verbs -------------------------------------------------------------------
+
+
+def _guard(session: Session, scope: str, doing: str) -> None:
+    """Refuse a change to a locked scope. Locks are set by a command, so they
+    survive a replay and a locked script produces the same garment twice."""
+    from seamkiln.locking import LockedError
+
+    if session.locks is None:
+        return
+    try:
+        session.locks.check(scope, doing)
+    except LockedError as exc:
+        raise CommandError(str(exc)) from exc
 
 
 def _require_pattern(session: Session):
@@ -237,8 +259,11 @@ def _v_allowance(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.pattern.allowance import add_seam_allowance
 
     pattern = _require_pattern(session)
+    _guard(session, "panels", "setting a seam allowance")
     millimetres = float(args.get("mm", 10.0))
     targets = args.get("panels") or [p.id for p in pattern.panels]
+    for panel_id in targets:
+        _guard(session, f"panel:{panel_id}", "setting a seam allowance")
     for index, panel in enumerate(list(pattern.panels)):
         if panel.id in targets:
             pattern.panels[index] = add_seam_allowance(panel, millimetres)
@@ -246,6 +271,7 @@ def _v_allowance(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    _guard(session, "body", "changing the body")
     from seamkiln.drape.body import mannequin, sdf_from_mesh
     from seamkiln.drape.measure import body_measurements
 
@@ -420,7 +446,37 @@ def _v_fit(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 # -- A54 verbs: everything the garment can have done to it --------------------
 
 
+def _v_lock(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    from seamkiln.locking import Locks
+
+    locks = session.lock_state
+    for scope in args.get("scopes") or ([args["scope"]] if "scope" in args else []):
+        try:
+            locks.add(str(scope), str(args.get("reason", "")))
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
+    if not isinstance(locks, Locks):  # pragma: no cover - defensive
+        raise CommandError("lock state is corrupt")
+    return locks.as_dict()
+
+
+def _v_unlock(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    locks = session.lock_state
+    if args.get("all"):
+        locks.clear()
+    for scope in args.get("scopes") or ([args["scope"]] if "scope" in args else []):
+        locks.remove(str(scope))
+    return locks.as_dict()
+
+
 def _v_grade(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    # A collective operation is guarded PANEL BY PANEL, not against a
+    # collective scope: locking one piece has to stop a grade that would move
+    # it, and checking only "panels" let exactly that through.
+    _guard(session, "panels", "grading")
+    if session.pattern is not None:
+        for panel in session.pattern.panels:
+            _guard(session, f"panel:{panel.id}", "grading")
     from seamkiln.pattern.grading import (
         GradingError,
         Measurements,
@@ -451,6 +507,7 @@ def _v_cut(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 
     pattern = _require_pattern(session)
     panel = pattern.panel(str(args.get("panel", "")))
+    _guard(session, f"panel:{panel.id}", f"a {args.get('op', 'cut')} on {panel.id}")
     operation = str(args.get("op", "cut"))
     index = pattern.panels.index(panel)
     try:
@@ -725,6 +782,8 @@ _VERBS = {
     "export": _v_export,
     "fit": _v_fit,
     "techpack": _v_techpack,
+    "lock": _v_lock,
+    "unlock": _v_unlock,
     "grade": _v_grade,
     "cut": _v_cut,
     "rip": _v_rip,

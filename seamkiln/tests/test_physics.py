@@ -342,13 +342,16 @@ def test_the_back_panel_is_mirrored_when_worn() -> None:
 
     body = mannequin()
     pattern = tee_block()
-    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=16.0)
+    # 12 mm on a 6 mm field: this test makes a claim about seam CLOSURE, and a
+    # coarse preview may not be relied on for one - 16 mm does not converge.
+    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=12.0)
     result = drape(
         garment,
-        sdf_from_mesh(body, voxel_mm=8.0),
+        sdf_from_mesh(body, voxel_mm=6.0),
         fabric="cotton_poplin",
-        settings=DrapeSettings(frames=250),
+        settings=DrapeSettings(frames=280),
     )
+    assert result.report()["converged"] is True
     # No sewn pair may straddle the body's centre line. A handful near the
     # centre front and centre back legitimately do, so the test is about the
     # ones far out on either side - those can only be a crossed seam.
@@ -356,7 +359,7 @@ def test_the_back_panel_is_mirrored_when_worn() -> None:
     right = result.points[garment.seams[:, 1], 0]
     crossed = int((((left * right) < 0) & (np.abs(left) > 0.05) & (np.abs(right) > 0.05)).sum())
     assert crossed == 0, f"{crossed} sewn pairs straddle the body"
-    assert result.seam_gaps["max_gap_mm"] < 90.0
+    assert result.seam_gaps["max_gap_mm"] < 40.0
 
 
 def test_a_fit_report_refuses_to_quote_an_unconverged_drape() -> None:

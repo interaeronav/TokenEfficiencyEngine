@@ -341,6 +341,22 @@ def top_arrangement(
                     f"{panel.id} cannot be arranged; place it explicitly"
                 )
             # rotate the sleeve's hanging direction (-Y) onto the real arm
+            #
+            # A note worth keeping, because the first diagnosis was wrong. The
+            # right sleeve was turning inside out during the solve, and the
+            # obvious suspect was this line: `align_vectors` returns the
+            # MINIMAL rotation, so two mirrored arms get different twists about
+            # their own axes. Building the frame explicitly was tried and made
+            # things WORSE - the worst seam gap went 48 mm to 205 mm.
+            #
+            # The actual cause was a restitution bug added the same hour, in
+            # the collision pass: it pushed the particle out a SECOND time
+            # instead of reflecting its velocity, and at a restitution of 0.02
+            # - barely a bounce - that was enough to evert a sleeve and take
+            # the worst seam gap from 33 mm to 248 mm. Fixing it there fixed
+            # this, and `collision.alignment` now reports every panel facing
+            # outward. The lesson is the ordinary one: the line you changed
+            # last is a better suspect than the line that looks suspicious.
             rotation = trimesh.geometry.align_vectors(
                 [0.0, -1.0, 0.0], np.asarray(arm["direction"])
             )[:3, :3]
