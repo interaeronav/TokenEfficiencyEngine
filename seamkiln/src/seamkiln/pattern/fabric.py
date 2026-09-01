@@ -26,6 +26,12 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+# Reference softness for a cloth whose card reads 1.0 across the board -
+# roughly a cotton poplin. Every other fabric is expressed as a ratio to it.
+_STRETCH = 0.35
+_SHEAR = 1.20
+_BEND = 1.50
+
 
 class Tier(StrEnum):
     MEASURED = "measured"
@@ -60,16 +66,26 @@ class Fabric:
         return self.gsm / 1000.0
 
     def compliances(self) -> dict[str, float]:
-        """XPBD compliance (inverse stiffness) per constraint family.
+        """Relative compliance per constraint family. 0 = rigid, larger = softer.
 
-        The mapping from a fabric card to solver constants is the place where
-        a number stops being a measurement, so it is one function, named, and
-        the tier travels with the result.
+        NOT the textbook XPBD alpha in m/N, and the difference matters. With
+        an absolute alpha the solver's denominator is `w_a + w_b + alpha/h^2`,
+        and a garment's inverse masses run to ~1e4 while any physically
+        plausible alpha lands near 1e-6 - so every fabric rounds to
+        inextensible and the whole card becomes decoration. That was measured
+        here, not assumed: denim and chiffon draped identically.
+
+        So compliance here softens the correction relative to the mass term,
+        `denom = (w_a + w_b) * (1 + alpha)`. It is an honest simplification of
+        a stiffness model, and it preserves the thing that matters - the
+        ORDERING and the ratios between fabrics, and between warp, weft and
+        bias within one fabric.
         """
         return {
-            "structural": 0.0 if self.tensile_warp >= 1.0 else 1e-6 / max(self.tensile_warp, 1e-3),
-            "shear": 5e-6 / max(self.shear, 1e-3),
-            "bending": 2e-5 / max((self.bend_warp + self.bend_weft) / 2, 1e-3),
+            "stretch_warp": _STRETCH / max(self.tensile_warp, 1e-3),
+            "stretch_weft": _STRETCH / max(self.tensile_weft, 1e-3),
+            "shear": _SHEAR / max(self.shear, 1e-3),
+            "bending": _BEND / max((self.bend_warp + self.bend_weft) / 2.0, 1e-3),
         }
 
     def describe(self) -> dict[str, Any]:

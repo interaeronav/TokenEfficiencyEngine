@@ -8877,3 +8877,103 @@ test that fails if one ever claims `measured`. Weight and thickness are
 published facts; the stiffnesses are solver constants. ArcSim's measured set
 remains unshippable (doc 34), and `yardage()` labels itself an estimate
 because marker making is out of scope.
+
+### A53 P2 — the drape kernel, and six bugs the numbers could not see (2026-09-01)
+
+`seamkiln.drape`: triangulation, body SDF, arrangement, the XPBD solve, and a
+Blender preview lane. 76 tests total, ruff clean.
+
+**Triangulation without Triangle.** Shewchuk's Triangle cannot ship
+commercially and `meshpy`/`triangle` inherit that (P0c fails the build if
+either appears), so: resample the boundary at the target spacing keeping every
+corner, fill the interior with a **triangular lattice** (equilateral by
+construction), Delaunay the lot, then drop triangles whose centroid is outside
+the panel. Concave panels, notches and internal cutouts all fall out of that
+one containment test. At 8 mm on the tee front: 11,490 triangles, mean angle
+**58.5°** against an ideal 60. Two Laplacian passes lift the worst angle from
+8.4° to 11.4°.
+
+**The greedy edge colouring is a per-vertex bitmask**, not a set of sets:
+90,000 edges into 18 colours in **55 ms**. A garment mesh is not a grid and
+cannot be coloured analytically, so this is what lets the same vectorised
+kernel run it.
+
+**The body is a signed distance grid**, baked once by voxelize → fill →
+Euclidean distance transform inside and out. 13M samples/second, 42 MB at
+5 mm. It takes a MESH, so P3 hands it Anny and nothing downstream changes.
+
+#### The six bugs, and what found each one
+
+None of the first five were visible in the numbers. All of them were obvious
+in a render, which is why `drape/preview.py` was written at P2 rather than P6.
+
+1. **The mannequin was mis-assembled** — floating neck, buried hips, arms
+   pointing at the ceiling. Cause: `trimesh.creation.capsule` is **centred on
+   the origin**, not started there, so translating to a limb's start point
+   extended it half its length backwards. Rebuilt from explicit endpoints.
+2. **The sleeves were arranged by a guessed angle** and ended up above the
+   shoulders. Now `arm_axes` measures the arm off the body; it recovers the
+   35° the mannequin was built with to within 0.05.
+3. **The mannequin had no shoulders.** A capsule torso is a smooth dome with
+   nothing to catch a t-shirt, so the drape slid off and landed on the floor
+   — where it scored a **perfect zero for body interpenetration**, the one
+   metric P2's acceptance criteria named. `measure_contact` now answers the
+   other half of the question, and the mannequin has a shoulder girdle.
+4. **Every fabric draped identically.** Compliance was ~1e-6 against inverse
+   masses of ~1e4, so every physically-plausible value rounded to
+   inextensible and the fabric card was decoration. Compliance is now
+   *relative* — `denom = (w_a + w_b) * (1 + alpha)` — an honest simplification
+   that preserves the ratios that matter. Chiffon now bends 31× more easily
+   than denim.
+5. **The garment was sewn inside out.** Two counter-clockwise panels traverse
+   a shared edge in opposite directions, so most seams need flipping;
+   getting it wrong twists the garment 180° and reports nothing. Both
+   orientations are now built and the closer one wins — **6 of the tee's 10
+   seams are flipped**, and mean seam gap fell from 1.6 mm to 0.27 mm.
+6. **Friction was viscous drag, not Coulomb.** Removing a fixed fraction of
+   tangential motion slows a slide without ever stopping one; over 2,400
+   substeps the surviving 65% walked the garment off the body a fraction of a
+   millimetre at a time. Coulomb friction has a **static regime** — tangential
+   motion within μ×(normal correction) is cancelled outright — and that single
+   change put every fabric on the body:
+
+```
+fabric           centroid_y  contact  worn   (arranged at y = 1.246)
+chiffon               1.191    0.661  True
+cotton_jersey         1.232    0.704  True
+cotton_poplin         1.245    0.667  True
+wool_suiting          1.245    0.682  True
+denim_12oz            1.249    0.685  True
+```
+
+The ordering is physics, not luck: the floppiest cloth settles lowest.
+
+**A seventh, found by the tests:** measuring the chest as "the widest slice in
+the upper half" picks the **hips** on any body whose hips are wider than its
+chest, which is normal anatomy. The shoulder is now found first (from where
+the arms stop being separate cross-sections) and the chest measured in a band
+below it. The mannequin built at 1.000 m chest measures back **0.9959 m**.
+
+**And an eighth, a real limit rather than a defect:** at 40 mm particle
+distance the tee slides off (contact 0.07) because a 113 mm shoulder seam gets
+three points, and three points cannot hold a garment up. `triangulate_panel`
+now refuses a particle distance coarser than a quarter of the panel's
+narrowest dimension, and says why.
+
+#### Acceptance
+
+```
+particle_distance   points    solve   seam gap mean   penetration   contact
+      25 mm          2,376    2.65 s      1.53 mm        0.00 mm     0.591
+      15 mm          5,076    2.26 s      1.49 mm        4.75 mm     0.727
+       8 mm         15,588    2.34 s      2.98 mm        7.38 mm     0.844
+       5 mm         38,581    2.27 s      2.33 mm        6.27 mm     0.662
+```
+
+Deterministic: same fixture, same fabric, same fingerprint, twice. Residual
+penetration tracks the SDF's voxel size (10.0 → 5.95 → 4.11 mm at 8 → 5 → 3 mm
+voxels) rather than the solver, as it should.
+
+**Wall clock is flat from 2,376 to 38,581 points** — a 16× increase for no
+extra time. That is P0b's thread finding paying off exactly as measured: at
+these sizes the four-thread pool is barrier-bound, not work-bound.

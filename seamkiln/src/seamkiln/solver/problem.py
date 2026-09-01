@@ -71,29 +71,39 @@ class ClothProblem:
         return sha256(quantised.tobytes()).hexdigest()[:16]
 
 
-def colour_edges(edges: np.ndarray, n_particles: int) -> list[np.ndarray]:
+def colour_edges(edges: np.ndarray, n_particles: int, *, max_colours: int = 63) -> list[np.ndarray]:
     """Greedy edge colouring: no two edges in a colour share a particle.
 
-    O(E) with a per-colour occupancy stamp. Used by real garment meshes in
-    P2; the grid builder below colours analytically because it can.
+    A real garment mesh is not a grid and cannot be coloured analytically, so
+    this is what makes a triangulated panel solvable by the same vectorised
+    kernel. Each vertex carries a bitmask of the colours already taken at it;
+    an edge takes the lowest colour free at BOTH ends. O(E) with a
+    64-bit-wide constant, which matters: a 30k-particle garment has ~90k
+    edges and the obvious set-of-sets version is minutes, not milliseconds.
     """
-    colours: list[list[int]] = []
-    stamps: list[np.ndarray] = []
-    for index, (a, b) in enumerate(edges):
-        placed = False
-        for colour in range(len(colours)):
-            stamp = stamps[colour]
-            if stamp[a] == 0 and stamp[b] == 0:
-                stamp[a] = stamp[b] = 1
-                colours[colour].append(index)
-                placed = True
-                break
-        if not placed:
-            stamp = np.zeros(n_particles, dtype=np.int8)
-            stamp[a] = stamp[b] = 1
-            stamps.append(stamp)
-            colours.append([index])
-    return [np.asarray(c, dtype=np.int32) for c in colours]
+    edges = np.asarray(edges, dtype=np.int64)
+    used = np.zeros(n_particles, dtype=np.uint64)
+    assignment = np.empty(edges.shape[0], dtype=np.int32)
+    for index in range(edges.shape[0]):
+        a = int(edges[index, 0])
+        b = int(edges[index, 1])
+        taken = int(used[a] | used[b])
+        colour = 0
+        while colour < max_colours and (taken >> colour) & 1:
+            colour += 1
+        if colour >= max_colours:
+            raise ValueError(
+                f"vertex degree exceeded {max_colours} colours at edge {index}; "
+                "the mesh has a vertex touching more edges than the colouring supports"
+            )
+        bit = np.uint64(1) << np.uint64(colour)
+        used[a] |= bit
+        used[b] |= bit
+        assignment[index] = colour
+    return [
+        np.flatnonzero(assignment == colour).astype(np.int32)
+        for colour in range(int(assignment.max()) + 1)
+    ]
 
 
 def _axis_pairs(

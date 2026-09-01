@@ -7,52 +7,14 @@ no two iterations of the inner loop touch the same particle.
 
 from __future__ import annotations
 
-import os
-import sys
-
 import numpy as np
 
 from seamkiln.solver.problem import GRAVITY, ClothProblem
 
-# Measured on this machine (Apple M5 Max, 18 cores, 2026-09-01), sweeping
-# thread count against particle count. The result inverts the obvious
-# default: MORE THREADS IS SLOWER at every garment size. Eighteen cores
-# never win; four is the optimum from ~50k particles up, and at 5k a single
-# thread beats eighteen by 8.7x.
-#
-#   threads |   5k    10k    30k    60k   120k   240k   500k   (ms/frame)
-#         1 |  2.3    3.2    6.3   10.4   18.0   33.3   67.1
-#         2 |  2.5    3.0    4.9    7.0   10.9   19.3   39.0
-#         4 |  4.2    4.4    5.3    6.6    9.1   13.7   24.6
-#         8 |  9.0      -      -      -   13.4      -   29.1
-#        18 | 20.1      -      -      -   22.3   32.6      -
-#
-# The cost is the fork/join barrier around each parallel region: a frame has
-# 8 substeps x (1 integrate + 16 groups + 1 collide) = 144 of them, and the
-# barrier scales with POOL size while the work per region does not. Two
-# things had to be measured to know that, and both are load-bearing:
-#
-#   1. Fusing the Python-side dispatches into one njit call per frame
-#      changed NOTHING - bit-identical positions, same wall clock. So the
-#      overhead is inside numba's parallel runtime, not the call.
-#   2. `numba.set_num_threads(1)` on a pool of 18 costs 11.6 ms where
-#      `NUMBA_NUM_THREADS=1` at process start costs 2.3 - a 5x gap at the
-#      same nominal thread count. set_num_threads MASKS threads; it does not
-#      shrink the barrier. The pool size is fixed when numba is imported.
-#
-# Hence an environment variable, set before numba is first imported, and a
-# single value rather than a per-problem one: 4 is within 2 ms of the
-# best-possible at every size above 10k and beats every other backend here.
-DEFAULT_THREADS = "4"
-
-if "numba" not in sys.modules:
-    os.environ.setdefault("NUMBA_NUM_THREADS", DEFAULT_THREADS)
-    _POOL_NOTE = ""
-else:  # someone imported numba first; the pool is already sized and we say so
-    _POOL_NOTE = (
-        " (numba was imported before seamkiln, so NUMBA_NUM_THREADS could not "
-        "be set - expect the barrier cost documented in numba_xpbd.py)"
-    )
+# The thread-pool policy and the measurements behind it live in
+# seamkiln.solver.threads, which must be imported before numba. See P0b:
+# eighteen cores make this solver 8.7x slower than one at 5k particles.
+from seamkiln.solver.threads import POOL_NOTE as _POOL_NOTE
 
 
 def available() -> tuple[bool, str]:
