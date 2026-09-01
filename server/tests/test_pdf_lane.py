@@ -246,3 +246,135 @@ def test_the_tools_are_discoverable_by_plain_language(tmp_path):
     ):
         top = [i["name"] for i in app.registry.search(query)["items"]][:3]
         assert expected in top, f"{query!r} -> {top}"
+
+
+# -- A51 P4: ordinary prose stopped being fatal -----------------------------
+
+
+def test_a_smart_quote_no_longer_destroys_a_report(tmp_path):
+    """The live bug. The core PDF fonts are Latin-1, so curly quotes and em
+    dashes did not degrade - they RAISED, and one of them killed a whole
+    compose. They appear in almost any text a model writes."""
+    r = pdf.compose(
+        {
+            "out": str(tmp_path / "q.pdf"),
+            "blocks": [
+                {"kind": "paragraph", "text": "The gable was “solid plastered brick” — it is not."}
+            ],
+        }
+    )
+    assert r["ok"]
+    assert set(r["degraded_characters"]) == {"“", "”", "—"}
+    assert "Meaning is preserved" in r["degraded_note"]
+    assert "font" in r["degraded_note"], "the note must name the way to keep the originals"
+
+
+def test_transliteration_preserves_meaning_and_is_never_silent(tmp_path):
+    from tee.pdf import _degrade
+
+    text, changed = _degrade("“as-built” — the owner’s note…")
+    assert text == '"as-built" - the owner\'s note...'
+    assert changed  # and compose reports these; silence is the failure mode
+
+
+def test_latin1_characters_are_left_alone(tmp_path):
+    """façade and m² are already encodable - transliterating them would be
+    damage, not rescue."""
+    from tee.pdf import _degrade
+
+    text, changed = _degrade("façade Ångström 3.5 m² 45° ±2")
+    assert text == "façade Ångström 3.5 m² 45° ±2"
+    assert changed == []
+
+
+@pytest.mark.skipif(
+    not __import__("pathlib")
+    .Path("/System/Library/Fonts/Supplemental/Arial Unicode.ttf")
+    .is_file(),
+    reason="no system Unicode font",
+)
+def test_an_embedded_font_keeps_everything(tmp_path):
+    out = tmp_path / "u.pdf"
+    r = pdf.compose(
+        {
+            "out": str(out),
+            "font": "Arial Unicode.ttf",
+            "blocks": [{"kind": "paragraph", "text": "“as-built” — 3.5 m², α β, 建築"}],
+        }
+    )
+    assert "degraded_characters" not in r
+    with pdfplumber.open(out) as doc:
+        text = doc.pages[0].extract_text() or ""
+    for probe in ("as-built", "m²", "α", "建築"):
+        assert probe in text, f"{probe!r} did not survive"
+
+
+def test_a_font_is_resolved_by_name_or_refused_with_where_to_look():
+    from tee.pdf import resolve_font
+
+    with pytest.raises(TeeError) as e:
+        resolve_font("NoSuchFontAnywhere.ttf")
+    assert e.value.code == "pdf_font_missing"
+    assert "/System/Library/Fonts" in e.value.fix
+
+
+# -- A51 P5: the attributes a real document carries -------------------------
+
+
+def test_metadata_lands(tmp_path):
+    out = tmp_path / "m.pdf"
+    pdf.compose(
+        {
+            "out": str(out),
+            "title": "T",
+            "author": "A",
+            "subject": "S",
+            "keywords": "k1, k2",
+            "blocks": [{"kind": "paragraph", "text": "body"}],
+        }
+    )
+    with pdfplumber.open(out) as doc:
+        md = doc.metadata
+    assert md.get("Title") == "T" and md.get("Author") == "A"
+    assert md.get("Subject") == "S"
+
+
+def test_headings_become_bookmarks(tmp_path):
+    import pypdf
+
+    out = tmp_path / "b.pdf"
+    pdf.compose(
+        {
+            "out": str(out),
+            "blocks": [
+                {"kind": "heading", "text": "One", "level": 1},
+                {"kind": "paragraph", "text": "x"},
+                {"kind": "heading", "text": "Two", "level": 1},
+            ],
+        }
+    )
+    assert len(pypdf.PdfReader(str(out)).outline) == 2
+
+
+def test_page_numbers_are_opt_in(tmp_path):
+    plain = tmp_path / "p.pdf"
+    numbered = tmp_path / "n.pdf"
+    blocks = [{"kind": "paragraph", "text": "body"}]
+    pdf.compose({"out": str(plain), "blocks": blocks})
+    pdf.compose({"out": str(numbered), "blocks": blocks, "page_numbers": True})
+    with pdfplumber.open(numbered) as doc:
+        assert "1" in (doc.pages[0].extract_text() or "")
+    with pdfplumber.open(plain) as doc:
+        assert (doc.pages[0].extract_text() or "").strip() == "body"
+
+
+def test_a_bad_colour_refuses_with_the_two_forms(tmp_path):
+    with pytest.raises(TeeError) as e:
+        pdf.compose(
+            {
+                "out": str(tmp_path / "c.pdf"),
+                "blocks": [{"kind": "heading", "text": "h", "color": "octarine"}],
+            }
+        )
+    assert e.value.code == "pdf_bad_color"
+    assert "#rrggbb" in e.value.fix

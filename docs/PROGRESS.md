@@ -8588,3 +8588,50 @@ weights changed. What changed is that the model's judgement now steers the
 camera instead of being absent from the loop.
 
 Suite 1,185 passed / 17 skipped, ruff clean.
+
+### A51 P4/P5 — a smart quote stops being fatal, and the eye is wrong for once
+
+**P4. The bug was live and it did not degrade — it raised.** The core PDF
+fonts are Latin-1, so a single curly quote killed a whole compose, and
+curly quotes appear in almost any text a model writes.
+
+```
+no font (was a CRASH)     OK  1p  1KB   degraded=['—', '“', '”']
+font: Arial Unicode.ttf   OK  1p 19KB   full Unicode
+```
+
+Both paths exist because they fail differently. With a font, everything
+survives — verified through pdfplumber: `建築  as-built  m²  α  façade
+Σύμβολο  公差  —`. Without one, the characters Latin-1 lacks are
+**transliterated with the answer saying so**; meaning is preserved (a curly
+quote becomes a straight one) and silence would be the real failure, since
+that is how a document quietly stops saying what its author wrote.
+Characters Latin-1 *can* encode — `façade`, `m²`, `45°` — are left alone.
+
+No font is vendored: Arial Unicode is Apple-licensed and redistribution is
+not TEE's to grant, while resolving a font already on the owner's machine
+is unremarkable.
+
+**P5.** Metadata (author/subject/keywords), page numbers, headings as PDF
+bookmarks, per-block colour, shaded table headers. Verified on a two-page
+report: metadata read back, **2 outline entries**, page number present,
+every Unicode probe intact.
+
+**The eye was wrong this time, and that is the finding.** Following A48's
+pattern, `sense_describe` was asked to confirm the visual attributes. It
+answered: *"the main heading is not coloured (it is black), and yes, the
+table has a shaded header row."* Half right. Looking at the render
+directly, the heading **is** navy `#1a3a6b` and the second heading is dark
+red — the model misread a dark colour as black.
+
+No bug existed; the grader was mistaken. This is exactly why the A47 law
+labels a model's verdict **advice rather than measurement**, and why P3's
+loop reports every attempt instead of trusting one. A tool that had
+"fixed" the colour on that report would have broken working code.
+
+**Shipped 0.18.0.** Verified from a clean unzip over MCP stdio: handshake
+0.18.0, **17 always-loaded tools**, surface 2,033 tok, and
+`sense_frame` / `tee_purge` / `pdf_compose` all reachable by plain-language
+search. Suite **1,194 passed / 17 skipped**, ruff clean.
+
+**A51 complete** — P0 through P5, plus A52's purge lane.

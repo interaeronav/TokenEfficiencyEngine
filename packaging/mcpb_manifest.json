@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "Token Efficiency Engine",
   "display_name": "TEE \u2014 Token Efficiency Engine",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "Help any AI complete tasks with minimal tokens \u2014 Blender and Unreal Engine adapters included",
   "long_description": "TEE helps any AI optimize its token usage and improve its work efficiency. It is an AI resource manager between cloud and local intelligence: heavy content becomes compact cited briefs via local models, chores run locally with verified results, and the metered cloud model spends tokens only where its judgment is needed. It is an MCP server between an AI model and the tools it drives \u2014 shipping with Blender and Unreal Engine adapters \u2014 whose core metric is tokens per completed task. Reads return compact summaries and diffs instead of scene dumps, mutations run as checkpointed batches, and the long tail of DCC capability is reached through progressive disclosure rather than hundreds of always-loaded tools.\n\nBlender needs the TEE bridge extension (or the official Blender Lab MCP add-on); Unreal needs UE 5.8+ with Epic's ModelContextProtocol and AllToolsets plugins enabled. See the repository for setup.",
   "author": {

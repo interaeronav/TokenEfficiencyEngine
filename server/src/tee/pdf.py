@@ -38,6 +38,109 @@ CONTENT_W_MM = PAGE_W_MM - 2 * MARGIN_MM
 HEADING_SIZES = {1: 20, 2: 15, 3: 12}
 
 
+# A51 P4. The core fonts fpdf2 ships are Latin-1 only, so `pdf_compose` did
+# not merely degrade on ordinary prose - it RAISED. Measured before this
+# existed:
+#
+#   ASCII, accents (façade), maths (m² ° ±)   OK
+#   curly quotes and em dashes (U+2018-201D, U+2014)  FPDFUnicodeEncodingException
+#   Greek, CJK, emoji                          FPDFUnicodeEncodingException
+#
+# The damaging half is not CJK; it is the quotes and dashes that appear in
+# almost any text a model writes or a person pastes from a document. One
+# smart quote destroyed a whole report.
+#
+# Two ways out, and both are offered because they fail differently. Embed a
+# font and everything works. Without one, TRANSLITERATE the handful of
+# typographic characters Latin-1 lacks - each mapping preserves meaning
+# exactly (a curly quote becomes a straight one), and the answer SAYS it
+# happened, because a silent substitution is how a document quietly stops
+# saying what its author wrote.
+TYPOGRAPHIC_FALLBACK = {
+    "\u2018": "'",
+    "\u2019": "'",
+    "\u201a": ",",
+    "\u201b": "'",
+    "\u201c": '"',
+    "\u201d": '"',
+    "\u201e": '"',
+    "\u201f": '"',
+    "\u2013": "-",
+    "\u2014": "-",
+    "\u2015": "-",
+    "\u2212": "-",
+    "\u2026": "...",
+    "\u2022": "-",
+    "\u00a0": " ",
+    "\u200b": "",
+    "\u2039": "<",
+    "\u203a": ">",
+    "\u00ab": "<<",
+    "\u00bb": ">>",
+    "\u2032": "'",
+    "\u2033": '"',
+    "\u02bc": "'",
+    "\u2010": "-",
+    "\u2011": "-",
+    "\u2012": "-",
+    "\u2044": "/",
+    "\u00ad": "",
+}
+
+# Where a system font may be found by name. No font is vendored into the
+# repo: Arial Unicode is Apple-licensed and redistribution is not TEE's to
+# grant, while using a font already on the owner's machine is unremarkable.
+FONT_DIRS = (
+    "/System/Library/Fonts",
+    "/System/Library/Fonts/Supplemental",
+    "/Library/Fonts",
+    str(Path.home() / "Library/Fonts"),
+    "/usr/share/fonts",
+    "/usr/local/share/fonts",
+)
+
+
+def resolve_font(spec: str) -> Path:
+    """A path, or a name looked up in the usual font directories."""
+    candidate = Path(spec).expanduser()
+    if candidate.is_file():
+        return candidate
+    stem = candidate.name
+    for directory in FONT_DIRS:
+        base = Path(directory)
+        if not base.is_dir():
+            continue
+        for suffix in ("", ".ttf", ".TTF", ".otf", ".ttc"):
+            hit = base / f"{stem}{suffix}"
+            if hit.is_file():
+                return hit
+    raise TeeError(
+        "pdf_font_missing",
+        f"No font found for {spec!r}.",
+        fix="Give a full path to a .ttf/.otf, or a filename present in "
+        f"one of: {', '.join(FONT_DIRS[:3])}. On macOS "
+        "'Arial Unicode.ttf' covers essentially everything.",
+    )
+
+
+def _degrade(text: str) -> tuple[str, list[str]]:
+    """Latin-1-safe text, plus the characters that had to be changed."""
+    changed: list[str] = []
+    out = []
+    for ch in text:
+        if ch in TYPOGRAPHIC_FALLBACK:
+            changed.append(ch)
+            out.append(TYPOGRAPHIC_FALLBACK[ch])
+            continue
+        try:
+            ch.encode("latin-1")
+            out.append(ch)
+        except UnicodeEncodeError:
+            changed.append(ch)
+            out.append("?")
+    return "".join(out), changed
+
+
 def _need_fpdf():
     try:
         from fpdf import FPDF
@@ -97,6 +200,23 @@ def _jpeg_bytes(path: Path) -> io.BytesIO:
     return buf
 
 
+def _colour(doc, value) -> None:
+    """A `color` key on a block: [r, g, b] or "#rrggbb". Ignored if absent."""
+    if not value:
+        return
+    if isinstance(value, str) and value.startswith("#") and len(value) == 7:
+        rgb = tuple(int(value[i : i + 2], 16) for i in (1, 3, 5))
+    elif isinstance(value, (list, tuple)) and len(value) == 3:
+        rgb = tuple(max(0, min(int(c), 255)) for c in value)
+    else:
+        raise TeeError(
+            "pdf_bad_color",
+            f"{value!r} is not a colour.",
+            fix='Use [r, g, b] or "#rrggbb".',
+        )
+    doc.set_text_color(*rgb)
+
+
 def compose(spec: dict[str, Any]) -> dict[str, Any]:
     """Block list -> a new PDF. Returns a summary; never the file."""
     FPDF = _need_fpdf()
@@ -112,9 +232,53 @@ def compose(spec: dict[str, Any]) -> dict[str, Any]:
     doc = FPDF(format="A4", unit="mm")
     doc.set_auto_page_break(auto=True, margin=MARGIN_MM)
     doc.set_margins(MARGIN_MM, MARGIN_MM, MARGIN_MM)
+
+    # A51 P4. With a font: full Unicode. Without: Latin-1, and the
+    # typographic characters it lacks are transliterated with the answer
+    # saying so, rather than raising on a smart quote.
+    font_spec = str(spec.get("font") or "").strip()
+    family = "Helvetica"
+    degraded: list[str] = []
+    if font_spec:
+        font_path = resolve_font(font_spec)
+        doc.add_font("body", "", str(font_path))
+        family = "body"
+
+    def _text(value: str) -> str:
+        if family != "Helvetica":
+            return value
+        safe, changed = _degrade(value)
+        degraded.extend(changed)
+        return safe
+
     title = str(spec.get("title") or "").strip()
     if title:
         doc.set_title(title)
+    # A51 P5: the metadata a real document carries. Absent keys are simply
+    # not set, so nothing appears that the caller did not ask for.
+    for key, setter in (
+        ("author", doc.set_author),
+        ("subject", doc.set_subject),
+        ("keywords", doc.set_keywords),
+        ("creator", doc.set_creator),
+    ):
+        value = str(spec.get(key) or "").strip()
+        if value:
+            setter(value)
+
+    # Page numbers, as a footer. fpdf2 calls `footer()` on every page break,
+    # so this has to be installed BEFORE the first add_page.
+    if spec.get("page_numbers"):
+        footer_family = family
+
+        def _footer():
+            doc.set_y(-12)
+            doc.set_font(footer_family, "", 8)
+            doc.set_text_color(120, 120, 120)
+            doc.cell(0, 8, f"{doc.page_no()}", align="C")
+            doc.set_text_color(0, 0, 0)
+
+        doc.footer = _footer  # type: ignore[method-assign]
     doc.add_page()
     rendered = 0
 
@@ -136,12 +300,21 @@ def compose(spec: dict[str, Any]) -> dict[str, Any]:
             doc.ln(float(block.get("mm") or 4))
         elif kind == "heading":
             level = max(1, min(int(block.get("level") or 1), 3))
-            doc.set_font("Helvetica", "B", HEADING_SIZES[level])
-            doc.multi_cell(0, HEADING_SIZES[level] * 0.5, str(block.get("text") or ""))
+            heading = _text(str(block.get("text") or ""))
+            # A bookmark per heading: a long report becomes navigable in any
+            # viewer's outline pane, which is most of what "high end" means.
+            if spec.get("outline", True):
+                doc.start_section(heading, level=level - 1)
+            doc.set_font(family, "B" if family == "Helvetica" else "", HEADING_SIZES[level])
+            _colour(doc, block.get("color"))
+            doc.multi_cell(doc.epw, HEADING_SIZES[level] * 0.5, heading)
+            doc.set_text_color(0, 0, 0)
             doc.ln(2)
         elif kind == "paragraph":
-            doc.set_font("Helvetica", "", 11)
-            doc.multi_cell(0, 5.5, str(block.get("text") or ""))
+            doc.set_font(family, "", 11)
+            _colour(doc, block.get("color"))
+            doc.multi_cell(doc.epw, 5.5, _text(str(block.get("text") or "")))
+            doc.set_text_color(0, 0, 0)
             doc.ln(2)
         elif kind == "image":
             raw = str(block.get("path") or "").strip()
@@ -157,8 +330,8 @@ def compose(spec: dict[str, Any]) -> dict[str, Any]:
             doc.image(_jpeg_bytes(img_path), w=width)
             caption = str(block.get("caption") or "").strip()
             if caption:
-                doc.set_font("Helvetica", "I", 9)
-                doc.multi_cell(0, 4.5, caption)
+                doc.set_font(family, "I" if family == "Helvetica" else "", 9)
+                doc.multi_cell(doc.epw, 4.5, _text(caption))
             doc.ln(3)
         elif kind == "table":
             rows = block.get("rows")
@@ -172,16 +345,19 @@ def compose(spec: dict[str, Any]) -> dict[str, Any]:
             col_w = CONTENT_W_MM / columns
             for r_index, row in enumerate(rows):
                 header = bool(block.get("header")) and r_index == 0
-                doc.set_font("Helvetica", "B" if header else "", 10)
+                doc.set_font(family, ("B" if header else "") if family == "Helvetica" else "", 10)
+                shade = header and block.get("shade_header", True)
+                if shade:
+                    doc.set_fill_color(232, 232, 236)
                 for cell in list(row) + [""] * (columns - len(row)):
-                    doc.cell(col_w, 6, str(cell), border=1)
+                    doc.cell(col_w, 6, _text(str(cell)), border=1, fill=bool(shade))
                 doc.ln(6)
             doc.ln(2)
         rendered += 1
 
     doc.output(str(out))
     size = out.stat().st_size
-    return {
+    result: dict[str, Any] = {
         "ok": True,
         "path": str(out),
         "pages": doc.pages_count if hasattr(doc, "pages_count") else len(doc.pages),
@@ -190,6 +366,20 @@ def compose(spec: dict[str, Any]) -> dict[str, Any]:
         "note": "A summary, not the document. Read it back with ex_ingest / "
         "tee_media, or open the path.",
     }
+    if family != "Helvetica":
+        result["font"] = str(resolve_font(font_spec))
+    if degraded:
+        unique = sorted(set(degraded))
+        result["degraded_characters"] = unique
+        result["degraded_count"] = len(degraded)
+        result["degraded_note"] = (
+            f"{len(degraded)} character(s) were transliterated to Latin-1 "
+            f"({' '.join(unique[:8])}): the core PDF fonts cannot encode them. "
+            "Meaning is preserved - a curly quote becomes a straight one - but "
+            'pass font: "Arial Unicode.ttf" (or any TTF path) to keep the '
+            "originals and to use Greek, CJK or symbols."
+        )
+    return result
 
 
 def _pages_arg(spec: dict[str, Any], total: int, key: str = "pages") -> list[int]:
@@ -386,15 +576,32 @@ def register_pdf_tools(app, project_root: str | Path) -> None:
             description=(
                 "WRITE a new PDF from a block list: headings, paragraphs, "
                 "tables, images (HEIC included, no conversion needed) and "
-                "page breaks. Returns a summary - path, pages, bytes - "
-                "never the document itself. `out` is required and an "
-                "existing file refuses unless overwrite: true."
+                "page breaks, plus metadata, page numbers, bookmarks and "
+                "per-block colour. Pass `font` (a TTF path or system font "
+                "name) for full Unicode - Greek, CJK, symbols; without it "
+                "text is Latin-1 and curly quotes are transliterated with a "
+                "note rather than failing. Returns a summary - path, pages, "
+                "bytes - never the document itself."
             ),
             schema={
                 "type": "object",
                 "properties": {
                     "out": {"type": "string", "description": "Destination path."},
                     "title": {"type": "string"},
+                    "font": {
+                        "type": "string",
+                        "description": "A .ttf/.otf path or a system font name "
+                        "(e.g. 'Arial Unicode.ttf'). Without one, text is Latin-1 "
+                        "and curly quotes are transliterated with a note.",
+                    },
+                    "author": {"type": "string"},
+                    "subject": {"type": "string"},
+                    "keywords": {"type": "string"},
+                    "page_numbers": {"type": "boolean"},
+                    "outline": {
+                        "type": "boolean",
+                        "description": "Headings become PDF bookmarks. Default true.",
+                    },
                     "overwrite": {"type": "boolean"},
                     "blocks": {
                         "type": "array",

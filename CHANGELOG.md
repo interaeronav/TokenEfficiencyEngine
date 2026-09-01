@@ -3,6 +3,47 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.18.0 — 2026-08-31
+
+**A smart quote no longer destroys a report, and a camera checks its own work.**
+
+### PDFs can write ordinary prose
+
+The core PDF fonts are Latin-1, so curly quotes and em dashes did not
+degrade — they **raised**. One `“` killed a whole compose, and they appear
+in almost any text a model writes or a person pastes.
+
+Now: pass `font` (a TTF path or a system font name like
+`"Arial Unicode.ttf"`) for full Unicode — Greek, CJK, symbols, all
+round-tripping. Without one, the handful of typographic characters Latin-1
+lacks are **transliterated with the answer saying so** — a curly quote
+becomes a straight one, meaning preserved, never silent. Characters Latin-1
+*can* encode (`façade`, `m²`, `45°`) are left alone.
+
+### And the attributes a real document has
+
+`author` / `subject` / `keywords` metadata, `page_numbers`, headings as
+**PDF bookmarks**, per-block `color`, and shaded table headers.
+
+### `sense_frame` — the model grades the shot, TEE re-aims
+
+The camera fit now sets the lens and solves the distance from the field of
+view and aspect, so `distance: 1.0` means *framed* (it used to multiply a
+raw bounding radius by a guess). `sense_frame` then renders, has the local
+vision model grade the framing, moves and retries — converging live from a
+deliberately bad start (10% fill) to a graded-good shot in three attempts.
+
+It returns **every attempt with its grade**, says plainly when it did not
+converge, and labels the verdict *advice rather than measurement*. Prose
+instead of the requested form is marked unusable rather than passed,
+because a loop that cannot tell those apart converges on noise.
+
+### Faster launches
+
+Launch waits polled on a fixed 0.5 s tick while the Blender bridge is ready
+at 0.422 s. Now a backoff tuned to the measured probe cost: **0.506 s →
+0.428 s**, and the benchmark's bridge-up stage drops 0.5s → 0.4s.
+
 ## 0.17.0 — 2026-08-31
 
 **Godot, headlessly, as a first-class adapter.**
