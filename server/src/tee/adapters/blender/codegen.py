@@ -427,13 +427,34 @@ try:
     lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
     hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
     ctr = (lo + hi) / 2
-    radius = max((hi - lo).length / 2, 0.001) * max(float({distance}), 1.05)
+    # A51 P2: a lens-aware fit. The old line was
+    #     radius = bbox_diagonal/2 * distance
+    # which knows nothing about the camera's field of view or the frame's
+    # aspect, so a tall subject and a wide one at the same "distance" filled
+    # wildly different fractions of frame. Set the lens explicitly, then
+    # solve the distance that makes the subject span TARGET_FILL of the
+    # tighter axis - so nothing touches the edge and nothing is a speck.
+    cam_data = bpy.data.cameras.new('TEE_LookCamera')
+    cam_data.lens = 50.0
+    cam_data.sensor_fit = 'AUTO'
+    sensor = cam_data.sensor_width
+    size = hi - lo
+    # Half-extent perpendicular to the view, worst case over orientations:
+    # the bounding sphere. Cheap, never crops, slightly conservative.
+    half = max((hi - lo).length / 2, 0.001)
+    aspect = float({width}) / max(float({height}), 1.0)
+    # Horizontal and vertical half-FOV from the lens and sensor.
+    half_fov_x = math.atan((sensor / 2.0) / cam_data.lens)
+    half_fov_y = math.atan((sensor / (2.0 * max(aspect, 1e-6))) / cam_data.lens)
+    tighter = min(half_fov_x, half_fov_y)
+    TARGET_FILL = 0.80  # of the tighter axis; the rest is breathing room
+    fit = half / max(math.tan(tighter) * TARGET_FILL, 1e-6)
+    radius = fit * max(float({distance}), 0.2)
     az = math.radians(float({azimuth_deg}))
     el = math.radians(max(-89.0, min(89.0, float({elevation_deg}))))
     pos = ctr + Vector((radius * math.cos(el) * math.cos(az),
                         radius * math.cos(el) * math.sin(az),
                         radius * math.sin(el)))
-    cam_data = bpy.data.cameras.new('TEE_LookCamera')
     temp_cam = bpy.data.objects.new('TEE_LookCamera', cam_data)
     scene.collection.objects.link(temp_cam)
     temp_cam.location = pos

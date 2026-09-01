@@ -98,7 +98,10 @@ class BlenderAdapter:
         target: str = "",
         azimuth_deg: float = 45.0,
         elevation_deg: float = 20.0,
-        distance: float = 2.2,
+        # A51 P2: distance now multiplies the SOLVED fit, so 1.0 means
+        # "frame the subject at 80% of the tighter axis". It used to
+        # multiply the raw bounding radius, where 2.2 was a guess.
+        distance: float = 1.0,
     ) -> bytes:
         """Aimed temp-camera render (A47): same two-rung budget ladder and
         the same leave-the-scene-exactly-as-found contract as capture()."""

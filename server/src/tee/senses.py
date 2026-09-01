@@ -454,7 +454,10 @@ def camera(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any]:
     target = str(spec.get("target") or "").strip()
     azimuth = float(spec.get("azimuth_deg") or 45.0)
     elevation = float(spec.get("elevation_deg") or 20.0)
-    distance = max(1.05, float(spec.get("distance") or 2.2))
+    # 1.0 = the solved fit (A51 P2). Below 1 moves in, above 1 pulls back;
+    # the old 1.05 floor existed because `distance` used to multiply the raw
+    # bounding radius and anything under 1 put the camera inside the subject.
+    distance = max(0.2, float(spec.get("distance") or 1.0))
     max_kb = max(8, min(int(spec.get("max_kb") or 96), 512))
 
     started = time.monotonic()
@@ -505,6 +508,178 @@ def camera(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any]:
         "note": "Rendered from a temporary camera that no longer exists; "
         "the scene was left exactly as found. A description, not the image.",
     }
+    note = _eviction_note(qvl)
+    if note:
+        out["swap_note"] = note
+    return out
+
+
+FRAME_VERDICTS = ("too far", "good", "too close", "cropped")
+FRAME_MAX_RETRIES = 2
+
+_FRAME_QUESTION = (
+    "Judge only the FRAMING of this render, not its content or quality. "
+    "Reply on ONE line in exactly this form and nothing else:\n"
+    "FILL=<integer percent of the image the main subject occupies> "
+    "CROPPED=<yes|no> VERDICT=<too far|good|too close>"
+)
+
+
+def _parse_frame_verdict(answer: str) -> dict[str, Any]:
+    """Read the model's grade, and admit when it did not answer the form.
+
+    A model asked for a rigid form will sometimes write prose anyway. That
+    is not a crash and it is not a pass - it is an unusable grade, and the
+    loop has to be able to tell the difference or it will 'converge' on
+    noise.
+    """
+    import re
+
+    text = " ".join(answer.split())
+    fill = re.search(r"FILL\s*=\s*(\d{1,3})", text, re.I)
+    cropped = re.search(r"CROPPED\s*=\s*(yes|no)", text, re.I)
+    verdict = re.search(r"VERDICT\s*=\s*(too far|good|too close|cropped)", text, re.I)
+    parsed: dict[str, Any] = {"raw": answer.strip()[:160]}
+    if fill:
+        parsed["fill_percent"] = max(0, min(int(fill.group(1)), 100))
+    if cropped:
+        parsed["cropped"] = cropped.group(1).lower() == "yes"
+    if verdict:
+        parsed["verdict"] = verdict.group(1).lower()
+    parsed["usable"] = "verdict" in parsed or "fill_percent" in parsed
+    return parsed
+
+
+def _next_distance(current: float, grade: dict[str, Any]) -> float | None:
+    """Where to move the camera, or None if it is already right.
+
+    Deliberately coarse. The model is grading a picture, not solving optics,
+    so its advice is a direction rather than a measurement - a big confident
+    step lands closer than a fussy one derived from a number it estimated
+    by eye.
+    """
+    verdict = grade.get("verdict")
+    if grade.get("cropped"):
+        return round(current * 1.35, 3)
+    if verdict == "good":
+        return None
+    if verdict == "too far":
+        fill = grade.get("fill_percent")
+        # If it gave a number, aim at ~55% fill; otherwise step in a third.
+        factor = max(0.45, min((fill / 55.0) ** 0.5, 0.9)) if fill else 0.67
+        return round(current * factor, 3)
+    if verdict == "too close":
+        return round(current * 1.4, 3)
+    return None
+
+
+def frame(spec: dict[str, Any], *, adapters: dict[str, Any], state_dir: Path | None = None):
+    """Render, let the local model grade the framing, re-aim, repeat.
+
+    A51 P3. `sense_camera` aims by arithmetic and returns whatever it gets;
+    nothing checks that the subject actually landed well. This closes the
+    loop with the only instrument that can judge a rendered scene - the
+    vision model. A pixel heuristic cannot: measuring "fraction of frame
+    filled" by brightness reported 100% at every distance during research,
+    because it was measuring the backdrop.
+
+    The model's verdict is ADVICE, not truth (the A47 law: a description is
+    a summary another model wrote). So the loop is bounded, every attempt is
+    reported with its grade, and a run that does not converge returns its
+    best attempt SAYING it did not converge. It never loops silently and it
+    never reports the last frame as though it were the right one.
+    """
+    from tee.kernel.machine import ENGINES
+
+    name = str(spec.get("adapter") or "").strip().lower()
+    if not adapters:
+        raise TeeError(
+            "sense_no_adapter",
+            "No DCC is connected, so there is nothing to frame.",
+            fix="Start Blender or Unreal with the TEE bridge and reconnect.",
+        )
+    if name and name not in adapters:
+        raise TeeError(
+            "sense_unknown_adapter",
+            f"No adapter named '{name}'.",
+            fix=f"Connected: {', '.join(sorted(adapters))}.",
+        )
+    name = name or sorted(adapters)[0]
+    adapter = adapters[name]
+    if not hasattr(adapter, "capture_look"):
+        raise TeeError(
+            "sense_no_aiming",
+            f"The {name} adapter cannot aim a camera.",
+            fix="Aimed framing needs capture_look; Godot renders nothing "
+            "headlessly at all (use run_scene output instead).",
+        )
+
+    distance = max(0.2, float(spec.get("distance") or 1.0))
+    azimuth = float(spec.get("azimuth_deg") or 45.0)
+    elevation = float(spec.get("elevation_deg") or 20.0)
+    max_kb = max(8, min(int(spec.get("max_kb") or 96), 512))
+    retries = max(0, min(int(spec.get("max_retries") or FRAME_MAX_RETRIES), 4))
+
+    attempts: list[dict[str, Any]] = []
+    best: tuple[bytes, dict[str, Any], float] | None = None
+    for attempt in range(retries + 1):
+        data = adapter.capture_look(
+            max_kb * 1024, azimuth_deg=azimuth, elevation_deg=elevation, distance=distance
+        )
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:
+            handle.write(data)
+            shot = Path(handle.name)
+        try:
+            graded = describe(
+                {"path": str(shot), "question": _FRAME_QUESTION, "max_tokens": 60},
+                state_dir=state_dir,
+            )
+        finally:
+            shot.unlink(missing_ok=True)
+        grade = _parse_frame_verdict(graded["answer"])
+        attempts.append(
+            {
+                "distance": distance,
+                **{k: v for k, v in grade.items() if k != "raw"},
+                "grade": grade["raw"],
+            }
+        )
+        if best is None or (grade.get("verdict") == "good" and not grade.get("cropped")):
+            best = (data, grade, distance)
+        if grade.get("verdict") == "good" and not grade.get("cropped"):
+            break
+        if not grade["usable"]:
+            break  # an ungradeable answer is not a signal to move the camera
+        nxt = _next_distance(distance, grade)
+        if nxt is None or attempt == retries:
+            break
+        distance = max(0.2, min(nxt, 8.0))
+
+    data, grade, chosen = best  # type: ignore[misc]
+    converged = grade.get("verdict") == "good" and not grade.get("cropped")
+    qvl = ENGINES.get("qvl", {})
+    out: dict[str, Any] = {
+        "ok": True,
+        "image_bytes": len(data),
+        "adapter": name,
+        "distance": chosen,
+        "azimuth_deg": azimuth,
+        "elevation_deg": elevation,
+        "converged": converged,
+        "attempts": attempts,
+        "graded_by": f"{__import__('tee.kernel.local_vlm', fromlist=['x']).DEFAULT_MODEL} (local)",
+        "note": "The framing was graded by a local vision model, whose "
+        "verdict is advice rather than measurement. Every attempt is listed "
+        "with the grade it received.",
+    }
+    if not converged:
+        out["warning"] = (
+            f"did not converge in {len(attempts)} attempt(s) - this is the "
+            "best of them, not a framing the grader called good. Try a "
+            "different azimuth/elevation, or set distance by hand."
+        )
     note = _eviction_note(qvl)
     if note:
         out["swap_note"] = note
@@ -572,6 +747,53 @@ def register_sense_tools(app, project_root: str | Path) -> None:
                     "question": "Does the gable match the spec? What differs?",
                 }
             ],
+        )
+    )
+
+    def sense_frame(args: dict[str, Any]) -> dict[str, Any]:
+        return frame(args, adapters=app.adapters, state_dir=state)
+
+    app.registry.register(
+        VirtualTool(
+            name="sense_frame",
+            description=(
+                "Frame a subject WELL: renders an aimed view, has the local "
+                "vision model grade the framing, moves the camera and "
+                "retries. Returns the grade for every attempt and says "
+                "plainly when it did not converge. Use when you want a "
+                "usable shot rather than whatever the first guess produced. "
+                "The image never enters your context - only the grades."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "adapter": {"type": "string"},
+                    "azimuth_deg": {"type": "number"},
+                    "elevation_deg": {"type": "number"},
+                    "distance": {
+                        "type": "number",
+                        "description": "1.0 fits the subject; lower moves in. Starting point only.",
+                    },
+                    "max_retries": {"type": "integer", "description": "Default 2, cap 4."},
+                    "max_kb": {"type": "integer"},
+                },
+            },
+            handler=sense_frame,
+            tags=[
+                "sense",
+                "frame",
+                "framing",
+                "camera",
+                "compose",
+                "shot",
+                "aim",
+                "zoom",
+                "fit",
+                "vision",
+                "render",
+                "well framed",
+            ],
+            examples=[{"azimuth_deg": 35, "elevation_deg": 20}],
         )
     )
 

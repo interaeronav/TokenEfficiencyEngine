@@ -8548,3 +8548,43 @@ outcome "boot is fine and the poll was the only real win", and that is the
 outcome.
 
 Suite 1,170 passed / 17 skipped, ruff clean.
+
+### A51 P2/P3 — a fit that knows about the lens, and a shot that gets checked
+
+**P2.** `program_capture_look` placed its camera by
+`radius = bbox_diagonal/2 * distance` and never set a lens, so the fit knew
+nothing about the field of view or the frame's aspect — a tall subject and
+a wide one at the same "distance" filled wildly different fractions of
+frame. It now sets the lens explicitly and solves the distance so the
+subject spans 80% of the *tighter* axis. `distance` survives as a
+multiplier on that solved fit, so **1.0 means "framed"** and the old 2.2
+default (a guess against the raw bounding radius) is gone.
+
+**P3 — `sense_frame`.** Render, let the local model grade the framing,
+move, retry. Live, from two deliberately bad starts:
+
+```
+start 4.0   d=4.0  too far  fill=10
+            d=1.8  too far  fill=15
+            d=0.94 good     fill=35     -> converged
+start 0.3   d=0.3  good     fill=75     -> converged
+```
+
+Three honesty properties, each tested:
+
+- **A run that does not converge says so** and returns its best attempt
+  labelled as such. Reporting the last frame as though it were the right
+  one is the failure this exists to prevent.
+- **Prose instead of the requested form is marked UNUSABLE, not passed.** A
+  model asked for `FILL=.. VERDICT=..` sometimes writes a sentence; a loop
+  that cannot tell the difference will "converge" on noise, and an
+  ungradeable answer never moves the camera.
+- **Every attempt is returned with its grade**, and the verdict is labelled
+  *advice rather than measurement* — the A47 law, since it is a summary
+  another model wrote.
+
+**This is not training, and the script forbade calling it that.** No
+weights changed. What changed is that the model's judgement now steers the
+camera instead of being absent from the loop.
+
+Suite 1,185 passed / 17 skipped, ruff clean.

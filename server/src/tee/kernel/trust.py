@@ -202,6 +202,7 @@ _EXPLICIT: dict[str, str] = {
     "pdf_compose": "write-artifacts",
     "pdf_edit": "write-artifacts",
     "sense_describe": "read-extract",
+    "sense_frame": "read-scene",
     "sense_viewport": "read-scene",
     "sense_camera": "read-scene",
     "sense_transcribe": "read-extract",
