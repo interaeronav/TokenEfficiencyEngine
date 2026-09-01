@@ -183,3 +183,14 @@ def test_three_d_exports_carry_the_pattern_as_uvs(tmp_path) -> None:
     uv = getattr(back.visual, "uv", None)
     assert uv is not None and len(uv) == result["vertices"]
     assert float(uv.min()) >= 0.0 and float(uv.max()) <= 1.0
+
+
+def test_usd_refuses_with_the_measured_reason_and_a_route(tmp_path) -> None:
+    """The A53 script assumed trimesh could write USD. It cannot: trimesh
+    5.0's exporters are 3mf/dae/glb/gltf/obj/off/ply/stl/xyz. A refusal that
+    names the measurement and the way round it beats a silent omission."""
+    session = Session()
+    session.apply(Command("block", {"block": "tee"}))
+    session.apply(Command("arrange", TINY))
+    with pytest.raises(CommandError, match="usdcat"):
+        session.apply(Command("export", {"format": "usd", "out": str(tmp_path / "g.usd")}))

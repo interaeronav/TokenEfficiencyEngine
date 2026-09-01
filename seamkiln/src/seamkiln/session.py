@@ -351,6 +351,12 @@ def _v_export(session: Session, args: dict[str, Any]) -> dict[str, Any]:
             "faces": len(mesh.faces),
             "uv": "from the flat pattern - exact, not unwrapped",
         }
+    if fmt in ("usd", "usda", "usdc", "usdz"):
+        raise CommandError(
+            "trimesh cannot write USD - MEASURED, not assumed: trimesh 5.0's exporters "
+            "are 3mf, dae, glb, gltf, obj, off, ply, stl, xyz. Export glb and convert "
+            "with usdcat, or add `usd-core` (Apache-2.0) and write the stage directly."
+        )
     raise CommandError(
         f"cannot export {fmt!r}. Formats: dxf (aama|astm), svg, pdf, obj, glb, ply, stl."
     )

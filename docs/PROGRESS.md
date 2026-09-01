@@ -9218,3 +9218,54 @@ TEE suite    1,194 passed    1,214 passed
 seamkiln     -               111 tests, 7,441 lines (+881 adapter)
 garment task -               80,553 tok -> 573 tok (99.3% saved)
 ```
+
+### A53 closed out — the ship step, and four honest gaps (2026-09-01)
+
+Re-verified end to end before calling it done, and the check found things.
+
+**Two version numbers had not moved with the package.** `server/pyproject.toml`
+said 0.19.0 while `Makefile`'s `TEE_SERVER_VERSION` and
+`packaging/mcpb_manifest.json` still said 0.18.0 - the bundle would have
+shipped named 0.18.0 with 0.19.0 inside it. Both fixed.
+
+**Bundle built and verified from a clean unzip over MCP stdio**, launched with
+the exact command the manifest declares Claude Desktop will run
+(`uv run --directory … --no-dev tee serve …`):
+
+```
+handshake: {'name': 'tee', 'version': '0.19.0'}
+always-loaded tools: 17
+tee_batch tee_call tee_capture tee_checkpoint tee_describe_tool tee_diff
+tee_entity_detail tee_job tee_media tee_recall tee_remember tee_rollback
+tee_scene_summary tee_script tee_search_tools tee_status tee_web_lookup
+search 'sewing pattern' reaches sk_*: True
+sk_blocks called from the bundle -> REFUSED (seamkiln absent, as expected)
+```
+
+That last line is the designed behaviour, not a defect: seamkiln is a separate
+package, the `sk_*` registrations are metadata only, and calling one without
+it installed refuses with the install command rather than an ImportError.
+
+**Gap 1 - USD export is impossible through trimesh, measured.** The A53 script
+listed "OBJ / glTF / USD via trimesh". trimesh 5.0's exporters are
+`3mf dae glb gltf obj off ply stl xyz` - no USD. Rather than drop it silently,
+`export` now refuses USD by name with the measurement and two routes: export
+glb and convert with `usdcat`, or add `usd-core` (Apache-2.0). Tested.
+
+**Gap 2 - the C-IPC tier-2 bake was never attempted.** P2 asked for an opt-in
+barrier-method bake with an explicit escape hatch ("if C-IPC's build proves
+hostile on macOS, record the attempt with the actual error and ship tier 1
+alone"). Tier 1 shipped; the attempt was not made, so there is no error to
+record. C-IPC is Apache-2.0 and the finding stands - this is unstarted work,
+not a blocked path.
+
+**Gap 3 - the adapter tests skip rather than fake.** P4 asked for "a
+fake-adapter test suite so CI needs no solver". They `importorskip("seamkiln")`
+instead, so a CI box without seamkiln skips 15 tests rather than running them
+against a fake. Weaker than asked for, and worth closing.
+
+**Gap 4 - the DXF round-trip has only ever seen its own output.** P1's
+acceptance says "a real multi-piece pattern DXF"; what it round-trips is
+seamkiln's own tee block. The loss is zero, but zero against a file this code
+wrote is a weaker claim than zero against one Gerber or Optitex wrote. Needs a
+DXF from an industry system to be worth what it sounds like.
