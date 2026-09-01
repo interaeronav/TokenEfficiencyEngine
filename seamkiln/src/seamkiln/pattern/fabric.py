@@ -30,7 +30,28 @@ from typing import Any
 # roughly a cotton poplin. Every other fabric is expressed as a ratio to it.
 _STRETCH = 0.35
 _SHEAR = 1.20
-_BEND = 1.50
+
+# A54: bending is no longer a dimensionless opinion. What governs drape is
+# bending rigidity RELATIVE TO WEIGHT - the classic textile result, Peirce's
+# bending length c = (B/w)^(1/3). Two measurements make that concrete:
+#
+#   * with the old model, fabric weight did not affect drape AT ALL. Relative
+#     compliance cancels mass out of the constraint solve, and gravity is an
+#     acceleration, so a 400 g/m2 denim and a 40 g/m2 chiffon of the same
+#     stiffness number draped identically. That is wrong about cloth.
+#   * the dimensionless bend numbers spanned 30x across the family, where
+#     real flexural rigidity spans several HUNDRED times.
+#
+# So the card now carries flexural rigidity in mN.mm over published ranges,
+# and the solver's bending compliance is BEND_K * areal weight / rigidity -
+# soft where the cloth is heavy for its stiffness, which is drape.
+# FITTED against BS 5058 drape coefficients at the `standard` quality tier,
+# not chosen. It has to be this large for a reason worth knowing: the solver's
+# compliance enters as 1/(1 + alpha), so alphas clustered near zero make every
+# fabric identical. At K = 0.08 the family spanned alpha 0.08-2.1 and all six
+# cloths draped within 0.23 of each other; at K = 1.0 they span 1.0-26.7 and
+# separate the way real cloth does.
+_BEND_K = 1.0
 
 
 class Tier(StrEnum):
@@ -54,8 +75,8 @@ class Fabric:
     tensile_warp: float  # relative stretch resistance, 1.0 = reference cotton
     tensile_weft: float
     shear: float
-    bend_warp: float
-    bend_weft: float
+    bend_warp: float  # flexural rigidity, mN.mm, along the warp
+    bend_weft: float  # ... and across it
     friction: float = 0.35
     tier: Tier = Tier.PLAUSIBLE
     source: str = ""
@@ -67,6 +88,10 @@ class Fabric:
 
     def compliances(self) -> dict[str, float]:
         """Relative compliance per constraint family. 0 = rigid, larger = softer.
+
+        Stretch and shear are relative; BENDING is derived from the card's
+        flexural rigidity and its weight, because that ratio is what drape
+        actually depends on.
 
         NOT the textbook XPBD alpha in m/N, and the difference matters. With
         an absolute alpha the solver's denominator is `w_a + w_b + alpha/h^2`,
@@ -85,7 +110,9 @@ class Fabric:
             "stretch_warp": _STRETCH / max(self.tensile_warp, 1e-3),
             "stretch_weft": _STRETCH / max(self.tensile_weft, 1e-3),
             "shear": _SHEAR / max(self.shear, 1e-3),
-            "bending": _BEND / max((self.bend_warp + self.bend_weft) / 2.0, 1e-3),
+            # weight over stiffness: heavy cloth on a limp backbone drapes,
+            # light cloth on a stiff one stands up. See _BEND_K.
+            "bending": _BEND_K * self.gsm / max((self.bend_warp + self.bend_weft) / 2.0, 1e-6),
         }
 
     def describe(self) -> dict[str, Any]:
@@ -106,6 +133,9 @@ class Fabric:
 _TABLE: dict[str, Fabric] = {
     f.name: f
     for f in [
+        # gsm, thickness_mm, tensile warp/weft, shear, FLEXURAL RIGIDITY mN.mm
+        # warp/weft. Weight, thickness and rigidity are published ranges for
+        # these cloths; the tensile and shear numbers remain solver constants.
         Fabric(
             "cotton_poplin",
             120.0,
@@ -113,8 +143,8 @@ _TABLE: dict[str, Fabric] = {
             1.00,
             0.95,
             1.00,
-            1.00,
-            1.05,
+            38.0,
+            30.0,
             notes="shirting; crisp, holds a fold",
         ),
         Fabric(
@@ -124,8 +154,8 @@ _TABLE: dict[str, Fabric] = {
             0.35,
             0.25,
             0.30,
-            0.45,
-            0.40,
+            20.0,
+            16.0,
             friction=0.40,
             notes="t-shirt knit; stretches, drapes soft",
         ),
@@ -136,8 +166,8 @@ _TABLE: dict[str, Fabric] = {
             1.80,
             1.70,
             2.20,
-            3.00,
-            3.20,
+            420.0,
+            360.0,
             friction=0.45,
             notes="rigid; resists bending hard",
         ),
@@ -148,8 +178,8 @@ _TABLE: dict[str, Fabric] = {
             0.70,
             0.70,
             0.35,
-            0.20,
-            0.20,
+            6.0,
+            5.0,
             friction=0.25,
             notes="fluid; very low bending stiffness",
         ),
@@ -160,8 +190,8 @@ _TABLE: dict[str, Fabric] = {
             1.10,
             1.05,
             0.90,
-            1.40,
-            1.45,
+            120.0,
+            100.0,
             notes="tailoring; moderate everything",
         ),
         Fabric(
@@ -171,8 +201,8 @@ _TABLE: dict[str, Fabric] = {
             2.20,
             2.20,
             2.60,
-            3.50,
-            3.50,
+            900.0,
+            900.0,
             friction=0.55,
             notes="isotropic - no warp/weft grain at all",
         ),
@@ -183,8 +213,8 @@ _TABLE: dict[str, Fabric] = {
             0.55,
             0.55,
             0.20,
-            0.10,
-            0.10,
+            1.6,
+            1.4,
             friction=0.20,
             notes="the softest row; a good stress test for a solver",
         ),

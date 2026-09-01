@@ -9269,3 +9269,115 @@ acceptance says "a real multi-piece pattern DXF"; what it round-trips is
 seamkiln's own tee block. The loss is zero, but zero against a file this code
 wrote is a weaker claim than zero against one Gerber or Optitex wrote. Needs a
 DXF from an industry system to be worth what it sounds like.
+
+### A54 P0/P1 — a solid ball, a test room, and physics that a standard agrees with (2026-09-01)
+
+Owner asked for a solid ball as the test subject, true-to-life physics, and an
+environment room for gravity/wind/temperature/pressure. The ball turned out to
+be the most valuable part of the request, because it unlocks a **real
+measurement**: the Cusick drape test.
+
+**BS 5058 / ISO 9073-9** lays a 300 mm circular specimen over a 180 mm disc and
+reports the **drape coefficient** — shadow area minus disc, over specimen area
+minus disc. Stiff cloth scores near 1, limp cloth near 0. It is the textile
+industry's ruler for "does this cloth behave", and running it turns
+"true-to-life physics" from an adjective into a number. `cusick.py` computes
+the shadow by rasterising the projection, the way the instrument traces it on
+paper. Calibration check: a flat specimen scores **0.9997** against a true 1.0.
+
+#### Four bugs, and the standard found all of them
+
+1. **Bending was quadratically weak.** The bending constraint was a distance
+   between the two corners opposite a shared edge — and that distance changes
+   only as the SQUARE of the fold angle, so it resists a sharp crease and
+   barely notices gentle curvature. Drape *is* gentle curvature. Measured: a
+   cloth with every compliance at 1e-6 — rigid by any reading — still
+   collapsed to DC 0.17 and fell 69 mm off the disc. Replaced with a proper
+   **dihedral** constraint over the 4-vertex quad (Müller et al., PBD 2006),
+   which needed the greedy colouring generalised from pairs to N-vertex
+   simplices.
+2. **The rest dihedral of a flat sheet is π, not 0.** Both triangles are
+   listed off the same shared edge, so their computed normals oppose when the
+   sheet is flat and `n1·n2 = −1`. Resting at zero told every element in a
+   flat sheet to fold itself in half: the specimen contracted from a 150 mm
+   radius to **8 mm** in twenty frames — and stayed finite, with its seams
+   closed, the whole way down.
+3. **Fabric weight did not affect drape at all.** Relative compliance cancels
+   mass out of the constraint solve and gravity is an acceleration, so a
+   400 g/m² denim and a 40 g/m² chiffon of the same stiffness number draped
+   identically. The card now carries **flexural rigidity in mN·mm** over
+   published ranges, and bending compliance is `K · areal weight / rigidity` —
+   Peirce's bending length, which is what drape actually depends on.
+4. **Every particle had the same mass.** Inverse mass came from total garment
+   mass over vertex count, which is only right on a uniform mesh: fine regions
+   were too heavy, coarse ones too light. Now a particle weighs its own share
+   of cloth, which is also what makes GSM a real input.
+
+#### Calibrating against the standard
+
+`_BEND_K` is **fitted**, not chosen — and it had to be large for a reason
+worth knowing: compliance enters as `1/(1+α)`, so alphas clustered near zero
+make every fabric identical. At K = 0.08 the family spanned α 0.08–2.1 and all
+six cloths draped within 0.23 of each other; at K = 1.0 they span 1.0–26.7 and
+separate the way real cloth does.
+
+```
+fabric              DC   published band
+denim_12oz       0.844     0.75 - 0.90   IN BAND
+wool_suiting     0.688     0.55 - 0.75   IN BAND
+cotton_poplin    0.564     0.50 - 0.70   IN BAND
+cotton_jersey    0.261     0.30 - 0.45   out  (see below)
+silk_habotai     0.254     0.25 - 0.40   IN BAND
+chiffon          0.165     0.15 - 0.30   IN BAND
+leather_garment  0.859     0.80 - 0.95   IN BAND
+                                         6/7
+```
+
+Cotton jersey sits just under its band and is **left there**. It is a knit and
+the model was fitted on wovens; pushing its rigidity outside its published
+range to hit a number would be fitting the number rather than the cloth.
+
+**Quality tiers change the physics, not the picture.** Bending converges over
+substeps, so a draft drape is *softer cloth*, not a rougher rendering of the
+same cloth. Measured on denim: DC **0.431** at 8 substeps, **0.876** at 20,
+**0.970** at 34, **0.995** at 50. The `standard` tier therefore moved from 8
+substeps to 20 — the old default was not converging bending at all.
+
+#### The room
+
+`Environment` carries gravity (a vector, so any strength in any direction),
+wind (drag per vertex, `½ρCdA|v·n|(v·n)`, with a deterministic gust), and
+temperature / humidity / pressure. Air density is exact from the ideal gas law
+with the vapour pressure split out — **1.1973 kg/m³** at the ISO 139 standard
+atmosphere. Temperature and humidity act through **moisture regain**: cotton
+8.5% at 65% RH is a published constant, and the card records which half is
+measured and which is a plausible coupling.
+
+Same cloth, five rooms:
+
+```
+room             DC   fold mm   off-centre mm
+earth         0.385      70.7             3.1
+moon          0.923      28.7             0.7
+jupiter       0.207      81.6             4.5
+wind 8 m/s    0.380      70.2            14.6
+hot & humid   0.358      71.6             3.3
+```
+
+**The test subject moves without rebaking its field.** Rebuilding an SDF is
+~1.5 s; a rigid placement is a 3×3 multiply applied at query time, inside the
+kernel, with the collision normal rotated back out. `solid_ball`,
+`cusick_pedestal` and `place` are the subject lane.
+
+**A defect the compact-response law caught:** adding the environment to every
+drape report pushed it from 447 to 862 characters, past its budget. Fixed by
+reporting the **exception** rather than the default — a standard-atmosphere
+drape says "standard atmosphere" in three words; a moon gale prints the room.
+
+**And two the tests caught in themselves, not the code:** `flat=True` with no
+rotation lays a panel in the world XY plane, which is a vertical curtain, so
+a "pinned specimen droops" test had nowhere to droop; and a node counter run
+over an almost-constant radius profile reports twenty folds in a flat disc,
+so a fold now has to have depth before it counts as one.
+
+seamkiln **121 passed / 8 skipped**; TEE **1,214 passed**; ruff clean.

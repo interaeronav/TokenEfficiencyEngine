@@ -58,12 +58,21 @@ class Placement:
     origin_m: np.ndarray = field(default_factory=lambda: np.zeros(3))
     rotation: np.ndarray = field(default_factory=lambda: np.eye(3))
     top_y_m: float | None = None  # align the panel's top edge to this height
+    flat: bool = False  # lay the panel in a plane instead of round a cylinder
 
     def apply(self, points_mm: np.ndarray) -> np.ndarray:
         centre = points_mm.mean(axis=0)
         top = points_mm[:, 1].max()
         u = (points_mm[:, 0] - centre[0]) * MM
         v = (points_mm[:, 1] - (top if self.top_y_m is not None else centre[1])) * MM
+        if self.flat:
+            # A plane, not a cylinder of enormous radius. That was tried: a
+            # cylinder's SURFACE sits at z = radius, so `radius = 1e6` laid the
+            # specimen a thousand kilometres away, where it fell in vacuum
+            # forever and every fabric scored an identical drape coefficient
+            # of exactly 1.000.
+            local = np.stack([u, v + (self.top_y_m or 0.0), np.zeros_like(u)], axis=1)
+            return local @ self.rotation.T + self.origin_m
         angle = np.radians(self.centre_angle_deg) + u / max(self.radius_m, 1e-6)
         local = np.stack(
             [
@@ -86,8 +95,8 @@ class GarmentMesh:
     panel_slices: dict[str, tuple[int, int]]
     structural: np.ndarray  # int32 [k, 2]
     structural_rest: np.ndarray  # float64 [k] metres, MEASURED IN 2D
-    bending: np.ndarray  # int32 [k, 2]
-    bending_rest: np.ndarray
+    bending: np.ndarray  # int32 [k, 4] - a dihedral quad, not a distance pair
+    bending_rest: np.ndarray  # rest dihedral angle, radians (0 on a flat pattern)
     seams: np.ndarray  # int32 [k, 2]
     seam_rest: np.ndarray  # metres; 0 for a plain seam
     particle_distance_mm: float = 0.0
@@ -374,7 +383,7 @@ def build_garment(
     tris = np.vstack(triangles).astype(np.int32)
 
     structural = _unique_edges(tris)
-    bending = _bending_pairs(tris)
+    bending = bending_quads(tris)
     seams, orientations = _seam_pairs(pattern, meshes, slices, points)
 
     return GarmentMesh(
@@ -385,7 +394,15 @@ def build_garment(
         structural=structural,
         structural_rest=_rest_from_2d(rest2d, structural),
         bending=bending,
-        bending_rest=_rest_from_2d(rest2d, bending),
+        # The rest dihedral of a FLAT pattern is PI, not zero. Both triangles
+        # are listed off the same shared edge (p1, p2, ·), so their computed
+        # normals point in opposite directions when the sheet is flat and
+        # n1 . n2 = -1. Setting the rest to zero told every element in a flat
+        # sheet to fold itself in half, and the specimen contracted from a
+        # 150 mm radius to 8 mm in twenty frames - a very convincing bug,
+        # because the mesh stayed finite and the seams stayed closed the
+        # whole way down.
+        bending_rest=np.full(bending.shape[0], np.pi, dtype=np.float64),
         seams=seams,
         seam_rest=np.zeros(seams.shape[0], dtype=np.float64),
         particle_distance_mm=particle_distance,
@@ -398,20 +415,30 @@ def _unique_edges(triangles: np.ndarray) -> np.ndarray:
     return np.unique(np.sort(edges, axis=1), axis=0).astype(np.int32)
 
 
-def _bending_pairs(triangles: np.ndarray) -> np.ndarray:
-    """The two opposite corners of each pair of triangles sharing an edge.
+def bending_quads(triangles: np.ndarray) -> np.ndarray:
+    """Interior edges as (a, b, c, d): the shared edge, then the two opposite
+    corners. What a DIHEDRAL bending constraint needs.
 
-    Bending resistance is what separates silk from denim; without it every
-    fabric drapes like a sheet of tissue regardless of its card.
+    The first version used a distance constraint between c and d, and it was
+    quietly useless. A distance between opposite corners changes only
+    QUADRATICALLY with the fold angle, so it resists a sharp crease and
+    barely notices gentle curvature - and drape is gentle curvature,
+    accumulated over hundreds of elements. Measured: a cloth with every
+    compliance set to 1e-6, which is rigid by any reading, still collapsed
+    from a 300 mm disc to a drape coefficient of 0.17 and fell 69 mm.
     """
-    edge_to_opposite: dict[tuple[int, int], list[int]] = {}
+    edge_faces: dict[tuple[int, int], list[tuple[int, int]]] = {}
     for tri in triangles:
         a, b, c = int(tri[0]), int(tri[1]), int(tri[2])
         for (u, v), w in (((a, b), c), ((b, c), a), ((c, a), b)):
             key = (u, v) if u < v else (v, u)
-            edge_to_opposite.setdefault(key, []).append(w)
-    pairs = [sorted(opposite[:2]) for opposite in edge_to_opposite.values() if len(opposite) >= 2]
-    return np.asarray(pairs, dtype=np.int32) if pairs else np.zeros((0, 2), dtype=np.int32)
+            edge_faces.setdefault(key, []).append((w, 0))
+    quads = [
+        (edge[0], edge[1], opposite[0][0], opposite[1][0])
+        for edge, opposite in edge_faces.items()
+        if len(opposite) >= 2
+    ]
+    return np.asarray(quads, dtype=np.int32) if quads else np.zeros((0, 4), dtype=np.int32)
 
 
 def _rest_from_2d(rest2d: np.ndarray, pairs: np.ndarray) -> np.ndarray:

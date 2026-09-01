@@ -66,10 +66,21 @@ everything = []
 for spec in args["meshes"]:
     everything += load(spec["path"], spec["colour"], spec.get("alpha", 1.0))
 
-lowest = min((o.matrix_world @ Vector(c)).z for o in everything for c in o.bound_box)
-highest = max((o.matrix_world @ Vector(c)).z for o in everything for c in o.bound_box)
-centre = Vector((0.0, 0.0, (lowest + highest) / 2))
-span = max(highest - lowest, 0.5)
+corners = [o.matrix_world @ Vector(c) for o in everything for c in o.bound_box]
+lowest = min(c.z for c in corners)
+highest = max(c.z for c in corners)
+# frame on the WIDEST axis, not just height: three specimens side by side are
+# wide and short, and framing on height alone put the camera inside them
+wide = max(
+    max(c.x for c in corners) - min(c.x for c in corners),
+    max(c.y for c in corners) - min(c.y for c in corners),
+)
+centre = Vector((
+    (max(c.x for c in corners) + min(c.x for c in corners)) / 2,
+    (max(c.y for c in corners) + min(c.y for c in corners)) / 2,
+    (lowest + highest) / 2,
+))
+span = max(highest - lowest, wide, 0.5)
 
 light_data = bpy.data.lights.new("key", type="AREA"); light_data.energy = 400
 light_data.size = 3.0

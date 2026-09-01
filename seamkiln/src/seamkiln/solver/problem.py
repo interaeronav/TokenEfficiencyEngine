@@ -71,23 +71,28 @@ class ClothProblem:
         return sha256(quantised.tobytes()).hexdigest()[:16]
 
 
-def colour_edges(edges: np.ndarray, n_particles: int, *, max_colours: int = 63) -> list[np.ndarray]:
-    """Greedy edge colouring: no two edges in a colour share a particle.
+def colour_simplices(
+    edges: np.ndarray, n_particles: int, *, max_colours: int = 63
+) -> list[np.ndarray]:
+    """Greedy colouring of N-vertex constraints: no two share a particle.
 
     A real garment mesh is not a grid and cannot be coloured analytically, so
     this is what makes a triangulated panel solvable by the same vectorised
     kernel. Each vertex carries a bitmask of the colours already taken at it;
-    an edge takes the lowest colour free at BOTH ends. O(E) with a
-    64-bit-wide constant, which matters: a 30k-particle garment has ~90k
-    edges and the obvious set-of-sets version is minutes, not milliseconds.
+    a constraint takes the lowest colour free at ALL of its vertices. O(E)
+    with a 64-bit-wide constant, which matters: a 30k-particle garment has
+    ~90k edges and the obvious set-of-sets version is minutes.
+
+    Takes any width - 2 for a distance constraint, 4 for a dihedral bend.
     """
     edges = np.asarray(edges, dtype=np.int64)
     used = np.zeros(n_particles, dtype=np.uint64)
     assignment = np.empty(edges.shape[0], dtype=np.int32)
+    width = edges.shape[1]
     for index in range(edges.shape[0]):
-        a = int(edges[index, 0])
-        b = int(edges[index, 1])
-        taken = int(used[a] | used[b])
+        taken = 0
+        for column in range(width):
+            taken |= int(used[edges[index, column]])
         colour = 0
         while colour < max_colours and (taken >> colour) & 1:
             colour += 1
@@ -97,8 +102,8 @@ def colour_edges(edges: np.ndarray, n_particles: int, *, max_colours: int = 63) 
                 "the mesh has a vertex touching more edges than the colouring supports"
             )
         bit = np.uint64(1) << np.uint64(colour)
-        used[a] |= bit
-        used[b] |= bit
+        for column in range(width):
+            used[edges[index, column]] |= bit
         assignment[index] = colour
     return [
         np.flatnonzero(assignment == colour).astype(np.int32)
@@ -190,3 +195,8 @@ def make_grid(
         sphere_center=np.array([0.0, 0.0, 0.0]),
         sphere_radius=0.35,
     )
+
+
+def colour_edges(edges: np.ndarray, n_particles: int, *, max_colours: int = 63):
+    """Two-vertex constraints. Kept as the name every call site already uses."""
+    return colour_simplices(edges, n_particles, max_colours=max_colours)

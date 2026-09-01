@@ -16,10 +16,12 @@ is reported in the field's own summary rather than left implicit.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import trimesh
+
+from seamkiln.drape.environment import Environment  # noqa: F401  (re-exported)
 
 
 @dataclass(slots=True)
@@ -35,6 +37,11 @@ class BodySDF:
     origin: np.ndarray  # float64 [3] - world position of grid[0,0,0]
     spacing: float  # metres per cell
     source: str = ""
+    # Rigid placement of the SUBJECT, applied at query time. Moving the test
+    # subject therefore costs nothing: rebuilding the field is ~1.5 s, and a
+    # rotation is a 3x3 multiply. `rotation` maps world -> the field's frame.
+    rotation: np.ndarray = field(default_factory=lambda: np.eye(3))
+    translation: np.ndarray = field(default_factory=lambda: np.zeros(3))
 
     @property
     def shape(self) -> tuple[int, int, int]:
@@ -56,9 +63,41 @@ class BodySDF:
             "memory_mb": round(self.grid.nbytes / 1e6, 2),
         }
 
+    @property
+    def placed(self) -> bool:
+        return not (np.allclose(self.rotation, np.eye(3)) and np.allclose(self.translation, 0.0))
+
+    def to_field(self, points: np.ndarray) -> np.ndarray:
+        """World points -> the frame the grid was baked in."""
+        if not self.placed:
+            return np.asarray(points, np.float64)
+        return (np.asarray(points, np.float64) - self.translation) @ self.rotation
+
+    def moved(
+        self,
+        position: tuple[float, float, float] | np.ndarray = (0.0, 0.0, 0.0),
+        *,
+        rotation_deg: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        relative: bool = False,
+    ) -> BodySDF:
+        """The same field, with the subject somewhere else. Cheap and exact."""
+        rot = _euler_matrix(rotation_deg)
+        offset = np.asarray(position, dtype=np.float64)
+        if relative:
+            rot = rot @ self.rotation.T
+            offset = offset + self.translation
+        return BodySDF(
+            grid=self.grid,
+            origin=self.origin,
+            spacing=self.spacing,
+            source=f"{self.source} placed",
+            rotation=rot.T,  # world -> field
+            translation=offset,
+        )
+
     def sample(self, points: np.ndarray) -> np.ndarray:
         """Trilinear signed distance at world points. float64 [n]."""
-        return _sample_grid(self.grid, self.origin, self.spacing, np.asarray(points, np.float64))
+        return _sample_grid(self.grid, self.origin, self.spacing, self.to_field(points))
 
     def gradient(self, points: np.ndarray, *, epsilon: float | None = None) -> np.ndarray:
         """Outward normal, by central differences. float64 [n, 3]."""
@@ -286,3 +325,75 @@ def measure_contact(points: np.ndarray, sdf: BodySDF, *, near_mm: float = 12.0) 
         "max_distance_mm": round(float(distances.max()) * 1000.0, 2),
         "worn": bool(near > 0.15),
     }
+
+
+def _euler_matrix(degrees: tuple[float, float, float]) -> np.ndarray:
+    """XYZ Euler angles -> a rotation matrix. Degrees, because a user types
+    degrees and a silent radians/degrees mix-up is a whole afternoon."""
+    rx, ry, rz = (np.radians(float(a)) for a in degrees)
+    cx, sx = np.cos(rx), np.sin(rx)
+    cy, sy = np.cos(ry), np.sin(ry)
+    cz, sz = np.cos(rz), np.sin(rz)
+    return (
+        np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
+        @ np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]])
+        @ np.array([[1.0, 0.0, 0.0], [0.0, cx, -sx], [0.0, sx, cx]])
+    )
+
+
+def solid_ball(
+    radius_m: float = 0.15,
+    centre: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    *,
+    subdivisions: int = 4,
+) -> trimesh.Trimesh:
+    """A solid sphere - the honest test subject.
+
+    A ball has no shoulders to blame, no pose to get wrong and no anatomy to
+    argue about, so a drape over it is a statement about the SOLVER and the
+    FABRIC rather than about the body. It is also the shape textile science
+    already uses: the Cusick drape test (BS 5058 / ISO 9073-9) hangs a
+    circular specimen over a circular pedestal and measures how far it falls,
+    which `cusick_pedestal` sets up exactly.
+    """
+    if radius_m <= 0.0:
+        raise ValueError(f"a ball needs a positive radius, got {radius_m}")
+    ball = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius_m)
+    ball.apply_translation(np.asarray(centre, dtype=np.float64))
+    return ball
+
+
+def cusick_pedestal(disc_diameter_m: float = 0.18, height_m: float = 0.30) -> trimesh.Trimesh:
+    """The Cusick drapemeter's pedestal: a 0.18 m disc on a stand.
+
+    BS 5058 supports a 0.30 m circular specimen on a 0.18 m disc and reports
+    the DRAPE COEFFICIENT - the shadow area minus the disc, over the specimen
+    area minus the disc. Higher means stiffer. It is the closest thing this
+    field has to a ruler for "does the cloth behave", so seamkiln can be
+    checked against it rather than against an opinion.
+    """
+    disc = trimesh.creation.cylinder(radius=disc_diameter_m / 2.0, height=0.01, sections=96)
+    stem = trimesh.creation.cylinder(radius=disc_diameter_m / 6.0, height=height_m, sections=48)
+    stem.apply_translation([0.0, 0.0, -height_m / 2.0])
+    pedestal = trimesh.util.concatenate([disc, stem])
+    pedestal.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [1.0, 0.0, 0.0]))
+    pedestal.apply_translation([0.0, height_m, 0.0])
+    return pedestal
+
+
+def place(
+    mesh: trimesh.Trimesh,
+    position: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    *,
+    rotation_deg: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    scale: float = 1.0,
+) -> trimesh.Trimesh:
+    """Move, turn and resize the test subject. Returns a copy."""
+    moved = mesh.copy()
+    if scale != 1.0:
+        moved.apply_scale(float(scale))
+    rotation = np.eye(4)
+    rotation[:3, :3] = _euler_matrix(rotation_deg)
+    moved.apply_transform(rotation)
+    moved.apply_translation(np.asarray(position, dtype=np.float64))
+    return moved
