@@ -9465,3 +9465,79 @@ describe a denim you made 20% heavier.
    and indigo's channels are far apart while a bleached grey's are close, so
    the comparison reversed. Fixed to compare spatial variation per channel:
    raw is exactly 0, a wash is not.
+
+## A55–A59 — hardware, handoff, avatars, and cloth you can pull on
+
+The five items the user asked for after the A54 batch, all measured. The
+always-loaded surface never moved: 17 tools throughout, every new verb
+reaching TEE through the existing batch path.
+
+**A55 — collision alignment, symmetry sync, locks.** `drape/collision.py`
+compares each panel's triangle normals against the body's SDF gradient at the
+contact point. A panel that drapes correctly but faces inward is invisible to
+every other check — it renders dark, a wash lands on the wrong face and fur
+grows into the body. The check caught SLEEVE_R everting within the hour, at
+0.018 agreement against 0.91 for the front. `pattern/symmetry.py` mirrors a
+half-symmetric panel with the seam vertices SHARED, so the mesher sees one
+ring; `locking.py` refuses a verb that would touch a locked panel.
+
+**A56 — zippers and buttons, as trim rather than as more cloth.**
+`GarmentMesh.attach()` replaced the append-only `extra` array with NAMED
+constraint blocks carrying their own compliance and per-particle mass —
+named, because unzipping has to REPLACE constraints and an append-only list
+cannot. An opening is a seam declared `kind="zipper"`: paired like a seam so
+the two edges know which point faces which, and not sewn. A #5 metal chain
+closes to 6.2 mm and opens to 195 mm on the jacket block at 9 mm particles. A
+24L polyester button comes out at 0.755 g from its own volume, which is what a
+shirt button weighs; a fastened placket holds at a shank plus two cloth
+thicknesses, never at zero.
+
+**A57 — a handoff that arrives the right way up.** Mesh + UVs from the flat
+pattern + the target's conversion baked into the file + the ops that load it.
+Verified in a headless Blender 5.2 rather than asserted.
+
+**A58 — avatars that move.** Joint-angle bodies, walk and run as pose tracks
+from standard clinical gait ranges, custom avatar import with unit inference,
+and stature/girth adjusted separately.
+
+**A59 — interactive adjustment at 43 fps.** `prepare()` builds the constraint
+graph once; `drape(prepared=...)` reuses it, bit-identical, and refuses a
+stale one.
+
+**Five findings worth keeping:**
+
+1. **The line you changed last beats the line that looks suspicious.**
+   SLEEVE_R everting looked like `align_vectors` returning a minimal rotation
+   that twists mirrored arms differently. Building the frame explicitly made
+   it WORSE — 48 mm to 205 mm of seam gap. The cause was a restitution added
+   the same hour that pushed the particle out a second time instead of
+   reflecting its velocity; at 0.02, barely a bounce, that took the worst seam
+   gap from 33 mm to 248 mm.
+2. **A constraint that learns its rest length from a wrong pose preserves the
+   wrong pose.** The zipper's cross-braces first measured themselves in the
+   current arrangement — the one with the opening hanging OPEN — and held it
+   open: 50 engaged pairs at a 204 mm gap while a single engaged pair closed
+   to 5.0 mm. They rest on the flat pattern now.
+3. **`alpha` in this solver is a relative softening, not m/N.** Four decades
+   of zipper bending compliance (6e-7 … 6e-1) were swept before noticing that
+   every value tried was indistinguishable from rigid. The range that bites is
+   single digits to tens.
+4. **A self-describing format must be left alone.** glTF states +Y up in
+   metres and conforming importers convert. With no transform the jacket lands
+   Z-up, 0.744 m tall, at z 0.830–1.574 with its UVs. With our Z-up rotation
+   baked in as well it lands on its face at z −0.189–0.175 — and would have
+   read as a bug in Blender's importer.
+5. **Cloth time is not a free parameter.** `frames_per_step` let the cloth
+   have 1.0 s of gravity for every 0.125 s the body moved, and a t-shirt SLID
+   270 MM DOWN a running body in one stride while every frame still reported
+   `worn=True`, because it was still touching. It is derived from `fps` now
+   and a mismatch is refused. Accuracy comes from `substeps`, which subdivides
+   the same second; `frames` buys more seconds, and more seconds than the body
+   took is a different animation.
+
+**And one claim corrected rather than kept.** Fold retention was first
+measured as total displacement, which made every fabric hold 150–200% of the
+push — the settle after letting go is mostly the cloth falling. Projected on
+the push axis it reads silk 69%, poplin 94%, denim 89%, wool 59%, which does
+NOT order by stiffness. Stiffness resists the spring-back and weight pulls the
+fold out; they fight, and which wins depends on the fabric.
