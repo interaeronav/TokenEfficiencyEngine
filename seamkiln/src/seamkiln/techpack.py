@@ -156,6 +156,19 @@ def write(
 
     # -- fit, when there is a drape to report on
     if session.drape is not None and session.body is not None:
+        verdict = session.drape.report()
+        if not verdict.get("converged", True):
+            _heading(pdf, "Fit - NOT CONVERGED")
+            pdf.set_font("helvetica", "B", BODY_SIZE)
+            pdf.set_text_color(170, 0, 0)
+            pdf.multi_cell(
+                0,
+                4.5,
+                "The drape behind these numbers has not converged: "
+                + "; ".join(verdict.get("not_converged", []))
+                + ". They are printed for reference and must not be cut against.",
+            )
+            pdf.set_text_color(0, 0, 0)
         from seamkiln.drape.measure import fit_report
 
         report = fit_report(session.garment, session.drape.points, session.body)

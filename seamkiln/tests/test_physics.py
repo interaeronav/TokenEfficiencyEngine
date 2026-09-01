@@ -282,3 +282,96 @@ def test_the_fabric_card_carries_rigidity_in_real_units() -> None:
     jersey = fabric("cotton_jersey")
     assert jersey.gsm > fabric("cotton_poplin").gsm
     assert jersey.compliances()["bending"] > fabric("cotton_poplin").compliances()["bending"]
+
+
+# -- never rely on a coarse preview ------------------------------------------
+
+
+def test_a_drape_that_has_not_converged_says_so() -> None:
+    """The rule, made structural. A draft run is not a rougher picture of the
+    same cloth - it is softer cloth - so the result labels itself rather than
+    depending on whoever reads it to remember."""
+    from seamkiln.drape.body import mannequin
+    from seamkiln.drape.garment import build_garment, top_arrangement
+    from seamkiln.pattern.fixtures import tee_block
+
+    body = mannequin()
+    field = sdf_from_mesh(body, voxel_mm=8.0)
+    pattern = tee_block()
+
+    coarse = build_garment(pattern, top_arrangement(pattern, body), particle_distance=22.0)
+    draft = drape(
+        coarse,
+        field,
+        fabric="cotton_poplin",
+        settings=DrapeSettings(frames=120, substeps=8),
+    ).report()
+    assert draft["converged"] is False
+    assert any("substeps" in reason for reason in draft["not_converged"])
+
+
+def test_a_mesh_too_coarse_for_its_own_seams_refuses() -> None:
+    """A seam sampled too thinly cannot close, so the floor is a refusal
+    rather than a warning - and it names the finer distance to use."""
+    from seamkiln.drape.body import mannequin
+    from seamkiln.drape.garment import MIN_SEAM_POINTS, build_garment, top_arrangement
+    from seamkiln.pattern.fixtures import tee_block
+
+    body = mannequin()
+    pattern = tee_block()
+    with pytest.raises(ValueError, match="too coarse for this garment's seams"):
+        build_garment(pattern, top_arrangement(pattern, body), particle_distance=30.0)
+
+    ok = build_garment(pattern, top_arrangement(pattern, body), particle_distance=16.0)
+    assert min(ok.seam_points.values()) >= MIN_SEAM_POINTS
+
+
+def test_the_back_panel_is_mirrored_when_worn() -> None:
+    """You look at a back panel from BEHIND, so its pattern-right edge is the
+    body's left. Sewing FRONT#1 to BACK#1 wraps the garment round the wearer:
+    the left sleeve was joined to the right half of the back armhole, one
+    point at x = -0.099 paired with one at x = +0.105, and that single seam
+    accounted for a 211 mm gap. It looked like a resolution problem and was
+    not - it was identical from 26 mm down to 9 mm, which is what a topology
+    bug looks like and what a convergence problem does not."""
+    import numpy as np
+
+    from seamkiln.drape.body import mannequin, sdf_from_mesh
+    from seamkiln.drape.garment import build_garment, top_arrangement
+    from seamkiln.pattern.fixtures import tee_block
+
+    body = mannequin()
+    pattern = tee_block()
+    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=16.0)
+    result = drape(
+        garment,
+        sdf_from_mesh(body, voxel_mm=8.0),
+        fabric="cotton_poplin",
+        settings=DrapeSettings(frames=250),
+    )
+    # No sewn pair may straddle the body's centre line. A handful near the
+    # centre front and centre back legitimately do, so the test is about the
+    # ones far out on either side - those can only be a crossed seam.
+    left = result.points[garment.seams[:, 0], 0]
+    right = result.points[garment.seams[:, 1], 0]
+    crossed = int((((left * right) < 0) & (np.abs(left) > 0.05) & (np.abs(right) > 0.05)).sum())
+    assert crossed == 0, f"{crossed} sewn pairs straddle the body"
+    assert result.seam_gaps["max_gap_mm"] < 90.0
+
+
+def test_a_fit_report_refuses_to_quote_an_unconverged_drape() -> None:
+    """ "Never rely on a coarse preview" is a rule about REPORTING, so the
+    refusal lives where the numbers would be quoted."""
+    from seamkiln.session import Command, CommandError, Session
+
+    session = Session()
+    session.apply(Command("block", {"block": "tee"}))
+    session.apply(Command("body", {"kind": "mannequin"}))
+    session.apply(Command("arrange", {"particle_distance_mm": 22.0}))
+    session.apply(Command("drape", {"fabric": "cotton_poplin", "frames": 60, "substeps": 8}))
+    with pytest.raises(CommandError, match="not worth quoting"):
+        session.apply(Command("fit", {}))
+    # explicit override, because iterating is legitimate and lying is not
+    allowed = session.apply(Command("fit", {"allow_unconverged": True}))
+    assert allowed["converged"] is False
+    assert allowed["not_converged"]

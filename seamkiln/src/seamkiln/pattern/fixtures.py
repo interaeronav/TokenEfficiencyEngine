@@ -150,20 +150,35 @@ def tee_block(
     #           5 shoulder L | 6 armhole L | 7 side L
     #   sleeve  0 cuff | 1 underarm R | 2 cap front-half | 3 cap back-half |
     #           4 underarm L
+    #
+    # THE BACK PANEL IS MIRRORED WHEN WORN. You look at a back panel from
+    # behind, so its pattern-right edge is the body's LEFT. Pairing FRONT#1
+    # with BACK#1 therefore sews the front's right side to the back's right-
+    # in-pattern, which is the body's left, and wraps the garment round the
+    # wearer. Measured: the left sleeve was being sewn to the right half of
+    # the back armhole, a point at x = -0.099 paired with one at x = +0.105,
+    # and that ONE seam accounted for a 211 mm maximum gap. Mirroring the back
+    # indices took the garment's worst seam gap from 211 mm to 48 mm.
+    #
+    # It also cost a wrong conclusion before it was found: the gap looked like
+    # a resolution problem, and it is not - it was identical from 26 mm down
+    # to 9 mm particle distance, which is exactly what a topology bug looks
+    # like and what a convergence problem does not.
+    #
     # The cap halves measure 219.3 mm against a 214.8 mm armhole. That 2.1% is
     # sleeve-head EASE - the fullness a set-in sleeve needs to turn the corner
     # over the shoulder - so it is declared as `gather`, not left to show up as
     # a 4.5 mm drafting error in every report.
     ease = SLEEVE_HEAD_EASE
     pattern.seams = [
-        Seam(EdgeRef("FRONT", 1), EdgeRef("BACK", 1), id="side-right"),
-        Seam(EdgeRef("FRONT", 7), EdgeRef("BACK", 7), id="side-left"),
-        Seam(EdgeRef("FRONT", 3), EdgeRef("BACK", 3), id="shoulder-right"),
-        Seam(EdgeRef("FRONT", 5), EdgeRef("BACK", 5), id="shoulder-left"),
+        Seam(EdgeRef("FRONT", 1), EdgeRef("BACK", 7), id="side-right"),
+        Seam(EdgeRef("FRONT", 7), EdgeRef("BACK", 1), id="side-left"),
+        Seam(EdgeRef("FRONT", 3), EdgeRef("BACK", 5), id="shoulder-right"),
+        Seam(EdgeRef("FRONT", 5), EdgeRef("BACK", 3), id="shoulder-left"),
         Seam(EdgeRef("SLEEVE_R", 2), EdgeRef("FRONT", 2), gather=ease, id="armhole-right-front"),
-        Seam(EdgeRef("SLEEVE_R", 3), EdgeRef("BACK", 2), gather=ease, id="armhole-right-back"),
+        Seam(EdgeRef("SLEEVE_R", 3), EdgeRef("BACK", 6), gather=ease, id="armhole-right-back"),
         Seam(EdgeRef("SLEEVE_L", 2), EdgeRef("FRONT", 6), gather=ease, id="armhole-left-front"),
-        Seam(EdgeRef("SLEEVE_L", 3), EdgeRef("BACK", 6), gather=ease, id="armhole-left-back"),
+        Seam(EdgeRef("SLEEVE_L", 3), EdgeRef("BACK", 2), gather=ease, id="armhole-left-back"),
         Seam(EdgeRef("SLEEVE_R", 1), EdgeRef("SLEEVE_R", 4), id="underarm-right"),
         Seam(EdgeRef("SLEEVE_L", 1), EdgeRef("SLEEVE_L", 4), id="underarm-left"),
     ]

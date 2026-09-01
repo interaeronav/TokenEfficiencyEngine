@@ -294,9 +294,11 @@ def _v_drape(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     if session.garment is None:
         _v_arrange(session, {})
     session.fabric = str(args.get("fabric", session.fabric))
+    # NOT a literal 8: DrapeSettings' own default is the converged tier, and
+    # hardcoding a draft value here silently made every session drape soft.
     settings = DrapeSettings(
         frames=int(args.get("frames", 250)),
-        substeps=int(args.get("substeps", 8)),
+        substeps=int(args.get("substeps", DrapeSettings().substeps)),
         friction=float(args.get("friction", 0.35)),
         thickness_mm=float(args.get("thickness_mm", 1.0)),
     )
@@ -376,6 +378,15 @@ def _v_techpack(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     out = args.get("out")
     if not out:
         raise CommandError("techpack needs 'out' - where the document should be written.")
+    if session.drape is not None:
+        verdict = session.drape.report()
+        if not verdict.get("converged", True) and not args.get("allow_unconverged"):
+            raise CommandError(
+                "the drape behind this tech pack has not converged: "
+                + "; ".join(verdict.get("not_converged", []))
+                + ". A factory does not need a fit table computed from a preview. "
+                "Re-drape finer, or pass allow_unconverged=true to document it anyway."
+            )
     try:
         return techpack.write(
             session,
@@ -393,7 +404,17 @@ def _v_fit(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 
     if session.drape is None or session.garment is None or session.body is None:
         raise CommandError("there is no drape to report on. Run 'drape' first.")
-    return fit_report(session.garment, session.drape.points, session.body)
+    verdict = session.drape.report()
+    if not verdict.get("converged", True) and not args.get("allow_unconverged"):
+        reasons = "; ".join(verdict.get("not_converged", []))
+        raise CommandError(
+            "this drape has not converged, so its measurements are not worth "
+            f"quoting: {reasons}. Re-run at a finer particle distance or a higher "
+            "quality tier - or pass allow_unconverged=true if you know you are "
+            "iterating and will not report these numbers."
+        )
+    report = fit_report(session.garment, session.drape.points, session.body)
+    return {k: v for k, v in verdict.items() if k in ("converged", "not_converged")} | report
 
 
 # -- A54 verbs: everything the garment can have done to it --------------------

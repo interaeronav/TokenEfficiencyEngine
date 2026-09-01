@@ -89,6 +89,57 @@ class DrapeSettings:
         }
 
 
+# What a drape has to achieve before its numbers may be quoted. Measured on
+# the tee block against particle distance, with the topology correct:
+#
+#   pd mm    26     20     16     12      9
+#   mean    2.23   1.60   1.52   0.99   0.74      (mm)
+#   max    71.0   74.5   60.1   32.6   19.0
+#
+# and against substeps, on the BS 5058 drape test: a 12 oz denim scores 0.431
+# at 8 substeps and 0.876 at 20, where the published band is 0.75-0.90. So a
+# draft run is not a rougher picture of the same cloth, it is softer cloth -
+# which is why this verdict is computed and reported rather than left to
+# whoever reads the output to remember.
+CONVERGED = {
+    "substeps": 20,
+    "mean_gap_mm": 1.5,
+    "max_gap_mm": 40.0,
+}
+
+
+def _converged(seam_gaps: dict, penetration: dict, settings: DrapeSettings) -> dict[str, Any]:
+    """Whether this result may be quoted, and if not, why not."""
+    reasons: list[str] = []
+    if settings.substeps < CONVERGED["substeps"]:
+        reasons.append(
+            f"substeps {settings.substeps} < {CONVERGED['substeps']}: bending has not "
+            "converged, so the cloth is softer than its card says"
+        )
+    mean_gap = seam_gaps.get("mean_gap_mm")
+    if mean_gap is not None and mean_gap > CONVERGED["mean_gap_mm"]:
+        reasons.append(
+            f"mean seam gap {mean_gap:.2f} mm > {CONVERGED['mean_gap_mm']} mm: "
+            "use a finer particle distance"
+        )
+    max_gap = seam_gaps.get("max_gap_mm")
+    if max_gap is not None and max_gap > CONVERGED["max_gap_mm"]:
+        reasons.append(
+            f"worst seam gap {max_gap:.0f} mm > {CONVERGED['max_gap_mm']:.0f} mm: "
+            "one seam is open - check its orientation, not just the resolution"
+        )
+    voxel = penetration.get("voxel_mm", 0.0)
+    depth = penetration.get("deepest_penetration_mm", 0.0)
+    if voxel and depth > voxel:
+        reasons.append(
+            f"penetration {depth:.1f} mm exceeds the field's own {voxel:.0f} mm voxel: "
+            "bake the body finer"
+        )
+    if not reasons:
+        return {"converged": True}
+    return {"converged": False, "not_converged": reasons}
+
+
 def _room_note(environment: dict, conditioning: dict) -> dict:
     """Only what differs from a laboratory's default conditions."""
     if not environment:
@@ -136,6 +187,9 @@ class DrapeResult:
             "seam_gaps": self.seam_gaps,
             "penetration": self.penetration,
             "contact": self.contact,
+            # Never rely on a coarse preview: a result that has not converged
+            # says so here rather than depending on the reader to remember.
+            **_converged(self.seam_gaps, self.penetration, self.settings),
             # Report the EXCEPTION, not the default. A drape in the standard
             # atmosphere at earth gravity with no wind says so in three words;
             # a drape on the moon in a gale prints the room. Spelling out an

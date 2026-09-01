@@ -27,6 +27,15 @@ from seamkiln.solver.problem import colour_edges
 
 MM = 1e-3
 
+# A seam sampled more thinly than this cannot close. The floor exists so that
+# "never rely on a coarse preview" is structural rather than a habit.
+#
+# It is deliberately a FLOOR and not a blessing: passing it does not make a
+# drape trustworthy, it only stops the most obviously untrustworthy one. What
+# says whether a result converged is `DrapeResult.report()["converged"]`,
+# measured from the drape itself.
+MIN_SEAM_POINTS = 6
+
 
 def edge_t_ranges(panel: Panel) -> list[tuple[float, float]]:
     """Each edge's span as a fraction of the whole outline's arc length.
@@ -102,6 +111,7 @@ class GarmentMesh:
     particle_distance_mm: float = 0.0
     seam_orientation: dict[str, str] = field(default_factory=dict)
     seam_spans: dict[str, tuple[int, int]] = field(default_factory=dict)
+    seam_points: dict[str, int] = field(default_factory=dict)
     extra: np.ndarray | None = None  # lacing and other added constraints
     extra_rest: np.ndarray | None = None
 
@@ -119,6 +129,7 @@ class GarmentMesh:
             "seam_constraints": int(self.seams.shape[0]),
             "particle_distance_mm": self.particle_distance_mm,
             "seams_flipped": sum(1 for v in self.seam_orientation.values() if v == "flipped"),
+            "thinnest_seam_points": min(self.seam_points.values()) if self.seam_points else 0,
         }
 
     def seam_gaps_mm(self, points: np.ndarray | None = None) -> dict[str, float]:
@@ -387,7 +398,18 @@ def build_garment(
 
     structural = _unique_edges(tris)
     bending = bending_quads(tris)
-    seams, orientations, spans = _seam_pairs(pattern, meshes, slices, points)
+    seams, orientations, spans, counts = _seam_pairs(pattern, meshes, slices, points)
+
+    thin = {name: n for name, n in counts.items() if 0 < n < MIN_SEAM_POINTS}
+    if thin:
+        worst = ", ".join(f"{k} ({v} points)" for k, v in sorted(thin.items())[:4])
+        finer = particle_distance * min(thin.values()) / MIN_SEAM_POINTS
+        raise ValueError(
+            f"particle_distance {particle_distance:g} mm is too coarse for this "
+            f"garment's seams: {worst}. A seam sampled this thinly cannot close - "
+            f"measured on the tee block, mean seam gap falls from 2.2 mm at 26 mm "
+            f"to 0.7 mm at 9 mm. Use {finer:.0f} mm or finer."
+        )
 
     return GarmentMesh(
         points=points,
@@ -411,6 +433,7 @@ def build_garment(
         particle_distance_mm=particle_distance,
         seam_orientation=orientations,
         seam_spans=spans,
+        seam_points=counts,
     )
 
 
@@ -457,7 +480,7 @@ def _seam_pairs(
     meshes: dict[str, PanelMesh],
     slices: dict[str, tuple[int, int]],
     points: np.ndarray,
-) -> tuple[np.ndarray, dict[str, str], dict[str, tuple[int, int]]]:
+) -> tuple[np.ndarray, dict[str, str], dict[str, tuple[int, int]], dict[str, int]]:
     """Pair every seam, choosing each one's orientation by measurement.
 
     Two panels laid out counter-clockwise traverse their shared edge in
@@ -472,6 +495,7 @@ def _seam_pairs(
     pairs: list[tuple[int, int]] = []
     orientation: dict[str, str] = {}
     spans: dict[str, tuple[int, int]] = {}
+    counts: dict[str, int] = {}
     for seam in pattern.seams:
         try:
             direct = _pair_one_seam(pattern, meshes, slices, seam, flip=False)
@@ -485,9 +509,10 @@ def _seam_pairs(
         start = len(pairs)
         pairs.extend(chosen)
         spans[seam.id] = (start, len(pairs))
+        counts[seam.id] = len(chosen)
         orientation[seam.id] = label
     array = np.asarray(pairs, dtype=np.int32) if pairs else np.zeros((0, 2), dtype=np.int32)
-    return array, orientation, spans
+    return array, orientation, spans, counts
 
 
 def _closer(

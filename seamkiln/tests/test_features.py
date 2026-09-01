@@ -398,6 +398,6 @@ def test_the_garment_is_dragged_along_the_track_not_re_draped(body, sdf) -> None
 
 def test_an_empty_track_animates_nothing(body) -> None:
     pattern = tee_block()
-    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=30.0)
+    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=20.0)
     with pytest.raises(ValueError, match="animates nothing"):
         animate(garment, BlendTrack())

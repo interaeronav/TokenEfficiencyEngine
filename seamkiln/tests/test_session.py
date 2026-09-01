@@ -16,16 +16,22 @@ import pytest
 
 from seamkiln.session import VERBS, Command, CommandError, Session
 
-TINY = {"particle_distance_mm": 25.0}
+# Fine enough, and converged: the tech pack and the fit report both refuse to
+# quote a preview, which is the point - "never rely on a coarse preview" is a
+# rule about REPORTING, so the tests that report have to earn it.
+TINY = {"particle_distance_mm": 20.0}
+REPORTABLE = {"particle_distance_mm": 12.0}
 
 
-def built() -> Session:
+def built(reportable: bool = False) -> Session:
     session = Session()
     session.apply(Command("block", {"block": "tee"}))
     session.apply(Command("allowance", {"mm": 10.0}))
     session.apply(Command("body", {"kind": "mannequin"}))
-    session.apply(Command("arrange", TINY))
-    session.apply(Command("drape", {"fabric": "cotton_poplin", "frames": 40}))
+    session.apply(Command("arrange", REPORTABLE if reportable else TINY))
+    session.apply(
+        Command("drape", {"fabric": "cotton_poplin", "frames": 280 if reportable else 40})
+    )
     return session
 
 
@@ -156,7 +162,7 @@ def test_the_tech_pack_carries_the_fabric_tier_onto_the_page(tmp_path) -> None:
     pytest.importorskip("fpdf")
     pypdf = pytest.importorskip("pypdf")
 
-    session = built()
+    session = built(reportable=True)
     out = tmp_path / "tp.pdf"
     result = session.apply(Command("techpack", {"out": str(out), "style": "TEE-001"}))
     assert result["fabric_tier"] == "plausible"
