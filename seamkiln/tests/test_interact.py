@@ -183,3 +183,34 @@ def test_easing_a_seam_that_is_not_there_names_the_ones_that_are(draped) -> None
     live = LiveSession(garment, field, fabric="cotton_poplin")
     with pytest.raises(ValueError, match="side-right"):
         live.ease("side-middle", 4.0)
+
+
+def test_an_animated_wind_does_not_invalidate_the_prepared_graph() -> None:
+    """Only the room's CONDITIONING reaches the prepared arrays - temperature,
+    humidity and fibre, through the moisture regain that sets particle mass.
+    Gravity and wind are applied per call, inside the kernel.
+
+    Keying the cache on the whole room meant an animated wind invalidated it on
+    every single frame, which is precisely the case the cache exists for. Found
+    by simulating a cape in a gust and watching the solver refuse its own
+    prepared graph on frame one.
+    """
+    from seamkiln.drape.environment import Environment
+    from seamkiln.drape.solve import _prepare_key
+    from seamkiln.pattern.fabric import fabric as fabric_by_name
+
+    body = mannequin()
+    pattern = tee_block()
+    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=22.0)
+    cloth = fabric_by_name("cotton_poplin")
+
+    def key(room):
+        return _prepare_key(garment, cloth, DrapeSettings(environment=room))
+
+    breeze = Environment(wind=(6.0, 0.0, 0.0))
+    gale = Environment(wind=(-9.0, 2.0, 3.0), wind_gust=0.6)
+    assert key(breeze) == key(gale), "a gust threw the cache away"
+    assert key(breeze) == key(Environment(gravity=1.62)), "gravity is a per-call force"
+    # ... and what genuinely does change the prepared mass still invalidates it
+    assert key(breeze) != key(Environment(humidity=0.95))
+    assert key(breeze) != key(Environment(temperature_c=40.0))

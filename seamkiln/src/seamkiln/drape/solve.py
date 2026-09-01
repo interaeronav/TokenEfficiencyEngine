@@ -739,7 +739,15 @@ def _prepare_key(garment: GarmentMesh, cloth: Fabric, opts: DrapeSettings) -> tu
         # Environment on every access when none was set, so keying on
         # `id(opts.room)` meant a prepared solve could never match anything -
         # including the settings object it was built from.
-        json.dumps(opts.room.describe(), sort_keys=True, default=str),
+        #
+        # And by the room's CONDITIONING, not the whole room. Only temperature,
+        # humidity and fibre reach the prepared arrays, through the moisture
+        # regain that sets particle mass. Gravity and wind are applied per
+        # call, inside the kernel. Keying on the whole room meant an animated
+        # wind invalidated the cache on EVERY frame - which is precisely the
+        # case the cache exists for, and it was found by animating a cape in a
+        # gust and watching the solver refuse its own prepared graph.
+        json.dumps(opts.room.conditioning(opts.fibre), sort_keys=True, default=str),
     )
 
 

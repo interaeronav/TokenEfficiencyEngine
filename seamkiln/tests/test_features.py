@@ -401,3 +401,33 @@ def test_an_empty_track_animates_nothing(body) -> None:
     garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=20.0)
     with pytest.raises(ValueError, match="animates nothing"):
         animate(garment, BlendTrack())
+
+
+def test_a_derived_card_can_carry_the_reason_it_was_derived() -> None:
+    """`derive` records the provenance and the caller says why on top of it.
+
+    Passing `notes` used to be a TypeError - derive set them itself and then
+    handed `**changes` to the same argument - so the one field a derivation
+    most wants to fill in was the one field it could not. Found deriving a
+    soaked silk for a cape that had just gone into a swimming pool.
+    """
+    from seamkiln import materials
+    from seamkiln.pattern.fabric import Tier
+    from seamkiln.pattern.fabric import fabric as fabric_by_name
+
+    dry = fabric_by_name("silk_habotai")
+    soaked = materials.derive(
+        "silk_habotai",
+        "silk_habotai_soaked",
+        gsm=dry.gsm * 1.55,
+        bend_warp=dry.bend_warp * 0.65,
+        notes="soaked: +55% mass from water pickup",
+    )
+    assert soaked.notes == "derived from silk_habotai; soaked: +55% mass from water pickup"
+    assert soaked.gsm == pytest.approx(dry.gsm * 1.55)
+    # a physical change still drops the tier, which is the rule that matters
+    assert soaked.tier is Tier.PLAUSIBLE
+    # and without a reason the provenance still stands on its own
+    assert materials.derive("silk_habotai", "x", gsm=70.0).notes == "derived from silk_habotai"
+    # derive MAKES a card; add() is what puts it in the library
+    assert "silk_habotai_soaked" not in [row["name"] for row in materials.library()]

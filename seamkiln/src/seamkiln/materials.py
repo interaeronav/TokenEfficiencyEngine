@@ -135,9 +135,13 @@ def derive(base: str, name: str, **changes: Any) -> Fabric:
     }
     tier = Tier.PLAUSIBLE if physical & set(changes) else card.tier
     source = "" if tier is Tier.PLAUSIBLE else card.source
-    return validate(
-        replace(card, name=name, tier=tier, source=source, notes=f"derived from {base}", **changes)
-    )
+    # The provenance is always recorded, and the caller can say WHY on top of
+    # it. Passing `notes` used to be a TypeError - `derive` set them itself and
+    # then handed `**changes` to the same argument - so the one field a
+    # derivation most wants to fill in was the one field it could not.
+    why = str(changes.pop("notes", "")).strip()
+    trail = f"derived from {base}" + (f"; {why}" if why else "")
+    return validate(replace(card, name=name, tier=tier, source=source, notes=trail, **changes))
 
 
 def to_file(names: list[str] | None, path: str | Path) -> dict[str, Any]:
