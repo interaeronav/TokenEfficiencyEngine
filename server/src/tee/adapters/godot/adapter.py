@@ -370,7 +370,14 @@ class GodotAdapter:
             stderr=subprocess.STDOUT,
             text=True,
         )
+        # A51 P0: backoff rather than a fixed 0.4 s tick - a bridge that is
+        # ready in 0.3 s should not wait 0.4 s to be noticed. The process
+        # check still runs each round, so a bridge that dies is caught as
+        # fast as one that starts.
+        from tee.kernel.waiting import FIRST_DELAY_S, GROWTH, MAX_DELAY_S
+
         deadline = time.monotonic() + BOOT_TIMEOUT_S
+        delay = FIRST_DELAY_S
         while time.monotonic() < deadline:
             if self.wire.probe():
                 return {"started": True, "port": self.wire.port, "pid": self._proc.pid}
@@ -381,7 +388,8 @@ class GodotAdapter:
                     f"The Godot bridge exited immediately: {out.strip()[:300]}",
                     fix="Usually a GDScript parse error in the bridge, or a port already in use.",
                 )
-            time.sleep(0.4)
+            time.sleep(min(delay, MAX_DELAY_S))
+            delay *= GROWTH
         raise TeeError(
             "godot_bridge_timeout",
             f"The bridge did not answer on port {self.wire.port} within {BOOT_TIMEOUT_S:.0f}s.",

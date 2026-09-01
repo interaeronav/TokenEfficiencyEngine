@@ -641,9 +641,11 @@ def run_physical_scenario() -> dict | None:
     port = free_port()
     proc = launch_bridge(blender, port)
     wire = BlenderWire(port=port)
-    deadline = time.time() + 60
-    while time.time() < deadline and not wire.probe():
-        time.sleep(0.5)
+    # A51 P0: backoff, not a fixed 0.5 s tick. The bridge answers at ~0.30 s
+    # and was not noticed until 0.50 s purely because of the poll interval.
+    from tee.kernel.waiting import wait_until
+
+    wait_until(wire.probe, 60.0)
     if not wire.probe():
         proc.kill()
         print("physical scenario skipped (bridge never came up)")
@@ -1551,9 +1553,11 @@ def main() -> None:
     port = free_port()
     proc = launch_bridge(blender, port)
     wire = BlenderWire(port=port)
-    deadline = time.time() + 60
-    while time.time() < deadline and not wire.probe():
-        time.sleep(0.5)
+    # A51 P0: backoff, not a fixed 0.5 s tick. The bridge answers at ~0.30 s
+    # and was not noticed until 0.50 s purely because of the poll interval.
+    from tee.kernel.waiting import wait_until
+
+    wait_until(wire.probe, 60.0)
     if not wire.probe():
         proc.kill()
         raise SystemExit("bridge never came up")

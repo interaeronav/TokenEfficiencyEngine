@@ -8507,3 +8507,44 @@ is virtual. **Suite: 1,165 passed / 17 skipped**, ruff clean.
 
 Also restarted the LiteLLM shim at the owner's request; all routes back,
 including the new `claude-qwen-35b`.
+
+### A51 P0/P1 — the wait was the slow part, and the first fix made it worse
+
+**P0. Measured baseline: `[battery] bridge up: 0.5s`.** The bridge is
+genuinely ready at **0.422 s** (found by polling as fast as possible), and a
+failed `wire.probe()` costs **0.1 ms**. So the 0.5 s fixed tick was noticing
+an answer that had been sitting there for 78 ms.
+
+**The first attempt was slower than what it replaced.** A backoff capped at
+0.25 s measured **0.553 s against the fixed tick's 0.506 s** — because a
+0.25 s cap put late probes further apart than the thing being waited for, so
+it overshot by luck rather than by design. The cap was taste, not
+measurement.
+
+Tuned to the measured probe cost (0.1 ms, so a 50 ms cap is cheap):
+
+```
+fixed 0.5s tick     median 0.506s   range 0.502-0.507s
+backoff (0.25s cap) median 0.553s   ← WORSE than what it replaced
+backoff (0.05s cap) median 0.428s   range 0.379-0.436s
+```
+
+**78 ms, 15%**, and it now tracks the true 0.422 s readiness almost exactly.
+End to end: `[battery] bridge up` **0.5s → 0.4s**, reproducible across runs.
+Applied to the Godot launcher too, which had the same defect at 0.4 s.
+
+**P1 — there is no second boot to remove.** The question was whether TEE
+re-launches Blender per session. It does not launch Blender **at all**:
+`_build_blender_app` constructs `BlenderAdapter(BlenderWire(host, port))`
+and connects to a bridge the owner already started. There is no `Popen` or
+`subprocess` anywhere in the Blender adapter. The only launcher in the tree
+is the benchmark harness. Reuse was never the problem because launching was
+never TEE's job.
+
+`--factory-startup` was measured rather than assumed: **0.42 s against
+0.45 s**, a 30 ms saving that would come at the price of disabling the
+owner's addons. **Not adopted** — the script explicitly permitted the
+outcome "boot is fine and the poll was the only real win", and that is the
+outcome.
+
+Suite 1,170 passed / 17 skipped, ruff clean.

@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,467 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -220,7 +220,7 @@ Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
 | seeing | `tee_media`, default budget (1002x563) | 756 |
 | blind | `sense_describe` (local model reads it) | 65 |
 
-**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 15.1s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
+**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 15.6s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
 
 This supersedes an informal *33x* quoted during A47, which compared the
 PROVIDER's input tokens against the answer rather than what a host pays.
