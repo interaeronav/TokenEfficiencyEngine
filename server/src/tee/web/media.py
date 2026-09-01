@@ -22,6 +22,8 @@ from tee.kernel import local_vlm
 from tee.kernel.errors import TeeError
 
 AV_EXTENSIONS = (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".mp4", ".mov", ".webm", ".mkv")
+PDF_MAGIC = b"%PDF-"
+PDF_MAX_PAGES = 40  # a budgeted answer never needs more; the quote is cut anyway
 AV_FREE_BYTES = 10_000_000  # under this, transcribe without asking
 AV_MAX_BYTES = 100_000_000  # over this, refuse even confirmed
 IMAGE_CAP_BYTES = 5_000_000
@@ -172,3 +174,65 @@ def transcribe_bytes(data: bytes, url: str) -> list[dict]:
             fix="Check the file has speech; the whisper install must be intact.",
         )
     return facts
+
+
+# -- PDF arm (A53 P0a) --------------------------------------------------------
+#
+# web_lookup used to decode every response as UTF-8 and hand it to the HTML
+# extractor, so a PDF URL answered with its own header bytes as the "quote"
+# (`%PDF-1.7 %\xe2\x80\xa6 3085 0 obj`). Magic bytes decide - Content-Type
+# headers lie and a path suffix is not evidence about the body.
+
+
+def looks_pdf(body: bytes) -> bool:
+    """True when the fetched bytes ARE a PDF. Leading whitespace/BOM tolerated."""
+    head = body[:64].lstrip(b"\r\n\t \xef\xbb\xbf")
+    return head.startswith(PDF_MAGIC)
+
+
+def pdf_text(body: bytes, url: str) -> tuple[str, int, str | None]:
+    """(text, pages_read, title) from PDF bytes via TEE's own [pdf] extra.
+
+    Refuses loudly in the two ways this can honestly fail: the extra is not
+    installed, or the PDF carries no text layer (a scan). Neither is allowed
+    to degrade into bytes-as-prose, which is the defect this replaces.
+    """
+    try:
+        import pypdf
+    except ImportError as exc:
+        raise TeeError(
+            "web_pdf_unavailable",
+            f"{url} is a PDF, and reading one needs pypdf, which is not installed.",
+            fix="uv pip install 'tee-engine[pdf]'",
+        ) from exc
+
+    import io
+
+    try:
+        reader = pypdf.PdfReader(io.BytesIO(body))
+        pages = reader.pages[:PDF_MAX_PAGES]
+        chunks = [page.extract_text() or "" for page in pages]
+        title = None
+        meta = getattr(reader, "metadata", None)
+        if meta is not None:
+            title = (getattr(meta, "title", None) or "").strip() or None
+    except TeeError:
+        raise
+    except Exception as exc:  # encrypted, truncated, malformed
+        raise TeeError(
+            "web_pdf_unreadable",
+            f"{url} could not be parsed as a PDF ({type(exc).__name__}).",
+            fix="Download it and use the extract lane (ex_add), which handles "
+            "scanned and unusual PDFs.",
+        ) from exc
+
+    text = "\n\n".join(c.strip() for c in chunks if c.strip())
+    if not text.strip():
+        raise TeeError(
+            "web_pdf_no_text",
+            f"{url} is a PDF with no text layer (pages read: {len(pages)}) - "
+            "almost certainly a scan.",
+            fix="Download it and use the extract lane (ex_add), which rasterises "
+            "and OCRs pages; web_lookup reads text layers only.",
+        )
+    return text, len(pages), title

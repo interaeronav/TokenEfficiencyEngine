@@ -116,6 +116,8 @@ class WebLookupService:
         if media != "off" and web_media.looks_av(url):
             return self._lookup_av(url, question, budget, media)
         result = self.fetcher.fetch(url)
+        if web_media.looks_pdf(result.body):  # A53 P0a - before any UTF-8 decode
+            return self._lookup_pdf(result, question, budget)
         html = result.body.decode("utf-8", errors="replace")
         answer = build_answer(
             html, question, url=result.url, retrieved_at=result.retrieved_at, max_tokens=budget
@@ -131,6 +133,27 @@ class WebLookupService:
         hint = self._kb_hint(question)
         if hint:
             answer["kb_hint"] = hint
+        return answer
+
+    def _lookup_pdf(self, result, question: str, budget: int) -> dict:
+        """A fetched PDF -> the same budgeted, cited answer contract (A53 P0a).
+
+        The old path decoded PDF bytes as UTF-8 and quoted the header back at
+        the caller; extract.py:229 pointed at "the media lane for images/PDF",
+        which nothing routed to. This is that route.
+        """
+        text, pages, title = web_media.pdf_text(result.body, result.url)
+        quote, truncated = focus_extract(text, question, budget)
+        answer = {
+            "ok": True,
+            "quote": quote,
+            "source": {"url": result.url, "title": title},
+            "retrieved_at": result.retrieved_at,
+            "truncated": truncated,
+            "media": {"kind": "pdf", "pages": pages, "extractor": "pypdf"},
+        }
+        if result.cache != "miss":
+            answer["cache"] = result.cache
         return answer
 
     def _lookup_av(self, url: str, question: str, budget: int, media: str) -> dict:
