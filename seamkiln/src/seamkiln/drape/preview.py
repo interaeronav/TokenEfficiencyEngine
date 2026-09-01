@@ -172,7 +172,32 @@ def render(
     return {"images": written, "views": list(views)}
 
 
-def garment_mesh(points: np.ndarray, triangles: np.ndarray) -> trimesh.Trimesh:
+def garment_mesh(
+    points: np.ndarray, triangles: np.ndarray, uv: np.ndarray | None = None
+) -> trimesh.Trimesh:
     """Cloth points + triangles as a mesh. Not watertight, and that is correct:
-    a garment is a surface with a hem, a neckline and two cuffs."""
-    return trimesh.Trimesh(vertices=np.asarray(points), faces=np.asarray(triangles), process=False)
+    a garment is a surface with a hem, a neckline and two cuffs.
+
+    `uv` attaches a texture layout. For a garment that is FREE and exact: the
+    flat pattern IS the UV map, because a pattern is precisely the surface
+    unrolled into the plane. Every other 3D pipeline pays an unwrap step here,
+    guesses where the seams go, and lives with the distortion; a garment
+    already knows its seams, and its parameterisation is the shape a cutter
+    will cut - so a print lands exactly where it was drawn.
+    """
+    mesh = trimesh.Trimesh(vertices=np.asarray(points), faces=np.asarray(triangles), process=False)
+    if uv is not None:
+        mesh.visual = trimesh.visual.TextureVisuals(uv=np.asarray(uv, dtype=np.float64))
+    return mesh
+
+
+def pattern_uv(rest_points_mm: np.ndarray) -> np.ndarray:
+    """The flat pattern normalised to [0, 1] - the garment's UV map.
+
+    Normalised over the WHOLE pattern rather than per panel, so the pieces
+    keep their relative scale and a print that spans a seam still lines up.
+    """
+    flat = np.asarray(rest_points_mm, dtype=np.float64)
+    low = flat.min(axis=0)
+    span = np.maximum(flat.max(axis=0) - low, 1e-9)
+    return (flat - low) / span.max()

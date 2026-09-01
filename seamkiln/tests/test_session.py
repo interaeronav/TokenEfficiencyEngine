@@ -81,6 +81,7 @@ def test_unknown_verbs_list_the_known_ones() -> None:
         "export",
         "fit",
         "delete",
+        "techpack",
     }
 
 
@@ -137,3 +138,48 @@ def test_export_needs_a_destination_and_a_known_format(tmp_path) -> None:
         session.apply(Command("export", {"format": "obj", "out": str(tmp_path / "x.obj")}))
     result = session.apply(Command("export", {"format": "svg", "out": str(tmp_path / "p.svg")}))
     assert result["scale"] == "1:1"
+
+
+def test_the_tech_pack_carries_the_fabric_tier_onto_the_page(tmp_path) -> None:
+    """A tech pack that prints a solver constant as if it were a measurement
+    is worse than one that omits it: someone will cut cloth against it."""
+    pytest.importorskip("fpdf")
+    pypdf = pytest.importorskip("pypdf")
+
+    session = built()
+    out = tmp_path / "tp.pdf"
+    result = session.apply(Command("techpack", {"out": str(out), "style": "TEE-001"}))
+    assert result["fabric_tier"] == "plausible"
+    assert result["includes_fit"] is True
+    assert result["sections"] >= 5
+
+    text = "".join(page.extract_text() or "" for page in pypdf.PdfReader(str(out)).pages)
+    assert "plausible" in text
+    assert "not a laboratory measurement" in text
+    assert "TEE-001" in text
+    for heading in ("Pieces", "Fabric", "Seam schedule", "Fit on body"):
+        assert heading in text
+
+
+def test_a_tech_pack_needs_a_pattern_and_a_destination(tmp_path) -> None:
+    pytest.importorskip("fpdf")
+    with pytest.raises(CommandError, match="where the document"):
+        Session().apply(Command("techpack", {}))
+    with pytest.raises(CommandError, match="no pattern"):
+        Session().apply(Command("techpack", {"out": str(tmp_path / "x.pdf")}))
+
+
+def test_three_d_exports_carry_the_pattern_as_uvs(tmp_path) -> None:
+    """The free win: a garment's flat pattern IS its UV map, so a print lands
+    exactly where it was drawn - no unwrap, no guessed seams, no distortion."""
+    import trimesh
+
+    session = built()
+    out = tmp_path / "g.glb"
+    result = session.apply(Command("export", {"format": "glb", "out": str(out)}))
+    assert "flat pattern" in result["uv"]
+
+    back = trimesh.load(str(out), force="mesh")
+    uv = getattr(back.visual, "uv", None)
+    assert uv is not None and len(uv) == result["vertices"]
+    assert float(uv.min()) >= 0.0 and float(uv.max()) <= 1.0

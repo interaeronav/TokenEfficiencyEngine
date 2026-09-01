@@ -247,6 +247,7 @@ _EXPLICIT: dict[str, str] = {
     "kb_propose": "write-state",
     # --- seamkiln: the two that leave a file behind (A53 P4) ---
     "sk_plot": "write-artifacts",
+    "sk_techpack": "write-artifacts",
     "sk_interchange": "write-artifacts",
     # --- design: the store/render writes ---
     "gd_store": "write-state",

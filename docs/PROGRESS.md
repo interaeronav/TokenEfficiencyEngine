@@ -9172,3 +9172,49 @@ first version's defect was caught: all four panels drawn about their shared
 drafting origin, stacked on top of one another with the labels overlapping.
 The window now uses `plot.lay_out` - the same layout the printer uses - so
 what the screen shows and what the sheet prints are arranged identically.
+
+### A53 P6 — evidence, interop, ship (2026-09-01)
+
+`seamkiln.techpack`, UVs on every 3D export, `sk_techpack` and `sk_look`,
+`docs/seamkiln-lane.md`, DECISIONS entries for every licence call, version
+**0.19.0**. seamkiln **103 passed / 8 skipped** bare, **111 passed** with Qt
+and Anny; TEE's suite green; surface still **17 tools / 2033 tok** with 120
+virtual tools.
+
+**The UV map was free, and exact.** A garment's flat pattern *is* its UV
+layout - a pattern is precisely the surface unrolled into the plane. Every
+other 3D pipeline pays an unwrap step, guesses where the seams go and lives
+with the distortion; a garment already knows its seams, and its
+parameterisation is the shape a cutter will cut. OBJ / glTF / PLY / STL now
+carry it, verified through a glTF round-trip (2,376 UVs, spanning [0, 1]).
+A print therefore lands exactly where it was drawn.
+
+**The tech pack carries the tier flag onto the page.** Pieces with areas and
+cut counts, the fabric card, the seam schedule with ease and mismatch per
+seam, the fit table with a verdict per landmark, and strain per panel - and
+in italics under the fabric table: *"Tier `plausible` means a solver constant
+chosen to behave like the cloth, not a laboratory measurement."* A tech pack
+that prints a solver constant as if it were measured is worse than one that
+omits it, because someone will cut cloth against it. A test reads that
+sentence back out of the finished PDF.
+
+**`sk_look` is A51's law, applied before it could bite again.** It renders
+the drape, asks the local vision model what it sees, labels the answer
+`kind: advice`, and is never allowed to fail a build - an exception becomes
+`available: false` with the reason. Asked about the tee, the local model
+said: *"a light blue, short-sleeved shirt or tunic... hangs loosely over the
+upper body and arms, with a noticeable sag at the back and a slightly bunched
+appearance around the shoulders and sleeves."* That matches the render, and
+it is still advice: seam closure, penetration and ease are decided by
+geometry in `sk_fit`.
+
+**A53 complete — P0 through P6.**
+
+```
+             before A53      after A53
+surface      17 / 2033 tok   17 / 2033 tok
+virtual      112 tools       120 tools
+TEE suite    1,194 passed    1,214 passed
+seamkiln     -               111 tests, 7,441 lines (+881 adapter)
+garment task -               80,553 tok -> 573 tok (99.3% saved)
+```

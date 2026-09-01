@@ -1054,3 +1054,81 @@ as opening a window on the owner's screen — never automatic.
 `_ready` raises still exits 0. `run_scene` reports `ok` only when the exit
 is clean AND no `SCRIPT ERROR` lines appeared, because the exit code alone
 would pass a broken game.
+
+## A53 — the garment lane (2026-09-01)
+
+**Build the solver; do not adopt the paper's.** GarmentCode/PyGarment is MIT,
+but GarmentCodeData drapes through a fork of NVIDIA Warp under the **NVIDIA
+Source Code Licence — non-commercial**. The best-documented open garment
+pipeline in the world therefore cannot ship, and copying its stack inherits
+that silently. seamkiln writes its own XPBD; mainline Warp (Apache-2.0) and
+C-IPC (Apache-2.0) stay available as backends.
+
+**Anny, not SMPL — and plain `anny`, not `anny[smpl]`.** SMPL and SMPL-X are
+licensed for non-commercial research; Anny is Apache-2.0 over CC0 MakeHuman
+assets and spans infants to elders. The trap is inside the answer: Anny
+declares `smplx` under an optional extra, so `anny[smpl]` pulls the very
+licence Anny was chosen to avoid. seamkiln declares plain `anny`,
+`load_topology` refuses the smplx topology by name, and the gate tests both.
+
+**The licence law is a test, not a note.** `test_licences.py` fails the build
+if `triangle`, `meshpy`, `smplx` or a non-commercial licence string enters
+seamkiln's dependency closure, and the failure names the permissive
+replacement. Two of its cases exist only to make the gate fail on purpose,
+because a gate nobody has seen fail is a gate nobody knows is wired up.
+
+**The solver backend was chosen by measurement, and the GPU lost.** numba on
+a **four-thread** pool beats torch-MPS at every garment size (5.2 vs 13.9
+ms/frame at 30k particles; 8.7 vs 20.1 at 120k) and beats Blender's own cloth
+by 10–236×. More threads is slower: at 5k particles one thread beats eighteen
+by 8.7×, because the fork/join barrier around each of a frame's 144 parallel
+regions scales with pool size. `numba.set_num_threads` cannot fix it — it
+masks threads without shrinking the barrier — so the pool is sized by an
+environment variable before numba is imported.
+
+**Compliance is relative, not the textbook alpha.** With an absolute XPBD
+compliance the solver's denominator is `w_a + w_b + alpha/h²`, and a
+garment's inverse masses run to ~1e4 while any physically plausible alpha
+lands near 1e-6 — so every fabric rounds to inextensible. Measured: denim and
+chiffon draped identically. Compliance now softens the correction relative to
+the mass term, which is an honest simplification that preserves the ordering
+and the ratios that matter, and the fabric card carries a `tier` flag saying
+the stiffnesses are solver constants rather than measurements.
+
+**Friction is Coulomb, not viscous drag.** Removing a fixed fraction of
+tangential motion slows a slide without ever stopping one; over 2,400
+substeps the surviving 65% walked the garment off the body a fraction of a
+millimetre at a time. Coulomb's static regime — tangential motion within
+μ×(normal correction) cancelled outright — is what lets a shoulder carry a
+garment's weight.
+
+**Two acceptance numbers, because one was gameable.** "Zero body
+interpenetration" is satisfied perfectly by a garment lying on the floor, and
+was. Every drape reports `contact.worn` alongside `penetration`.
+
+**The outline is the sew line.** Seam allowance records a number rather than
+replacing the outline with the mitred cut line: a mitred offset re-tags
+corners by angle, so a panel's edge count changes and every seam naming a
+later edge points past the end of the list. The sew line is also where sewing
+happens and the length `true_up` must match; the cut line is derived, and the
+DXF writer puts it on layer 1 with the sew line on layer 14, which is what
+ASTM expects anyway.
+
+**One command model, every client.** A `Session` holds the garment, every
+mutation is a `Command`, and the Qt shell, a script and the TEE adapter all
+drive the same one. The adapter is a translation layer, not a second
+implementation; checkpoints are the command history and restore replays it.
+That is what makes "save script" a fact about the design rather than an
+export feature — and it is the inversion of the incumbents, whose Python API
+runs inside the app on an enterprise tier.
+
+**A rendered image, not a Qt viewport.** seamkiln already renders through
+Blender; a second renderer inside the GUI would be a worse picture and a new
+surface to maintain. The cost — you cannot orbit it — is stated in the
+module, and a `QOpenGLWidget` viewport is named as the next step.
+
+**The model's eye is advice.** `sk_look` renders the drape and asks the local
+vision model what it sees, labelled `kind: advice`, never allowed to fail a
+build. Seam closure, penetration and ease are decided by geometry in
+`sk_fit`. This is A51's finding, applied before it could bite again.
+

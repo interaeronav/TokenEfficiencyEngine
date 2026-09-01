@@ -336,15 +336,42 @@ def _v_export(session: Session, args: dict[str, Any]) -> dict[str, Any]:
                 "a 3D export needs a garment. Run 'arrange' (and usually 'drape') "
                 "first, or export dxf/svg/pdf for the flat pattern."
             )
-        from seamkiln.drape.preview import garment_mesh
+        from seamkiln.drape.preview import garment_mesh, pattern_uv
 
         points = session.drape.points if session.drape else session.garment.points
-        mesh = garment_mesh(points, session.garment.triangles)
+        # The flat pattern IS the UV map - free and exact, where every other
+        # 3D pipeline pays an unwrap step and guesses where the seams go.
+        uv = pattern_uv(session.garment.rest_points_mm)
+        mesh = garment_mesh(points, session.garment.triangles, uv=uv)
         mesh.export(out)
-        return {"path": str(out), "format": fmt, "vertices": len(mesh.vertices)}
+        return {
+            "path": str(out),
+            "format": fmt,
+            "vertices": len(mesh.vertices),
+            "faces": len(mesh.faces),
+            "uv": "from the flat pattern - exact, not unwrapped",
+        }
     raise CommandError(
         f"cannot export {fmt!r}. Formats: dxf (aama|astm), svg, pdf, obj, glb, ply, stl."
     )
+
+
+def _v_techpack(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    from seamkiln import techpack
+
+    out = args.get("out")
+    if not out:
+        raise CommandError("techpack needs 'out' - where the document should be written.")
+    try:
+        return techpack.write(
+            session,
+            out,
+            style=str(args.get("style", "")),
+            author=str(args.get("author", "")),
+            stamp=args.get("stamp"),
+        )
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
 
 
 def _v_fit(session: Session, args: dict[str, Any]) -> dict[str, Any]:
@@ -366,6 +393,7 @@ _VERBS = {
     "delete": _v_delete,
     "export": _v_export,
     "fit": _v_fit,
+    "techpack": _v_techpack,
 }
 
 VERBS = tuple(sorted(_VERBS))

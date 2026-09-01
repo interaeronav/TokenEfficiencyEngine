@@ -170,6 +170,84 @@ def register_seamkiln_tools(app) -> None:
             shape = {"vertices": len(mesh.vertices), "faces": len(mesh.faces)}
         return {"kind": kind, "mesh": shape, "measurements": body_measurements(mesh)}
 
+    def techpack(args: dict[str, Any]) -> dict[str, Any]:
+        _need()
+        adapter = _adapter(app)
+        from seamkiln.session import Command, CommandError
+
+        try:
+            return adapter.session.apply(Command("techpack", dict(args)))
+        except CommandError as exc:
+            raise TeeError("seamkiln_techpack_refused", str(exc), fix=str(exc)) from exc
+
+    def look(args: dict[str, Any]) -> dict[str, Any]:
+        """Render the drape and ask the local vision model what it sees.
+
+        A51's law, restated where it matters: the model's verdict is ADVICE,
+        not measurement. It may say a garment reads as a shirt; it may not
+        decide that a seam closed or that cloth stayed out of the body -
+        `sk_fit` and the drape report decide those, from geometry. This tool
+        is labelled accordingly and is never allowed to fail a build.
+        """
+        _need()
+        adapter = _adapter(app)
+        if adapter.session.garment is None:
+            raise TeeError(
+                "seamkiln_nothing_to_look_at",
+                "no garment has been arranged yet.",
+                fix="Run the 'arrange' and 'drape' ops first.",
+            )
+        from seamkiln.drape import preview
+
+        ok, why = preview.available()
+        if not ok:
+            return {
+                "kind": "advice",
+                "available": False,
+                "reason": why,
+                "note": "the geometry is unaffected: read sk_fit and the drape report.",
+            }
+        session = adapter.session
+        points = session.drape.points if session.drape else session.garment.points
+        adapter.workdir.mkdir(parents=True, exist_ok=True)
+        prefix = adapter.workdir / "look"
+        preview.render(
+            prefix,
+            garment=preview.garment_mesh(points, session.garment.triangles),
+            body=session.body,
+            views={"front": (0.0, 5.0)},
+            width=512,
+            height=680,
+        )
+        image = f"{prefix}_front.png"
+        question = str(
+            args.get("question")
+            or "Describe this draped garment: what kind of garment is it, how does it "
+            "hang, and does anything look wrong? Three sentences."
+        )
+        try:
+            from tee import senses
+
+            answer = senses.describe({"path": image, "question": question, "max_tokens": 220})
+        except Exception as exc:  # advice must never fail a build
+            return {
+                "kind": "advice",
+                "available": False,
+                "reason": f"{type(exc).__name__}: {exc}"[:200],
+                "image": image,
+                "note": "the geometry is unaffected: read sk_fit and the drape report.",
+            }
+        return {
+            "kind": "advice",
+            "available": True,
+            "image": image,
+            "question": question,
+            "reading": answer.get("answer"),
+            "provided_by": answer.get("provided_by"),
+            "caveat": "A model's eye is ADVICE, not measurement. Seam closure, "
+            "penetration and ease are decided by geometry - see sk_fit.",
+        }
+
     app.registry.register(
         VirtualTool(
             name="sk_blocks",
@@ -310,5 +388,47 @@ def register_seamkiln_tools(app) -> None:
             handler=body,
             tags=["seamkiln", "body", "avatar", "mannequin", "measure", "size", "fit"],
             examples=[{"kind": "anny", "stature_m": 1.72}],
+        )
+    )
+    app.registry.register(
+        VirtualTool(
+            name="sk_techpack",
+            description=(
+                "Write the tech pack: piece list, fabric card WITH ITS TIER FLAG, seam "
+                "schedule with ease and mismatch, and - when the garment has been draped "
+                "- the fit and strain tables. The document a factory is actually sent."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "out": {"type": "string", "description": "Destination PDF path."},
+                    "style": {"type": "string", "description": "Style name/number."},
+                    "author": {"type": "string"},
+                },
+                "required": ["out"],
+            },
+            handler=techpack,
+            tags=["seamkiln", "techpack", "spec", "factory", "document", "pdf", "garment"],
+            examples=[{"out": "/tmp/tee.pdf", "style": "TEE-001"}],
+        )
+    )
+    app.registry.register(
+        VirtualTool(
+            name="sk_look",
+            description=(
+                "Render the drape and ask the local vision model what it sees - a second "
+                "opinion on whether the garment READS right. Advice, never measurement: "
+                "seam closure, body penetration and ease are decided by geometry in "
+                "sk_fit, and this tool is not allowed to fail a build."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string", "description": "What to ask about it."}
+                },
+            },
+            handler=look,
+            tags=["seamkiln", "look", "vision", "render", "check", "garment", "advice"],
+            examples=[{}, {"question": "Does the sleeve sit correctly on the shoulder?"}],
         )
     )
