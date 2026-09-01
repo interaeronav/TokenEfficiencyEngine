@@ -123,6 +123,12 @@ class GarmentMesh:
         }
 
 
+def _body_shell(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    from seamkiln.drape.body import body_shell
+
+    return body_shell(mesh)
+
+
 def _torso_section(mesh: trimesh.Trimesh, y: float):
     """The cross-section polygon containing the body's central axis, or None.
 
@@ -159,57 +165,73 @@ def _section_count(mesh: trimesh.Trimesh, y: float) -> int:
     return len(planar.polygons_full)
 
 
-def body_landmarks(mesh: trimesh.Trimesh, *, samples: int = 40) -> dict[str, float]:
-    """Shoulder height and chest girth, measured off the body by cross-section.
+def body_landmarks(mesh: trimesh.Trimesh, *, samples: int = 48) -> dict[str, float]:
+    """Neck, shoulder, armpit and chest, measured off the body by cross-section.
 
-    Order matters, and it was learned the hard way. Finding the chest first
-    as "the widest slice in the upper half" breaks the moment a body has
-    hips wider than its chest - which is normal anatomy - because the hips
-    win and every garment is then sized to the wrong number. So the SHOULDER
-    is found first, from where the arms stop being separate shapes, and the
-    chest is measured in a band just below it. Both are then independent of
-    what the lower body happens to be doing.
+    Three definitions here were each wrong once, and each failure is worth
+    keeping in view:
+
+    * **Chest first, as "the widest slice in the upper half"** picks the HIPS
+      on any body whose hips are wider - normal anatomy. So the vertical
+      landmarks are found first and the chest is measured relative to them.
+    * **"The arms are separate cross-sections" is the ARMPIT, not the
+      shoulder.** On a capsule mannequin the arms detach at the shoulder
+      joint; on a real body the deltoid merges into the torso and they only
+      separate a hand's width lower.
+    * The **shoulder** is therefore found from the neck: scanning down, the
+      torso girth jumps when the section stops being a neck and starts being
+      a pair of shoulders.
     """
+    mesh = _body_shell(mesh)
     low, high = float(mesh.bounds[0][1]), float(mesh.bounds[1][1])
     height = high - low
     heights = np.linspace(low + height * 0.05, high - height * 0.02, samples)
-
-    # 1. the shoulder: the highest slice where the arms are still separate
-    #    shapes. A girth threshold was tried first and put the shoulder on
-    #    top of the HEAD - a head is easily 70% of a chest's girth.
-    counts = np.array([_section_count(mesh, y) for y in heights])
-    upper = heights > low + height * 0.55
-    separated = np.flatnonzero((counts >= 2) & upper)
-    shoulder_y = (
-        float(heights[separated.max()])
-        if len(separated)
-        else float(heights[int(len(heights) * 0.8)])
-    )
-
-    # 2. the chest: the widest torso section in a band BELOW the shoulder
-    band = (heights <= shoulder_y - height * 0.02) & (heights >= shoulder_y - height * 0.20)
-    if not band.any():
-        band = heights <= shoulder_y
     girths = np.array(
         [
             (polygon.length if (polygon := _torso_section(mesh, y)) is not None else 0.0)
-            if in_band
-            else 0.0
-            for y, in_band in zip(heights, band, strict=False)
+            for y in heights
         ]
     )
-    if girths.max() <= 0.0:
+
+    # 1. the neck: the narrowest torso section in the upper quarter, which is
+    #    below the head and above the shoulders
+    upper = heights > low + height * 0.78
+    candidates = np.where(upper & (girths > 0.0), girths, np.inf)
+    neck_index = int(np.argmin(candidates))
+    neck_girth = float(girths[neck_index])
+    neck_y = float(heights[neck_index])
+
+    # 2. the shoulder: the highest slice below the neck whose girth has jumped
+    below = heights < neck_y
+    shoulders = np.flatnonzero(below & (girths > neck_girth * 1.6))
+    shoulder_y = float(heights[shoulders.max()]) if len(shoulders) else neck_y - height * 0.03
+
+    # 3. the armpit: the highest slice where the arms are separate shapes
+    counts = np.array([_section_count(mesh, y) for y in heights])
+    separated = np.flatnonzero((counts >= 2) & (heights < shoulder_y))
+    armpit_y = float(heights[separated.max()]) if len(separated) else shoulder_y - height * 0.06
+
+    # 4. the chest: the widest TORSO section from the armpit down a hand's
+    #    width - above the armpit the arms are merged in and inflate it
+    band = (heights <= armpit_y) & (heights >= armpit_y - height * 0.12)
+    banded = np.where(band, girths, 0.0)
+    if banded.max() <= 0.0:
+        banded = np.where(heights <= armpit_y, girths, 0.0)
+    chest_index = int(np.argmax(banded))
+    chest_girth = float(banded[chest_index])
+    if chest_girth <= 0.0:
         raise ValueError("could not measure a torso cross-section on this body mesh")
-    chest_index = int(np.argmax(girths))
-    chest_girth = float(girths[chest_index])
 
     return {
         "height_m": round(height, 4),
         "top_y_m": round(high, 4),
+        "neck_y_m": round(neck_y, 4),
+        "neck_girth_m": round(neck_girth, 4),
+        "shoulder_y_m": round(shoulder_y, 4),
+        "armpit_y_m": round(armpit_y, 4),
         "chest_y_m": round(float(heights[chest_index]), 4),
         "chest_girth_m": round(chest_girth, 4),
         "chest_radius_m": round(chest_girth / (2 * np.pi), 4),
-        "shoulder_y_m": round(shoulder_y, 4),
     }
 
 
@@ -217,34 +239,44 @@ def arm_axes(mesh: trimesh.Trimesh, chest_radius: float) -> dict[str, dict[str, 
     """Where each arm starts, which way it points, and how thick it is.
 
     Measured, for the same reason the chest is measured: a guessed sleeve
-    angle put the cuffs above the shoulders and the sleeves sticking out
-    sideways like a scarecrow. An arm is whatever lies outboard of the torso
-    - so take those vertices, split them by side, and read the direction from
-    the innermost to the outermost point.
+    angle put the cuffs above the shoulders. But the first measured version
+    was worse - it took every vertex outboard of the torso and read the arm
+    from the innermost to the outermost, which on a real body meant **from a
+    FOOT to a hand**: it reported the shoulder at y = 0.015 m, the arm
+    pointing upward, and a 227 mm arm radius. The stand-in mannequin hid it,
+    because its legs are inboard of the chest radius and a real body's are
+    not.
+
+    So: outboard AND in the upper half, shoulder end anchored by height
+    (an arm hangs DOWN from its shoulder), hand end by reach.
     """
-    vertices = np.asarray(mesh.vertices)
-    outboard = np.abs(vertices[:, 0]) > chest_radius * 1.15
+    body = _body_shell(mesh)
+    vertices = np.asarray(body.vertices)
+    low, high = float(vertices[:, 1].min()), float(vertices[:, 1].max())
+    height = high - low
+    outboard = (np.abs(vertices[:, 0]) > chest_radius * 1.15) & (
+        vertices[:, 1] > low + height * 0.45
+    )
     axes: dict[str, dict[str, object]] = {}
     for label, sign in (("L", -1.0), ("R", 1.0)):
         side = vertices[outboard & (np.sign(vertices[:, 0]) == sign)]
         if len(side) < 8:
             continue
-        near = side[np.argmin(np.abs(side[:, 0]))]
-        far = side[np.argmax(np.abs(side[:, 0]))]
-        direction = far - near
+        shoulder = side[np.argmax(side[:, 1])]  # the highest point of the arm
+        hand = side[np.argmax(np.abs(side[:, 0]))]  # the farthest reach
+        direction = hand - shoulder
         length = float(np.linalg.norm(direction))
-        if length < 1e-6:
-            continue
+        if length < 1e-6 or direction[1] > 0.0:
+            continue  # an arm that points upward is a measurement failure
         direction = direction / length
-        # thickness: spread perpendicular to the axis, not a bounding box
-        offsets = side - near
+        offsets = side - shoulder
         along = offsets @ direction
         perpendicular = offsets - along[:, None] * direction
         axes[label] = {
-            "shoulder": near,
+            "shoulder": shoulder,
             "direction": direction,
             "length_m": round(length, 4),
-            "radius_m": round(float(np.percentile(np.linalg.norm(perpendicular, axis=1), 80)), 4),
+            "radius_m": round(float(np.percentile(np.linalg.norm(perpendicular, axis=1), 60)), 4),
         }
     return axes
 

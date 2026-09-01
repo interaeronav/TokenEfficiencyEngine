@@ -174,3 +174,33 @@ def test_licence_marker_scan_catches_a_non_commercial_string(monkeypatch) -> Non
     )
     with pytest.raises(AssertionError, match="non-commercial"):
         test_no_declared_dependency_carries_a_non_commercial_licence()
+
+
+def test_anny_is_declared_without_its_smpl_extra() -> None:
+    """Anny is Apache-2.0 and is seamkiln's answer to SMPL being
+    non-commercial - but Anny itself declares `smplx` under an optional
+    `[smpl]` extra. `anny[smpl]` would pull the very licence Anny was chosen
+    to avoid, and it would do it quietly.
+    """
+    import tomllib
+
+    data = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    body = data["project"]["optional-dependencies"]["body"]
+    assert any(spec.startswith("anny") for spec in body)
+    for spec in body:
+        assert "[" not in spec, (
+            f"{spec!r} requests an extra; anny's [smpl] extra pulls smplx, "
+            "which is licensed for non-commercial use only"
+        )
+
+
+def test_optional_extras_are_not_walked_into_the_closure() -> None:
+    """The gate deliberately skips `extra ==` requirements: a package's
+    optional dependencies are not installed unless asked for, and treating
+    them as banned would fail the build for a door nobody opened. Anny is
+    exactly this case - it names smplx, and the base install does not have it.
+    """
+    closure = _closure({"anny"})
+    if "anny" not in closure:
+        pytest.skip("anny is not installed")
+    assert "smplx" not in closure

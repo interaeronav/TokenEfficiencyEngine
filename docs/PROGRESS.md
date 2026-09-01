@@ -8977,3 +8977,78 @@ voxels) rather than the solver, as it should.
 **Wall clock is flat from 2,376 to 38,581 points** — a 16× increase for no
 extra time. That is P0b's thread finding paying off exactly as measured: at
 these sizes the four-thread pool is barrier-bound, not work-bound.
+
+### A53 P3 — a real body, and the licence door inside the licence answer (2026-09-01)
+
+`seamkiln.drape.anny_body` + `seamkiln.drape.measure`. 87 tests with Anny
+installed, 84 + 3 skipped without it, ruff clean.
+
+**Anny (Apache-2.0) is the body.** SMPL and SMPL-X - what every paper in this
+field uses - are non-commercial. Measured on this machine: **13.7 s cold**
+(it parses MakeHuman assets and caches to `~/.cache/anny`), **0.2 s warm**;
+13,718 vertices, 27,420 faces, watertight; six phenotype axes (gender, age,
+muscle, weight, height, proportions); Z-up, converted here to seamkiln's Y-up
+with feet on y = 0. Doc 67's open question 4 is answered: seconds, not minutes.
+
+**The trap is inside the answer.** Anny declares `smplx` under an optional
+`[smpl]` extra. `anny[smpl]` would quietly pull the exact licence Anny was
+chosen to avoid. So: seamkiln declares plain `anny`, `load_topology` refuses
+the smplx topology by name, and two new licence-gate tests check both - one
+that the extra is never requested, one that the closure walker's deliberate
+skipping of `extra ==` requirements still leaves `smplx` out of the tree.
+
+#### Four more bugs, all of them silent
+
+1. **Anny ships eyeballs and a tongue as separate closed shells** inside the
+   head - 140 to 448 faces each. "The highest slice where the body has two or
+   more cross-sections" therefore fired at **eye height**, so the shoulder was
+   placed on top of the head and the chest measured **1,289 mm** on a 1.75 m
+   body. Keeping only the largest shell was the first fix and was worse: the
+   stand-in mannequin is overlapping capsules that never share vertices, so it
+   kept the torso and threw away the arms, head and legs. The right test is
+   relative size - an eye is 2% of a body's diagonal, an arm is 43%.
+2. **"The arms are separate cross-sections" is the ARMPIT, not the shoulder.**
+   True on a capsule mannequin, false on a body, where the deltoid merges into
+   the torso and they separate a hand's width lower. The shoulder is now found
+   from the neck: scanning down, the girth jumps when a neck becomes a pair of
+   shoulders. Anny at 1.75 m now reads neck 1.507 m / 364 mm, shoulder
+   1.438 m, armpit 1.300 m, chest **923 mm**.
+3. **`arm_axes` measured from a FOOT to a hand.** It took every vertex
+   outboard of the torso and read the arm innermost-to-outermost; on a real
+   body the legs are outboard too. It reported the shoulder at y = 0.015 m,
+   the arm pointing *upward*, and a 227 mm arm radius - and the garment blew
+   5 m off the body. Now: outboard *and* upper half, shoulder anchored by
+   height, hand by reach. Recovers 32.8° on a mannequin built at 35°, and
+   42.7° on Anny's own rest pose.
+4. **A variable-shadowing bug that returned nothing at all.** In
+   `garment_measurements`, a `for panel_id in chosen: low, high = ...` loop
+   clobbered the `low` that held the body's floor height, so every measurement
+   plane was placed at a **point index** - thousands of metres up, intersecting
+   nothing. The fit report came back empty with no error. The loop variables
+   are now `first`/`last`, with the reason in a comment.
+
+**And one measurement that was wrong rather than missing:** hulling every
+panel at bust height spans *both sleeves*, so a normal tee measured 1,374 mm
+on an 890 mm body and was reported oversized by half a metre. `torso_panels`
+now selects the panels that straddle the centre line - a sleeve does not -
+and the same tee reads 1,186 mm. Strain likewise excludes sliver edges below a
+tenth of the particle distance (a 0.1 mm rest edge stretched 3 mm is 3,000%
+strain and says nothing about the fabric), and reports how many it dropped.
+
+#### End to end, on a real body
+
+```
+anny 1.75 m, 6 mm SDF, 12 mm particle distance, cotton jersey, 300 frames
+  7,441 points   13,647 triangles   561 seam constraints   6 seams auto-flipped
+  drape 2.5 s    seam gap mean 0.51 mm    penetration 0.00 mm    worn: true
+
+  landmark    body      garment    ease
+  bust       890.4 mm  1186.4 mm  +296.0 mm  oversized
+  underbust  794.8 mm  1053.0 mm  +258.2 mm  oversized
+  waist      748.4 mm  1002.4 mm  +254.0 mm  oversized
+  hip        980.0 mm  1034.1 mm   +54.1 mm  close
+```
+
+The ease reading is correct and useful: the tee block was drafted for a
+1,000 mm chest and Anny's is 923 mm, so it *is* oversized on this body - and
+snug at the hip, which is what the render shows.

@@ -97,6 +97,39 @@ def _sample_grid(
     return value + outside
 
 
+def body_shell(mesh: trimesh.Trimesh, *, min_extent: float = 0.06) -> trimesh.Trimesh:
+    """The body, without the loose shells that come inside a real model.
+
+    Anny ships eyeballs and a tongue as SEPARATE closed shells inside the
+    head - 140 to 448 faces each, completely invisible, and they broke
+    landmark detection outright: "the highest slice where the body has two or
+    more cross-sections" fired at EYE height, so the shoulder was placed on
+    top of the head and every garment was sized from a 1,289 mm "chest".
+
+    Keeping only the LARGEST shell was the first fix and it was worse: the
+    stand-in mannequin is assembled from overlapping capsules that never
+    share vertices, so "largest" kept the torso and threw away the arms, the
+    head and the legs. The right test is size relative to the whole body -
+    an eye is 2% of a body's diagonal, an arm is 43%.
+    """
+    parts = mesh.split(only_watertight=False)
+    if len(parts) <= 1:
+        return mesh
+    whole = float(np.linalg.norm(mesh.bounds[1] - mesh.bounds[0]))
+    kept = [
+        part
+        for part in parts
+        if float(np.linalg.norm(part.bounds[1] - part.bounds[0])) / max(whole, 1e-9) >= min_extent
+    ]
+    if not kept:
+        return max(parts, key=lambda part: len(part.faces))
+    if len(kept) == len(parts):
+        return mesh
+    merged = trimesh.util.concatenate(kept)
+    merged.merge_vertices()
+    return merged
+
+
 def sdf_from_mesh(
     mesh: trimesh.Trimesh, *, voxel_mm: float = 8.0, pad_mm: float = 60.0, source: str = ""
 ) -> BodySDF:
