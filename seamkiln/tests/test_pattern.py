@@ -502,3 +502,37 @@ def test_the_jacket_block_drafts_its_sleeve_to_its_own_armhole() -> None:
     long = jacket_block(sleeve_length=430.0)
     drop = lambda p: p.panel("SLEEVE_R").bbox[3] - p.panel("SLEEVE_R").bbox[1]  # noqa: E731
     assert drop(long) - drop(short) == pytest.approx(180.0, abs=1.0)
+
+
+def test_a_sleeve_is_drafted_to_the_ARM_as_well_as_to_the_armhole() -> None:
+    """Two constraints, set by different parts of the body.
+
+    The cap's LENGTH has to equal the armhole it is sewn into; the sleeve's
+    WIDTH has to go round the arm. Solving only the first gives a cap that
+    matches its armhole perfectly and a tube 122 mm across for a 194 mm arm -
+    the arm cannot get in, collision throws the sleeve off, and it flaps
+    beside the wearer. Found by watching exactly that happen.
+    """
+    import math
+
+    from seamkiln.pattern.fixtures import _cap_for_armhole, jacket_block
+    from seamkiln.pattern.model import EdgeRef, true_up
+
+    biceps = 480.0
+    pattern = jacket_block(half_chest=420.0, shoulder=250.0, length=700.0, biceps=biceps)
+    sleeve = pattern.panel("SLEEVE_R")
+    width = sleeve.bbox[2] - sleeve.bbox[0]
+    assert width == pytest.approx(biceps, abs=0.5), "the arm did not set the width"
+    # the cap still matches the armhole - the HEIGHT was solved, not the width
+    armhole = pattern.panel("FRONT_R").edge_length(EdgeRef("FRONT_R", 2))
+    assert sleeve.edge_length(EdgeRef("SLEEVE_R", 2)) == pytest.approx(armhole, abs=0.5)
+    assert [c.seam_id for c in true_up(pattern) if not c.ok] == []
+    # and the tube it rolls into actually clears a 122 mm arm
+    assert width / math.pi > 130.0
+
+    # An armhole too short for the sleeve is REFUSED, naming both ways out.
+    # It is a geometric impossibility - the cap cannot be shorter than the
+    # straight line across it - so guessing a cap would produce a pattern that
+    # silently does not close.
+    with pytest.raises(ValueError, match="cannot take a sleeve"):
+        _cap_for_armhole(200.0, 520.0)

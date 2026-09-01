@@ -94,40 +94,61 @@ def _sleeve_outline(cap_width: float, cap_height: float, length: float, cuff: fl
     )
 
 
-def _cap_for_armhole(armhole_mm: float, *, ratio: float = 0.87) -> tuple[float, float]:
-    """Cap width and height whose S-curve measures `armhole_mm` per half.
+def _cap_for_armhole(
+    armhole_mm: float, width_mm: float | None = None, *, ratio: float = 0.87
+) -> tuple[float, float]:
+    """A sleeve cap that fits BOTH the armhole and the arm.
 
-    A block whose sleeve does not scale with its body is not a block. At
-    half_chest 430 this jacket's armhole grew to 276 mm while the sleeve cap
-    stayed at the 219 mm it was drafted for, and `true_up` correctly reported
-    56.5 mm of mismatch on all four armhole seams - a pattern that cannot be
-    sewn. The cap is now DRAFTED to the armhole it has to fit, by bisection on
-    the cap width: the curve has no closed form worth deriving for a precision
-    nobody cuts to.
+    Two constraints, not one, and they are set by different parts of the body:
+    the cap's LENGTH has to equal the armhole it is sewn into, and the sleeve's
+    WIDTH has to go round the arm. Solving only the first - which is what this
+    did at first - produces a cap that matches its armhole perfectly and a
+    tube 122 mm across for a 194 mm arm. The arm then cannot get in, collision
+    throws the sleeve off, and it flaps beside the wearer like a wing.
 
-    `ratio` is cap height over cap width, which is what sets how much the
-    sleeve stands up off the shoulder rather than hanging from it.
+    Given a width, the CAP HEIGHT is solved instead: a taller cap buys length
+    without buying width, which is exactly the trade a drafter makes. Given no
+    width, the old behaviour stands and the width is solved at a fixed ratio.
     """
     from seamkiln.pattern.geometry import cumulative_length
 
-    def half(width: float) -> float:
+    def half(width: float, height_ratio: float) -> float:
         curve = cubic(
             (-width, 0.0),
-            (-width * 0.55, width * ratio * 1.25),
-            (-width * 0.2, width * ratio),
-            (0.0, width * ratio),
+            (-width * 0.55, width * height_ratio * 1.25),
+            (-width * 0.2, width * height_ratio),
+            (0.0, width * height_ratio),
         )
         return float(cumulative_length(curve)[-1])
 
-    low, high = 10.0, max(armhole_mm, 20.0)
+    if width_mm is None:
+        low, high = 10.0, max(armhole_mm, 20.0)
+        for _ in range(60):
+            mid = (low + high) / 2.0
+            if half(mid, ratio) < armhole_mm:
+                low = mid
+            else:
+                high = mid
+        width = (low + high) / 2.0
+        return width, width * ratio
+
+    half_width = width_mm / 2.0
+    if armhole_mm <= half_width * 1.02:
+        raise ValueError(
+            f"an armhole of {armhole_mm:.0f} mm cannot take a sleeve {width_mm:.0f} mm "
+            f"wide: the cap would have to be shorter than the straight line across it "
+            f"({half_width:.0f} mm). Widen the armhole (a larger half_chest or a wider "
+            f"shoulder) or narrow the sleeve."
+        )
+    low, high = 0.02, 3.0
     for _ in range(60):
         mid = (low + high) / 2.0
-        if half(mid) < armhole_mm:
+        if half(half_width, mid) < armhole_mm:
             low = mid
         else:
             high = mid
-    width = (low + high) / 2.0
-    return width, width * ratio
+    solved = (low + high) / 2.0
+    return half_width, half_width * solved
 
 
 def tee_block(
@@ -262,6 +283,7 @@ def jacket_block(
     neck: float = 85.0,
     sleeve_length: float = 240.0,
     cuff: float = 130.0,
+    biceps: float | None = None,
     opening: str = "zipper",
 ) -> Pattern:
     """A tee block cut down the centre front, so it has an OPENING.
@@ -303,7 +325,7 @@ def jacket_block(
     # armhole is edge 2 once the outline is normalised.
     draft = Pattern(name="draft", panels=[fronts[0]], units="mm")
     armhole = draft.panel("FRONT_R").edge_length(EdgeRef("FRONT_R", 2))
-    cap_w, cap_h = _cap_for_armhole(armhole)
+    cap_w, cap_h = _cap_for_armhole(armhole, biceps)
     sleeves = [
         Panel(
             id=f"SLEEVE_{side}",
