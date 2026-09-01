@@ -224,3 +224,71 @@ def test_unlocking_lets_the_change_through() -> None:
         session.apply(Command("allowance", {"mm": 10.0}))
     session.apply(Command("unlock", {"scope": "panels"}))
     assert session.apply(Command("allowance", {"mm": 10.0}))
+
+
+def test_a_lock_covers_the_verbs_that_destroy_a_panel_not_just_the_ones_that_edit_it() -> None:
+    """The hole this closes was found by driving locks through TEE's batch
+    path rather than by reading the code. The guard covered `allowance`,
+    `body`, `grade` and `cut` - the verbs that CHANGE a panel - and left out
+    the four that get rid of one entirely: delete, redraw, re-sew, and loading
+    a fresh block over the top. Deleting a locked panel is the loudest version
+    of the change a lock exists to prevent, and it was the one verb that did
+    not ask.
+    """
+    from seamkiln.session import Command, CommandError, Session
+
+    def locked_session() -> Session:
+        session = Session()
+        session.apply(Command("block", {"block": "tee"}))
+        session.apply(Command("lock", {"scope": "panel:FRONT", "why": "approved"}))
+        return session
+
+    destructive = (
+        ("delete", {"id": "FRONT"}),
+        ("panel", {"id": "FRONT", "outline": [[0, 0], [10, 0], [10, 10]]}),
+        ("seam", {"a": {"panel": "FRONT", "edge": 0}, "b": {"panel": "BACK", "edge": 0}}),
+        # a block replaces EVERY panel, so it has to ask about every panel -
+        # not the collective scope, which a lock on one piece does not hold
+        ("block", {"block": "tee"}),
+    )
+    for verb, args in destructive:
+        session = locked_session()
+        with pytest.raises(CommandError, match="which is locked"):
+            session.apply(Command(verb, args))
+
+    # ... and a lock is a lock on ONE thing: everything else still works
+    session = locked_session()
+    assert session.apply(Command("delete", {"id": "SLEEVE_L"}))["deleted"] == "SLEEVE_L"
+    session.apply(Command("unlock", {"scope": "panel:FRONT"}))
+    assert session.apply(Command("delete", {"id": "FRONT"}))["deleted"] == "FRONT"
+
+    # a whole-pattern lock catches what a per-panel lock would miss
+    broad = Session()
+    broad.apply(Command("block", {"block": "tee"}))
+    broad.apply(Command("lock", {"scope": "panels", "why": "sent to the cutter"}))
+    with pytest.raises(CommandError, match="panels, which is locked"):
+        broad.apply(Command("delete", {"id": "BACK"}))
+
+
+def test_a_lock_that_names_no_scope_refuses_instead_of_reporting_success() -> None:
+    """Hard rule 6, on the verb that most needs it.
+
+    `lock` looped over whatever scopes it was given and returned the lock
+    state - so `{"panel": "FRONT"}` instead of `{"scope": "panel:FRONT"}`
+    locked NOTHING and reported ok. Found by passing exactly that through
+    TEE's batch path, getting a success back, and then watching the
+    "locked" panel be deleted on the next op.
+    """
+    from seamkiln.session import Command, CommandError, Session
+
+    session = Session()
+    session.apply(Command("block", {"block": "tee"}))
+    for wrong in ({"panel": "FRONT"}, {}, {"scopes": []}):
+        with pytest.raises(CommandError, match="names no scope"):
+            session.apply(Command("lock", wrong))
+    with pytest.raises(CommandError, match="names no scope"):
+        session.apply(Command("unlock", {}))
+
+    # the spelling that works still works, and `all` is a scope of its own
+    assert session.apply(Command("lock", {"scope": "panel:FRONT"}))["locked"] == ["panel:FRONT"]
+    assert session.apply(Command("unlock", {"all": True}))["locked"] == []

@@ -198,6 +198,14 @@ def _require_pattern(session: Session):
 def _v_block(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.pattern.fixtures import jacket_block, tee_block
 
+    if session.pattern is not None and session.pattern.panels:
+        # A block replaces EVERY panel, so it has to ask about every panel -
+        # not about the collective "panels" scope, which a lock on one piece
+        # does not hold. Guarding only the collective let a single locked
+        # panel be thrown away by loading a fresh block over it.
+        _guard(session, "panels", "replacing the pattern with a block")
+        for existing in session.pattern.panels:
+            _guard(session, f"panel:{existing.id}", "replacing the pattern with a block")
     name = str(args.get("block", "tee"))
     if name not in ("tee", "jacket-zip", "jacket-placket"):
         raise CommandError(
@@ -218,6 +226,9 @@ def _v_block(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 def _v_panel(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.pattern.geometry import Vertex, VertexKind
     from seamkiln.pattern.model import Panel, Pattern
+
+    if args.get("id"):
+        _guard(session, f"panel:{args['id']}", f"redrawing {args['id']}")
 
     outline = args.get("outline")
     if not outline or len(outline) < 3:
@@ -241,6 +252,11 @@ def _v_seam(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.pattern.model import EdgeRef, Seam
 
     pattern = _require_pattern(session)
+    for side in ("a", "b"):
+        named = args.get(side)
+        if isinstance(named, dict | list | tuple):
+            panel = named["panel"] if isinstance(named, dict) else named[0]
+            _guard(session, f"panel:{panel}", f"sewing {panel}")
 
     def ref(raw: Any) -> EdgeRef:
         if isinstance(raw, dict):
@@ -383,6 +399,13 @@ def _v_drape(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 def _v_delete(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     pattern = _require_pattern(session)
     target = str(args.get("id") or args.get("panel") or "")
+    # Deleting a locked panel is the LOUDEST version of the change a lock
+    # exists to prevent, and it was the one verb that did not ask. Found by
+    # driving the locks through TEE's batch path rather than by reading the
+    # code: the guard covered allowance, body, grade and cut, and a locked
+    # panel could still be deleted outright.
+    _guard(session, "panels", f"deleting {target}")
+    _guard(session, f"panel:{target}", f"deleting {target}")
     for panel in list(pattern.panels):
         if panel.id == target:
             pattern.panels.remove(panel)
@@ -494,13 +517,35 @@ def _v_fit(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 # -- A54 verbs: everything the garment can have done to it --------------------
 
 
+def _scopes(args: dict[str, Any], verb: str) -> list[str]:
+    """The scopes a lock/unlock names - and a refusal when it names none.
+
+    `lock` used to loop over an empty list and return success. A command that
+    locks nothing while reporting `{"locked": []}` is the exact silent failure
+    hard rule 6 exists to stop: this was found by passing `{"panel": "FRONT"}`
+    instead of `{"scope": "panel:FRONT"}` through TEE's batch path, getting an
+    ok back, and then watching the "locked" panel be deleted.
+    """
+    from seamkiln.locking import SCOPES
+
+    named = args.get("scopes") or ([args["scope"]] if "scope" in args else [])
+    if not named and not args.get("all"):
+        stray = ", ".join(sorted(k for k in args if k not in ("reason", "why", "all"))) or "nothing"
+        raise CommandError(
+            f"{verb} names no scope (got: {stray}), so it would {verb} nothing and "
+            f"report success. Pass 'scope' (or 'scopes'): {', '.join(SCOPES)}, or "
+            "'panel:<id>'." + ("" if verb == "lock" else " Pass 'all': true to clear every lock.")
+        )
+    return [str(scope) for scope in named]
+
+
 def _v_lock(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.locking import Locks
 
     locks = session.lock_state
-    for scope in args.get("scopes") or ([args["scope"]] if "scope" in args else []):
+    for scope in _scopes(args, "lock"):
         try:
-            locks.add(str(scope), str(args.get("reason", "")))
+            locks.add(scope, str(args.get("reason") or args.get("why") or ""))
         except ValueError as exc:
             raise CommandError(str(exc)) from exc
     if not isinstance(locks, Locks):  # pragma: no cover - defensive
@@ -510,10 +555,11 @@ def _v_lock(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 
 def _v_unlock(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     locks = session.lock_state
+    wanted = _scopes(args, "unlock")
     if args.get("all"):
         locks.clear()
-    for scope in args.get("scopes") or ([args["scope"]] if "scope" in args else []):
-        locks.remove(str(scope))
+    for scope in wanted:
+        locks.remove(scope)
     return locks.as_dict()
 
 
