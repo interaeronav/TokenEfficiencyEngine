@@ -9118,3 +9118,57 @@ Reverted the whole directory and re-applied the additions without formatting.
 SI-B20's warning was about reading lint output carelessly; this is its twin -
 running the formatter carelessly - and the fix is the same one the Makefile
 already encodes: `make lint`, from `server/`, never ruff by hand on a path.
+
+### A53 P5 — the GUI is a client, and the script is not an export (2026-09-01)
+
+`seamkiln.session` + `seamkiln.gui`. **108 tests** with Qt and Anny installed,
+100 + 8 skipped without either; TEE's own suite **1,213 passed**, ruff clean.
+
+**One command model, every client.** A `Session` holds the garment; every
+mutation is a `Command`; every Command is recorded. The Qt shell builds
+Commands from clicks, the TEE adapter builds the same Commands from a batch,
+and `Session.replay(script)` rebuilds the garment from the list. So the script
+is not an export feature - it is the history the session was keeping anyway.
+
+The acceptance case, run three ways, all identical:
+
+```
+built in the GUI       -> script -> replayed headlessly   d77f9c41b2c4d82b = d77f9c41b2c4d82b
+built by a TEE batch   -> script -> replayed headlessly   7900463fa70b8d42 = 7900463fa70b8d42
+built by a script      -> script -> replayed headlessly   0853d2c08d9d41e6 = 0853d2c08d9d41e6
+```
+
+**The adapter was rewritten to delegate rather than duplicate.** P4's ops were
+a second implementation of the same verbs; they are now a translation layer -
+wire shapes in, seamkiln Commands through `Session.apply`, Diffs out. Its 15
+tests stayed the regression net through the refactor, and one of them changed
+for the better: draping with nothing arranged now *arranges*, and draping with
+nothing drafted says **that** rather than complaining about a missing step the
+caller could not have taken.
+
+**Checkpoints are the script.** `snapshot` writes the command history;
+`restore` **replays** it rather than deserialising a state blob. A checkpoint
+that rebuilds by re-running its own commands cannot restore a state those
+commands could not produce, which is a stronger guarantee than any schema -
+and it deleted 80 lines of hand-rolled serialisers.
+
+#### The Qt shell
+
+PySide6 (LGPLv3) as an extra; `import seamkiln` works with no Qt and a test
+says so. `QGraphicsView` for the 2D pattern - Qt's own docs list 2D design
+tools among its intended uses - showing cut line, sew line, grain, notches and
+labels, with a command log underneath.
+
+**The 3D view is a rendered image, not an interactive viewport, and that was a
+decision.** seamkiln already has a Blender preview lane that produces a
+properly lit, correctly shaded garment; a second renderer inside Qt would be a
+worse picture and a whole new surface to maintain. The cost is stated in the
+module docstring - you cannot orbit it - and a `QOpenGLWidget` viewport is
+named as the obvious next step.
+
+**Tested by photographing itself.** `QT_QPA_PLATFORM=offscreen` plus
+`widget.grab()` gives a real screenshot with no display, which is how the
+first version's defect was caught: all four panels drawn about their shared
+drafting origin, stacked on top of one another with the labels overlapping.
+The window now uses `plot.lay_out` - the same layout the printer uses - so
+what the screen shows and what the sheet prints are arranged identically.

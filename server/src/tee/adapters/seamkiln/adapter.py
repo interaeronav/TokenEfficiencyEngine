@@ -47,14 +47,49 @@ class SeamkilnAdapter:
     def __init__(self, project_root: str | Path = ".", *, workdir: str | Path | None = None):
         self.project_root = Path(project_root)
         self.workdir = Path(workdir or (self.project_root / ".tee" / "seamkiln"))
-        self._pattern = None  # seamkiln.pattern.model.Pattern
-        self._body = None  # trimesh.Trimesh
-        self._body_spec: dict[str, Any] = {}
-        self._sdf = None
-        self._garment = None  # GarmentMesh
-        self._drape = None  # DrapeResult
-        self._fabric = "cotton_jersey"
+        self._session = None  # built lazily: seamkiln may not be installed
         self._epoch = 0
+
+    @property
+    def session(self):
+        """The document. One per adapter, shared with every other client."""
+        if self._session is None:
+            _need_seamkiln()
+            from seamkiln.session import Session
+
+            self._session = Session()
+        return self._session
+
+    # Loose attributes the rest of TEE (and the benchmark) reads. They are
+    # views on the session, never a second copy - a second copy is how a GUI
+    # and a script drift apart, which is the failure this whole design avoids.
+    @property
+    def _pattern(self):
+        return None if self._session is None else self._session.pattern
+
+    @property
+    def _body(self):
+        return None if self._session is None else self._session.body
+
+    @property
+    def _sdf(self):
+        return None if self._session is None else self._session.sdf
+
+    @property
+    def _garment(self):
+        return None if self._session is None else self._session.garment
+
+    @property
+    def _drape(self):
+        return None if self._session is None else self._session.drape
+
+    @property
+    def _fabric(self):
+        return "cotton_jersey" if self._session is None else self._session.fabric
+
+    @property
+    def _body_spec(self):
+        return {} if self._session is None else self._session.body_spec
 
     # -- Adapter protocol ---------------------------------------------------
 
@@ -147,15 +182,7 @@ class SeamkilnAdapter:
         _need_seamkiln()
         diff = Diff()
         for index, op in enumerate(batch):
-            verb = op.get("op")
-            handler = _OPS.get(verb)
-            if handler is None:
-                raise TeeError(
-                    "seamkiln_bad_op",
-                    f"batch[{index}]: unknown op {verb!r}.",
-                    fix=f"seamkiln accepts: {', '.join(sorted(_OPS))}.",
-                )
-            handler(self, op, index, diff)
+            _apply_translated(self, op, index, diff)
         self._epoch += 1
         return diff
 
@@ -166,29 +193,21 @@ class SeamkilnAdapter:
         self.workdir.mkdir(parents=True, exist_ok=True)
         stamp = f"{label}-{self._epoch}-{int(time.time() * 1000)}"
         path = self.workdir / f"{stamp}.json"
-        payload = {
-            "pattern": _pattern_to_dict(self._pattern),
-            "fabric": self._fabric,
-            "body": self._body_spec,
-        }
-        if self._drape is not None and self._garment is not None:
-            points = self.workdir / f"{stamp}.npy"
-            import numpy as np
-
-            np.save(points, self._drape.points)
-            payload["drape"] = {
-                "points": str(points),
-                "particle_distance_mm": self._garment.particle_distance_mm,
-                "fingerprint": self._drape.fingerprint,
-            }
+        # The checkpoint IS the script. Nothing else can drift from it, and
+        # it doubles as the export a caller can replay anywhere.
+        payload = {"script": self.session.script()}
+        payload["fingerprint"] = self.session.fingerprint()
         path.write_text(json.dumps(payload))
-        return {"label": label, "path": str(path), "epoch": self._epoch}
+        return {
+            "label": label,
+            "path": str(path),
+            "epoch": self._epoch,
+            "commands": len(self.session.history),
+        }
 
     def restore(self, payload: dict[str, Any]) -> None:
         if payload.get("empty"):
-            self._pattern = None
-            self._garment = None
-            self._drape = None
+            self._session = None
             return
         path = Path(payload["path"])
         if not path.is_file():
@@ -197,12 +216,13 @@ class SeamkilnAdapter:
                 f"checkpoint {path} is gone.",
                 fix="Checkpoints live under .tee/seamkiln; tee_purge may have reclaimed it.",
             )
+        from seamkiln.session import Session
+
         data = json.loads(path.read_text())
-        self._pattern = _pattern_from_dict(data["pattern"])
-        self._fabric = data.get("fabric", self._fabric)
-        self._body_spec = data.get("body", {})
-        self._garment = None  # geometry is rebuilt from the pattern, never trusted stale
-        self._drape = None
+        # Replay, do not deserialise. A checkpoint that rebuilds by running
+        # the same commands cannot restore a state the commands could not
+        # produce, which is a stronger guarantee than any schema.
+        self._session = Session.replay(data["script"])
         self._epoch += 1
 
     def capture(self, view: str, max_bytes: int) -> bytes:
@@ -261,289 +281,151 @@ class SeamkilnAdapter:
         )
 
 
-# -- ops ---------------------------------------------------------------------
+# -- ops: a translation layer, not a second implementation --------------------
+#
+# Every verb here becomes a seamkiln Command and goes through Session.apply.
+# That is the point: the Qt shell, a plain script and this adapter all drive
+# the SAME code, so a garment built through TEE exports as a script that
+# reproduces it, and there is no path through one client that another cannot
+# take. The adapter's remaining job is translation - wire shapes in, Diffs out.
 
 
 def _panel_id(raw: str) -> str:
     return raw.split(":", 1)[1] if raw.startswith("panel:") else raw
 
 
-def _op_create(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
-    from seamkiln.pattern.geometry import Vertex, VertexKind
-    from seamkiln.pattern.model import Panel, Pattern, Seam
-
-    kind = op.get("kind")
+def _translate(op: dict[str, Any], index: int) -> list[dict[str, Any]]:
+    """One wire op -> the seamkiln commands that carry it out."""
+    verb = op.get("op")
     props = dict(op.get("props") or {})
-    if adapter._pattern is None:
-        adapter._pattern = Pattern(name=props.get("pattern") or "untitled")
 
-    if kind == "panel":
-        outline = props.get("outline")
-        if not outline or len(outline) < 3:
-            raise TeeError(
-                "seamkiln_bad_panel",
-                f"batch[{index}]: a panel needs an outline of at least 3 points.",
-                fix="props.outline = [[x_mm, y_mm], ...] or "
-                "[[x, y, 'turn'|'curve'], ...] to tag corners.",
-            )
-        vertices = [
-            Vertex(
-                float(point[0]),
-                float(point[1]),
-                VertexKind(point[2]) if len(point) > 2 else VertexKind.TURN,
-            )
-            for point in outline
-        ]
-        panel = Panel(id=op.get("name") or f"P{len(adapter._pattern.panels) + 1}", outline=vertices)
-        adapter._pattern.panels.append(panel)
-        entity = _panel_entity(panel)
-        diff.created.append(entity.id)
-        diff.details[entity.id] = entity.detailed()
-        diff.upserts.append(entity)
-    elif kind == "seam":
-        seam = Seam(
-            a=_edge_ref(props.get("a"), index),
-            b=_edge_ref(props.get("b"), index),
-            gather=float(props.get("gather", 1.0)),
-            id=op.get("name") or "",
-        )
-        adapter._pattern.seams.append(seam)
-        diff.created.append(f"seam:{seam.id}")
-        diff.details[f"seam:{seam.id}"] = {"a": str(seam.a), "b": str(seam.b)}
-    elif kind == "block":
-        name = str(props.get("block") or "tee")
-        if name not in BUILTIN_BLOCKS:
-            raise TeeError(
-                "seamkiln_unknown_block",
-                f"batch[{index}]: no built-in block {name!r}.",
-                fix=f"Built-in blocks: {', '.join(BUILTIN_BLOCKS)}.",
-            )
-        from seamkiln.pattern.fixtures import tee_block
-
-        adapter._pattern = tee_block(**{k: float(v) for k, v in props.items() if k != "block"})
-        for panel in adapter._pattern.panels:
-            entity = _panel_entity(panel)
-            diff.created.append(entity.id)
-            diff.upserts.append(entity)
-        diff.notes.append(
-            f"block '{name}': {len(adapter._pattern.panels)} panels, "
-            f"{len(adapter._pattern.seams)} seams"
-        )
-    else:
+    if verb == "create":
+        kind = op.get("kind")
+        if kind == "block":
+            return [{"op": "block", "args": props}]
+        if kind == "panel":
+            return [{"op": "panel", "args": {**props, "id": op.get("name")}}]
+        if kind == "seam":
+            return [{"op": "seam", "args": {**props, "id": op.get("name")}}]
         raise TeeError(
             "seamkiln_bad_kind",
             f"batch[{index}]: cannot create kind {kind!r}.",
             fix="Kinds: panel, seam, block.",
         )
-
-
-def _edge_ref(raw: Any, index: int):
-    from seamkiln.pattern.model import EdgeRef
-
-    if isinstance(raw, dict):
-        return EdgeRef(
-            panel=_panel_id(str(raw["panel"])),
-            edge=int(raw["edge"]),
-            t0=float(raw.get("t0", 0.0)),
-            t1=float(raw.get("t1", 1.0)),
-        )
-    text = str(raw or "")
-    if "#" not in text:
-        raise TeeError(
-            "seamkiln_bad_edge",
-            f"batch[{index}]: {text!r} is not an edge reference.",
-            fix='Use \'PANEL#3\', or {"panel": "FRONT", "edge": 3, "t0": 0, "t1": 0.5}.',
-        )
-    panel, edge = text.split("#", 1)
-    return EdgeRef(panel=_panel_id(panel), edge=int(edge))
-
-
-def _op_set(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
-    from seamkiln.pattern.allowance import add_seam_allowance
-
-    panel = _require_panel(adapter, op, index)
-    props = dict(op.get("props") or {})
-    if "seam_allowance_mm" in props:
-        grown = add_seam_allowance(panel, float(props["seam_allowance_mm"]))
-        adapter._pattern.panels[adapter._pattern.panels.index(panel)] = grown
-        panel = grown
-    if "name" in props:
-        panel.name = str(props["name"])
-    entity = _panel_entity(panel)
-    diff.modified.append(entity.id)
-    diff.details[entity.id] = entity.detailed()
-    diff.upserts.append(entity)
-
-
-def _op_delete(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
-    panel = _require_panel(adapter, op, index)
-    adapter._pattern.panels.remove(panel)
-    adapter._pattern.seams = [
-        s for s in adapter._pattern.seams if panel.id not in (s.a.panel, s.b.panel)
-    ]
-    diff.deleted.append(f"panel:{panel.id}")
-
-
-def _op_arrange(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
-    from seamkiln.drape.body import mannequin, sdf_from_mesh
-    from seamkiln.drape.garment import build_garment, top_arrangement
-
-    if adapter._pattern is None or not adapter._pattern.panels:
-        raise TeeError(
-            "seamkiln_no_pattern",
-            f"batch[{index}]: nothing to arrange - the pattern has no panels.",
-            fix="Create panels, or a built-in block, first.",
-        )
-    props = dict(op.get("props") or {})
-    kind = str(props.get("body", "mannequin")).lower()
-    stature = float(props.get("stature_m", 1.75))
-    if kind == "anny":
-        from seamkiln.drape.anny_body import anny_body
-
-        adapter._body = anny_body(
-            stature_m=stature,
-            **{
-                k: float(v)
-                for k, v in props.items()
-                if k in ("gender", "age", "muscle", "weight", "height", "proportions")
-            },
-        )
-    elif kind == "mannequin":
-        adapter._body = mannequin(height=stature, chest=float(props.get("chest_m", 1.0)))
-    else:
-        raise TeeError(
-            "seamkiln_unknown_body",
-            f"batch[{index}]: no body kind {kind!r}.",
-            fix="Bodies: 'anny' (parametric, Apache-2.0) or 'mannequin' (stand-in).",
-        )
-    adapter._body_spec = {"kind": kind, "stature_m": stature}
-    voxel = float(props.get("voxel_mm", 8.0))
-    adapter._sdf = sdf_from_mesh(adapter._body, voxel_mm=voxel)
-    particle = float(props.get("particle_distance_mm", DEFAULT_PARTICLE_MM))
-    adapter._garment = build_garment(
-        adapter._pattern,
-        top_arrangement(adapter._pattern, adapter._body),
-        particle_distance=particle,
-    )
-    adapter._drape = None
-    summary = adapter._garment.summary()
-    diff.modified.append("garment")
-    diff.details["garment"] = {**summary, "body": adapter._body_spec, "voxel_mm": voxel}
-    diff.notes.append(
-        f"arranged {summary['points']} points on a {kind} body; "
-        f"{summary['seams_flipped']} seams auto-flipped"
-    )
-
-
-def _op_drape(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
-    from seamkiln.drape.solve import DrapeSettings, drape
-
-    if adapter._garment is None or adapter._sdf is None:
-        raise TeeError(
-            "seamkiln_not_arranged",
-            f"batch[{index}]: the garment has not been arranged on a body.",
-            fix="Run {'op': 'arrange', 'props': {'body': 'anny'}} first.",
-        )
-    props = dict(op.get("props") or {})
-    adapter._fabric = str(props.get("fabric", adapter._fabric))
-    settings = DrapeSettings(
-        frames=int(props.get("frames", 250)),
-        substeps=int(props.get("substeps", 8)),
-        friction=float(props.get("friction", 0.35)),
-        thickness_mm=float(props.get("thickness_mm", 1.0)),
-    )
-    adapter._drape = drape(
-        adapter._garment, adapter._sdf, fabric=adapter._fabric, settings=settings
-    )
-    diff.modified.append("garment")
-    diff.details["garment"] = adapter._drape.report()
-    if not adapter._drape.contact.get("worn"):
-        diff.notes.append(
-            "the garment is NOT being worn - it came off the body. Check the "
-            "arrangement, the particle distance, or whether the pattern fits."
-        )
-
-
-def _op_export(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
-    props = dict(op.get("props") or {})
-    fmt = str(props.get("format", "dxf")).lower()
-    out = props.get("out")
-    if not out:
-        raise TeeError(
-            "seamkiln_no_out",
-            f"batch[{index}]: export needs props.out (a destination path).",
-            fix="Set props.out to where the file should be written.",
-        )
-    if adapter._pattern is None:
-        raise TeeError(
-            "seamkiln_no_pattern",
-            f"batch[{index}]: nothing to export.",
-            fix="Create a pattern first.",
-        )
-    if fmt in ("dxf", "aama", "astm"):
-        from seamkiln.pattern.dxf import write_dxf
-
-        flavour = "aama" if fmt == "aama" else str(props.get("dialect", "astm"))
-        result = write_dxf(adapter._pattern, out, flavour=flavour)
-    elif fmt == "svg":
-        from seamkiln.pattern import plot
-
-        result = plot.to_svg(adapter._pattern, out)
-    elif fmt == "pdf":
-        from seamkiln.pattern import plot
-
-        result = plot.to_pdf(adapter._pattern, out, page=str(props.get("page", "A4")))
-    elif fmt in ("obj", "glb", "ply", "stl"):
-        if adapter._garment is None:
+    if verb == "set":
+        if "seam_allowance_mm" not in props:
             raise TeeError(
-                "seamkiln_not_arranged",
-                f"batch[{index}]: a 3D export needs a draped garment.",
-                fix="Run 'arrange' and 'drape' first, or export dxf/svg/pdf for the flat pattern.",
+                "seamkiln_bad_set",
+                f"batch[{index}]: nothing settable in {sorted(props)}.",
+                fix="Settable: seam_allowance_mm.",
             )
-        from seamkiln.drape.preview import garment_mesh
-
-        points = adapter._drape.points if adapter._drape else adapter._garment.points
-        mesh = garment_mesh(points, adapter._garment.triangles)
-        mesh.export(out)
-        result = {"path": str(out), "format": fmt, "vertices": len(mesh.vertices)}
-    else:
-        raise TeeError(
-            "seamkiln_bad_format",
-            f"batch[{index}]: cannot export {fmt!r}.",
-            fix="Formats: dxf (aama|astm), svg, pdf, obj, glb, ply, stl.",
+        return [
+            {
+                "op": "allowance",
+                "args": {
+                    "mm": props["seam_allowance_mm"],
+                    "panels": [_panel_id(str(op.get("id") or ""))],
+                },
+            }
+        ]
+    if verb == "delete":
+        return [{"op": "delete", "args": {"id": _panel_id(str(op.get("id") or ""))}}]
+    if verb == "arrange":
+        body_keys = (
+            "body",
+            "stature_m",
+            "chest_m",
+            "voxel_mm",
+            "gender",
+            "age",
+            "muscle",
+            "weight",
+            "height",
+            "proportions",
         )
-    diff.notes.append(f"exported {fmt}: {result.get('path')}")
-    diff.details.setdefault("export", {}).update(result)
-    diff.modified.append("export")
-
-
-_OPS = {
-    "create": _op_create,
-    "set": _op_set,
-    "delete": _op_delete,
-    "arrange": _op_arrange,
-    "drape": _op_drape,
-    "export": _op_export,
-}
-
-
-def _require_panel(adapter: SeamkilnAdapter, op: dict, index: int):
-    if adapter._pattern is None:
-        raise TeeError(
-            "seamkiln_no_pattern",
-            f"batch[{index}]: there is no pattern.",
-            fix="Create panels or a block first.",
-        )
-    target = _panel_id(str(op.get("id") or ""))
-    for panel in adapter._pattern.panels:
-        if panel.id == target:
-            return panel
-    known = ", ".join(f"panel:{p.id}" for p in adapter._pattern.panels) or "(none)"
+        body_args = {k: v for k, v in props.items() if k in body_keys}
+        body_args["kind"] = body_args.pop("body", "mannequin")
+        return [
+            {"op": "body", "args": body_args},
+            {
+                "op": "arrange",
+                "args": {
+                    "particle_distance_mm": props.get("particle_distance_mm", DEFAULT_PARTICLE_MM)
+                },
+            },
+        ]
+    if verb in ("drape", "export"):
+        return [{"op": verb, "args": props}]
     raise TeeError(
-        "seamkiln_no_such_panel",
-        f"batch[{index}]: no panel {op.get('id')!r}.",
-        fix=f"Panels: {known}.",
+        "seamkiln_bad_op",
+        f"batch[{index}]: unknown op {verb!r}.",
+        fix=f"seamkiln accepts: {', '.join(sorted(_WIRE_OPS))}.",
     )
+
+
+_WIRE_OPS = ("create", "set", "delete", "arrange", "drape", "export")
+
+
+def _apply_translated(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:
+    from seamkiln.session import Command, CommandError
+
+    for raw in _translate(op, index):
+        try:
+            result = adapter.session.apply(Command.from_dict(raw))
+        except CommandError as exc:
+            raise TeeError(
+                f"seamkiln_{raw['op']}_refused",
+                f"batch[{index}]: {exc}",
+                fix=str(exc),
+            ) from exc
+        _record(adapter, raw["op"], result, diff)
+
+
+def _record(adapter: SeamkilnAdapter, verb: str, result: dict, diff: Diff) -> None:
+    """Turn one command's result into diff entries the kernel understands."""
+    if verb == "block":
+        for panel in adapter.session.pattern.panels:
+            entity = _panel_entity(panel)
+            diff.created.append(entity.id)
+            diff.upserts.append(entity)
+        diff.notes.append(f"block: {len(result['panels'])} panels, {result['seams']} seams")
+    elif verb == "panel":
+        entity = _panel_entity(adapter.session.pattern.panel(result["id"]))
+        diff.created.append(entity.id)
+        diff.details[entity.id] = entity.detailed()
+        diff.upserts.append(entity)
+    elif verb == "seam":
+        diff.created.append(f"seam:{result['id']}")
+    elif verb == "allowance":
+        for panel_id in result["panels"]:
+            entity = _panel_entity(adapter.session.pattern.panel(panel_id))
+            diff.modified.append(entity.id)
+            diff.details[entity.id] = entity.detailed()
+            diff.upserts.append(entity)
+    elif verb == "delete":
+        diff.deleted.append(f"panel:{result['deleted']}")
+    elif verb == "body":
+        diff.notes.append(
+            f"body: {result['kind']}, chest {result['measurements']['chest_girth_mm']:.0f} mm"
+        )
+    elif verb == "arrange":
+        diff.modified.append("garment")
+        diff.details["garment"] = result
+        diff.notes.append(
+            f"arranged {result['points']} points; {result['seams_flipped']} seams auto-flipped"
+        )
+    elif verb == "drape":
+        diff.modified.append("garment")
+        diff.details["garment"] = result
+        if not result.get("contact", {}).get("worn"):
+            diff.notes.append(
+                "the garment is NOT being worn - it came off the body. Check the "
+                "arrangement, the particle distance, or whether the pattern fits."
+            )
+    elif verb == "export":
+        diff.modified.append("export")
+        diff.details.setdefault("export", {}).update(result)
+        diff.notes.append(f"exported: {result.get('path')}")
 
 
 def _panel_entity(panel) -> Entity:
@@ -557,104 +439,4 @@ def _panel_entity(panel) -> Entity:
             "edges": len(panel.edges()),
             "bbox_mm": [round(maxx - minx, 1), round(maxy - miny, 1)],
         },
-    )
-
-
-# -- checkpoint serialisation -------------------------------------------------
-
-
-def _pattern_to_dict(pattern) -> dict[str, Any]:
-    return {
-        "name": pattern.name,
-        "units": pattern.units,
-        "panels": [
-            {
-                "id": p.id,
-                "name": p.name,
-                "seam_allowance_mm": p.seam_allowance_mm,
-                "outline": [[v.x, v.y, str(v.kind)] for v in p.outline],
-                "marks": [
-                    {
-                        "kind": str(m.kind),
-                        "x": m.x,
-                        "y": m.y,
-                        "depth": m.depth,
-                        "diameter": m.diameter,
-                    }
-                    for m in p.marks
-                ],
-                "internals": [
-                    {
-                        "kind": str(i.kind),
-                        "closed": i.closed,
-                        "points": [[v.x, v.y, str(v.kind)] for v in i.points],
-                    }
-                    for i in p.internals
-                ],
-            }
-            for p in pattern.panels
-        ],
-        "seams": [
-            {
-                "id": s.id,
-                "a": _ref_to_dict(s.a),
-                "b": _ref_to_dict(s.b),
-                "gather": s.gather,
-                "flip": s.flip,
-            }
-            for s in pattern.seams
-        ],
-    }
-
-
-def _ref_to_dict(ref) -> dict[str, Any]:
-    return {"panel": ref.panel, "edge": ref.edge, "t0": ref.t0, "t1": ref.t1}
-
-
-def _pattern_from_dict(data: dict[str, Any]):
-    from seamkiln.pattern.geometry import Vertex, VertexKind
-    from seamkiln.pattern.model import (
-        EdgeRef,
-        InternalLine,
-        LineKind,
-        Mark,
-        MarkKind,
-        Panel,
-        Pattern,
-        Seam,
-    )
-
-    panels = [
-        Panel(
-            id=row["id"],
-            name=row.get("name", ""),
-            outline=[Vertex(v[0], v[1], VertexKind(v[2])) for v in row["outline"]],
-            marks=[
-                Mark(MarkKind(m["kind"]), m["x"], m["y"], depth=m["depth"], diameter=m["diameter"])
-                for m in row.get("marks", [])
-            ],
-            internals=[
-                InternalLine(
-                    LineKind(i["kind"]),
-                    [Vertex(v[0], v[1], VertexKind(v[2])) for v in i["points"]],
-                    closed=i["closed"],
-                )
-                for i in row.get("internals", [])
-            ],
-            seam_allowance_mm=row.get("seam_allowance_mm", 0.0),
-        )
-        for row in data["panels"]
-    ]
-    seams = [
-        Seam(
-            a=EdgeRef(**row["a"]),
-            b=EdgeRef(**row["b"]),
-            gather=row.get("gather", 1.0),
-            flip=row.get("flip", False),
-            id=row.get("id", ""),
-        )
-        for row in data.get("seams", [])
-    ]
-    return Pattern(
-        name=data.get("name", "restored"), panels=panels, seams=seams, units=data.get("units", "mm")
     )

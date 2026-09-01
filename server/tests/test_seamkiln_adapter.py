@@ -101,6 +101,16 @@ def test_the_full_lane_is_one_batch(adapter, tmp_path) -> None:
     assert report["seam_gaps"]["mean_gap_mm"] < 10.0
 
 
+def test_drape_arranges_first_rather_than_refusing(adapter) -> None:
+    """Session.drape arranges when nothing is arranged yet. A refusal that a
+    caller can only answer by typing the obvious next step is friction, not
+    safety - the refusals that matter are the ones naming something the
+    caller actually got wrong."""
+    adapter.execute([{"op": "create", "kind": "block", "props": {"block": "tee"}}])
+    diff = adapter.execute([{"op": "drape", "props": {"frames": 4}}])
+    assert "garment" in diff.details
+
+
 def test_a_drape_that_fell_off_says_so_in_the_diff(adapter) -> None:
     """A silent failure would be a garment on the floor with healthy-looking
     seam numbers. The note is how the caller finds out without asking."""
@@ -134,7 +144,9 @@ def test_checkpoint_and_rollback_round_trip(adapter) -> None:
 def test_every_refusal_names_the_fix(adapter, tmp_path) -> None:
     for batch, needle in (
         ([{"op": "knit"}], "seamkiln accepts"),
-        ([{"op": "drape"}], "arrange"),
+        # draping with nothing drafted says THAT, rather than complaining
+        # about a missing arrange step the caller could not have taken
+        ([{"op": "drape"}], "block"),
         ([{"op": "create", "kind": "block", "props": {"block": "corset"}}], "Built-in blocks"),
     ):
         with pytest.raises(TeeError) as excinfo:
