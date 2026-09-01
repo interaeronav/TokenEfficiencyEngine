@@ -1,0 +1,73 @@
+[project]
+name = "seamkiln"
+version = "0.1.0.dev0"
+description = "A garment CAD and drape kernel: 2D patterns, sewing, drape, fit — headless first"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+# Every dependency here is permissive ON PURPOSE, and the ones that are NOT
+# here matter more than the ones that are. See docs/research/67 §2 and the
+# gate in tests/test_licences.py, which fails the build rather than trusting
+# anyone to remember this list.
+#
+#   numpy    BSD-3-Clause    shapely  BSD-3-Clause
+#   ezdxf    MIT             trimesh  MIT
+#
+# BANNED, with the replacement that is not:
+#   triangle / meshpy  Shewchuk Triangle: no commercial use without a
+#                      direct arrangement with the author  -> CDT (MPL-2.0)
+#   smplx              SMPL/SMPL-X: non-commercial (MPI)   -> anny (Apache-2.0)
+#   the GarmentCodeData Warp fork: NVIDIA Source Code Licence, non-commercial
+#                                  -> mainline warp-lang (Apache-2.0)
+dependencies = [
+    "numpy>=2.0",
+    "shapely>=2.1",
+    "ezdxf>=1.4",
+    "trimesh>=5.0",
+]
+
+[project.optional-dependencies]
+# The interactive solver tier. torch is already a TEE dependency and is the
+# only one of these that reaches this Mac's GPU: NVIDIA Warp's macOS wheels
+# are CPU-only. numba is the portable CPU fallback.
+solver = [
+    "torch>=2.8",
+    "numba>=0.60",
+]
+# Parametric body. Apache-2.0 over CC0 MakeHuman assets. Its optional
+# "smplx" topology download is non-commercial and must never be fetched.
+body = [
+    "anny>=0.1",
+]
+# The GUI shell is an EXTRA by law: `import seamkiln` must work with no Qt.
+gui = [
+    "pyside6>=6.8",
+]
+# Pattern sheets and tech packs; the same stack TEE's pdf lane already uses.
+plot = [
+    "fpdf2>=2.8",
+    "pypdf>=5.1",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/seamkiln"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "SIM", "UP", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

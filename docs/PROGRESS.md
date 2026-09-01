@@ -8721,3 +8721,82 @@ images/PDF" — a route the code never takes, though `pypdfium2` and
 stops at doc 48 while the corpus runs to 67. Docs 49–66 were never
 indexed. Left alone rather than adding a single row for 67 on top of an
 18-row hole — backfill it as its own task.
+
+### A53 P0 — the path is clear, and the GPU lost (2026-09-01)
+
+**P0a shipped** (commit `d431a88`): `tee_web_lookup` reads PDFs. Detection is
+magic bytes; a scan with no text layer points at `ex_add`; a missing `[pdf]`
+extra names the install command. Verified on the IEEE 3DBP fabric-properties
+review — 40 pages, title and prose, where it used to answer `%PDF-1.7 %âãÏÓ
+3085 0 obj`. Suite 1,199 / 17 skipped, surface unchanged at 17 tools / 2033 tok.
+
+**P0c shipped:** `seamkiln/tests/test_licences.py`. Six tests: no banned
+distribution in seamkiln's declared closure, no non-commercial marker in any
+declared dependency's licence metadata, no banned module importable, and two
+tests that make the gate fail on purpose so nobody has to wonder whether it is
+wired up. Failures carry the reason *and* the permissive replacement.
+
+**P0b: the bake-off, and it inverted twice.**
+
+Fixture: an n×n sheet released 0.6 m above a 0.35 m sphere, 30 frames, 8
+substeps, XPBD with structural/shear/bending distance constraints in
+analytically-coloured disjoint groups. Every XPBD backend lands and drapes
+(min radius exactly 0.350 m — no tunnelling, no free fall being timed).
+
+```
+particles   numba×4  warp-cpu  torch-mps  torch-cpu  blender-cloth   (ms/frame)
+    5,041       4.1       1.8       13.0       15.7           80.4
+   29,929       5.2       6.2       13.9       46.2          476.7
+  120,409       8.7      22.4       20.1       89.0        2,052.8
+  499,849      24.1      90.4       50.3      233.2             --
+```
+
+**First inversion: Blender loses by 10–236×** — so the "if the zero-new-code
+baseline wins, use it" branch is closed, with numbers. It converges cleanly
+throughout (`status=SUCCESS`, max_error ≈ 1e-2, 38→63 iterations).
+
+**Second inversion, the real one: more threads is slower, and the GPU never
+wins.** The first table had numba flat at ~20 ms from 5k to 120k, which is not
+a physics result — it is an overhead result. Two measurements found the cause,
+and the first theory was wrong:
+
+- Fusing 144 Python-side dispatches per frame into **one** njit call changed
+  nothing: bit-identical positions, same wall clock. So it is not the call.
+- Sweeping the thread pool found it. At 5k particles, 1 thread costs 2.3 ms
+  and 18 threads cost 20.1 ms — **8.7× slower on 18× the cores.** Four threads
+  is optimal from ~50k up; eighteen never wins at any size.
+
+The cost is the fork/join barrier around each of the 144 parallel regions per
+frame: it scales with pool size while the work per region does not.
+
+And a trap inside the trap: **`numba.set_num_threads(1)` on a pool of 18 costs
+11.6 ms where `NUMBA_NUM_THREADS=1` at process start costs 2.3** — a 5× gap at
+the same nominal thread count. `set_num_threads` masks threads; it does not
+shrink the barrier. So the fix is an environment variable set before numba is
+first imported, which `numba_xpbd.py` does (and reports honestly in
+`available()` when something imported numba first and it could not).
+
+**Decision: `numba-xpbd` with a 4-thread pool is seamkiln's default backend.**
+It wins from 30k particles up — 2.3× faster than torch-MPS at 120k — is
+float64, is deterministic, and adds no dependency TEE does not already carry.
+torch-MPS stays for problems past ~1M particles and for CUDA-less GPU hosts;
+warp-xpbd stays because it is the right answer on a CUDA machine and it wins
+below ~10k. All four are reproducible: same fixture, same hash, twice.
+
+**Correction to research doc 32.** It calls `ClothModifier.solver_result` a
+"free compact health report" without saying where to read it. It is **None on
+the original modifier even after a successful bake** — it exists only on the
+evaluated object (`obj.evaluated_get(depsgraph).modifiers["Cloth"]`). The
+first code that ever tried to read it (this bake-off) got None and reported
+`status=None`, which is exactly the silent-nothing this project exists to
+catch. Fixed, and the baseline now reports SUCCESS / max_error / iterations.
+
+Two independent implementations (numba float64 and torch-CPU float64) agree to
+**6.9e-18 m**, which is float64 rounding — the strongest correctness signal
+available without an analytic solution. torch-MPS is float32 and differs by
+6.8e-7 m, sub-micron.
+
+`seamkiln/` now exists: `pyproject.toml` (permissive-only, with the banned
+list and its replacements in a comment), `solver/problem.py` (the XPBD problem
++ colour groups, with an arithmetic check that the grid colouring cannot
+silently drop constraints), four backends, `bench/bakeoff.py`, and 18 tests.

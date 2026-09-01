@@ -194,7 +194,30 @@ lane for images/PDF" — a fix that the code never routes to. TEE already
 ships `pypdfium2` and `pypdf`. Standards and textile research live in
 PDFs, so this lane is directly on A53's path. Filed as A53 P0.
 
-## 9. Open questions for P0 to measure
+## 9. P0 answered these (2026-09-01 — measured, see PROGRESS)
+
+1. **The GPU lost.** `numba` CPU XPBD with a **4-thread** pool: 5.2 ms/frame
+   at 30k particles, 8.7 at 120k, 24.1 at 500k — against torch-MPS at 13.9 /
+   20.1 / 50.3 and Blender's own cloth at 476.7 / 2,052.8 / —. numba-xpbd is
+   the default backend.
+2. **More threads is slower.** At 5k particles 1 thread beats 18 by **8.7×**
+   (2.3 ms vs 20.1). The fork/join barrier around each of a frame's 144
+   parallel regions scales with pool size; the work per region does not.
+   Four threads is optimal above ~50k; eighteen never wins.
+3. **`numba.set_num_threads` cannot fix it** — 11.6 ms on a masked pool of 18
+   vs 2.3 ms with `NUMBA_NUM_THREADS=1` at process start. The pool is sized at
+   import; the env var is the only lever.
+4. **Warp on this Mac is CPU-only, as its README says** — verified, not
+   quoted: Warp 1.17.0 reports `CUDA not enabled in this build`, devices
+   `"cpu": "arm"`. It wins below ~10k (1.8 ms at 5k) and loses above.
+5. **Blender's `solver_result` is None on the modifier** — it exists only on
+   the *evaluated* object. Doc 32 called it a free health report without
+   saying where to read it; correction recorded there and in PROGRESS.
+
+Still open, for later phases: constrained-Delaunay throughput on real panel
+outlines with notches and cutouts (P2), and Anny's cold-start cost (P3).
+
+## 9b. Original open questions (kept for the record)
 
 1. ms/frame for 30k-particle XPBD on: torch-MPS, numba-CPU (18 cores),
    warp-lang CPU, and Blender's own cloth bake — same garment, same
