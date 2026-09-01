@@ -95,6 +95,29 @@ class Placement:
 
 
 @dataclass(slots=True)
+class Attachment:
+    """Constraints and weight added to a garment by something that is not cloth.
+
+    A lace, a zipper chain and a button's thread are all the same shape of
+    thing: some particle pairs pulled toward a rest length, at a stiffness
+    that is NOT the cloth's, plus - for hardware - real grams hanging on real
+    particles. The mass matters more than it sounds: a #5 brass chain down a
+    front opening is about 33 g/m, which on a 600 mm opening is 20 g of metal
+    on an edge that a 130 gsm poplin only weighs 12 g/m. Hardware that does
+    not weigh anything drapes like a decal.
+    """
+
+    pairs: np.ndarray  # int32 [k, 2]
+    rest: np.ndarray  # float64 [k] metres
+    compliance: float  # m/N; the cloth's is not used
+    added_mass: np.ndarray | None = None  # float64 [n] kg, per particle
+    kind: str = ""
+
+    def __len__(self) -> int:
+        return int(self.pairs.shape[0])
+
+
+@dataclass(slots=True)
 class GarmentMesh:
     """The solvable garment: one point cloud, many panels, seams closed."""
 
@@ -112,12 +135,51 @@ class GarmentMesh:
     seam_orientation: dict[str, str] = field(default_factory=dict)
     seam_spans: dict[str, tuple[int, int]] = field(default_factory=dict)
     seam_points: dict[str, int] = field(default_factory=dict)
-    extra: np.ndarray | None = None  # lacing and other added constraints
-    extra_rest: np.ndarray | None = None
+    # Seams declared with a `kind` other than "plain" - a zipper opening, a
+    # button placket. They are PAIRED like a seam (so the two edges know which
+    # point faces which) but NOT sewn: a zipper opening that is sewn shut is
+    # not an opening. The hardware module decides which pairs are engaged.
+    hardware_pairs: np.ndarray | None = None  # int32 [k, 2]
+    hardware_spans: dict[str, tuple[int, int]] = field(default_factory=dict)
+    hardware_kind: dict[str, str] = field(default_factory=dict)
+    # Everything added AFTER the pattern was meshed: a lace, a zipper, a
+    # fastened button. Named, because hardware moves - unzipping has to
+    # REPLACE the zipper's constraints, and an append-only list cannot.
+    attachments: dict[str, Attachment] = field(default_factory=dict)
 
     @property
     def n_points(self) -> int:
         return int(self.points.shape[0])
+
+    def attach(
+        self,
+        name: str,
+        pairs: np.ndarray,
+        rest: np.ndarray,
+        *,
+        compliance: float,
+        added_mass: np.ndarray | None = None,
+        kind: str = "",
+    ) -> None:
+        """Add or REPLACE a named block of non-cloth constraints."""
+        self.attachments[name] = Attachment(
+            pairs=np.ascontiguousarray(pairs, dtype=np.int32).reshape(-1, 2),
+            rest=np.ascontiguousarray(rest, dtype=np.float64).reshape(-1),
+            compliance=float(compliance),
+            added_mass=None if added_mass is None else np.asarray(added_mass, dtype=np.float64),
+            kind=kind,
+        )
+
+    def detach(self, name: str) -> bool:
+        return self.attachments.pop(name, None) is not None
+
+    def added_mass_kg(self) -> np.ndarray:
+        """Grams of hardware, per particle, summed over every attachment."""
+        total = np.zeros(self.n_points, dtype=np.float64)
+        for block in self.attachments.values():
+            if block.added_mass is not None:
+                total += block.added_mass
+        return total
 
     def summary(self) -> dict[str, object]:
         return {
@@ -414,7 +476,9 @@ def build_garment(
 
     structural = _unique_edges(tris)
     bending = bending_quads(tris)
-    seams, orientations, spans, counts = _seam_pairs(pattern, meshes, slices, points)
+    seams, orientations, spans, counts, hw, hw_spans, hw_kind = _seam_pairs(
+        pattern, meshes, slices, points
+    )
 
     thin = {name: n for name, n in counts.items() if 0 < n < MIN_SEAM_POINTS}
     if thin:
@@ -450,6 +514,9 @@ def build_garment(
         seam_orientation=orientations,
         seam_spans=spans,
         seam_points=counts,
+        hardware_pairs=hw,
+        hardware_spans=hw_spans,
+        hardware_kind=hw_kind,
     )
 
 
@@ -496,7 +563,15 @@ def _seam_pairs(
     meshes: dict[str, PanelMesh],
     slices: dict[str, tuple[int, int]],
     points: np.ndarray,
-) -> tuple[np.ndarray, dict[str, str], dict[str, tuple[int, int]], dict[str, int]]:
+) -> tuple[
+    np.ndarray,
+    dict[str, str],
+    dict[str, tuple[int, int]],
+    dict[str, int],
+    np.ndarray,
+    dict[str, tuple[int, int]],
+    dict[str, str],
+]:
     """Pair every seam, choosing each one's orientation by measurement.
 
     Two panels laid out counter-clockwise traverse their shared edge in
@@ -512,6 +587,9 @@ def _seam_pairs(
     orientation: dict[str, str] = {}
     spans: dict[str, tuple[int, int]] = {}
     counts: dict[str, int] = {}
+    hw_pairs: list[tuple[int, int]] = []
+    hw_spans: dict[str, tuple[int, int]] = {}
+    hw_kind: dict[str, str] = {}
     for seam in pattern.seams:
         try:
             direct = _pair_one_seam(pattern, meshes, slices, seam, flip=False)
@@ -522,13 +600,23 @@ def _seam_pairs(
             chosen, label = flipped, "flipped (declared)"
         else:
             chosen, label = _closer(direct, flipped, points)
+        orientation[seam.id] = label
+        if seam.kind != "plain":
+            start = len(hw_pairs)
+            hw_pairs.extend(chosen)
+            hw_spans[seam.id] = (start, len(hw_pairs))
+            hw_kind[seam.id] = seam.kind
+            counts[seam.id] = len(chosen)
+            continue
         start = len(pairs)
         pairs.extend(chosen)
         spans[seam.id] = (start, len(pairs))
         counts[seam.id] = len(chosen)
-        orientation[seam.id] = label
     array = np.asarray(pairs, dtype=np.int32) if pairs else np.zeros((0, 2), dtype=np.int32)
-    return array, orientation, spans, counts
+    hardware = (
+        np.asarray(hw_pairs, dtype=np.int32) if hw_pairs else np.zeros((0, 2), dtype=np.int32)
+    )
+    return array, orientation, spans, counts, hardware, hw_spans, hw_kind
 
 
 def _closer(

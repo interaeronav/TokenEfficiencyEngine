@@ -378,6 +378,14 @@ _PASSTHROUGH = (
     "animate",
     "techpack",
     "fit",
+    # A55/A56: locks and hardware. Same rule - a verb added to the Session
+    # reaches TEE by being named once, here.
+    "lock",
+    "unlock",
+    "zip",
+    "unzip",
+    "button",
+    "unfasten",
 )
 _WIRE_OPS = ("create", "set", "delete", "arrange", *_PASSTHROUGH)
 
@@ -456,8 +464,28 @@ def _record(adapter: SeamkilnAdapter, verb: str, result: dict, diff: Diff) -> No
                 f"{len(result['tears'])} seam(s) gave way; "
                 f"{result['fray']['threads']} frayed threads"
             )
-    elif verb in ("fit", "techpack"):
+    elif verb in ("fit", "techpack") or verb in ("lock", "unlock"):
         diff.details[verb] = result
+    elif verb in ("zip", "unzip"):
+        diff.modified.append("garment")
+        diff.details[verb] = result
+        # A zipper's whole point is that it is sometimes open. Say which, in
+        # one line, rather than making the model read six numbers to find out.
+        opened = result.get("open_percent", 0.0)
+        diff.notes.append(
+            f"{result['id']}: {result['material']} {result['size']} "
+            + ("closed" if opened <= 0.0 else f"{opened:.0f}% open")
+            + (
+                f", closed part at {result['closed_gap_mm']} mm"
+                if result.get("closed_gap_mm")
+                else ""
+            )
+        )
+    elif verb in ("button", "unfasten"):
+        diff.modified.append("garment")
+        diff.details[verb] = result
+        if result.get("unresolved_rim"):
+            diff.notes.append(f"button rim not resolved: {result['unresolved_rim']}")
 
 
 def _panel_entity(panel) -> Entity:

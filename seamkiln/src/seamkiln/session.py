@@ -74,6 +74,10 @@ class Session:
     lace: Any = None
     animation: Any = None
     locks: Any = None  # seamkiln.locking.Locks, built on first use
+    # A56 hardware. Zippers are keyed by the opening they fill; buttons are a
+    # list because a placket has many and they are fastened in order.
+    zippers: dict[str, Any] = field(default_factory=dict)
+    buttons: list[Any] = field(default_factory=list)
 
     # -- the script ---------------------------------------------------------
 
@@ -188,13 +192,20 @@ def _require_pattern(session: Session):
 
 
 def _v_block(session: Session, args: dict[str, Any]) -> dict[str, Any]:
-    from seamkiln.pattern.fixtures import tee_block
+    from seamkiln.pattern.fixtures import jacket_block, tee_block
 
     name = str(args.get("block", "tee"))
-    if name != "tee":
-        raise CommandError(f"no built-in block {name!r}. Built-in blocks: tee.")
+    if name not in ("tee", "jacket-zip", "jacket-placket"):
+        raise CommandError(
+            f"no built-in block {name!r}. Built-in blocks: tee, jacket-zip, jacket-placket."
+        )
     numeric = {k: float(v) for k, v in args.items() if k != "block"}
-    session.pattern = tee_block(**numeric)
+    if name == "tee":
+        session.pattern = tee_block(**numeric)
+    else:
+        session.pattern = jacket_block(
+            opening="zipper" if name == "jacket-zip" else "placket", **numeric
+        )
     session.name = session.pattern.name
     session.garment = session.drape = None
     return {"panels": [p.id for p in session.pattern.panels], "seams": len(session.pattern.seams)}
@@ -770,6 +781,154 @@ def _v_animate(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     return {"track": track.as_dict(), **animation_report(frames)}
 
 
+# -- hardware -----------------------------------------------------------------
+
+
+def _need_garment(session: Session, verb: str) -> Any:
+    if session.garment is None:
+        raise CommandError(f"there is nothing to {verb} yet. Run 'arrange' first.")
+    return session.garment
+
+
+def _redrape(session: Session, args: dict[str, Any]) -> Any:
+    from seamkiln.drape.solve import DrapeSettings, drape
+
+    result = drape(
+        session.garment,
+        session.sdf,
+        fabric=session.fabric,
+        settings=DrapeSettings(frames=int(args.get("frames", 280))),
+    )
+    session.drape = result
+    return result
+
+
+def _v_zip(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Fit a zipper to an opening, and drape it."""
+    from seamkiln.hardware.zipper import ZipperSpec, apply, install
+
+    garment = _need_garment(session, "zip")
+    points = session.drape.points if session.drape else garment.points
+    try:
+        spec = ZipperSpec(
+            material=str(args.get("material", "nylon")),
+            size=float(args.get("size", 5.0)),
+            layout=str(args.get("layout", "one-way")),
+            tape_mm=float(args.get("tape_mm", 12.0)),
+            slider_scale=float(args.get("slider_scale", 1.0)),
+            weight_scale=float(args.get("weight_scale", 1.0)),
+            separating=bool(args.get("separating", False)),
+        )
+        zipper = install(
+            garment,
+            points,
+            seam_id=str(args.get("opening", "centre-front")),
+            spec=spec,
+            sliders=tuple(args["sliders"]) if "sliders" in args else None,
+        )
+    except (KeyError, ValueError) as exc:
+        raise CommandError(str(exc)) from exc
+    apply(garment, zipper)
+    session.zippers[zipper.id] = zipper
+    result = _redrape(session, args)
+    return {**zipper.summary(), **_zip_gaps(zipper, result.points)}
+
+
+def _v_unzip(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Drag a slider and re-solve. The interactive gesture, as a command."""
+    from seamkiln.hardware.zipper import apply, unzip
+
+    garment = _need_garment(session, "unzip")
+    which = str(args.get("opening", "centre-front"))
+    if which not in session.zippers:
+        known = ", ".join(sorted(session.zippers)) or "none"
+        raise CommandError(f"no zipper fitted to {which!r} (fitted: {known}). Run 'zip' first.")
+    zipper = session.zippers[which]
+    try:
+        unzip(zipper, to=float(args.get("to", 0.0)), slider=int(args.get("slider", 0)))
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    apply(garment, zipper)
+    result = _redrape(session, args)
+    return {**zipper.summary(), **_zip_gaps(zipper, result.points)}
+
+
+def _zip_gaps(zipper: Any, points: Any) -> dict[str, Any]:
+    import numpy as np
+
+    d = np.linalg.norm(points[zipper.pairs[:, 0]] - points[zipper.pairs[:, 1]], axis=1) * 1000.0
+    mask = zipper.engaged()
+    return {
+        "closed_gap_mm": round(float(d[mask].mean()), 2) if mask.any() else None,
+        "open_gap_mm": round(float(d[~mask].mean()), 2) if (~mask).all() or (~mask).any() else None,
+    }
+
+
+def _v_button(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Place a button and a buttonhole, fasten them, and re-solve.
+
+    This is the Fasten Button tool: one command because it is one gesture -
+    you click the button, you click the hole, and the simulation closes it.
+    """
+    from seamkiln.hardware.buttons import ButtonSpec, apply, check_pops, fasten, hole, place
+
+    garment = _need_garment(session, "button")
+    try:
+        spec = ButtonSpec(
+            kind=str(args.get("type", "4-hole")),
+            ligne=float(args.get("ligne", 24.0)),
+            material=str(args.get("material", "polyester")),
+            thickness_mm=float(args.get("thickness_mm", 3.0)),
+            shank_mm=float(args.get("shank_mm", 0.0)),
+            thread_mm=float(args.get("thread_mm", 2.5)),
+            mass_g=float(args["mass_g"]) if "mass_g" in args else None,
+            collision_mm=float(args["collision_mm"]) if "collision_mm" in args else None,
+        )
+        at = place(
+            garment,
+            garment.points,
+            panel=str(args["panel"]),
+            at=(float(args["x"]), float(args["y"])),
+        )
+        buttonhole = hole(
+            garment,
+            panel=str(args["hole_panel"]),
+            at=(float(args["hole_x"]), float(args["hole_y"])),
+            button=spec,
+            length_mm=float(args["hole_mm"]) if "hole_mm" in args else None,
+            angle_deg=float(args.get("hole_angle_deg", 0.0)),
+        )
+        session.buttons.append(fasten(garment, at, buttonhole, button=spec, id=str(args.get("id"))))
+    except (KeyError, ValueError) as exc:
+        raise CommandError(str(exc)) from exc
+    apply(garment, session.buttons)
+    result = _redrape(session, args)
+    check_pops(garment, result.points, session.buttons)
+    return {
+        "fastened": len([f for f in session.buttons if not f.popped]),
+        **session.buttons[-1].summary(),
+        "unresolved_rim": session.buttons[-1].meta.get("rim_unresolved"),
+    }
+
+
+def _v_unfasten(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    from seamkiln.hardware.buttons import apply, unfasten
+
+    garment = _need_garment(session, "unfasten")
+    which = str(args.get("id", ""))
+    matches = [f for f in session.buttons if f.id == which]
+    if not matches:
+        known = ", ".join(f.id for f in session.buttons) or "none"
+        raise CommandError(f"no button called {which!r} (fastened: {known}).")
+    try:
+        unfasten(matches[0])
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    apply(garment, session.buttons)
+    _redrape(session, args)
+    return {"undone": which, "still_fastened": len([f for f in session.buttons if not f.popped])}
+
+
 _VERBS = {
     "block": _v_block,
     "panel": _v_panel,
@@ -791,6 +950,10 @@ _VERBS = {
     "lace": _v_lace,
     "finish": _v_finish,
     "animate": _v_animate,
+    "zip": _v_zip,
+    "unzip": _v_unzip,
+    "button": _v_button,
+    "unfasten": _v_unfasten,
 }
 
 VERBS = tuple(sorted(_VERBS))

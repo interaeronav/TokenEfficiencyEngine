@@ -101,6 +101,11 @@ def test_unknown_verbs_list_the_known_ones() -> None:
         # A55
         "lock",
         "unlock",
+        # A56 hardware
+        "zip",
+        "unzip",
+        "button",
+        "unfasten",
     }
 
 

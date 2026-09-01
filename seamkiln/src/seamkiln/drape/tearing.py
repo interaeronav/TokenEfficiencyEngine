@@ -161,8 +161,7 @@ def rip_seam(
         particle_distance_mm=garment.particle_distance_mm,
         seam_orientation=dict(garment.seam_orientation),
         seam_spans=spans,
-        extra=garment.extra,
-        extra_rest=garment.extra_rest,
+        attachments=dict(garment.attachments),
     )
     return torn, Tear(seam_id, int(count), fraction, "requested")
 

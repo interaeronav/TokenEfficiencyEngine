@@ -197,10 +197,8 @@ def thread(
 
 def apply(garment: GarmentMesh, lace: Lace) -> GarmentMesh:
     """Add the lace's constraints to a garment, ready to solve."""
-    extra = lace.spans if garment.extra is None else np.vstack([garment.extra, lace.spans])
-    rest = (
-        lace.rest if garment.extra_rest is None else np.concatenate([garment.extra_rest, lace.rest])
-    )
-    garment.extra = np.ascontiguousarray(extra, dtype=np.int32)
-    garment.extra_rest = np.ascontiguousarray(rest, dtype=np.float64)
+    # Named, so re-lacing REPLACES the lace instead of threading a second one
+    # through the same eyelets. A lace is barely stretchy: same compliance a
+    # sewn seam gets, which is none.
+    garment.attach("lace", lace.spans, lace.rest, compliance=0.0, kind="lace")
     return garment

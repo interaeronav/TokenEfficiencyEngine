@@ -712,6 +712,9 @@ def drape(
     # label on a card.
     share = vertex_areas(garment.rest_points_mm, garment.triangles)
     mass = np.maximum(share * cloth.areal_density_kg_m2 * conditioning["mass_factor"], 1e-9)
+    # ... plus anything bolted to it. A zipper, a button and a rivet are not
+    # cloth and do not weigh what the cloth under them weighs.
+    mass = mass + garment.added_mass_kg()
     inv_mass = 1.0 / mass
 
     stretch = anisotropic_compliance(
@@ -724,10 +727,12 @@ def drape(
     groups: list[tuple[np.ndarray, np.ndarray, float]] = []
     groups += _coloured_groups(garment.structural, garment.structural_rest, stretch, n)
     groups += _coloured_groups(garment.seams, garment.seam_rest, opts.seam_compliance, n)
-    if garment.extra is not None and garment.extra.shape[0]:
-        # lacing and anything else added after the pattern was built. A lace
-        # is barely stretchy, so it joins on the seam's compliance.
-        groups += _coloured_groups(garment.extra, garment.extra_rest, opts.seam_compliance, n)
+    for block in garment.attachments.values():
+        # a lace, a zipper chain, a button's thread - each at ITS OWN
+        # stiffness, because a brass chain and a shoelace are not the same
+        # thing and neither is the cloth they are attached to.
+        if len(block):
+            groups += _coloured_groups(block.pairs, block.rest, block.compliance, n)
 
     h = opts.dt / opts.substeps
     ii, jj, rest, starts, alphas = _flatten(groups)
