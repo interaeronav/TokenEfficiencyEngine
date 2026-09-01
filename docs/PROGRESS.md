@@ -8675,3 +8675,49 @@ detail to skip.
 first change and diffed after the last — **byte-identical**. A lint fix
 that silently shifts a measured number would be worse than the warning it
 removed. Suite 1,194 passed / 17 skipped.
+
+### A53 researched and scripted — a garment CAD lane, and a licence minefield (2026-09-01)
+
+Owner asked for deep research toward a tool with Marvelous Designer /
+CLO3D's core features, GUI **and** headless through TEE, written up as a
+script for later Opus-max execution. Delivered
+`docs/research/67-garment-cad-lane.md` (design of record) and
+`CLAUDE_A53_SCRIPT.md` (P0–P6). No product code written this session by
+design — the script is the deliverable.
+
+**The finding that outranks the rest is licensing.** The best-documented
+open garment pipeline in the world cannot be shipped: GarmentCode /
+PyGarment is MIT, but GarmentCodeData drapes through
+`NvidiaWarp-GarmentCode`, a fork under the **NVIDIA Source Code Licence,
+non-commercial**. Copy the paper's stack and you inherit that without
+noticing. Same shape elsewhere: SMPL/SMPL-X are non-commercial (Anny,
+Apache-2.0 on CC0 MakeHuman assets, is the replacement — but its optional
+`smplx` topology download is *also* non-commercial); Shewchuk's Triangle
+and its `triangle`/`meshpy` wrappers may not ship in commercial products
+(CDT, MPL-2.0, replaces it); ArcSim's measured cloth was already ruled
+non-shippable in doc 34. C-IPC turns out to be **Apache-2.0** — the
+accuracy tier is available. P0c makes the whole minefield a *test*, so
+the next session learns it from a failure message rather than from memory.
+
+**"GPU" does not mean CUDA on this machine.** NVIDIA Warp is Apache-2.0
+now, but its macOS wheels are CPU-only — no Metal. Meanwhile TEE's own
+venv already carries `torch 2.13.0` with **MPS available and built**,
+plus `shapely 2.1.2`, `ezdxf 1.4.4`, `trimesh 5.0.0`, `numba 0.67.0`,
+`fpdf2`, `pypdfium2` — very nearly the whole dependency set a garment
+kernel needs, already installed and already licence-audited here. So P0b
+is a four-way bake-off (torch-MPS / numba-CPU / warp-CPU / Blender's own
+cloth) and the winner picks the default backend. **Blender winning is a
+legitimate outcome** and the script says so.
+
+**Defect found by using TEE on the research itself.** `tee_web_lookup` on
+an `application/pdf` URL returns raw PDF bytes as the quote — the IEEE
+3DBP fabric-properties standard came back as `%PDF-1.7 %âãÏÓ 3085 0 obj`.
+`server/src/tee/web/fetch.py` has no content-type branch, while
+`web/extract.py:229` already tells callers to use "the media lane for
+images/PDF" — a route the code never takes, though `pypdfium2` and
+`pypdf` are right there. Filed as A53 P0a.
+
+**Also noticed, not fixed:** `docs/research/00-index.md`'s corpus table
+stops at doc 48 while the corpus runs to 67. Docs 49–66 were never
+indexed. Left alone rather than adding a single row for 67 on top of an
+18-row hole — backfill it as its own task.

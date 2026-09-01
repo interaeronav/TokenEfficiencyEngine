@@ -53,6 +53,13 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   spend and egress, land the fifteen headless open resources) is driven
   by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
   goes, the taint law stays, and TEE still never grants itself.
+- The A53 build (`seamkiln`: a garment CAD + drape kernel with the same
+  core loop as Marvelous Designer / CLO3D — 2D patterns, sewing, drape on
+  a parametric body, fit measurement — headless FIRST with the GUI as a
+  client of that same core) is driven by `CLAUDE_A53_SCRIPT.md`; research
+  doc 67 is its design of record. Its licence audit is load-bearing: the
+  best-documented open garment pipeline ships a non-commercial simulator,
+  and doc 67 §2 names every mine and its permissive replacement.
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured
