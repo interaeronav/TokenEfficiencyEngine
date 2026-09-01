@@ -8458,3 +8458,52 @@ fpdf2 2.8.8 also offers **19 capabilities the lane does not use** —
 enumerated in P5.
 
 Script: `CLAUDE_A51_SCRIPT.md`. Not executed.
+
+### A52 — `tee_purge`: reclaim what TEE left behind, and nothing else (2026-08-31)
+
+TEE writes and almost never reaps. Measured on the owner's machine:
+
+```
+~/TEE/.tee                     1.5 GB  (1.4 GB of it the CAD sidecar)
+orphaned tee-* temp dirs       6.0 MB  across /tmp and /var/folders
+```
+
+Adapter workdirs come from `tempfile.mkdtemp` and outlive the process that
+made them; derived renders, staged web copies and caches accumulate with
+nothing to clear them.
+
+**A delete tool earns trust by what it refuses, so that is most of what was
+built.**
+
+- **Every call is a dry run** unless `confirm: true`. The report names each
+  candidate with its size, age, and what losing it would cost, so the
+  decision rests on evidence rather than trust in the module.
+- **It cannot be aimed.** There is no path argument, in the function or the
+  schema. Scope is TEE's own `.tee` directory and its own `tee-*` temp
+  dirs. A purge tool that takes a directory is a delete tool with a
+  friendly name; a test asserts the schema offers no such key.
+- **Records are never candidates.** `config.toml`, `memory.json`,
+  `extras-seen.json`, `llm-profile.json`, pipeline pins — a rebuild cannot
+  restore a decision.
+- **Two categories are excluded from the default sweep and must be asked
+  for by name.** `checkpoints` is rollback history: losing the ability to
+  undo is not a housekeeping decision. `sidecars` is the 1.4 GB CAD venv,
+  which is *a working capability*, not garbage — A46 P1b moved it out of
+  the main venv deliberately, and its entry states that removing it stops
+  `cad_measure` on STEP files until a ~150 s rebuild.
+
+Dry run against the owner's real state:
+
+```
+would reclaim 66.2 MB across 72 items (deleted nothing)
+  derived    49.5 MB   0.7d  ~/TEE/.tee/capture
+  caches      9.6 MB   3.5d  ~/TEE/.tee/web
+  workdirs    2.3 MB   0.2d  /var/folders/.../tee-blender-69esyljx
+  derived     1.7 MB   4.5d  ~/TEE/.tee/generated
+```
+
+Twelve tests, nine of them about refusals. Surface unchanged — `tee_purge`
+is virtual. **Suite: 1,165 passed / 17 skipped**, ruff clean.
+
+Also restarted the LiteLLM shim at the owner's request; all routes back,
+including the new `claude-qwen-35b`.

@@ -112,6 +112,13 @@ def _attach_pins(app, project: str) -> None:
     register_pin_tools(app, Path(project))
 
 
+def _attach_purge(app, project: str) -> None:
+    """Register tee_purge (A52). Pure stdlib; always on."""
+    from tee.purge import register_purge_tools
+
+    register_purge_tools(app, Path(project))
+
+
 def _attach_pdf(app, project: str) -> None:
     """Register pdf_* (A48). fpdf2/pypdf live in the [pdf] extra and refuse
     with their install line at call time, so registration is
@@ -239,6 +246,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_design(app, args.project)
     _attach_senses(app, args.project)
     _attach_pdf(app, args.project)
+    _attach_purge(app, args.project)
     _attach_physical(app, args.project)
     _attach_uefn(app, args.project)
     _attach_kb(app, args.project)

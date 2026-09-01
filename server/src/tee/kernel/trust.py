@@ -196,6 +196,9 @@ _EXPLICIT: dict[str, str] = {
     # nothing and nothing leaves the machine, so: the read tier.
     # A48: the PDF lane writes files, so it sits on write-artifacts -
     # tabled explicitly, never by family prefix (the A45 lesson).
+    # A52: purge DELETES, so it sits on write-artifacts and is tabled
+    # explicitly. Its own dry-run default is the real guard.
+    "tee_purge": "write-artifacts",
     "pdf_compose": "write-artifacts",
     "pdf_edit": "write-artifacts",
     "sense_describe": "read-extract",
