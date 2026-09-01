@@ -470,6 +470,13 @@ def _closer(
 
 def _global_span(pattern: Pattern, ref: EdgeRef) -> tuple[float, float]:
     ranges = edge_t_ranges(pattern.panel(ref.panel))
+    if not 0 <= ref.edge < len(ranges):
+        raise ValueError(
+            f"seam refers to {ref}, but panel {ref.panel!r} has {len(ranges)} edges "
+            f"(0..{len(ranges) - 1}). An edit that changed the panel's CORNER COUNT "
+            "invalidates seams that named the edges after it - re-sew, or edit the "
+            "panel without changing its corners."
+        )
     t0, t1 = ranges[ref.edge]
     span = t1 - t0
     return t0 + span * ref.t0, t0 + span * ref.t1

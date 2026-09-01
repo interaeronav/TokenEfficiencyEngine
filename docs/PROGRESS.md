@@ -9052,3 +9052,69 @@ anny 1.75 m, 6 mm SDF, 12 mm particle distance, cotton jersey, 300 frames
 The ease reading is correct and useful: the tee block was drafted for a
 1,000 mm chest and Anny's is 923 mm, so it *is* oversized on this body - and
 snug at the hip, which is what the render shows.
+
+### A53 P4 — seamkiln joins TEE without moving the surface (2026-09-01)
+
+`server/src/tee/adapters/seamkiln/`. Suite **1,213 passed / 17 skipped** (up 14),
+ruff clean, and the number that matters:
+
+```
+surface: 17 always-loaded tools = 2033 tok on the wire; 118 virtual tools
+```
+
+**Unchanged.** It was 17 tools / 2033 tok before A53 and it is 17 tools /
+2033 tok after a whole garment product joined - patterns, sewing, bodies,
+drape, interchange and fitting. The virtual catalogue went 112 → 118. That is
+the Adapter protocol's entire promise, collected.
+
+A garment IS a scene: panels and seams are entities with stable ids
+(`panel:FRONT`, `seam:side-right`), an edit is a batch, and what changed is a
+diff. Ops are declarative and enumerable - `create` (panel | seam | block),
+`set`, `delete`, `arrange`, `drape`, `export` - with no arbitrary-code door;
+seamkiln's own library is the escape hatch, for a caller who already has code
+execution. Six `sk_*` virtual tools carry the long tail (blocks, fabrics, fit,
+plot, interchange, body), each tabled in the trust kernel: `read-scene` for the
+five that only read, `write-artifacts` for the two that leave a file behind.
+
+**Search finds them.** "sewing pattern" → sk_blocks / sk_interchange / sk_plot;
+"drape a garment" → sk_fit; "fabric properties" → sk_fabrics; "body
+measurements" → sk_body. "make a t-shirt" found nothing until `tshirt` and
+`shirt` joined the tags - the words a person uses are not the words a
+docstring uses.
+
+**The adapter found a real bug in P1 within a minute of existing.** Setting a
+seam allowance replaced the outline with the mitred cut line, and a mitred
+offset re-tags corners by angle - so the tee front went from **8 edges to 6**,
+and every seam naming edge 6 or 7 pointed past the end of the list. It failed
+as a bare `IndexError` deep in the seam pairing.
+
+The fix is a better model, not a patch: **the outline is the SEW line.** That
+is where sewing happens and what `true_up` must match; the cut line is derived
+on demand, and the DXF writer puts it on layer 1 with the sew line on layer 14,
+which is what ASTM expects anyway. Edge ids stay stable across an allowance
+change, and a seam that genuinely outlives its edge now refuses by name and
+explains that a corner-count change is what invalidated it.
+
+#### The benchmark
+
+```
+garment draft+sew+drape+fit:
+  naive  80,553 tok / 5 calls   (four panel outlines, then the draped mesh)
+  tee       571 tok / 2 calls   (one batch + its diff + one sk_fit)
+  99.3% saved
+```
+
+The naive arm is not a straw man: without compact state, "what does the
+garment look like now" **is** the vertex list, and 5,076 particles of it is
+80 k tokens. This is the highest saving of any scenario in `RESULTS.md`, and
+it is the plainest illustration of why the project exists.
+
+**A trap I walked into and had to reverse.** Running `ruff format` on
+`benchmarks/` from the wrong directory resolved a different config and
+rewrapped 15 lines carrying `# noqa: E501` - the embedded FreeCAD source
+strings SI-B20 deliberately marked in place *because wrapping them changes
+what the benchmark sends*. Six other benchmark files were reformatted too.
+Reverted the whole directory and re-applied the additions without formatting.
+SI-B20's warning was about reading lint output carelessly; this is its twin -
+running the formatter carelessly - and the fix is the same one the Makefile
+already encodes: `make lint`, from `server/`, never ruff by hand on a path.

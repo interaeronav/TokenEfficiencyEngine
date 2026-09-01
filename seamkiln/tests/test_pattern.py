@@ -19,6 +19,7 @@ from seamkiln.pattern import plot
 from seamkiln.pattern.allowance import (
     AllowanceError,
     add_seam_allowance,
+    cut_line,
     fabric_consumption,
     offset_outline,
     sew_line,
@@ -205,13 +206,26 @@ def test_missing_panel_names_what_exists() -> None:
 # -- seam allowance ----------------------------------------------------------
 
 
-def test_seam_allowance_grows_the_piece_and_keeps_the_sew_line() -> None:
+def test_seam_allowance_is_recorded_and_the_outline_stays_the_sew_line() -> None:
+    """The outline must NOT become the cut line. A mitred offset re-tags
+    corners by angle - the tee front went 8 edges to 6 - and every seam
+    naming an edge after the change pointed past the end of the list."""
     panel = square(100.0)
-    cut = add_seam_allowance(panel, 10.0)
-    assert cut.area_mm2 == pytest.approx(120.0 * 120.0)  # mitred corners, not rounded
-    assert cut.seam_allowance_mm == 10.0
-    assert any(i.kind is LineKind.SEW for i in cut.internals)
-    assert area(sew_line(cut)) == pytest.approx(panel.area_mm2)
+    with_allowance = add_seam_allowance(panel, 10.0)
+
+    assert with_allowance.seam_allowance_mm == 10.0
+    assert with_allowance.area_mm2 == pytest.approx(panel.area_mm2), "the outline moved"
+    assert len(with_allowance.edges()) == len(panel.edges()), "the edge count changed"
+    assert area(sew_line(with_allowance)) == pytest.approx(panel.area_mm2)
+    # the cut line is derived, and mitred - a square grows to a square
+    assert area(cut_line(with_allowance)) == pytest.approx(120.0 * 120.0)
+
+
+def test_an_impossible_allowance_is_refused_when_it_is_set_not_at_export() -> None:
+    narrow = Panel(id="N", outline=[Vertex(0, 0), Vertex(200, 0), Vertex(200, 4), Vertex(0, 4)])
+    assert add_seam_allowance(narrow, 10.0).seam_allowance_mm == 10.0  # outward is fine
+    with pytest.raises(AllowanceError, match="narrowest"):
+        sew_line(Panel(id="C", outline=narrow.outline, meta={"outline_is": "cut_line"}), 10.0)
 
 
 def test_an_allowance_that_would_consume_the_panel_refuses_with_the_reason() -> None:

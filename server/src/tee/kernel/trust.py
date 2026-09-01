@@ -166,6 +166,7 @@ _FAMILY: tuple[tuple[str, str], ...] = (
     ("ex_", "read-extract"),
     ("as_", "read-assets"),
     ("gd_", "read-design"),
+    ("sk_", "read-scene"),  # A53: seamkiln garment queries
     ("uefn_", "read-uefn"),
     ("sim_", "write-scene"),
     ("capture_", "call-engine"),
@@ -244,6 +245,9 @@ _EXPLICIT: dict[str, str] = {
     "ex_prepare": "write-state",
     # --- kb: the staging write (lineage must survive it, research 63) ---
     "kb_propose": "write-state",
+    # --- seamkiln: the two that leave a file behind (A53 P4) ---
+    "sk_plot": "write-artifacts",
+    "sk_interchange": "write-artifacts",
     # --- design: the store/render writes ---
     "gd_store": "write-state",
     "gd_render": "write-state",

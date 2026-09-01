@@ -21,7 +21,7 @@ from shapely.geometry import Polygon
 from shapely.geometry.base import BaseGeometry
 
 from seamkiln.pattern.geometry import Polyline, Vertex, VertexKind, retag_by_angle, to_array
-from seamkiln.pattern.model import InternalLine, LineKind, Panel
+from seamkiln.pattern.model import LineKind, Panel
 
 
 class AllowanceError(ValueError):
@@ -80,30 +80,50 @@ def offset_outline(outline: Polyline, distance_mm: float, *, context: str = "off
 
 
 def add_seam_allowance(panel: Panel, allowance_mm: float) -> Panel:
-    """Grow the sew line to a cut line, keeping the sew line as an internal."""
+    """Record the allowance. The outline stays the SEW line.
+
+    The first version replaced the outline with the offset cut line, and it
+    was wrong in a way that only showed up through the adapter: a mitred
+    offset re-tags corners by angle, so the tee front went from 8 edges to 6,
+    and every seam referencing edge 6 or 7 pointed past the end of the list.
+
+    Keeping the sew line as the outline is also the more honest model. A seam
+    is sewn along the sew line - that is the length `true_up` must match -
+    and the cut line is derived from it, not the other way round. `cut_line`
+    computes it on demand, and the DXF writer puts the cut line on layer 1
+    and the sew line on layer 14, which is what the standard expects.
+    """
     if allowance_mm <= 0.0:
         raise AllowanceError(f"seam allowance must be positive, got {allowance_mm:g} mm")
-    cut = offset_outline(panel.outline, allowance_mm, context=f"panel {panel.id}")
+    cut_line(panel, allowance_mm)  # fail now if the offset is impossible, not at export
     return Panel(
         id=panel.id,
         name=panel.name,
-        outline=cut,
-        internals=[
-            *panel.internals,
-            InternalLine(LineKind.SEW, list(panel.outline), closed=True),
-        ],
+        outline=list(panel.outline),
+        internals=list(panel.internals),
         marks=list(panel.marks),
         seam_allowance_mm=allowance_mm,
-        meta={**panel.meta, "outline_is": "cut_line"},
+        meta={**panel.meta, "outline_is": "sew_line"},
     )
 
 
+def cut_line(panel: Panel, allowance_mm: float | None = None) -> Polyline:
+    """Where the scissors go: the outline grown by the seam allowance."""
+    distance = allowance_mm if allowance_mm is not None else panel.seam_allowance_mm
+    if not distance:
+        return list(panel.outline)
+    return offset_outline(panel.outline, abs(distance), context=f"panel {panel.id} cut line")
+
+
 def sew_line(panel: Panel, allowance_mm: float | None = None) -> Polyline:
-    """The stitch line inside a cut-line outline."""
+    """The stitch line. It IS the outline unless the outline is a cut line
+    (which is what a DXF read gives you: ASTM layer 1 is the piece boundary)."""
+    if panel.meta.get("outline_is") != "cut_line":
+        return list(panel.outline)
     distance = allowance_mm if allowance_mm is not None else panel.seam_allowance_mm
     if not distance:
         raise AllowanceError(f"panel {panel.id} carries no seam allowance; pass one explicitly")
-    for internal in panel.internals:  # if we kept it on the way out, use it
+    for internal in panel.internals:  # if the file kept it, use it
         if internal.kind is LineKind.SEW and internal.closed:
             return list(internal.points)
     return offset_outline(panel.outline, -abs(distance), context=f"panel {panel.id} sew line")

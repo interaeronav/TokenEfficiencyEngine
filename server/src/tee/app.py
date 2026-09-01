@@ -201,6 +201,15 @@ class TeeApp:
         register_fleet_tools(self)
         register_board_tools(self)  # board_compose (A37 P7)
 
+        # A53 P4: seamkiln's garment lane. Registration is metadata only -
+        # seamkiln itself is never imported until a tool is called, so an
+        # environment without it costs nothing at startup and every entry
+        # point refuses with the install command rather than an ImportError
+        # halfway through a batch.
+        from tee.adapters.seamkiln.tools import register_seamkiln_tools
+
+        register_seamkiln_tools(self)
+
     @property
     def llm_cfg(self) -> dict:
         """[llm] config enriched with the state dir the switch profiles

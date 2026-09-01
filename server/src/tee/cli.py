@@ -44,6 +44,18 @@ def _build_unreal_app(project: str, host: str, port: int, allow_code_exec: bool)
     return app
 
 
+def _build_seamkiln_app(project: str, allow_code_exec: bool):
+    """seamkiln needs no bridge and no running application - the garment
+    kernel is a library, so the adapter is live the moment it is built."""
+    from tee.adapters.seamkiln import SeamkilnAdapter
+    from tee.app import TeeApp
+
+    adapter = SeamkilnAdapter(project)
+    return TeeApp(
+        {"seamkiln": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec
+    )
+
+
 def _build_godot_app(project: str, port: int, allow_code_exec: bool):
     """A49: Godot headless. The adapter imports the project first if it has
     never been imported - a project without a .godot directory hangs
@@ -229,12 +241,14 @@ def cmd_serve(args: argparse.Namespace) -> int:
         )
     elif args.adapter == "freecad":
         app = _build_freecad_app(args.project, args.allow_code_exec)
+    elif args.adapter == "seamkiln":
+        app = _build_seamkiln_app(args.project, args.allow_code_exec)
     elif args.adapter == "godot":
         app = _build_godot_app(args.project, args.godot_port, args.allow_code_exec)
     else:
         print(
             f"adapter '{args.adapter}' is not recognised; available: fake, blender, "
-            "unreal, freecad, godot",
+            "unreal, freecad, godot, seamkiln",
             file=sys.stderr,
         )
         return 2
@@ -316,7 +330,7 @@ def main(argv: list[str] | None = None) -> int:
 
     serve = sub.add_parser("serve", help="run the MCP server on stdio")
     serve.add_argument(
-        "--adapter", default="fake", help="adapter to serve (fake|blender|unreal|godot)"
+        "--adapter", default="fake", help="adapter to serve (fake|blender|unreal|godot|seamkiln)"
     )
     serve.add_argument(
         "--godot-port", type=int, default=9879, help="Godot bridge port (9876/9877 are Blender's)"

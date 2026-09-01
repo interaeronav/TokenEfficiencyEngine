@@ -182,10 +182,19 @@ def write_dxf(pattern: Pattern, path: str | Path, *, flavour: str = "astm") -> d
 
     for panel in pattern.panels:
         block = doc.blocks.new(_block_name(panel.id))
-        _add_polyline(block, panel.outline, spec.layer_for("boundary"), closed=True)
-        written["boundary"] = written.get("boundary", 0) + 1
+        # ASTM layer 1 is the PIECE BOUNDARY, which is the cut line. seamkiln
+        # holds the sew line as the outline, so the allowance is applied here
+        # - and the sew line goes to layer 14, where the standard puts it.
+        from seamkiln.pattern.allowance import cut_line
 
-        for vertex in panel.outline:
+        boundary = cut_line(panel) if panel.seam_allowance_mm else panel.outline
+        _add_polyline(block, boundary, spec.layer_for("boundary"), closed=True)
+        written["boundary"] = written.get("boundary", 0) + 1
+        if panel.seam_allowance_mm:
+            _add_polyline(block, panel.outline, spec.layer_for("sew"), closed=True)
+            written["sew"] = written.get("sew", 0) + 1
+
+        for vertex in boundary:
             feature = "turn_point" if vertex.kind is VertexKind.TURN else "curve_point"
             block.add_point((vertex.x, vertex.y), dxfattribs={"layer": spec.layer_for(feature)})
             written[feature] = written.get(feature, 0) + 1

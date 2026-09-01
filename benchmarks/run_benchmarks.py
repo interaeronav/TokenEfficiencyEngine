@@ -1228,6 +1228,80 @@ def run_senses_scenario() -> dict | None:
     }
 
 
+def run_seamkiln_scenario() -> dict | None:
+    """A53 P4: what drafting, sewing, draping and fitting a tee costs a model.
+
+    The naive arm is not a straw man. It is what a model must read to work a
+    garment tool that has no compact state: every panel's outline to know the
+    pattern, and the draped mesh to know the result - because without a
+    summary, "what does it look like now" IS the vertex list. Then it does
+    the fitting arithmetic itself.
+
+    The TEE arm is one batch, its diff, and one `sk_fit` call. Same four
+    pieces, same ten seams, same body, same drape - only the reporting
+    differs, which is the whole claim.
+    """
+    try:
+        from seamkiln.drape.measure import fit_report  # noqa: F401
+
+        from tee.adapters.seamkiln import SeamkilnAdapter
+    except ImportError as exc:
+        print(f"seamkiln scenario skipped ({exc})")
+        return None
+
+    root = tempfile.mkdtemp(prefix="tee-bench-seamkiln-")
+    app = TeeApp({"seamkiln": SeamkilnAdapter(root)}, project_root=root)
+    adapter = app.adapters["seamkiln"]
+
+    batch = [
+        {"op": "create", "kind": "block", "props": {"block": "tee"}},
+        {"op": "arrange", "props": {"body": "mannequin", "particle_distance_mm": 15.0}},
+        {"op": "drape", "props": {"fabric": "cotton_jersey", "frames": 250}},
+    ]
+    started = time.time()
+    diff = adapter.execute(batch)
+    wall = time.time() - started
+    fit = app.registry.call("sk_fit", {})
+
+    tee_tokens = (
+        estimate_tokens(batch) + estimate_tokens(diff.to_payload()) + estimate_tokens(fit)
+    )
+    tee_calls = 2  # one tee_batch, one tee_call(sk_fit)
+
+    # the naive arm: the same knowledge, read as geometry
+    pattern_dump = [
+        {"id": panel.id, "outline": [[round(v.x, 2), round(v.y, 2)] for v in panel.outline]}
+        for panel in adapter._pattern.panels
+    ]
+    mesh_dump = {
+        "points": [[round(float(c), 4) for c in row] for row in adapter._drape.points],
+        "triangles": [[int(i) for i in row] for row in adapter._garment.triangles],
+    }
+    naive_tokens = estimate_tokens(pattern_dump) + estimate_tokens(mesh_dump)
+    naive_calls = 1 + len(adapter._pattern.panels)  # one read per panel, one for the mesh
+
+    app.shutdown()
+    saving = 100.0 * (1 - tee_tokens / naive_tokens)
+    print(
+        f"garment draft+sew+drape+fit: naive {naive_tokens:,} tok / {naive_calls} calls "
+        f"-> tee {tee_tokens:,} tok / {tee_calls} calls ({saving:.1f}% saved); "
+        f"drape {wall:.1f}s, {adapter._garment.n_points:,} particles"
+    )
+    return {
+        "panels": len(adapter._pattern.panels),
+        "seams": len(adapter._pattern.seams),
+        "particles": adapter._garment.n_points,
+        "naive_tokens": naive_tokens,
+        "naive_calls": naive_calls,
+        "tee_tokens": tee_tokens,
+        "tee_calls": tee_calls,
+        "saving": round(saving, 1),
+        "drape_s": round(wall, 1),
+        "worn": bool(adapter._drape.contact.get("worn")),
+        "seam_gap_mean_mm": adapter._drape.seam_gaps.get("mean_gap_mm"),
+    }
+
+
 def run_fabrication_scenario() -> dict | None:
     import socket as _socket
 
@@ -1616,9 +1690,10 @@ def main() -> None:
     gateway_row = _safe(run_gateway_scenario)
     fabrication_row = _safe(run_fabrication_scenario)
     senses_row = _safe(run_senses_scenario)
+    seamkiln_row = _safe(run_seamkiln_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
-                  fabrication_row, senses_row)
+                  fabrication_row, senses_row, seamkiln_row)
     _stage("total", t0)
 
 
@@ -1685,7 +1760,7 @@ def _carry_forward(section_header: str) -> list[str]:
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
                   kb_row=None, web_row=None, gateway_row=None,
-                  fabrication_row=None, senses_row=None) -> None:
+                  fabrication_row=None, senses_row=None, seamkiln_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -1934,6 +2009,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _fabrication_section(fabrication_row)
     else:
         lines += _carry_forward("## Fabrication: tokens per completed drawing-set")
+    if seamkiln_row is not None:
+        lines += _seamkiln_section(seamkiln_row)
+    else:
+        lines += _carry_forward("## Garment lane: draft, sew, drape, fit (A53)")
     # Sections owned by the SIBLING runners (run_k4_mixed.py wrote the A42
     # scheduler row; run_p6_pipeline.py the A43 lane row). This file rewrites
     # RESULTS.md wholesale, so anything it does not carry forward is deleted
@@ -1998,6 +2077,31 @@ def _fabrication_section(f: dict) -> list[str]:
         f"{f['naive_calls']} | |",
         f"| TEE (solved batches + sheet files) | {f['tee_tokens']:,} | "
         f"{f['tee_calls']} | **{f['saving']:.1f}%** |",
+    ]
+
+
+def _seamkiln_section(row: dict) -> list[str]:
+    """A53 P4: the garment lane's tokens-per-task row."""
+    return [
+        "",
+        "## Garment lane: draft, sew, drape, fit (A53)",
+        "",
+        f"One tee block - {row['panels']} panels, {row['seams']} seams, "
+        f"{row['particles']:,} particles - drafted, arranged on a body, draped and",
+        "measured. The naive arm reads what a model must read WITHOUT compact state:",
+        "every panel outline, then the draped mesh. The TEE arm is one batch, its",
+        "diff, and one `sk_fit` call.",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (outlines + draped mesh) | {row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| tee (batch + diff + sk_fit) | {row['tee_tokens']:,} | {row['tee_calls']} |",
+        f"| **saved** | **{row['saving']}%** | |",
+        "",
+        f"Drape took {row['drape_s']} s; seams closed to "
+        f"{row['seam_gap_mean_mm']} mm mean; worn: {row['worn']}.",
+        "The always-loaded surface is unchanged at 17 tools - seamkiln joins through",
+        "the Adapter protocol and six `sk_*` virtual tools.",
     ]
 
 

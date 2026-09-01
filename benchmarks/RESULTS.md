@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,467 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -112,14 +112,14 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,033** |
 | same, by `model_dump()` | 17 | 2,500 |
-| flat server, one tool per capability | 129 | 14,421 |
+| flat server, one tool per capability | 135 | 15,203 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 112 tools they contribute live behind the
+surface - the 118 tools they contribute live behind the
 meta-tools. Reaching one costs 548 tokens (one search +
 one describe), so the flat design only pays off in a session that
-uses more than ~26 distinct long-tail tools.
+uses more than ~27 distinct long-tail tools.
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 
@@ -220,7 +220,7 @@ Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
 | seeing | `tee_media`, default budget (1002x563) | 756 |
 | blind | `sense_describe` (local model reads it) | 65 |
 
-**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 15.4s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
+**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 14.5s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
 
 This supersedes an informal *33x* quoted during A47, which compared the
 PROVIDER's input tokens against the answer rather than what a host pays.
@@ -245,6 +245,23 @@ model (dimension values read from the document - the research-52
 |---|---|---|---|
 | naive (schemas + per-op screenshots) | 10,655 | 6 | |
 | TEE (solved batches + sheet files) | 805 | 4 | **92.4%** |
+
+## Garment lane: draft, sew, drape, fit (A53)
+
+One tee block - 4 panels, 10 seams, 5,076 particles - drafted, arranged on a body, draped and
+measured. The naive arm reads what a model must read WITHOUT compact state:
+every panel outline, then the draped mesh. The TEE arm is one batch, its
+diff, and one `sk_fit` call.
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (outlines + draped mesh) | 80,553 | 5 |
+| tee (batch + diff + sk_fit) | 571 | 2 |
+| **saved** | **99.3%** | |
+
+Drape took 4.8 s; seams closed to 0.584 mm mean; worn: True.
+The always-loaded surface is unchanged at 17 tools - seamkiln joins through
+the Adapter protocol and six `sk_*` virtual tools.
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 
