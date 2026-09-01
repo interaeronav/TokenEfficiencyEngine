@@ -244,7 +244,7 @@ def test_the_core_readers_need_no_torch(monkeypatch):
 
     from tee.fleet import med as _med
 
-    monkeypatch.setattr(_med, "have", lambda mod: False if mod == "monai" else True)
+    monkeypatch.setattr(_med, "have", lambda mod: mod != "monai")
     import tempfile as _tf
     from pathlib import Path as _P
 

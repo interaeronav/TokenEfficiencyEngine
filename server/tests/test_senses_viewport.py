@@ -125,7 +125,7 @@ def test_another_users_config_overrides_endpoint_model_and_facts(monkeypatch):
             "vision_model": "llava-7b",
             "vision_footprint_gb": 4.2,
             "vision_evicts": [],
-        }  # fmt: skip
+        }
     )
     r = senses.viewport({}, adapters={"blender": FakeBlender()})
     assert seen["url"] == "http://10.0.0.7:8000/v1"

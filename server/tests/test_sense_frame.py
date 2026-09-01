@@ -19,7 +19,6 @@ import pytest
 from tee import senses
 from tee.kernel.errors import TeeError
 
-
 # -- the grade parser -------------------------------------------------------
 
 

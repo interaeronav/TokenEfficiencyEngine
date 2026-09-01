@@ -1285,7 +1285,6 @@ def run_fabrication_scenario() -> dict | None:
 
     # -- naive arm: raw MCP client, default screenshots -------------------
     import base64 as _base64
-    import io as _io
     import struct as _struct
 
     def png_dims(data: bytes) -> tuple[int, int]:
@@ -1303,11 +1302,11 @@ def run_fabrication_scenario() -> dict | None:
         naive += estimate_tokens(tools)  # every schema in context, all session
         steps = [
             ("create_document", {"name": "NaiveFab"}),
-            ("execute_code", {"code": "import FreeCAD, Part\ndoc = FreeCAD.getDocument('NaiveFab')\nbox = doc.addObject('Part::Box', 'Panel')\nbox.Length, box.Width, box.Height = 600, 400, 18\ndoc.recompute()"}),
-            ("execute_code", {"code": "import FreeCAD\ndoc = FreeCAD.getDocument('NaiveFab')\ntool = doc.addObject('Part::Box', 'SlotTool')\ntool.Length, tool.Width, tool.Height = 100, 60, 6\ntool.Placement.Base = FreeCAD.Vector(250, 170, 13)\ncut = doc.addObject('Part::Cut', 'Slotted')\ncut.Base = doc.Panel\ncut.Tool = tool\ndoc.recompute()"}),
+            ("execute_code", {"code": "import FreeCAD, Part\ndoc = FreeCAD.getDocument('NaiveFab')\nbox = doc.addObject('Part::Box', 'Panel')\nbox.Length, box.Width, box.Height = 600, 400, 18\ndoc.recompute()"}),  # noqa: E501
+            ("execute_code", {"code": "import FreeCAD\ndoc = FreeCAD.getDocument('NaiveFab')\ntool = doc.addObject('Part::Box', 'SlotTool')\ntool.Length, tool.Width, tool.Height = 100, 60, 6\ntool.Placement.Base = FreeCAD.Vector(250, 170, 13)\ncut = doc.addObject('Part::Cut', 'Slotted')\ncut.Base = doc.Panel\ncut.Tool = tool\ndoc.recompute()"}),  # noqa: E501
             ("get_objects", {"doc_name": "NaiveFab"}),
             ("get_view", {"view_name": "Isometric"}),  # the "blueprint" as pixels
-            ("execute_code", {"code": "import Part, FreeCAD\nPart.export([FreeCAD.getDocument('NaiveFab').Slotted], '/tmp/naive_fab.step')"}),
+            ("execute_code", {"code": "import Part, FreeCAD\nPart.export([FreeCAD.getDocument('NaiveFab').Slotted], '/tmp/naive_fab.step')"}),  # noqa: E501
         ]
         for name, args in steps:
             naive += estimate_tokens({"name": name, "arguments": args})
@@ -1329,14 +1328,14 @@ def run_fabrication_scenario() -> dict | None:
                     except Exception:
                         w, h = 960, 540
                     naive += image_tokens(w, h)
-        wire.tools_call("execute_code", {"code": "import FreeCAD\ntry: FreeCAD.closeDocument('NaiveFab')\nexcept Exception: pass"})
+        wire.tools_call("execute_code", {"code": "import FreeCAD\ntry: FreeCAD.closeDocument('NaiveFab')\nexcept Exception: pass"})  # noqa: E501
     finally:
         wire.close()
 
     # -- TEE arm: the P4 lane through the meter ---------------------------
     project = Path(tempfile.mkdtemp(prefix="tee-bench-fab-"))
     adapter = FreeCADAdapter(doc="BenchFab")
-    adapter.wire.py("import FreeCAD\ntry: FreeCAD.closeDocument('BenchFab')\nexcept Exception: pass")
+    adapter.wire.py("import FreeCAD\ntry: FreeCAD.closeDocument('BenchFab')\nexcept Exception: pass")  # noqa: E501
     app = TeeApp({"freecad": adapter}, project_root=project)
     register_freecad_tools(app, adapter)
     tee = 0
@@ -1350,10 +1349,10 @@ def run_fabrication_scenario() -> dict | None:
     try:
         ops1 = [
             {"op": "create", "kind": "sketch", "name": "profile", "props": sketch},
-            {"op": "create", "kind": "pad", "name": "panel", "props": {"sketch": "profile", "length": 18}},
+            {"op": "create", "kind": "pad", "name": "panel", "props": {"sketch": "profile", "length": 18}},  # noqa: E501
         ]
         record(ops1, app.run_batch("freecad", ops1, label="panel"))
-        slot = {k: (v if k != "points" else [{"id": "a", "at": [250, 170], "fixed": True}] + v[1:]) for k, v in sketch.items()}
+        slot = {k: (v if k != "points" else [{"id": "a", "at": [250, 170], "fixed": True}] + v[1:]) for k, v in sketch.items()}  # noqa: E501, RUF005
         slot["constraints"] = [
             {"kind": "distance", "a": "a", "b": "b", "value": 100},
             {"kind": "distance", "a": "b", "b": "c", "value": 60},
@@ -1364,22 +1363,22 @@ def run_fabrication_scenario() -> dict | None:
         ]
         ops2 = [
             {"op": "create", "kind": "sketch", "name": "slot", "props": slot},
-            {"op": "create", "kind": "pocket", "name": "slotted", "props": {"sketch": "slot", "target": "panel", "depth": 5}},
+            {"op": "create", "kind": "pocket", "name": "slotted", "props": {"sketch": "slot", "target": "panel", "depth": 5}},  # noqa: E501
         ]
         record(ops2, app.run_batch("freecad", ops2, label="slot"))
         drawing_args = {
             "objects": ["slotted"],
             "views": ["front", "top"],
-            "dimensions": [{"view": 1, "type": "ExtentX"}, {"view": 1, "type": "ExtentY"}, {"view": 0, "type": "ExtentY"}],
+            "dimensions": [{"view": 1, "type": "ExtentX"}, {"view": 1, "type": "ExtentY"}, {"view": 0, "type": "ExtentY"}],  # noqa: E501
             "formats": ["svg", "pdf", "dxf"],
             "name": "BenchSheet",
             "out_dir": str(project),
         }
         record(drawing_args, app.registry.call("fc_drawing", drawing_args))
-        export_args = {"objects": ["slotted"], "format": "step", "path": str(project / "panel.step")}
+        export_args = {"objects": ["slotted"], "format": "step", "path": str(project / "panel.step")}  # noqa: E501
         record(export_args, app.registry.call("fc_export", export_args))
     finally:
-        adapter.wire.py("import FreeCAD\ntry: FreeCAD.closeDocument('BenchFab')\nexcept Exception: pass")
+        adapter.wire.py("import FreeCAD\ntry: FreeCAD.closeDocument('BenchFab')\nexcept Exception: pass")  # noqa: E501
         app.shutdown()
 
     row = {
@@ -1966,7 +1965,7 @@ def _web_section(w: dict) -> list[str]:
         "|---|---|---|---|",
     ]
     for r in w["rows"]:
-        lines.append(f"| {r['question']} | {r['naive']:,} | {r['tee']:,} | **{r['saving']:.1f}%** |")
+        lines.append(f"| {r['question']} | {r['naive']:,} | {r['tee']:,} | **{r['saving']:.1f}%** |")  # noqa: E501
     lines += [
         "",
         f"Total {w['naive_total']:,} -> {w['tee_total']:,} tokens "
@@ -1977,7 +1976,6 @@ def _web_section(w: dict) -> list[str]:
     if w["notes"]:
         lines += ["", *w["notes"]]
     return lines
-    print(f"\nwrote {out}")
 
 
 def _fabrication_section(f: dict) -> list[str]:

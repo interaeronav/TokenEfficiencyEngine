@@ -43,9 +43,9 @@ from tee.web.extract import focus_extract  # noqa: E402
 # --------------------------------------------------------------------------
 
 QUALITY_CASES = [
-    ("docs/research/19-context-economics.md", "what does re-viewing a frame cost in tokens compared to a stored caption?"),
-    ("docs/research/04-token-efficiency-techniques.md", "how should mutations report their results?"),
-    ("docs/research/49-web-lookup-multimodal.md", "what did the live vision measurement show about cost and latency?"),
+    ("docs/research/19-context-economics.md", "what does re-viewing a frame cost in tokens compared to a stored caption?"),  # noqa: E501
+    ("docs/research/04-token-efficiency-techniques.md", "how should mutations report their results?"),  # noqa: E501
+    ("docs/research/49-web-lookup-multimodal.md", "what did the live vision measurement show about cost and latency?"),  # noqa: E501
     ("CLAUDE.md", "what do TEE tools return by default instead of full scene dumps?"),
     ("docs/security.md", "which schemes and ports does the web lane allow?"),
     ("docs/quickstart.md", "how should loops be run to keep intermediate results out of context?"),
@@ -58,10 +58,10 @@ TRACEBACK_FIXTURE = (
     "    bm.free()\n"
     "AttributeError: 'NoneType' object has no attribute 'free'"
 )
-SCRIPT_FIXTURE = ("import os\nresult = call('bl_demo_tool', {'n': 1})", "Line 1: Import is not allowed.")
+SCRIPT_FIXTURE = ("import os\nresult = call('bl_demo_tool', {'n': 1})", "Line 1: Import is not allowed.")  # noqa: E501
 LINT_FIXTURE = "plaus_check: wall_02 overlaps door_01 by 0.18 m on the x axis (code: overlap)"
-FACTS_FIXTURE = "The client wants the boundary wall 2.4 m high in face brick, and hates gloss finishes."
-RECAP_FIXTURE = {"adapters": {"blender": {"entities": 14, "kinds": {"mesh": 9, "light": 3, "camera": 2}}}, "checkpoints": ["cp1", "cp2"]}  # fmt: skip
+FACTS_FIXTURE = "The client wants the boundary wall 2.4 m high in face brick, and hates gloss finishes."  # noqa: E501
+RECAP_FIXTURE = {"adapters": {"blender": {"entities": 14, "kinds": {"mesh": 9, "light": 3, "camera": 2}}}, "checkpoints": ["cp1", "cp2"]}  # fmt: skip  # noqa: E501
 RERANK_FIXTURE = ("bedding sand thickness for block paving", [
     {"id": "03-concrete-block-paving", "title": "Concrete block paving"},
     {"id": "01-earthworks", "title": "Earthworks and compaction"},
@@ -90,10 +90,10 @@ def cmd_latency(args) -> None:
     page_text = (REPO / "docs/research/19-context-economics.md").read_text()[:8000]
     rows = []
     for name, call in [
-        ("triage", lambda: chores.triage(TRACEBACK_FIXTURE, "line 6: bm = existing.get(name)", refine="local", cfg=cfg)),
+        ("triage", lambda: chores.triage(TRACEBACK_FIXTURE, "line 6: bm = existing.get(name)", refine="local", cfg=cfg)),  # noqa: E501
         ("repair_script", lambda: chores.repair_script(*SCRIPT_FIXTURE, refine="local", cfg=cfg)),
         ("explain_lint", lambda: chores.explain_lint(LINT_FIXTURE, refine="local", cfg=cfg)),
-        ("refine_extract", lambda: chores.refine_extract(page_text, QUALITY_CASES[0][1], QUALITY_BUDGET, refine="local", cfg=cfg)),
+        ("refine_extract", lambda: chores.refine_extract(page_text, QUALITY_CASES[0][1], QUALITY_BUDGET, refine="local", cfg=cfg)),  # noqa: E501
         ("structure_facts", lambda: chores.structure_facts(FACTS_FIXTURE, refine="local", cfg=cfg)),
         ("compress_recap", lambda: chores.compress_recap(RECAP_FIXTURE, refine="local", cfg=cfg)),
         ("rerank", lambda: chores.rerank(*RERANK_FIXTURE, refine="local", cfg=cfg)),
@@ -131,7 +131,7 @@ def cmd_quality(args) -> None:
             "dumb": dumb_quote, "refined": None if refined is None else refined["quote"],
             "abstained": why,
         })  # fmt: skip
-        state = f"abstained ({why})" if refined is None else f"{estimate_tokens(refined['quote'])} tok"
+        state = f"abstained ({why})" if refined is None else f"{estimate_tokens(refined['quote'])} tok"  # noqa: E501
         print(f"{rel_path}: dumb {estimate_tokens(dumb_quote)} tok, refined {state}")
 
     out = Path(args.out)

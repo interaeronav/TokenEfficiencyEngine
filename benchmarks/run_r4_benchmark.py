@@ -71,12 +71,14 @@ def build_cases() -> list[dict]:
                 continue
 
             def make(chore=chore, rung_index=rung_index):
-                def call(cfg):
-                    fn, client_input = _case(chore, rung_index, cfg)
+                # chore/rung_index are bound as defaults on purpose: without
+                # that, every case would run the LAST rung of the loop.
+                def run_case(cfg):
+                    fn, _ = _case(chore, rung_index, cfg)
                     return fn()
 
                 _, client_input = _case(chore, rung_index, {})
-                return call, estimate_tokens(client_input)
+                return run_case, estimate_tokens(client_input)
 
             call, tokens = make()
             cases.append({"name": f"{chore}_{rung}", "call": call,
@@ -103,8 +105,12 @@ def run_local_arm(name: str, cases, cfg) -> dict:
         original = local_llm.complete
         sizes = {"n": 0}
 
-        def wrapped(prompt, *a, **kw):
-            sizes["n"] += estimate_tokens((kw.get("system") or "")) + estimate_tokens(prompt)
+        def wrapped(prompt, *a, sizes=sizes, original=original, **kw):
+            # Bound explicitly: `sizes` and `original` are per-iteration, and
+            # `wrapped` is installed and removed within the same iteration,
+            # so late binding was never reachable here - but a reader (and
+            # ruff) cannot see that from the closure alone.
+            sizes["n"] += estimate_tokens(kw.get("system") or "") + estimate_tokens(prompt)
             return original(prompt, *a, **kw)
 
         local_llm.complete = wrapped

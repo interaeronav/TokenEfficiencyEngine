@@ -45,8 +45,12 @@ mcpb:
 	@echo ""
 	@echo "  See docs/setup-fleet.md. 'cad' is excluded on purpose (sidecar)."
 
+# SI-B20: ../benchmarks was NOT in this list, and `ruff check .` run from
+# server/ cannot reach it - so the code that produces the numbers this
+# project is judged by went unlinted for its whole life, accumulating 30
+# errors including unreachable code referencing an undefined name.
 lint:
-	uv run ruff check src tests
+	uv run ruff check src tests ../benchmarks
 	uv run ruff format --check src tests
 
 format:

@@ -8635,3 +8635,43 @@ loop reports every attempt instead of trusting one. A tool that had
 search. Suite **1,194 passed / 17 skipped**, ruff clean.
 
 **A51 complete** — P0 through P5, plus A52's purge lane.
+
+### SI-B20 closed — and it was hiding a second defect in how I checked
+
+`benchmarks/` was never linted: ruff's config lives in
+`server/pyproject.toml`, the gate runs `ruff check .` from inside `server/`,
+and `benchmarks/` is one directory up. Filed at **15 errors**; by today it
+had reached **30** — some of them added by me this session, which is
+precisely what unlinted tracked code does.
+
+`make lint` now runs `ruff check src tests ../benchmarks` and exits 0.
+
+**Three of the thirty were real, and two were traps.**
+
+- **F821** — an unreachable `print(f"\nwrote {out}")` sitting after a
+  `return`, referencing a name that does not exist in that scope. Deleted.
+- **F841 was a trap.** `fn, method = rng.choice(...), rng.choice(...)` with
+  `fn` unused — but `rng.choice` **advances the generator**. Deleting the
+  draw would have shifted every later random value and silently regenerated
+  different fixtures. The draw is kept, the name is `_fn`, and the comment
+  says why it must not be tidied away.
+- **B023 was a false positive, twice.** `make()` already binds `chore` and
+  `rung_index` as defaults, and the `sizes` closure never outlives its
+  iteration. Both were made explicit rather than "fixed" — behaviour
+  identical, and the reader no longer has to prove it from the closure.
+- The 23 **E501s** were confirmed to be embedded FreeCAD source strings
+  passed as `execute_code` payloads. Wrapping them would change what the
+  benchmark sends, so they are marked in place.
+
+**The bigger finding is about me.** I had been checking lint with
+`ruff check . | tail -1`, and ruff prints "No fixes available" *after* the
+error count — so a clean-looking tail hid **6 real errors in `server/`**,
+and I reported "ruff clean" in several entries above when it was not. All
+six are now fixed (SIM211/SIM201, three RUF001 on the ambiguous glyphs that
+are the *point* of the PDF tests, RUF028, I001). A summary line is not a
+detail to skip.
+
+**Proof nothing moved:** the benchmark's own output was captured before the
+first change and diffed after the last — **byte-identical**. A lint fix
+that silently shifts a measured number would be worse than the warning it
+removed. Suite 1,194 passed / 17 skipped.

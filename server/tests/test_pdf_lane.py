@@ -272,7 +272,7 @@ def test_a_smart_quote_no_longer_destroys_a_report(tmp_path):
 def test_transliteration_preserves_meaning_and_is_never_silent(tmp_path):
     from tee.pdf import _degrade
 
-    text, changed = _degrade("“as-built” — the owner’s note…")
+    text, changed = _degrade("“as-built” — the owner’s note…")  # noqa: RUF001 - the ambiguous glyph IS the test
     assert text == '"as-built" - the owner\'s note...'
     assert changed  # and compose reports these; silence is the failure mode
 
@@ -299,13 +299,13 @@ def test_an_embedded_font_keeps_everything(tmp_path):
         {
             "out": str(out),
             "font": "Arial Unicode.ttf",
-            "blocks": [{"kind": "paragraph", "text": "“as-built” — 3.5 m², α β, 建築"}],
+            "blocks": [{"kind": "paragraph", "text": "“as-built” — 3.5 m², α β, 建築"}],  # noqa: RUF001 - the ambiguous glyph IS the test
         }
     )
     assert "degraded_characters" not in r
     with pdfplumber.open(out) as doc:
         text = doc.pages[0].extract_text() or ""
-    for probe in ("as-built", "m²", "α", "建築"):
+    for probe in ("as-built", "m²", "α", "建築"):  # noqa: RUF001 - the ambiguous glyph IS the test
         assert probe in text, f"{probe!r} did not survive"
 
 

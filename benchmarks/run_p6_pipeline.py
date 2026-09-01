@@ -24,12 +24,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server" / "src"))
 
-from tee.app import TeeApp  # noqa: E402
-from tee.kernel import trustctx  # noqa: E402
-from tee.kernel.adapter import FakeAdapter  # noqa: E402
-from tee.kernel.budget import estimate_tokens  # noqa: E402
-from tee.pipeline import schema  # noqa: E402
-from tee.pipeline.tools import register_pipeline_tools, register_run_tools  # noqa: E402
+from tee.app import TeeApp
+from tee.kernel import trustctx
+from tee.kernel.adapter import FakeAdapter
+from tee.kernel.budget import estimate_tokens
+from tee.pipeline import schema
+from tee.pipeline.tools import register_pipeline_tools, register_run_tools
 
 CASES = [
     ("basemap", "~/DiversionPlanner-BaseMap", "plan", {"cell": "N51W001"}),

@@ -32,7 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "server" / "src"))
 
-from tee.llm.chores import _TRIAGE_SYSTEM  # noqa: E402 - the production template
+from tee.llm.chores import _TRIAGE_SYSTEM
 
 # Vocabulary pools. The eval-suite identifiers are deliberately absent.
 LIBS = [
@@ -70,8 +70,8 @@ DRIFT_DIAG = [
     "'{kw}' is not a parameter of {fn}() in this {lib} build.",
 ]
 DRIFT_FIX = [
-    "Keep the intended behavior: check {fn}()'s current parameters in the {lib} docs before editing the call.",
-    "Verify what replaced '{kw}' in the installed {lib} documentation; removing it would change behavior.",
+    "Keep the intended behavior: check {fn}()'s current parameters in the {lib} docs before editing the call.",  # noqa: E501
+    "Verify what replaced '{kw}' in the installed {lib} documentation; removing it would change behavior.",  # noqa: E501
     "Look up {fn}() in the {lib} changelog for the successor of '{kw}', then update the call.",
     "The replacement name is not in the evidence - confirm it against the {lib} docs first.",
 ]
@@ -148,7 +148,10 @@ def _drift_import(rng: random.Random) -> dict:
 
 
 def _grounded_none(rng: random.Random) -> dict:
-    fn, method = rng.choice(_clean(FUNCS)), rng.choice(["close", "commit", "flush", "release"])
+    # `_fn` is unused BY DESIGN and must not be deleted: rng.choice advances
+    # the generator, so removing the draw would shift every later value and
+    # silently regenerate different fixtures.
+    _fn, method = rng.choice(_clean(FUNCS)), rng.choice(["close", "commit", "flush", "release"])
     line = rng.randint(3, 25)
     failure = (
         f"Traceback (most recent call last):\n"
@@ -158,7 +161,7 @@ def _grounded_none(rng: random.Random) -> dict:
     )
     context = f"line {line - 1}: handle = registry.get(name)  # returns None when absent"
     answer = {
-        "diagnosis": f"handle is None because registry.get(name) found nothing.",
+        "diagnosis": "handle is None because registry.get(name) found nothing.",
         "fix": f"Guard before use: if handle: handle.{method}() - or fail loud "
         "when the name must exist.",
         "confidence": "grounded",

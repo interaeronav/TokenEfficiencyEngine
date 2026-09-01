@@ -190,7 +190,12 @@ Format per item:
 - call: `uv run ruff check ../benchmarks/run_benchmarks.py` → **15 errors**, while the project gate `ruff check .` (run from `server/`) says "All checks passed!"
 - hurt: `[tool.ruff]` lives in `server/pyproject.toml` and the gate runs from `server/`, so `benchmarks/` — tracked code that produces the numbers this project is judged on — is never linted. The 15 include one real bug: `run_benchmarks.py:1903` is `print(f"\nwrote {out}")` AFTER a `return`, referencing an undefined `out` (F821). Dead today; it would raise if ever reached. Pre-existing, not a regression.
 - proposed: bring `benchmarks/` into the gate (run ruff from the repo root, or add the path to the server invocation), then fix the 15 — most are E501 in embedded FreeCAD source strings and can be `noqa`'d in place.
-- status: open
+- status: DONE 2026-08-31. Grown to 30 by then (some of them mine, added
+  this session — unlinted code accumulates exactly as predicted). `make
+  lint` now runs `ruff check src tests ../benchmarks` and exits 0. The
+  F821 dead code was deleted; the E501s were confirmed to be string
+  payloads and marked in place, since breaking them would change what the
+  benchmark sends. Two traps recorded below.
 
 ## SI-B21 — TEE cannot open HEIC, the format the owner's iPhone shoots
 - seen: 2026-08-31, owner request; verified against the live extension venv
