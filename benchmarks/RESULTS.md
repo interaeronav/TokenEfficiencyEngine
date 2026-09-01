@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,467 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -110,9 +110,9 @@ fields no client ever sees, so it overstates the surface by ~20%.
 
 | | Tools | Tokens |
 |---|---|---|
-| TEE always-loaded (wire) | 17 | **2,034** |
+| TEE always-loaded (wire) | 17 | **2,033** |
 | same, by `model_dump()` | 17 | 2,500 |
-| flat server, one tool per capability | 129 | 14,422 |
+| flat server, one tool per capability | 129 | 14,421 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
@@ -187,7 +187,7 @@ cited tee_web_lookup answer.
 | how do I test whether an address is private? | 9,569 | 604 | **93.7%** |
 | what is the maximum line length and its exceptions? | 13,008 | 589 | **95.5%** |
 
-Total 50,554 -> 2,367 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 181 tokens on the canonical wire - repaid by the first question of the session.
+Total 50,554 -> 2,367 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire - repaid by the first question of the session.
 
 - https://pypi.org/project/trimesh/ answered with its bot-challenge variant; excluded
 
@@ -210,23 +210,26 @@ fix named, which is the point).
 | naive (schemas in context + raw results) | 35,238 | 3 | |
 | TEE (meta-tool reach + budgeted results) | 1,425 | 5 | **96.0%** |
 
-## Senses — what an image question costs the HOST (A47/A48 P0)
+## Gateway: fronting a many-tool MCP backend (A37)
 
-Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
+*(not re-run this pass - scenario skipped on this machine; last measured values kept)*
 
-| host | how it sees | host tokens |
-|---|---|---|
-| seeing | `tee_media`, full frame | 10,764 |
-| seeing | `tee_media`, default budget (1002x563) | 756 |
-| blind | `sense_describe` (local model reads it) | 65 |
+The task: list a project folder, read its config, read its 2,000-line
+build log - against secure-filesystem-server@0.2.0 (14 tools), the
+official filesystem reference server. **Naive** is the backend's own
+README pattern: every tool schema in context for the whole session
+(3,706 tokens before the first call) plus raw results.
+**TEE** fronts the same live server through the existing meta-tools
+(always-loaded delta: 0, asserted by test), pays one search + one
+describe to reach the tools, and budgets results with the truncation
+reported (1 of 3 results trimmed here - the
+2,000-line log arrives as a bounded excerpt with the raise-max_tokens
+fix named, which is the point).
 
-**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 32.6s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
-
-This supersedes an informal *33x* quoted during A47, which compared the
-PROVIDER's input tokens against the answer rather than what a host pays.
-Both arms here are measured host-side. The provider still reads ~2,065
-tokens of pixels — for free, on a model that bills nothing, which is the
-point rather than the headline.
+| | Tokens | Calls | Saving |
+|---|---|---|---|
+| naive (schemas in context + raw results) | 35,238 | 3 | |
+| TEE (meta-tool reach + budgeted results) | 1,425 | 5 | **96.0%** |
 
 ## Fabrication: tokens per completed drawing-set (A37)
 

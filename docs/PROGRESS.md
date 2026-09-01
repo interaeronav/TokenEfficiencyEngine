@@ -8397,3 +8397,64 @@ was true with three rungs and false with four. Fixed by deriving the
 winner's position rather than the ladder's length.
 
 **Suite: 1,153 passed / 17 skipped**, ruff clean.
+
+### A51 script written — three areas researched, one premise inverted (2026-08-31)
+
+Owner asked for faster headless Blender boots, better camera framing from
+the local vision model, and richer PDFs. All three were measured before the
+script was written, and the first one turned out not to be what it looked
+like.
+
+**Blender boot — the engine is not slow, the wait is.**
+
+```
+bare headless Blender      0.42 - 0.75 s
++ the 3.8 MB chair scene   0.55 s
+bridge answering           ~0.30 s
+what TEE actually waits    0.50 s   <- the benchmark polls at 0.5 s
+```
+
+A bridge ready at 0.30 s is not noticed until 0.50 s because the poll
+interval is quantised; `adapters/godot/adapter.py` does the same at 0.4 s.
+Nobody is waiting on an engine. The script's P0 is therefore a backoff
+poll, and P1 asks the more valuable question — whether the second boot
+needs to happen at all — with explicit permission to conclude "0.55 s is
+fine and the poll was the only real win".
+
+**Camera framing — and a methodology finding.** The temp camera is placed
+by `radius = bbox_diagonal/2 * distance` with no lens set, so the fit knows
+nothing about the field of view or the frame's aspect ratio, and nothing
+checks the result. An attempt to measure "fraction of frame filled" with a
+brightness threshold reported **100% at every distance** — it was measuring
+the grey backdrop. A pixel heuristic cannot judge framing on a rendered
+scene; the instrument that can is the vision model, which is what the owner
+asked to improve. So P3 is a closed loop (render → structured verdict →
+re-aim, bounded retries, every attempt reported) rather than a claim to
+have "trained" anything — the script forbids calling it training unless
+weights change.
+
+**PDF — the lane cannot write ordinary prose.** Measured against
+`pdf_compose` as shipped:
+
+```
+ASCII, Latin-1 accents, m² ° ±     OK
+curly quotes “ ” ’, em dash —      FAIL  FPDFUnicodeEncodingException
+Greek, CJK, emoji                  FAIL
+```
+
+The damaging half is not CJK, it is the **curly quotes and em dashes** that
+appear in almost any text an LLM writes or a user pastes — and today they
+do not degrade, they raise, so one smart quote destroys a whole compose.
+
+The fix is proven and nearly free: embedding a system TTF (332 available)
+round-trips every probe — `“as-built”  m²  建築  façade  α` — and the
+resulting PDF is **21.7 KB from a 22.2 MB font**, because fpdf2 subsets to
+the glyphs used. Recorded with it: a trap that cost real probe time —
+`multi_cell(0, ...)` raises with an embedded font and needs an explicit
+width, and every `multi_cell` in `tee/pdf.py` currently passes 0.
+
+fpdf2 2.8.8 also offers **19 capabilities the lane does not use** —
+`table()`, bookmarks, metadata, colours, links, headers/footers, columns —
+enumerated in P5.
+
+Script: `CLAUDE_A51_SCRIPT.md`. Not executed.

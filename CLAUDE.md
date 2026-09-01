@@ -53,6 +53,12 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   spend and egress, land the fifteen headless open resources) is driven
   by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
   goes, the taint law stays, and TEE still never grants itself.
+- The A51 campaign (faster headless boots, a camera that grades its own
+  framing via the local VLM, and PDFs that can write ordinary prose) is
+  driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured
+  first, and one INVERTED: headless Blender boots in 0.55 s and TEE's own
+  0.5 s poll interval is most of the wait, so the boot phase is about the
+  waiting, not the engine.
 - The A49 build (Godot as a headless first-class adapter: socket bridge,
   declarative commands, the run-scene game lane) is driven by
   `CLAUDE_A49_SCRIPT.md`. Its design rests on measured facts recorded in
