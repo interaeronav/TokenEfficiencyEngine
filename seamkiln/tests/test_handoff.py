@@ -160,7 +160,11 @@ def test_a_glb_lands_upright_in_a_real_blender(zipped, tmp_path) -> None:
     got = json.loads(line[len("TEE_RESULT ") :])
     assert got["unit"] == "METERS"
     assert got["uv"] == ["UVMap"], "the flat-pattern UVs did not survive the trip"
-    # upright: the tallest axis is Z, not Y
-    assert got["size"].index(max(got["size"])) == 2, f"it is lying down: {got['size']}"
+    # Upright: taller than it is DEEP. "Z is the tallest axis" was the first
+    # spelling and it was a proxy, not the claim - it broke the day the block's
+    # sleeves were drafted to its armhole, because a jacket with real sleeves
+    # is as wide across the arms as it is tall, while being no less upright.
+    # Front-to-back depth is the axis that collapses when a garment lies down.
+    assert got["size"][2] > got["size"][1] * 1.5, f"it is lying down: {got['size']}"
     # and standing ON the mannequin, not sunk through the floor at the origin
     assert got["min_z"] > 0.5 and got["max_z"] < 1.8, got

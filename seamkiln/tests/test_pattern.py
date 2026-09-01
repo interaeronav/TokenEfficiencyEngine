@@ -474,3 +474,31 @@ def test_yardage_says_out_loud_that_it_is_an_estimate() -> None:
     assert result["estimate"] is True
     assert 0.5 < result["length_m"] < 3.0  # a tee's worth of jersey
     assert result["mass_g"] > 100
+
+
+def test_the_jacket_block_drafts_its_sleeve_to_its_own_armhole() -> None:
+    """A block whose sleeve does not scale with its body is not a block.
+
+    Found dressing a hero whose chest needed half_chest 430: the armhole grew
+    to 276 mm while the sleeve cap stayed at the 219 mm it was drafted for, and
+    `true_up` correctly reported 56.5 mm of mismatch on all four armhole seams
+    - a pattern that cannot be sewn at any size but the one it shipped at.
+    """
+    from seamkiln.pattern.fixtures import jacket_block
+    from seamkiln.pattern.model import EdgeRef, true_up
+
+    for half_chest in (275.0, 340.0, 430.0):
+        pattern = jacket_block(half_chest=half_chest, length=700.0, shoulder=250.0)
+        armhole = pattern.panel("FRONT_R").edge_length(EdgeRef("FRONT_R", 2))
+        cap = pattern.panel("SLEEVE_R").edge_length(EdgeRef("SLEEVE_R", 2))
+        assert cap == pytest.approx(armhole, abs=0.5), (
+            f"half_chest {half_chest}: a {armhole:.1f} mm armhole and a {cap:.1f} mm cap"
+        )
+        assert [c.seam_id for c in true_up(pattern) if not c.ok] == []
+
+    # ... and the sleeve gets LONGER when asked, which the arm needs: a 250 mm
+    # sleeve on a 585 mm arm is a three-quarter sleeve, and it rendered as one.
+    short = jacket_block(sleeve_length=250.0)
+    long = jacket_block(sleeve_length=430.0)
+    drop = lambda p: p.panel("SLEEVE_R").bbox[3] - p.panel("SLEEVE_R").bbox[1]  # noqa: E731
+    assert drop(long) - drop(short) == pytest.approx(180.0, abs=1.0)

@@ -94,6 +94,42 @@ def _sleeve_outline(cap_width: float, cap_height: float, length: float, cuff: fl
     )
 
 
+def _cap_for_armhole(armhole_mm: float, *, ratio: float = 0.87) -> tuple[float, float]:
+    """Cap width and height whose S-curve measures `armhole_mm` per half.
+
+    A block whose sleeve does not scale with its body is not a block. At
+    half_chest 430 this jacket's armhole grew to 276 mm while the sleeve cap
+    stayed at the 219 mm it was drafted for, and `true_up` correctly reported
+    56.5 mm of mismatch on all four armhole seams - a pattern that cannot be
+    sewn. The cap is now DRAFTED to the armhole it has to fit, by bisection on
+    the cap width: the curve has no closed form worth deriving for a precision
+    nobody cuts to.
+
+    `ratio` is cap height over cap width, which is what sets how much the
+    sleeve stands up off the shoulder rather than hanging from it.
+    """
+    from seamkiln.pattern.geometry import cumulative_length
+
+    def half(width: float) -> float:
+        curve = cubic(
+            (-width, 0.0),
+            (-width * 0.55, width * ratio * 1.25),
+            (-width * 0.2, width * ratio),
+            (0.0, width * ratio),
+        )
+        return float(cumulative_length(curve)[-1])
+
+    low, high = 10.0, max(armhole_mm, 20.0)
+    for _ in range(60):
+        mid = (low + high) / 2.0
+        if half(mid) < armhole_mm:
+            low = mid
+        else:
+            high = mid
+    width = (low + high) / 2.0
+    return width, width * ratio
+
+
 def tee_block(
     *,
     half_chest: float = 260.0,
@@ -224,6 +260,8 @@ def jacket_block(
     length: float = 700.0,
     shoulder: float = 190.0,
     neck: float = 85.0,
+    sleeve_length: float = 240.0,
+    cuff: float = 130.0,
     opening: str = "zipper",
 ) -> Pattern:
     """A tee block cut down the centre front, so it has an OPENING.
@@ -260,13 +298,23 @@ def jacket_block(
             Mark(MarkKind.NOTCH_V, -half_chest, length * 0.60, depth=6.0),
         ],
     )
+    # The sleeve is DRAFTED to this block's own armhole rather than fixed, so
+    # the block scales as a block should. Measured off the right front, whose
+    # armhole is edge 2 once the outline is normalised.
+    draft = Pattern(name="draft", panels=[fronts[0]], units="mm")
+    armhole = draft.panel("FRONT_R").edge_length(EdgeRef("FRONT_R", 2))
+    cap_w, cap_h = _cap_for_armhole(armhole)
     sleeves = [
         Panel(
             id=f"SLEEVE_{side}",
             name=f"Sleeve {side.lower()}",
-            outline=_sleeve_outline(150.0, 130.0, 220.0, 120.0),
-            internals=[InternalLine(LineKind.GRAIN, [Vertex(0.0, 100.0), Vertex(0.0, -180.0)])],
-            marks=[Mark(MarkKind.NOTCH_V, 0.0, 130.0, depth=6.0)],
+            outline=_sleeve_outline(cap_w, cap_h, sleeve_length, cuff),
+            internals=[
+                InternalLine(
+                    LineKind.GRAIN, [Vertex(0.0, cap_h * 0.8), Vertex(0.0, -sleeve_length * 0.8)]
+                )
+            ],
+            marks=[Mark(MarkKind.NOTCH_V, 0.0, cap_h, depth=6.0)],
         )
         for side in ("L", "R")
     ]
