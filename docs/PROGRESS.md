@@ -9541,3 +9541,35 @@ push — the settle after letting go is mostly the cloth falling. Projected on
 the push axis it reads silk 69%, poplin 94%, denim 89%, wool 59%, which does
 NOT order by stiffness. Stiffness resists the spring-back and weight pulls the
 fold out; they fight, and which wins depends on the fabric.
+
+## A60–A62 — what a real deliverable found that the tests did not
+
+Three campaigns, all of them started by trying to USE the software rather than
+test it: driving every A55–A59 verb through TEE's own batch surface, then
+producing an actual rendered shot (a cloth cape on a moving figure, wind,
+water, sound) end to end.
+
+**A60 — two lock holes**, found by driving `TeeApp.run_batch` instead of the
+Session directly. The guard covered the verbs that CHANGE a panel and none of
+the four that get rid of one; and `lock` with a misspelled argument locked
+nothing and reported success, which is how the first hole was found — the
+batch said a panel was locked and the next op deleted it.
+
+**A61 — two defects a production job found.** An animated wind threw the
+prepared constraint graph away on every frame, because the cache keyed on the
+room's whole description when only its CONDITIONING reaches the prepared
+arrays. And `materials.derive` raised `TypeError` if the caller passed
+`notes` — the one field a derivation most wants to fill in.
+
+**A62 — four Blender 5.x drift faults** added to the version firewall, each
+of which cost a live headless run: `NISHITA` → `MULTIPLE_SCATTERING`,
+`dust_density` → `aerosol_density`, FFMPEG output needing `media_type =
+"VIDEO"` first, and `sequence_editor.sequences` → `.strips`. The fourth is
+not version-gated because it was never right: probing `bpy.types.X.bl_rna`
+reports the UNFILTERED enum, and it said FFMPEG was available when the
+scene's own settings did not offer it — which failed the encode AFTER a
+nine-minute render.
+
+**The lesson across all three:** every one of these survived a suite that was
+green. What found them was asking the software to do a whole job — not a unit
+of one — and then looking hard at what came out.
