@@ -212,6 +212,7 @@ def bundle(
         "uv": "from the flat pattern - exact, not unwrapped",
         "panels": {k: list(v) for k, v in session.garment.panel_slices.items()},
         "fabric": session.fabric,
+        "fabric_render": _fabric_render(session.fabric),
         "hardware": parts.get("instances", []),
         "note": spec.note,
     }
@@ -219,6 +220,22 @@ def bundle(
     manifest_file.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     files["manifest"] = str(manifest_file)
     return Bundle(target=spec, directory=directory, files=files, manifest=manifest)
+
+
+def _fabric_render(name: str) -> dict[str, Any]:
+    """The card's render properties, for the artist on the other side - and
+    the label that says they are a starting point, not a measurement."""
+    from seamkiln.pattern.fabric import fabric as fabric_by_name
+
+    try:
+        return fabric_by_name(name).render()
+    except KeyError:
+        return {
+            "roughness": None,
+            "texture": None,
+            "physical": False,
+            "note": f"no material card {name!r}",
+        }
 
 
 def _hardware_parts(session: Any, points: np.ndarray) -> dict[str, Any]:

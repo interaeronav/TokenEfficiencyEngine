@@ -41,6 +41,7 @@ LIMITS: dict[str, tuple[float, float]] = {
     "bend_warp": (0.05, 5000.0),  # flexural rigidity, mN.mm
     "bend_weft": (0.05, 5000.0),
     "friction": (0.02, 1.2),
+    "roughness": (0.0, 1.0),  # a render property; bounded because a renderer clamps it
 }
 
 
@@ -86,6 +87,8 @@ def library(category: str | None = None, *, tier: str | None = None) -> list[dic
                 "rigidity_mNmm": round((card.bend_warp + card.bend_weft) / 2, 1),
                 "tier": str(card.tier),
                 "notes": card.notes,
+                "roughness": card.roughness,  # render only, not physical
+                "texture": card.texture or None,
             }
         )
     return rows
@@ -133,6 +136,9 @@ def derive(base: str, name: str, **changes: Any) -> Fabric:
         "shear",
         "friction",
     }
+    # `roughness` and `texture` are NOT in this set on purpose: they are render
+    # properties the solver never reads, so a glossier card is still the
+    # measured cloth and keeps its tier and its test report.
     tier = Tier.PLAUSIBLE if physical & set(changes) else card.tier
     source = "" if tier is Tier.PLAUSIBLE else card.source
     # The provenance is always recorded, and the caller can say WHY on top of
@@ -196,6 +202,10 @@ def compare(names: list[str]) -> dict[str, Any]:
             "bending_alpha": [round(c.compliances()["bending"], 4) for c in cards],
             "stretch_warp": [round(c.compliances()["stretch_warp"], 4) for c in cards],
             "tier": [str(c.tier) for c in cards],
+            "roughness": [c.roughness for c in cards],
         },
-        "note": "bending_alpha is weight over rigidity - the ratio drape depends on",
+        "note": (
+            "bending_alpha is weight over rigidity - the ratio drape depends on; "
+            "roughness is a render property and not physical"
+        ),
     }

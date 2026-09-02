@@ -85,6 +85,12 @@ class Fabric:
     tier: Tier = Tier.PLAUSIBLE
     source: str = ""
     notes: str = ""
+    # RENDER properties, not physical: the solver never reads them. A heavier
+    # cloth is a different drape; a rougher one is only a different picture.
+    # They ride on the card so the material library, a handoff manifest and a
+    # tech pack can carry them, labelled non-physical everywhere they appear.
+    roughness: float = 0.5  # shading roughness a renderer starts from, 0 gloss .. 1 matte
+    texture: str = ""  # a path or name for an albedo; "" means flat colour
 
     @property
     def areal_density_kg_m2(self) -> float:
@@ -127,6 +133,16 @@ class Fabric:
             "tier": str(self.tier),
             "source": self.source or "(none)",
             "compliances": {k: round(v, 9) for k, v in self.compliances().items()},
+            "render": self.render(),
+        }
+
+    def render(self) -> dict[str, Any]:
+        """The renderer-facing fields, and the label that they are only that."""
+        return {
+            "roughness": self.roughness,
+            "texture": self.texture or None,
+            "physical": False,
+            "note": "render properties; never read by the solver",
         }
 
 

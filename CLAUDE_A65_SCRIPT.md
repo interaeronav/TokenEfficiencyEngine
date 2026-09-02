@@ -144,7 +144,7 @@ moves a jointless body rigidly with a note saying so. `animate()` gained an
 `advance` hook so a travelling body carries its cloth. *Acceptance, met:*
 cloth travels at 1.37 m/s against the gait's 1.35; worn every frame.
 
-## P3 — make the follow-ups reproducible and complete (NEXT)
+## P3 — make the follow-ups reproducible and complete (DONE in A65)
 
 1. **Examples, not scratchpads.** `seamkiln/examples/cape_shot/` and
    `seamkiln/examples/fur_walk/`: the two delivered shots as headless
@@ -168,7 +168,20 @@ cloth travels at 1.37 m/s against the gait's 1.35; worn every frame.
 *Acceptance:* both examples run end to end from the repo; the replay test
 covers every verb in `VERBS`; RESULTS has the new row; surface unchanged.
 
-## P4 — the tier-2 bake, attempted honestly (OPEN since A53)
+*Done (2026-09-02):* `seamkiln/examples/{cape_shot,fur_walk}` run `sim`,
+`sound`, `render`, `encode` and `all` from the repo (`examples/showcase`
+cuts them into one film); `test_examples.py` runs both `sim --probe` in CI
+without Blender. `test_session_every_verb.py` uses all 29 verbs in one
+script and replays to one fingerprint. `Fabric.roughness`/`texture` are
+render fields labelled non-physical in `describe()`, the library,
+`sk_materials`, the tech pack and the handoff manifest. The shell has
+buttons for `zip`, `button`, `walk`, `pull` (plus the jacket block and the
+figure), Qt-free and tested; the 19 verbs it still lacks are listed in
+`gui/app.py` and the guide, asserted against `VERBS`. The benchmark has the
+follow-up row (RESULTS.md, "dress, zip, walk, hand off"); the A53 row now
+says fourteen `sk_*` tools. Surface unchanged.
+
+## P4 — the tier-2 bake, attempted honestly (ATTEMPTED 2026-09-02, BLOCKED)
 
 Attempt the C-IPC (`ipc-sim/Codim-IPC`, Apache-2.0) build on this Mac once,
 as A53 P2 specified: run out-of-process through `tee_job`, never in the
@@ -177,7 +190,22 @@ and close the item as "attempted, blocked by <error>". If it builds, wire it
 as an opt-in `drape quality="bake"` with intersection-free thickness as its
 acceptance. Either outcome closes A53 Gap 2; not attempting does not.
 
-## P5 — needs the owner
+*Outcome:* attempted once, out of process, in a scratch directory, with no
+change to the machine. It does not build here. CMake 4.4.3 refuses the
+project's `cmake_minimum_required(VERSION 3.2)` and its Kokkos 3.1.01 /
+kokkos-kernels 3.1.01 pins (`Compatibility with CMake < 3.5 has been
+removed`; the `-D` policy override does not reach DownloadProject's child
+configures, exporting `CMAKE_POLICY_VERSION_MINIMUM=3.5` does);
+`find_package(OPENMP)` on Apple reports `Could NOT find OpenMP`; configure
+then completes with Boost 1.92, Homebrew Eigen3 and the GLUT framework, and
+the build stops at the first Kokkos object because the project's
+`CMakeLists.txt` hard-codes x86 flags — `-mfma -mbmi2 -mavx2` — which
+`g++-16` on an Apple M5 Max rejects (`unrecognized command-line option`).
+Closed as "attempted, blocked by x86-only compiler flags baked into
+Codim-IPC on Apple Silicon"; `quality="bake"` is not offered. Details in
+`docs/PROGRESS.md`.
+
+## P5 — needs the owner (STILL OWED: cannot be done without them)
 
 - **A real industry DXF** (Gerber, Optitex, Lectra) to close A53 Gap 4. The
   round-trip is lossless against seamkiln's own output; that claim is worth

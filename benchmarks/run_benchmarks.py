@@ -1302,6 +1302,113 @@ def run_seamkiln_scenario() -> dict | None:
     }
 
 
+def run_seamkiln_followup_scenario() -> dict | None:
+    """A65 P3.5: what the follow-up verbs cost a model - dress a zipped jacket
+    on a figure, walk it, hand it off.
+
+    The naive arm reads what a model must read WITHOUT compact state to know
+    the same things: every panel outline, the dressed mesh, the mesh again
+    for every frame of the walk (because without a diff, "did the coat stay
+    on" IS the vertex list), and the hardware as geometry. The TEE arm is one
+    batch, its diff, and one `sk_hardware` call to confirm the zipper.
+    """
+    try:
+        from seamkiln.drape.dressing import dress  # noqa: F401
+        from tee.adapters.seamkiln import SeamkilnAdapter
+    except ImportError as exc:
+        print(f"seamkiln follow-up scenario skipped ({exc})")
+        return None
+
+    root = tempfile.mkdtemp(prefix="tee-bench-seamkiln-followup-")
+    app = TeeApp({"seamkiln": SeamkilnAdapter(root)}, project_root=root)
+    adapter = app.adapters["seamkiln"]
+
+    batch = [
+        {
+            "op": "create",
+            "kind": "block",
+            "props": {
+                "block": "jacket-zip",
+                "half_chest": 420.0,
+                "shoulder": 250.0,
+                "sleeve_length": 480.0,
+                "biceps": 480.0,
+            },
+        },
+        {"op": "arrange", "props": {"body": "figure", "stature_m": 1.80,
+                                    "particle_distance_mm": 12.0}},
+        {"op": "zip", "props": {"opening": "centre-front", "material": "metal", "size": 8.0,
+                                "frames": 120}},
+        {"op": "walk", "props": {"gait": "walk", "cycles": 0.5, "fps": 8, "travel": True}},
+        {"op": "handoff", "props": {"out": str(Path(root) / "handoff"), "target": "blender"}},
+    ]
+    started = time.time()
+    diff = adapter.execute(batch)
+    wall = time.time() - started
+    hardware = app.registry.call("sk_hardware", {})
+
+    tee_tokens = (
+        estimate_tokens(batch) + estimate_tokens(diff.to_payload()) + estimate_tokens(hardware)
+    )
+    tee_calls = 2  # one tee_batch, one tee_call(sk_hardware)
+
+    session = adapter.session
+    pattern_dump = [
+        {"id": panel.id, "outline": [[round(v.x, 2), round(v.y, 2)] for v in panel.outline]}
+        for panel in session.pattern.panels
+    ]
+    garment = session.garment
+    triangles = [[int(i) for i in row] for row in garment.triangles]
+    dressed_dump = {
+        "points": [[round(float(c), 4) for c in row] for row in garment.points],
+        "triangles": triangles,
+    }
+    # the walk: the whole mesh per frame is the only record a model without a
+    # diff has of where the coat went
+    walk_frames = round(session.gait.duration * 8) if session.gait else 0  # the track is 0.5 cycles
+    per_frame = estimate_tokens({"points": dressed_dump["points"]})
+    # the hardware as geometry: what a model reads when the manifest is not
+    # there to name the instances for it
+    hardware_dump: dict = {}
+    if session.handoffs and "hardware" in session.handoffs[-1].files:
+        import trimesh
+
+        parts = trimesh.load(session.handoffs[-1].files["hardware"], force="mesh")
+        hardware_dump = {
+            "points": [[round(float(c), 4) for c in row] for row in parts.vertices],
+            "triangles": [[int(i) for i in row] for row in parts.faces],
+        }
+    naive_tokens = (
+        estimate_tokens(pattern_dump)
+        + estimate_tokens(dressed_dump)
+        + per_frame * max(walk_frames, 1)
+        + estimate_tokens(hardware_dump)
+    )
+    naive_calls = 1 + len(session.pattern.panels) + max(walk_frames, 1) + 1
+
+    app.shutdown()
+    saving = 100.0 * (1 - tee_tokens / naive_tokens)
+    print(
+        f"garment dress+zip+walk+handoff: naive {naive_tokens:,} tok / {naive_calls} calls "
+        f"-> tee {tee_tokens:,} tok / {tee_calls} calls ({saving:.1f}% saved); "
+        f"{wall:.1f}s, {garment.n_points:,} particles, {walk_frames} walk frames"
+    )
+    entities = session.summary() if hasattr(session, "summary") else {}
+    return {
+        "panels": len(session.pattern.panels),
+        "particles": garment.n_points,
+        "walk_frames": walk_frames,
+        "naive_tokens": naive_tokens,
+        "naive_calls": naive_calls,
+        "tee_tokens": tee_tokens,
+        "tee_calls": tee_calls,
+        "saving": round(saving, 1),
+        "wall_s": round(wall, 1),
+        "zippers": len(session.zippers),
+        "summary": {k: v for k, v in entities.items() if k in ("worn", "commands")},
+    }
+
+
 def run_fabrication_scenario() -> dict | None:
     import socket as _socket
 
@@ -1691,9 +1798,10 @@ def main() -> None:
     fabrication_row = _safe(run_fabrication_scenario)
     senses_row = _safe(run_senses_scenario)
     seamkiln_row = _safe(run_seamkiln_scenario)
+    seamkiln_followup_row = _safe(run_seamkiln_followup_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
-                  fabrication_row, senses_row, seamkiln_row)
+                  fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row)
     _stage("total", t0)
 
 
@@ -1760,7 +1868,8 @@ def _carry_forward(section_header: str) -> list[str]:
 def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
                   kb_row=None, web_row=None, gateway_row=None,
-                  fabrication_row=None, senses_row=None, seamkiln_row=None) -> None:
+                  fabrication_row=None, senses_row=None, seamkiln_row=None,
+                  seamkiln_followup_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -2013,6 +2122,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _seamkiln_section(seamkiln_row)
     else:
         lines += _carry_forward("## Garment lane: draft, sew, drape, fit (A53)")
+    if seamkiln_followup_row is not None:
+        lines += _seamkiln_followup_section(seamkiln_followup_row)
+    else:
+        lines += _carry_forward("## Garment lane: dress, zip, walk, hand off (A65)")
     # Sections owned by the SIBLING runners (run_k4_mixed.py wrote the A42
     # scheduler row; run_p6_pipeline.py the A43 lane row). This file rewrites
     # RESULTS.md wholesale, so anything it does not carry forward is deleted
@@ -2101,7 +2214,35 @@ def _seamkiln_section(row: dict) -> list[str]:
         f"Drape took {row['drape_s']} s; seams closed to "
         f"{row['seam_gap_mean_mm']} mm mean; worn: {row['worn']}.",
         "The always-loaded surface is unchanged at 17 tools - seamkiln joins through",
-        "the Adapter protocol and six `sk_*` virtual tools.",
+        "the Adapter protocol and fourteen `sk_*` virtual tools (six at A53; the A65",
+        "audit added `sk_hardware`, `sk_avatar`, `sk_touch`, `sk_handoff` and friends).",
+    ]
+
+
+def _seamkiln_followup_section(row: dict) -> list[str]:
+    """A65 P3.5: the follow-up verbs' tokens-per-task row."""
+    return [
+        "",
+        "## Garment lane: dress, zip, walk, hand off (A65)",
+        "",
+        f"A zipped jacket - {row['panels']} panels, {row['particles']:,} particles - "
+        "wrap-arranged and DRESSED on the",
+        f"figure, zipped, walked {row['walk_frames']} frames at the gait's own speed, and "
+        "handed off to Blender.",
+        "The naive arm reads what a model must read WITHOUT compact state: every panel",
+        "outline, the dressed mesh, the mesh again for every frame of the walk, and the",
+        "hardware as geometry. The TEE arm is one batch, its diff, and one `sk_hardware`",
+        "call.",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (outlines + dressed mesh + per-frame meshes + hardware) | "
+        f"{row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| tee (batch + diff + sk_hardware) | {row['tee_tokens']:,} | {row['tee_calls']} |",
+        f"| **saved** | **{row['saving']}%** | |",
+        "",
+        f"The batch took {row['wall_s']} s end to end; {row['zippers']} zipper fitted. "
+        "Surface unchanged: 17 tools.",
     ]
 
 

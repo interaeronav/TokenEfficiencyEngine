@@ -84,10 +84,15 @@ def register_seamkiln_tools(app) -> None:
         if action == "compare":
             return library.compare([str(n) for n in args.get("names", [])])
         if action == "derive":
+            # `texture` is the one string on the card (a render property); every
+            # other change is a number.
             card = library.derive(
                 str(args["base"]),
                 str(args["name"]),
-                **{k: float(v) for k, v in (args.get("changes") or {}).items()},
+                **{
+                    k: (str(v) if k == "texture" else float(v))
+                    for k, v in (args.get("changes") or {}).items()
+                },
             )
             library.add(card, category=str(args.get("category", "custom")), overwrite=True)
             return card.describe()

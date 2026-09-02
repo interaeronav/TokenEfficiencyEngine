@@ -181,9 +181,68 @@ bundled fabric card is tier `plausible` and says so; the licence gate
 (`seamkiln/tests/test_licences.py`) fails the build if Triangle, `smplx` or
 ArcSim data enters the dependency closure and names the replacement.
 
+## Render properties on the card
+
+A `Fabric` carries `roughness` (0 gloss .. 1 matte) and `texture` (a path or
+name for an albedo) as **render** fields. The solver never reads them, and
+every place they appear says so: `describe()["render"]["physical"]` is
+`False`, the material library and `sk_materials` list them, the tech pack
+prints them as "render only, not physical", and a handoff manifest carries
+them as `fabric_render` for the artist on the other side. Deriving a
+glossier card keeps the base's tier and test report — a render change is not
+a physical change; a heavier cloth is a different drape, a rougher one is
+only a different picture.
+
+## The examples: the two shots, from the repo
+
+```bash
+cd seamkiln
+python -m examples.cape_shot all --out /tmp/cape     # sim, sound, render, encode
+python -m examples.fur_walk  sim --out /tmp/fur --probe
+```
+
+`examples/cape_shot` is the superhero in a cape of the Namibian flag (two
+jumps, a bouncy mat, a pool, wetness per vertex, sound cut from the sim's own
+record); `examples/fur_walk` is the fur jacket walking toward camera (the
+jacket wrap-arranged and dressed by the kernel, the walk's bob emergent, the
+fur regrown each frame from one seed). Each has four stages — `sim` needs
+only seamkiln, `sound` only numpy, `render` and `encode` a headless Blender
+started with `--factory-startup` so the owner's open file is never touched —
+and `all`. `--probe` is a short, coarse run whose only claim is that the
+pipeline runs; its manifest says so in words, and the CI smoke test runs
+exactly that, without Blender. Every bug those shots found is in the kernel;
+the examples are what let the next session re-run them in minutes.
+`python -m examples.showcase all --cape /tmp/cape --fur /tmp/fur --to film.mp4`
+cuts the two finished shots, two Blender-rendered stills (the flat pattern;
+the jacket arranged on the figure before the solver) and title cards into one
+film. It simulates nothing itself.
+
 ## The GUI
 
 `uv pip install 'seamkiln[gui]' && python -m seamkiln.gui.app`. It is a
-client of the core and covers the A53 loop (block, allowance, body, arrange,
-drape, fit); the follow-up verbs are script- and TEE-driven and the shell has
-not caught up — that is recorded as open work, not hidden.
+client of the core: every button builds a `Command` from the session as it
+stands and hands it to `Session.apply` (Law 3), and the action table is
+Qt-free so a machine with no Qt still tests it. Buttons: tee block, jacket
+block, allowance, mannequin, figure, arrange, drape, fit, **zip**,
+**button** (one button a third of the way down the opening, hole on the
+other side), **walk** (half a stride, travelling), **pull hem** (60 mm
+outward from where it hangs lowest).
+
+Verbs the shell still has **no button for** — script- and TEE-driven only:
+`animate`, `cut`, `delete`, `ease`, `export`, `finish`, `fold`, `grade`,
+`handoff`, `lace`, `lock`, `panel`, `pinch`, `rip`, `seam`, `techpack`,
+`unfasten`, `unlock`, `unzip`. The list is asserted against `VERBS` by
+`test_gui_actions.py`, so it cannot drift silently.
+
+## The tier-2 bake: attempted, blocked
+
+A53 named C-IPC (`ipc-sim/Codim-IPC`, Apache-2.0) as the intersection-free
+bake behind an opt-in `drape quality="bake"`. A65 P4 attempted the build on
+this Mac once, out of process in a scratch directory, as specified. It does
+not build here: CMake 4 refuses the project's `cmake_minimum_required` floor
+and its Kokkos 3.1.01 pin (worked around with the policy-minimum override),
+`find_package(OPENMP)` fails on Apple, and then the compile stops at the
+first Kokkos object because the project's own `CMakeLists.txt` hard-codes
+x86 flags — `-mfma -mbmi2 -mavx2` — which GCC on Apple Silicon rejects. The
+exact errors are in `docs/PROGRESS.md`. The XPBD solver stays the only tier;
+`quality="bake"` is not offered rather than offered and broken.

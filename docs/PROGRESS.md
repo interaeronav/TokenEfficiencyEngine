@@ -9626,3 +9626,97 @@ follow-up audited against the tree, the tests, and a live `TeeApp`.
 an industry DXF from the owner (Gap 4); the two shots as repo examples; the
 GUI catching up with the follow-up verbs; render properties on the material
 card; a benchmark row for the follow-ups.
+
+### A65 P3 and P4, same day (2026-09-02, owner asleep: "continue all phases")
+
+**P3 — the follow-ups made reproducible and complete. DONE.**
+
+- **Examples, not scratchpads.** `seamkiln/examples/cape_shot/` and
+  `seamkiln/examples/fur_walk/` are the two delivered shots as headless
+  pipelines — `sim` (seamkiln only), `sound` (numpy), `render` and `encode`
+  (headless Blender, `--factory-startup`, never the owner's open file), and
+  `all` — with argparse and a `--probe` run whose manifest says in words that
+  a probe is not evidence. Ported onto the kernel's own parts: the cape hangs
+  off `seamkiln.figure.clasp_points` on a figure turned to face +X; the
+  jacket is wrap-arranged from `frame_from_figure` and dressed by
+  `drape.dressing.dress`. `test_examples.py` runs both `sim --probe` in CI
+  with no Blender (cape 36 s, fur 11 s) and checks the record the sound stage
+  cuts from: landings, the mat's compression, the wet card, the gait's own
+  speed. `examples/showcase/` cuts the two shots, two Blender-rendered stills
+  and title cards into one film. Both examples were then run end to end at
+  full quality from the repo (192 + 108 frames at 1920×1080, with sound).
+  The fur run's own record, honestly: the jacket at 11 mm dressed to seams
+  of 0.6–7.5 mm mean, 26 % contact, a 38 mm standoff, `worn` on 105 of 108
+  frames — and a worst seam of 109 mm, which is two particles at each front
+  armhole cap popping over the deltoid ball (3 of 114 pairs over 30 mm). The
+  scratchpad pipeline had reported 36.5 mm; the kernel's `dress()` is the
+  same routine on the kernel's own figure and the number is what it is. A
+  cap point that pops over the deltoid is the next physics item, not a
+  render one.
+- **Every verb replays.** `test_session_every_verb.py`: one script that
+  uses all 29 verbs in an order a garment can take — pattern edits before the
+  garment exists, hardware and the A54 follow-ups on the drape, live gestures
+  after the walk, the handoff last — and replays to one fingerprint. It found
+  no replay hole, which is the result worth having.
+- **Render properties on the card.** `Fabric.roughness` (0 gloss .. 1 matte)
+  and `Fabric.texture` are render fields: `describe()["render"]` carries them
+  with `physical: False`, the library and `compare` list them, the tech pack
+  prints them as "render only, not physical" (its label column widened so the
+  label survives `_table`'s truncation — the first test caught "not physic"),
+  the handoff manifest carries `fabric_render`, and `sk_materials` derive
+  accepts the one string on the card. Deriving a glossier card keeps a
+  MEASURED tier and its test report; deriving a heavier one still drops it.
+- **The GUI caught up, and says what it lacks.** The shell's action table is
+  module-level and Qt-free: every button is a factory that reads the session
+  and builds a `Command` (Law 3). New: `Zip`, `Button` (one button a third of
+  the way down the opening, its hole on the other side, both found from the
+  opening seam), `Walk` (half a stride, travelling), `Pull hem` (60 mm
+  outward from where it hangs lowest), plus the jacket block and the figure.
+  `VERBS_WITHOUT_A_BUTTON` names the 19 verbs still script-only and
+  `test_gui_actions.py` asserts the two lists partition `VERBS`, so the gap
+  cannot drift silently. PySide6 is not in this venv, so the Qt tests skip
+  here as designed and the table is tested without it.
+- **Benchmark row.** `run_seamkiln_followup_scenario`: a zipped jacket
+  wrap-arranged and dressed on the figure, zipped, walked at the gait's own
+  speed, handed off to Blender — one batch through the adapter, its diff, and
+  one `sk_hardware` call, against outlines + the dressed mesh + a mesh per
+  walk frame + the hardware as geometry. Measured: naive 549,090 tokens / 11 calls against TEE 1,432 tokens / 2 calls, 99.7 % saved; the batch took 57.4 s end to end on 12,487 particles, four walk frames. The A53 row was re-run
+  on the same machine (99.3 % saved, drape 22.6 s under load) and now says
+  fourteen `sk_*` tools, not six.
+
+**P4 — the tier-2 bake. ATTEMPTED, BLOCKED.** C-IPC (`ipc-sim/Codim-IPC`,
+commit 9c6cbe3 of 2022-11-01, Apache-2.0) was cloned into the scratch
+directory and configured with its own recipe (`build_Mac.py`: Homebrew GCC,
+`-DLINEAR_SOLVER=EIGEN`), nothing installed and nothing changed on the
+machine. The actual errors, in order:
+
+1. `CMake Error at CMakeLists.txt:1 (cmake_minimum_required): Compatibility
+   with CMake < 3.5 has been removed from CMake` — the project pins 3.2 and
+   its `DownloadProject` pulls of Kokkos 3.1.01, kokkos-kernels 3.1.01 and
+   the Cabana fork pin the same; `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` does
+   not reach the child configures, exporting it in the environment does
+   (CMake 4.4.3).
+2. `Could NOT find OpenMP (missing: OpenMP_CXX_FOUND)` — the project calls
+   `find_package(OPENMP)` on Apple; configure completes regardless, with
+   Boost 1.92.0, Homebrew Eigen3, the system GLUT framework and this venv's
+   Python 3.11.
+3. `g++-16: error: unrecognized command-line option '-mfma'` (and `-mbmi2`,
+   `-mavx2`) on the first Kokkos object,
+   `Kokkos-build/core/src/.../Kokkos_HostSpace_deepcopy.cpp.o`, then
+   `make: *** [all] Error 2`. The flags are hard-coded in the project's
+   `CMakeLists.txt` line 20; this is an Apple M5 Max (arm64) with Homebrew
+   GCC 16.1.0.
+
+Closed as *attempted, blocked by x86-only compiler flags baked into
+Codim-IPC on Apple Silicon* (with the CMake-4 and OpenMP frictions in
+front of it). `drape quality="bake"` is not offered; the XPBD solver stays
+the only tier, and the guide says so. Patching the upstream build was out of
+scope: the script asked for one honest attempt, not a port.
+
+**P5 — still owed, and cannot be done without the owner:** an industry DXF
+(Gerber, Optitex or Lectra) to test the round-trip against a file another
+system wrote; a character model if the shots are to move past the figure.
+
+**Suites at close:** seamkiln 260 passed / 8 skipped (from 244); server 1,224 passed /
+17 skipped / 97 dcc-deselected (from 1,214); lint clean on every file
+touched. Surface unchanged: 17 tools / 2,033 tok.

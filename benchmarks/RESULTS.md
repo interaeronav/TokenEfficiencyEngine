@@ -255,13 +255,31 @@ diff, and one `sk_fit` call.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (outlines + draped mesh) | 80,520 | 5 |
-| tee (batch + diff + sk_fit) | 597 | 2 |
+| naive (outlines + draped mesh) | 80,408 | 5 |
+| tee (batch + diff + sk_fit) | 599 | 2 |
 | **saved** | **99.3%** | |
 
-Drape took 6.0 s; seams closed to 1.386 mm mean; worn: True.
+Drape took 19.6 s; seams closed to 0.577 mm mean; worn: True.
 The always-loaded surface is unchanged at 17 tools - seamkiln joins through
-the Adapter protocol and six `sk_*` virtual tools.
+the Adapter protocol and fourteen `sk_*` virtual tools (six at A53; the A65
+audit added `sk_hardware`, `sk_avatar`, `sk_touch`, `sk_handoff` and friends).
+
+## Garment lane: dress, zip, walk, hand off (A65)
+
+A zipped jacket - 5 panels, 12,487 particles - wrap-arranged and DRESSED on the
+figure, zipped, walked 4 frames at the gait's own speed, and handed off to Blender.
+The naive arm reads what a model must read WITHOUT compact state: every panel
+outline, the dressed mesh, the mesh again for every frame of the walk, and the
+hardware as geometry. The TEE arm is one batch, its diff, and one `sk_hardware`
+call.
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (outlines + dressed mesh + per-frame meshes + hardware) | 549,090 | 11 |
+| tee (batch + diff + sk_hardware) | 1,432 | 2 |
+| **saved** | **99.7%** | |
+
+The batch took 57.4 s end to end; 1 zipper fitted. Surface unchanged: 17 tools.
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 

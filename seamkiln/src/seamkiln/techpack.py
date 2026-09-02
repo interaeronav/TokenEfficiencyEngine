@@ -116,8 +116,12 @@ def write(
             ],
             ["shear", f"{cloth.shear:.2f}", str(cloth.tier)],
             ["friction", f"{cloth.friction:.2f}", str(cloth.tier)],
+            ["render roughness", f"{cloth.roughness:.2f}", "render only, not physical"],
+            ["texture", cloth.texture or "(flat colour)", "render only, not physical"],
         ],
-        widths=[52, 62, 40],
+        # the third column is wide enough for its longest label; `_table`
+        # truncates a cell to its width rather than wrapping it
+        widths=[46, 58, 50],
     )
     pdf.set_font("helvetica", "I", 7)
     pdf.set_text_color(120, 120, 120)
