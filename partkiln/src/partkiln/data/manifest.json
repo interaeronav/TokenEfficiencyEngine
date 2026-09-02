@@ -1,0 +1,83 @@
+{
+  "_about": "Provenance for every data file partkiln ships. The loader (partkiln.data) refuses a file whose entry lacks any of source, licence, retrieved - a table with no paper trail is not a standard, it is a guess.",
+  "banned_bulk_sources": [
+    "MatWeb",
+    "engineeringtoolbox",
+    "MakeItFrom",
+    "NIST SRD (15 USC 290e statute)"
+  ],
+  "files": {
+    "clearance_holes.csv": {
+      "source": "https://raw.githubusercontent.com/gumyr/bd_warehouse/main/src/bd_warehouse/data/clearance_hole_sizes.csv",
+      "licence": "Apache-2.0",
+      "retrieved": "2026-09-02",
+      "authority": "ISO 273:1979",
+      "units": "mm",
+      "notes": "Verbatim copy, renamed only. Columns Size,Close,Normal,Loose = the fine/medium/coarse clearance series of ISO 273. 90 rows M1-M105 as shipped by bd_warehouse."
+    },
+    "tap_holes.csv": {
+      "source": "https://raw.githubusercontent.com/gumyr/bd_warehouse/main/src/bd_warehouse/data/tap_hole_sizes.csv",
+      "licence": "Apache-2.0",
+      "retrieved": "2026-09-02",
+      "authority": "ISO 2306:1972 tap-drill practice, as tabulated by bd_warehouse",
+      "units": "mm (metric rows); the imperial rows carry inch fractions in Size",
+      "notes": "Verbatim copy, renamed only. Size embeds the pitch (M6-1, M6-0.75); Soft/Hard are the drill diameters for soft and hard materials. 99 rows, metric and unified."
+    },
+    "drill_sizes.csv": {
+      "source": "https://raw.githubusercontent.com/gumyr/bd_warehouse/main/src/bd_warehouse/data/drill_sizes.csv",
+      "licence": "Apache-2.0",
+      "retrieved": "2026-09-02",
+      "authority": "ANSI/ASME B94.11M letter and number drill sizes",
+      "units": "inch",
+      "notes": "Verbatim copy, renamed only. Letter (A-Z) and number (#1-#80) drills; Diameter is in inches, converted to mm at the lookup boundary. 106 rows."
+    },
+    "iso4762.csv": {
+      "source": "https://raw.githubusercontent.com/gumyr/bd_warehouse/main/src/bd_warehouse/data/socket_head_cap_parameters.csv",
+      "licence": "Apache-2.0",
+      "retrieved": "2026-09-02",
+      "authority": "ISO 4762:2004 (hexagon socket head cap screws); ASME B18.3 for the unified rows",
+      "units": "mm (iso4762 columns); inch (asme_b18.3 columns)",
+      "notes": "Verbatim copy, renamed only - the header keeps bd_warehouse's trailing spaces ('iso4762:dk '), the loader strips them. dk head diameter, k head height, s hex key, t key engagement, short/long the nominal length range. 57 rows."
+    },
+    "iso4014_4017.csv": {
+      "source": "https://raw.githubusercontent.com/gumyr/bd_warehouse/main/src/bd_warehouse/data/hex_head_parameters.csv",
+      "licence": "Apache-2.0",
+      "retrieved": "2026-09-02",
+      "authority": "ISO 4014:2011 (hexagon head bolts), ISO 4017:2014 (hexagon head screws), DIN 931",
+      "units": "mm",
+      "notes": "Verbatim copy, renamed only. Per standard: k head height, s across flats, short/long the nominal length range. 29 rows M1.6-M64."
+    },
+    "iso4032.csv": {
+      "source": "https://raw.githubusercontent.com/gumyr/bd_warehouse/main/src/bd_warehouse/data/hex_nut_parameters.csv",
+      "licence": "Apache-2.0",
+      "retrieved": "2026-09-02",
+      "authority": "ISO 4032:2012 (style 1), ISO 4033:2012 (style 2), ISO 4035:2012 (thin, chamfered)",
+      "units": "mm",
+      "notes": "Verbatim copy, renamed only. Per standard: m nut height, s across flats; an empty cell means that standard does not table the size. 31 rows."
+    },
+    "iso7089.csv": {
+      "source": "https://raw.githubusercontent.com/gumyr/bd_warehouse/main/src/bd_warehouse/data/plain_washer_parameters.csv",
+      "licence": "Apache-2.0",
+      "retrieved": "2026-09-02",
+      "authority": "ISO 7089:2000 (normal), ISO 7091 (normal, product grade C), ISO 7093 (large), ISO 7094 (extra large)",
+      "units": "mm",
+      "notes": "Verbatim copy, renamed only. Per standard: d1 inner, d2 outer, h thickness; an empty cell means that standard does not table the size. 33 rows."
+    },
+    "iso261_pitch.csv": {
+      "source": "https://raw.githubusercontent.com/adrianschlatter/threadlib/master/THREAD_TABLE.scad",
+      "licence": "BSD-3-Clause",
+      "retrieved": "2026-09-02",
+      "authority": "ISO 261:1998 / ISO 262 general-purpose metric screw threads",
+      "units": "mm",
+      "notes": "DERIVED from threadlib's THREAD_TABLE.scad by partkiln (designator + first tuple element = pitch, external rows only; internal rows carry the same pitch). Series is read off the designator form the file uses: a bare 'M6' is threadlib's coarse anchor, so every pitch equal to that nominal's anchor is 'coarse' and every other pitch 'fine'; nominals the file never lists bare (M0.25-M0.9, M100 and up) are 'unlabelled' rather than guessed. 532 rows; nothing added."
+    },
+    "materials.json": {
+      "source": "own",
+      "licence": "own",
+      "retrieved": "2026-09-02",
+      "authority": "EN 1993-1-1:2005 3.2.6 (steel design values), EN 10025-2:2019 (S275/S355 ReH), EN 10130:2006 (DC01), EN 10088-1 (1.4301 density), grade datasheet class for 100Cr6; everything else an engineering handbook range",
+      "units": "kg/m3, N/mm2",
+      "notes": "Every value carries {value, unit, source, honesty}. honesty standard_value = the number the named standard prints; datasheet = a grade datasheet class; typical_range = a handbook range, the midpoint served with the range beside it; derived = computed here. No value was taken from a banned bulk source."
+    }
+  }
+}

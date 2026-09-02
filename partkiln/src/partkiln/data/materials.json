@@ -1,0 +1,131 @@
+{
+  "_about": "Material cards for pk_materials. Every value is {value, unit, source, honesty}; honesty in {standard_value, datasheet, typical_range, derived}. A typical_range value is the midpoint and carries its range. Densities are what mass_g multiplies by; the rest is what a check reads.",
+  "honesty_tiers": ["standard_value", "datasheet", "typical_range", "derived"],
+  "cards": {
+    "steel_s275": {
+      "family": "structural steel",
+      "designation": "S275JR (EN 10025-2)",
+      "aliases": ["steel", "s275", "mild steel"],
+      "properties": {
+        "density": {"value": 7850, "unit": "kg/m3", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "E": {"value": 210000, "unit": "N/mm2", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "G": {"value": 81000, "unit": "N/mm2", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "nu": {"value": 0.3, "unit": "-", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "yield": {"value": 275, "unit": "N/mm2", "source": "EN 10025-2 ReH, t <= 16 mm", "honesty": "standard_value"}
+      },
+      "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only."
+    },
+    "steel_s355": {
+      "family": "structural steel",
+      "designation": "S355JR (EN 10025-2)",
+      "aliases": ["s355"],
+      "properties": {
+        "density": {"value": 7850, "unit": "kg/m3", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "E": {"value": 210000, "unit": "N/mm2", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "G": {"value": 81000, "unit": "N/mm2", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "nu": {"value": 0.3, "unit": "-", "source": "EN 1993-1-1:2005 3.2.6", "honesty": "standard_value"},
+        "yield": {"value": 355, "unit": "N/mm2", "source": "EN 10025-2 ReH, t <= 16 mm", "honesty": "standard_value"}
+      },
+      "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only."
+    },
+    "steel_dc01": {
+      "family": "cold-rolled low-carbon sheet",
+      "designation": "DC01 (EN 10130), 1.0330",
+      "aliases": ["dc01", "crs", "cold rolled steel"],
+      "properties": {
+        "density": {"value": 7850, "unit": "kg/m3", "source": "EN 1993-1-1:2005 3.2.6 (steel)", "honesty": "standard_value"},
+        "E": {"value": 210000, "unit": "N/mm2", "source": "EN 1993-1-1:2005 3.2.6 (steel)", "honesty": "standard_value"},
+        "yield": {"value": 210, "unit": "N/mm2", "range": [140, 280], "source": "engineering handbook range for EN 10130 DC01 (the standard sets only an upper ReH of 280)", "honesty": "typical_range"},
+        "tensile": {"value": 340, "unit": "N/mm2", "range": [270, 410], "source": "engineering handbook range for EN 10130 DC01 (Rm 270-410)", "honesty": "typical_range"}
+      },
+      "notes": "EN 10130 was not fetched this session; strength is served as a range, not a standard number. DC01 is a forming grade - ReH is capped, not guaranteed."
+    },
+    "steel_100cr6": {
+      "family": "bearing steel",
+      "designation": "100Cr6 (EN ISO 683-17), 1.3505, SAE 52100",
+      "aliases": ["100cr6", "52100", "bearing steel"],
+      "properties": {
+        "density": {"value": 7810, "unit": "kg/m3", "source": "grade datasheet class (SAE 52100 / 100Cr6)", "honesty": "datasheet"},
+        "E": {"value": 210000, "unit": "N/mm2", "range": [200000, 215000], "source": "engineering handbook range", "honesty": "typical_range"}
+      },
+      "notes": "Strength depends entirely on heat treatment (annealed vs through-hardened 60+ HRC), so no yield is claimed."
+    },
+    "aluminium_6061": {
+      "family": "aluminium alloy",
+      "designation": "EN AW-6061 (AlMg1SiCu)",
+      "aliases": ["6061", "al6061", "aluminum_6061"],
+      "properties": {
+        "density": {"value": 2700, "unit": "kg/m3", "range": [2690, 2710], "source": "engineering handbook range", "honesty": "typical_range"},
+        "E": {"value": 70000, "unit": "N/mm2", "range": [68000, 70000], "source": "engineering handbook range", "honesty": "typical_range"},
+        "yield": {"value": 240, "unit": "N/mm2", "range": [240, 276], "source": "engineering handbook range, T6 temper", "honesty": "typical_range"}
+      },
+      "notes": "EN 1999-1-1 3.2.5 prints rho 2700 and E 70000 as design values for all wrought alloys, but that text was not fetched this session, so nothing here is claimed as standard. Yield is temper-dependent; the T6 range is served."
+    },
+    "aluminium_6082": {
+      "family": "aluminium alloy",
+      "designation": "EN AW-6082 (AlSi1MgMn)",
+      "aliases": ["6082", "al6082", "aluminum_6082"],
+      "properties": {
+        "density": {"value": 2700, "unit": "kg/m3", "range": [2690, 2710], "source": "engineering handbook range", "honesty": "typical_range"},
+        "E": {"value": 70000, "unit": "N/mm2", "range": [68000, 70000], "source": "engineering handbook range", "honesty": "typical_range"},
+        "yield": {"value": 260, "unit": "N/mm2", "range": [250, 310], "source": "engineering handbook range, T6 temper", "honesty": "typical_range"}
+      },
+      "notes": "Same caveat as aluminium_6061: EN 1999-1-1 design values not fetched, so served as a handbook range. Yield is temper-dependent; the T6 range is served."
+    },
+    "brass_cw614n": {
+      "family": "free-machining brass",
+      "designation": "CW614N (CuZn39Pb3, EN 12164)",
+      "aliases": ["brass", "cw614n", "cuzn39pb3"],
+      "properties": {
+        "density": {"value": 8470, "unit": "kg/m3", "range": [8400, 8500], "source": "engineering handbook range", "honesty": "typical_range"},
+        "E": {"value": 97000, "unit": "N/mm2", "range": [95000, 100000], "source": "engineering handbook range", "honesty": "typical_range"},
+        "yield": {"value": 250, "unit": "N/mm2", "range": [150, 350], "source": "engineering handbook range, R380-R500 tempers", "honesty": "typical_range"}
+      },
+      "notes": "Lead content makes CW614N RoHS-exempt only under specific annexes; the card carries mechanics, not compliance."
+    },
+    "pla": {
+      "family": "thermoplastic (FFF)",
+      "designation": "polylactic acid, printed",
+      "aliases": ["pla"],
+      "properties": {
+        "density": {"value": 1240, "unit": "kg/m3", "range": [1210, 1250], "source": "engineering handbook range", "honesty": "typical_range"},
+        "E": {"value": 3500, "unit": "N/mm2", "range": [3000, 4000], "source": "engineering handbook range, injection-moulded", "honesty": "typical_range"},
+        "yield": {"value": 55, "unit": "N/mm2", "range": [45, 65], "source": "engineering handbook range, tensile strength", "honesty": "typical_range"}
+      },
+      "notes": "A printed part is not solid: infill and layer adhesion scale mass and strength well below these bulk figures. mass_g assumes 100% solid."
+    },
+    "abs": {
+      "family": "thermoplastic (FFF)",
+      "designation": "acrylonitrile butadiene styrene",
+      "aliases": ["abs"],
+      "properties": {
+        "density": {"value": 1040, "unit": "kg/m3", "range": [1020, 1060], "source": "engineering handbook range", "honesty": "typical_range"},
+        "E": {"value": 2200, "unit": "N/mm2", "range": [1900, 2500], "source": "engineering handbook range", "honesty": "typical_range"},
+        "yield": {"value": 40, "unit": "N/mm2", "range": [30, 50], "source": "engineering handbook range, tensile strength", "honesty": "typical_range"}
+      },
+      "notes": "Same printing caveat as pla: bulk figures, 100% solid assumed."
+    },
+    "nylon_pa6": {
+      "family": "engineering thermoplastic",
+      "designation": "polyamide 6",
+      "aliases": ["nylon", "pa6", "nylon6"],
+      "properties": {
+        "density": {"value": 1130, "unit": "kg/m3", "range": [1120, 1150], "source": "engineering handbook range", "honesty": "typical_range"},
+        "E": {"value": 2700, "unit": "N/mm2", "range": [2000, 3300], "source": "engineering handbook range, dry as moulded", "honesty": "typical_range"},
+        "yield": {"value": 70, "unit": "N/mm2", "range": [60, 85], "source": "engineering handbook range, dry as moulded", "honesty": "typical_range"}
+      },
+      "notes": "PA6 absorbs water; conditioned stiffness can be a third of the dry figure. The card serves dry-as-moulded."
+    },
+    "stainless_1_4301": {
+      "family": "austenitic stainless steel",
+      "designation": "X5CrNi18-10, 1.4301 (EN 10088), AISI 304",
+      "aliases": ["stainless", "304", "1.4301", "a2"],
+      "properties": {
+        "density": {"value": 7900, "unit": "kg/m3", "source": "EN 10088-1 (1.4301 density 7.9 kg/dm3)", "honesty": "standard_value"},
+        "E": {"value": 200000, "unit": "N/mm2", "range": [193000, 200000], "source": "engineering handbook range at 20 C", "honesty": "typical_range"},
+        "yield": {"value": 210, "unit": "N/mm2", "range": [190, 230], "source": "engineering handbook range, Rp0.2 annealed (EN 10088-2 sets a 190 minimum)", "honesty": "typical_range"}
+      },
+      "notes": "EN 10088-2 was not fetched this session; only the density is served as a standard value."
+    }
+  }
+}
