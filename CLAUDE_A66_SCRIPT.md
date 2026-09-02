@@ -444,7 +444,8 @@ refuses naming accepted suffixes; `"W/2 - 5mm"` evaluates, `__import__` refuses;
 via n-ary cut ≤ 0.2 s, 520 481.421, 106 faces, 312 edges; fillet `plate:edges(dir=Z)` → resolved 4,
 `seam edges excluded: 1`, −34.336, faces 7→11; chamfer −80.000; F2 44 916.967 / 13 faces; F3
 49 480.084 / 7; sweep 3 715.7 ± 0.5; loft 28 000; F4 shell 15 552 / draft 30 352.2; counterbore
-−98.96; countersink −16.76 beyond the Ø10; taper +3° via `LocOpe_DPrism` 59 085.191 / 6 faces and
+−98.96; countersink −16.76 beyond the Ø10; taper +3° via `LocOpe_DPrism` 59 085.191 / 6 faces with `height="along_wall"`
+(the default `vertical` semantic gives 59 165.138 with z max 10.000) and
 −3° 60 756.864 / 10 faces; keyway −611.9 ± 0.1; mirror 89 833.933 / 17; circular 24 543.693 / 9;
 suppress 3 → 97; cosmetic thread leaves the fingerprint bit-identical; **edit impact**: Ø10→Ø12 →
 `changed:[hole1 −345.575]`, `fillet1 unchanged`, part 58 869.027; editing F2's `t` regenerates every
