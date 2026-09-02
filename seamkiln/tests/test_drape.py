@@ -221,6 +221,33 @@ def test_seams_choose_their_own_orientation(body) -> None:
     assert any(v == "direct" for v in garment.seam_orientation.values())
 
 
+def test_seam_pairs_are_in_register_and_the_two_sides_mirror(body) -> None:
+    """Two runs of the same length sampled the same way differ in parameter
+    by rounding only, and a first-at-or-after match turned that rounding into
+    a one-vertex register error along a whole seam - on the tee, the right
+    side seam and not the left, with the doubled pair at the armpit corner
+    where three seams meet. That was an 82 mm open corner on the mannequin
+    and the jacket's 0.7 mm convergence margin. Pairs are matched to the
+    NEAREST vertex now, so a pair's two ends sit at the same height along a
+    side seam and the left table is the right table's mirror image."""
+    pattern = tee_block()
+    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=12.0)
+    rest = garment.rest_points_mm
+    tables = {}
+    for side in ("side-right", "side-left"):
+        low, high = garment.seam_spans[side]
+        pairs = garment.seams[low:high]
+        ya, yb = rest[pairs[:, 0], 1], rest[pairs[:, 1], 1]
+        above_hem = np.minimum(ya, yb) > 20.0  # the hem's loop-closing vertex is a known one-off
+        assert np.abs(ya - yb)[above_hem].max() < 1e-6, f"{side} is out of register"
+        top = pairs[np.argmax(np.maximum(ya, yb))]
+        assert rest[top[0], 1] == rest[top[1], 1] == 420.0, (
+            f"{side}: the corner pair is not corner to corner"
+        )
+        tables[side] = sorted(zip(np.round(ya, 6), np.round(yb, 6), strict=True))
+    assert tables["side-right"] == tables["side-left"]
+
+
 def test_the_garment_starts_as_one_mesh_with_every_panel_in_it(body) -> None:
     pattern = tee_block()
     garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=COARSE)

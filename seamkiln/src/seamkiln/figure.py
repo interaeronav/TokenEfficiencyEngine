@@ -39,6 +39,14 @@ import trimesh
 # PLY importer runs colour channels through sRGB->linear but leaves alpha
 # exactly as written - checked, not assumed.
 PARTS = ("suit", "skin", "boot", "glove", "belt", "emblem")
+# The torso's section: wider than deep, as a ribcage is (depth about 0.7 of
+# width on a person). Built round, every part of the trunk was a body of
+# revolution and NOTHING on the figure resisted a garment turning about it:
+# measured on the walk, a zipped jacket yawed 15-20 degrees with every stride
+# from the sleeves swinging on the arms, drifted 32 mm to one side in two
+# seconds, and carried one shoulder over the crest of the deltoid. An
+# elliptical trunk is what locks a jacket's yaw, on a person and here.
+TORSO_SQUASH = (1.10, 0.78)  # x (width), z (depth) scale of the trunk parts
 SUIT, SKIN, BOOT, GLOVE, BELT, EMBLEM = range(6)
 
 JOINT_NAMES = (
@@ -196,24 +204,41 @@ def figure(
             parts.append((mesh, tag))
 
     chest_r, waist_r, pelvis_r = H * 0.106, H * 0.068, H * 0.086
-    add(_frustum(j["waist"], j["chest"], waist_r, chest_r), SUIT)
-    add(_frustum(j["chest"], j["neck"], chest_r, chest_r * 0.88), SUIT)
-    add(_ball(j["chest"], chest_r, squash=(1.0, 0.42, 0.86)), SUIT)
-    add(_frustum(j["pelvis"], j["waist"], pelvis_r, waist_r), SUIT)
-    add(_ball(j["pelvis"], pelvis_r, squash=(1.0, 0.62, 0.80)), SUIT)
+    trunk = np.diag([TORSO_SQUASH[0], 1.0, TORSO_SQUASH[1], 1.0])
+
+    def trunk_part(mesh):
+        # the trunk parts sit on the body's axis, so scaling about the origin
+        # widens and flattens them in place
+        if mesh is not None:
+            mesh.apply_transform(trunk)
+        return mesh
+
+    add(trunk_part(_frustum(j["waist"], j["chest"], waist_r, chest_r)), SUIT)
+    add(trunk_part(_frustum(j["chest"], j["neck"], chest_r, chest_r * 0.88)), SUIT)
+    add(trunk_part(_ball(j["chest"], chest_r, squash=(1.0, 0.42, 0.86))), SUIT)
+    add(trunk_part(_frustum(j["pelvis"], j["waist"], pelvis_r, waist_r)), SUIT)
+    add(trunk_part(_ball(j["pelvis"], pelvis_r, squash=(1.0, 0.62, 0.80))), SUIT)
+    # The deltoid: a ball 1.06 wide across the shoulder, not 1.24. At 1.24 it
+    # was 178 mm across on a 122 mm upper arm - 1.46 times the arm, where a
+    # real shoulder is about 1.25 - and no sleeve a block will draft could
+    # pass over it: a 1.18x sleeve slid off it in a walk, and the armhole
+    # refused anything wider. At 1.06 it is 153 mm, and a 1.3x sleeve hooks
+    # with margin to spare through a walk.
     for tag in ("l", "r"):
-        add(_ball(j[f"shoulder_{tag}"], H * 0.040, squash=(1.24, 0.94, 1.0)), SUIT)
+        add(_ball(j[f"shoulder_{tag}"], H * 0.040, squash=(1.06, 0.94, 1.0)), SUIT)
 
     belt = j["waist"] + np.asarray([0.0, -H * 0.014, 0.0])
     add(
-        _frustum(belt, belt + np.asarray([0.0, H * 0.032, 0.0]), waist_r * 1.12, waist_r * 1.12),
+        trunk_part(
+            _frustum(belt, belt + np.asarray([0.0, H * 0.032, 0.0]), waist_r * 1.12, waist_r * 1.12)
+        ),
         BELT,
     )
 
     up = j["neck"] - j["waist"]
     up = up / max(float(np.linalg.norm(up)), 1e-9)
     front = np.asarray([0.0, -up[2], up[1]])
-    badge = j["waist"] + up * (H * 0.118) + front * chest_r
+    badge = j["waist"] + up * (H * 0.118) + front * (chest_r * TORSO_SQUASH[1])
     add(_ball(badge, H * 0.031, squash=(1.20, 1.35, 0.22)), EMBLEM)
 
     head_r = H * 0.072

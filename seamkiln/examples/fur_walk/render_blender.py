@@ -19,6 +19,9 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _blender_body import load_figure
+
 ARGS = sys.argv[sys.argv.index("--") + 1 :]
 WALK, OUT = Path(ARGS[0]), Path(ARGS[1])
 FIRST = int(ARGS[2]) if len(ARGS) > 2 else 0
@@ -29,16 +32,23 @@ SAMPLES = int(ARGS[6]) if len(ARGS) > 6 else 48
 M = json.loads((WALK / "manifest.json").read_text())
 TRI = np.load(WALK / "cloth_topology.npy")
 
+# The figure is a MANNEQUIN, and it is rendered as one: warm wood, matte, the
+# head the same as the body. Rendered as a black suit with a skin neck it read
+# as a shop dummy with its head painted out, which is worse than a figure
+# that is honestly a figure.
+WOOD = (0.33, 0.215, 0.115)
 PART_COLOURS = [
-    (0.030, 0.028, 0.026),  # SUIT - near-black, so the pelt is the subject
-    (0.195, 0.092, 0.048),  # SKIN
-    (0.030, 0.026, 0.024),  # BOOT
-    (0.048, 0.040, 0.034),  # GLOVE
-    (0.120, 0.085, 0.045),  # BELT
-    (0.300, 0.190, 0.070),  # EMBLEM
+    WOOD,  # SUIT
+    (0.38, 0.26, 0.15),  # SKIN - a shade lighter, so the neck and hands read
+    (0.20, 0.125, 0.07),  # BOOT - darker feet
+    (0.29, 0.19, 0.105),  # GLOVE
+    WOOD,  # BELT
+    WOOD,  # EMBLEM
 ]
-FUR_ROOT = (0.016, 0.010, 0.007)
-FUR_TIP = (0.118, 0.070, 0.036)
+# The pelt: a dense dark undercoat and sparse guard hairs with pale tips,
+# each strand tinted a little differently - uniform fuzz reads as felt.
+UNDER_ROOT, UNDER_TIP = (0.018, 0.011, 0.007), (0.16, 0.095, 0.048)
+GUARD_ROOT, GUARD_TIP = (0.05, 0.03, 0.016), (0.50, 0.37, 0.22)
 
 
 def to_blender(p):
@@ -83,7 +93,17 @@ def fur_material():
     return m
 
 
-def build_fur(strands, material, camera, root_mm=1.3, tip_mm=0.35):
+def build_fur(
+    strands,
+    material,
+    camera,
+    root_mm=1.3,
+    tip_mm=0.35,
+    root=UNDER_ROOT,
+    tip=UNDER_TIP,
+    name="Fur",
+    variation=0.28,
+):
     a, m, b = strands[:, 0], strands[:, 1], strands[:, 2]
     pts = to_blender(np.stack([a, m, b], axis=1))  # [n, 3, 3]
     eye = np.asarray(camera, dtype=np.float64)
@@ -113,17 +133,24 @@ def build_fur(strands, material, camera, root_mm=1.3, tip_mm=0.35):
         ],
         axis=0,
     )
-    me = bpy.data.meshes.new("FurMesh")
+    me = bpy.data.meshes.new(f"{name}Mesh")
     me.from_pydata(verts.tolist(), [], quads.tolist())
     me.update()
     shade = me.color_attributes.new(name="along", type="FLOAT_COLOR", domain="POINT")
     along = np.tile(np.asarray([0.0, 0.5, 1.0]), (n, 2)).reshape(-1)
+    # per-strand tint from the strand's index: the strands are regrown from
+    # one seed every frame, so index k is the same root every frame and its
+    # tint does not flicker
+    rng = np.random.default_rng(11)
+    tint = 1.0 + variation * (rng.random(n) * 2.0 - 1.0)
+    per_vertex = np.repeat(tint, 6)
     colour = np.zeros((len(verts), 4), dtype=np.float32)
     for k in range(3):
-        colour[:, k] = FUR_ROOT[k] + (FUR_TIP[k] - FUR_ROOT[k]) * along
+        colour[:, k] = (root[k] + (tip[k] - root[k]) * along) * per_vertex
     colour[:, 3] = 1.0
     shade.data.foreach_set("color", colour.ravel())
-    obj = bpy.data.objects.new("Fur", me)
+
+    obj = bpy.data.objects.new(name, me)
     bpy.context.collection.objects.link(obj)
     obj.data.materials.append(material)
     for poly in me.polygons:
@@ -145,30 +172,7 @@ def cloth_object(points, material):
 
 
 def load_body(path, materials_, offset):
-    before = set(bpy.data.objects)
-    bpy.ops.wm.ply_import(filepath=str(path))
-    obj = next(iter(set(bpy.data.objects) - before))
-    obj.name = "Hero"
-    obj.rotation_euler = (math.radians(90), 0, 0)
-    obj.location = (offset[0], offset[2], offset[1])
-    obj.data.materials.clear()
-    for m in materials_:
-        obj.data.materials.append(m)
-    me = obj.data
-    attr = me.color_attributes[0]
-    raw = np.zeros((len(attr.data), 4), dtype=np.float32)
-    attr.data.foreach_get("color", raw.ravel())
-    reds = raw[:, 0].astype(np.float64)
-    order = np.asarray(sorted(set(reds.tolist())))
-    edges = (order[:-1] + order[1:]) / 2.0
-    per_vertex = np.searchsorted(edges, reds)
-    first = np.asarray([p.vertices[0] for p in me.polygons], dtype=np.int64)
-    me.polygons.foreach_set("material_index", per_vertex[first].astype(np.int32))
-    for poly in me.polygons:
-        poly.use_smooth = True
-    obj.modifiers.new("smooth", "SUBSURF").levels = 1
-    me.update()
-    return obj
+    return load_figure(path, materials_, offset, name="Figure")
 
 
 def build_world():
@@ -184,34 +188,52 @@ def build_world():
     sky.air_density = 1.0
     sky.aerosol_density = 0.9
     nt.links.new(sky.outputs["Color"], nt.nodes["Background"].inputs["Color"])
-    nt.nodes["Background"].inputs["Strength"].default_value = 0.30
+    nt.nodes["Background"].inputs["Strength"].default_value = 0.22
 
-    # Backlight FIRST: fur is read through light passing THROUGH it. 4.6, not
-    # 11 - a near-black boot and a mid-brown pelt both clip to the same pale
-    # nothing when the key is that hot.
+    # The low sun behind is the RIM: fur is read through light passing
+    # through it. But a subject lit only from behind is a silhouette, and the
+    # first pass was - grey figure, cream pelt. The key is a warm sun from
+    # the front-left, and a soft cool fill from the right keeps the shadow
+    # side from going to black.
+    bpy.ops.object.light_add(type="SUN")
+    rim = bpy.context.active_object
+    rim.name = "Rim"
+    rim.data.energy = 3.4
+    rim.data.angle = math.radians(2.5)
+    rim.data.color = (1.0, 0.86, 0.68)
+    rim.rotation_euler = (math.radians(76), 0, math.radians(188))
+
     bpy.ops.object.light_add(type="SUN")
     key = bpy.context.active_object
-    key.name = "Backlight"
-    key.data.energy = 4.6
-    key.data.angle = math.radians(2.5)
-    key.data.color = (1.0, 0.88, 0.72)
-    key.rotation_euler = (math.radians(76), 0, math.radians(188))
-    bpy.ops.object.light_add(type="AREA", location=(2.0, -6.5, 3.0))
+    key.name = "Key"
+    key.data.energy = 2.6
+    key.data.angle = math.radians(4.0)
+    key.data.color = (1.0, 0.93, 0.84)
+    # the figure walks toward +Y (seamkiln +Z); a sun tilted by a NEGATIVE X
+    # angle travels toward -Y and so lights the faces that look toward +Y
+    key.rotation_euler = (math.radians(-52), 0, math.radians(-38))
+
+    bpy.ops.object.light_add(type="AREA", location=(-2.4, 4.6, 2.4))
     fill = bpy.context.active_object
     fill.name = "Fill"
-    fill.data.energy = 260.0
-    fill.data.size = 8.0
+    fill.data.energy = 220.0
+    fill.data.size = 6.0
     fill.data.color = (0.78, 0.86, 1.0)
-    fill.rotation_euler = (math.radians(66), 0, math.radians(24))
+    fill.rotation_euler = (math.radians(-62), 0, math.radians(-30))
 
-    ground = mat("ground", (0.115, 0.108, 0.098), rough=0.95)
+    # packed earth, not a grey plane: a coarse and a fine noise, warm, with
+    # enough contrast that the figure's shadow lands on something
+    ground = mat("ground", (0.115, 0.098, 0.080), rough=0.95)
     nt2 = ground.node_tree
     noise = nt2.nodes.new("ShaderNodeTexNoise")
-    noise.inputs["Scale"].default_value = 7.0
-    noise.inputs["Detail"].default_value = 9.0
+    noise.inputs["Scale"].default_value = 2.2
+    noise.inputs["Detail"].default_value = 12.0
+    noise.inputs["Roughness"].default_value = 0.72
     ramp = nt2.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].color = (0.022, 0.021, 0.020, 1.0)
-    ramp.color_ramp.elements[1].color = (0.068, 0.063, 0.056, 1.0)
+    ramp.color_ramp.elements[0].position = 0.42
+    ramp.color_ramp.elements[0].color = (0.035, 0.027, 0.019, 1.0)
+    ramp.color_ramp.elements[1].position = 0.58
+    ramp.color_ramp.elements[1].color = (0.24, 0.185, 0.13, 1.0)
     nt2.links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
     nt2.links.new(ramp.outputs["Color"], nt2.nodes["Principled BSDF"].inputs["Base Color"])
     bpy.ops.mesh.primitive_plane_add(size=200.0)
@@ -232,13 +254,14 @@ def main():
     scene.view_settings.exposure = 0.05
 
     build_world()
-    parts = [mat(f"p{i}", c, rough=0.45, spec=0.5) for i, c in enumerate(PART_COLOURS)]
-    shell = mat("shell", (0.048, 0.030, 0.020), rough=0.86, spec=0.25)
+    # matte: with a coat and a low roughness the figure rendered as porcelain
+    parts = [mat(f"p{i}", c, rough=0.78, spec=0.28) for i, c in enumerate(PART_COLOURS)]
+    shell = mat("shell", (0.028, 0.018, 0.011), rough=0.9, spec=0.2)
     pelt = fur_material()
 
     bpy.ops.object.camera_add()
     cam = bpy.context.active_object
-    cam.data.lens = 48.0
+    cam.data.lens = 50.0
     cam.data.dof.use_dof = True
     cam.data.dof.aperture_fstop = 2.4
     scene.camera = cam
@@ -250,20 +273,36 @@ def main():
         i = shot["frame"]
         # camera FIRST: every fur ribbon is turned to face it
         hz = shot["offset"][2]
-        cam.location = (0.34, 3.35, 1.34)
-        look = Vector((0.0, hz + 0.10, 1.10))
+        cam.location = (0.42, 3.15, 1.30)
+        look = Vector((0.0, hz + 0.10, 1.08))
         direction = look - cam.location
         cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
         cam.data.dof.focus_distance = max(direction.length, 0.6)
 
         cloth = cloth_object(np.load(WALK / "cloth" / f"{i:04d}.npy").astype(np.float64), shell)
         strands = np.load(WALK / "fur" / f"{i:04d}.npy").astype(np.float64)
-        fur = build_fur(strands, pelt, cam.location)
-        hero = load_body(WALK / "body" / f"{i:04d}.ply", parts, shot["offset"])
+        made = [cloth, build_fur(strands, pelt, cam.location, root_mm=0.9, tip_mm=0.25)]
+        guard_file = WALK / "guard" / f"{i:04d}.npy"
+        if guard_file.exists():
+            guard = np.load(guard_file).astype(np.float64)
+            made.append(
+                build_fur(
+                    guard,
+                    pelt,
+                    cam.location,
+                    root_mm=1.0,
+                    tip_mm=0.18,
+                    root=GUARD_ROOT,
+                    tip=GUARD_TIP,
+                    name="Guard",
+                    variation=0.35,
+                )
+            )
+        made.append(load_body(WALK / "body" / f"{i:04d}.ply", parts, shot["offset"]))
 
         scene.render.filepath = str(OUT / f"{i:04d}.png")
         bpy.ops.render.render(write_still=True)
-        for obj in (cloth, fur, hero):
+        for obj in made:
             bpy.data.objects.remove(obj, do_unlink=True)
         print(f"RENDERED {i} ({strands.shape[0]} strands)", flush=True)
 

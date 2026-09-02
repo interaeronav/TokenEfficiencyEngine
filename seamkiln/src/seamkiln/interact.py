@@ -137,20 +137,27 @@ class LiveSession:
 
         A fold set this way is not a decoration painted on - it is cloth that
         was moved and then released, so it stays only to the extent the fabric
-        will hold it. Measured on a tee front, a 45 mm push held for 40 frames
-        after letting go:
+        will hold it. Measured on a WORN tee (the front hem pushed 45 mm back
+        against the hips, 40 frames after letting go):
 
-            silk habotai   pushed 20.3 mm, kept 14.1 mm   (69%)
-            cotton poplin  pushed 25.0 mm, kept 23.4 mm   (94%)
-            denim 12 oz    pushed 20.3 mm, kept 18.1 mm   (89%)
-            wool suiting   pushed 23.6 mm, kept 13.9 mm   (59%)
+            silk habotai   pushed 24.6 mm, kept -1.0 mm   (-4%)
+            cotton poplin  pushed 24.6 mm, kept  0.3 mm   ( 1%)
+            denim 12 oz    pushed 24.8 mm, kept  1.2 mm   ( 5%)
+            wool suiting   pushed 24.6 mm, kept  2.3 mm   ( 9%)
 
-        Note that this does NOT order by stiffness, and the tempting story -
-        "stiff fabrics hold a fold" - is not what the numbers say. Two things
-        fight: stiffness resists the cloth springing back, and WEIGHT pulls the
-        fold out. The same 45 mm hand movement also moves each fabric a
-        different distance in the first place, which is why `pushed_mm` is
-        reported next to `held_mm` rather than assumed equal to the request.
+        A tee that fits has no loose cloth to fold: a push into the body is
+        stopped by the body and comes back. (An earlier table here gave
+        cotton poplin 94 % - measured, it turned out, on a sleeve that had
+        slid off the mannequin's arm and hung at the flank as a free flap.)
+        The same 45 mm hand movement also moves each fabric a different
+        distance in the first place, which is why `pushed_mm` is reported
+        next to `held_mm` rather than assumed equal to the request.
+
+        And why the number is the displacement ALONG the push: tug the same
+        front DOWN 45 mm instead and silk reports 153 % kept, because after
+        letting go it went on sliding - gravity lay along the axis. The
+        projection excludes gravity only when the push does not point along
+        it; the report says what was pushed and what was kept, nothing more.
         """
         handle = self.grab(at, radius_mm=radius_mm)
         push = np.asarray(direction, dtype=np.float64)

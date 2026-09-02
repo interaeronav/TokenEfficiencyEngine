@@ -16,6 +16,7 @@ place. A large radius is a flat plane, so one primitive covers both.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import trimesh
@@ -366,6 +367,109 @@ def arm_axes(mesh: trimesh.Trimesh, chest_radius: float) -> dict[str, dict[str, 
     return axes
 
 
+def sleeve_wear(
+    garment: GarmentMesh, points: np.ndarray, body: trimesh.Trimesh, *, slack: float = 1.8
+) -> dict[str, dict[str, float]]:
+    """Is each sleeve ON its arm - the question the seam gap cannot answer.
+
+    A garment whose right sleeve has slipped off the arm and hangs inside out
+    at the flank closes its seams beautifully: measured, the mannequin tee's
+    "converged" baseline had exactly that sleeve, at 0 % on the arm, for the
+    whole life of the cylinder arrangement. Per sleeve: the fraction of its
+    particles within `slack` arm radii of the arm's axis and between the
+    shoulder and a hand's breadth past the sleeve's own length, and where the
+    sleeve sits along the arm (its mean position from the shoulder).
+    """
+    marks = body_landmarks(body)
+    arms = arm_axes(body, marks["chest_radius_m"])
+    out: dict[str, dict[str, float]] = {}
+    for panel_id, (low, high) in garment.panel_slices.items():
+        name = panel_id.upper()
+        if not name.startswith("SLEEVE"):
+            continue
+        arm = arms.get("L" if name.endswith("L") else "R")
+        if arm is None:
+            continue
+        shoulder = np.asarray(arm["shoulder"], dtype=np.float64)
+        direction = np.asarray(arm["direction"], dtype=np.float64)
+        radius = float(arm["radius_m"])
+        rest = garment.rest_points_mm[low:high]
+        length = float(rest[:, 1].max() - rest[:, 1].min()) * MM
+        offsets = points[low:high] - shoulder
+        along = offsets @ direction
+        perpendicular = np.linalg.norm(offsets - along[:, None] * direction, axis=1)
+        on = (perpendicular < slack * radius) & (along > -0.05) & (along < length + 0.08)
+        out[panel_id] = {
+            "on_arm": round(float(on.mean()), 3),
+            "along_mm": round(float(along.mean()) * 1000.0, 1),
+            "clearance_mm": round(float(perpendicular.mean() - radius) * 1000.0, 1),
+        }
+    return out
+
+
+def _front_edge_side(pattern: Any, sleeve_id: str) -> int | None:
+    """+1 if the sleeve edge sewn to a FRONT panel lies on the piece's +x
+    side, -1 if on its -x side, None if no such seam is declared."""
+    panel = pattern.panel(sleeve_id)
+    edges = panel.edges()
+    centre_x = (panel.bbox[0] + panel.bbox[2]) / 2.0
+    for seam in pattern.seams:
+        for mine, other in ((seam.a, seam.b), (seam.b, seam.a)):
+            if mine.panel == sleeve_id and other.panel.upper().startswith("FRONT"):
+                run = edges[mine.edge % len(edges)]
+                x = float(np.mean([v.x for v in run]))
+                return 1 if x >= centre_x else -1
+    return None
+
+
+def _sleeve_frame(
+    direction: np.ndarray, front_at_plus_x: int | None = None, outward: np.ndarray | None = None
+) -> np.ndarray:
+    """The rotation that hangs a sleeve down an arm WITH ITS ROLL SET.
+
+    Aligning the tube to the arm with a minimal rotation leaves the roll about
+    the arm unspecified, and it landed the cap apex (the panel's centre, angle
+    0) at the FRONT of the arm with the underarm seam at the back. Sewn to an
+    armhole whose corner is on top of the shoulder and whose bottom is in the
+    armpit, the sleeve then has to twist a quarter turn round the arm, and
+    the twist piles up at the corner: 95-150 mm open at the shoulder point on
+    both front armholes, whatever the basting did.
+
+    So the frame is built in full: local -Y down the arm, local +Z (the cap
+    apex) toward the top of the shoulder - the direction perpendicular to the
+    arm with the most up in it - and local +X their cross product.
+
+    Then the HANDEDNESS. A block drafts one sleeve piece and uses it for both
+    arms, as a cutter does, and a proper rotation can only put that one piece
+    the right way round on ONE arm: measured, the left sleeve's front edge
+    landed in front and the right sleeve's landed behind, so the right sleeve
+    dragged the shoulder seam 128 mm backwards while it closed. The cutter
+    lays the second piece face-down, and so does this: `front_at_plus_x`
+    says which side of the piece is sewn to the front, and when the frame
+    would put that side behind the arm, local +X is reversed - a reflection,
+    which is what a flipped piece is.
+    """
+    down = np.asarray(direction, dtype=np.float64)
+    down = down / max(float(np.linalg.norm(down)), 1e-9)
+    up = np.asarray([0.0, 1.0, 0.0])
+    apex = up - float(up @ down) * down
+    if float(np.linalg.norm(apex)) < 0.05:
+        # An arm hanging straight down has no "most up" across it. The cap
+        # then faces OUTWARD - away from the body - which the caller says
+        # with `outward` (the shoulder's side); a fixed +x put the left
+        # sleeve's cap against the body on the mannequin and twisted it.
+        hint = np.asarray(outward if outward is not None else [1.0, 0.0, 0.0], dtype=np.float64)
+        apex = hint - float(hint @ down) * down
+        if float(np.linalg.norm(apex)) < 1e-9:
+            apex = np.asarray([1.0, 0.0, 0.0])
+    apex = apex / float(np.linalg.norm(apex))
+    local_y = -down
+    local_x = np.cross(local_y, apex)
+    if front_at_plus_x is not None and float(local_x[2]) * float(front_at_plus_x) < 0.0:
+        local_x = -local_x  # the piece laid face-down
+    return np.stack([local_x, local_y, apex], axis=1)
+
+
 def top_arrangement(
     pattern: Pattern, body: trimesh.Trimesh, *, ease: float = 1.30
 ) -> dict[str, Placement]:
@@ -419,11 +523,45 @@ def top_arrangement(
             # this, and `collision.alignment` now reports every panel facing
             # outward. The lesson is the ordinary one: the line you changed
             # last is a better suspect than the line that looks suspicious.
-            rotation = trimesh.geometry.align_vectors(
-                [0.0, -1.0, 0.0], np.asarray(arm["direction"])
-            )[:3, :3]
+            # The full frame, with the roll set and the handedness read from
+            # the seams, the same as the wrap path: the minimal rotation left
+            # the cap apex at the front of the arm and one sleeve twisted a
+            # quarter turn, which the collision normal's old sideways bias
+            # half-everted (agreement 0.19, 42 % of it facing the body) and
+            # the corrected normal everted outright.
+            #
+            # What the true normal and the full frame then exposed was worse
+            # than a roll. With both sleeves genuinely on the arms the tee's
+            # right side seam opened 82 mm at the armpit corner, and a sweep
+            # of every roll from 0 to 180 degrees, both handednesses, two cap
+            # raises, three tube radii, a zero-gravity baste, dressing, lower
+            # arms and a mirrored arrangement moved it between 54 and 82 - or
+            # "closed" it by sliding a sleeve off the arm, which is what the
+            # 25.8 mm baseline had been all along (right sleeve 0 % on the
+            # arm, inside out at the flank). The cause was the seam pairing:
+            # a one-vertex register error on the right side seam only, from
+            # a first-at-or-after match on rounding-equal parameters (see
+            # `_pair_one_seam`, and the loop-closing vertex `_boundary_in_span`
+            # left out of every last edge). Matched to the nearest vertex,
+            # the tee's worst seam is 19 mm with both sleeves 100 % on the
+            # arms and facing out, the zipped jacket's 6.
+            #
+            # The tube's radius comes from the sleeve's OWN width, as the
+            # wrap path's does, not 1.45 x the arm: measured with the
+            # pairing right, that takes the tee's side seams from 13 mm to
+            # 2-6 with the sleeves' facing 0.63-0.73 instead of 0.52, and
+            # the zipped jacket's worst seam from 13 mm to 6 (0.41-0.43
+            # facing instead of 0.31). The cap is still hung at the joint:
+            # raising it changed the worst seam by under a millimetre.
+            shoulder = np.asarray(arm["shoulder"], dtype=np.float64)
+            rotation = _sleeve_frame(
+                np.asarray(arm["direction"]),
+                _front_edge_side(pattern, panel.id),
+                outward=np.asarray([np.sign(shoulder[0]) or 1.0, 0.0, 0.0]),
+            )
+            width_m = (panel.bbox[2] - panel.bbox[0]) * MM
             placements[panel.id] = Placement(
-                radius_m=max(float(arm["radius_m"]) * 1.45, 0.03),
+                radius_m=max(width_m / (2.0 * np.pi), 0.03),
                 centre_angle_deg=0.0,
                 rotation=rotation,
                 origin_m=np.asarray(arm["shoulder"], dtype=np.float64),
@@ -465,6 +603,14 @@ def build_garment(
         )
         meshes[panel.id] = mesh
         points3d.append(placements[panel.id].apply(mesh.points))
+        # A piece placed by a REFLECTION (laid face-down: one sleeve piece
+        # serving both arms) has its winding mirrored, so its normals would
+        # face the body - the render-direction check called it inside out,
+        # and fur grown along those normals grows inward. Reverse the winding
+        # for that piece; the flat pattern, seams and rest lengths are
+        # unchanged by it.
+        if np.linalg.det(np.asarray(placements[panel.id].rotation, dtype=np.float64)) < 0.0:
+            mesh.triangles = np.ascontiguousarray(mesh.triangles[:, ::-1])
         points2d.append(mesh.points)
         triangles.append(mesh.triangles + offset)
         slices[panel.id] = (offset, offset + mesh.n_points)
@@ -647,9 +793,20 @@ def _global_span(pattern: Pattern, ref: EdgeRef) -> tuple[float, float]:
 
 def _boundary_in_span(mesh: PanelMesh, span: tuple[float, float]) -> tuple[np.ndarray, np.ndarray]:
     lo, hi = span
-    inside = (mesh.boundary_t >= lo - 1e-9) & (mesh.boundary_t <= hi + 1e-9)
+    t = mesh.boundary_t
+    inside = (t >= lo - 1e-9) & (t <= hi + 1e-9)
     indices = mesh.boundary[inside]
-    params = mesh.boundary_t[inside]
+    params = t[inside]
+    if hi >= 1.0 - 1e-9 and lo > 1e-9:
+        # The outline is a loop, so the vertex at t = 0 is also the END of
+        # the last edge, at t = 1. Left out, the last edge's run is one
+        # vertex short of its partner's and the pairing stretches it to fit:
+        # a register error of up to half a particle along the whole seam,
+        # on the tee's hem-to-armpit side seams and nowhere else.
+        closing = t <= 1e-9
+        if closing.any():
+            indices = np.concatenate([indices, mesh.boundary[closing]])
+            params = np.concatenate([params, np.full(int(closing.sum()), 1.0)])
     order = np.argsort(params)
     return indices[order], params[order]
 
@@ -693,7 +850,21 @@ def _pair_one_seam(
     follow_idx, follow_t, follow_base = follower
     order = np.argsort(follow_t)
     follow_t, follow_idx = follow_t[order], follow_idx[order]
-    nearest = np.searchsorted(follow_t, drive_t).clip(0, len(follow_idx) - 1)
+    # The NEAREST follower, not the first one at or after the driver's t.
+    # `searchsorted` alone gave the first-at-or-after, and two runs of the
+    # same length sampled the same way differ in t by rounding only - so
+    # whether the match landed on the right vertex or the next one was a
+    # coin toss of 1e-17 per seam. On the tee it came up one way for the
+    # left side seam and the other for the right: the right was sewn one
+    # vertex (12 mm) out of register along its whole length, with the
+    # doubled pair at the armpit corner where three seams meet. That
+    # register error was the 82 mm open corner on the mannequin, and the
+    # jacket's 0.7 mm convergence margin; matched by distance, the tee's
+    # worst seam is 17 mm and the jacket's 13.
+    after = np.searchsorted(follow_t, drive_t).clip(0, len(follow_idx) - 1)
+    before = (after - 1).clip(0, len(follow_idx) - 1)
+    closer = np.abs(follow_t[before] - drive_t) < np.abs(follow_t[after] - drive_t)
+    nearest = np.where(closer, before, after)
     return [
         (int(drive_base + d), int(follow_base + follow_idx[n]))
         for d, n in zip(drive_idx, nearest, strict=False)

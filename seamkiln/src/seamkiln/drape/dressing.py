@@ -32,7 +32,14 @@ from typing import Any
 import numpy as np
 
 from seamkiln.drape.environment import Environment
-from seamkiln.drape.garment import GarmentMesh, Placement, arm_axes, body_landmarks
+from seamkiln.drape.garment import (
+    GarmentMesh,
+    Placement,
+    _front_edge_side,
+    _sleeve_frame,
+    arm_axes,
+    body_landmarks,
+)
 from seamkiln.pattern.model import Pattern
 
 Vec = np.ndarray
@@ -195,7 +202,11 @@ def wrap_arrangement(
                     "or hand the frame explicit arm axes."
                 )
             shoulder, direction = frame.arms[tag]
-            rotation = _sleeve_frame(direction, _front_edge_side(pattern, panel.id))
+            rotation = _sleeve_frame(
+                direction,
+                _front_edge_side(pattern, panel.id),
+                outward=np.asarray([np.sign(float(shoulder[0])) or 1.0, 0.0, 0.0]),
+            )
             width_mm = panel.bbox[2] - panel.bbox[0]
             # The cap starts ABOVE the deltoid. A sleeve is drafted with its
             # biceps line at y = 0 and the cap rising above it, so hanging the
@@ -225,67 +236,27 @@ def wrap_arrangement(
     return placements
 
 
-def _front_edge_side(pattern: Pattern, sleeve_id: str) -> int | None:
-    """+1 if the sleeve edge sewn to a FRONT panel lies on the piece's +x
-    side, -1 if on its -x side, None if no such seam is declared."""
-    panel = pattern.panel(sleeve_id)
-    edges = panel.edges()
-    centre_x = (panel.bbox[0] + panel.bbox[2]) / 2.0
-    for seam in pattern.seams:
-        for mine, other in ((seam.a, seam.b), (seam.b, seam.a)):
-            if mine.panel == sleeve_id and other.panel.upper().startswith("FRONT"):
-                run = edges[mine.edge % len(edges)]
-                x = float(np.mean([v.x for v in run]))
-                return 1 if x >= centre_x else -1
-    return None
+def shoulder_anchors(
+    frame: BodyFrame, offset: Vec | None = None, *, tip_fraction: float = 0.85
+) -> dict[str, tuple[Vec, Vec]]:
+    """Where each shoulder seam belongs: from the neck toward the shoulder tip,
+    ending `tip_fraction` of the way there - INBOARD of the deltoid's crest.
 
-
-def _sleeve_frame(direction: Vec, front_at_plus_x: int | None = None) -> np.ndarray:
-    """The rotation that hangs a sleeve down an arm WITH ITS ROLL SET.
-
-    Aligning the tube to the arm with a minimal rotation leaves the roll about
-    the arm unspecified, and it landed the cap apex (the panel's centre, angle
-    0) at the FRONT of the arm with the underarm seam at the back. Sewn to an
-    armhole whose corner is on top of the shoulder and whose bottom is in the
-    armpit, the sleeve then has to twist a quarter turn round the arm, and
-    the twist piles up at the corner: 95-150 mm open at the shoulder point on
-    both front armholes, whatever the basting did.
-
-    So the frame is built in full: local -Y down the arm, local +Z (the cap
-    apex) toward the top of the shoulder - the direction perpendicular to the
-    arm with the most up in it - and local +X their cross product.
-
-    Then the HANDEDNESS. A block drafts one sleeve piece and uses it for both
-    arms, as a cutter does, and a proper rotation can only put that one piece
-    the right way round on ONE arm: measured, the left sleeve's front edge
-    landed in front and the right sleeve's landed behind, so the right sleeve
-    dragged the shoulder seam 128 mm backwards while it closed. The cutter
-    lays the second piece face-down, and so does this: `front_at_plus_x`
-    says which side of the piece is sewn to the front, and when the frame
-    would put that side behind the arm, local +X is reversed - a reflection,
-    which is what a flipped piece is.
+    Ending the line on the joint put the seam's tip exactly on the crest of
+    the ball, a knife-edge where either side is downhill, and the solver's
+    arbitrary order picked a side: measured, the two sleeves started as
+    mirror images to 2 mm, and after the hold one cap sat 27 mm inboard of
+    the crest and the other 6 mm, then 25 mm OUTBOARD after the settle - and
+    that one slid 60 mm down the arm in the first second of every walk while
+    the other never moved. A set-in sleeve gets its purchase on the inner
+    slope of the shoulder and its cap spills over the crest from there.
     """
-    down = np.asarray(direction, dtype=np.float64)
-    down = down / max(float(np.linalg.norm(down)), 1e-9)
-    up = np.asarray([0.0, 1.0, 0.0])
-    apex = up - float(up @ down) * down
-    if float(np.linalg.norm(apex)) < 1e-6:  # an arm pointing straight up or down
-        apex = np.asarray([1.0, 0.0, 0.0])
-    apex = apex / float(np.linalg.norm(apex))
-    local_y = -down
-    local_x = np.cross(local_y, apex)
-    if front_at_plus_x is not None and float(local_x[2]) * float(front_at_plus_x) < 0.0:
-        local_x = -local_x  # the piece laid face-down
-    return np.stack([local_x, local_y, apex], axis=1)
-
-
-def shoulder_anchors(frame: BodyFrame, offset: Vec | None = None) -> dict[str, tuple[Vec, Vec]]:
-    """Where each shoulder seam belongs: from the neck to the shoulder tip."""
     shift = np.zeros(3) if offset is None else np.asarray(offset, dtype=np.float64)
     out = {}
     for seam_id, tag in (("shoulder-right", "r"), ("shoulder-left", "l")):
         if tag in frame.arms:
-            out[seam_id] = (frame.neck + shift, frame.arms[tag][0] + shift)
+            tip = frame.neck + (frame.arms[tag][0] - frame.neck) * float(tip_fraction)
+            out[seam_id] = (frame.neck + shift, tip + shift)
     return out
 
 
@@ -379,6 +350,7 @@ def dress(
     environment: Environment | None = None,
     standoff_mm: float = 10.0,
     baste_sleeves_to_body: bool = True,
+    head_mm: float = 60.0,
 ) -> Any:
     """Pin the named seams to the body, baste the rest, settle, release.
 
@@ -460,7 +432,20 @@ def dress(
             if seam_id in anchors or hi <= lo:
                 continue
             pairs = garment.seams[lo:hi]
-            a, b = garment.points[pairs[:, 0]], garment.points[pairs[:, 1]]
+            # Basted to where its partner is GOING, not where it is. A
+            # particle that is also on an anchored seam - the shoulder corner,
+            # end of the shoulder seam and top of the armhole - has a target
+            # inboard on the shoulder line; its sleeve partner, basted to the
+            # corner's pre-hold position, was held on the wrap cylinder at
+            # 248 mm from the axis, exactly the crest of a 243 mm shoulder.
+            # The hold then pinned the two halves of the apex pair 40 mm
+            # apart and the release snapped them together to whichever side
+            # a millimetre of mesh sampling favoured: measured, the same cap
+            # went outboard and slid 60 mm down the arm in every walk while
+            # the other never moved. `targets` already holds the anchor
+            # positions for held particles and the current positions for the
+            # rest, so it is the reference for everything.
+            a, b = targets[pairs[:, 0]], targets[pairs[:, 1]]
             reference = 0.5 * (a + b)
             if baste_sleeves_to_body:
                 only_a = sleeve_particle[pairs[:, 0]] & ~sleeve_particle[pairs[:, 1]]
@@ -471,6 +456,29 @@ def dress(
                 free = ~held[pairs[:, side]]
                 pins[pairs[free, side]] = 1.0
                 targets[pairs[free, side]] = reference[free]
+
+    if baste and head_mm > 0.0:
+        # The sleeve HEAD is basted too: the top of the cap, moved with its
+        # apex. With only the cap's edge held, the head - the part that has
+        # to lie over the shoulder - settled where the ball's collision left
+        # it during the hold, and on the two arms it settled 20 mm apart
+        # (mirror images to 2 mm before the hold). Whichever head sat nearer
+        # the crest spilled over it when the pins let go and that sleeve slid
+        # down the arm in every walk that followed, whatever else changed. A
+        # tailor bastes the head over the shoulder before sewing; so does
+        # this, and both heads then start the release in the same state.
+        rest = garment.rest_points_mm
+        for panel_id, (lo, hi) in garment.panel_slices.items():
+            if _is_sleeve(panel_id) is None:
+                continue
+            apex = lo + int(np.argmax(rest[lo:hi, 1]))
+            if pins[apex] <= 0.0:
+                continue  # no sewn apex to follow
+            shift = targets[apex] - garment.points[apex]
+            head = lo + np.flatnonzero(rest[lo:hi, 1] >= rest[apex, 1] - float(head_mm))
+            head = head[pins[head] <= 0.0]
+            pins[head] = 1.0
+            targets[head] = garment.points[head] + shift
 
     held = pins > 0.0
     targets[held], moved = outside_the_body(sdf, targets[held], standoff_m=standoff_m)

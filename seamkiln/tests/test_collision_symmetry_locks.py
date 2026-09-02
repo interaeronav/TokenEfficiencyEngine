@@ -292,3 +292,68 @@ def test_a_lock_that_names_no_scope_refuses_instead_of_reporting_success() -> No
     # the spelling that works still works, and `all` is a scope of its own
     assert session.apply(Command("lock", {"scope": "panel:FRONT"}))["locked"] == ["panel:FRONT"]
     assert session.apply(Command("unlock", {"all": True}))["locked"] == []
+
+
+def test_a_contact_normal_has_no_favourite_direction() -> None:
+    """A square dropped on a ball to the LEFT of the origin and the same
+    square dropped on a ball to the RIGHT must land as mirror images.
+
+    They did not: the collision step took the field's gradient by central
+    differences at the FLOOR corner of the particle's voxel - the surface
+    normal half a voxel toward -x, -y and -z of where the particle was - and
+    on a curved body that tilt is systematic. A sleeve cap on the right
+    shoulder was pushed inboard and hooked; the same cap on the left was
+    pushed outboard and slid 60 mm down the arm in every walk, and swapping
+    every piece of geometry left and right moved nothing. The normal is now
+    the gradient of the same trilinear interpolant the distance comes from,
+    at the particle.
+    """
+    import numpy as np
+
+    from seamkiln.drape.body import sdf_from_mesh, solid_ball
+    from seamkiln.drape.garment import Placement, build_garment
+    from seamkiln.drape.solve import DrapeSettings, drape
+    from seamkiln.pattern.geometry import Vertex
+    from seamkiln.pattern.model import Panel, Pattern
+
+    side = 240.0
+    square = Pattern(
+        name="square",
+        panels=[
+            Panel(
+                id="SQ",
+                outline=[
+                    Vertex(-side / 2, -side / 2),
+                    Vertex(side / 2, -side / 2),
+                    Vertex(side / 2, side / 2),
+                    Vertex(-side / 2, side / 2),
+                ],
+            )
+        ],
+        units="mm",
+    )
+    settings = DrapeSettings(frames=90, substeps=12)
+    landed = {}
+    for sign in (-1.0, 1.0):
+        centre = np.asarray([sign * 0.31, 0.30, 0.0])
+        ball = solid_ball(radius_m=0.09, centre=tuple(centre))
+        field = sdf_from_mesh(ball, voxel_mm=13.0)  # a grid that does NOT align with the ball
+        flat = np.asarray([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]])  # laid flat, y up
+        garment = build_garment(
+            square,
+            {
+                "SQ": Placement(
+                    flat=True, rotation=flat, origin_m=centre + np.asarray([0.0, 0.16, 0.0])
+                )
+            },
+            particle_distance=12.0,
+        )
+        result = drape(garment, field, fabric="cotton_poplin", settings=settings)
+        pts = result.points - centre
+        landed[sign] = pts
+    mirrored = landed[-1.0] * np.asarray([-1.0, 1.0, 1.0])
+    from scipy.spatial import cKDTree
+
+    gap, _ = cKDTree(landed[1.0]).query(mirrored)
+    assert gap.mean() * 1000.0 < 3.0, f"mean mirror gap {gap.mean() * 1000:.1f} mm"
+    assert gap.max() * 1000.0 < 15.0, f"max mirror gap {gap.max() * 1000:.1f} mm"

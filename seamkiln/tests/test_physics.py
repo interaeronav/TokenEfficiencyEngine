@@ -362,6 +362,38 @@ def test_the_back_panel_is_mirrored_when_worn() -> None:
     assert result.seam_gaps["max_gap_mm"] < 40.0
 
 
+def test_both_sleeves_are_on_the_arms_and_face_out() -> None:
+    """The question the seam gap cannot answer. The mannequin tee's converged
+    baseline, for the whole life of the cylinder arrangement, had its right
+    sleeve slipped off the arm and hanging inside out at the flank - 0 % on
+    the arm - and every seam closed round that. Both sleeves now sit on the
+    arms with their normals facing out, and this is asserted so the seam
+    gate can never again be satisfied by a garment that is not worn."""
+    import numpy as np
+
+    from seamkiln.drape import collision
+    from seamkiln.drape.body import mannequin, sdf_from_mesh
+    from seamkiln.drape.garment import build_garment, sleeve_wear, top_arrangement
+    from seamkiln.pattern.fixtures import tee_block
+
+    body = mannequin()
+    pattern = tee_block()
+    garment = build_garment(pattern, top_arrangement(pattern, body), particle_distance=12.0)
+    field = sdf_from_mesh(body, voxel_mm=6.0)
+    result = drape(garment, field, fabric="cotton_poplin", settings=DrapeSettings(frames=280))
+    assert result.report()["converged"] is True
+    wear = sleeve_wear(garment, result.points, body)
+    assert set(wear) == {"SLEEVE_L", "SLEEVE_R"}
+    for panel, row in wear.items():
+        assert row["on_arm"] > 0.6, f"{panel} is not on its arm: {row}"
+    assert abs(wear["SLEEVE_L"]["along_mm"] - wear["SLEEVE_R"]["along_mm"]) < 25.0, wear
+    facing = collision.alignment(garment, result.points, field)
+    assert facing["inside_out_panels"] == []
+    assert facing["panels"]["SLEEVE_L"]["mean_agreement"] > 0.3, facing["panels"]
+    assert facing["panels"]["SLEEVE_R"]["mean_agreement"] > 0.3, facing["panels"]
+    assert np.abs(result.points[:, 0]).max() > 0.3, "a sleeve should reach down the arm"
+
+
 def test_a_fit_report_refuses_to_quote_an_unconverged_drape() -> None:
     """ "Never rely on a coarse preview" is a rule about REPORTING, so the
     refusal lives where the numbers would be quoted."""

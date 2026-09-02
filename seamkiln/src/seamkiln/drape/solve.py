@@ -512,9 +512,35 @@ def _kernel():
                                 d += wxx * wyy * wzz * grid[i0 + di, j0 + dj, k0 + dk]
                     if d >= offset:
                         continue
-                    gx = grid[min(i0 + 1, nx - 1), j0, k0] - grid[max(i0 - 1, 0), j0, k0]
-                    gy = grid[i0, min(j0 + 1, ny - 1), k0] - grid[i0, max(j0 - 1, 0), k0]
-                    gz = grid[i0, j0, min(k0 + 1, nz - 1)] - grid[i0, j0, max(k0 - 1, 0)]
+                    # The normal is the gradient of the SAME trilinear
+                    # interpolant the distance came from, at the particle.
+                    # It used to be a central difference at the cell's floor
+                    # corner - the surface normal half a voxel toward -x, -y
+                    # and -z of where the particle is - and on a curved body
+                    # that tilt is systematic: on the right shoulder the
+                    # sampling point sat inboard and the push hooked a sleeve
+                    # cap over the crest of the deltoid; on the left it sat
+                    # outboard and the push tipped the cap off. Measured on a
+                    # walk: one cap climbed 40 mm onto the ball, the other
+                    # slid 60 mm down the arm, and swapping every piece of
+                    # geometry left and right moved nothing - the bias lived
+                    # here, in the field's frame.
+                    gx = 0.0
+                    gy = 0.0
+                    gz = 0.0
+                    for di in range(2):
+                        wxx = tx if di == 1 else 1.0 - tx
+                        sx = 1.0 if di == 1 else -1.0
+                        for dj in range(2):
+                            wyy = ty if dj == 1 else 1.0 - ty
+                            sy = 1.0 if dj == 1 else -1.0
+                            for dk in range(2):
+                                wzz = tz if dk == 1 else 1.0 - tz
+                                sz = 1.0 if dk == 1 else -1.0
+                                corner = grid[i0 + di, j0 + dj, k0 + dk]
+                                gx += sx * wyy * wzz * corner
+                                gy += wxx * sy * wzz * corner
+                                gz += wxx * wyy * sz * corner
                     norm = np.sqrt(gx * gx + gy * gy + gz * gz)
                     if norm < 1e-12:
                         continue

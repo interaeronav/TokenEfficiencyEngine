@@ -423,11 +423,78 @@ def test_dressing_closes_the_armholes_over_the_deltoid(dressed_coat) -> None:
     ball. Now the cap sits over the shoulder and the worst pair is a seam
     allowance, not a limb."""
     _, _, garment, result, _ = dressed_coat
+    import numpy as np
+
     from seamkiln.drape.tearing import seam_tension
 
     gaps = seam_tension(garment, result.points)
     worst = {k: v["max_gap_mm"] for k, v in gaps.items()}
-    assert max(worst.values()) < 45.0, worst
+    # A seam is judged by its 98th percentile, not its single worst pair:
+    # the blocks' curves are drawn at 2-3 mm and the mesher keeps every
+    # outline vertex, so a 12 mm mesh's armhole is a fringe of sliver
+    # triangles whose boundary vertices crumple by 30 mm at 2 mm rest
+    # spacing - one pair of a closed seam then reads 50 mm while both its
+    # neighbours read 0.0 (measured: 51.6 mm on one pair, mean 0.68). The
+    # regression this guards was 109-120 mm on MANY pairs, straddling the
+    # ball, and a percentile catches that just as well.
+    for seam_id, (low, high) in garment.seam_spans.items():
+        pairs = garment.seams[low:high]
+        gap = np.linalg.norm(result.points[pairs[:, 0]] - result.points[pairs[:, 1]], axis=1)
+        assert float(np.percentile(gap, 98)) * 1000.0 < 20.0, (seam_id, worst)
     assert result.seam_gaps["mean_gap_mm"] < 4.0
     assert result.dressing["anchors_by_gradient"] >= 1
     assert result.dressing["shallowest_after_mm"] > 5.0
+
+
+def test_both_sleeve_heads_are_hooked_inboard_of_the_shoulder() -> None:
+    """The regression behind the sleeve that slid down one arm in every walk.
+
+    The two sleeves start as mirror images to 2 mm, and with only the cap's
+    EDGE basted, the free head settled 20 mm differently on the two arms
+    during the hold; whichever head sat nearer the crest of the deltoid
+    spilled over it when the pins let go, and that sleeve slid 60 mm down
+    the arm in the first second of every walk whatever else was changed.
+    Basting the head with its apex starts both sides in the same, hooked
+    state: measured after a 500-frame settle, both apexes 46-56 mm inboard.
+
+    On a FITTED jacket - the coat fixture is a dropped-shoulder cut whose
+    shoulder points overhang the deltoid by design.
+    """
+    body = figure(Pose(), height=H)
+    off = standing_offset(body)
+    body.apply_translation(off)
+    pattern = jacket_block(
+        opening="zipper",
+        length=700.0,
+        half_chest=390.0,
+        shoulder=215.0,
+        sleeve_length=470.0,
+        cuff=160.0,
+        biceps=ARM_MM * 1.32,
+    )
+    frame = frame_from_figure(Pose(), height=H)
+    garment = build_garment(
+        pattern, wrap_arrangement(pattern, frame, height=H), particle_distance=12.0
+    )
+    garment.points = garment.points + off
+    result = dress(
+        garment,
+        sdf_from_mesh(body, voxel_mm=12.0),
+        fabric="wool_suiting",
+        anchors=shoulder_anchors(frame, off),
+    )
+    j = joints(Pose(), height=H)
+    rest = garment.rest_points_mm
+    inboard = {}
+    for tag in ("l", "r"):
+        lo, hi = garment.panel_slices[f"SLEEVE_{tag.upper()}"]
+        apex = lo + int(np.argmax(rest[lo:hi, 1]))
+        joint = j[f"shoulder_{tag}"] + off
+        toward_neck = 1.0 if tag == "l" else -1.0  # the left shoulder is at -x
+        inboard[tag] = float((result.points[apex][0] - joint[0]) * toward_neck) * 1000.0
+        # on the ball's upper front slope at rest (it climbs to the top in a
+        # walk); below the joint it has slid off
+        assert result.points[apex][1] > joint[1] - 0.02, f"{tag}: the cap has slid off the ball"
+    assert min(inboard.values()) > 15.0, f"a cap ended on or past the crest: {inboard}"
+    assert abs(inboard["l"] - inboard["r"]) < 25.0, f"the two heads settled apart: {inboard}"
+    assert result.dressing["pinned"] > 1000, "the heads were basted, not just the edges"

@@ -41,7 +41,6 @@ DURATION = 4.5  # at 1.35 m/s this covers 6.1 m and ends 1.5 m short of the came
 # The figure is built facing +Z and walks +Z: the front of the garment and
 # the front of the body are the same direction without a rotation to get wrong.
 WALK_START_Z = -7.6
-FUR_PER_CM2 = 6.0
 
 # 11 mm: the jacket CONVERGES there (worst seam 36.5 mm); 14 mm does not.
 FULL = {
@@ -56,9 +55,10 @@ PROBE = {"fps": 6, "particle_mm": 20.0, "voxel_mm": 24.0, "substeps": 8, "hold":
 
 
 def fur_shell() -> str:
-    """The jacket's shell: heavy, stiff, high-friction. A fur coat holds a bell
-    shape instead of following the body, and that shape is most of what makes
-    it read as fur before a single strand is drawn."""
+    """The jacket's shell: heavy and high-friction, stiffer than a suiting but
+    not a board. The first cut was 3.4x a suiting's bending and 40 % ease, and
+    it hung like a box - the pelt reads as fur through its strands, not
+    through the shell refusing to bend."""
     from seamkiln.pattern.fabric import fabric as fabric_by_name
 
     base = fabric_by_name("wool_suiting")
@@ -66,31 +66,58 @@ def fur_shell() -> str:
         materials.derive(
             "wool_suiting",
             "fur_shell",
-            gsm=base.gsm * 1.85,
-            thickness_mm=5.0,
-            bend_warp=base.bend_warp * 3.4,
-            bend_weft=base.bend_weft * 3.2,
+            gsm=base.gsm * 1.6,
+            thickness_mm=4.0,
+            bend_warp=base.bend_warp * 2.2,
+            bend_weft=base.bend_weft * 2.0,
             friction=min(base.friction * 1.5, 0.95),
-            notes="shearling shell: pelt plus backing, heavy and stiff in bending",
+            notes="shearling shell: pelt plus backing, heavy, firm in bending",
         ),
         category="fur",
         overwrite=True,
     ).name
 
 
+# Two layers, as a pelt has: a dense short undercoat and sparse long guard
+# hairs with pale tips. One uniform layer read as a bath mat.
+UNDERCOAT = {
+    "density_per_cm2": 9.0,
+    "length_mm": 24.0,
+    "curl": 0.5,
+    "droop": 0.7,
+    "clump": 0.5,
+    "seed": 4242,
+}
+GUARD = {
+    "density_per_cm2": 1.4,
+    "length_mm": 46.0,
+    "curl": 0.35,
+    "droop": 0.85,
+    "clump": 0.3,
+    "seed": 4243,
+}
+
+
 def jacket_pattern():
-    """half_chest 420 is +25 % ease over this figure's chest, which a bulky
-    coat has; the sleeve WIDTH is set by the arm (`biceps=`) and the cap
-    height solved to the armhole - the trade a drafter makes."""
+    """A fitted jacket: +30 % ease over the figure's 1.2 m chest (half_chest
+    390 on a 191 mm chest radius), shoulders a little past the figure's own
+    (215 mm against a 197 mm neck-to-joint), and a sleeve 1.32 times the arm
+    - wide enough to hook over the deltoid with margin, which a 1.18x sleeve
+    slid off during the walk - with the cap height solved to the armhole.
+    The block ties the armhole to the length and the chest, so this is the
+    cut that takes that sleeve. The first cut had 40 % ease and 250 mm
+    shoulders and hung like a tent."""
     arm_mm = 2.0 * math.pi * HEIGHT * 0.034 * 1000.0
     return jacket_block(
         opening="zipper",
         length=700.0,
-        half_chest=420.0,
-        shoulder=250.0,
-        sleeve_length=480.0,
-        cuff=170.0,
-        biceps=arm_mm * 1.25,
+        half_chest=390.0,
+        shoulder=215.0,
+        sleeve_length=470.0,
+        # a half-width: 160 is a 320 mm cuff, which the figure's 295 mm hand
+        # passes with room; 150 was 300 and tight on the elbow ball
+        cuff=160.0,
+        biceps=arm_mm * 1.32,
     )
 
 
@@ -103,6 +130,26 @@ def walk_pose(track, t: float, fps: int) -> Pose:
     at = t % cycle
     lo = max([k for k in keys if k <= at], default=keys[0])
     return Pose.from_values({k: v for k, v in values[lo].items() if k != "rise_m"})
+
+
+def arms_by_the_sides(track, fps: int) -> float:
+    """The moment in the cycle when both arms hang straightest.
+
+    A fitter dresses a figure with its arms at its sides, and so must this.
+    The gait track begins mid-swing - one arm 20 degrees forward, the other
+    20 back - and a jacket dressed in that pose had one sleeve hung on a
+    forward-swung arm: measured, that sleeve slid 60 mm down the outside of
+    the arm in the first second of the walk while the other never moved. The
+    walk simply starts here instead; a gait has no first frame.
+    """
+    best, best_t = None, 0.0
+    for k in range(int(fps * 4 * track.duration) + 1):
+        t = k / (fps * 4)
+        pose = walk_pose(track, t, fps)
+        swing = abs(float(pose.shoulder_l)) + abs(float(pose.shoulder_r))
+        if best is None or swing < best:
+            best, best_t = swing, t
+    return best_t
 
 
 def simulate(
@@ -119,7 +166,7 @@ def simulate(
         opts["fps"] = int(fps)
     fps = int(opts["fps"])
     out = Path(out_dir)
-    for sub in ("cloth", "fur", "body"):
+    for sub in ("cloth", "fur", "guard", "body"):
         (out / sub).mkdir(parents=True, exist_ok=True)
 
     shell = fur_shell()
@@ -128,7 +175,8 @@ def simulate(
     # slides every foot through its own stance.
     speed = GAITS["walk"].speed_ms
     pattern = jacket_pattern()
-    rest_pose = walk_pose(track, 0.0, fps)
+    phase = arms_by_the_sides(track, fps)
+    rest_pose = walk_pose(track, phase, fps)
     frame = frame_from_figure(rest_pose, height=HEIGHT)
     garment = build_garment(
         pattern,
@@ -169,6 +217,7 @@ def simulate(
         "fabric": shell,
         "zip": fitted.summary(),
         "settings": opts,
+        "phase_offset_s": round(phase, 4),
         "shots": [],
     }
     if probe:
@@ -181,7 +230,7 @@ def simulate(
     fur_seconds = 0.0
     for i in range(frames):
         t = i / fps
-        pose = walk_pose(track, t, fps)
+        pose = walk_pose(track, t + phase, fps)
         local = figure(pose, height=HEIGHT, facing_deg=0.0)
         lift = float(standing_offset(local)[1])  # the lowest foot ON the ground
         offset = np.array([0.0, lift, WALK_START_Z + speed * t])
@@ -224,22 +273,18 @@ def simulate(
         garment.points = result.points
 
         fur_clock = Stopwatch()
-        pelt = finishing.fur(
-            result.points,
-            garment.triangles,
-            density_per_cm2=FUR_PER_CM2,
-            length_mm=26.0,
-            curl=0.55,
-            droop=0.62,
-            clump=0.45,
-            seed=4242,
-        )
+        pelt = finishing.fur(result.points, garment.triangles, **UNDERCOAT)
+        guard = finishing.fur(result.points, garment.triangles, **GUARD)
         fur_seconds += fur_clock.s
 
         np.save(out / "cloth" / f"{i:04d}.npy", result.points.astype(np.float32))
         np.save(
             out / "fur" / f"{i:04d}.npy",
             np.stack([pelt.starts, pelt.mids, pelt.ends], axis=1).astype(np.float32),
+        )
+        np.save(
+            out / "guard" / f"{i:04d}.npy",
+            np.stack([guard.starts, guard.mids, guard.ends], axis=1).astype(np.float32),
         )
         local.export(out / "body" / f"{i:04d}.ply")
         manifest["shots"].append(
@@ -249,6 +294,7 @@ def simulate(
                 "offset": [round(float(v), 4) for v in offset],
                 "pelvis_y": round(float(lift), 4),
                 "strands": int(pelt.starts.shape[0]),
+                "guard_hairs": int(guard.starts.shape[0]),
                 "seam_max_mm": result.seam_gaps["max_gap_mm"],
                 "worn": bool(result.contact.get("worn")),
             }

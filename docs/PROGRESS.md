@@ -9772,9 +9772,164 @@ the hold against the lifted line, which is what dressing promises.
 Suites after the fix: seamkiln 264 passed / 8 skipped; the server's seamkiln
 tests 24 passed.
 
-**Suites at close:** seamkiln 260 passed / 8 skipped (from 244); server 1,224 passed /
-17 skipped / 97 dcc-deselected (from 1,214); lint clean on every file
-touched. Surface unchanged: 17 tools / 2,033 tok.
+### "It looks terrible" (2026-09-02, owner) — the look pass, and the solver bias under it
+
+What was terrible, named from the frames: a black-headed plastic dummy with
+ribbed limbs, a jacket hanging like a tent (40 % ease, 250 mm shoulders on
+a 197 mm body), a pelt that read as felt, a grey plane under a bleached sky,
+and — once the jacket was fitted — one sleeve sliding down one arm in every
+walk. In order of what was found:
+
+- **Ribbed limbs**: the figure exports as triangles and the renderer put a
+  Catmull-Clark subdivision on a triangulated cylinder. The shared loader
+  (`examples/_blender_body.py`) joins the triangles back into quads and
+  renders without subdivision; the limbs are smooth.
+- **The mannequin**: rendered as matte wood, head included, instead of a
+  black suit with a skin neck. Ground: packed earth, not a plane. A warm
+  key in front, the low sun behind as the rim.
+- **The jacket**: +30 % ease (half_chest 390 on a 191 mm chest radius),
+  215 mm shoulders, a 1.32× sleeve, a 320 mm cuff, length 700 (the block
+  ties the armhole to the length and the chest, and that is the cut that
+  takes the sleeve). A two-layer pelt: dense undercoat, sparse pale-tipped
+  guard hairs, per-strand tint from the strand index so it does not
+  flicker.
+- **The figure**: the deltoid 1.06 wide, not 1.24 — 178 mm across a 122 mm
+  arm was 1.46 times the arm and no draftable sleeve passed it; the trunk
+  elliptical (1.10 × 0.78), because a jacket on a body of revolution has
+  nothing to stop it turning. The walk starts where the arms hang straight
+  (`arms_by_the_sides`), as a fitter dresses a figure.
+- **The solver's friction** came from `DrapeSettings.friction = 0.35`
+  whatever the cloth; the card's value was never read. `None` now means the
+  card's. Committed separately (6f12745); the physics suites pass.
+- **The sleeve that slid.** After the dressing fixes above one sleeve
+  still slid 60 mm down the arm in the first second of every walk, and it
+  was always the figure's left. Excluded by measurement, one at a time:
+  sleeve width (1.18× to 1.32×), the deltoid (1.24 → 1.06), the dressing
+  pose, the arm-swing phase (both zero crossings), wind, friction (0.35 and
+  0.53), the zipper (without it the slide was worse), the field's
+  resolution (7 mm), forty substeps, the panel order, the piece's winding,
+  the mirrored garment on the same body, the same garment on a mirrored
+  body, and a half-voxel shift. Dressing changes that stayed because they
+  are right: anchors lifted onto the shoulder, basting to the partner's
+  target rather than its position, and the sleeve HEAD basted with its
+  apex (the free head had settled 20 mm apart on the two arms during the
+  hold, and the release amplified that). None of them moved the side.
+  With the arms held still, nothing slid — so the swing acted on something
+  asymmetric that no geometry explained.
+- **The cause: the collision normal.** `solve.py` took the field's
+  gradient by central differences at the FLOOR corner of the particle's
+  voxel — the surface normal half a voxel toward −x, −y and −z of where the
+  particle was. On a curved body that tilt is systematic: a 240 mm square
+  dropped on a 90 mm ball was shoved 55–66 mm toward −x whichever side of
+  the origin the ball stood (mirror gap 61 mm mean, 181 max); on the right
+  shoulder the push hooked a cap over the crest, on the left it tipped the
+  cap off. The normal is now the gradient of the same trilinear interpolant
+  the distance comes from, at the particle: the mirror test drapes to
+  0.8 mm mean / 3.5 max, the original and mirrored jackets dress with their
+  caps within 6 mm of each other, and in the walk both caps climb onto the
+  ball in the first half second and stay (+53/+44 mm at two seconds,
+  within 10 mm of each other throughout). Every drape the kernel had ever
+  produced carried that sideways push. Pinned by
+  `test_a_contact_normal_has_no_favourite_direction`.
+
+- **What the corrected normal then exposed.** The A55 render-direction
+  guard reported the fitted jacket's face-down sleeve inside out - a piece
+  placed by a reflection has its winding mirrored, so its normals faced the
+  body and its fur would have grown inward; `build_garment` now reverses
+  the winding of any piece whose placement has a negative determinant. And
+  on the MANNEQUIN path the tee's right sleeve, placed with the same
+  minimal rotation the wrap path used to use, went from half-inverted under
+  the old bias (agreement 0.19, 42 % facing the body - which the threshold
+  had let through) to fully everted under the true normal. `top_arrangement`
+  now uses the shared sleeve frame with the handedness read from the seams.
+  Both sleeves then faced out (0.74 and 0.82) - with the worst seam at
+  81 mm, which is the next bullet.
+
+- **The 82 mm, and a baseline that never wore its sleeve.** With the frame
+  right, seven tests failed under the true normal, six of them on one
+  number: the mannequin tee's worst seam went from 25.8 mm to 82 (the
+  zipped jacket from 39.3 to 62.7), always `side-right`, always ONE pair -
+  the armpit corner where three seams meet - with every other pair on that
+  seam closed to 0.0. The plan's sweep was run and then some, each at
+  pd 12 / 6 mm / 280 frames: every roll from 0 to 180° (54-82 mm, or
+  "converged" at 26-35 mm by sliding a sleeve OFF the arm), both
+  handednesses, cap raises of 0 and 44 mm, the tube at 1.0, 1.1 and 1.25 x
+  its own width, 560 frames, ease 1.15, friction 0.1, a 60-frame
+  zero-gravity baste (83 mm with no gravity at all), `dress()` with the
+  shoulder seams anchored (74), the arms at 25° (78), the panels hung from
+  the true shoulder top (74; higher still "converged" with half of each
+  sleeve inside out), the seam and panel lists reversed (order-dependent:
+  108 mm at a different seam), the whole arrangement mirrored in x (the
+  PATTERN's side-right still the one open, at world -x), the left piece
+  reflected instead of the right (still side-right), and the winding
+  reversal undone (identical to 0.02 mm - the solver is winding-blind).
+  Then the seam pair tables were printed: the right side seam was sewn one
+  vertex (12 mm) out of register along its whole length, with the doubled
+  pair at the armpit corner; the left was in register with its doubled pair
+  at the hem. `_pair_one_seam` matched each driver vertex to the FIRST
+  follower at or after its parameter (`searchsorted`), and two runs of the
+  same length sampled the same way differ in parameter by rounding only -
+  a 1e-17 coin toss per seam that came up differently on the two sides.
+  Matched to the nearest vertex: tee 17 mm worst (the armhole), side seams
+  14 and 12; jacket 13 mm. The second half of the same fault: the outline's
+  loop-closing vertex has parameter 0, so every LAST edge's run was one
+  vertex short and its pairing stretched to fit (up to half a particle out
+  of register); `_boundary_in_span` now closes the loop, and both side
+  seams pair corner to corner at zero offset on both blocks. The tube's
+  radius then taken from the sleeve's own width, as the wrap path's is,
+  rather than 1.45 x the arm. Final, pd 12 / 280 frames: tee 19 mm worst
+  (an armhole), mean 0.58, side seams 6 and 2, both sleeves 100 % on the
+  arms, facing 0.63/0.73 (from 0.52), penetration 0; zipped jacket at pd 9:
+  6 mm worst, side seams 1 and 2, facing 0.41/0.43 (from 0.31). And the
+  baseline: the OLD placement under
+  the new kernel "converges" at 25.8 mm with the right sleeve 0 % on the
+  arm - it hangs inside out at the flank (agreement -0.23) and every seam
+  closes round that. The mannequin's converged numbers were produced on a
+  garment that was never worn as a tee. Two guards now exist so the seam
+  gate cannot be satisfied that way again: `sleeve_wear()` (fraction of each
+  sleeve within 1.8 arm radii of its arm's axis) asserted > 0.6 on both
+  sleeves with both facing out, and a seam-register test (pairs at the same
+  height along a side seam, corner to corner at the top, the two sides'
+  tables mirror images).
+
+  The BS 5058 battery, re-run under the true normal for the first time
+  (pd 8 / 300 frames / 20 substeps, ~7 s a fabric): denim 0.844, wool
+  0.684, poplin 0.550, silk 0.254 against a 0.25 floor, chiffon 0.159 -
+  every band holds; jersey (no band, a knit) 0.260. The drape coefficients
+  are the static baseline the moving-body kernel must reproduce bit for
+  bit.
+
+  Found on the way and NOT fixed here (its own measured change): the
+  mesher keeps every outline vertex, and the blocks' curves are drawn at
+  2-3 mm, so every curved edge of a 12 mm mesh carries a fringe of sliver
+  triangles - the tee's sleeve has 188 of its 1,598 triangles under 3 mm
+  altitude (5th percentile 0.96 mm), the coat's back 238 of 8,245. Those
+  boundary vertices are nearly free, crumple by 30 mm at 2 mm rest spacing,
+  and an armhole seam pairs each sleeve vertex to two or three of them, so
+  one pair of a closed seam can read 50 mm open while its neighbours read
+  0.0 (the dressed coat's left back armhole: 51.6 mm on one pair, mean
+  0.68). The coat's armhole guard is stated as a percentile for that
+  reason. `resample_closed` should keep corners and thin curve samples to
+  the particle spacing; every fixture's numbers move when it does.
+
+- **What the true normal left uncovered.** On the mannequin, a jersey tee
+  now rides UP on a moving body — about 16 mm per walking stride and 40 per
+  running stride, not saturating over three (hem +60 and +136 mm). The
+  animator advances the body between frames as a jump; each jump up into
+  the cloth pushes the shirt up, and nothing on the way down pulls it back.
+  The old normal's downward tilt had been cancelling that. It is the next
+  physics item: the body should move continuously within a frame (or the
+  contact should carry the body's velocity). The gait test's bound now
+  states the measured number rather than the masked one.
+
+The two shots were re-run from the repo on the corrected solver and figure
+and the showcase re-cut.
+
+**Suites at close:** seamkiln 269 passed / 8 skipped (from 244; the full
+run reported 267 with two failures that were the swing-ratio and coat-guard
+tests as they stood before their re-statements - both modules re-run green
+after, 14 and 20); the server's 24 seamkiln adapter tests pass; lint clean
+on every file touched. Surface unchanged: 17 tools / 2,033 tok.
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 

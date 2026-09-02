@@ -97,30 +97,66 @@ the shoulders, bastes every other seam, settles, and lets go. On the figure
 a coat then holds 27–35 % contact at a 37–40 mm standoff, which is what a
 bulky coat should do.
 
-**The sleeve, three ways it was wrong.** The fur shot's jacket dressed with
-its front armholes 109 mm open at the shoulder point: the sleeve cap had
-popped under the deltoid. Measured, that was three faults at once. The wrap
-aligned the sleeve tube to the arm with a *minimal* rotation, which leaves
-the roll about the arm unset, and the cap apex landed at the front of the
-arm — sewn to an armhole whose corner is on top of the shoulder, the sleeve
-had to twist a quarter turn and the twist piled up at the corner. The block
-drafts one sleeve piece for both arms, as a cutter does, and a proper
-rotation can only place that one piece the right way round on one arm; the
-other must be laid face-down, so `wrap_arrangement` reads from the seams
-which sleeve edge meets a front panel and flips the piece when it would
-land behind. And the panel's top edge was hung at the shoulder joint, which
-put the cap's apex at the ball's equator with 196 of its 470 particles
-inside the body; it now hangs a cap height higher and the apex settles on
-top of the ball (+67 mm against a 68 mm ball). Dressing also pins to the
-*surface*, never to the bone: the neck-to-shoulder line is lifted onto the
-shoulder (or out by the gradient where lifting would go through the head),
-basting targets are pushed out of the body, and a sleeve is basted to the
-body's armhole rather than to a midpoint on the ball's flank. Fur jacket
-after: worst seam 12.8 mm, mean 0.5 mm, both caps on top of the ball
-through a 500-frame settle. `result.dressing` reports what the pins did,
-including `drift_mm` — how far the anchored seams moved once let go, which
-is small on a zipped jacket and large on an open, light, slippery coat that
-is genuinely sliding off smooth limbs.
+**The sleeve, and the solver bias it uncovered.** The fur shot's jacket
+dressed with its front armholes 109 mm open at the shoulder point, and
+after that was fixed one sleeve slid 60 mm down the arm in every walk. The
+first was three faults in the wrap and the dressing: the sleeve tube was
+aligned to the arm with a *minimal* rotation, which leaves its roll about
+the arm unset (the cap apex landed at the front of the arm and the sleeve
+twisted a quarter turn to meet its armhole); the block drafts one sleeve
+piece for both arms, and a proper rotation can only place it the right way
+round on one of them (the other is laid face-down, read from the seams, as
+a cutter does); and the cap was hung at the shoulder joint, at the ball's
+equator, instead of a cap height above it. Dressing now pins to the surface
+and never to the bone, bastes a sleeve to the body's armhole rather than a
+midpoint, and bastes the sleeve *head* with its apex, so both caps start
+the release hooked over the shoulder.
+
+The slide was something else, and it took excluding everything: the sleeve
+width, the deltoid's size, the dressing pose, the arm-swing phase, wind,
+friction, the zipper, the field's resolution, the panel order, the piece's
+winding, the mirrored garment on the same body, the same garment on a
+mirrored body. The weak side was always the figure's left. The cause was
+the solver's collision normal, taken by central differences at the *floor
+corner* of the particle's voxel: the surface normal half a voxel toward −x,
+−y and −z of where the particle is. On a curved body that tilt is
+systematic — a square dropped on a ball was shoved 55–66 mm toward −x
+whichever side of the origin the ball stood — and on the right shoulder it
+hooked a cap inboard while on the left it tipped the cap off. The normal is
+now the gradient of the same trilinear interpolant the distance comes from,
+at the particle; the mirror test drapes to 0.8 mm, and both caps climb onto
+the ball in the first half second of the walk and stay. Every drape the
+kernel had ever produced carried that sideways push.
+
+Two body facts came out of the same investigation and stayed: the deltoid
+is 1.06 wide across the shoulder, not 1.24 (178 mm on a 122 mm arm was 1.46
+times the arm, and no sleeve a block will draft could pass it), and the
+trunk is elliptical in section (width 1.10, depth 0.78 of the round radius)
+because a jacket on a body of revolution has nothing to stop it turning.
+The solver also takes its friction from the fabric card now; it had used
+0.35 for every cloth. A piece placed by a reflection has its winding
+reversed so its normals face out (its fur would otherwise grow inward), and
+the mannequin path hangs its sleeves with the same frame.
+
+**The seam that would not close, and the sleeve that was never on.** With
+the sleeves properly on the mannequin's arms the tee's right side seam
+opened 82 mm at the armpit corner — one pair, every other pair closed —
+and nothing about the arrangement moved it: not the roll (every angle to
+180°), the handedness, a cap raise, the tube's radius, a zero-gravity
+baste, dressing, lower arms, or the whole arrangement mirrored (the
+pattern's side-right stayed the open one). The seam pair tables did: the
+right side seam was sewn one vertex out of register along its whole
+length. `_pair_one_seam` matched each vertex to the first partner at or
+after its parameter, and two runs of the same length differ in parameter
+by rounding only, so which side got the register error was a coin toss of
+1e-17 — and every last edge of an outline was one vertex short, because the
+loop-closing vertex has parameter 0. Matched to the nearest vertex with the
+loop closed, the tee's worst seam is 19 mm and the zipped jacket's 6, both
+sleeves on the arms and facing out. The old
+"converged" 25.8 mm had been a garment whose right sleeve had slid off the
+arm and hung inside out at the flank — 0 % on the arm — which the seam gap
+cannot see and `sleeve_wear()` now asserts. The mannequin's sleeve tube
+takes its radius from the piece's own width, as the wrap path's does.
 
 ## Hardware is trim, not cloth
 

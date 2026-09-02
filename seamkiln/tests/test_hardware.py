@@ -124,14 +124,18 @@ def test_dragging_the_slider_opens_the_opening(rig) -> None:
         mask = zipper.engaged()
         closed = float(gap[mask].mean()) if mask.any() else float("nan")
         opened = float(gap[~mask].mean()) if (~mask).any() else float("nan")
-        seen.append((at, closed, opened))
+        seen.append((at, closed, opened, float(gap.sum())))
         if mask.any():
             # a #5 chain holds its two edges 5 mm apart - the teeth have a size
             assert closed < 10.0, f"slider at {at}: closed part sits at {closed:.1f} mm"
         if (~mask).any():
             assert opened > 100.0, f"slider at {at}: open part only reached {opened:.1f} mm"
-    # and more open as the slider comes down
-    assert seen[2][2] > seen[1][2]
+    # and more open as the slider comes down: the opening's TOTAL width, not
+    # the mean of whichever pairs happen to be unengaged - the fully open front
+    # averages in the pairs the shoulders hold close (159 mm) against the
+    # half-open front's hem-only 171, and a mean over different sets is not a
+    # claim about the garment
+    assert seen[2][3] > seen[1][3] > seen[0][3], [s[3] for s in seen]
 
 
 def test_a_slider_that_does_not_exist_is_refused(rig) -> None:

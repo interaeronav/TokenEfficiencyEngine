@@ -185,11 +185,12 @@ def settle_output(to: Path) -> Path:
     """Blender names a movie `<stem><first>-<last>.mp4` whatever it was asked
     for; the caller asked for `to`, so that is what it gets."""
     to = Path(to)
-    if to.exists():
-        return to
-    made = sorted(to.parent.glob(f"{to.stem}*{to.suffix}"), key=lambda p: p.stat().st_mtime)
-    if made:
-        made[-1].rename(to)
+    numbered = sorted(
+        (p for p in to.parent.glob(f"{to.stem}*{to.suffix}") if p != to),
+        key=lambda p: p.stat().st_mtime,
+    )
+    if numbered and (not to.exists() or numbered[-1].stat().st_mtime > to.stat().st_mtime):
+        numbered[-1].replace(to)  # a fresh encode replaces an older delivery
     return to
 
 

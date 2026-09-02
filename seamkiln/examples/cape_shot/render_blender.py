@@ -17,6 +17,9 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _blender_body import load_figure
+
 ARGS = sys.argv[sys.argv.index("--") + 1 :]
 SHOT, OUT, FLAG = Path(ARGS[0]), Path(ARGS[1]), ARGS[2]
 FIRST = int(ARGS[3]) if len(ARGS) > 3 else 0
@@ -152,18 +155,24 @@ def box(name, centre, size, material, bevel=0.02):
 
 
 def build_set():
-    ground = mat("ground", (0.42, 0.33, 0.23), rough=0.94)
+    # packed earth: a coarse and a fine noise with enough contrast that the
+    # shadows land on something. A flat colour read as fog.
+    ground = mat("ground", (0.40, 0.31, 0.21), rough=0.94)
     nt = ground.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
     noise = nt.nodes.new("ShaderNodeTexNoise")
-    noise.inputs["Scale"].default_value = 5.5
-    noise.inputs["Detail"].default_value = 8.0
+    noise.inputs["Scale"].default_value = 2.4
+    noise.inputs["Detail"].default_value = 12.0
+    noise.inputs["Roughness"].default_value = 0.7
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].color = (0.16, 0.115, 0.072, 1.0)
-    ramp.color_ramp.elements[1].color = (0.34, 0.265, 0.175, 1.0)
+    ramp.color_ramp.elements[0].position = 0.36
+    ramp.color_ramp.elements[0].color = (0.13, 0.095, 0.060, 1.0)
+    ramp.color_ramp.elements[1].position = 0.70
+    ramp.color_ramp.elements[1].color = (0.40, 0.31, 0.20, 1.0)
     nt.links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
     nt.links.new(ramp.outputs["Color"], nt.nodes["Principled BSDF"].inputs["Base Color"])
-    crate = mat("crate", (0.42, 0.30, 0.18), rough=0.75)
-    crate2 = mat("crate2", (0.38, 0.26, 0.15), rough=0.78)
+    crate = mat("crate", (0.36, 0.22, 0.11), rough=0.8)
+    crate2 = mat("crate2", (0.31, 0.19, 0.095), rough=0.82)
     matting = mat("mat", (0.05, 0.35, 0.62), rough=0.55, spec=0.7)
     tiles = mat("tiles", (0.80, 0.83, 0.86), rough=0.35)
 
@@ -242,11 +251,11 @@ def build_sky():
     # Blender 5.2: NISHITA became MULTIPLE_SCATTERING, dust_density became
     # aerosol_density. Both are in TEE's version firewall.
     sky.sky_type = "MULTIPLE_SCATTERING"
-    sky.sun_elevation = math.radians(26.0)
+    sky.sun_elevation = math.radians(17.0)  # late afternoon: warm light, long shadows
     sky.sun_rotation = math.radians(215.0)
     sky.altitude = 400.0
     sky.air_density = 1.1
-    sky.aerosol_density = 2.6
+    sky.aerosol_density = 3.2
     sky.ozone_density = 1.4
     nt.links.new(sky.outputs["Color"], bg.inputs["Color"])
     bg.inputs["Strength"].default_value = 0.28  # ambient; the sun is the key
@@ -297,33 +306,7 @@ def cape_object(points, wetness, material):
 
 
 def load_body(path, materials, offset):
-    before = set(bpy.data.objects)
-    bpy.ops.wm.ply_import(filepath=str(path))
-    o = next(iter(set(bpy.data.objects) - before))
-    o.name = "Hero"
-    o.rotation_euler = (math.radians(90), 0, 0)  # Y-up -> Z-up
-    o.location = (offset[0], offset[2], offset[1])
-    o.data.materials.clear()
-    for m in materials:
-        o.data.materials.append(m)
-    # The part tag rides in the colour attribute's RED, which Blender
-    # sRGB-decodes on import - stretched but still in ORDER, so faces are
-    # matched to slots by RANK (np.searchsorted), never by float equality.
-    me = o.data
-    attr = me.color_attributes[0]
-    raw = np.zeros((len(attr.data), 4), dtype=np.float32)
-    attr.data.foreach_get("color", raw.ravel())
-    reds = raw[:, 0].astype(np.float64)
-    order = np.asarray(sorted(set(reds.tolist())))
-    edges = (order[:-1] + order[1:]) / 2.0
-    per_vertex = np.searchsorted(edges, reds)
-    first = np.asarray([p.vertices[0] for p in me.polygons], dtype=np.int64)
-    me.polygons.foreach_set("material_index", per_vertex[first].astype(np.int32))
-    me.update()
-    for poly in me.polygons:
-        poly.use_smooth = True
-    o.modifiers.new("smooth", "SUBSURF").levels = 1
-    return o
+    return load_figure(path, materials, offset, name="Hero")
 
 
 def main():

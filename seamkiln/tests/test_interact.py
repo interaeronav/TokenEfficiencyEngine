@@ -147,16 +147,38 @@ def test_a_fold_is_measured_along_the_push_and_not_as_a_distance(draped) -> None
     """Total displacement is the wrong instrument and said so loudly: every
     fabric came out holding 150-200% of the push, because the settle after
     letting go is mostly the cloth falling. Projecting on the push axis leaves
-    gravity out of the number, where it belongs."""
+    gravity out of the number, where it belongs.
+
+    The grab is the FRONT hem's lowest point, named, not "the frontmost
+    vertex of the garment": that vertex used to be on the right sleeve, which
+    had slid off the arm and hung at the flank as a loose flap - the 94 %
+    hold in `fold`'s old table was measured on it. On a tee that is actually
+    worn there is no loose cloth: the hem pushed back against the hips keeps
+    a few percent of the push and the chest pushed into the body keeps none
+    (-8 %, settling), and both are what a fitted tee does. So the law here is
+    the instrument's - a fold cannot keep more than it was given, and the
+    number is the displacement ALONG the push, not the distance the cloth
+    moved - which is what separates 3 % along the push from the 20-odd mm
+    the same handle travels in total."""
     garment, field = _fresh(draped)
     live = LiveSession(garment, field, fabric="cotton_poplin")
-    front = garment.points[int(np.argmax(garment.points[:, 2]))]
-    report = live.fold(tuple(front), depth_mm=45.0, direction=(0, 0, -1), radius_mm=55.0, settle=40)
-    assert 0.0 < report["held_fraction"] <= 1.05, report
+    low, high = garment.panel_slices["FRONT"]
+    hem = garment.points[low + int(np.argmin(garment.points[low:high, 1]))]
+    before = garment.points.copy()
+    report = live.fold(tuple(hem), depth_mm=45.0, direction=(0, 0, -1), radius_mm=55.0, settle=40)
+    assert abs(report["held_fraction"]) <= 1.05, report
     assert report["pushed_mm"] > 0.0
     # the hand asked for 45 mm and the cloth gave what it gave, which is why
     # `pushed_mm` is reported rather than assumed equal to the request
     assert report["pushed_mm"] < 45.0
+    handle = live.grab(tuple(hem), radius_mm=55.0)
+    travelled = (
+        float(
+            np.linalg.norm(garment.points[handle.indices] - before[handle.indices], axis=1).mean()
+        )
+        * 1000.0
+    )
+    assert travelled > 3.0 * abs(report["held_mm"]), (travelled, report)
 
 
 def test_easing_a_stitch_moves_the_seam_it_names(draped) -> None:
@@ -173,8 +195,14 @@ def test_easing_a_stitch_moves_the_seam_it_names(draped) -> None:
     rests = [s[0] for s in seen]
     means = [s[1] for s in seen]
     assert rests == [0.0, 6.0, 12.0, 0.0], "eases are cumulative"
+    # A closed seam on a worn tee sits at a pedestal of about a millimetre at
+    # this resolution (0.8-1.1 mm measured; the pairs cannot all reach zero on
+    # a curved body), and each ease moves the seam by what was asked RELATIVE
+    # to that pedestal - 6 mm let out is 6 mm further apart, to the third of
+    # a millimetre.
+    assert means[0] < 2.0, seen
     for rest, mean in seen:
-        assert mean == pytest.approx(rest, abs=1.0), seen
+        assert mean - means[0] == pytest.approx(rest, abs=1.0), seen
     assert means[2] > means[0] + 8.0
 
 

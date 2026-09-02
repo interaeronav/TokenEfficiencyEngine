@@ -13,6 +13,9 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _blender_body import load_figure
+
 ARGS = sys.argv[sys.argv.index("--") + 1 :]
 WORK = Path(ARGS[0])
 RES = (int(ARGS[1]), int(ARGS[2]))
@@ -121,19 +124,14 @@ def arranged_still():
     for poly in me.polygons:
         poly.use_smooth = True
 
-    before = set(bpy.data.objects)
-    bpy.ops.wm.ply_import(filepath=str(WORK / "body.ply"))
-    body = next(iter(set(bpy.data.objects) - before))
-    body.rotation_euler = (math.radians(90), 0, 0)
-    skin = bpy.data.materials.new("figure")
-    skin.use_nodes = True
-    sb = skin.node_tree.nodes["Principled BSDF"]
-    sb.inputs["Base Color"].default_value = (0.18, 0.19, 0.22, 1.0)
-    sb.inputs["Roughness"].default_value = 0.5
-    body.data.materials.append(skin)
-    for poly in body.data.polygons:
-        poly.use_smooth = True
-    body.modifiers.new("smooth", "SUBSURF").levels = 1
+    # the same loader the shots use: quads joined, no subdivision ridges,
+    # and the mannequin in the same matte wood as the walk
+    wood = bpy.data.materials.new("figure")
+    wood.use_nodes = True
+    sb = wood.node_tree.nodes["Principled BSDF"]
+    sb.inputs["Base Color"].default_value = (0.33, 0.215, 0.115, 1.0)
+    sb.inputs["Roughness"].default_value = 0.78
+    load_figure(WORK / "body.ply", [wood] * 6, (0.0, 0.0, 0.0), name="Figure")
 
     # the figure faces +Y; a sun tilted by a NEGATIVE X angle travels toward
     # -Y and so lights the faces that look toward +Y - the front
@@ -149,10 +147,11 @@ def arranged_still():
 
     bpy.ops.object.camera_add()
     cam = bpy.context.active_object
-    cam.data.lens = 55.0
-    # the figure faces +Y here (seamkiln +Z), so the camera stands in front
-    cam.location = (1.9, 3.4, 1.35)
-    look = Vector((0.0, 0.0, 1.05))
+    cam.data.lens = 50.0
+    # the figure faces +Y here (seamkiln +Z), so the camera stands in front;
+    # far enough back to hold the whole figure with room over its head
+    cam.location = (2.2, 4.6, 1.45)
+    look = Vector((0.0, 0.0, 0.98))
     cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
     scene.render.filepath = str(WORK / "arranged.png")
