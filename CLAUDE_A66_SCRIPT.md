@@ -251,7 +251,7 @@ Required in **bold**; defaults echoed in `details[id].assumed`.
 | `create hole` | **`on`** (face ref), **`at`** `[[x,y]…]` in the face frame; one of **`dia`** / `std:"M6 clearance normal\|close\|loose"` / `std:"M6 tap"`; `depth through\|<len>`; `seat:{kind:counterbore\|countersink\|spotface, dia, depth\|angle}`; `thread:"M6"` (cosmetic) | depth through; std source echoed |
 | `create fillet` / `chamfer` | **`edges`**, **`r`** or `[r1,r2]` / **`d`** or `[d1,d2]` or `{d,angle}` | none — refuses if missing (design intent) |
 | `create shell` / `draft` | **`faces`**,**`t`**,`direction` / **`faces`**,**`angle`**,**`neutral`** | in |
-| `create pattern` / `mirror` | **`of`**, `kind rect` **`dx,nx`**,`dy,ny` / `circ` **`axis,n`**,`angle` / `sketch` **`points`**; `suppress:[i]` / **`of`**,**`plane`** | 360 |
+| `create pattern` / `mirror` | **`of`**, `layout rect` (inferred from `nx`/`axis`/`points` when omitted; `kind` is the op kind on the wire) **`dx,nx`**,`dy,ny` / `circ` **`axis,n`**,`angle` / `sketch` **`points`**; `suppress:[i]` / **`of`**,**`plane`** | 360 |
 | `create combine` / `split` / `plane\|axis\|point` | **`bodies`**,**`mode`** / **`body`**,**`plane\|face`** / `offset\|through\|angle\|normal_at\|midplane` | — |
 | `create component` / `mate` / `joint` | **`part`**,`at`,`rot`,`grounded` / **`kind mate\|flush\|angle\|tangent\|insert`**,**`a`**,**`b`**,`offset` / **`kind rigid\|revolute\|slider\|cylindrical\|planar\|ball`**,**`a`**,**`b`**,`offset`,`limits` | first component grounded; no `fit` in v1 |
 | `create drawing` | **`of`**, `sheet A4L..A0L\|ANSI_B`, `standard`, `angle`, `scale`, `views:[{name,dir front\|top\|right\|iso\|section:<plane>\|detail:{of,r}\|aux:<face>}]`, `dims:[{name,view,kind extent\|dist\|dia\|rad\|angle\|chamfer\|ordinate\|baseline,axis,of\|a,b}]`, `hole_table`, `parts_list`, `title` | angle follows the standard (ISO→first, ANSI→third); 1:1 |
@@ -268,7 +268,7 @@ Required in **bold**; defaults echoed in `details[id].assumed`.
 Roles per kind, materialised from the hand-built merged history (D1 `brep/history.py`): after
 fuse/cut the kernel applies `ShapeUpgrade_UnifySameDomain(unifyEdges, unifyFaces)` and merges its
 history (the face-count pins assume it). `extrude.start/.end/.side.<segtag>`;
-`revolve.outer/.inner/.cap.a/.b`; `hole.wall/.bottom/.seat`; `fillet.face[i]`; `shell.inner[i]`;
+`revolve.<segtag>` per sketch segment plus `.cap.a/.b` (the `outer/inner` aliases are not materialised); `hole.wall/.bottom/.seat`; `fillet.face[i]`; `shell.inner[i]`;
 imported bodies `import.face[k]` (fingerprint only). Fingerprint per sub-shape = (surface/curve
 type, area/length, centroid/midpoint, normal) rounded 1e-3 mm. **Selectors** are declarative strings
 evaluated at regen and materialised to names in the diff: `"<feature|part>:faces(<f>)"` /
@@ -298,10 +298,11 @@ Everything a batch can change is an entity, and every created/modified entity re
 | `dwg:` / `vw:` / `dim:` | drawing / view / dimension | sheet, standard, angle, files / dir, visible_edges, hidden_edges / kind, refs, value_mm, projected_mm, agree |
 | `sheet:` / `export:` | sheet / export | t, k, bends, flat_mm, ba_total_mm / format, bytes, units, declares_units, roundtrip |
 
-Per-op `details` (volumes 2 dp, lengths 3 dp): any feature `{status, volume_mm3, delta_mm3, bbox_mm,
+Per-op `details` (volumes and lengths 3 dp — the fixture pins need the third place): any feature `{status, volume_mm3, delta_mm3, bbox_mm,
 faces, edges, solids, assumed, resolved, names (≤ 8)}`; cut/hole/combine `+ no_effect` (refuses,
 Law 11); `set`/`param_set` `{changed:[{feature, delta_mm3, faces}], unchanged:n, failed:[…],
-volume_mm3, fingerprint}`; sketch `{entities, constraints, dof, status, conflicts, redundant,
+volume_mm3, fingerprint}` (the kernel answers it under `result["regen"]["part:<n>"]` and the
+adapter lifts it into `details`); sketch `{entities, constraints, dof, status, conflicts, redundant,
 closed, area_mm2, frame}`; one `details.asm` per batch `{components, dof, grounded, residual,
 interference:[{a,b,mm3,centroid}], clearance_mm, contacts}`; view `{visible_edges, hidden_edges}`;
 dimension `{value_mm, projected_mm, agree}`; export `{path, bytes, format, units, roundtrip,
@@ -317,7 +318,8 @@ checkpoint …". Codes: `pk_bad_op pk_kernel_absent pk_not_served pk_warming pk_
 pk_plane_missing pk_plane_mismatch pk_unit_unknown pk_unit_kind pk_unitless pk_ref_unknown
 pk_ref_stale pk_ref_ambiguous pk_ref_empty pk_no_effect pk_sketch_overconstrained pk_sketch_open
 pk_spec_conflict pk_needs pk_part_ambiguous pk_delete_blocked pk_op_failed pk_checkpoint_missing
-pk_capture_text_first` — each message names the geometry (frame origin/normal, bbox, history cause,
+pk_checkpoint_mismatch pk_bad_expr pk_bad_request pk_internal pk_worker_timeout pk_worker_dead
+pk_worker_down pk_capture_text_first` — each message names the geometry (frame origin/normal, bbox, history cause,
 nearest candidate + Δ mm, `NbFaultyContours` + the edge + the face height) and the exact fix.
 
 ### D9. Virtual tools (14; each an explicit `_EXPLICIT` row; **no `_FAMILY` row** — the `cad_`/`trade_` rule at `trust.py:179-188`)
@@ -448,7 +450,8 @@ via n-ary cut ≤ 0.2 s, 520 481.421, 106 faces, 312 edges; fillet `plate:edges(
 (the default `vertical` semantic gives 59 165.138 with z max 10.000) and
 −3° 60 756.864 / 10 faces; keyway −611.9 ± 0.1; mirror 89 833.933 / 17; circular 24 543.693 / 9;
 suppress 3 → 97; cosmetic thread leaves the fingerprint bit-identical; **edit impact**: Ø10→Ø12 →
-`changed:[hole1 −345.575]`, `fillet1 unchanged`, part 58 869.027; editing F2's `t` regenerates every
+`changed:[hole1 −345.575]`, `fillet1 unchanged`, part 58 834.691 with the fillet present
+(58 869.027 is F1 without it — both pinned); editing F2's `t` regenerates every
 downstream feature with no silent re-target (face-reorder test resolves through fingerprint or
 refuses with 3 candidates); a cut that removes nothing → `pk_no_effect`; fillet r=12 on F1's top-
 front edge (10 mm plate) refuses naming the edge and `NbFaultyContours=1`; draft on a torus face
