@@ -182,6 +182,9 @@ class DrapeResult:
     # drag restarts the cloth from rest on every step, which does not look
     # like heavy fabric - it looks like the integrator forgetting.
     velocity: np.ndarray | None = None
+    # What dressing did to get here (pins, standoff, targets moved out of the
+    # body); empty for a plain drape. See drape/dressing.py.
+    dressing: dict[str, Any] = field(default_factory=dict)
 
     def report(self) -> dict[str, Any]:
         """The compact drape report - never a vertex dump (hard rule 1)."""

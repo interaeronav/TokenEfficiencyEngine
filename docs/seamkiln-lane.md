@@ -93,9 +93,34 @@ sides, so when the seams pull together the garment closes into a tube whose
 shoulders are on the wearer's flanks — and a tube with no shoulders slides
 off. Measured: seams closed to 4.7 mm and the jacket ended at y = −0.79, on
 the floor, with `worn` correctly False. `dress` pins the shoulder seams on
-the shoulders, bastes every other seam to its own midpoint, settles, and
-lets go. On the figure a coat then holds 27–35 % contact at a 37–40 mm
-standoff, which is what a bulky coat should do.
+the shoulders, bastes every other seam, settles, and lets go. On the figure
+a coat then holds 27–35 % contact at a 37–40 mm standoff, which is what a
+bulky coat should do.
+
+**The sleeve, three ways it was wrong.** The fur shot's jacket dressed with
+its front armholes 109 mm open at the shoulder point: the sleeve cap had
+popped under the deltoid. Measured, that was three faults at once. The wrap
+aligned the sleeve tube to the arm with a *minimal* rotation, which leaves
+the roll about the arm unset, and the cap apex landed at the front of the
+arm — sewn to an armhole whose corner is on top of the shoulder, the sleeve
+had to twist a quarter turn and the twist piled up at the corner. The block
+drafts one sleeve piece for both arms, as a cutter does, and a proper
+rotation can only place that one piece the right way round on one arm; the
+other must be laid face-down, so `wrap_arrangement` reads from the seams
+which sleeve edge meets a front panel and flips the piece when it would
+land behind. And the panel's top edge was hung at the shoulder joint, which
+put the cap's apex at the ball's equator with 196 of its 470 particles
+inside the body; it now hangs a cap height higher and the apex settles on
+top of the ball (+67 mm against a 68 mm ball). Dressing also pins to the
+*surface*, never to the bone: the neck-to-shoulder line is lifted onto the
+shoulder (or out by the gradient where lifting would go through the head),
+basting targets are pushed out of the body, and a sleeve is basted to the
+body's armhole rather than to a midpoint on the ball's flank. Fur jacket
+after: worst seam 12.8 mm, mean 0.5 mm, both caps on top of the ball
+through a 500-frame settle. `result.dressing` reports what the pins did,
+including `drift_mm` — how far the anchored seams moved once let go, which
+is small on a zipped jacket and large on an open, light, slippery coat that
+is genuinely sliding off smooth limbs.
 
 ## Hardware is trim, not cloth
 

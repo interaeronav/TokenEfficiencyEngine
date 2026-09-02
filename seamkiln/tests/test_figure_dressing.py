@@ -176,17 +176,38 @@ def test_dressing_keeps_the_coat_on_the_body(dressed_coat) -> None:
     assert float(result.points[:, 1].min()) < joints(Pose(), height=H)["pelvis"][1] + off[1]
 
 
-def test_dressing_pins_the_seam_whichever_way_its_indices_run(dressed_coat) -> None:
+def test_dressing_pins_the_seam_whichever_way_its_indices_run() -> None:
     """Which end of a seam is the neck end is not knowable from the index order,
     so both are tried and the one that moves the cloth less wins - the same
-    measured-not-declared choice the seam pairing makes about orientation."""
-    _, frame, garment, result, off = dressed_coat
+    measured-not-declared choice the seam pairing makes about orientation.
+
+    Measured at the end of the HOLD, against the line the pins actually use:
+    the neck-to-shoulder line lifted onto the shoulder. What the coat does
+    once let go is a fact about the coat (open at the front, light, slippery
+    on smooth limbs, and it drifts) and is reported as `drift_mm`, not
+    asserted here."""
+    from seamkiln.drape.dressing import outside_the_body
+
+    body = figure(Pose(), height=H)
+    off = standing_offset(body)
+    body.apply_translation(off)
+    pattern = coat_block()
+    frame = frame_from_figure(Pose(), height=H)
+    garment = build_garment(
+        pattern, wrap_arrangement(pattern, frame, height=H), particle_distance=12.0
+    )
+    garment.points = garment.points + off
+    field = sdf_from_mesh(body, voxel_mm=12.0)
     anchors = shoulder_anchors(frame, off)
+    result = dress(garment, field, fabric="wool_suiting", anchors=anchors, settle_frames=1)
     for seam_id, (start, end) in anchors.items():
         lo, hi = garment.seam_spans[seam_id]
         seam = result.points[garment.seams[lo:hi].reshape(-1)]
-        line_mid = 0.5 * (start + end)
-        assert float(np.linalg.norm(seam.mean(axis=0) - line_mid)) < 0.08
+        line = start + (end - start) * np.linspace(0.0, 1.0, 9)[:, None]
+        lifted, _ = outside_the_body(field, line, standoff_m=0.01, direction="up")
+        assert float(np.linalg.norm(seam.mean(axis=0) - lifted.mean(axis=0))) < 0.06, seam_id
+        assert float(seam[:, 1].mean()) > frame.shoulder_y + off[1], "on top of the shoulder"
+    assert result.dressing["drift_mm"] < 60.0, "one settle frame relaxes the pins; no slide"
 
 
 def test_a_missing_anchor_seam_is_named() -> None:
@@ -322,3 +343,91 @@ def test_travel_moves_cloth_at_the_gaits_speed() -> None:
     speed = (z[-1] - z[0]) / max(frames[-1].time_s, 1e-9)
     assert speed == pytest.approx(1.35, rel=0.15), f"cloth travelled at {speed:.2f} m/s"
     assert all(f.report["contact"]["worn"] for f in frames)
+
+
+# -- the armhole cap over the deltoid (A65 follow-up) ---------------------------
+
+
+def test_a_sleeve_hangs_with_its_cap_toward_the_top_of_the_shoulder() -> None:
+    """A minimal rotation onto the arm left the roll about the arm unset and
+    put the cap apex at the FRONT of the arm; sewn to an armhole whose corner
+    is on top of the shoulder, the sleeve had to twist a quarter turn and the
+    twist piled up at the corner (95-150 mm open on both front armholes)."""
+    from seamkiln.drape.dressing import _front_edge_side, _sleeve_frame
+
+    pattern = coat_block()
+    frame = frame_from_figure(Pose(), height=H)
+    dets = []
+    for tag in ("l", "r"):
+        side = _front_edge_side(pattern, f"SLEEVE_{tag.upper()}")
+        assert side in (1, -1), "the block declares which sleeve edge meets the front"
+        _, direction = frame.arms[tag]
+        rotation = _sleeve_frame(direction, side)
+        dets.append(float(np.linalg.det(rotation)))
+        assert np.allclose(rotation @ rotation.T, np.eye(3), atol=1e-9), "orthonormal"
+        assert np.allclose(rotation @ np.asarray([0.0, -1.0, 0.0]), direction, atol=1e-9)
+        apex = rotation @ np.asarray([0.0, 0.0, 1.0])
+        assert abs(float(apex @ direction)) < 1e-9, "the apex direction is across the arm"
+        assert apex[1] > 0.5, f"the cap apex should face up over the shoulder, got {apex}"
+        front = rotation @ np.asarray([float(side), 0.0, 0.0])
+        assert front[2] > 0.5, f"the front edge of the {tag} sleeve must face +Z, got {front}"
+    # one piece for both arms means one of them is laid face-down
+    assert sorted(round(d) for d in dets) == [-1, 1], dets
+    assert _front_edge_side(tee_block(), "SLEEVE_L") in (1, -1, None)
+
+
+def test_the_cap_starts_above_the_deltoid() -> None:
+    pattern = coat_block()
+    frame = frame_from_figure(Pose(), height=H)
+    placements = wrap_arrangement(pattern, frame, height=H)
+    sleeve = next(p for p in pattern.panels if p.id.startswith("SLEEVE"))
+    assert placements[sleeve.id].top_y_m == pytest.approx(max(sleeve.bbox[3], 0.0) / 1000.0)
+    assert placements[sleeve.id].top_y_m > 0.05, (
+        "a cap that starts at the ball's equator ends under it"
+    )
+
+
+def test_targets_are_pinned_to_the_surface_never_to_the_bone() -> None:
+    """Pin targets inside the body are instructions the solver cannot follow:
+    collision decides which side each particle leaves on, and a seam pair can
+    leave on two sides of a limb. Shoulder lines are lifted onto the shoulder;
+    a lift that would go up through the head (the neck is a column, not a
+    shelf) falls back to the gradient and lands on the neck's surface."""
+    from seamkiln.drape.dressing import outside_the_body
+
+    body = figure(Pose(), height=H)
+    off = standing_offset(body)
+    body.apply_translation(off)
+    field = sdf_from_mesh(body, voxel_mm=12.0)
+    j = joints(Pose(), height=H)
+    neck, tip = j["neck"] + off, j["shoulder_r"] + off
+    line = neck + (tip - neck) * np.linspace(0.0, 1.0, 9)[:, None]
+    assert (field.sample(line) < 0).all(), "the neck-to-shoulder line runs inside the body"
+
+    lifted, report = outside_the_body(field, line, standoff_m=0.01, direction="up")
+    assert (field.sample(lifted) >= 0.0095).all()
+    assert report["moved"] == 9
+    shift = np.linalg.norm(lifted - line, axis=1)
+    assert shift.max() < 0.15, f"a point went up through the head: {shift.max():.3f} m"
+    assert report["fell_back_to_gradient"] >= 1, "the neck end should have gone by the gradient"
+    assert lifted[-1][1] > tip[1] + 0.05, "the shoulder end sits on top of the deltoid"
+
+    outside = line + np.asarray([0.0, 0.5, 0.0])
+    same, untouched = outside_the_body(field, outside, standoff_m=0.01)
+    assert np.allclose(same, outside) and untouched["moved"] == 0
+
+
+def test_dressing_closes_the_armholes_over_the_deltoid(dressed_coat) -> None:
+    """The regression this whole section exists for: measured at 109 mm on the
+    fur jacket and 120 mm after the first fix, with the pairs straddling the
+    ball. Now the cap sits over the shoulder and the worst pair is a seam
+    allowance, not a limb."""
+    _, _, garment, result, _ = dressed_coat
+    from seamkiln.drape.tearing import seam_tension
+
+    gaps = seam_tension(garment, result.points)
+    worst = {k: v["max_gap_mm"] for k, v in gaps.items()}
+    assert max(worst.values()) < 45.0, worst
+    assert result.seam_gaps["mean_gap_mm"] < 4.0
+    assert result.dressing["anchors_by_gradient"] >= 1
+    assert result.dressing["shallowest_after_mm"] > 5.0

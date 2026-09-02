@@ -9717,6 +9717,61 @@ scope: the script asked for one honest attempt, not a port.
 (Gerber, Optitex or Lectra) to test the round-trip against a file another
 system wrote; a character model if the shots are to move past the figure.
 
+### The armhole cap over the deltoid, fixed (2026-09-02, owner: "fix the armhole cap popping over the deltoid")
+
+The 109 mm worst seam recorded above was measured to its cause rather than
+tuned away, and it was three faults, all in `drape/dressing.py`:
+
+1. **The sleeve's roll was unset.** `wrap_arrangement` aligned the tube to
+   the arm with `align_vectors` — a minimal rotation — so the cap apex (the
+   panel's centre) sat at the FRONT of the arm and the underarm seam at the
+   back. Sewn to an armhole whose corner is on top of the shoulder, the
+   sleeve twisted a quarter turn and the twist piled up at the corner. Fixed
+   with a full frame (`_sleeve_frame`): −Y down the arm, +Z (the apex) the
+   direction across the arm with the most up in it.
+2. **One piece, two arms.** The block drafts a single sleeve piece for both
+   arms, and a proper rotation can only put it the right way round on one of
+   them — measured: the left sleeve's front edge started in front, the right
+   sleeve's behind, and the right sleeve dragged the shoulder seam 128 mm
+   backwards while it closed. `_front_edge_side` reads from the seams which
+   sleeve edge meets a FRONT panel and the piece is laid face-down (a
+   reflection) for the arm that needs it — which is what a cutter does.
+3. **The cap started at the ball's equator.** The panel's top edge was hung
+   at the shoulder joint, so the apex sat level with the deltoid's centre
+   and 196 of the cap's 470 particles began inside the ball; collision
+   resolved them downward. The sleeve now hangs a cap height higher and the
+   apex settles on top of the ball (+67 mm against a 68 mm ball).
+
+Dressing also pins to the surface, never to the bone (`outside_the_body`):
+the neck-to-shoulder line is lifted onto the shoulder, or out by the
+gradient where the lift would go up through the head (350–417 mm measured
+on the line's first six points, inside the neck column); basting targets
+are pushed out of the body; and a sleeve is basted to the body's armhole
+rather than to a midpoint on the ball's flank. `DrapeResult.dressing`
+records what the pins did, including `drift_mm`.
+
+**Measured.** Fur jacket at 11 mm: worst seam 109 → 12.8 mm, mean 0.48 mm,
+no pair over 30 mm, 29 % contact, worn; both caps on top of the ball after a
+500-frame free settle. The walk shot re-run from the repo: dressed at
+12.2 mm, per-frame seam maxima 12.5–36.7 mm over 108 frames (from 85–146),
+worn on every frame; the showcase was re-cut from it. Coat fixture at 12 mm:
+worst 16.4 mm, mean 0.53. The
+intermediate steps were measured too and are worth keeping: projecting
+targets out alone left 120 mm (the cause was not where the targets were),
+the roll alone brought the left side to 6 mm and left the right at 102, and
+the raise then closed the right.
+
+**What the fix exposed.** With the sleeves no longer jammed on by their
+twist, the open coat fixture (wool suiting, friction 0.35, unzipped) drifts
+during the free settle — its left sleeve slides down the abducted arm over
+400 frames. That is a fact about an open, light, slippery coat on smooth
+limbs, now reported as `drift_mm` rather than masked; the zipped fur
+jacket, friction 0.53, does not move. The pin-orientation test now measures
+the hold against the lifted line, which is what dressing promises.
+
+Suites after the fix: seamkiln 264 passed / 8 skipped; the server's seamkiln
+tests 24 passed.
+
 **Suites at close:** seamkiln 260 passed / 8 skipped (from 244); server 1,224 passed /
 17 skipped / 97 dcc-deselected (from 1,214); lint clean on every file
 touched. Surface unchanged: 17 tools / 2,033 tok.

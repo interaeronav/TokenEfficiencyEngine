@@ -195,15 +195,23 @@ def wrap_arrangement(
                     "or hand the frame explicit arm axes."
                 )
             shoulder, direction = frame.arms[tag]
-            import trimesh
-
-            rotation = trimesh.geometry.align_vectors([0.0, -1.0, 0.0], direction)[:3, :3]
+            rotation = _sleeve_frame(direction, _front_edge_side(pattern, panel.id))
             width_mm = panel.bbox[2] - panel.bbox[0]
+            # The cap starts ABOVE the deltoid. A sleeve is drafted with its
+            # biceps line at y = 0 and the cap rising above it, so hanging the
+            # panel's top edge at the shoulder joint put the cap's apex at the
+            # ball's equator and 196 of its 470 particles inside the ball,
+            # where collision resolved them downward and the apex ended 75 mm
+            # under the joint. Hung a cap height higher, the apex starts over
+            # the shoulder and settles on top of the ball (measured +71 mm
+            # against a 68 mm ball); the worst armhole pair went from 120 mm
+            # to 21.
+            cap_rise_m = max(float(panel.bbox[3]), 0.0) / 1000.0
             placements[panel.id] = Placement(
                 radius_m=width_mm / 1000.0 / (2.0 * math.pi),
                 rotation=rotation,
                 origin_m=np.asarray(shoulder, dtype=np.float64),
-                top_y_m=0.0,
+                top_y_m=cap_rise_m,
             )
             continue
         minx, _, maxx, _ = panel.bbox
@@ -217,6 +225,60 @@ def wrap_arrangement(
     return placements
 
 
+def _front_edge_side(pattern: Pattern, sleeve_id: str) -> int | None:
+    """+1 if the sleeve edge sewn to a FRONT panel lies on the piece's +x
+    side, -1 if on its -x side, None if no such seam is declared."""
+    panel = pattern.panel(sleeve_id)
+    edges = panel.edges()
+    centre_x = (panel.bbox[0] + panel.bbox[2]) / 2.0
+    for seam in pattern.seams:
+        for mine, other in ((seam.a, seam.b), (seam.b, seam.a)):
+            if mine.panel == sleeve_id and other.panel.upper().startswith("FRONT"):
+                run = edges[mine.edge % len(edges)]
+                x = float(np.mean([v.x for v in run]))
+                return 1 if x >= centre_x else -1
+    return None
+
+
+def _sleeve_frame(direction: Vec, front_at_plus_x: int | None = None) -> np.ndarray:
+    """The rotation that hangs a sleeve down an arm WITH ITS ROLL SET.
+
+    Aligning the tube to the arm with a minimal rotation leaves the roll about
+    the arm unspecified, and it landed the cap apex (the panel's centre, angle
+    0) at the FRONT of the arm with the underarm seam at the back. Sewn to an
+    armhole whose corner is on top of the shoulder and whose bottom is in the
+    armpit, the sleeve then has to twist a quarter turn round the arm, and
+    the twist piles up at the corner: 95-150 mm open at the shoulder point on
+    both front armholes, whatever the basting did.
+
+    So the frame is built in full: local -Y down the arm, local +Z (the cap
+    apex) toward the top of the shoulder - the direction perpendicular to the
+    arm with the most up in it - and local +X their cross product.
+
+    Then the HANDEDNESS. A block drafts one sleeve piece and uses it for both
+    arms, as a cutter does, and a proper rotation can only put that one piece
+    the right way round on ONE arm: measured, the left sleeve's front edge
+    landed in front and the right sleeve's landed behind, so the right sleeve
+    dragged the shoulder seam 128 mm backwards while it closed. The cutter
+    lays the second piece face-down, and so does this: `front_at_plus_x`
+    says which side of the piece is sewn to the front, and when the frame
+    would put that side behind the arm, local +X is reversed - a reflection,
+    which is what a flipped piece is.
+    """
+    down = np.asarray(direction, dtype=np.float64)
+    down = down / max(float(np.linalg.norm(down)), 1e-9)
+    up = np.asarray([0.0, 1.0, 0.0])
+    apex = up - float(up @ down) * down
+    if float(np.linalg.norm(apex)) < 1e-6:  # an arm pointing straight up or down
+        apex = np.asarray([1.0, 0.0, 0.0])
+    apex = apex / float(np.linalg.norm(apex))
+    local_y = -down
+    local_x = np.cross(local_y, apex)
+    if front_at_plus_x is not None and float(local_x[2]) * float(front_at_plus_x) < 0.0:
+        local_x = -local_x  # the piece laid face-down
+    return np.stack([local_x, local_y, apex], axis=1)
+
+
 def shoulder_anchors(frame: BodyFrame, offset: Vec | None = None) -> dict[str, tuple[Vec, Vec]]:
     """Where each shoulder seam belongs: from the neck to the shoulder tip."""
     shift = np.zeros(3) if offset is None else np.asarray(offset, dtype=np.float64)
@@ -225,6 +287,83 @@ def shoulder_anchors(frame: BodyFrame, offset: Vec | None = None) -> dict[str, t
         if tag in frame.arms:
             out[seam_id] = (frame.neck + shift, frame.arms[tag][0] + shift)
     return out
+
+
+def outside_the_body(
+    sdf: Any,
+    targets: Vec,
+    *,
+    standoff_m: float = 0.010,
+    iterations: int = 8,
+    direction: str = "gradient",
+    max_lift_m: float = 0.12,
+) -> tuple[np.ndarray, dict[str, float]]:
+    """Move every target that is inside the body (or closer than `standoff_m`)
+    out until it stands off the surface - along the field's gradient, or
+    straight `up`.
+
+    `up` is for a shoulder line: the neck joint is inside the neck and the
+    shoulder joint is the centre of the deltoid, and the nearest surface to
+    a point between them is wherever the field says - the deltoid's outer
+    side as easily as its top. A shoulder seam belongs on TOP of the shoulder,
+    so its anchors are lifted, not pushed out - unless the lift would be more
+    than `max_lift_m`, which means the point is inside a COLUMN (the neck,
+    with the head on top of it: 350-417 mm of lift measured on the line's
+    first six points) and not under a shelf; those go out by the gradient,
+    which puts them on the neck's surface where a collar sits.
+
+    A pin target inside the body is an instruction the solver cannot follow:
+    collision pushes the particle out on whichever side the field chooses,
+    and the two particles of one seam pair can leave on different sides of a
+    limb - measured on the jacket's armholes, where 78 of 114 basting
+    midpoints sat inside the deltoid and two pairs per armhole ended 100 mm
+    apart, split across the ball. Pin to the surface, never to the bone.
+
+    Where the gradient is degenerate (the centre of a ball) the point is
+    lifted straight up first, which is where a shoulder seam belongs anyway.
+    Returns the moved targets and a small report.
+    """
+    original = np.asarray(targets, dtype=np.float64)
+    out = original.copy()
+    before = sdf.sample(out)
+    moved = np.zeros(len(out), dtype=bool)
+    for _ in range(max(int(iterations), 1)):
+        distance = sdf.sample(out)
+        need = distance < standoff_m
+        if not need.any():
+            break
+        if direction == "up":
+            step = np.tile(np.asarray([0.0, 1.0, 0.0]), (int(need.sum()), 1))
+        else:
+            step = sdf.gradient(out[need])
+            flat = np.linalg.norm(step, axis=1) < 0.5
+            step[flat] = np.asarray([0.0, 1.0, 0.0])
+        out[need] += (standoff_m - distance[need])[:, None] * step
+        moved |= need
+    fell_back = 0
+    if direction == "up":
+        too_far = (np.linalg.norm(out - original, axis=1) > max_lift_m) | (
+            sdf.sample(out) < standoff_m
+        )
+        if too_far.any():
+            out[too_far], _ = outside_the_body(
+                sdf, original[too_far], standoff_m=standoff_m, iterations=iterations
+            )
+            fell_back = int(too_far.sum())
+    after = sdf.sample(out)
+    return out, {
+        "moved": int(moved.sum()),
+        "fell_back_to_gradient": fell_back,
+        "deepest_before_mm": round(float(-before.min()) * 1000.0, 1) if len(before) else 0.0,
+        "shallowest_after_mm": round(float(after.min()) * 1000.0, 1) if len(after) else 0.0,
+        "mean_shift_mm": round(
+            float(np.linalg.norm(out - np.asarray(targets, dtype=np.float64), axis=1).mean())
+            * 1000.0,
+            1,
+        )
+        if len(out)
+        else 0.0,
+    }
 
 
 def dress(
@@ -238,6 +377,8 @@ def dress(
     settle_frames: int = 220,
     substeps: int = 22,
     environment: Environment | None = None,
+    standoff_mm: float = 10.0,
+    baste_sleeves_to_body: bool = True,
 ) -> Any:
     """Pin the named seams to the body, baste the rest, settle, release.
 
@@ -247,8 +388,14 @@ def dress(
     and the one that moves the cloth less wins: the same measured-not-declared
     choice `_seam_pairs` makes about orientation, for the same reason.
 
+    Every target - the anchored seams and the basted midpoints - is moved OUT
+    of the body to `standoff_mm` before the cloth is held there
+    (`outside_the_body`): the line from the neck joint to the shoulder joint
+    runs through the neck and the deltoid, and a basting midpoint between two
+    armhole edges that start 100 mm apart is inside the arm.
+
     Returns the DrapeResult of the free settle; the garment's points are left
-    at that state.
+    at that state, and `result.dressing` records what the pins did.
     """
     from seamkiln.drape.solve import DrapeSettings, drape, prepare
 
@@ -262,6 +409,8 @@ def dress(
             f"{', '.join(sorted(garment.seam_spans))})."
         )
 
+    standoff_m = float(standoff_mm) / 1000.0
+    lifted_report: dict[str, float] = {}
     for seam_id, (start, end) in anchors.items():
         lo, hi = garment.seam_spans[seam_id]
         pairs = garment.seams[lo:hi]
@@ -271,8 +420,14 @@ def dress(
         end = np.asarray(end, dtype=np.float64)
         index = pairs.reshape(-1)
         u = np.repeat(np.linspace(0.0, 1.0, len(pairs)), 2)[:, None]
-        forward = start + (end - start) * u
-        backward = end + (start - end) * u
+        # the line from the neck joint to the shoulder joint runs INSIDE the
+        # body; the seam goes on TOP of it, so the line is lifted, not pushed
+        forward, lifted_report = outside_the_body(
+            sdf, start + (end - start) * u, standoff_m=standoff_m, direction="up"
+        )
+        backward, _ = outside_the_body(
+            sdf, start + (end - start) * (1.0 - u), standoff_m=standoff_m, direction="up"
+        )
         here = garment.points[index]
         chosen = (
             forward
@@ -283,21 +438,42 @@ def dress(
         targets[index] = chosen
 
     if baste:
-        # Every other seam pair is pulled to its own midpoint at the same time.
-        # The anchors say where the garment goes; this says its seams are
-        # sewn, without needing to know where on the body each belongs. It is
-        # what closes an armhole that starts 283 mm open: a stiff shell will
-        # not walk that together on its own.
+        # Every other seam pair is pulled together at the same time. The
+        # anchors say where the garment goes; this says its seams are sewn,
+        # without needing to know where on the body each belongs. It is what
+        # closes an armhole that starts 283 mm open: a stiff shell will not
+        # walk that together on its own.
+        #
+        # A seam between a SLEEVE and the body is basted to the body's side
+        # of it, not to the midpoint. The body panels hang from the pinned
+        # shoulders and drape over the OUTSIDE of the deltoid; the sleeve cap
+        # starts at the ball's equator. A midpoint between them is on the
+        # ball's flank, and a pair held there ends up straddling the ball
+        # when released - measured at 95-120 mm on both front armholes. A
+        # fitter pins the sleeve to the armhole; so does this.
         held = pins > 0.0
+        sleeve_particle = np.zeros(garment.n_points, dtype=bool)
+        for panel_id, (lo, hi) in garment.panel_slices.items():
+            if _is_sleeve(panel_id) is not None:
+                sleeve_particle[lo:hi] = True
         for seam_id, (lo, hi) in garment.seam_spans.items():
             if seam_id in anchors or hi <= lo:
                 continue
             pairs = garment.seams[lo:hi]
-            mid = 0.5 * (garment.points[pairs[:, 0]] + garment.points[pairs[:, 1]])
+            a, b = garment.points[pairs[:, 0]], garment.points[pairs[:, 1]]
+            reference = 0.5 * (a + b)
+            if baste_sleeves_to_body:
+                only_a = sleeve_particle[pairs[:, 0]] & ~sleeve_particle[pairs[:, 1]]
+                only_b = sleeve_particle[pairs[:, 1]] & ~sleeve_particle[pairs[:, 0]]
+                reference[only_a] = b[only_a]  # the sleeve goes to the body
+                reference[only_b] = a[only_b]
             for side in (0, 1):
                 free = ~held[pairs[:, side]]
                 pins[pairs[free, side]] = 1.0
-                targets[pairs[free, side]] = mid[free]
+                targets[pairs[free, side]] = reference[free]
+
+    held = pins > 0.0
+    targets[held], moved = outside_the_body(sdf, targets[held], standoff_m=standoff_m)
 
     hold = DrapeSettings(frames=hold_frames, substeps=substeps, environment=calm)
     pinned = drape(
@@ -319,6 +495,27 @@ def dress(
         prepared=prepare(garment, fabric=fabric, settings=free),
     )
     garment.points = result.points
+    # How far the anchored seams moved once let go. Small on a garment that
+    # is hooked over the shoulders and closed at the front; large on an open,
+    # light, slippery coat sliding down smooth limbs - which is a fact about
+    # the coat, and the number that says so.
+    anchored = np.zeros(garment.n_points, dtype=bool)
+    for seam_id in anchors:
+        lo, hi = garment.seam_spans[seam_id]
+        anchored[garment.seams[lo:hi].reshape(-1)] = True
+    drift = (
+        float(np.linalg.norm(result.points[anchored] - targets[anchored], axis=1).mean())
+        if anchored.any()
+        else 0.0
+    )
+    result.dressing = {
+        "pinned": int(held.sum()),
+        "standoff_mm": float(standoff_mm),
+        "anchors_lifted_mm": lifted_report.get("mean_shift_mm", 0.0),
+        "anchors_by_gradient": lifted_report.get("fell_back_to_gradient", 0),
+        "drift_mm": round(drift * 1000.0, 1),
+        **moved,
+    }
     return result
 
 
@@ -327,6 +524,7 @@ __all__ = [
     "dress",
     "frame_from_figure",
     "frame_from_mesh",
+    "outside_the_body",
     "shoulder_anchors",
     "shoulder_drop_mm",
     "wrap_arrangement",
