@@ -54,15 +54,25 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   by `CLAUDE_A45_SCRIPT.md`. It builds ON the A43 trust kernel: friction
   goes, the taint law stays, and TEE still never grants itself.
 - The A53 build (`seamkiln`: a garment CAD + drape kernel with the same
-  core loop as Marvelous Designer / CLO3D — 2D patterns, sewing, drape on
-  a parametric body, fit measurement — headless FIRST with the GUI as a
-  client of that same core) is **COMPLETE**, P0–P6. It was driven by
-  `CLAUDE_A53_SCRIPT.md`; research doc 67 is its design of record and
-  `docs/seamkiln-lane.md` is the user-facing guide. Its licence audit is
-  load-bearing and enforced by `seamkiln/tests/test_licences.py`: the
-  best-documented open garment pipeline ships a NON-COMMERCIAL simulator,
-  SMPL is non-commercial, and Shewchuk's Triangle cannot ship in a
-  commercial product — doc 67 §2 names every mine and its replacement.
+  core loop as Marvelous Designer / CLO3D, headless FIRST with the GUI as a
+  client of that same core) is **COMPLETE**, P0–P6, and was followed by
+  eleven owner-directed campaigns (A54–A64: physics calibrated against
+  BS 5058, grading/cutting/tearing/pinching/lacing/finishing/animation,
+  collision alignment, locks, zippers and buttons, a verified Blender
+  handoff, avatars and gait, live adjustment, and the defects that using it
+  found). **`CLAUDE_A65_SCRIPT.md` is now the plan of record for the
+  garment lane** — the A53 script audited against what was built, with its
+  acceptance debt paid (findable long tail, nameable entities, a dressing
+  lane, a clothable figure, `walk` on the session's own body) and the open
+  phases named. Research doc 67 remains the design of record for licences
+  and platform facts; `docs/seamkiln-lane.md` is the user-facing guide. The
+  licence audit is load-bearing and enforced by
+  `seamkiln/tests/test_licences.py`: the best-documented open garment
+  pipeline ships a NON-COMMERCIAL simulator, SMPL is non-commercial, and
+  Shewchuk's Triangle cannot ship in a commercial product — doc 67 §2 names
+  every mine and its replacement. Two laws learned since A53 outrank taste:
+  never rely on a coarse preview, and cloth time per animation frame is
+  DERIVED from fps.
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured

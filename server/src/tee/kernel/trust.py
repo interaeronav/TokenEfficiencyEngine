@@ -250,6 +250,7 @@ _EXPLICIT: dict[str, str] = {
     "sk_techpack": "write-artifacts",
     "sk_materials": "write-artifacts",  # its export/import actions touch files
     "sk_interchange": "write-artifacts",
+    "sk_handoff": "write-artifacts",  # A65: writes a bundle for another application
     # --- design: the store/render writes ---
     "gd_store": "write-state",
     "gd_render": "write-state",

@@ -176,6 +176,36 @@ class SeamkilnAdapter:
                     }
                 )
             entities.append(Entity(id="garment", name="garment", kind="garment", summary=summary))
+        # A55-A58 state was invisible here: a zipped, buttoned, locked garment on
+        # a walking figure listed exactly what a bare tee on a mannequin did.
+        # Everything a batch can change is an entity, or a diff cannot name it.
+        session = self.session
+        for opening, fitted in getattr(session, "zippers", {}).items():
+            entities.append(
+                Entity(id=f"zip:{opening}", name=opening, kind="zipper", summary=fitted.summary())
+            )
+        for fastening in getattr(session, "buttons", []):
+            entities.append(
+                Entity(
+                    id=f"button:{fastening.id}",
+                    name=fastening.id,
+                    kind="button",
+                    summary=fastening.summary(),
+                )
+            )
+        locks = getattr(session, "locks", None)
+        if locks is not None and locks.held:
+            entities.append(Entity(id="locks", name="locks", kind="locks", summary=locks.as_dict()))
+        if session.body is not None:
+            spec = dict(getattr(session, "body_spec", {}) or {})
+            body = {k: v for k, v in spec.items() if k != "pose"}
+            if getattr(session, "arrangement", ""):
+                body["arrangement"] = session.arrangement
+            if getattr(session, "avatar", None):
+                body["avatar"] = {
+                    k: v for k, v in session.avatar.items() if k in ("kind", "height_m", "units_in")
+                }
+            entities.append(Entity(id="body", name="body", kind="body", summary=body))
         return entities
 
     def execute(self, batch: list[dict[str, Any]]) -> Diff:

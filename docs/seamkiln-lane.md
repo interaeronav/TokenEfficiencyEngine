@@ -1,9 +1,10 @@
-# The garment lane (A53)
+# The garment lane (A53, and the follow-ups A54–A65)
 
 `seamkiln` is a garment CAD and drape kernel: 2D pattern pieces, sewing
-relationships, drape on a parametric body, fit measurement. It joins TEE
-through the `Adapter` protocol, so it arrives with **no new always-loaded
-tools** — `tee_scene_summary`, `tee_batch`, `tee_diff`, `tee_checkpoint` and
+relationships, hardware, drape on a body, fit measurement, animation, and a
+handoff into the next application. It joins TEE through the `Adapter`
+protocol, so it arrives with **no new always-loaded tools** —
+`tee_scene_summary`, `tee_batch`, `tee_diff`, `tee_checkpoint` and
 `tee_rollback` already know this shape.
 
 ```bash
@@ -11,128 +12,178 @@ uv pip install -e seamkiln            # the kernel
 tee serve --adapter seamkiln --project ~/patterns
 ```
 
-The surface before A53 was 17 tools / 2,033 tok. After it: 17 tools /
-2,033 tok.
+The surface before A53 was 17 tools / 2,033 tok. After A65: 17 tools /
+2,033 tok. Fourteen `sk_*` tools sit behind progressive disclosure.
 
 ## The loop
 
-The same one Marvelous Designer and CLO3D established:
+The same one Marvelous Designer and CLO3D established, plus the parts a
+finished garment needs:
 
 ```
-2D panels -> sewing -> arrange on a body -> simulate -> measure fit -> export
+2D panels -> sewing -> hardware -> body -> arrange + dress -> simulate
+          -> pull / fold / ease live -> walk it -> measure fit -> hand off
 ```
 
-The difference is which surface is primary. The incumbents' automation is
-in-app and sold on an enterprise tier. Here the script **is** the product: a
-`Session` holds the garment, every mutation is a `Command`, every Command is
-recorded, and `Session.replay(script)` rebuilds the garment exactly. The Qt
-shell and this adapter both drive that same session, so there is no path
-through one client that another cannot take.
+The script **is** the product: a `Session` holds the garment, every mutation
+is a `Command`, every Command is recorded, and `Session.replay(script)`
+rebuilds the garment to the same fingerprint. The Qt shell and the TEE
+adapter drive that same session; there is no path through one client that
+another cannot take.
 
 ```python
 from seamkiln.session import Command, Session
 
 s = Session()
-s.apply(Command("block", {"block": "tee"}))
-s.apply(Command("allowance", {"mm": 10.0}))
-s.apply(Command("body", {"kind": "anny", "stature_m": 1.72}))
-s.apply(Command("arrange", {"particle_distance_mm": 12.0}))
-s.apply(Command("drape", {"fabric": "cotton_jersey", "frames": 250}))
-s.save_script("tee.json")          # replays to the same garment, anywhere
+s.apply(Command("block", {"block": "jacket-zip", "half_chest": 420,
+                          "shoulder": 250, "sleeve_length": 480, "biceps": 480}))
+s.apply(Command("body", {"kind": "figure", "stature_m": 1.80}))
+s.apply(Command("arrange", {"particle_distance_mm": 12}))   # wrap + dress
+s.apply(Command("zip", {"opening": "centre-front", "material": "metal", "size": 8}))
+s.apply(Command("walk", {"gait": "walk", "cycles": 1.0, "fps": 12, "travel": True}))
+s.apply(Command("handoff", {"out": "shot/", "target": "blender"}))
+s.save_script("coat.json")          # replays to the same garment, anywhere
 ```
 
-## Through TEE
+## Verbs
 
-One batch does the lot. Ops are declarative and enumerable; there is no
-arbitrary-code door.
+| verb | what it does | added |
+| --- | --- | --- |
+| `block`, `panel`, `seam`, `allowance`, `delete` | draft the pattern | A53 |
+| `body` | `mannequin` · `anny` · `posed` · **`figure`** · `custom` | A53 / A58 / A65 |
+| `arrange` | place panels; `arrangement` = `auto` · `cylinder` · `wrap`; `dress` | A53 / A65 |
+| `drape`, `fit`, `techpack`, `export` | simulate, measure, document, write files | A53 |
+| `grade`, `cut` | parametric grading; darts, slashes, pleats | A54 |
+| `rip`, `pinch`, `lace`, `finish`, `animate` | tearing, symmetric pinching, lacing, washes and fur, blend shapes | A54 |
+| `lock`, `unlock` | protect a panel, the body, the fabric or everything | A55 |
+| `zip`, `unzip`, `button`, `unfasten` | hardware, as trim with its own weight | A56 |
+| `handoff` | mesh + UVs + hardware in the TARGET's units and axis, with load ops | A57 |
+| `walk` | drape along a walk or run; `travel` moves the body at the gait's own speed | A58 / A65 |
+| `pull`, `fold`, `ease` | live adjustment at ~43 fps; stitch adjustment | A59 |
 
-```json
-[{"op": "create", "kind": "block", "props": {"block": "tee"}},
- {"op": "set", "id": "panel:FRONT", "props": {"seam_allowance_mm": 10}},
- {"op": "arrange", "props": {"body": "anny", "stature_m": 1.72,
-                             "particle_distance_mm": 12}},
- {"op": "drape",  "props": {"fabric": "cotton_jersey", "frames": 250}},
- {"op": "export", "props": {"format": "glb", "out": "tee.glb"}}]
-```
+Every verb is a `tee_batch` op. `tee_search_tools` finds the long tail:
+`sk_hardware`, `sk_avatar`, `sk_touch`, `sk_handoff` describe the follow-up
+capabilities and hand back the exact ops.
 
-Panels and seams are entities with stable ids (`panel:FRONT`,
-`seam:side-right`). `tee_checkpoint` writes the command history and
-`tee_rollback` **replays** it, so a checkpoint cannot restore a state the
-commands could not produce.
+## Bodies, and which arrangement they get
 
-Long tail, behind progressive disclosure: `sk_blocks`, `sk_fabrics`,
-`sk_body`, `sk_fit`, `sk_plot`, `sk_interchange`, `sk_techpack`, `sk_look`.
+- **`mannequin`** — the capsule stand-in, no download. Every measured number
+  in the physics tests was produced on it, so it keeps the **cylinder**
+  arrangement (`top_arrangement`), which measures the body by cross-section.
+- **`figure`** — a clothable figure with joints (`seamkiln.figure`): eight
+  heads tall, shoulders, a waist narrower than the ribcage, boots, gloves, a
+  cowl, six tagged parts a renderer can paint. It is built facing +Z and can
+  be turned. It gets the **wrap** arrangement and is **dressed** on arrange.
+- **`anny`**, **`posed`**, **`custom`** — parametric, posed-mannequin, and
+  your own mesh (units and up-axis inferred and reported). Wrap arrangement.
 
-## The three rules that will bite you first
+`arrangement="auto"` records the choice it made, so a replay makes it too.
 
-**1. Particle distance has a floor, and it is not cosmetic.** A garment
-meshed too coarsely does not merely look blocky — its shoulder and armhole
-seams get three or four points each, which is not enough structure to hold
-the garment up, and it slides off with every other number still looking
-healthy. `triangulate_panel` refuses anything coarser than a quarter of a
-panel's narrowest dimension. For the tee block, use 20 mm or finer.
+**Why two arrangements.** The cylinder path measures a chest radius by
+cross-section, and on the figure that measurement cascaded: 0.082 m read for
+a 0.19 m chest, a top edge at 2.02 m for shoulders at 1.40 m, and the jacket
+collapsed into a muff round the ears. The wrap path takes nothing from the
+body it cannot be sure of — the radius comes from the pattern (the panels
+must wrap the cylinder exactly once, so radius = width / 2π), the sleeves'
+radii from the sleeves' own widths, and the collar clearance from the
+shoulder cap and the pattern's own neck-to-shoulder drop.
 
-**2. "Nothing inside the body" is only half the question.** A drape that
-fell off scores a *perfect* zero for interpenetration, lying on the floor.
-Read `contact.worn` as well — it is in every drape report for exactly this
-reason.
+**Why dressing.** A cylinder arrangement leaves front and back meeting at the
+sides, so when the seams pull together the garment closes into a tube whose
+shoulders are on the wearer's flanks — and a tube with no shoulders slides
+off. Measured: seams closed to 4.7 mm and the jacket ended at y = −0.79, on
+the floor, with `worn` correctly False. `dress` pins the shoulder seams on
+the shoulders, bastes every other seam to its own midpoint, settles, and
+lets go. On the figure a coat then holds 27–35 % contact at a 37–40 mm
+standoff, which is what a bulky coat should do.
 
-**3. An edit that changes a panel's corner count invalidates its seams.**
-Edges are derived as the runs between corners, so their indices move. Seam
-allowance no longer does this (the outline is the sew line, and the cut line
-is derived), but a hand edit that adds or removes a corner will, and the
-refusal names the cause.
+## Hardware is trim, not cloth
 
-## Interchange
+A #5 brass chain is 33 g/m against a poplin's 130 g/m²; on a 590 mm opening
+that is 23 g of metal hanging on an edge that weighs 12 g/m. Hardware that
+weighs nothing drapes like a decal, so zippers and buttons enter the solver
+as **named attachments** with their own compliance and per-particle mass —
+named, because unzipping has to *replace* the chain's constraints, and an
+append-only list cannot.
 
-- **DXF**, both dialects, via the 23-layer map. ASTM D6673's table is
-  verified here; **the AAMA layer map is second-hand and `AAMA.verified` is
-  `False`** — a test asserts it stays that way. AAMA defines no
-  internal-cutout layer, so writing one to AAMA refuses rather than putting
-  a cut line where a cutter reads decoration. `sk_interchange` with
-  `action="dialects"` prints both tables.
-- **Plotter sheets** at true 1:1, tiled with a 100 mm ruler on every tile.
-- **3D** as OBJ / glTF / PLY / STL — **with UVs, free and exact**, because
-  the flat pattern *is* the UV map. Every other 3D pipeline pays an unwrap
-  step and guesses seams; a garment already knows where its seams are.
-- **Tech pack** PDF: pieces, fabric card with its tier flag, seam schedule,
-  fit and strain.
+- **Zippers**: nylon coil, moulded plastic, brass; #3–#10; one-way, two-way
+  head-to-head (opens the middle) and bottom-to-bottom (opens the ends);
+  tape, teeth, slider, puller and stopper generated. Dragging a slider is one
+  number, so the GUI drag, the script and the TEE op are the same code.
+- **Buttons**: 2-hole, 4-hole, shank, snap, rivet, toggle; five materials;
+  weight from the disc's own volume (a 24L polyester is 0.755 g). A hole a
+  button will not pass is refused with the size to cut. A rivet refuses to be
+  undone. Custom buttons register from an OBJ and are *weighed*; custom
+  buttonholes from a black-on-transparent PNG.
+- **Openings**: a seam declared `kind="zipper"` or `"placket"` is paired
+  like a seam and not sewn. `jacket-zip` and `jacket-placket` ship with one.
+- **Sleeves fit the arm.** `jacket_block` drafts its sleeve cap to its own
+  armhole *and* its width to the arm (`biceps=`); a combination the geometry
+  cannot satisfy is refused with both ways out named.
 
-## Fabric, and what its numbers mean
+## Animation
 
-`sk_fabrics` returns a tier flag on every row, and every bundled row is
-`plausible`: the weights and thicknesses are published ranges, the
-stiffnesses are solver constants chosen to behave like the cloth. They are
-not laboratory measurements and the tech pack says so on the page. Real
-KES-F or fabric-kit output belongs in tier `measured`, with its test report
-cited. ArcSim's measured set is non-profit-only and cannot ship (research
-doc 34).
+- **Blend shapes** (`animate`): keyframes on Anny's phenotype channels,
+  solved along the track with the cloth carried forward.
+- **Gait** (`walk`): walk and run from standard clinical kinematics. On a
+  figure the limbs articulate and the bob is *emergent* — the lowest foot is
+  put on the ground each frame and the pelvis rises because the stance leg
+  straightens (76 mm peak-to-peak, twice per stride, unscripted). On a body
+  with no joints (`anny`, `custom`) it travels as one piece and says so.
+- **Cloth time is derived from fps.** Each animation frame gets exactly
+  1/fps seconds of cloth time; a `frames_per_step` that disagrees is refused
+  with the number to use. With the old free parameter a t-shirt slid 270 mm
+  down a running body in one stride while every frame reported `worn=True`.
+- **Travel is at the gait's own speed.** Moved slower or faster than its
+  stride, a body slides every foot through its own stance — the skate that
+  gives away hand-animated walks.
 
-## Licences — read this before adding a dependency
+## Live adjustment
 
-This domain is mined, and the mines are the obvious choices:
+`pull`, `fold` and `ease` drive a `LiveSession` that prepares the constraint
+graph once and reuses it: 23 ms a step on a 4,549-particle tee (43 fps),
+against 56 ms rebuilt. The output is bit-identical to the batch solver, and a
+prepared graph that no longer matches its garment is refused rather than
+used. `ease` rebuilds (~30 ms) because a rest length is graph data; nobody
+scrubs a seam allowance at 60 fps.
 
-| Trap | Replacement |
-| --- | --- |
-| GarmentCodeData's simulator (NVIDIA Source Code Licence, non-commercial) | seamkiln's own XPBD |
-| SMPL / SMPL-X (non-commercial) | **Anny** (Apache-2.0, CC0 MakeHuman assets) |
-| `anny[smpl]` — Anny's own optional extra pulls `smplx` | plain `anny` |
-| Shewchuk's Triangle, `meshpy`, the `triangle` wheel (no commercial use) | CDT (MPL-2.0), or seamkiln's own constrained Delaunay |
-| ArcSim measured cloth (non-profit only) | published GSM ranges, tier `plausible` |
+## Handoff
 
-`seamkiln/tests/test_licences.py` fails the build if any of them enters the
-dependency closure, and names the replacement in the failure. Research doc
-67 §2 has the citations.
+`handoff` writes the mesh with UVs from the flat pattern, the hardware, and a
+manifest, in the *target's* units and up-axis. glTF states +Y up in metres
+and conforming importers convert, so a `.glb` gets **no** transform from us
+— checked in a headless Blender 5.2, where adding one anyway put the jacket
+on its face through the floor. OBJ defines nothing, so there the transform is
+baked into the vertices. Blender and Unreal get load ops; Godot gets files
+and the reason its bridge cannot import a mesh.
+
+## The rules that will bite you first
+
+1. **Never rely on a coarse preview.** A drape that has not converged is a
+   different answer, not a rougher one; the fit report refuses to quote one
+   unless told to.
+2. **Particle distance has a floor.** Too coarse and the shoulder seams get
+   three points each and the garment slides off with every other number
+   healthy. The tee block converges at 12 mm; the jacket at 11.
+3. **"Nothing inside the body" is only half the question.** Read
+   `contact.worn` as well; a drape on the floor scores a perfect zero for
+   interpenetration.
+4. **A corner-count edit invalidates seams**, and the refusal names the
+   cause.
+5. **A lock covers the verbs that destroy a panel, not only those that edit
+   it** — and a lock that names no scope refuses rather than locking nothing.
+
+## Interchange, fabric and licences
+
+Unchanged from A53 and still enforced: DXF in both dialects (AAMA unverified
+and flagged), 1:1 plotter sheets, 3D with exact UVs, the tech pack; every
+bundled fabric card is tier `plausible` and says so; the licence gate
+(`seamkiln/tests/test_licences.py`) fails the build if Triangle, `smplx` or
+ArcSim data enters the dependency closure and names the replacement.
 
 ## The GUI
 
-```bash
-uv pip install 'seamkiln[gui]' && python -m seamkiln.gui.app
-```
-
-`import seamkiln` works with no Qt installed, and a test asserts it. The 3D
-panel is a rendered image refreshed after each drape, not an interactive
-viewport — seamkiln already has a Blender preview lane that makes a properly
-lit garment, and a second renderer inside Qt would be a worse picture. Every
-button builds a Command, so "Save script" hands over the history the session
-was keeping anyway.
+`uv pip install 'seamkiln[gui]' && python -m seamkiln.gui.app`. It is a
+client of the core and covers the A53 loop (block, allowance, body, arrange,
+drape, fit); the follow-up verbs are script- and TEE-driven and the shell has
+not caught up — that is recorded as open work, not hidden.

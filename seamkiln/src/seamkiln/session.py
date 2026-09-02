@@ -25,6 +25,8 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 SCRIPT_VERSION = 1
 
 
@@ -79,6 +81,8 @@ class Session:
     zippers: dict[str, Any] = field(default_factory=dict)
     buttons: list[Any] = field(default_factory=list)
     handoffs: list[Any] = field(default_factory=list)
+    arrangement: str = ""  # which arrangement built the garment: cylinder | wrap
+    frame: Any = None  # seamkiln.drape.dressing.BodyFrame, when wrap was used
     avatar: dict[str, Any] = field(default_factory=dict)
     gait: Any = None
     live: Any = None  # seamkiln.interact.LiveSession, built on first pull
@@ -319,6 +323,20 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         session.body = anny_body(stature_m=stature, **phenotypes)
     elif kind == "mannequin":
         session.body = mannequin(height=stature, chest=float(args.get("chest_m", 1.0)))
+    elif kind == "figure":
+        # A figure with joints the dressing lane can ask, rather than a body
+        # it has to measure. Faces +Z unless turned.
+        from seamkiln.avatar import Pose
+        from seamkiln.figure import figure, standing_offset
+
+        pose = Pose.from_values({k: float(v) for k, v in (args.get("pose") or {}).items()})
+        session.body = figure(pose, height=stature, facing_deg=float(args.get("facing_deg", 0.0)))
+        session.body.apply_translation(standing_offset(session.body))
+        session.avatar = {
+            "kind": "figure",
+            "pose": pose.as_values(),
+            "facing_deg": float(args.get("facing_deg", 0.0)),
+        }
     elif kind in ("posed", "custom"):
         from seamkiln.avatar import Pose, adjust, custom_avatar, describe, posed_mannequin
 
@@ -352,9 +370,13 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         raise CommandError(
             f"no body kind {kind!r}. Bodies: 'anny' (parametric, Apache-2.0), "
             "'mannequin' (stand-in, no download), 'posed' (the mannequin at "
-            "joint angles) or 'custom' (your own mesh, from 'path')."
+            "joint angles), 'figure' (a clothable figure with joints, at a "
+            "'pose') or 'custom' (your own mesh, from 'path')."
         )
     session.body_spec = {"kind": kind, "stature_m": stature}
+    if kind == "figure":
+        session.body_spec["pose"] = dict(session.avatar.get("pose", {}))
+        session.body_spec["facing_deg"] = session.avatar.get("facing_deg", 0.0)
     session.sdf = sdf_from_mesh(session.body, voxel_mm=float(args.get("voxel_mm", 8.0)))
     session.garment = session.drape = session.live = None
     out = {"kind": kind, "measurements": body_measurements(session.body)}
@@ -363,19 +385,106 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _arrangement_choice(session: Session, requested: str) -> str:
+    """'auto' picks by body kind, and the pick is RECORDED so a replay makes it.
+
+    The cylinder arrangement measures the body by cross-section and is tuned
+    on the capsule mannequin - every number in this project's physics tests
+    was produced on it, so the mannequin keeps it. Any other body gets the
+    wrap arrangement, which takes its radius from the pattern and only a
+    shoulder height and two arm axes from the body: on the figure, the
+    cross-section measurer hung a jacket's top edge at 2.02 m for shoulders
+    at 1.40 m, and the coat collapsed into a muff round the ears.
+    """
+    if requested not in ("auto", "cylinder", "wrap"):
+        raise CommandError(f"arrangement must be 'auto', 'cylinder' or 'wrap', not {requested!r}.")
+    if requested != "auto":
+        return requested
+    return "cylinder" if session.body_spec.get("kind", "mannequin") == "mannequin" else "wrap"
+
+
 def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.drape.garment import build_garment, top_arrangement
 
     pattern = _require_pattern(session)
     if session.body is None:
         _v_body(session, {})  # a default body beats a refusal nobody can act on
+    choice = _arrangement_choice(session, str(args.get("arrangement", "auto")))
+    height = float(session.body_spec.get("stature_m", 1.75))
+    if choice == "cylinder":
+        placements = top_arrangement(pattern, session.body)
+    else:
+        from seamkiln.drape.dressing import frame_from_figure, frame_from_mesh, wrap_arrangement
+
+        if session.body_spec.get("kind") == "figure":
+            from seamkiln.avatar import Pose
+
+            # The frame is in the figure's JOINT coordinates, and the session's
+            # figure has been stood on the ground - so the garment is built in
+            # joint coordinates and lifted afterwards, once, below.
+            frame = frame_from_figure(
+                Pose.from_values(session.body_spec.get("pose", {})), height=height
+            )
+        else:
+            try:
+                frame = frame_from_mesh(session.body)
+            except ValueError as exc:
+                raise CommandError(
+                    f"could not measure this body for a wrap arrangement: {exc}. "
+                    "Use body kind 'figure', or pass arrangement='cylinder'."
+                ) from exc
+        placements = wrap_arrangement(pattern, frame, height=height)
+        session.frame = frame
     session.garment = build_garment(
-        pattern,
-        top_arrangement(pattern, session.body),
-        particle_distance=float(args.get("particle_distance_mm", 15.0)),
+        pattern, placements, particle_distance=float(args.get("particle_distance_mm", 15.0))
     )
+    if choice == "wrap" and session.body_spec.get("kind") == "figure":
+        session.garment.points = session.garment.points + _figure_lift(session)
+    session.arrangement = choice
     session.drape = None
-    return session.garment.summary()
+    out = session.garment.summary()
+    out["arrangement"] = choice
+    if choice == "wrap" and bool(args.get("dress", True)):
+        out.update(_dress_now(session, args))
+    return out
+
+
+def _dress_now(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Pin the shoulders, baste the seams, settle, release - the fitter's job."""
+    from seamkiln.drape.dressing import dress, shoulder_anchors
+
+    frame = session.frame
+    anchors = shoulder_anchors(frame, _figure_lift(session))
+    anchors = {k: v for k, v in anchors.items() if k in session.garment.seam_spans}
+    if not anchors:
+        return {"dressed": False, "why": "no shoulder seams to pin on this pattern"}
+    result = dress(
+        session.garment,
+        session.sdf,
+        fabric=session.fabric,
+        anchors=anchors,
+        hold_frames=int(args.get("dress_frames", 180)),
+        settle_frames=int(args.get("settle_frames", 220)),
+    )
+    session.drape = result
+    return {
+        "dressed": True,
+        "worn": result.contact.get("worn"),
+        "touching_fraction": result.contact.get("touching_fraction"),
+        "seam_gaps": result.seam_gaps,
+    }
+
+
+def _figure_lift(session: Session) -> np.ndarray:
+    """The figure stands on the ground; its joint frame does not. The
+    difference is the translation the garment and its anchors both need."""
+    if session.body_spec.get("kind") != "figure" or session.body is None:
+        return np.zeros(3)
+    from seamkiln.avatar import Pose
+    from seamkiln.figure import figure, standing_offset
+
+    pose = Pose.from_values(session.body_spec.get("pose", {}))
+    return standing_offset(figure(pose, height=float(session.body_spec.get("stature_m", 1.75))))
 
 
 def _v_drape(session: Session, args: dict[str, Any]) -> dict[str, Any]:
@@ -1074,6 +1183,28 @@ def _v_walk(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.drape.solve import DrapeSettings
 
     garment = _need_garment(session, "walk")
+    height = float(session.body_spec.get("stature_m", 1.75))
+    kind = session.body_spec.get("kind", "mannequin")
+    note = None
+    # The body that walks is the SESSION'S body. It was not: this verb built
+    # a posed mannequin whatever body had been chosen, so 'walk' on a figure
+    # or an imported avatar quietly animated something else.
+    if kind == "figure":
+        from seamkiln.avatar import figure_factory
+
+        factory = figure_factory(
+            height=height, facing_deg=float(session.body_spec.get("facing_deg", 0.0))
+        )
+    elif kind in ("mannequin", "posed"):
+        factory = None  # the animator's own posed mannequin
+    else:
+        from seamkiln.avatar import rigid_factory
+
+        factory = rigid_factory(session.body)
+        note = (
+            f"a {kind!r} body has no joints to swing, so it travels as one piece "
+            "with the gait's rise; use body kind 'figure' for articulated limbs"
+        )
     try:
         track = make_gait(
             str(args.get("gait", "walk")),
@@ -1086,8 +1217,11 @@ def _v_walk(session: Session, args: dict[str, Any]) -> dict[str, Any]:
             fabric=session.fabric,
             fps=float(args.get("fps", 12.0)),
             voxel_mm=float(args.get("voxel_mm", 10.0)),
-            height=float(session.body_spec.get("stature_m", 1.75)),
+            height=height,
+            body_factory=factory,
             settings=DrapeSettings(substeps=int(args.get("substeps", 24))),
+            travel=bool(args.get("travel", False)),
+            heading=tuple(args.get("heading", (0.0, 0.0, 1.0))),
         )
     except ValueError as exc:
         raise CommandError(str(exc)) from exc
@@ -1099,6 +1233,14 @@ def _v_walk(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     return {
         **track.as_dict(),
         **animation_report(frames),
+        **({"note": note} if note else {}),
+        "body": kind,
+        "travelled_m": round(
+            float(np.linalg.norm(frames[-1].points.mean(axis=0) - frames[0].points.mean(axis=0)))
+            if len(frames) > 1
+            else 0.0,
+            3,
+        ),
         "hem_swing_mm": round((max(hem) - min(hem)) * 1000.0, 1),
         "rise_mm": round(
             (float(frames[0].points[:, 1].mean()) - float(frames[-1].points[:, 1].mean()))

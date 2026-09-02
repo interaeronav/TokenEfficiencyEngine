@@ -385,8 +385,16 @@ def walk(
     chest: float = 1.00,
     body_factory=None,
     settings=None,
+    travel: bool = False,
+    heading=(0.0, 0.0, 1.0),
 ) -> list[Any]:
     """Drape along a pose track, carrying the cloth forward frame to frame.
+
+    `travel=True` moves the body along `heading` at the GAIT'S OWN speed. It
+    has to be that speed and no other: the track is drafted for a stride
+    length, and a body moved slower or faster than its stride slides every
+    foot through its own stance - the skate that gives away hand-animated
+    walks. Frame a shot with the duration and the lens, never with this.
 
     Reuses the blend-shape animator, because "solve, carry the points forward,
     solve again" is the same job whether the body changed shape or moved. The
@@ -402,6 +410,15 @@ def walk(
         def body_factory(values: dict[str, float]):
             return posed_mannequin(Pose.from_values(values), height=height, chest=chest)
 
+    advance = None
+    if travel:
+        speed = float(track.meta.get("speed_ms", GAITS.get(track.gait, GAITS["stand"]).speed_ms))
+        direction = np.asarray(heading, dtype=np.float64)
+        direction = direction / max(float(np.linalg.norm(direction)), 1e-9)
+
+        def advance(time_s: float) -> np.ndarray:
+            return direction * speed * time_s
+
     return animate(
         garment,
         _as_blend_track(track),
@@ -411,7 +428,42 @@ def walk(
         voxel_mm=voxel_mm,
         body_factory=body_factory,
         settings=settings,
+        advance=advance,
     )
+
+
+def figure_factory(*, height: float = 1.80, facing_deg: float = 0.0, ground_y: float = 0.0):
+    """A body_factory that walks the FIGURE, feet planted on the ground.
+
+    The gait track carries a scripted `rise_m`; the figure ignores it. Its
+    lowest foot is put on the ground each frame and the pelvis rises because
+    the stance leg straightens - which is where a walking body's bob actually
+    comes from, and which measured at 76 mm peak to peak, twice per stride,
+    without anyone scripting it.
+    """
+    from seamkiln.figure import figure, standing_offset
+
+    def factory(values: dict[str, float]):
+        pose = Pose.from_values({k: v for k, v in values.items() if k != "rise_m"})
+        body = figure(pose, height=height, facing_deg=facing_deg)
+        body.apply_translation(standing_offset(body, ground_y))
+        return body
+
+    return factory
+
+
+def rigid_factory(mesh):
+    """A body_factory for a body that CANNOT be posed: an imported avatar with
+    no rig, or an Anny mesh. It moves as one piece and says so - the honest
+    answer beats bending a mesh that has no joints to bend at."""
+
+    def factory(values: dict[str, float]):
+        body = mesh.copy()
+        body.apply_translation([0.0, float(values.get("rise_m", 0.0)), 0.0])
+        return body
+
+    factory.rigid = True  # type: ignore[attr-defined]
+    return factory
 
 
 class _PoseAsTrack:
@@ -582,8 +634,10 @@ __all__ = [
     "adjust",
     "custom_avatar",
     "describe",
+    "figure_factory",
     "gait",
     "posed_mannequin",
     "replace",
+    "rigid_factory",
     "walk",
 ]

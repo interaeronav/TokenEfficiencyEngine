@@ -203,3 +203,60 @@ def test_sk_tools_are_tabled_in_the_trust_kernel(app) -> None:
         assert trust.capability_for(name) == "read-scene"
     for name in ("sk_plot", "sk_interchange"):
         assert trust.capability_for(name) == "write-artifacts"
+
+
+# ------------------------------------------------------------------- A65
+# The A54-A64 capabilities existed and were invisible: a zipped, buttoned,
+# locked garment on a walking figure listed the same entities as a bare tee,
+# and "zipper", "button" and "walk cycle" returned an EMPTY tool search. P4's
+# acceptance says the long tail lands top-3; these pin it for the follow-ups.
+
+
+def test_hardware_locks_and_the_body_are_entities(adapter) -> None:
+    adapter.execute(
+        [
+            {"op": "create", "kind": "block", "props": {"block": "jacket-zip"}},
+            {"op": "arrange", "props": {"particle_distance_mm": COARSE}},
+            {"op": "zip", "props": {"opening": "centre-front", "material": "nylon", "frames": 20}},
+            {"op": "lock", "props": {"scope": "panel:BACK", "why": "approved"}},
+        ]
+    )
+    by_kind = {}
+    for entity in adapter.list_entities():
+        by_kind.setdefault(entity.kind, []).append(entity)
+    assert {"panel", "seam", "garment", "zipper", "locks", "body"} <= set(by_kind)
+    zipper = by_kind["zipper"][0]
+    assert zipper.id == "zip:centre-front" and zipper.summary["material"] == "nylon"
+    assert by_kind["locks"][0].summary["locked"] == ["panel:BACK"]
+    assert by_kind["body"][0].summary["kind"] == "mannequin"
+    assert by_kind["body"][0].summary["arrangement"] == "cylinder"
+
+
+def test_the_follow_up_capabilities_land_top_three_in_search(app) -> None:
+    for query, want in (
+        ("zipper on a jacket", "sk_hardware"),
+        ("fasten a button", "sk_hardware"),
+        ("walk cycle animation", "sk_avatar"),
+        ("import a custom avatar", "sk_avatar"),
+        ("pull the cloth interactively", "sk_touch"),
+        ("hand off garment to blender", "sk_handoff"),
+    ):
+        names = [item["name"] for item in app.registry.search(query, limit=3)["items"]]
+        assert want in names, f"{query!r} found {names}"
+
+
+def test_the_new_long_tail_tools_answer_and_the_surface_still_does_not_move(app) -> None:
+    from tee.server import _DESC
+
+    assert len(_DESC) == 17
+    hardware = app.registry.call("sk_hardware", {})
+    assert set(hardware["zippers"]["materials"]) == {"nylon", "plastic", "metal"}
+    assert "two-way-head-to-head" in hardware["zippers"]["layouts"]
+    avatar = app.registry.call("sk_avatar", {})
+    assert {"mannequin", "anny", "posed", "figure", "custom"} <= set(avatar["bodies"])
+    assert avatar["gaits"]["walk"]["speed_ms"] == pytest.approx(1.35)
+    touch = app.registry.call("sk_touch", {})
+    assert {"pull", "fold", "ease"} <= set(touch["verbs"])
+    handoff = app.registry.call("sk_handoff", {})
+    assert handoff["targets"]["blender"]["driven_by_tee"] is True
+    assert handoff["targets"]["godot"]["driven_by_tee"] is False

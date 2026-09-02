@@ -125,8 +125,14 @@ def animate(
     voxel_mm: float = 12.0,
     body_factory=None,
     settings=None,
+    advance=None,
 ) -> list[AnimationFrame]:
     """Solve the garment along the track, carrying the cloth forward.
+
+    `advance(time_s) -> [x, y, z]` moves the WHOLE body through the world as
+    it animates, and the carried cloth with it. Without it a walk happens on
+    the spot - which is fine for a drape test and wrong for a shot, because a
+    body that swings its legs without travelling is skating.
 
     `body_factory(values)` builds the body for a shape - Anny by default, so
     the caller does not have to know about it, but replaceable so the stand-in
@@ -150,6 +156,7 @@ def animate(
             )
 
     options = settings or DrapeSettings()
+    previous_offset = None
     # How much CLOTH TIME one animation frame gets. This is not a free
     # parameter: the body advances 1/fps seconds between frames, so the cloth
     # must advance 1/fps seconds too.
@@ -183,13 +190,24 @@ def animate(
     for time_s, values in track.sample(fps):
         started = time.perf_counter()
         body = body_factory(values)
+        offset = None
+        if advance is not None:
+            offset = np.asarray(advance(time_s), dtype=np.float64)
+            body = body.copy()
+            body.apply_translation(offset)
         sdf = sdf_from_mesh(body, voxel_mm=voxel_mm)
         body_seconds = time.perf_counter() - started
 
         if points is not None:
             # carry the cloth forward: the garment is DRAGGED by the body
             # changing under it, not re-draped from scratch, which would pop
+            if offset is not None and previous_offset is not None:
+                # ... and carried ALONG with a travelling body, so the solver
+                # is not asked to drag the whole garment through collision
+                # by the body's stride every frame
+                points = points + (offset - previous_offset)
             garment.points = points
+        previous_offset = offset
         result = drape(garment, sdf, fabric=fabric, settings=options)
         points = result.points.copy()
         out.append(

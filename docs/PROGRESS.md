@@ -9573,3 +9573,56 @@ nine-minute render.
 **The lesson across all three:** every one of these survived a suite that was
 green. What found them was asking the software to do a whole job — not a unit
 of one — and then looking hard at what came out.
+
+
+## A65 — the A53 script audited, and its acceptance debt paid (2026-09-02)
+
+Owner: *"Debug and improve the whole script — meant the A53 SCRIPT and follow
+up suggested and attempted improvements."* A53 was marked COMPLETE and then
+eleven campaigns (A54–A64) built on it outside any script, which CLAUDE.md
+forbids. `CLAUDE_A65_SCRIPT.md` is the amendment: every A53 phase and every
+follow-up audited against the tree, the tests, and a live `TeeApp`.
+
+**What the audit found, and fixed this session:**
+
+- **P4's acceptance was violated by the follow-ups.** `tee_search_tools`
+  returned an EMPTY result for "zipper on a jacket", "fasten a button" and
+  "walk cycle animation" — the capabilities existed and could not be found.
+  Four `sk_*` tools (`sk_hardware`, `sk_avatar`, `sk_touch`, `sk_handoff`)
+  now land every follow-up query top-3, pinned by test. Surface still
+  17 / 2,033 tok (measured by the benchmark's own `run_surface_scenario`);
+  126 virtual tools.
+- **Hardware, locks and the body were not entities.** A zipped, buttoned,
+  locked garment on a walking figure listed what a bare tee did. They are
+  entities now, so a diff can name them.
+- **`top_arrangement` cannot dress a body that is not the mannequin**: on
+  the figure it hung a jacket's top edge at 2.02 m for shoulders at 1.40 m.
+  New `drape/dressing.py`: `wrap_arrangement` takes its radius from the
+  PATTERN (panels wrap the cylinder exactly once) and only a shoulder height
+  and two arm axes from the body; `dress` pins the shoulder seams, bastes
+  every other seam to its midpoint, settles and releases — because a garment
+  that merely closes its seams becomes a tube with no shoulders and slides
+  off (measured: 4.7 mm seams, jacket at y = −0.79, `worn=False`).
+  `arrange` chooses `auto|cylinder|wrap` explicitly and RECORDS it. The
+  mannequin keeps the cylinder path untouched: every physics number in the
+  suite was produced on it. Coat on the figure after `arrange`: worn, 35 %
+  contact, seams mean 2 mm, replay fingerprint identical.
+- **`walk` ignored the session's body** — it built a posed mannequin
+  whatever body was chosen. It now walks the session's body: a `figure`
+  articulates (bob emergent, 76 mm twice per stride), jointless bodies
+  travel rigidly and say so, and `travel=True` moves at the gait's own speed
+  (cloth measured at 1.37 m/s against the gait's 1.35).
+- **A clothable figure joins the kernel** (`seamkiln/figure.py`) — the
+  character from the two shots, with the anatomy lesson intact: a 0.054H
+  upper arm is unclothable and reads as a broken solver.
+- **A53 Gap 3 partly paid**: `server/tests/test_seamkiln_translate.py`
+  tests the adapter's own logic with no kernel installed.
+- `docs/seamkiln-lane.md` rewritten (it listed 11 of 29 verbs).
+
+**Suites at close:** seamkiln 244 passed / 8 skipped (from 229); server
+1,214 passed / 10 skipped (from 1,206); lint clean.
+
+**Still owed, named in the script:** C-IPC attempted honestly (A53 Gap 2);
+an industry DXF from the owner (Gap 4); the two shots as repo examples; the
+GUI catching up with the follow-up verbs; render properties on the material
+card; a benchmark row for the follow-ups.

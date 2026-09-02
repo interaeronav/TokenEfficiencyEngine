@@ -594,3 +594,291 @@ def register_seamkiln_tools(app) -> None:
             examples=[{}, {"action": "compare", "names": ["denim_12oz", "chiffon"]}],
         )
     )
+
+    # ------------------------------------------------------------------ A65
+    # The A54-A64 capabilities were reachable through `tee_batch` and findable
+    # by nothing: "zipper", "button" and "walk cycle" returned an EMPTY search.
+    # P4's acceptance says the long tail must land top-3 for its queries, and
+    # a capability a model cannot find is a capability it does not have.
+
+    def hardware(args: dict[str, Any]) -> dict[str, Any]:
+        _need()
+        from seamkiln.hardware.buttons import TYPES as BUTTON_TYPES
+        from seamkiln.hardware.trim import BUTTON_TRIM, ZIPPER_TRIM
+        from seamkiln.hardware.zipper import LAYOUTS, SIZES
+
+        adapter = _adapter(app)
+        session = adapter.session
+        fitted = {k: z.summary() for k, z in getattr(session, "zippers", {}).items()}
+        fastened = [f.summary() for f in getattr(session, "buttons", [])]
+        return {
+            "zippers": {
+                "materials": {
+                    k: {"chain_g_per_m_at_5": t.chain_g_per_m, "self_healing": t.self_healing}
+                    for k, t in ZIPPER_TRIM.items()
+                },
+                "sizes": list(SIZES),
+                "layouts": list(LAYOUTS),
+                "fitted": fitted,
+                "verbs": {
+                    "zip": {
+                        "opening": "centre-front",
+                        "material": "metal",
+                        "size": 5,
+                        "layout": "one-way",
+                    },
+                    "unzip": {"opening": "centre-front", "to": 0.3, "slider": 0},
+                },
+            },
+            "buttons": {
+                "types": list(BUTTON_TYPES),
+                "materials": list(BUTTON_TRIM),
+                "fastened": fastened,
+                "verbs": {
+                    "button": {
+                        "panel": "FRONT_R",
+                        "x": 14,
+                        "y": 240,
+                        "hole_panel": "FRONT_L",
+                        "hole_x": -14,
+                        "hole_y": 240,
+                        "type": "4-hole",
+                        "ligne": 24,
+                    },
+                    "unfasten": {"id": "button@..."},
+                },
+                "custom": "register an OBJ with hardware.buttons.register_obj (it is WEIGHED "
+                "from its volume) or a black-on-transparent PNG buttonhole with register_mask",
+            },
+            "openings": "declare a seam kind='zipper' or 'placket' on the pattern; it is "
+            "paired but not sewn. The bundled 'jacket-zip' and 'jacket-placket' blocks have one.",
+        }
+
+    app.registry.register(
+        VirtualTool(
+            name="sk_hardware",
+            description=(
+                "Zippers and buttons: what can be fitted (materials, sizes, one-way and "
+                "two-way layouts; button types and materials), what IS fitted on the "
+                "current garment, and the exact batch ops to fit, drag a slider, fasten "
+                "or undo. Hardware is trim, not cloth - it carries its own weight and "
+                "stiffness into the drape."
+            ),
+            schema={"type": "object", "properties": {}},
+            handler=hardware,
+            tags=[
+                "seamkiln",
+                "zipper",
+                "zip",
+                "slider",
+                "button",
+                "buttonhole",
+                "snap",
+                "rivet",
+                "toggle",
+                "fasten",
+                "hardware",
+                "trim",
+                "placket",
+                "garment",
+            ],
+            examples=[{}],
+        )
+    )
+
+    def avatar(args: dict[str, Any]) -> dict[str, Any]:
+        _need()
+        from seamkiln.avatar import GAITS, JOINTS
+        from seamkiln.figure import PARTS
+
+        adapter = _adapter(app)
+        session = adapter.session
+        body = dict(getattr(session, "body_spec", {}) or {})
+        return {
+            "bodies": {
+                "mannequin": "capsule stand-in, no download; the cylinder arrangement is "
+                "tuned on it",
+                "anny": "parametric, Apache-2.0; phenotypes gender/age/muscle/weight/"
+                "height/proportions",
+                "posed": "the mannequin at joint angles",
+                "figure": "a clothable figure with joints (arms/legs/trunk) that the dressing "
+                "lane asks directly; walks with articulated limbs",
+                "custom": "your own mesh from 'path'; units and up-axis inferred and REPORTED; "
+                "walks as one piece (no rig)",
+            },
+            "joints": list(JOINTS),
+            "figure_parts": list(PARTS),
+            "gaits": {
+                k: {"speed_ms": g.speed_ms, "cycle_s": g.cycle_s, "source": g.source}
+                for k, g in GAITS.items()
+            },
+            "current_body": body,
+            "verbs": {
+                "body": {"kind": "figure", "stature_m": 1.8, "pose": {"hip_r": 20}},
+                "arrange": {"arrangement": "auto|cylinder|wrap", "dress": True},
+                "walk": {
+                    "gait": "walk",
+                    "cycles": 1.0,
+                    "fps": 12,
+                    "travel": True,
+                    "heading": [0, 0, 1],
+                },
+                "animate": "blend-shape keyframes on an anny body (see the session verb)",
+            },
+            "laws": [
+                "cloth time per animation frame is DERIVED from fps; a mismatch is refused",
+                "travel uses the gait's own speed, or the feet skate",
+                "'auto' arrangement = cylinder on the mannequin, wrap on anything else",
+            ],
+        }
+
+    app.registry.register(
+        VirtualTool(
+            name="sk_avatar",
+            description=(
+                "Bodies, poses and gait: which avatars exist (mannequin, Anny, posed, a "
+                "clothable figure with joints, your own mesh), the walk/run gait "
+                "kinematics, how a garment is dressed onto a body, and the batch ops for "
+                "posing, walking and animating a draped garment on it."
+            ),
+            schema={"type": "object", "properties": {}},
+            handler=avatar,
+            tags=[
+                "seamkiln",
+                "avatar",
+                "body",
+                "figure",
+                "rig",
+                "pose",
+                "walk",
+                "run",
+                "gait",
+                "animation",
+                "cycle",
+                "dress",
+                "custom",
+                "import",
+            ],
+            examples=[{}],
+        )
+    )
+
+    def touch(args: dict[str, Any]) -> dict[str, Any]:
+        _need()
+        return {
+            "what": "live interaction with a draped garment, at an interactive rate",
+            "measured": "43 fps on a 4,549-particle tee (23 ms a step) once the constraint "
+            "graph is prepared once and reused; a rebuilt graph ran at 18 fps",
+            "verbs": {
+                "pull": {
+                    "x": 0.17,
+                    "y": 0.92,
+                    "z": 0.01,
+                    "to_x": 0.22,
+                    "to_y": 0.95,
+                    "to_z": -0.06,
+                    "radius_mm": 40,
+                    "steps": 12,
+                    "settle": 40,
+                },
+                "fold": {
+                    "x": 0.0,
+                    "y": 1.1,
+                    "z": 0.2,
+                    "depth_mm": 40,
+                    "direction": [0, 0, -1],
+                    "radius_mm": 50,
+                },
+                "ease": {"seam": "side-right", "mm": 6.0},
+                "pinch": "symmetric pinching - see the session verb",
+            },
+            "notes": [
+                "a pull records the NET gesture; `steps` is how finely it is interpolated",
+                "ease rebuilds the graph (~30 ms) - it is a discrete edit, not a drag",
+                "fold retention is measured along the push axis; it does not order by "
+                "stiffness, because weight pulls a fold out while stiffness holds it",
+            ],
+        }
+
+    app.registry.register(
+        VirtualTool(
+            name="sk_touch",
+            description=(
+                "Pull, fold and adjust a draped garment live: grab cloth and drag it at "
+                "an interactive rate, push a fold in by hand, or let a seam out or take "
+                "it in by millimetres. Returns the batch ops and the measured rate."
+            ),
+            schema={"type": "object", "properties": {}},
+            handler=touch,
+            tags=[
+                "seamkiln",
+                "pull",
+                "drag",
+                "grab",
+                "fold",
+                "pinch",
+                "ease",
+                "stitch",
+                "seam",
+                "interactive",
+                "live",
+                "adjust",
+                "tweak",
+                "garment",
+            ],
+            examples=[{}],
+        )
+    )
+
+    def handoff_info(args: dict[str, Any]) -> dict[str, Any]:
+        _need()
+        from seamkiln.handoff import SOURCE, TARGETS
+
+        return {
+            "source": {"up": SOURCE.up, "handed": SOURCE.handed, "unit_m": SOURCE.unit_m},
+            "targets": {
+                k: {
+                    "up": t.up,
+                    "handed": t.handed,
+                    "unit_m": t.unit_m,
+                    "prefers": t.prefers,
+                    "driven_by_tee": t.driven_by_tee,
+                    "note": t.note,
+                }
+                for k, t in TARGETS.items()
+            },
+            "verb": {"handoff": {"out": "/path/dir", "target": "blender", "hardware": True}},
+            "law": "a self-describing format (glTF/USD) is left alone; OBJ carries the "
+            "transform baked into its vertices. Verified in a headless Blender 5.2.",
+        }
+
+    app.registry.register(
+        VirtualTool(
+            name="sk_handoff",
+            description=(
+                "Hand a draped garment to another application - Blender, Unreal, Maya, "
+                "ZBrush, Houdini, Marvelous, Godot - in ITS units and up-axis, with the "
+                "flat-pattern UVs and the hardware, plus the ops that load it where TEE "
+                "can drive the target. Lists every target's conventions."
+            ),
+            schema={"type": "object", "properties": {}},
+            handler=handoff_info,
+            tags=[
+                "seamkiln",
+                "handoff",
+                "export",
+                "blender",
+                "unreal",
+                "maya",
+                "zbrush",
+                "houdini",
+                "godot",
+                "pipeline",
+                "glb",
+                "obj",
+                "units",
+                "axis",
+            ],
+            examples=[{}],
+        )
+    )
