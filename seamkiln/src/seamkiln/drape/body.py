@@ -170,9 +170,25 @@ def body_shell(mesh: trimesh.Trimesh, *, min_extent: float = 0.06) -> trimesh.Tr
 
 
 def sdf_from_mesh(
-    mesh: trimesh.Trimesh, *, voxel_mm: float = 8.0, pad_mm: float = 60.0, source: str = ""
+    mesh: trimesh.Trimesh,
+    *,
+    voxel_mm: float = 8.0,
+    pad_mm: float = 60.0,
+    bounds: tuple[np.ndarray, np.ndarray] | np.ndarray | None = None,
+    source: str = "",
 ) -> BodySDF:
-    """Bake a watertight mesh into a signed distance grid."""
+    """Bake a watertight mesh into a signed distance grid.
+
+    `bounds` (a `(lo, hi)` pair in metres) bakes the mesh onto a lattice
+    that covers those bounds instead of the mesh's own: every frame of a
+    moving body baked with the same `bounds` and `voxel_mm` then lands on
+    ONE lattice - the same shape, origin and spacing - so two frames' fields
+    can be blended cell for cell inside the solver. The embedding is exact:
+    trimesh's voxel origin already sits on the pitch lattice, so the mesh's
+    own grid is copied into the larger one at an integer offset and the
+    distance transform runs on the larger box. A mesh that does not fit the
+    bounds is refused rather than clipped.
+    """
     if not mesh.is_watertight:
         # not fatal - fill() still does something sensible - but the caller
         # deserves to know the sign may be wrong in a leaky region
@@ -183,9 +199,36 @@ def sdf_from_mesh(
     pad = pad_mm / 1000.0
     voxels = trimesh.voxel.creation.voxelize(mesh, pitch=pitch).fill()
     occupancy = np.asarray(voxels.matrix, dtype=bool)
+    own = np.asarray(voxels.transform[:3, 3], dtype=np.float64)
 
     padding = max(1, int(np.ceil(pad / pitch)))
-    padded = np.pad(occupancy, padding, mode="constant", constant_values=False)
+    if bounds is None:
+        padded = np.pad(occupancy, padding, mode="constant", constant_values=False)
+        origin = own - padding * pitch
+    else:
+        lo_b = np.asarray(bounds[0], dtype=np.float64)
+        hi_b = np.asarray(bounds[1], dtype=np.float64)
+        lo = np.floor(lo_b / pitch) * pitch - padding * pitch
+        hi = np.ceil(hi_b / pitch) * pitch + padding * pitch
+        shape = np.rint((hi - lo) / pitch).astype(int) + 1
+        at_exact = (own - lo) / pitch
+        at = np.rint(at_exact).astype(int)
+        if np.abs(at_exact - at).max() > 1e-6:
+            raise ValueError(
+                "the mesh's voxel lattice is not on the bounds' lattice "
+                f"(offset {at_exact.tolist()} cells); bake with the same voxel_mm"
+            )
+        end = at + np.asarray(occupancy.shape)
+        if (at < 0).any() or (end > shape).any():
+            raise ValueError(
+                "the body leaves the lattice it was asked to bake on: mesh bounds "
+                f"{np.round(mesh.bounds, 4).tolist()} vs bounds "
+                f"{np.round([lo_b, hi_b], 4).tolist()} - widen `bounds` (an animation "
+                "should pass the union of every frame's bounds)"
+            )
+        padded = np.zeros(tuple(int(n) for n in shape), dtype=bool)
+        padded[at[0] : end[0], at[1] : end[1], at[2] : end[2]] = occupancy
+        origin = lo
 
     from scipy import ndimage
 
@@ -193,13 +236,118 @@ def sdf_from_mesh(
     inside = ndimage.distance_transform_edt(padded) * pitch
     signed = (outside - inside).astype(np.float32)
 
-    origin = np.asarray(voxels.transform[:3, 3], dtype=np.float64) - padding * pitch
     return BodySDF(
         grid=signed,
         origin=origin,
         spacing=pitch,
         source=source or f"mesh {len(mesh.vertices)}v {len(mesh.faces)}f",
     )
+
+
+@dataclass(slots=True)
+class BodyMotion:
+    """Where the body is at every substep of ONE drape call.
+
+    The solver's body used to be five constants per call: the field, its
+    origin and spacing, and one placement. A body that walks moved between
+    calls as a jump - the animator rebaked it and teleported the garment -
+    and each jump UP into the cloth resolved as a full push in one substep,
+    a kick of tens of metres per second, while nothing on the way down
+    pulled the cloth back. Measured: a jersey tee rode up 16 mm per walking
+    stride and 40 per running stride, without saturating. This is the
+    schedule that replaces the jump: entry `s` is the body after `s`
+    substeps, entry 0 is `start`, entry -1 is `end`.
+
+    Two parts. The RIGID part (`rotation`, `translation`) is exact and free:
+    travel, the gait's bob, a turn. The DEFORMING part is a second field on
+    the same lattice and a blend weight `mix`: the solver reads
+    `d = d0 + mix * (d1 - d0)` and takes its normal from that same blended
+    interpolant, so a limb that swings between two poses is a surface that
+    moves continuously through the frame. `end.grid is start.grid` means no
+    blend (a rigid body), and a motion whose schedule never varies is not
+    `moving` at all - the solver then executes exactly the static path.
+    """
+
+    end: BodySDF
+    rotation: np.ndarray  # float64 [S, 3, 3], the stored (field -> world) matrices
+    translation: np.ndarray  # float64 [S, 3]
+    mix: np.ndarray  # float64 [S]; 0 -> 1 across the call when `blend`
+    blend: bool
+    moving: bool
+
+    @property
+    def steps(self) -> int:
+        return int(self.mix.shape[0]) - 1
+
+    @classmethod
+    def static(cls, sdf: BodySDF, steps: int) -> BodyMotion:
+        """A body that does not move: the static path, spelled as a schedule."""
+        count = int(steps) + 1
+        return cls(
+            end=sdf,
+            rotation=np.ascontiguousarray(np.repeat(sdf.rotation[None], count, axis=0)),
+            translation=np.ascontiguousarray(np.repeat(sdf.translation[None], count, axis=0)),
+            mix=np.zeros(count, dtype=np.float64),
+            blend=False,
+            moving=False,
+        )
+
+    @classmethod
+    def between(cls, start: BodySDF, end: BodySDF, steps: int) -> BodyMotion:
+        """The body moving from `start` to `end` over `steps` substeps, linearly.
+
+        `end` must share `start`'s lattice (bake both with the same `bounds`);
+        when it is the same grid object the motion is rigid and no blend is
+        read. The last entries are SET from `end`, not computed, so the next
+        call's entry 0 matches this call's entry -1 bit for bit.
+        """
+        count = int(steps) + 1
+        if count < 2:
+            raise ValueError("a motion needs at least one substep")
+        same_lattice = (
+            start.grid.shape == end.grid.shape
+            and np.array_equal(start.origin, end.origin)
+            and start.spacing == end.spacing
+        )
+        if not same_lattice:
+            raise ValueError(
+                "the body's two fields are not on one lattice "
+                f"({start.grid.shape} at {np.round(start.origin, 4).tolist()} vs "
+                f"{end.grid.shape} at {np.round(end.origin, 4).tolist()}): "
+                "bake both with the same `bounds=` and voxel size"
+            )
+        u = np.linspace(0.0, 1.0, count)
+        t0 = np.asarray(start.translation, dtype=np.float64)
+        t1 = np.asarray(end.translation, dtype=np.float64)
+        translation = t0[None, :] + (t1 - t0)[None, :] * u[:, None]
+        translation[0] = t0
+        translation[-1] = t1
+        r0 = np.asarray(start.rotation, dtype=np.float64)
+        r1 = np.asarray(end.rotation, dtype=np.float64)
+        if np.allclose(r0, r1):
+            rotation = np.repeat(r0[None], count, axis=0)
+        else:
+            from scipy.spatial.transform import Rotation, Slerp
+
+            keys = Rotation.from_matrix(np.stack([r0, r1]))
+            rotation = Slerp([0.0, 1.0], keys)(u).as_matrix()
+            rotation[0] = r0
+            rotation[-1] = r1
+        blend = end.grid is not start.grid
+        mix = u.copy() if blend else np.zeros(count, dtype=np.float64)
+        moving = bool(
+            blend
+            or not np.array_equal(translation[0], translation[-1])
+            or not np.array_equal(rotation[0], rotation[-1])
+        )
+        return cls(
+            end=end,
+            rotation=np.ascontiguousarray(rotation),
+            translation=np.ascontiguousarray(translation),
+            mix=np.ascontiguousarray(mix),
+            blend=blend,
+            moving=moving,
+        )
 
 
 def _capsule_between(a: np.ndarray, b: np.ndarray, radius: float, segments: int = 20):

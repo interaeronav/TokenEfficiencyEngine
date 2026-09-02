@@ -25,7 +25,7 @@ from typing import Any
 
 import numpy as np
 
-from seamkiln.drape.body import BodySDF, measure_contact, measure_penetration
+from seamkiln.drape.body import BodyMotion, BodySDF, measure_contact, measure_penetration
 from seamkiln.drape.environment import Environment, WindField
 from seamkiln.drape.garment import GarmentMesh
 from seamkiln.pattern.fabric import Fabric
@@ -196,6 +196,9 @@ class DrapeResult:
     # What dressing did to get here (pins, standoff, targets moved out of the
     # body); empty for a plain drape. See drape/dressing.py.
     dressing: dict[str, Any] = field(default_factory=dict)
+    # How the body moved during this call (travel, blend); empty when it did
+    # not, so a static report is unchanged to the byte.
+    body_motion: dict[str, Any] = field(default_factory=dict)
 
     def report(self) -> dict[str, Any]:
         """The compact drape report - never a vertex dump (hard rule 1)."""
@@ -206,6 +209,7 @@ class DrapeResult:
             "seam_gaps": self.seam_gaps,
             "penetration": self.penetration,
             "contact": self.contact,
+            **({"body_motion": self.body_motion} if self.body_motion else {}),
             # Never rely on a coarse preview: a result that has not converged
             # says so here rather than depending on the reader to remember.
             **_converged(self.seam_gaps, self.penetration, self.settings),
@@ -263,10 +267,14 @@ def _kernel():
         bend_starts,
         bend_alphas,
         grid,
+        grid1,
         origin,
         spacing,
-        sdf_rot,
-        sdf_trans,
+        body_rot,
+        body_trans,
+        body_mix,
+        moving,
+        blend,
         offset,
         tri,
         tri_start,
@@ -278,8 +286,11 @@ def _kernel():
         drag_cd,
         pin_mask,
         pin_target,
+        pin_from,
         restitution,
         contact_n,
+        contact_u,
+        touch,
         h,
         retain,
         frames,
@@ -295,6 +306,59 @@ def _kernel():
                 gy_w = wind[step, 1]
                 gz_w = wind[step, 2]
                 step += 1
+                # The body's schedule. Entry `si` is the body at the END of
+                # this substep, entry `si - 1` where it was at the start; on
+                # the static path `moving` is 0, `si` stays 0 and the arrays
+                # are one entry long, so nothing below reads anything new.
+                si = step * moving
+                r00 = body_rot[si, 0, 0]
+                r01 = body_rot[si, 0, 1]
+                r02 = body_rot[si, 0, 2]
+                r10 = body_rot[si, 1, 0]
+                r11 = body_rot[si, 1, 1]
+                r12 = body_rot[si, 1, 2]
+                r20 = body_rot[si, 2, 0]
+                r21 = body_rot[si, 2, 1]
+                r22 = body_rot[si, 2, 2]
+                t0 = body_trans[si, 0]
+                t1 = body_trans[si, 1]
+                t2 = body_trans[si, 2]
+                mix = 0.0
+                dmix = 0.0
+                dr00 = 0.0
+                dr01 = 0.0
+                dr02 = 0.0
+                dr10 = 0.0
+                dr11 = 0.0
+                dr12 = 0.0
+                dr20 = 0.0
+                dr21 = 0.0
+                dr22 = 0.0
+                dt0 = 0.0
+                dt1 = 0.0
+                dt2 = 0.0
+                bvx = 0.0
+                bvy = 0.0
+                bvz = 0.0
+                if moving == 1:
+                    mix = body_mix[si]
+                    dmix = body_mix[si] - body_mix[si - 1]
+                    dr00 = r00 - body_rot[si - 1, 0, 0]
+                    dr01 = r01 - body_rot[si - 1, 0, 1]
+                    dr02 = r02 - body_rot[si - 1, 0, 2]
+                    dr10 = r10 - body_rot[si - 1, 1, 0]
+                    dr11 = r11 - body_rot[si - 1, 1, 1]
+                    dr12 = r12 - body_rot[si - 1, 1, 2]
+                    dr20 = r20 - body_rot[si - 1, 2, 0]
+                    dr21 = r21 - body_rot[si - 1, 2, 1]
+                    dr22 = r22 - body_rot[si - 1, 2, 2]
+                    dt0 = t0 - body_trans[si - 1, 0]
+                    dt1 = t1 - body_trans[si - 1, 1]
+                    dt2 = t2 - body_trans[si - 1, 2]
+                    # the body's rigid velocity, the frame the damping acts in
+                    bvx = dt0 / h
+                    bvy = dt1 / h
+                    bvz = dt2 / h
 
                 for k in prange(n):
                     # --- wind, as a force on this vertex's share of surface
@@ -341,9 +405,28 @@ def _kernel():
                     prev[k, 0] = x[k, 0]
                     prev[k, 1] = x[k, 1]
                     prev[k, 2] = x[k, 2]
-                    v[k, 0] = (v[k, 0] + ax * h) * retain
-                    v[k, 1] = (v[k, 1] + ay * h) * retain
-                    v[k, 2] = (v[k, 2] + az * h) * retain
+                    if moving == 1 and touch[k] > 0.0:
+                        # Numerical damping in the BODY's frame, for cloth
+                        # that touched the body last substep. This is the
+                        # integrator's 2 % per substep - 29 /s at 24 substeps
+                        # - and in the world frame it would brake a garment
+                        # carried at 1.35 m/s at 39 m/s^2 while shoulder
+                        # friction can hold 3.4: the body would walk out from
+                        # under its own shirt. The animator's teleport was
+                        # hiding exactly this. Cloth in the air keeps the
+                        # world frame: a cape trailing a runner is pulled by
+                        # its clasp, not by the frame its numerics live in.
+                        # The static branch below is the old line, untouched:
+                        # adding a zero velocity back is not an identity for
+                        # a negative zero.
+                        touch[k] = 0.0
+                        v[k, 0] = (v[k, 0] + ax * h - bvx) * retain + bvx
+                        v[k, 1] = (v[k, 1] + ay * h - bvy) * retain + bvy
+                        v[k, 2] = (v[k, 2] + az * h - bvz) * retain + bvz
+                    else:
+                        v[k, 0] = (v[k, 0] + ax * h) * retain
+                        v[k, 1] = (v[k, 1] + ay * h) * retain
+                        v[k, 2] = (v[k, 2] + az * h) * retain
                     x[k, 0] += v[k, 0] * h
                     x[k, 1] += v[k, 1] * h
                     x[k, 2] += v[k, 2] * h
@@ -483,12 +566,15 @@ def _kernel():
                     # --- collision, in the SUBJECT's frame. The field is baked
                     # once; a moved or turned subject is a 3x3 multiply here,
                     # not a 1.5 s rebake.
-                    wx = x[k, 0] - sdf_trans[0]
-                    wy = x[k, 1] - sdf_trans[1]
-                    wz = x[k, 2] - sdf_trans[2]
-                    lx = sdf_rot[0, 0] * wx + sdf_rot[1, 0] * wy + sdf_rot[2, 0] * wz
-                    ly = sdf_rot[0, 1] * wx + sdf_rot[1, 1] * wy + sdf_rot[2, 1] * wz
-                    lz = sdf_rot[0, 2] * wx + sdf_rot[1, 2] * wy + sdf_rot[2, 2] * wz
+                    ubx = 0.0
+                    uby = 0.0
+                    ubz = 0.0
+                    wx = x[k, 0] - t0
+                    wy = x[k, 1] - t1
+                    wz = x[k, 2] - t2
+                    lx = r00 * wx + r10 * wy + r20 * wz
+                    ly = r01 * wx + r11 * wy + r21 * wz
+                    lz = r02 * wx + r12 * wy + r22 * wz
                     fx = (lx - origin[0]) / spacing
                     fy = (ly - origin[1]) / spacing
                     fz = (lz - origin[2]) / spacing
@@ -502,14 +588,31 @@ def _kernel():
                     tx = fx - i0
                     ty = fy - j0
                     tz = fz - k0
-                    d = 0.0
+                    d0 = 0.0
                     for di in range(2):
                         wxx = tx if di == 1 else 1.0 - tx
                         for dj in range(2):
                             wyy = ty if dj == 1 else 1.0 - ty
                             for dk in range(2):
                                 wzz = tz if dk == 1 else 1.0 - tz
-                                d += wxx * wyy * wzz * grid[i0 + di, j0 + dj, k0 + dk]
+                                d0 += wxx * wyy * wzz * grid[i0 + di, j0 + dj, k0 + dk]
+                    # A deforming body is two fields on one lattice and a
+                    # blend: d = d0 + mix (d1 - d0) is one trilinear
+                    # interpolant, so its gradient below is the normal of
+                    # the same surface the distance came from - the lesson
+                    # of the floor-corner bias, kept for a moving surface.
+                    d1 = 0.0
+                    if blend == 1:
+                        for di in range(2):
+                            wxx = tx if di == 1 else 1.0 - tx
+                            for dj in range(2):
+                                wyy = ty if dj == 1 else 1.0 - ty
+                                for dk in range(2):
+                                    wzz = tz if dk == 1 else 1.0 - tz
+                                    d1 += wxx * wyy * wzz * grid1[i0 + di, j0 + dj, k0 + dk]
+                        d = d0 + mix * (d1 - d0)
+                    else:
+                        d = d0
                     if d >= offset:
                         continue
                     # The normal is the gradient of the SAME trilinear
@@ -525,9 +628,9 @@ def _kernel():
                     # slid 60 mm down the arm, and swapping every piece of
                     # geometry left and right moved nothing - the bias lived
                     # here, in the field's frame.
-                    gx = 0.0
-                    gy = 0.0
-                    gz = 0.0
+                    g0x = 0.0
+                    g0y = 0.0
+                    g0z = 0.0
                     for di in range(2):
                         wxx = tx if di == 1 else 1.0 - tx
                         sx = 1.0 if di == 1 else -1.0
@@ -538,9 +641,33 @@ def _kernel():
                                 wzz = tz if dk == 1 else 1.0 - tz
                                 sz = 1.0 if dk == 1 else -1.0
                                 corner = grid[i0 + di, j0 + dj, k0 + dk]
-                                gx += sx * wyy * wzz * corner
-                                gy += wxx * sy * wzz * corner
-                                gz += wxx * wyy * sz * corner
+                                g0x += sx * wyy * wzz * corner
+                                g0y += wxx * sy * wzz * corner
+                                g0z += wxx * wyy * sz * corner
+                    if blend == 1:
+                        g1x = 0.0
+                        g1y = 0.0
+                        g1z = 0.0
+                        for di in range(2):
+                            wxx = tx if di == 1 else 1.0 - tx
+                            sx = 1.0 if di == 1 else -1.0
+                            for dj in range(2):
+                                wyy = ty if dj == 1 else 1.0 - ty
+                                sy = 1.0 if dj == 1 else -1.0
+                                for dk in range(2):
+                                    wzz = tz if dk == 1 else 1.0 - tz
+                                    sz = 1.0 if dk == 1 else -1.0
+                                    corner = grid1[i0 + di, j0 + dj, k0 + dk]
+                                    g1x += sx * wyy * wzz * corner
+                                    g1y += wxx * sy * wzz * corner
+                                    g1z += wxx * wyy * sz * corner
+                        gx = g0x + mix * (g1x - g0x)
+                        gy = g0y + mix * (g1y - g0y)
+                        gz = g0z + mix * (g1z - g0z)
+                    else:
+                        gx = g0x
+                        gy = g0y
+                        gz = g0z
                     norm = np.sqrt(gx * gx + gy * gy + gz * gz)
                     if norm < 1e-12:
                         continue
@@ -548,13 +675,43 @@ def _kernel():
                     lnx = gx / norm
                     lny = gy / norm
                     lnz = gz / norm
-                    wnx = sdf_rot[0, 0] * lnx + sdf_rot[0, 1] * lny + sdf_rot[0, 2] * lnz
-                    wny = sdf_rot[1, 0] * lnx + sdf_rot[1, 1] * lny + sdf_rot[1, 2] * lnz
-                    wnz = sdf_rot[2, 0] * lnx + sdf_rot[2, 1] * lny + sdf_rot[2, 2] * lnz
+                    wnx = r00 * lnx + r01 * lny + r02 * lnz
+                    wny = r10 * lnx + r11 * lny + r12 * lnz
+                    wnz = r20 * lnx + r21 * lny + r22 * lnz
                     push = offset - d
                     x[k, 0] += wnx * push
                     x[k, 1] += wny * push
                     x[k, 2] += wnz * push
+                    if moving == 1:
+                        # How far the body's surface moved under this
+                        # particle during the substep: the rigid part is
+                        # exact (p = M l + t, so u = dM l + dt) and the
+                        # deforming part is the level set's advance along
+                        # its own normal, -(d1 - d0) dmix. A level set is
+                        # blind to tangential skin slide, which is why a
+                        # walk's bob belongs in the rigid schedule.
+                        ubx = dr00 * lx + dr01 * ly + dr02 * lz + dt0
+                        uby = dr10 * lx + dr11 * ly + dr12 * lz + dt1
+                        ubz = dr20 * lx + dr21 * ly + dr22 * lz + dt2
+                        if blend == 1:
+                            un = -(d1 - d0) * dmix
+                            ubx += wnx * un
+                            uby += wny * un
+                            ubz += wnz * un
+                        contact_u[k, 0] = ubx
+                        contact_u[k, 1] = uby
+                        contact_u[k, 2] = ubz
+                        # The body's frame damps this particle next substep
+                        # only if the surface is advancing on it or sliding
+                        # under it. A surface moving AWAY cannot drag cloth:
+                        # coupled regardless, a run's 2.3 g descent pulled
+                        # the touching tee down with the body faster than
+                        # gravity and left it 10 mm inside at the bottom of
+                        # the bob, which the one-sided contact then had to
+                        # dig out. Now the cloth falls at 1 g and separates,
+                        # which is what a shirt does on a run.
+                        if ubx * wnx + uby * wny + ubz * wnz >= 0.0:
+                            touch[k] = 1.0
                     # Restitution is applied to the VELOCITY, in the pass
                     # below - not here as an extra position push. Pushing the
                     # particle out a second time double-counts the separation:
@@ -576,6 +733,16 @@ def _kernel():
                         mx = x[k, 0] - prev[k, 0]
                         my = x[k, 1] - prev[k, 1]
                         mz = x[k, 2] - prev[k, 2]
+                        if moving == 1:
+                            # slip RELATIVE to the body at the contact: the
+                            # static regime then pins cloth to the BODY,
+                            # not to world space, which is what lets a
+                            # travelling body carry its garment - and lets
+                            # one accelerating faster than mu g slide out
+                            # from under it, which is Coulomb too
+                            mx -= ubx
+                            my -= uby
+                            mz -= ubz
                         dot = mx * wnx + my * wny + mz * wnz
                         tx2 = mx - dot * wnx
                         ty2 = my - dot * wny
@@ -598,6 +765,12 @@ def _kernel():
                             + v[k, 1] * contact_n[k, 1]
                             + v[k, 2] * contact_n[k, 2]
                         )
+                        if moving == 1:
+                            approach -= (
+                                contact_u[k, 0] * contact_n[k, 0]
+                                + contact_u[k, 1] * contact_n[k, 1]
+                                + contact_u[k, 2] * contact_n[k, 2]
+                            ) / h
                         if approach < 0.0:
                             give = -(1.0 + restitution) * approach
                             v[k, 0] += contact_n[k, 0] * give
@@ -606,13 +779,25 @@ def _kernel():
                         contact_n[k, 0] = 0.0
                         contact_n[k, 1] = 0.0
                         contact_n[k, 2] = 0.0
+                    if moving == 1:
+                        contact_u[k, 0] = 0.0
+                        contact_u[k, 1] = 0.0
+                        contact_u[k, 2] = 0.0
 
                     # pins last, so nothing the substep did can drag a pinned
-                    # particle off its target - that is what a pin means
+                    # particle off its target - that is what a pin means. On
+                    # a moving body the target is reached along a ramp from
+                    # `pin_from`, so a clasp rides the hero through the frame
+                    # instead of leading him by a whole frame's travel.
                     if pin_mask[k] > 0.0:
-                        x[k, 0] = pin_target[k, 0]
-                        x[k, 1] = pin_target[k, 1]
-                        x[k, 2] = pin_target[k, 2]
+                        if moving == 1:
+                            x[k, 0] = pin_from[k, 0] + (pin_target[k, 0] - pin_from[k, 0]) * mix
+                            x[k, 1] = pin_from[k, 1] + (pin_target[k, 1] - pin_from[k, 1]) * mix
+                            x[k, 2] = pin_from[k, 2] + (pin_target[k, 2] - pin_from[k, 2]) * mix
+                        else:
+                            x[k, 0] = pin_target[k, 0]
+                            x[k, 1] = pin_target[k, 1]
+                            x[k, 2] = pin_target[k, 2]
                     v[k, 0] = (x[k, 0] - prev[k, 0]) / h
                     v[k, 1] = (x[k, 1] - prev[k, 1]) / h
                     v[k, 2] = (x[k, 2] - prev[k, 2]) / h
@@ -880,13 +1065,23 @@ def drape(
     pin_target: np.ndarray | None = None,
     prepared: Prepared | None = None,
     velocity: np.ndarray | None = None,
+    pin_from: np.ndarray | None = None,
+    motion: BodyMotion | None = None,
 ) -> DrapeResult:
     """Run the drape. Returns positions and a compact report.
 
     `pins` is a mask over particles: a pinned particle is held at its target
     and nothing in a substep can move it. With `pin_target` it is pulled
     somewhere instead of held - which is what a pinch, a lacing anchor and a
-    hand on a hem all reduce to.
+    hand on a hem all reduce to. `pin_from` is where a pinned particle starts
+    its ramp toward the target when the body moves (default: the target).
+
+    `motion` moves the body THROUGH the call: `sdf` is where it is at the
+    start and `motion.end` where it is `frames * dt` later, with the body's
+    placement and, for a deforming body, its field blended at every substep.
+    Collision, friction, damping, restitution, the pins and the report all
+    see the moving body. Without one the solve is the static one, bit for
+    bit - the schedule is one entry long and nothing in the kernel reads it.
     """
     import time
 
@@ -920,7 +1115,12 @@ def drape(
     )
     tri, tri_start, tri_index = prepared.tri, prepared.tri_start, prepared.tri_index
 
-    x = np.ascontiguousarray(garment.points, dtype=np.float64)
+    # A COPY, always. `ascontiguousarray` hands back the caller's own array
+    # when it already is one, and the kernel writes positions in place - so a
+    # caller who kept a reference to the points it passed in found them
+    # solved out from under it (a "lifted 0.0 mm" that was two names for one
+    # array). The copy is n x 3 floats; the surprise was not worth it.
+    x = np.array(garment.points, dtype=np.float64, order="C", copy=True)
     v = np.zeros_like(x) if velocity is None else np.ascontiguousarray(velocity, dtype=np.float64)
     prev = np.zeros_like(x)
     h = opts.dt / opts.substeps
@@ -939,6 +1139,64 @@ def drape(
     targets = np.ascontiguousarray(
         x.copy() if pin_target is None else np.asarray(pin_target, dtype=np.float64)
     )
+    ramp_from = targets if pin_from is None else np.ascontiguousarray(pin_from, dtype=np.float64)
+
+    grid0 = np.ascontiguousarray(sdf.grid)
+    steps = opts.frames * opts.substeps
+    if motion is None or not motion.moving:
+        # the static path: the same float64 bits the old call passed, one
+        # entry each, and flags that keep every new instruction unexecuted
+        grid1 = grid0
+        body_rot = np.ascontiguousarray(sdf.rotation, dtype=np.float64)[None]
+        body_trans = np.ascontiguousarray(sdf.translation, dtype=np.float64)[None]
+        body_mix = np.zeros(1, dtype=np.float64)
+        moving = 0
+        blend = 0
+        contact_u = np.zeros((1, 3), dtype=np.float64)
+        touch = np.zeros(1, dtype=np.float64)
+        report_against = sdf
+        motion_report: dict[str, Any] = {}
+    else:
+        end = motion.end
+        if (
+            end.grid.shape != sdf.grid.shape
+            or not np.array_equal(end.origin, sdf.origin)
+            or end.spacing != sdf.spacing
+        ):
+            raise ValueError(
+                "the body's two fields are not on one lattice "
+                f"({sdf.grid.shape} at {np.round(sdf.origin, 4).tolist()} vs "
+                f"{end.grid.shape} at {np.round(end.origin, 4).tolist()}): bake both "
+                "with the same `bounds=` and voxel size."
+            )
+        if motion.steps != steps:
+            raise ValueError(
+                f"this motion spans {motion.steps} substeps; these settings run "
+                f"{steps} (frames x substeps). Build it with steps=frames*substeps "
+                "for THESE settings."
+            )
+        if not (
+            np.array_equal(motion.rotation[0], sdf.rotation)
+            and np.array_equal(motion.translation[0], sdf.translation)
+        ):
+            raise ValueError(
+                "the motion does not start where the body is: its first entry must "
+                "equal `sdf`'s rotation and translation (build it from this `sdf`)."
+            )
+        grid1 = np.ascontiguousarray(end.grid) if motion.blend else grid0
+        body_rot = np.ascontiguousarray(motion.rotation, dtype=np.float64)
+        body_trans = np.ascontiguousarray(motion.translation, dtype=np.float64)
+        body_mix = np.ascontiguousarray(motion.mix, dtype=np.float64)
+        moving = 1
+        blend = 1 if motion.blend else 0
+        contact_u = np.zeros_like(x)
+        touch = np.zeros(n, dtype=np.float64)
+        report_against = end
+        travel = float(np.linalg.norm(motion.translation[-1] - motion.translation[0]))
+        motion_report = {
+            "travel_mm": round(travel * 1000.0, 1),
+            "blend": bool(motion.blend),
+        }
 
     run = _kernel()
     started = time.perf_counter()
@@ -956,11 +1214,15 @@ def drape(
         bend_rest,
         bend_starts,
         bend_alphas,
-        np.ascontiguousarray(sdf.grid),
+        grid0,
+        grid1,
         np.ascontiguousarray(sdf.origin),
         sdf.spacing,
-        np.ascontiguousarray(sdf.rotation),
-        np.ascontiguousarray(sdf.translation),
+        body_rot,
+        body_trans,
+        body_mix,
+        moving,
+        blend,
         opts.thickness_mm / 1000.0,
         tri,
         tri_start,
@@ -972,8 +1234,11 @@ def drape(
         opts.drag if hasattr(opts, "drag") else room.drag_coefficient,
         pin_mask,
         targets,
+        ramp_from,
         float(getattr(cloth, "restitution", 0.0)),
         np.zeros_like(x),
+        contact_u,
+        touch,
         h,
         1.0 - opts.damping,
         opts.frames,
@@ -989,13 +1254,14 @@ def drape(
         settings=opts,
         fabric=cloth.name,
         seam_gaps=garment.seam_gaps_mm(x),
-        penetration=measure_penetration(x, sdf),
-        contact=measure_contact(x, sdf),
+        penetration=measure_penetration(x, report_against),
+        contact=measure_contact(x, report_against),
         environment=room.describe(),
         conditioning=conditioning,
         seconds=seconds,
         fingerprint=sha256(np.round(x, 6).tobytes()).hexdigest()[:16],
         velocity=v,
+        body_motion=motion_report,
     )
 
 
