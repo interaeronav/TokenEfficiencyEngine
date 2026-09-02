@@ -498,7 +498,7 @@ def _v_drape(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     settings = DrapeSettings(
         frames=int(args.get("frames", 250)),
         substeps=int(args.get("substeps", DrapeSettings().substeps)),
-        friction=float(args.get("friction", 0.35)),
+        friction=float(args["friction"]) if "friction" in args else None,  # None: the card's
         thickness_mm=float(args.get("thickness_mm", 1.0)),
     )
     session.drape = drape(session.garment, session.sdf, fabric=session.fabric, settings=settings)

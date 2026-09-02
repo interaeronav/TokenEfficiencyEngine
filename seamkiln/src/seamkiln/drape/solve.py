@@ -53,13 +53,24 @@ QUALITY: dict[str, dict[str, float]] = {
 }
 
 
+def friction_for(opts: Any, cloth: Any) -> float:
+    """The friction a drape runs with: the settings' if given, else the card's."""
+    if getattr(opts, "friction", None) is not None:
+        return float(opts.friction)
+    return float(getattr(cloth, "friction", 0.35))
+
+
 @dataclass(slots=True)
 class DrapeSettings:
     frames: int = 120
     substeps: int = 20
     dt: float = 1.0 / 60.0
     damping: float = 0.02
-    friction: float = 0.35
+    # None means THE FABRIC CARD'S friction. The solver used to take 0.35 from
+    # here for every cloth while the card's `friction` - validated, derived,
+    # printed on the tech pack - was never read: a shearling at 0.53 slid
+    # like a suiting, and a fur sleeve slid off an arm because of it.
+    friction: float | None = None
     thickness_mm: float = 1.0  # cloth stays this far off the body surface
     seam_compliance: float = 0.0  # a sewn seam is not stretchy
     grain_angle_deg: float = 90.0  # pattern +Y is the warp direction
@@ -83,7 +94,7 @@ class DrapeSettings:
             "substeps": self.substeps,
             "dt": self.dt,
             "damping": self.damping,
-            "friction": self.friction,
+            "friction": self.friction if self.friction is not None else "fabric card",
             "thickness_mm": self.thickness_mm,
             "grain_angle_deg": self.grain_angle_deg,
             "environment": self.room.describe(),
@@ -941,7 +952,7 @@ def drape(
         1.0 - opts.damping,
         opts.frames,
         opts.substeps,
-        opts.friction,
+        friction_for(opts, cloth),
     )
     seconds = time.perf_counter() - started
 

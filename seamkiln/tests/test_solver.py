@@ -104,3 +104,17 @@ def test_problem_reports_its_own_shape() -> None:
     assert isinstance(problem, ClothProblem)
     assert problem.n_particles == 100
     assert problem.n_constraints == sum(len(g) for g in problem.groups)
+
+
+def test_the_solver_takes_its_friction_from_the_fabric_card() -> None:
+    """The settings' friction was 0.35 for every cloth while the card's
+    `friction` - validated, derived, printed on the tech pack - was never
+    read by the solver. None now means the card's; a number still overrides."""
+    from seamkiln.drape.solve import DrapeSettings, friction_for
+    from seamkiln.pattern.fabric import fabric
+
+    card = fabric("wool_suiting")
+    assert DrapeSettings().friction is None
+    assert friction_for(DrapeSettings(), card) == card.friction
+    assert friction_for(DrapeSettings(friction=0.1), card) == 0.1
+    assert DrapeSettings().as_dict()["friction"] == "fabric card"
