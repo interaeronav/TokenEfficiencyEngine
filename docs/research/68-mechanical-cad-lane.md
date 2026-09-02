@@ -647,6 +647,20 @@ the state, the `.brep` is a cache.
 | 18 | fixture provenance | BenchCAD `cc-by-4.0` on the HF card; CADGenBench card HTTP 401 → OUT |
 | — | FreeCAD as kernel (P0c) | no — crash, GUI-bound pages, OCCT 7.8.1, index constraints |
 
+**Rows 5 and 16, measured after this document was first written
+(2026-09-02, later the same day; PROGRESS "A66 P0a rows 5 and 16"):** the
+scipy sketch solver agrees with a py-slvs (SolveSpace) oracle on 20 anchored
+sketches to a maximum coordinate delta of 3.09e-10 mm (SolveSpace's own
+convergence floor, `CONVERGE_TOLERANCE = 1e-8` in solver units) with DOF
+agreeing 20/20 and nine supplementary unanchored/under/over cases 9/9;
+py-slvs 1.0.6's `System.addSymmetricLine` stores the wrong constraint type
+(100016, SYMMETRIC_VERT) and ignores the line. A persistent NDJSON worker
+answers its first reply 13–15 ms after spawn, pays the warm OCP import
+(0.29 s) once, and answers a volume query on the 100-hole plate in 2.5 ms of
+which the protocol is 0.02 ms; RSS 17.5 MB idle → 297 MB after the plate. The
+built transport (P4) measures spawn→ready 0.11 s (0.38 s with `--warm`) and
+0.018 ms per ping.
+
 ## 10b. Open questions
 
 1. **Row 5** — the 60-line NDJSON worker prototype: spawn → `ready` and the
