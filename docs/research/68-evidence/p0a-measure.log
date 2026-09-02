@@ -1,0 +1,27 @@
+=== novtk (cadquery-ocp-novtk)
+real 9.91
+user 0.36
+sys 0.19
+site: /private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/ae03fe49-30f7-499f-8422-a328b5396550/scratchpad/p0a/venv_novtk/lib/python3.11/site-packages
+223M	/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/ae03fe49-30f7-499f-8422-a328b5396550/scratchpad/p0a/venv_novtk/lib/python3.11/site-packages
+223M	/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/ae03fe49-30f7-499f-8422-a328b5396550/scratchpad/p0a/venv_novtk/lib/python3.11/site-packages/OCP
+so: 144M vtk_links=1
+wheel OCP/ entries: 397
+run1: import_s=26.23 bound=36/36 missing=[] rss_mb=251 vtk_in_sys_modules=False
+run2: import_s=0.29 bound=36/36 missing=[] rss_mb=251 vtk_in_sys_modules=False
+run3: import_s=0.29 bound=36/36 missing=[] rss_mb=251 vtk_in_sys_modules=False
+run4: import_s=0.29 bound=36/36 missing=[] rss_mb=251 vtk_in_sys_modules=False
+=== vtk (cadquery-ocp)
+real 1.99
+user 0.07
+sys 0.15
+site: /private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/ae03fe49-30f7-499f-8422-a328b5396550/scratchpad/p0a/venv_vtk/lib/python3.11/site-packages
+914M	/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/ae03fe49-30f7-499f-8422-a328b5396550/scratchpad/p0a/venv_vtk/lib/python3.11/site-packages
+232M	/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/ae03fe49-30f7-499f-8422-a328b5396550/scratchpad/p0a/venv_vtk/lib/python3.11/site-packages/OCP
+so: 145M vtk_links=11
+wheel OCP/ entries: 403
+run1: import_s=38.65 bound=36/36 missing=[] rss_mb=288 vtk_in_sys_modules=False
+run2: import_s=0.33 bound=36/36 missing=[] rss_mb=289 vtk_in_sys_modules=False
+run3: import_s=0.34 bound=36/36 missing=[] rss_mb=288 vtk_in_sys_modules=False
+run4: import_s=0.33 bound=36/36 missing=[] rss_mb=288 vtk_in_sys_modules=False
+=== done

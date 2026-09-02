@@ -310,6 +310,24 @@ _EXPLICIT: dict[str, str] = {
     # --- FreeCAD adapter ---
     "fc_drawing": "write-scene",
     "fc_export": "write-artifacts",
+    # --- A66: partkiln, the mechanical CAD lane. Three of these write files
+    # and two mutate the document, so every one is tabled INDIVIDUALLY (the
+    # cad_/trade_ rule above): there is deliberately no ("pk_", ...) family
+    # row, and an untabled pk_* name is a startup error, not a default. ---
+    "pk_probe": "read-compute",
+    "pk_verbs": "read-scene",
+    "pk_lint": "read-compute",
+    "pk_query": "read-scene",
+    "pk_measure": "read-compute",
+    "pk_check": "read-compute",
+    "pk_standards": "read-compute",
+    "pk_materials": "read-compute",  # pure lookup; assignment is a batch `set`
+    "pk_bom": "read-scene",
+    "pk_drawing": "write-artifacts",
+    "pk_export": "write-artifacts",
+    "pk_flat": "write-artifacts",
+    "pk_import": "write-scene",
+    "pk_script": "write-scene",  # its replay action mutates the live document
     # --- gateway control. Accepting a drifted backend fingerprint is a
     # TRUST decision about a third party, not a read - so it is policy
     # (a deliberate tightening the kernel exists to make; recorded). ---

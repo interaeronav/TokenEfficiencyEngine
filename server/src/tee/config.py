@@ -74,6 +74,10 @@ class ProjectConfig:
     trust: dict[str, Any] = field(default_factory=dict)
     senses: dict[str, Any] = field(default_factory=dict)
     pipeline: dict[str, Any] = field(default_factory=dict)
+    # A66: the partkiln lane - `python` (the sidecar interpreter) and
+    # `batch_timeout_s`; ProjectConfig drops unknown tables silently, so the
+    # lane needs its own field to be configurable at all.
+    partkiln: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -168,6 +172,12 @@ class ProjectConfig:
             config.pipeline = pipeline_section
         elif pipeline_section:
             problems.append("[pipeline] must be a table")
+
+        partkiln_section = data.get("partkiln", {})
+        if isinstance(partkiln_section, dict):
+            config.partkiln = partkiln_section
+        elif partkiln_section:
+            problems.append("[partkiln] must be a table")
 
         trust_section = data.get("trust", {})
         if isinstance(trust_section, dict):

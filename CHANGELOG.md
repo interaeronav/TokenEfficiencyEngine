@@ -3,6 +3,102 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.19.0 — 2026-09-01
+
+**A garment kernel joins TEE, and the surface does not move.**
+
+```bash
+uv pip install -e seamkiln
+tee serve --adapter seamkiln --project ~/patterns
+```
+
+`seamkiln` is a Marvelous Designer / CLO3D-class garment CAD + drape kernel
+— its own package at the repo root, permissive-only and enforced by a
+licence-gate test — and it joins through the `Adapter` protocol: **17
+always-loaded tools / 2,033 tok before, 17 / 2,033 after.** The virtual
+catalogue went 112 → 120 (126 with the follow-ups below). `tee_batch`,
+`tee_diff`, `tee_checkpoint` and `tee_rollback` drive a garment the way they
+drive a Blender scene.
+
+### The loop, as declarative ops
+
+A garment is a scene: panels and seams are entities with stable ids
+(`panel:FRONT`, `seam:side-right`), an edit is a batch, and what changed is
+a diff. Ops are `create` (panel | seam | block), `set`, `delete`, `arrange`,
+`drape`, `export` — enumerable, with no arbitrary-code door. Fourteen `sk_*`
+virtual tools carry the long tail (blocks, fabrics, fit, plot, interchange,
+body, techpack, look, room, materials, hardware, avatar, touch, handoff),
+each tabled in the trust kernel: `read-scene` for the readers,
+`write-artifacts` for the ones that leave a file behind.
+
+### Checkpoints are the script
+
+`snapshot` writes the command history; `restore` **replays** it. A
+checkpoint that rebuilds by re-running its own commands cannot restore a
+state those commands could not produce. The same garment built in the GUI,
+by a TEE batch, or by a script replays headlessly to the same fingerprint.
+
+### `tee_web_lookup` reads PDFs
+
+It used to return the raw bytes (`%PDF-1.7 %âãÏÓ 3085 0 obj …`) as the
+quote. Detection is by magic bytes; a scan with no text layer points at
+`ex_add`; a missing `[pdf]` extra names the install command. Verified on a
+40-page IEEE fabric-properties review.
+
+### What it refuses, and why
+
+USD export is refused **by name** with the measurement — trimesh 5.0's
+exporters are `3mf dae glb gltf obj off ply stl xyz` — and two routes: GLB
+then `usdcat`, or add `usd-core`. Draping with nothing drafted says *that*
+rather than complaining about a step the caller could not have taken. A verb
+that would touch a locked panel refuses. `sk_blocks` called from a bundle
+without seamkiln installed refuses with the install command, not an
+ImportError.
+
+### The benchmark
+
+```
+garment draft+sew+drape+fit:
+  naive  80,553 tok / 5 calls   (four panel outlines, then the draped mesh)
+  tee       571 tok / 2 calls   (one batch + its diff + one sk_fit)
+  99.3% saved
+```
+
+Without compact state, "what does the garment look like now" **is** the
+vertex list. The follow-up row — a zipped jacket dressed on a figure,
+walked at the gait's own speed, handed to Blender — measures 549,090 tok /
+11 calls naive against 1,432 / 2: 99.7% saved.
+
+### The follow-ups, under the same version (2026-09-01 → 2026-09-02)
+
+The version was bumped at A53's close; A54–A65 landed on it without another
+bump. Physics calibrated against **BS 5058 / ISO 9073-9** (the Cusick drape
+coefficient: six of seven bundled fabrics inside their published band; a
+dihedral bending constraint replaced one that was quadratically weak; fabric
+weight now affects drape; the `standard` tier moved from 8 to 20 substeps,
+because a draft drape is *softer cloth*, not a rougher picture). Grading,
+cutting, darts and pleats, tearing along seams, symmetric pinching, lacing,
+denim washes that follow the creases, fur at 6.2 million strands per second,
+blend-shape animation. Collision alignment, symmetry sync and locks. Zippers
+and buttons as named constraint blocks. A handoff verified in a headless
+Blender 5.2 (a glTF is left alone: it states +Y up, metres). Joint-angle
+avatars with walk and run; interactive adjustment at 43 fps. Two lock holes
+found by driving `run_batch` instead of the session. Four Blender 5.x drift
+faults added to the version firewall. And the A65 audit: four more `sk_*`
+tools so "zipper on a jacket" is findable, hardware, locks and the body as
+entities, a dressing lane and a clothable figure, `walk` on the session's
+own body, the two shots as repo examples, and a collision-normal bias — the
+field's gradient sampled at the voxel's floor corner — that had pushed every
+drape sideways since P2, found by measurement and pinned by a test.
+
+### Also
+
+`server/pyproject.toml` said 0.19.0 while the `Makefile` and the `.mcpb`
+manifest still said 0.18.0 — the bundle would have shipped named 0.18.0 with
+0.19.0 inside. All three move together now, and the bundle was verified from
+a clean unzip over MCP stdio: handshake `0.19.0`, 17 always-loaded tools,
+`sk_*` reachable through search.
+
 ## 0.18.0 — 2026-08-31
 
 **A smart quote no longer destroys a report, and a camera checks its own work.**

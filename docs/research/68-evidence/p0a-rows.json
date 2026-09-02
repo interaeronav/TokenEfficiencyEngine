@@ -1,0 +1,173 @@
+{
+ "F1": {
+  "vol": 59214.602,
+  "faces": 7,
+  "edges": 15
+ },
+ "F2": {
+  "vol": 44916.967,
+  "faces": 13,
+  "edges": 33,
+  "build_s": 0.01,
+  "fp": "8d2f6429c818a423"
+ },
+ "F5": {
+  "vol": 520481.421,
+  "faces": 106,
+  "edges": 312,
+  "nary_s": 0.103
+ },
+ "F6": {
+  "block": 30429.204,
+  "pin": 3141.593,
+  "fp_block": "adab39337a43df7d",
+  "fp_pin": "7c2af783c4e6aa88",
+  "interf_d11": 329.867
+ },
+ "F1_hlr_front": {
+  "ms": 0.4,
+  "VCompound": 4,
+  "Rg1LineVCompound": 0,
+  "OutLineVCompound": 0,
+  "HCompound": 9,
+  "Rg1LineHCompound": 0,
+  "OutLineHCompound": 1
+ },
+ "F1_hlr_top": {
+  "ms": 0.1,
+  "VCompound": 5,
+  "Rg1LineVCompound": 0,
+  "OutLineVCompound": 0,
+  "HCompound": 5,
+  "Rg1LineHCompound": 0,
+  "OutLineHCompound": 0
+ },
+ "F1_hlr_right": {
+  "ms": 0.3,
+  "VCompound": 4,
+  "Rg1LineVCompound": 0,
+  "OutLineVCompound": 0,
+  "HCompound": 10,
+  "Rg1LineHCompound": 0,
+  "OutLineHCompound": 2
+ },
+ "W3plate": {
+  "faces": 62,
+  "fillet_done": true
+ },
+ "W3plate_hlr_front": {
+  "ms": 20.3,
+  "VCompound": 9,
+  "Rg1LineVCompound": 17,
+  "OutLineVCompound": 0,
+  "HCompound": 91,
+  "Rg1LineHCompound": 63,
+  "OutLineHCompound": 36
+ },
+ "5xF5_exact": {
+  "faces": 530,
+  "ms": 90.7,
+  "VCompound": 20,
+  "Rg1LineVCompound": 0,
+  "OutLineVCompound": 0,
+  "HCompound": 2520,
+  "Rg1LineHCompound": 0,
+  "OutLineHCompound": 500
+ },
+ "5xF5_poly": {
+  "ms": 105.4,
+  "VCompound": 20,
+  "Rg1LineVCompound": 0,
+  "OutLineVCompound": 0,
+  "HCompound": 26520,
+  "Rg1LineHCompound": 0,
+  "OutLineHCompound": 500
+ },
+ "step_default": "AP214IS",
+ "step_A_set_before": "FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_",
+ "step_G_set_after": "FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'))",
+ "step_H_model_reset": "FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_",
+ "F8_write_s": 0.15,
+ "F8_schema": "FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_",
+ "F8_read": {
+  "s": 0.408,
+  "products": 10,
+  "faces": 1060,
+  "vol": 5204814.21,
+  "names": [
+   "plate_0",
+   "plate_1",
+   "plate_2"
+  ]
+ },
+ "glb_unit_zup": [
+  [
+   0.1,
+   0.01,
+   0.06
+  ],
+  [
+   0.1,
+   0.06,
+   0.01
+  ]
+ ],
+ "glb_no_unit": [
+  [
+   100.0,
+   10.0,
+   60.0
+  ],
+  [
+   100.0,
+   60.0,
+   10.0
+  ]
+ ],
+ "glb_unit_only": [
+  [
+   0.1,
+   0.06,
+   0.01
+  ],
+  [
+   0.1,
+   0.01,
+   0.06
+  ]
+ ],
+ "history_fillet": {
+  "vertical_edges": 5,
+  "generated_per_edge": [
+   1,
+   1,
+   1,
+   1,
+   0
+  ],
+  "modified_per_face": [
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   0
+  ],
+  "faces_after": 11,
+  "vol": 59180.266
+ },
+ "ms_extrude": 0.1,
+ "ms_hole1": 1.6,
+ "ms_hole100_nary": 119.7,
+ "ms_fillet_top8": 2.1,
+ "ms_fillet_all_w3": 7.4,
+ "ms_fuse": 1.5,
+ "ms_hlr_F1": 0.4,
+ "ms_hlr_5xF5": 90.7,
+ "ms_step_write_F5": 13.5,
+ "ms_step_read_F5": 43.8,
+ "ms_glb_F1": 1.5,
+ "ms_mesh_F5": 42.0,
+ "total_s": 1.53
+}
