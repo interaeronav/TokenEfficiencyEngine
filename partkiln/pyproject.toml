@@ -1,0 +1,85 @@
+[project]
+name = "partkiln"
+version = "0.1.0.dev0"
+description = "A headless, AI-native mechanical CAD kernel: constrained sketches, features, parts, assemblies, drawings and exports on OCCT"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = { text = "MIT" }
+
+# Every dependency here is permissive ON PURPOSE, and the ones that are NOT
+# here matter more than the ones that are. The gate in tests/test_licences.py
+# fails the build rather than trusting anyone to remember this list.
+#
+#   numpy    BSD-3            scipy    BSD-3
+#   ezdxf    MIT              trimesh  MIT
+#
+# BANNED in-process, with the replacement that is not:
+#   py-slvs / python-solvespace   GPL-3.0 (SolveSpace, no linking exception)
+#                                 -> partkiln.sketch.solver (scipy least_squares)
+#   cadquery                      Apache-2.0 itself, but imports casadi (LGPL-3.0+)
+#                                 eagerly and links nine VTK dylibs
+#                                 -> OCP direct (partkiln.brep)
+#   casadi / nlopt                LGPL-3.0+ / LGPL-2.1+ (the wheel is built with luksan)
+#                                 -> partkiln.assembly.solver (scipy)
+#   pythonocc-core                LGPL-3.0, redundant with OCP
+#   build123d                     Apache-2.0, but its next release requires
+#                                 bd_materials, which carries NO licence
+#   gmsh / calculix               GPL-2.0+ (out of process only, never imported)
+#
+# The ONE weak-copyleft dependency, named and noticed: Open CASCADE Technology
+# (LGPL-2.1-only WITH OCCT-exception-1.0), reached through the Apache-2.0 OCP
+# wheel in the [brep] extra and dynamically linked. NOTICE carries the
+# prominent notice the exception asks for.
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "ezdxf>=1.4",
+    "trimesh>=5.0",
+]
+
+[project.optional-dependencies]
+# The B-rep kernel. `cadquery-ocp` (the VTK wheel) is accepted when it is
+# already present - both wheels ship the top-level OCP/ package and clobber
+# each other, so never co-install; a dev venv that has cadquery-ocp installs
+# partkiln WITHOUT this extra.
+brep = [
+    "cadquery-ocp-novtk>=7.9.3,<8.0",
+]
+# Drawing sheets as PDF. fpdf2 is LGPL-3.0-only and lives ONLY here, exactly
+# as TEE's own [pdf] extra does; the core never imports it.
+pdf = [
+    "fpdf2>=2.8.8",
+]
+# 3MF through lib3mf (BSD-2) when trimesh's writer is not enough.
+threemf = [
+    "lib3mf>=2.4",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.3",
+    "ruff>=0.9",
+    "packaging>=24.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/partkiln"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "SIM", "UP", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "slow: a long-running battery (rebuild timings, determinism in subprocesses)",
+    "brep: needs OCP (partkiln[brep]); skips cleanly without it",
+    "dcc: needs a real DCC (Blender / Unreal / FreeCAD) on this machine; skips cleanly without one",
+]

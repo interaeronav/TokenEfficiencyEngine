@@ -1132,3 +1132,71 @@ vision model what it sees, labelled `kind: advice`, never allowed to fail a
 build. Seam closure, penetration and ease are decided by geometry in
 `sk_fit`. This is A51's finding, applied before it could bite again.
 
+## A66 — the mechanical CAD lane: `partkiln` (2026-09-02)
+
+Owner directive, verbatim: *"create an autodesk inventor alternative that runs
+headless with TEE and is optimized for ai engines"*; mid-turn *"use TEE"* and
+*"TEE/QMAX"*. Plan of record `CLAUDE_A66_SCRIPT.md`; design of record research
+doc 68 (P6). Rulings, each with the evidence that decided it:
+
+**OCCT through the OCP wheel is the kernel; nothing is written from scratch and
+FreeCAD is not the engine.** Measured on this Mac (2026-09-02): boolean cut +
+exact volume 17 ms, fillet 13 ms, hidden-line front view 6 ms, STEP AP242
+write 13 ms / read 6 ms with the volume identical, GLB 7 ms; a 100-hole plate
+builds in 0.09 s as one n-ary cut and its B-rep fingerprint is identical in two
+fresh processes. `freecadcmd` 1.1.3 imported its modules in 0.38 s but the
+headless sketch+TechDraw probe ended "Application unexpectedly terminated";
+TechDraw SVG/PDF is GUI-bound upstream (#5710); the app embeds OCCT 7.8.1. The
+A37 FreeCAD adapter stays what it is.
+
+**The kernel talks to OCP directly — never `import cadquery`, never
+`build123d` in-process.** `cadquery` imports casadi (LGPL-3.0-or-later)
+eagerly through its assembly solver and links nine VTK dylibs; `build123d`'s
+next release adds `bd_materials`, which carries no licence at all. Both are
+patterns to read, not dependencies. The production wheel is
+`cadquery-ocp-novtk` in a sidecar venv; the dev venv keeps the `cadquery-ocp`
+it already has (both wheels ship the top-level `OCP/` package and clobber
+each other).
+
+**Own solvers on scipy; py-slvs is a dev-time oracle only.** `py-slvs` (the
+SolveSpace wheel TEE's `physical/sketch.py` uses under `[physical]`) is
+GPL-3.0 with no linking exception; the kernel package is MIT and shippable
+(owner, 2026-09-02: "shippable, like seamkiln"), so the 2D constraint solver
+and the 6-DOF assembly solver are `scipy.optimize.least_squares` with DOF
+from the Jacobian rank. TEE's own lanes keep py-slvs; partkiln never imports
+it.
+
+**The licence gate is a test with an SPDX allowlist, and OCCT is its one
+named weak-copyleft exception.** Installed metadata is inconsistent (scipy,
+ezdxf and trimesh carry no `License-Expression`), so the gate reads the
+expression, then the Trove classifier, then a free-text alias table, and
+fails only when all three are empty. `KNOWN_PAYLOADS` names both OCP wheels
+as `LGPL-2.1-only WITH OCCT-exception-1.0` and the NOTICE with the
+"prominent notice" the exception demands is asserted present. GPL/AGPL and
+non-commercial terms are banned in-process; `fpdf2` (LGPL-3.0-only) lives in
+an optional `[pdf]` extra exactly as TEE's own PDF lane does.
+
+**Standards data comes from Apache-2.0 and BSD sources with provenance on
+every file.** Clearance/tap/drill holes and ISO 4762/4014/4017/4032/7089
+fastener tables from `bd_warehouse` (Apache-2.0), ISO 261 pitches from
+`threadlib` (BSD-3); FreeCAD's Fasteners tables (GPL-2), BOLTS (GPL-3) and
+Wikipedia tables (CC BY-SA) are never vendored; the sheet-metal K-factor
+default 0.44 is declared as this kernel's choice inside the cited 0.3–0.5
+range, not attributed to a source that does not state it.
+
+**Millimetres on the wire, unit strings accepted, glTF in metres and Y-up by
+the writer.** Bare numbers are the document unit and the diff says so once;
+`"0.5in"`/`"90deg"` are accepted everywhere; `strict_units` is opt-in. The
+GLB writer sets `XCAFDoc_LengthUnit = 0.001` AND the Z-up input coordinate
+system — measured: without the first a 10 mm part is 10 m, without the second
+it arrives lying on its side.
+
+**No `pk_` family row in the trust table.** Three of the fourteen `pk_*`
+tools write files and two mutate the document; every one is tabled
+explicitly (the `cad_`/`trade_` rule).
+
+**Headless first; the GUI is a later phase.** Owner, 2026-09-02. The Qt shell,
+when built, is a client of `partkiln.document` exactly as seamkiln's is.
+
+**CI gets a `kiln` job on `[brep]` and the server job stops installing the
+1.3 GB `[cad]` stack** (`uv sync --all-extras --no-extra cad`, uv 0.12.5).

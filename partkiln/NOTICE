@@ -1,0 +1,31 @@
+partkiln — NOTICE
+
+This package is licensed under the MIT License (see pyproject.toml).
+
+It makes use of, and is based on, facilities provided by the Open CASCADE
+Technology software (OCCT), reached through the `cadquery-ocp` /
+`cadquery-ocp-novtk` Python wheels (Apache-2.0 bindings, CadQuery/OCP).
+
+Open CASCADE Technology is distributed under the GNU Lesser General Public
+License version 2.1 with the Open CASCADE exception (version 1.0) to LGPL
+2.1. The exception permits distributing object code that incorporates
+material from OCCT header files under terms of your choice, provided that
+prominent notice is given in supporting documentation that the code makes
+use of or is based on facilities provided by the Open CASCADE Technology
+software. This file is that notice. OCCT is dynamically linked and separately
+installed; it is never vendored into partkiln.
+
+  Open CASCADE Technology — https://dev.opencascade.org
+  Licence texts: LICENSE_LGPL_21.txt and OCCT_LGPL_EXCEPTION.txt in the OCCT
+  source tree (https://github.com/Open-Cascade-SAS/OCCT), retrieved 2026-09-02.
+
+Standards data under src/partkiln/data/ is derived from:
+
+  bd_warehouse (gumyr), Apache-2.0 — clearance/tap/drill hole sizes and the
+    ISO 4762 / 4014 / 4017 / 4032 / 7089 fastener tables.
+    https://github.com/gumyr/bd_warehouse
+  threadlib (adrianschlatter), BSD-3-Clause — the ISO 261 metric pitch table.
+    https://github.com/adrianschlatter/threadlib
+
+Each data file carries its own `source`, `licence` and `retrieved` fields in
+src/partkiln/data/manifest.json; the loader refuses a file without them.
