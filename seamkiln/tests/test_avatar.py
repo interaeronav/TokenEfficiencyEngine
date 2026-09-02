@@ -32,6 +32,22 @@ def a_pose_body():
     return posed_mannequin(Pose.a_pose())
 
 
+# Measured drift of the tee's stride-averaged centroid over three strides,
+# with the body moving continuously within each frame (see the gait test):
+# walk at 12 fps +3.9 mm (per stride +4.6 then -0.7: saturating), run at
+# 24 fps -6.1 mm (-2.5, -3.6). The bounds are 1.5 x the measurement with a
+# floor of a voxel (10 mm). The run's worst penetration, 27.6 mm at one frame
+# per cycle, is the fastest sweeps tunnelling three or four particles through
+# a sheet held on both sides - the contact model's limit, recorded in
+# PROGRESS, not the schedule's: 38, 28, 29 and 33 mm at 16, 24, 32 and 48 fps
+# - and is bounded at 45 so it cannot grow quietly.
+WALK_DRIFT_MM = 3.9
+RUN_DRIFT_MM = -6.1
+WALK_DRIFT_BOUND_MM = 10.0
+RUN_DRIFT_BOUND_MM = 10.0
+RUN_PENETRATION_BOUND_MM = 45.0
+
+
 def _tee(body, pd: float = 12.0):
     pattern = tee_block()
     return build_garment(pattern, top_arrangement(pattern, body), particle_distance=pd)
@@ -150,45 +166,62 @@ def test_cloth_time_is_derived_from_the_frame_rate_and_a_mismatch_is_refused() -
 
 @pytest.mark.slow
 def test_a_garment_is_thrown_by_a_gait_and_stays_on(a_pose_body) -> None:
-    """What a walk does to a shirt: the hem swings, the shirt rides UP rather
-    than sliding down, and it never leaves the body. A run swings the hem
-    further than a walk, which is the whole reason to model the vertical
-    travel."""
+    """What a walk does to a shirt: the hem swings, the shirt stays where it
+    is on the body, and it never leaves it. A run swings the hem further than
+    a walk, which is the whole reason to model the vertical travel.
+
+    Measured with the body moving continuously within each frame (three
+    strides, the tee's centroid averaged over each stride so the bob cancels):
+    the walk at 12 fps drifts +3.9 mm over three strides (+4.6 then -0.7: it
+    saturates) and the run at 24 fps -6.1 (-2.5, -3.6); the hem swings 32 mm
+    a stride on the walk and 51-99 on the run. With the old animator - the
+    body advancing between frames as a jump, each jump up into the cloth a
+    full push in one substep - the same tee rode up 16 mm per walking stride
+    and 40 per running stride, without saturating: 48 and 120 over these
+    three. The bounds are 1.5 x the measured drift with a floor of a voxel;
+    the old 120 mm was that artefact's number.
+
+    The run is measured at 24 fps and not 16 because two fields blended
+    across a frame pinch a limb of radius R that moves delta by about
+    delta^2 / 8R: below the field's half-voxel while delta <= 2 sqrt(voxel R),
+    41 mm a frame for a forearm on this 10 mm voxel, which a run's arm
+    exceeds at 16 fps. `sweep_mm` on every frame says where a body stands.
+    """
     swings: dict[str, float] = {}
     drift: dict[str, float] = {}
-    for kind, fps in (("walk", 12.0), ("run", 16.0)):
+    penetration: dict[str, float] = {}
+    for kind, fps in (("walk", 12.0), ("run", 24.0)):
+        cycles = 3
+        track = gait(kind, cycles=float(cycles), samples_per_cycle=8)
         frames = walk(
             _tee(a_pose_body),
-            gait(kind, cycles=1.0, samples_per_cycle=8),
+            track,
             fabric="cotton_jersey",
             fps=fps,
             voxel_mm=10.0,
             settings=DrapeSettings(substeps=24),
         )
         assert all(f.report["contact"]["worn"] for f in frames), f"{kind}: it came off"
-        hem = [float(f.points[:, 1].min()) for f in frames]
-        swings[kind] = (max(hem) - min(hem)) * 1000.0
-        centroid = [float(f.points[:, 1].mean()) for f in frames]
-        drift[kind] = (centroid[-1] - centroid[0]) * 1000.0
-    # With the old collision normal the walk carried the shirt 26 mm up and
-    # the run settled it 13 mm down. That normal was tilted half a voxel
-    # toward -y (a central difference at the cell's floor corner), and its
-    # downward push was hiding an artefact of the animator: the body
-    # advances between frames as a JUMP, and each jump up into the cloth
-    # pushes the shirt up while nothing on the way down pulls it back. With
-    # the true normal the walk rides the shirt up ~16 mm a stride and the
-    # run ~40, not saturating over three strides. Moving the body
-    # continuously within a frame is the next physics item (PROGRESS); what
-    # is asserted is still that neither is the 270 mm slide the timing bug
-    # produced.
-    for kind, moved in drift.items():
-        assert abs(moved) < 120.0, f"{kind}: the shirt travelled {moved:.0f} mm"
-    # A run swings the hem MORE than a walk. The old factor of 1.4 was never
-    # measured to be stable: across the arrangement variants of the register
-    # investigation it ran from 1.14 to 2.45, and on the register-correct tee
-    # it is 1.28 (walk 43 mm, run 55). Re-measured, with the drift, when the
-    # body moves continuously within a frame.
+        times = np.array([f.time_s for f in frames])
+        centroid = np.array([float(f.points[:, 1].mean()) for f in frames])
+        hem = np.array([float(f.points[:, 1].min()) for f in frames])
+        period = track.duration / cycles
+        means, hem_swings = [], []
+        for k in range(cycles):
+            window = (times >= k * period - 1e-9) & (times < (k + 1) * period - 1e-9)
+            means.append(float(centroid[window].mean()))
+            hem_swings.append(float(hem[window].max() - hem[window].min()))
+        drift[kind] = (means[-1] - means[0]) * 1000.0
+        swings[kind] = float(np.mean(hem_swings)) * 1000.0
+        penetration[kind] = max(f.report["penetration"]["deepest_penetration_mm"] for f in frames)
+    assert abs(drift["walk"]) < WALK_DRIFT_BOUND_MM, (
+        f"walk: the shirt travelled {drift['walk']:.0f} mm"
+    )
+    assert abs(drift["run"]) < RUN_DRIFT_BOUND_MM, f"run: the shirt travelled {drift['run']:.0f} mm"
+    # A run swings the hem MORE than a walk.
     assert swings["run"] > swings["walk"], swings
+    assert penetration["walk"] <= 10.0, penetration
+    assert penetration["run"] < RUN_PENETRATION_BOUND_MM, penetration
 
 
 # -- bring your own body -------------------------------------------------------

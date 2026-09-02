@@ -314,8 +314,11 @@ def test_a_body_with_no_joints_walks_as_one_piece_and_says_so() -> None:
     body = mannequin()
     factory = rigid_factory(body)
     assert getattr(factory, "rigid", False) is True
-    moved = factory({"rise_m": 0.05})
-    assert float(moved.bounds[0][1]) == pytest.approx(float(body.bounds[0][1]) + 0.05, abs=1e-9)
+    # the rise is an OFFSET for the animator's rigid schedule, not a moved
+    # mesh: the body is baked once and placed for free
+    mesh, offset = factory({"rise_m": 0.05})
+    assert mesh is body
+    assert tuple(np.round(offset, 9)) == (0.0, 0.05, 0.0)
 
 
 def test_travel_moves_cloth_at_the_gaits_speed() -> None:

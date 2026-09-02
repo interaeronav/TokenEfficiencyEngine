@@ -9922,6 +9922,99 @@ walk. In order of what was found:
   contact should carry the body's velocity). The gait test's bound now
   states the measured number rather than the masked one.
 
+- **The body moves within a drape call (the "next physics item", closed).**
+  The kernel takes a per-substep body schedule, the wind's pattern: a
+  rigid part (placement matrices and translations, exact and free) and,
+  for a deforming body, a second field on the same lattice with a blend
+  weight - `d = d0 + mix (d1 - d0)` with the normal the gradient of that
+  same interpolant. Per contact the surface's own displacement feeds
+  Coulomb friction on the slip RELATIVE to the body (the static regime
+  pins cloth to the body, not to world space) and the restitution's
+  approach; the 2 %-per-substep numerical damping acts in the body's frame
+  for cloth that touched it last substep - in the world frame it braked a
+  garment carried at 1.35 m/s at 39 m/s² against friction's 3.4, and the
+  teleport had been hiding that - and in the world frame for cloth in the
+  air; pins ramp from `pin_from`; the report measures against the END
+  placement. `sdf_from_mesh(bounds=)` bakes every frame on one lattice (an
+  exact integer embedding: trimesh's voxel origin is already on the pitch
+  lattice); `BodyMotion.between/static`; `drape(motion=)`, never a
+  settings field, so one Prepared serves an animation. **The static path
+  is bit-identical** - the same instruction sequence, with the schedule one
+  entry long and every new branch unexecuted - proved by `array_equal`
+  against dumps taken before the change: the tee on the mannequin (points
+  and velocities), a square on a ball, the Cusick denim disc and its
+  coefficient, a live fold. Measured on the kernel alone (a poplin square
+  on a slab; `test_moving_body.py`, 11 tests): a slab easing to 0.15 m
+  over a second (0.9 m/s², under μg) carries the cloth to within 5 mm of
+  150 and leaves it at the slab's speed; the same 0.15 m in a fifth of a
+  second (22 m/s²) leaves it behind - Coulomb's regime change; a slab
+  bobbing 25 mm at 2 Hz for two seconds across 24 calls holds the cloth's
+  height within 10 mm and ends within 3 mm of the start (the ratchet is
+  gone); a slab dropping away is never followed up; a ball sliding +x and
+  its mirror sliding −x land as mirror images; a ball growing 90 → 100 mm
+  lifts the crown 12.7 mm through the blend where the same growth as a
+  jump kicked it 33. Restitution's relative form is in place and a test
+  pins it dormant. `drape()` now copies its input positions (the kernel
+  had solved a caller's own array in place). Found on the way, recorded
+  and NOT fixed here: `DrapeSettings()`'s bare defaults mix tiers
+  (`frames=120` is the draft count, `substeps=20` the standard one); the
+  contact standoff comes from `DrapeSettings.thickness_mm` and never from
+  the fabric card's `thickness_mm` (the asymmetry friction had until 6f12745);
+  `ContactMaterial.between()` in `drape/collision.py` is wired to nothing
+  in the solver.
+
+- **The animator moves the body continuously, and the ride-up is gone.**
+  `animate()` builds every pose body-local up front, bakes each on the one
+  lattice they share, carries the travel, the gait's rise and the figure's
+  standing lift as a rigid placement, and hands the solver the previous
+  placement, the next one and the schedule between them; the garment is
+  never teleported, its velocity is carried and seeded with the body's
+  travel, one Prepared serves the animation, a rigid body is baked once. A
+  `body_factory` may return `(mesh, offset)` (`walk()`'s mannequin,
+  `figure_factory`, `rigid_factory` do); every frame reports `sweep_mm`, how
+  far the body's surface moved between poses (nearest-vertex, because a
+  merged capsule body keeps its vertex count between poses but not its
+  order - matched by index it read 338 mm on a walk whose fastest limb
+  moved a third of that). Measured on the tee on the posed mannequin over
+  three strides, the centroid averaged over each stride so the bob cancels:
+  walk at 12 fps: +3.9 mm over three strides (per stride
+  +4.6 then −0.7 - it saturates), hem swing 32/32/27 mm a stride, worst
+  penetration 0.55 mm; run at 24 fps: −6.1 mm (−2.5, −3.6), hem swing
+  99/54/51, worst penetration 27.6 (the tunnelling below); run at 16 fps:
+  −1.9 mm (−3.0, +1.1), hem swing 107/72/61, worst penetration 38.2.
+  With the old animator the same tee rode up 16 mm per walking stride and 40
+  per running stride without saturating. Two things the run showed on the
+  way. The body-frame damping had coupled touching cloth to the body even
+  where the surface was moving AWAY from it - a pull through numerics, which
+  a one-sided contact must never exert - so the coupling now applies only
+  where the surface is advancing on or sliding under the cloth, and a
+  receding surface lets the cloth fall at 1 g and separate, which is what a
+  shirt does on a run. And the run's fastest sweeps still tunnel: at one
+  frame per cycle three or four particles end 8-10 mm inside the body, at
+  24, 48 and 96 substeps alike, where a plain jump to the new pose resolves
+  to zero - the limb passes through a sheet that its neighbours hold on both
+  sides, which one-sided field contact cannot forbid. It does not fall with
+  the frame rate either: 38, 28, 29 and 33 mm at 16, 24, 32 and 48 fps,
+  while the body's sweep per frame does fall as the blend predicts (384,
+  355, 313, 211 mm) and the drift stays within 2-6 mm over three strides at
+  every rate. Recorded, bounded in the gait test with its number, and named
+  as the contact model's limit (continuous collision, or cloth-cloth), not
+  the schedule's and not the frame rate's. The two
+  examples run the same loop (the cape's clasp pins ramp from the previous
+  frame's targets); their probes and the animator suite pass. The fur walk
+  re-run in full on the moving body: dressed at 6.8 mm worst seam (12.1
+  before), worst seam anywhere in the 4.5 s walk 15.2 mm, worn on every
+  frame, and the jacket's stride-averaged height drifts −5.1 mm over four
+  strides (1199, 1201, 1200, 1199, 1194 mm above the lift); 165 of its
+  225 s are the 108 bakes on the union lattice. The cape shot re-run the
+  same way: 192 frames in 262 s, the cape settled to 1178 mm of drop on a
+  1080 mm pattern before the first leap, into the water at 5.83 s, the
+  clasp riding the hero through both leaps on the ramped pins. The
+  showcase was re-cut from the two. Suites: seamkiln 280 passed / 8
+  skipped (the slow gait test run on its own, passed), the server's 24
+  seamkiln adapter tests, lint clean; the surface unchanged at 17 tools /
+  2,033 tok.
+
 The two shots were re-run from the repo on the corrected solver and figure
 and the showcase re-cut.
 

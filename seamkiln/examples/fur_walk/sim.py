@@ -27,7 +27,7 @@ import numpy as np
 from examples._common import Stopwatch
 from seamkiln import finishing, materials
 from seamkiln.avatar import GAITS, Pose, gait
-from seamkiln.drape.body import sdf_from_mesh
+from seamkiln.drape.body import BodyMotion, sdf_from_mesh
 from seamkiln.drape.dressing import dress, frame_from_figure, shoulder_anchors, wrap_arrangement
 from seamkiln.drape.environment import Environment
 from seamkiln.drape.garment import build_garment
@@ -225,18 +225,35 @@ def simulate(
             "a probe proves the pipeline runs; what it measures is not evidence "
             "- never rely on a coarse preview"
         )
+    # The body moves CONTINUOUSLY through each frame. Every pose is built
+    # body-local up front (milliseconds each) so its field can be baked on the
+    # one lattice all the frames share; the walk's travel and the lift that
+    # keeps the lowest foot on the ground are a rigid placement the solver
+    # carries exactly, and the pose change between two frames is two fields
+    # blended across the frame's substeps. The jacket is never teleported -
+    # the contact carries it - and the cloth's velocity is carried from frame
+    # to frame, seeded with the walk's speed so the shot has no first frame.
+    voxel = float(opts["voxel_mm"])
+    steps = settings.frames * settings.substeps
+    poses = [walk_pose(track, i / fps + phase, fps) for i in range(frames)]
+    locals_ = [figure(pose, height=HEIGHT, facing_deg=0.0) for pose in poses]
+    bounds = (
+        np.min([m.bounds[0] for m in locals_], axis=0),
+        np.max([m.bounds[1] for m in locals_], axis=0),
+    )
     velocity = None
+    previous = None
     clock = Stopwatch()
     fur_seconds = 0.0
+    field_seconds = 0.0
     for i in range(frames):
         t = i / fps
-        pose = walk_pose(track, t + phase, fps)
-        local = figure(pose, height=HEIGHT, facing_deg=0.0)
+        local = locals_[i]
         lift = float(standing_offset(local)[1])  # the lowest foot ON the ground
         offset = np.array([0.0, lift, WALK_START_Z + speed * t])
-        placed = local.copy()
-        placed.apply_translation(offset)
-        field = sdf_from_mesh(placed, voxel_mm=float(opts["voxel_mm"]))
+        bake = Stopwatch()
+        placed = sdf_from_mesh(local, voxel_mm=voxel, bounds=bounds).moved(offset)
+        field_seconds += bake.s
 
         if i == 0:
             # dress the jacket onto the body before the walk starts, or the
@@ -244,7 +261,7 @@ def simulate(
             garment.points = garment.points + offset
             settled = dress(
                 garment,
-                field,
+                placed,
                 fabric=shell,
                 anchors=shoulder_anchors(frame, offset),
                 hold_frames=int(opts["hold"]),
@@ -263,14 +280,22 @@ def simulate(
                 f"mean gap {settled.contact['mean_distance_mm']:.0f} mm, "
                 f"worn {settled.contact.get('worn')}"
             )
+            result = drape(garment, placed, fabric=shell, settings=settings, prepared=prepared)
+            velocity = result.velocity + np.array([0.0, 0.0, speed])[None, :]
         else:
-            garment.points = garment.points + np.array([0.0, 0.0, speed / fps])
-
-        result = drape(
-            garment, field, fabric=shell, settings=settings, prepared=prepared, velocity=velocity
-        )
-        velocity = result.velocity
+            motion = BodyMotion.between(previous, placed, steps=steps)
+            result = drape(
+                garment,
+                previous,
+                fabric=shell,
+                settings=settings,
+                prepared=prepared,
+                velocity=velocity,
+                motion=motion,
+            )
+            velocity = result.velocity
         garment.points = result.points
+        previous = placed
 
         fur_clock = Stopwatch()
         pelt = finishing.fur(result.points, garment.triangles, **UNDERCOAT)
@@ -308,6 +333,8 @@ def simulate(
     np.save(out / "cloth_topology.npy", garment.triangles)
     np.save(out / "cloth_uv.npy", garment.rest_points_mm)
     manifest["fur_seconds"] = round(fur_seconds, 2)
+    manifest["field_seconds"] = round(field_seconds, 2)
+    manifest["body_motion"] = "continuous within each frame (BodyMotion.between)"
     manifest["seconds"] = round(clock.s, 1)
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1))
     log(f"done: {frames} frames in {clock.s:.1f}s ({fur_seconds:.1f}s growing fur) -> {out}")

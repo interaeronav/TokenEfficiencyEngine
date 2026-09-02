@@ -30,7 +30,7 @@ import numpy as np
 from examples._common import Stopwatch
 from seamkiln import materials
 from seamkiln.avatar import Pose
-from seamkiln.drape.body import sdf_from_mesh
+from seamkiln.drape.body import BodyMotion, sdf_from_mesh
 from seamkiln.drape.environment import Environment
 from seamkiln.drape.garment import GarmentMesh, Placement, build_garment
 from seamkiln.drape.solve import DrapeSettings, drape, prepare
@@ -406,23 +406,36 @@ def simulate(
     prepared, current_fabric, velocity, soaked = None, DRY, None, None
     cape_wet = np.zeros(garment.n_points)
     body_wet_prev = None
+    # The hero moves CONTINUOUSLY through each frame: every pose is built
+    # body-local up front so the fields share one lattice, the trajectory
+    # (leaps included - 0.2 m a frame at 4.8 m/s) is a rigid placement the
+    # solver carries exactly, and the pose change is two fields blended
+    # across the frame. The clasp's pins ramp from where they were to where
+    # they go, so the cape rides the hero instead of leading him mid-leap.
+    voxel = float(opts["voxel_mm"])
+    samples = [trajectory(i / fps) for i in range(frames)]
+    locals_ = [hero(sample[1]) for sample in samples]
+    bounds = (
+        np.min([m.bounds[0] for m in locals_], axis=0),
+        np.max([m.bounds[1] for m in locals_], axis=0),
+    )
+    previous = None
+    previous_target = None
     clock = Stopwatch()
     for i in range(frames):
         t = i / fps
-        offset, pose, is_wet, squash = trajectory(t)
+        offset, pose, is_wet, squash = samples[i]
         room = wind_at(t)
 
         # Two copies on purpose: the SOLVER needs the body where it is, and
         # the FILE is written body-local so the renderer can paint the boots
         # from object-space height.
-        local = hero(pose)
+        local = locals_[i]
         ground = support(t, squash)
         if ground is not None:
             offset = offset.copy()
             offset[1] = ground - float(local.bounds[0][1])
-        placed = local.copy()
-        placed.apply_translation(offset)
-        field = sdf_from_mesh(placed, voxel_mm=float(opts["voxel_mm"]))
+        field = sdf_from_mesh(local, voxel_mm=voxel, bounds=bounds).moved(offset)
 
         if is_wet and soaked is None:
             soaked = wet(DRY)
@@ -467,18 +480,38 @@ def simulate(
                 f"(the pattern is {pattern.panel('CAPE').bbox[3]:.0f} mm long)"
             )
 
-        result = drape(
-            garment,
-            field,
-            fabric=fabric,
-            settings=settings,
-            pins=pins,
-            pin_target=target,
-            prepared=prepared,
-            velocity=velocity,
-        )
+        if previous is None or velocity is None:
+            # the first frame, and the frame after a fabric change (the
+            # prepared graph is rebuilt and the velocity reset): a solve on
+            # the body where it is
+            result = drape(
+                garment,
+                field,
+                fabric=fabric,
+                settings=settings,
+                pins=pins,
+                pin_target=target,
+                prepared=prepared,
+                velocity=velocity,
+            )
+        else:
+            steps = settings.frames * settings.substeps
+            motion = BodyMotion.between(previous, field, steps=steps)
+            result = drape(
+                garment,
+                previous,
+                fabric=fabric,
+                settings=settings,
+                pins=pins,
+                pin_target=target,
+                pin_from=previous_target,
+                prepared=prepared,
+                velocity=velocity,
+                motion=motion,
+            )
         velocity = result.velocity
         garment.points = result.points
+        previous, previous_target = field, target
 
         # under the surface -> soaked; above it -> drying slowly
         under = result.points[:, 1] < WATER_Y
@@ -518,6 +551,7 @@ def simulate(
 
     np.save(out / "cape_topology.npy", garment.triangles)
     np.save(out / "cape_uv.npy", garment.rest_points_mm)
+    manifest["body_motion"] = "continuous within each frame (BodyMotion.between)"
     manifest["seconds"] = round(clock.s, 1)
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1))
     log(f"done: {frames} frames in {clock.s:.1f}s -> {out}")

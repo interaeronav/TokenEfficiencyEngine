@@ -408,7 +408,13 @@ def walk(
     if body_factory is None:
 
         def body_factory(values: dict[str, float]):
-            return posed_mannequin(Pose.from_values(values), height=height, chest=chest)
+            # The gait's rise is a pure translation of the whole capsule
+            # body, so it goes to the animator as the OFFSET - the rigid
+            # schedule the solver carries exactly - and the bake sees a body
+            # that only changes pose.
+            pose = Pose.from_values(values)
+            body = posed_mannequin(replace(pose, rise_m=0.0), height=height, chest=chest)
+            return body, (0.0, pose.rise_m, 0.0)
 
     advance = None
     if travel:
@@ -446,8 +452,9 @@ def figure_factory(*, height: float = 1.80, facing_deg: float = 0.0, ground_y: f
     def factory(values: dict[str, float]):
         pose = Pose.from_values({k: v for k, v in values.items() if k != "rise_m"})
         body = figure(pose, height=height, facing_deg=facing_deg)
-        body.apply_translation(standing_offset(body, ground_y))
-        return body
+        # the lift stays emergent (solved from the feet each frame) and goes
+        # to the animator as the offset: rigid, exact, never baked
+        return body, standing_offset(body, ground_y)
 
     return factory
 
@@ -458,9 +465,7 @@ def rigid_factory(mesh):
     answer beats bending a mesh that has no joints to bend at."""
 
     def factory(values: dict[str, float]):
-        body = mesh.copy()
-        body.apply_translation([0.0, float(values.get("rise_m", 0.0)), 0.0])
-        return body
+        return mesh, (0.0, float(values.get("rise_m", 0.0)), 0.0)
 
     factory.rigid = True  # type: ignore[attr-defined]
     return factory

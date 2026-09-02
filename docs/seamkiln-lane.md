@@ -199,6 +199,33 @@ append-only list cannot.
   stride, a body slides every foot through its own stance — the skate that
   gives away hand-animated walks.
 
+**The body moves within a frame.** The animator used to move the body
+between frames as a jump: rebake, teleport the garment by the travel, solve
+on a body standing still. Each jump up into the cloth resolved as a full
+push in one substep — a kick of tens of metres per second — and nothing on
+the way down pulled the cloth back, so a jersey tee rode up 16 mm per
+walking stride and 40 per running stride without saturating. The solver
+now takes a per-substep schedule of the body (`BodyMotion.between`,
+`drape(motion=)`): the rigid part — travel, the gait's rise, a figure's
+standing lift — is exact and free, and a deforming body is two fields on
+one lattice (`sdf_from_mesh(bounds=)`) blended across the frame, so a limb
+that swings between two poses is a surface that moves continuously.
+Friction acts on the slip relative to the body, so the static regime pins
+cloth to the body rather than to the world; the numerical damping acts in
+the body's frame for cloth that touches it; the garment is never
+teleported and its velocity is carried from frame to frame. A
+`body_factory` may return `(mesh, offset)` — the mesh body-local, the
+offset the rigid placement — and a rigid body is baked once. The blend's
+own limit is stated on every frame as `sweep_mm` (the largest move of any
+body vertex between poses): two fields pinch a limb of radius R moved δ by
+about δ²/8R, below the field's half-voxel while δ ≤ 2√(voxel·R), which is
+41 mm a frame for a forearm on a 10 mm voxel — the knob for that is fps,
+and the error falls with δ². What fps does not cure is tunnelling: on a
+run, the fastest limb sweeps push three or four particles of a sheet held
+on both sides 28–38 mm into the body at one frame per cycle, at 16 fps and
+at 48 alike, which is the one-sided field contact's limit and is recorded
+as such. The static path is bit-identical to what it was.
+
 ## Live adjustment
 
 `pull`, `fold` and `ease` drive a `LiveSession` that prepares the constraint
