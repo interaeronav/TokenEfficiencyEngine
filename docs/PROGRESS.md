@@ -10024,826 +10024,6 @@ tests as they stood before their re-statements - both modules re-run green
 after, 14 and 20); the server's 24 seamkiln adapter tests pass; lint clean
 on every file touched. Surface unchanged: 17 tools / 2,033 tok.
 
-## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
-
-Owner: *"create an autodesk inventor alternative that runs headless with TEE
-and is optimized for ai engines"* — then *"use TEE"* and *"TEE/QMAX"*. The
-planning session ran seven read-only discovery agents (integration map, reuse
-map, conventions, licences, the Inventor parity target, OCCT facts, prior art),
-three design drafts judged on four axes, a synthesis, and three adversarial
-refuters against the installed OCP 7.9.3 and the tree; TEE's own
-`tee_web_lookup` (qmax) re-checked the licence facts on PyPI's JSON API and
-`kb_search` confirmed the knowledge base has no mechanical-design coverage
-(threads, GD&T, sheet metal, fasteners: nothing). `CLAUDE_A66_SCRIPT.md` is
-the plan of record; `docs/DECISIONS.md` carries the rulings.
-
-**Measured before design (this Mac, `server/.venv`, OCP direct, no cadquery):**
-
-```
-import OCP (warm)                     0.28-1.2 s
-box 100x60x10 - d10: cut + volume     17 ms   59,214.602 mm3 = the arithmetic
-fillet 8 edges r2                     13 ms   11 faces
-HLRBRep_Algo front view               6 ms
-STEP AP242 write / read               13 / 6 ms, volume identical after round trip
-BRepMesh 0.1 mm + binary STL          4 ms, trimesh: watertight
-GLB via XCAF (LengthUnit 0.001)       7 ms, extents [0.22, 0.22, 0.012] m (unrotated)
-100-hole plate, 100 sequential cuts   0.46 s, 106 faces, 312 unique edges
-same plate, ONE n-ary cut (no glue)   0.09 s, identical topology and volume
-  SetGlue(GlueShift) on the same cut  0.014 s -> the UNCUT plate, IsDone() True
-B-rep fingerprint, two processes      identical (c94b89930af47b02)
-BRepTools.Write_s v3 checkpoint       81 KB, 1.4-3 ms write, 1 ms read
-freecadcmd 1.1.3 modules import       0.38 s, 67 MB RSS; sketch+TechDraw probe:
-                                      "Application unexpectedly terminated"
-```
-
-**Owner decisions taken in the session:** shippable MIT posture like seamkiln;
-headless-first with the GUI as a later phase; name `partkiln`, prefix `pk_`;
-v1 = parts + assemblies + drawings + exports, sheet metal (flat-first) last.
-
-**Corrections the refuters forced into the plan** (each is now a pinned
-test): the STEP schema must be set BEFORE the writer's first `Transfer`
-(`Model(True)` only resets a reused writer; `STEPCAFControl_Writer` has no
-`Model`); HLR counts are per compound under a named projector (F1 front:
-VCompound 4 | HCompound 9 + OutLineH 1) and `VCompound` is empty only on the
-12-hole/96-fillet plate, not on F1; glue modes are for touching copies, never
-for cuts; sub-shape counts use `TopExp.MapShapes_s` (the explorer double-
-counts shared edges: 624 vs 312); `BRepTools_History` has `IsRemoved`, not
-`IsDeleted`, and only the boolean builders expose `History()` — every other
-feature builds its history by hand per sub-shape; `LocOpe_DPrism` tapers a new
-body, `BRepFeat_MakeDPrism` only joins/cuts on an existing one; `dir=Z` on F1
-matches five edges (the cylinder seam included) and OCCT silently ignores the
-seam in a fillet; there is no Python-side cancellation of a running OCCT op;
-the GLB writer needs the Z-up input coordinate system as well as the length
-unit; the SPDX gate must read classifiers and free text because scipy, ezdxf
-and trimesh carry no `License-Expression`; `ProjectConfig` drops unknown
-`[partkiln]` tables silently; the extension runtime is Python 3.13.9; server
-tests die at 60 s.
-
-**Tree at the start:** a parallel Claude session (started 15:27 on this
-machine) is editing `seamkiln/` — its files changed while this session ran
-(`interact.py`, `garment.py`, four test files, the lane doc) and two of its
-physics tests failed on a rerun (`test_dressing_closes_the_armholes_over_the_
-deltoid`, `test_a_garment_is_thrown_by_a_gait_and_stays_on`; a third,
-`test_easing_a_stitch_moves_the_seam_it_names`, fails only under
-`NUMBA_NUM_THREADS=4` — a reduction-order sensitivity worth knowing). That
-work is not A66's to commit or judge: A66 stages only its own paths through a
-temporary index, never `git add -A`, and appends to PROGRESS rather than
-rewriting it.
-
-### A66 P0a — the measurement table (2026-09-02, this Mac; scripts in the session scratchpad `p0a/`)
-
-Two FRESH `uv venv --python 3.11` environments, one per OCP wheel, each installed
-once and imported four times (`PYTHONDONTWRITEBYTECODE=1`; the first import of a
-fresh venv is the cold code-signature case). The 36-class binding one-liner
-(the plan's 26 plus `LocOpe_DPrism`, `HLRBRep_HLRToShape`, `RWMesh_CoordinateSystem`,
-`BRepMesh_IncrementalMesh`, `STEPControl_Writer`, `Interface_Static`, `TopExp`,
-`BRep_Tool`, `GProp_GProps`, `BRepGProp`) ran in each.
-
-```
-                              cadquery-ocp-novtk 7.9.3.1.1   cadquery-ocp 7.9.3.1.1 (vtk)
-install (network)             9.9 s                          2.0 s (cached)
-site-packages                 223 MB (all of it OCP)         914 MB (OCP 232 MB + vtk)
-OCP.cpython-311-darwin.so     144 MB, 0 VTK dylibs linked    145 MB, libTKIVtk + 10 libvtk*
-wheel RECORD entries OCP/     397                            403  (both ship top-level OCP/)
-import OCP, COLD (run 1)      26.2 s                         38.7 s
-import OCP, warm (runs 2-4)   0.29 s                         0.33 s
-classes bound                 36/36                          36/36
-RSS after import              251 MB                         288 MB
-vtkmodules in sys.modules     False                          False
-```
-
-So the "140 s first import" was never the number: the cold cost here is 26 s
-(novtk) and it is paid ONCE per venv; warm is 0.3 s. That settles the process
-model exactly as designed: a warm-up job at boot (Law 17), `pk_warming` for a
-call that lands inside those 26 s, never a daemon and never a blocking import.
-
-Rows 7-17 from `rows.py` in `server/.venv` (OCP direct; contention from a
-concurrent seamkiln test run, so the wall times are upper bounds):
-
-```
-F1 plate 100x60x10 - d10         V 59214.602  faces 7  unique edges 15
-F2 bracket (fuse+unify, fillet r6, 4x d6.6)   V 44916.967  faces 13  edges 33  build 0.01 s  fp 8d2f6429c818a423
-F5 plate, ONE n-ary cut of 100 holes (no glue, RunParallel)  V 520481.421  faces 106  edges 312  0.103 s
-F6 block / pin / d11 interference  30429.204 / 3141.593 / 329.867 mm3
-HLR F1 front (0,-1,0)   V 4 + Rg1V 0 + OutV 0 | H 9 + Rg1H 0 + OutH 1 (0.4 ms)
-HLR F1 top   (0,0,-1)   V 5 + Rg1V 0 + OutV 0 | H 5 + Rg1H 0 + OutH 0 (0.1 ms)
-HLR F1 right (1,0,0)    V 4 + Rg1V 0 + OutV 0 | H 10 + Rg1H 0 + OutH 2 (0.3 ms)
-W3 plate 120x80x10, 12x d6, ALL edges filleted r1 (62 faces): front V 9 + Rg1V 17 + OutV 0 | H 91 + Rg1H 63 + OutH 36 (20.3 ms)
-5 x F5 stacked (530 faces): exact V 20 + Rg1V 0 + OutV 0 | H 2520 + Rg1H 0 + OutH 500 (90.7 ms)
-                                   poly  V 20 + Rg1V 0 + OutV 0 | H 26520 + Rg1H 0 + OutH 500 (105.4 ms)   <- polylines fragment 10x, and it is not faster
-STEP default after Init_s          AP214IS
-  schema set BEFORE first Transfer -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  schema set AFTER Transfer         -> FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'))   (the trap)
-  then Model(True) + re-Transfer    -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-F8 = 10 x F5 via STEPCAFControl_Writer with names: write 0.15 s, FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  read back via STEPCAFControl_Reader: 0.408 s, products 10, faces 1060, sum V 5204814.21, names ['plate_0', 'plate_1', 'plate_2']...
-GLB F1  LengthUnit + Zup input CS   extents_m [0.1, 0.01, 0.06]  dims_zup_m [0.1, 0.06, 0.01]   <- the correct file
-GLB F1  no LengthUnit                extents_m [100.0, 10.0, 60.0]                                      <- 10 mm = 10 m
-GLB F1  LengthUnit only              extents_m [0.1, 0.06, 0.01]                                      <- lying on its side
-History, fillet r2 on F1 dir=Z edges: 5 raw edges (4 corners + the cylinder SEAM); Generated per edge [1, 1, 1, 1, 0] (the seam generates nothing); Modified per face [1, 1, 1, 1, 1, 1, 0] (the cylinder wall untouched); faces after 11
-Per-op wall (ms): extrude 0.1  hole x1 1.6  hole x100 n-ary 119.7  fillet 8 2.1  fillet all-W3 7.4  fuse+unify 1.5  HLR F1 0.4  HLR 5xF5 90.7  STEP write F5 13.5  STEP read F5 43.8  GLB F1 1.5  mesh F5 0.05 mm 42.0
-```
-
-Three findings change wording in the script and nothing in the design:
-
-- **`VCompound` is not empty on either fillet fixture.** W3's observation was
-  on a 96-fillet plate; on F1 (15 edges filleted) and on the 12-hole plate
-  (all edges r1) the sharp compound still carries 8-9 edges while the tangent
-  lines (17) sit in `Rg1LineVCompound`. The design is unchanged (the union of
-  the three visible compounds); the trap test asserts `visible_union >
-  len(VCompound)`, not emptiness.
-- **`PolyAlgo` is not the fast path.** On 530 faces it took 105 ms against
-  91 ms exact and emitted 26,520 hidden polyline fragments against 2,520
-  edges. Exact HLR is the only path in v1.
-- **The 5th `dir=Z` edge is the cylinder seam and it must be filtered by the
-  selector**, exactly as the refuter said: OCCT accepts it and generates
-  nothing.
-
-Every per-op class is under 125 ms on these fixtures, so `MAX_BATCH_S` starts
-at 60 s with the `job: true` route reserved for imports of real assemblies and
-drawings of hundreds of faces; the numbers above are the basis and are pinned
-in `partkiln/tests/expected.py`.
-
-**Fixture provenance (row 18):** the Hugging Face card for `BenchCAD/BenchCAD`
-declares `license:cc-by-4.0` (last modified 2026-06-28; read through
-`tee_web_lookup`). `huggingface/cadgenbench-data` answers HTTP 401 to fetchers,
-so CADGenBench stays OUT until a card can be read; F1-F8 carry the suite.
-
-## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
-
-Owner: *"create an autodesk inventor alternative that runs headless with TEE
-and is optimized for ai engines"* — then *"use TEE"* and *"TEE/QMAX"*. The
-planning session ran seven read-only discovery agents (integration map, reuse
-map, conventions, licences, the Inventor parity target, OCCT facts, prior art),
-three design drafts judged on four axes, a synthesis, and three adversarial
-refuters against the installed OCP 7.9.3 and the tree; TEE's own
-`tee_web_lookup` (qmax) re-checked the licence facts on PyPI's JSON API and
-`kb_search` confirmed the knowledge base has no mechanical-design coverage
-(threads, GD&T, sheet metal, fasteners: nothing). `CLAUDE_A66_SCRIPT.md` is
-the plan of record; `docs/DECISIONS.md` carries the rulings.
-
-**Measured before design (this Mac, `server/.venv`, OCP direct, no cadquery):**
-
-```
-import OCP (warm)                     0.28-1.2 s
-box 100x60x10 - d10: cut + volume     17 ms   59,214.602 mm3 = the arithmetic
-fillet 8 edges r2                     13 ms   11 faces
-HLRBRep_Algo front view               6 ms
-STEP AP242 write / read               13 / 6 ms, volume identical after round trip
-BRepMesh 0.1 mm + binary STL          4 ms, trimesh: watertight
-GLB via XCAF (LengthUnit 0.001)       7 ms, extents [0.22, 0.22, 0.012] m (unrotated)
-100-hole plate, 100 sequential cuts   0.46 s, 106 faces, 312 unique edges
-same plate, ONE n-ary cut (no glue)   0.09 s, identical topology and volume
-  SetGlue(GlueShift) on the same cut  0.014 s -> the UNCUT plate, IsDone() True
-B-rep fingerprint, two processes      identical (c94b89930af47b02)
-BRepTools.Write_s v3 checkpoint       81 KB, 1.4-3 ms write, 1 ms read
-freecadcmd 1.1.3 modules import       0.38 s, 67 MB RSS; sketch+TechDraw probe:
-                                      "Application unexpectedly terminated"
-```
-
-**Owner decisions taken in the session:** shippable MIT posture like seamkiln;
-headless-first with the GUI as a later phase; name `partkiln`, prefix `pk_`;
-v1 = parts + assemblies + drawings + exports, sheet metal (flat-first) last.
-
-**Corrections the refuters forced into the plan** (each is now a pinned
-test): the STEP schema must be set BEFORE the writer's first `Transfer`
-(`Model(True)` only resets a reused writer; `STEPCAFControl_Writer` has no
-`Model`); HLR counts are per compound under a named projector (F1 front:
-VCompound 4 | HCompound 9 + OutLineH 1) and `VCompound` is empty only on the
-12-hole/96-fillet plate, not on F1; glue modes are for touching copies, never
-for cuts; sub-shape counts use `TopExp.MapShapes_s` (the explorer double-
-counts shared edges: 624 vs 312); `BRepTools_History` has `IsRemoved`, not
-`IsDeleted`, and only the boolean builders expose `History()` — every other
-feature builds its history by hand per sub-shape; `LocOpe_DPrism` tapers a new
-body, `BRepFeat_MakeDPrism` only joins/cuts on an existing one; `dir=Z` on F1
-matches five edges (the cylinder seam included) and OCCT silently ignores the
-seam in a fillet; there is no Python-side cancellation of a running OCCT op;
-the GLB writer needs the Z-up input coordinate system as well as the length
-unit; the SPDX gate must read classifiers and free text because scipy, ezdxf
-and trimesh carry no `License-Expression`; `ProjectConfig` drops unknown
-`[partkiln]` tables silently; the extension runtime is Python 3.13.9; server
-tests die at 60 s.
-
-**Tree at the start:** a parallel Claude session (started 15:27 on this
-machine) is editing `seamkiln/` — its files changed while this session ran
-(`interact.py`, `garment.py`, four test files, the lane doc) and two of its
-physics tests failed on a rerun (`test_dressing_closes_the_armholes_over_the_
-deltoid`, `test_a_garment_is_thrown_by_a_gait_and_stays_on`; a third,
-`test_easing_a_stitch_moves_the_seam_it_names`, fails only under
-`NUMBA_NUM_THREADS=4` — a reduction-order sensitivity worth knowing). That
-work is not A66's to commit or judge: A66 stages only its own paths through a
-temporary index, never `git add -A`, and appends to PROGRESS rather than
-rewriting it.
-
-### A66 P0a — the measurement table (2026-09-02, this Mac; scripts in the session scratchpad `p0a/`)
-
-Two FRESH `uv venv --python 3.11` environments, one per OCP wheel, each installed
-once and imported four times (`PYTHONDONTWRITEBYTECODE=1`; the first import of a
-fresh venv is the cold code-signature case). The 36-class binding one-liner
-(the plan's 26 plus `LocOpe_DPrism`, `HLRBRep_HLRToShape`, `RWMesh_CoordinateSystem`,
-`BRepMesh_IncrementalMesh`, `STEPControl_Writer`, `Interface_Static`, `TopExp`,
-`BRep_Tool`, `GProp_GProps`, `BRepGProp`) ran in each.
-
-```
-                              cadquery-ocp-novtk 7.9.3.1.1   cadquery-ocp 7.9.3.1.1 (vtk)
-install (network)             9.9 s                          2.0 s (cached)
-site-packages                 223 MB (all of it OCP)         914 MB (OCP 232 MB + vtk)
-OCP.cpython-311-darwin.so     144 MB, 0 VTK dylibs linked    145 MB, libTKIVtk + 9 libvtk* (10 lines)
-wheel RECORD entries OCP/     397                            403  (both ship top-level OCP/)
-import OCP, COLD (run 1)      26.2 s                         38.7 s
-import OCP, warm (runs 2-4)   0.29 s                         0.33 s
-classes bound                 36/36                          36/36
-RSS after import              251 MB                         288 MB
-vtkmodules in sys.modules     False                          False
-```
-
-So the "140 s first import" was never the number: the cold cost here is 26 s
-(novtk) and it is paid ONCE per venv; warm is 0.3 s. That settles the process
-model exactly as designed: a warm-up job at boot (Law 17), `pk_warming` for a
-call that lands inside those 26 s, never a daemon and never a blocking import.
-
-Rows 7-17 from `rows.py` in `server/.venv` (OCP direct; contention from a
-concurrent seamkiln test run, so the wall times are upper bounds):
-
-```
-F1 plate 100x60x10 - d10         V 59214.602  faces 7  unique edges 15
-F2 bracket (fuse+unify, fillet r6, 4x d6.6)   V 44916.967  faces 13  edges 33  build 0.01 s  fp 8d2f6429c818a423
-F5 plate, ONE n-ary cut of 100 holes (no glue, RunParallel)  V 520481.421  faces 106  edges 312  0.103 s
-F6 block / pin / d11 interference  30429.204 / 3141.593 / 329.867 mm3
-HLR F1 front (0,-1,0)   V 4 + Rg1V 0 + OutV 0 | H 9 + Rg1H 0 + OutH 1 (0.4 ms)
-HLR F1 top   (0,0,-1)   V 5 + Rg1V 0 + OutV 0 | H 5 + Rg1H 0 + OutH 0 (0.1 ms)
-HLR F1 right (1,0,0)    V 4 + Rg1V 0 + OutV 0 | H 10 + Rg1H 0 + OutH 2 (0.3 ms)
-W3 plate 120x80x10, 12x d6, ALL edges filleted r1 (62 faces): front V 9 + Rg1V 17 + OutV 0 | H 91 + Rg1H 63 + OutH 36 (20.3 ms)
-5 x F5 stacked (530 faces): exact V 20 + Rg1V 0 + OutV 0 | H 2520 + Rg1H 0 + OutH 500 (90.7 ms)
-                                   poly  V 20 + Rg1V 0 + OutV 0 | H 26520 + Rg1H 0 + OutH 500 (105.4 ms)   <- polylines fragment 10x, and it is not faster
-STEP default after Init_s          AP214IS
-  schema set BEFORE first Transfer -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  schema set AFTER Transfer         -> FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'))   (the trap)
-  then Model(True) + re-Transfer    -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-F8 = 10 x F5 via STEPCAFControl_Writer with names: write 0.15 s, FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  read back via STEPCAFControl_Reader: 0.408 s, products 10, faces 1060, sum V 5204814.21, names ['plate_0', 'plate_1', 'plate_2']...
-GLB F1  LengthUnit + Zup input CS   extents_m [0.1, 0.01, 0.06]  dims_zup_m [0.1, 0.06, 0.01]   <- the correct file
-GLB F1  no LengthUnit                extents_m [100.0, 10.0, 60.0]                                      <- 10 mm = 10 m
-GLB F1  LengthUnit only              extents_m [0.1, 0.06, 0.01]                                      <- lying on its side
-History, fillet r2 on F1 dir=Z edges: 5 raw edges (4 corners + the cylinder SEAM); Generated per edge [1, 1, 1, 1, 0] (the seam generates nothing); Modified per face [1, 1, 1, 1, 1, 1, 0] (the cylinder wall untouched); faces after 11
-Per-op wall (ms): extrude 0.1  hole x1 1.6  hole x100 n-ary 119.7  fillet 8 2.1  fillet all-W3 7.4  fuse+unify 1.5  HLR F1 0.4  HLR 5xF5 90.7  STEP write F5 13.5  STEP read F5 43.8  GLB F1 1.5  mesh F5 0.05 mm 42.0
-```
-
-Three findings change wording in the script and nothing in the design:
-
-- **`VCompound` is not empty on either fillet fixture.** W3's observation was
-  on a 96-fillet plate; on F1 (15 edges filleted) and on the 12-hole plate
-  (all edges r1) the sharp compound still carries 8-9 edges while the tangent
-  lines (17) sit in `Rg1LineVCompound`. The design is unchanged (the union of
-  the three visible compounds); the trap test asserts `visible_union >
-  len(VCompound)`, not emptiness.
-- **`PolyAlgo` is not the fast path.** On 530 faces it took 105 ms against
-  91 ms exact and emitted 26,520 hidden polyline fragments against 2,520
-  edges. Exact HLR is the only path in v1.
-- **The 5th `dir=Z` edge is the cylinder seam and it must be filtered by the
-  selector**, exactly as the refuter said: OCCT accepts it and generates
-  nothing.
-
-Every per-op class is under 125 ms on these fixtures, so `MAX_BATCH_S` starts
-at 60 s with the `job: true` route reserved for imports of real assemblies and
-drawings of hundreds of faces; the numbers above are the basis and are pinned
-in `partkiln/tests/expected.py`.
-
-**Fixture provenance (row 18):** the Hugging Face card for `BenchCAD/BenchCAD`
-declares `license:cc-by-4.0` (last modified 2026-06-28; read through
-`tee_web_lookup`). `huggingface/cadgenbench-data` answers HTTP 401 to fetchers,
-so CADGenBench stays OUT until a card can be read; F1-F8 carry the suite.
-
-## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
-
-Owner: *"create an autodesk inventor alternative that runs headless with TEE
-and is optimized for ai engines"* — then *"use TEE"* and *"TEE/QMAX"*. The
-planning session ran seven read-only discovery agents (integration map, reuse
-map, conventions, licences, the Inventor parity target, OCCT facts, prior art),
-three design drafts judged on four axes, a synthesis, and three adversarial
-refuters against the installed OCP 7.9.3 and the tree; TEE's own
-`tee_web_lookup` (qmax) re-checked the licence facts on PyPI's JSON API and
-`kb_search` confirmed the knowledge base has no mechanical-design coverage
-(threads, GD&T, sheet metal, fasteners: nothing). `CLAUDE_A66_SCRIPT.md` is
-the plan of record; `docs/DECISIONS.md` carries the rulings.
-
-**Measured before design (this Mac, `server/.venv`, OCP direct, no cadquery):**
-
-```
-import OCP (warm)                     0.28-1.2 s
-box 100x60x10 - d10: cut + volume     17 ms   59,214.602 mm3 = the arithmetic
-fillet 8 edges r2                     13 ms   11 faces
-HLRBRep_Algo front view               6 ms
-STEP AP242 write / read               13 / 6 ms, volume identical after round trip
-BRepMesh 0.1 mm + binary STL          4 ms, trimesh: watertight
-GLB via XCAF (LengthUnit 0.001)       7 ms, extents [0.22, 0.22, 0.012] m (unrotated)
-100-hole plate, 100 sequential cuts   0.46 s, 106 faces, 312 unique edges
-same plate, ONE n-ary cut (no glue)   0.09 s, identical topology and volume
-  SetGlue(GlueShift) on the same cut  0.014 s -> the UNCUT plate, IsDone() True
-B-rep fingerprint, two processes      identical (c94b89930af47b02)
-BRepTools.Write_s v3 checkpoint       81 KB, 1.4-3 ms write, 1 ms read
-freecadcmd 1.1.3 modules import       0.38 s, 67 MB RSS; sketch+TechDraw probe:
-                                      "Application unexpectedly terminated"
-```
-
-**Owner decisions taken in the session:** shippable MIT posture like seamkiln;
-headless-first with the GUI as a later phase; name `partkiln`, prefix `pk_`;
-v1 = parts + assemblies + drawings + exports, sheet metal (flat-first) last.
-
-**Corrections the refuters forced into the plan** (each is now a pinned
-test): the STEP schema must be set BEFORE the writer's first `Transfer`
-(`Model(True)` only resets a reused writer; `STEPCAFControl_Writer` has no
-`Model`); HLR counts are per compound under a named projector (F1 front:
-VCompound 4 | HCompound 9 + OutLineH 1) and `VCompound` is empty only on the
-12-hole/96-fillet plate, not on F1; glue modes are for touching copies, never
-for cuts; sub-shape counts use `TopExp.MapShapes_s` (the explorer double-
-counts shared edges: 624 vs 312); `BRepTools_History` has `IsRemoved`, not
-`IsDeleted`, and only the boolean builders expose `History()` — every other
-feature builds its history by hand per sub-shape; `LocOpe_DPrism` tapers a new
-body, `BRepFeat_MakeDPrism` only joins/cuts on an existing one; `dir=Z` on F1
-matches five edges (the cylinder seam included) and OCCT silently ignores the
-seam in a fillet; there is no Python-side cancellation of a running OCCT op;
-the GLB writer needs the Z-up input coordinate system as well as the length
-unit; the SPDX gate must read classifiers and free text because scipy, ezdxf
-and trimesh carry no `License-Expression`; `ProjectConfig` drops unknown
-`[partkiln]` tables silently; the extension runtime is Python 3.13.9; server
-tests die at 60 s.
-
-**Tree at the start:** a parallel Claude session (started 15:27 on this
-machine) is editing `seamkiln/` — its files changed while this session ran
-(`interact.py`, `garment.py`, four test files, the lane doc) and two of its
-physics tests failed on a rerun (`test_dressing_closes_the_armholes_over_the_
-deltoid`, `test_a_garment_is_thrown_by_a_gait_and_stays_on`; a third,
-`test_easing_a_stitch_moves_the_seam_it_names`, fails only under
-`NUMBA_NUM_THREADS=4` — a reduction-order sensitivity worth knowing). That
-work is not A66's to commit or judge: A66 stages only its own paths through a
-temporary index, never `git add -A`, and appends to PROGRESS rather than
-rewriting it.
-
-### A66 P0a — the measurement table (2026-09-02, this Mac; scripts in the session scratchpad `p0a/`)
-
-Two FRESH `uv venv --python 3.11` environments, one per OCP wheel, each installed
-once and imported four times (`PYTHONDONTWRITEBYTECODE=1`; the first import of a
-fresh venv is the cold code-signature case). The 36-class binding one-liner
-(the plan's 26 plus `LocOpe_DPrism`, `HLRBRep_HLRToShape`, `RWMesh_CoordinateSystem`,
-`BRepMesh_IncrementalMesh`, `STEPControl_Writer`, `Interface_Static`, `TopExp`,
-`BRep_Tool`, `GProp_GProps`, `BRepGProp`) ran in each.
-
-```
-                              cadquery-ocp-novtk 7.9.3.1.1   cadquery-ocp 7.9.3.1.1 (vtk)
-install (network)             9.9 s                          2.0 s (cached)
-site-packages                 223 MB (all of it OCP)         914 MB (OCP 232 MB + vtk)
-OCP.cpython-311-darwin.so     144 MB, 0 VTK dylibs linked    145 MB, libTKIVtk + 9 libvtk* (10 lines)
-wheel RECORD entries OCP/     397                            403  (both ship top-level OCP/)
-import OCP, COLD (run 1)      26.2 s                         38.7 s
-import OCP, warm (runs 2-4)   0.29 s                         0.33 s
-classes bound                 36/36                          36/36
-RSS after import              251 MB                         288 MB
-vtkmodules in sys.modules     False                          False
-```
-
-So the "140 s first import" was never the number: the cold cost here is 26 s
-(novtk) and it is paid ONCE per venv; warm is 0.3 s. That settles the process
-model exactly as designed: a warm-up job at boot (Law 17), `pk_warming` for a
-call that lands inside those 26 s, never a daemon and never a blocking import.
-
-Rows 7-17 from `rows.py` in `server/.venv` (OCP direct; contention from a
-concurrent seamkiln test run, so the wall times are upper bounds):
-
-```
-F1 plate 100x60x10 - d10         V 59214.602  faces 7  unique edges 15
-F2 bracket (fuse+unify, fillet r6, 4x d6.6)   V 44916.967  faces 13  edges 33  build 0.01 s  fp 8d2f6429c818a423
-F5 plate, ONE n-ary cut of 100 holes (no glue, RunParallel)  V 520481.421  faces 106  edges 312  0.103 s
-F6 block / pin / d11 interference  30429.204 / 3141.593 / 329.867 mm3
-HLR F1 front (0,-1,0)   V 4 + Rg1V 0 + OutV 0 | H 9 + Rg1H 0 + OutH 1 (0.4 ms)
-HLR F1 top   (0,0,-1)   V 5 + Rg1V 0 + OutV 0 | H 5 + Rg1H 0 + OutH 0 (0.1 ms)
-HLR F1 right (1,0,0)    V 4 + Rg1V 0 + OutV 0 | H 10 + Rg1H 0 + OutH 2 (0.3 ms)
-W3 plate 120x80x10, 12x d6, ALL edges filleted r1 (62 faces): front V 9 + Rg1V 17 + OutV 0 | H 91 + Rg1H 63 + OutH 36 (20.3 ms)
-5 x F5 stacked (530 faces): exact V 20 + Rg1V 0 + OutV 0 | H 2520 + Rg1H 0 + OutH 500 (90.7 ms)
-                                   poly  V 20 + Rg1V 0 + OutV 0 | H 26520 + Rg1H 0 + OutH 500 (105.4 ms)   <- polylines fragment 10x, and it is not faster
-STEP default after Init_s          AP214IS
-  schema set BEFORE first Transfer -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  schema set AFTER Transfer         -> FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'))   (the trap)
-  then Model(True) + re-Transfer    -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-F8 = 10 x F5 via STEPCAFControl_Writer with names: write 0.15 s, FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  read back via STEPCAFControl_Reader: 0.408 s, products 10, faces 1060, sum V 5204814.21, names ['plate_0', 'plate_1', 'plate_2']...
-GLB F1  LengthUnit + Zup input CS   extents_m [0.1, 0.01, 0.06]  dims_zup_m [0.1, 0.06, 0.01]   <- the correct file
-GLB F1  no LengthUnit                extents_m [100.0, 10.0, 60.0]                                      <- 10 mm = 10 m
-GLB F1  LengthUnit only              extents_m [0.1, 0.06, 0.01]                                      <- lying on its side
-History, fillet r2 on F1 dir=Z edges: 5 raw edges (4 corners + the cylinder SEAM); Generated per edge [1, 1, 1, 1, 0] (the seam generates nothing); Modified per face [1, 1, 1, 1, 1, 1, 0] (the cylinder wall untouched); faces after 11
-Per-op wall (ms): extrude 0.1  hole x1 1.6  hole x100 n-ary 119.7  fillet 8 2.1  fillet all-W3 7.4  fuse+unify 1.5  HLR F1 0.4  HLR 5xF5 90.7  STEP write F5 13.5  STEP read F5 43.8  GLB F1 1.5  mesh F5 0.05 mm 42.0
-```
-
-Three findings change wording in the script and nothing in the design:
-
-- **`VCompound` is not empty on either fillet fixture.** W3's observation was
-  on a 96-fillet plate; on F1 (15 edges filleted) and on the 12-hole plate
-  (all edges r1) the sharp compound still carries 8-9 edges while the tangent
-  lines (17) sit in `Rg1LineVCompound`. The design is unchanged (the union of
-  the three visible compounds); the trap test asserts `visible_union >
-  len(VCompound)`, not emptiness.
-- **`PolyAlgo` is not the fast path.** On 530 faces it took 105 ms against
-  91 ms exact and emitted 26,520 hidden polyline fragments against 2,520
-  edges. Exact HLR is the only path in v1.
-- **The 5th `dir=Z` edge is the cylinder seam and it must be filtered by the
-  selector**, exactly as the refuter said: OCCT accepts it and generates
-  nothing.
-
-Every per-op class is under 125 ms on these fixtures, so `MAX_BATCH_S` starts
-at 60 s with the `job: true` route reserved for imports of real assemblies and
-drawings of hundreds of faces; the numbers above are the basis and are pinned
-in `partkiln/tests/expected.py`.
-
-**Fixture provenance (row 18):** the Hugging Face card for `BenchCAD/BenchCAD`
-declares `license:cc-by-4.0` (last modified 2026-06-28; read through
-`tee_web_lookup`). `huggingface/cadgenbench-data` answers HTTP 401 to fetchers,
-so CADGenBench stays OUT until a card can be read; F1-F8 carry the suite.
-
-### A66 P0b + P1 — the licence gate, the standards data, and the pure-Python core (2026-09-02)
-
-Built by three parallel agents and one verifier; two of the three builders
-were killed by the API session limit mid-write and the verifier finished
-their work (the gate itself, `test_licences.py`, was written by the verifier
-against the P0b spec, and the data agent's loaders were tested by it).
-
-**P0b — the gate is a test, and it has been seen to fail.**
-`partkiln/tests/test_licences.py` (682 lines, 28 tests): `BANNED` with ten
-names and their replacements (py-slvs, python-solvespace, cadquery, casadi,
-nlopt, pythonocc-core, bd-materials, gmsh, calculix, build123d in-process);
-whole-token non-commercial marker regexes (a naive substring scan tripped on
-scipy's bundled LGPL text, which contains "noncommercially", and on the ISO
-4014 title, which contains "bolts"); an SPDX allowlist with NO MPL over the
-transitive closure of core + `[brep]`, resolved by `License-Expression`, then
-the Trove classifier, then a free-text alias table, failing only when all
-three are empty; `KNOWN_PAYLOADS` naming BOTH OCP wheels as
-`LGPL-2.1-only WITH OCCT-exception-1.0` and the live carrier asserted
-(`packages_distributions()["OCP"]` -> `cadquery-ocp` in `server/.venv`); a
-declared-but-uninstalled extra dependency skips naming the extra
-(`cadquery-ocp-novtk` here), a missing core dependency fails; fpdf2 confined
-to `[pdf]`; the NOTICE asserted unconditionally; deliberate failures over
-py-slvs / cadquery / casadi (direct and transitive), a licence-less fake, an
-`LGPL-3.0-only` fake in core, free-text LGPLv3; a classifier-only BSD fake
-PASSES; subprocess import hygiene (`import partkiln` loads none of tee,
-cadquery, casadi, vtkmodules, py_slvs, fpdf, OCP, PySide6); a static scan
-(no eager OCP outside `brep/`, no tee/cadquery/casadi/py_slvs anywhere);
-data provenance over every file in `data/` including the material cards'
-per-value sources; `BANNED_DATASETS` scanned over `fixtures/`; the Autodesk
-marks as whole tokens over shipped names only. Measured core closure:
-numpy `BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0`, scipy BSD-3
-(classifier only — the expression field is empty), ezdxf/trimesh/pyparsing
-MIT, typing-extensions PSF-2.0: all allowlisted.
-
-**P0b data — every table carries its source.** `data/manifest.json` gates
-the loader (`load_table` refuses a file without source/licence/retrieved):
-clearance holes 90 rows, tap holes 99, drill sizes 106, ISO 4762 57,
-ISO 4014/4017 29, ISO 4032 31, ISO 7089 33 (all from bd_warehouse,
-Apache-2.0, retrieved 2026-09-02), ISO 261 pitches 532 rows derived from
-threadlib's table (BSD-3). `standards.py`: M6 clearance 6.6 / 6.4 / 7.0
-(normal / close / loose, ISO 273), tap drill M6 -> M6x1 5.0, ISO 4762 M6
-head 10.22; `materials.py`: cards with a per-value honesty tier;
-`mass_g("steel_s275", 91158.6)` = 715.595 (EN 1993-1-1 7850 kg/m³).
-
-**P1 — the core, with no OCCT.** `units.py` (mm/deg boundary, fractions,
-kind and unknown-suffix refusals), `params.py` (an AST-whitelisted evaluator
-— never `eval`, never sympy — with unit-typed literals, kinds, Kahn ordering,
-cycle refusal with rollback), `document.py` (Command/Document; `apply` is
-the only mutator and restores its snapshot on any refusal, Law 16;
-`script`/`replay`/`overrides`/`fingerprint`/`regen`; a verb registry P2+
-extends by importing), `sketch/` (tagged entities, constraints by tag,
-driving and driven dims, presets, closed-loop area with exact circular
-segments, a scipy `least_squares` solver with analytic Jacobians).
-
-```
-DOF, raw n_params - rank(J):  unanchored 100x60 rectangle 2 | corner fixed 0 | minus one dim 1
-conflict: a 61 mm dim against 60 -> status conflict, BOTH dims named
-redundant: a duplicated horizontal named; `equal` on an H/H/V/V rectangle is
-           rank-redundant (a first-order fact, as in SolveSpace), so the rect
-           preset does not emit it and the test pins it as redundant
-40 entities / 60 constraints (+10 anchors) from a wrong guess:  0.58-0.66 ms warm (budget 50)
-60-row conflict search naming the bad dim and its co-conspirators:  10-16 ms (budget 200)
-replay: 20 seeded random command sequences -> identical fingerprint; overrides -> a different one
-fingerprint identical in two fresh processes (aae840ed88100524)
-```
-
-One deviation recorded: `create sketch` and `set` REFUSE a conflicting
-sketch (`pk_sketch_overconstrained`, naming the rows) rather than storing a
-broken one; `under` and `over` are stored and reported.
-
-**Suites:** partkiln P0b/P1 files 152 passed / 1 skipped (the `[brep]` extra
-declares novtk, absent in the dev venv — skipped by name); with the in-flight
-P2 exchange tests 172 / 2. ruff clean on every P0b/P1 file.
-
-Open, carried to P2/P4: `Document.regen` does not reset the `assumed` echo
-set (state and fingerprint unaffected); `_snapshot` deep-copies the model per
-`apply` (P2 adds the B-rep cache); `materials.json` is manifest-tagged
-`licence: own`; the marks test has no VirtualTool surface to scan until P4.
-
-## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
-
-Owner: *"create an autodesk inventor alternative that runs headless with TEE
-and is optimized for ai engines"* — then *"use TEE"* and *"TEE/QMAX"*. The
-planning session ran seven read-only discovery agents (integration map, reuse
-map, conventions, licences, the Inventor parity target, OCCT facts, prior art),
-three design drafts judged on four axes, a synthesis, and three adversarial
-refuters against the installed OCP 7.9.3 and the tree; TEE's own
-`tee_web_lookup` (qmax) re-checked the licence facts on PyPI's JSON API and
-`kb_search` confirmed the knowledge base has no mechanical-design coverage
-(threads, GD&T, sheet metal, fasteners: nothing). `CLAUDE_A66_SCRIPT.md` is
-the plan of record; `docs/DECISIONS.md` carries the rulings.
-
-**Measured before design (this Mac, `server/.venv`, OCP direct, no cadquery):**
-
-```
-import OCP (warm)                     0.28-1.2 s
-box 100x60x10 - d10: cut + volume     17 ms   59,214.602 mm3 = the arithmetic
-fillet 8 edges r2                     13 ms   11 faces
-HLRBRep_Algo front view               6 ms
-STEP AP242 write / read               13 / 6 ms, volume identical after round trip
-BRepMesh 0.1 mm + binary STL          4 ms, trimesh: watertight
-GLB via XCAF (LengthUnit 0.001)       7 ms, extents [0.22, 0.22, 0.012] m (unrotated)
-100-hole plate, 100 sequential cuts   0.46 s, 106 faces, 312 unique edges
-same plate, ONE n-ary cut (no glue)   0.09 s, identical topology and volume
-  SetGlue(GlueShift) on the same cut  0.014 s -> the UNCUT plate, IsDone() True
-B-rep fingerprint, two processes      identical (c94b89930af47b02)
-BRepTools.Write_s v3 checkpoint       81 KB, 1.4-3 ms write, 1 ms read
-freecadcmd 1.1.3 modules import       0.38 s, 67 MB RSS; sketch+TechDraw probe:
-                                      "Application unexpectedly terminated"
-```
-
-**Owner decisions taken in the session:** shippable MIT posture like seamkiln;
-headless-first with the GUI as a later phase; name `partkiln`, prefix `pk_`;
-v1 = parts + assemblies + drawings + exports, sheet metal (flat-first) last.
-
-**Corrections the refuters forced into the plan** (each is now a pinned
-test): the STEP schema must be set BEFORE the writer's first `Transfer`
-(`Model(True)` only resets a reused writer; `STEPCAFControl_Writer` has no
-`Model`); HLR counts are per compound under a named projector (F1 front:
-VCompound 4 | HCompound 9 + OutLineH 1) and `VCompound` is empty only on the
-12-hole/96-fillet plate, not on F1; glue modes are for touching copies, never
-for cuts; sub-shape counts use `TopExp.MapShapes_s` (the explorer double-
-counts shared edges: 624 vs 312); `BRepTools_History` has `IsRemoved`, not
-`IsDeleted`, and only the boolean builders expose `History()` — every other
-feature builds its history by hand per sub-shape; `LocOpe_DPrism` tapers a new
-body, `BRepFeat_MakeDPrism` only joins/cuts on an existing one; `dir=Z` on F1
-matches five edges (the cylinder seam included) and OCCT silently ignores the
-seam in a fillet; there is no Python-side cancellation of a running OCCT op;
-the GLB writer needs the Z-up input coordinate system as well as the length
-unit; the SPDX gate must read classifiers and free text because scipy, ezdxf
-and trimesh carry no `License-Expression`; `ProjectConfig` drops unknown
-`[partkiln]` tables silently; the extension runtime is Python 3.13.9; server
-tests die at 60 s.
-
-**Tree at the start:** a parallel Claude session (started 15:27 on this
-machine) is editing `seamkiln/` — its files changed while this session ran
-(`interact.py`, `garment.py`, four test files, the lane doc) and two of its
-physics tests failed on a rerun (`test_dressing_closes_the_armholes_over_the_
-deltoid`, `test_a_garment_is_thrown_by_a_gait_and_stays_on`; a third,
-`test_easing_a_stitch_moves_the_seam_it_names`, fails only under
-`NUMBA_NUM_THREADS=4` — a reduction-order sensitivity worth knowing). That
-work is not A66's to commit or judge: A66 stages only its own paths through a
-temporary index, never `git add -A`, and appends to PROGRESS rather than
-rewriting it.
-
-### A66 P0a — the measurement table (2026-09-02, this Mac; scripts in the session scratchpad `p0a/`)
-
-Two FRESH `uv venv --python 3.11` environments, one per OCP wheel, each installed
-once and imported four times (`PYTHONDONTWRITEBYTECODE=1`; the first import of a
-fresh venv is the cold code-signature case). The 36-class binding one-liner
-(the plan's 26 plus `LocOpe_DPrism`, `HLRBRep_HLRToShape`, `RWMesh_CoordinateSystem`,
-`BRepMesh_IncrementalMesh`, `STEPControl_Writer`, `Interface_Static`, `TopExp`,
-`BRep_Tool`, `GProp_GProps`, `BRepGProp`) ran in each.
-
-```
-                              cadquery-ocp-novtk 7.9.3.1.1   cadquery-ocp 7.9.3.1.1 (vtk)
-install (network)             9.9 s                          2.0 s (cached)
-site-packages                 223 MB (all of it OCP)         914 MB (OCP 232 MB + vtk)
-OCP.cpython-311-darwin.so     144 MB, 0 VTK dylibs linked    145 MB, libTKIVtk + 9 libvtk* (10 lines)
-wheel RECORD entries OCP/     397                            403  (both ship top-level OCP/)
-import OCP, COLD (run 1)      26.2 s                         38.7 s
-import OCP, warm (runs 2-4)   0.29 s                         0.33 s
-classes bound                 36/36                          36/36
-RSS after import              251 MB                         288 MB
-vtkmodules in sys.modules     False                          False
-```
-
-So the "140 s first import" was never the number: the cold cost here is 26 s
-(novtk) and it is paid ONCE per venv; warm is 0.3 s. That settles the process
-model exactly as designed: a warm-up job at boot (Law 17), `pk_warming` for a
-call that lands inside those 26 s, never a daemon and never a blocking import.
-
-Rows 7-17 from `rows.py` in `server/.venv` (OCP direct; contention from a
-concurrent seamkiln test run, so the wall times are upper bounds):
-
-```
-F1 plate 100x60x10 - d10         V 59214.602  faces 7  unique edges 15
-F2 bracket (fuse+unify, fillet r6, 4x d6.6)   V 44916.967  faces 13  edges 33  build 0.01 s  fp 8d2f6429c818a423
-F5 plate, ONE n-ary cut of 100 holes (no glue, RunParallel)  V 520481.421  faces 106  edges 312  0.103 s
-F6 block / pin / d11 interference  30429.204 / 3141.593 / 329.867 mm3
-HLR F1 front (0,-1,0)   V 4 + Rg1V 0 + OutV 0 | H 9 + Rg1H 0 + OutH 1 (0.4 ms)
-HLR F1 top   (0,0,-1)   V 5 + Rg1V 0 + OutV 0 | H 5 + Rg1H 0 + OutH 0 (0.1 ms)
-HLR F1 right (1,0,0)    V 4 + Rg1V 0 + OutV 0 | H 10 + Rg1H 0 + OutH 2 (0.3 ms)
-W3 plate 120x80x10, 12x d6, ALL edges filleted r1 (62 faces): front V 9 + Rg1V 17 + OutV 0 | H 91 + Rg1H 63 + OutH 36 (20.3 ms)
-5 x F5 stacked (530 faces): exact V 20 + Rg1V 0 + OutV 0 | H 2520 + Rg1H 0 + OutH 500 (90.7 ms)
-                                   poly  V 20 + Rg1V 0 + OutV 0 | H 26520 + Rg1H 0 + OutH 500 (105.4 ms)   <- polylines fragment 10x, and it is not faster
-STEP default after Init_s          AP214IS
-  schema set BEFORE first Transfer -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  schema set AFTER Transfer         -> FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'))   (the trap)
-  then Model(True) + re-Transfer    -> FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-F8 = 10 x F5 via STEPCAFControl_Writer with names: write 0.15 s, FILE_SCHEMA(( 'AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_
-  read back via STEPCAFControl_Reader: 0.408 s, products 10, faces 1060, sum V 5204814.21, names ['plate_0', 'plate_1', 'plate_2']...
-GLB F1  LengthUnit + Zup input CS   extents_m [0.1, 0.01, 0.06]  dims_zup_m [0.1, 0.06, 0.01]   <- the correct file
-GLB F1  no LengthUnit                extents_m [100.0, 10.0, 60.0]                                      <- 10 mm = 10 m
-GLB F1  LengthUnit only              extents_m [0.1, 0.06, 0.01]                                      <- lying on its side
-History, fillet r2 on F1 dir=Z edges: 5 raw edges (4 corners + the cylinder SEAM); Generated per edge [1, 1, 1, 1, 0] (the seam generates nothing); Modified per face [1, 1, 1, 1, 1, 1, 0] (the cylinder wall untouched); faces after 11
-Per-op wall (ms): extrude 0.1  hole x1 1.6  hole x100 n-ary 119.7  fillet 8 2.1  fillet all-W3 7.4  fuse+unify 1.5  HLR F1 0.4  HLR 5xF5 90.7  STEP write F5 13.5  STEP read F5 43.8  GLB F1 1.5  mesh F5 0.05 mm 42.0
-```
-
-Three findings change wording in the script and nothing in the design:
-
-- **`VCompound` is not empty on either fillet fixture.** W3's observation was
-  on a 96-fillet plate; on F1 (15 edges filleted) and on the 12-hole plate
-  (all edges r1) the sharp compound still carries 8-9 edges while the tangent
-  lines (17) sit in `Rg1LineVCompound`. The design is unchanged (the union of
-  the three visible compounds); the trap test asserts `visible_union >
-  len(VCompound)`, not emptiness.
-- **`PolyAlgo` is not the fast path.** On 530 faces it took 105 ms against
-  91 ms exact and emitted 26,520 hidden polyline fragments against 2,520
-  edges. Exact HLR is the only path in v1.
-- **The 5th `dir=Z` edge is the cylinder seam and it must be filtered by the
-  selector**, exactly as the refuter said: OCCT accepts it and generates
-  nothing.
-
-Every per-op class is under 125 ms on these fixtures, so `MAX_BATCH_S` starts
-at 60 s with the `job: true` route reserved for imports of real assemblies and
-drawings of hundreds of faces; the numbers above are the basis and are pinned
-in `partkiln/tests/expected.py`.
-
-**Fixture provenance (row 18):** the Hugging Face card for `BenchCAD/BenchCAD`
-declares `license:cc-by-4.0` (last modified 2026-06-28; read through
-`tee_web_lookup`). `huggingface/cadgenbench-data` answers HTTP 401 to fetchers,
-so CADGenBench stays OUT until a card can be read; F1-F8 carry the suite.
-
-### A66 P0b + P1 — the licence gate, the standards data, and the pure-Python core (2026-09-02)
-
-Built by three parallel agents and one verifier; two of the three builders
-were killed by the API session limit mid-write and the verifier finished
-their work (the gate itself, `test_licences.py`, was written by the verifier
-against the P0b spec, and the data agent's loaders were tested by it).
-
-**P0b — the gate is a test, and it has been seen to fail.**
-`partkiln/tests/test_licences.py` (682 lines, 28 tests): `BANNED` with ten
-names and their replacements (py-slvs, python-solvespace, cadquery, casadi,
-nlopt, pythonocc-core, bd-materials, gmsh, calculix, build123d in-process);
-whole-token non-commercial marker regexes (a naive substring scan tripped on
-scipy's bundled LGPL text, which contains "noncommercially", and on the ISO
-4014 title, which contains "bolts"); an SPDX allowlist with NO MPL over the
-transitive closure of core + `[brep]`, resolved by `License-Expression`, then
-the Trove classifier, then a free-text alias table, failing only when all
-three are empty; `KNOWN_PAYLOADS` naming BOTH OCP wheels as
-`LGPL-2.1-only WITH OCCT-exception-1.0` and the live carrier asserted
-(`packages_distributions()["OCP"]` -> `cadquery-ocp` in `server/.venv`); a
-declared-but-uninstalled extra dependency skips naming the extra
-(`cadquery-ocp-novtk` here), a missing core dependency fails; fpdf2 confined
-to `[pdf]`; the NOTICE asserted unconditionally; deliberate failures over
-py-slvs / cadquery / casadi (direct and transitive), a licence-less fake, an
-`LGPL-3.0-only` fake in core, free-text LGPLv3; a classifier-only BSD fake
-PASSES; subprocess import hygiene (`import partkiln` loads none of tee,
-cadquery, casadi, vtkmodules, py_slvs, fpdf, OCP, PySide6); a static scan
-(no eager OCP outside `brep/`, no tee/cadquery/casadi/py_slvs anywhere);
-data provenance over every file in `data/` including the material cards'
-per-value sources; `BANNED_DATASETS` scanned over `fixtures/`; the Autodesk
-marks as whole tokens over shipped names only. Measured core closure:
-numpy `BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0`, scipy BSD-3
-(classifier only — the expression field is empty), ezdxf/trimesh/pyparsing
-MIT, typing-extensions PSF-2.0: all allowlisted.
-
-**P0b data — every table carries its source.** `data/manifest.json` gates
-the loader (`load_table` refuses a file without source/licence/retrieved):
-clearance holes 90 rows, tap holes 99, drill sizes 106, ISO 4762 57,
-ISO 4014/4017 29, ISO 4032 31, ISO 7089 33 (all from bd_warehouse,
-Apache-2.0, retrieved 2026-09-02), ISO 261 pitches 532 rows derived from
-threadlib's table (BSD-3). `standards.py`: M6 clearance 6.6 / 6.4 / 7.0
-(normal / close / loose, ISO 273), tap drill M6 -> M6x1 5.0, ISO 4762 M6
-head 10.22; `materials.py`: cards with a per-value honesty tier;
-`mass_g("steel_s275", 91158.6)` = 715.595 (EN 1993-1-1 7850 kg/m³).
-
-**P1 — the core, with no OCCT.** `units.py` (mm/deg boundary, fractions,
-kind and unknown-suffix refusals), `params.py` (an AST-whitelisted evaluator
-— never `eval`, never sympy — with unit-typed literals, kinds, Kahn ordering,
-cycle refusal with rollback), `document.py` (Command/Document; `apply` is
-the only mutator and restores its snapshot on any refusal, Law 16;
-`script`/`replay`/`overrides`/`fingerprint`/`regen`; a verb registry P2+
-extends by importing), `sketch/` (tagged entities, constraints by tag,
-driving and driven dims, presets, closed-loop area with exact circular
-segments, a scipy `least_squares` solver with analytic Jacobians).
-
-```
-DOF, raw n_params - rank(J):  unanchored 100x60 rectangle 2 | corner fixed 0 | minus one dim 1
-conflict: a 61 mm dim against 60 -> status conflict, BOTH dims named
-redundant: a duplicated horizontal named; `equal` on an H/H/V/V rectangle is
-           rank-redundant (a first-order fact, as in SolveSpace), so the rect
-           preset does not emit it and the test pins it as redundant
-40 entities / 60 constraints (+10 anchors) from a wrong guess:  0.58-0.66 ms warm (budget 50)
-60-row conflict search naming the bad dim and its co-conspirators:  10-16 ms (budget 200)
-replay: 20 seeded random command sequences -> identical fingerprint; overrides -> a different one
-fingerprint identical in two fresh processes (aae840ed88100524)
-```
-
-One deviation recorded: `create sketch` and `set` REFUSE a conflicting
-sketch (`pk_sketch_overconstrained`, naming the rows) rather than storing a
-broken one; `under` and `over` are stored and reported.
-
-**Suites:** partkiln P0b/P1 files 152 passed / 1 skipped (the `[brep]` extra
-declares novtk, absent in the dev venv — skipped by name); with the in-flight
-P2 exchange tests 172 / 2. ruff clean on every P0b/P1 file.
-
-Open, carried to P2/P4: `Document.regen` does not reset the `assumed` echo
-set (state and fingerprint unaffected); `_snapshot` deep-copies the model per
-`apply` (P2 adds the B-rep cache); `materials.json` is manifest-tagged
-`licence: own`; the marks test has no VirtualTool surface to scan until P4.
-
-### A66 P2a/P2b — the OCCT layer and the exchange layer (2026-09-02)
-
-Two agents in parallel (a first attempt died with the API session limit and
-was restarted), one verifier. `partkiln/brep/` is the ONLY place OCP is
-imported, lazily: `require_ocp()` refuses with the sidecar install line when
-the wheel is absent, and `import partkiln` / `import partkiln.brep` /
-`import partkiln.exchange` load neither OCP nor trimesh (asserted in a
-subprocess).
-
-**brep/** — `shapes.py` (primitives; prism with `LocOpe_DPrism` taper;
-revolve, sweep, loft; ONE n-ary cut with no glue, fuse with glue only behind
-`touching=True`, common, unify; fillet/chamfer with the per-edge `Generated`
-check so the cylinder seam lands in `ignored_edges` instead of being
-silently accepted; shell, draft refusing non-planar/cylindrical/conical faces
-by type; exact GProp measures; `AddOptimal` bbox; UNIQUE counts),
-`query.py` (FaceInfo/EdgeInfo in a deterministic order that never leaves the
-kernel; seam detection; convexity from the pcurve normals; outer/inner
-loops), `history.py` (hand-built `BRepTools_History` per feature — only the
-booleans and unify expose `History()`; queried with `IsRemoved`),
-`fingerprint.py`, `mesh.py` (absolute deflection), `fixtures.py` (F1, F2, F5,
-F6, the 96-fillet plate).
-
-```
-F1  59214.602 mm3  7 faces  15 edges  area 15357.080  COM (50,30,5)
-    fillet r2 on the five dir=Z edges -> 59180.266, 11 faces, delta -34.336, ignored_edges = (seam,)
-    fillet r12 on the top-front edge  -> KernelError "NbFaultyContours=1 of 1"
-    chamfer d2 -> -200.000; (2,4) -> -400.000
-F2  44916.967  13 faces  33 edges   (fuse 11 -> unify 8 -> +1 fillet -> +4 holes)
-F5  520481.421  106 faces  312 edges  in 0.099-0.120 s (one n-ary cut)
-F6  30429.204 / 3141.593; d11 pin interference 329.867; cubes common 400.000 @ (19.5,10,10)
-taper +3 deg: along_wall 59085.191 / 6 faces; vertical (the default) 59165.138 with z max 10.000; -3 deg 60756.864 / 10 faces
-sweep 1413.717  loft 28000.0  revolve 6283.185  shell(in, 2 mm) 8672.0 / 11 faces  draft 5 deg = the frustum
-history: Generated per dir=Z edge [1,1,1,1,0]; Modified per face 6x1 + cylinder wall 0
-fingerprint(F5) identical in a spawned subprocess; mesh_hash(F5 @0.05) identical parallel/serial (12,012 triangles)
-warm: brep import 0.36 s; F1 4 ms; F2 15 ms; W3 96 fillets 29 ms; faces(F5) 6 ms; edges(F5) 17 ms; fingerprint(F5) 9 ms
-```
-
-Five facts learned beyond the script: `list(TopTools_ListOfShape)` costs
-2 ms per call even when empty (pybind fallback iteration) — `edges(F5)` was
-710 ms until `as_list()` walked the list with `First/RemoveFirst` (17 ms);
-`LocOpe_DPrism` extrudes along the SURFACE normal and its two-height
-constructor flips the taper sign; `BRepFilletAPI_MakeChamfer` has no
-`NbFaultyContours` (failure is `IsDone() == False`); a filleted edge is
-`IsDeleted` AND the parent of its fillet face, so a history reads `Generated`
-before `Remove`; convexity from each face's pcurve at mid-parameter gives
-F5 212 convex + 100 tangent edges (the 100 seams).
-
-**exchange/** — `step.py` (statics set BEFORE a fresh writer's first
-Transfer, FILE_SCHEMA asserted after writing, the ordering negative pinned:
-set-after-Transfer writes AUTOMOTIVE_DESIGN; XCAF names; a header scan for
-the declared unit because `StepData_StepModel.LocalLengthUnit()` answers 1.0
-for inch and mm files alike — measured), `iges.py` (sewn to a solid on read;
-under the one kernel lock), `brep_io.py` (VERSION_3), `stl.py`, `obj.py`
-(trimesh; RWObj unbound), `threemf.py` (core-spec 3MF with stdlib zip +
-xml and fixed 1980 entry dates so bytes repeat — trimesh's writer needs lxml,
-absent here, and stamps the clock), `gltf.py` (`SetLengthUnit_s(doc, 0.001)`
-+ the Z-up input coordinate system + `SetMergeFaces`; both negatives kept as
-options and tested).
-
-```
-STEP F1 AP242 write 0.9 ms / read 2.2 ms (19 KB); F5 15 / 42 ms (394 KB); F8 168 / 424 ms (4.14 MB)
-F8 read back: 10 products, 1,060 faces, sum 5,204,814.21 mm3, names preserved
-IGES F1 0.5 ms write, 2.0 ms read+sew (1e-6 relative)
-BREP F5 1.5 ms write (80,757 B) / 1.0 ms read, 2.2e-15 relative (one ulp of the 17-digit text)
-STL F1 2.0 ms (6,084 B, bytes identical on repeat, watertight); F5 51 ms (541 KB)
-OBJ F1 1.7 ms; 3MF F1 2.0 ms (2.0 KB), F5 95 ms (88 KB); GLB F1 1.5 ms (4,700 B), F5 41 ms (321 KB)
-GLB F1: metres + Y-up -> extents [0.1, 0.01, 0.06], dims_zup_m [0.1, 0.06, 0.01], ONE mesh
-        no LengthUnit -> [100, 10, 60]; no Z-up input CS -> [0.1, 0.06, 0.01]
-```
-
-STEP bytes are not repeatable (OCCT stamps FILE_NAME with the clock), so the
-tests hash the read-back volume/faces/names, never the file.
-
-The verifier fixed one Law-20 slip (`exchange.triangles()` gathered faces by
-explorer), added the missing `fix` to nine refusals, and left two items for
-P2c: `exchange/__init__.py` duplicates `brep/mesh.py`'s tessellation helpers
-(make exchange delegate), and the script's taper number is the `along_wall`
-semantic while the default is `vertical` (both pinned; the script is amended
-to say so).
-
-**Suites:** brep + exchange 60 passed in 4.2 s; whole package ruff clean
-(43 files formatted).
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
@@ -11219,3 +10399,116 @@ timeout_s=1 on a sleeping method  the process is gone in < 3 s, pk_worker_timeou
 Suites: `partkiln/tests/test_worker.py` 19 passed; `server/tests/test_partkiln_wire.py`
 8 passed; the licence gate's eager-OCP scan and the hygiene subprocess accept
 both modules; ruff clean.
+
+### A66 P2c, P2d and the P3 library — features, names, checks, assembly (2026-09-02)
+
+Three agents in parallel, one verifier; the partkiln suite went from 172 to
+**386 passed / 2 skipped** and `ruff check` + `ruff format --check` are clean
+on all 80 files.
+
+**P2c — the feature kernel.** `sketch/profile.py` (a solved sketch on a named
+plane, a datum or `on:<face>` becomes OCCT faces with holes; an open profile
+refuses `pk_sketch_open` naming the gap in mm between the two ends),
+`naming.py` (D6: role names from the hand-built histories, an inventory that
+falls back to fingerprints and then to `<part>.face[k]`; the selector grammar
+including `not()`, `nearest`, `of=`+`loop=`, `created_by`; seams excluded by
+default and counted; `pk_ref_empty` names the filter that killed the last
+candidate, `pk_ref_ambiguous` lists candidates, `pk_ref_stale` names the
+event — "removed by hole hole1 being suppressed" — the three nearest with
+their Δ mm and a selector that would survive), `features/` (one `build()`
+pipeline: resolve → build → history → name → measure; ONE boolean per
+feature + unify + merged history; Law 11 `pk_no_effect`; extrude, revolve,
+sweep, loft, hole with seats and cosmetic threads, fillet, chamfer, shell,
+draft, rect/circular/sketch patterns, mirror, combine, split, plane/axis/point
+datums), `features/part.py` (`regen(from_index)` answers Law 14's blast
+radius: `changed[{feature, delta_mm3, faces}]`, `unchanged`, `failed`), and
+`document.py` grew the parts, the datums, the lazy feature import on the
+first unknown `create` kind, `set`/`delete` on features, the sketch and
+param regen hooks, and D3's `snapshot`/`restore` with the `.brep` cache and
+the replay fallback.
+
+```
+F1 through the verbs      59214.602 / 7 / 15 in 6.2-6.5 ms
+  fillet plate:edges(dir=Z) r2  resolved 4, seam_excluded 1, -34.336, 11 faces
+  fillet r12 top-front          pk_op_failed naming plate.end|plate.side.r.0, NbFaultyContours=1, "the smallest face it rolls across is 10.000 mm high"
+  chamfer d2, of=plate.end loop=outer   4 edges, -629.333 (the script's -200 was one edge)
+  no-effect cut                 pk_no_effect with counts, volume and the fix
+  set hole1 dia=12              changed [hole1 -345.575], unchanged_features [fillet1], part 58834.691 (= 58869.027 - 34.336 with the fillet present)
+F2 through the verbs      44916.967 / 13 / 33, 352.598 g, 26 ms
+  param_set t=8mm               regen.part:bracket changed [base +9600, upright +4160, h -273.695], fillet1 unchanged, 58403.271 in 26 ms
+  param_set t=4mm               30790.662;  back to t=6 -> the ORIGINAL fingerprint, bit-identical
+F3 revolve                49480.084 / 7, every step named; keyway -611.89; cosmetic thread -> fingerprint identical
+F5 hole + rect pattern    520481.421 / 106 / 312 in 138 ms; suppress 3 -> 97 holes; disc 24543.693 / 9; mirror F2 x=80 -> 89833.933 / 17
+sweep 1413.717  loft 28000  shell 15552 / 11  draft on a sphere refuses "it is a sphere"  cbore -98.96  csink -16.755
+snapshot fast path        1.1-4.6 ms; .brep deleted -> replay 108 ms, same fingerprint; F2 fingerprint identical in two processes
+18 deliberate failures    each ONE CommandError with a D8 code and a fix; no coordinate lists anywhere in details or summary
+```
+
+Facts learned: `BRepPrimAPI_MakeRevol.Generated(edge)` is EMPTY for the
+planar radial faces of a full 360° revolve (fine at 180°) — those faces are
+matched geometrically; `BRepAlgoAPI_Splitter` lists section faces as
+`Modified` images of the tool face, not `Generated`; `kind` cannot double as
+the pattern layout because the wire folds `kind` beside `op`, so patterns
+take `layout: rect|circ|sketch` (inferred from `nx`/`axis`/`points` when
+omitted); a hole's `on:` frame origin is the world origin projected onto the
+face, so F1's `(50,30)` reads as written, and a centroid-relative placement
+says `origin: centroid`.
+
+**P2d — checks.** `checks/validity.py` (`BRepCheck_Analyzer.IsValid()` is
+TRUE for an open shell and the solid classifier says OUT for it exactly as
+for a solid — neither decides "closed"; `closed` comes from the free-edge
+count via `MapShapesAndAncestors`, seams listing their one face twice),
+`mass.py` (exact GProp; density from the material card with its honesty tier
+or an override; `BRepGProp.VolumeProperties_s` answers a NON-ZERO volume for
+an open shell, so mass gates on the solid count, never on the number),
+`wall.py` (a ray per surface sample through `IntCurvesFace_ShapeIntersector`,
+70 µs a ray: F4 housing 2.000 mm in 3.8 ms; the trimesh estimate is 0.35 s
+and is labelled `estimate`, never feeding a verdict), `section.py` (F1 at
+x=50 = 500.000 mm² in two faces; the stepped shaft's longitudinal section
+2700.000), `spec.py` (a closed rule set — bbox, volume, mass, holes, min
+wall, valid, watertight, faces, edges — each violation with `got/limit/fix`;
+an unknown rule refuses before any geometry is measured).
+
+**P3 library — the assembly solver, on scipy.** Six unknowns per free
+component, analytic Jacobians through the SO(3) left Jacobian,
+`DOF = 6·n_free − rank(J)`, per-component DOF from the null space, conflicts
+charged to the LATER constraint by incremental re-add so the offender's
+residual reads 5.000 rather than a 2.5 split; interference through
+`BRepAlgoAPI_Common` with a bbox prefilter; clearance through
+`BRepExtrema_DistShapeShape`; the BOM aggregated for parts-only.
+
+```
+joint kinds rigid/revolute/slider/cylindrical/planar/ball -> DOF 0 / 1 / 1 / 2 / 3 / 3 (about 1 ms each)
+insert + mate      pin at (20,20,20), residual 0.0, dof 1 {pin: 1}, 1.3 ms
+rigid + a contradictory 5 mm offset   status conflict, over_constrained ["mate2"], residual 5.000
+d11 pin            329.867 mm3 @ (20,20,10);  cubes 400.000 @ (19.5,10,10);  d10 in d10 -> 0 with contact True;  d9.9 -> 0.050
+BOM block + 4 pins (steel 7850)   [{block,1,238.869},{pin,4,24.662}] total 337.517 g
+poses bit-identical across two solves and two processes; 3 components 0.5 ms, 20 pins 43 ms
+```
+
+Facts learned: scipy 1.17.1 `trf` STALLS on a rank-deficient Jacobian (a
+−13 mm row ended at +2 mm with `ftol` "satisfied"), MINPACK `lm` on a
+zero-padded under-determined system drifts along the free-rotation null
+space (θ_z = −2π, later NaN) — `method="dogbox"` is used because its exact
+Gauss–Newton step is the minimum-norm `lstsq`; rotation vectors are wrapped
+to |θ| ≤ π after each pass because the left Jacobian is singular at 2π; a
+rigid joint written as direction + wrapped twist has a 180° discontinuity
+and is written instead as a two-vector (Wahba) alignment; OCCT 7.9.3's
+Common of the exact Ø10-in-Ø10 fit is EMPTY at fuzzy 0 and stays empty under
+1e-9 mm pose noise, so `FUZZY_MM = 0` and contact is `distance ≤ 1e-6`.
+
+The verifier's fixes: `bbox_mm` was a 6-vector in features and extents in
+checks — now extents everywhere with `bbox_min`/`bbox_max` beside; the fillet
+refusal names the face height; a doubled "Fix:" prefix in one spec
+violation. Carried forward: the conflict pass re-solves per constraint
+(567 ms at 20 pins, over budget, only on a failed solve); the sketch solver
+takes the same `trf` route for under-determined sketches and should move to
+`dogbox` too; `param_set` puts the blast radius under
+`result["regen"]["part:<n>"]`, which P4 maps into `details`; volumes are
+reported at 3 dp (D7 said 2) so the fixture pins survive; revolve names are
+`<name>.<segtag>` rather than D6's `outer/inner` aliases; five modules each
+declare a `round(x, 3)` helper.
+
+**PROGRESS itself:** the commit helper that stages only A66's paths appended
+this campaign's entries to HEAD's copy on every commit and stacked five
+copies of them; this commit rebuilds the file with one.

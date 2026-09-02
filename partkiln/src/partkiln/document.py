@@ -16,7 +16,13 @@ The verb table is closed and enumerable (D5): an unknown op lists every
 verb. It is also open to the later phases by import - `register_verb` and
 `register_kind` let P2's features and P3's assemblies add themselves without
 this file knowing they exist, and `fingerprint_sources` / `dependency_sources`
-are the two hooks they append to. Nothing here imports OCP, Qt or tee.
+are the two hooks they append to. P2c fills the `parts` container: the
+verbs live in `partkiln.features` and are imported lazily the first time a
+`create` names a kind this file does not know, so `import partkiln` stays
+OCP-free. D3: `snapshot()` writes the script (the checkpoint) plus one
+`.brep` per part (a cache), and `restore()` takes the cache only when every
+file exists and the recomputed fingerprint matches - otherwise it replays,
+which is the law. Nothing here imports OCP, Qt or tee.
 """
 
 from __future__ import annotations
@@ -24,6 +30,7 @@ from __future__ import annotations
 import copy
 import json
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from hashlib import sha256
@@ -81,6 +88,8 @@ class Command:
 
 
 Handler = Callable[["Document", dict[str, Any], dict[str, Any]], dict[str, Any]]
+
+_FEATURES_LOADED = [False]
 
 _VERBS: dict[str, Handler] = {}
 _KINDS: dict[str, Handler] = {}  # `create` kinds: sketch here; part/extrude/... from P2 on
@@ -145,12 +154,17 @@ class Document:
     assemblies: dict[str, Any] = field(default_factory=dict)
     drawings: dict[str, Any] = field(default_factory=dict)
     sheets: dict[str, Any] = field(default_factory=dict)
+    datums: dict[str, Any] = field(default_factory=dict)
     history: list[Command] = field(default_factory=list)
+    restored_via: str = ""
     # P2+ append callables here: each returns bytes that join the fingerprint.
     fingerprint_sources: list[Callable[[Document], bytes]] = field(default_factory=list)
     # P2+ append callables here: each returns the ids that depend on an id.
     dependency_sources: list[Callable[[Document, str], list[str]]] = field(default_factory=list)
     _echoed: set[str] = field(default_factory=set, repr=False, compare=False)
+    # D3 restore: {part name: {shape, names}} consumed by `create part` during a replay.
+    _cache: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
+    _cache_building: bool = field(default=False, repr=False, compare=False)
 
     # -- the script ---------------------------------------------------------
 
@@ -169,7 +183,10 @@ class Document:
 
     @classmethod
     def replay(
-        cls, script: dict[str, Any] | str | Path, overrides: dict[str, Any] | None = None
+        cls,
+        script: dict[str, Any] | str | Path,
+        overrides: dict[str, Any] | None = None,
+        cache: dict[str, Any] | None = None,
     ) -> Document:
         """Rebuild a document from a script. Same script in, same fingerprint out.
 
@@ -202,8 +219,11 @@ class Document:
                     code="pk_ref_unknown",
                 )
         document = cls(name=str(script.get("name", "replayed")))
+        if cache:
+            document._cache = dict(cache)
         for command in commands:
             document.apply(command)
+        document._cache = {}
         return document
 
     def fingerprint(self) -> str:
@@ -227,7 +247,15 @@ class Document:
                 name: {"plane": sk.plane, "coords": sk.coordinates()}
                 for name, sk in sorted(self.sketches.items())
             },
+            "datums": [
+                [d.name, d.kind, _r6(d.origin), _r6(d.direction)]
+                for d in sorted(self.datums.values(), key=lambda d: d.name)
+            ],
         }
+        if self.parts:
+            from partkiln.features import fingerprint_payload
+
+            payload["parts"] = fingerprint_payload(self)
         parts = [json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()]
         parts.extend(source(self) for source in self.fingerprint_sources)
         return sha256(b"|".join(parts)).hexdigest()[:16]
@@ -284,7 +312,7 @@ class Document:
         self.params.default_unit = self.units
         self.params.default_angle_unit = self.angle_unit
         self.sketches, self.parts, self.assemblies = {}, {}, {}
-        self.drawings, self.sheets = {}, {}
+        self.drawings, self.sheets, self.datums = {}, {}, {}
         self.history = []
         for command in history:
             self.apply(command)
@@ -310,6 +338,7 @@ class Document:
             self.assemblies,
             self.drawings,
             self.sheets,
+            self.datums,
         )
         return settings, copy.deepcopy(model), set(self._echoed)
 
@@ -324,7 +353,15 @@ class Document:
             self.drawing_angle,
             self.strict_units,
         ) = settings
-        self.params, self.sketches, self.parts, self.assemblies, self.drawings, self.sheets = model
+        (
+            self.params,
+            self.sketches,
+            self.parts,
+            self.assemblies,
+            self.drawings,
+            self.sheets,
+            self.datums,
+        ) = model
 
     def summary(self) -> dict[str, Any]:
         """Compact state. Never geometry - hard rule 1, in the core itself."""
@@ -344,7 +381,8 @@ class Document:
                 }
                 for name, sk in sorted(self.sketches.items())
             ],
-            "parts": len(self.parts),
+            "parts": [self.parts[n].summary() for n in sorted(self.parts)],
+            "datums": [self.datums[n].as_dict() for n in sorted(self.datums)],
             "assemblies": len(self.assemblies),
             "drawings": len(self.drawings),
             "sheets": len(self.sheets),
@@ -358,7 +396,114 @@ class Document:
         found: list[str] = []
         for source in self.dependency_sources:
             found.extend(source(self, entity_id))
+        if self.parts:
+            from partkiln.features import dependents
+
+            found.extend(dependents(self, entity_id))
         return sorted(set(found))
+
+    # -- D3: the checkpoint is the script, the B-rep is a cache ----------------
+
+    def snapshot(self, label: str, directory: str | Path) -> dict[str, Any]:
+        """Write `<label>-<ms>.json` (script, fingerprint, names per part) and one
+        `<label>-<ms>-<part>.brep` per part with a body. Scalars back:
+        `{label, path, commands, fingerprint, brep}` (the KernelClient shape)."""
+        folder = Path(directory)
+        folder.mkdir(parents=True, exist_ok=True)
+        stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(label)).strip("._-") or "checkpoint"
+        json_path = folder / f"{stem}-{int(time.time() * 1000)}.json"
+        bump = 0
+        while json_path.exists():
+            bump += 1
+            json_path = folder / f"{stem}-{int(time.time() * 1000)}-{bump}.json"
+        parts: dict[str, Any] = {}
+        brep = False
+        for name in sorted(self.parts):
+            part = self.parts[name]
+            entry: dict[str, Any] = {"material": part.material, "names": part.names_snapshot()}
+            if part.shape is not None:
+                from partkiln.exchange.brep_io import write_brep
+
+                path = folder / f"{json_path.stem}-{name}.brep"
+                write_brep(part.shape, path)
+                entry["brep"] = path.name
+                brep = True
+            else:
+                entry["brep"] = None
+            parts[name] = entry
+        payload = {
+            "partkiln_snapshot": 1,
+            "label": label,
+            "script": self.script(),
+            "fingerprint": self.fingerprint(),
+            "parts": parts,
+        }
+        json_path.write_text(json.dumps(payload, indent=1), encoding="utf-8")
+        return {
+            "label": label,
+            "path": str(json_path),
+            "commands": len(self.history),
+            "fingerprint": payload["fingerprint"],
+            "brep": brep,
+        }
+
+    @classmethod
+    def restore(cls, payload: dict[str, Any] | str | Path) -> Document:
+        """Rebuild from a snapshot: the `.brep` fast path when every file is
+        there and the fingerprint matches, else a full replay of the script.
+        A replay whose fingerprint still differs from the recorded one refuses
+        `pk_checkpoint_mismatch` (the file was edited or written by another
+        version); the caller keeps its own document."""
+        if isinstance(payload, dict):
+            if not payload.get("path"):
+                raise CommandError(
+                    "restore needs the payload snapshot() returned (it carries the path).",
+                    code="pk_needs",
+                )
+            path = Path(str(payload["path"]))
+        else:
+            path = Path(payload)
+        if not path.is_file():
+            raise CommandError(
+                f"no checkpoint at {path}. It was discarded or never written; tee_purge "
+                "clears stale ones.",
+                code="pk_checkpoint_missing",
+            )
+        data = json.loads(path.read_text(encoding="utf-8"))
+        script = data["script"]
+        cache: dict[str, Any] | None = {}
+        for name, entry in data.get("parts", {}).items():
+            if entry.get("brep") is None:
+                cache[name] = {"shape": None, "names": entry.get("names", {})}
+                continue
+            brep_path = path.parent / entry["brep"]
+            if not brep_path.is_file():
+                cache = None
+                break
+            from partkiln.exchange.brep_io import read_brep
+
+            try:
+                shape = read_brep(brep_path)
+            except CommandError:
+                cache = None
+                break
+            cache[name] = {"shape": shape, "names": entry.get("names", {})}
+        if cache is not None:
+            document = cls.replay(script, cache=cache)
+            if document.fingerprint() == data.get("fingerprint"):
+                document.restored_via = "cache"
+                return document
+        document = cls.replay(script)
+        document.restored_via = "replay"
+        recorded = data.get("fingerprint")
+        if recorded and document.fingerprint() != recorded:
+            raise CommandError(
+                f"checkpoint {path.name} recorded fingerprint {recorded} but its script replays "
+                f"to {document.fingerprint()}: the file was edited or written by another "
+                "partkiln. Take a new checkpoint.",
+                code="pk_checkpoint_mismatch",
+            )
+        return document
 
     # -- the unit boundary (Law 12) -----------------------------------------
 
@@ -451,6 +596,10 @@ class Document:
         return name
 
 
+def _r6(v: Any) -> list[float]:
+    return [round(float(c), 6) + 0.0 for c in v]
+
+
 # -- overrides ------------------------------------------------------------------
 
 
@@ -491,13 +640,18 @@ def _override(commands: list[Command], overrides: dict[str, Any]) -> tuple[list[
 @register_verb("set")
 def _v_set(doc: Document, args: dict[str, Any], assumed: dict[str, Any]) -> dict[str, Any]:
     target = str(args.get("id") or args.get("target") or "doc")
-    props = {k: v for k, v in args.items() if k not in ("id", "target", "kind", "name")}
+    # `name` stays: on `set` it is the rename prop, not a wire key.
+    props = {k: v for k, v in args.items() if k not in ("id", "target", "kind")}
     if "props" in props and isinstance(props["props"], dict):
         props = dict(props.pop("props"))
     if target == "doc":
         return _set_doc(doc, props, assumed)
     if target.startswith("sk:") or target in doc.sketches:
         return _set_sketch(doc, target, props, assumed)
+    if doc.parts or target.startswith(("part:", "feat:")):
+        from partkiln.features import set_target
+
+        return set_target(doc, target, props, assumed)
     ids = ["doc", *(f"sk:{n}" for n in sorted(doc.sketches))]
     raise CommandError(
         f"nothing to set on {target!r}. Settable ids: {', '.join(ids)}.", code="pk_ref_unknown"
@@ -606,7 +760,14 @@ def _set_sketch(
     sketch.param_deps |= deps
     _register_users(doc, sketch)
     report = _solve_or_refuse(sketch, f"set {target}")
-    return {"id": f"sk:{sketch.name}", "changed": changed, **report}
+    out = {"id": f"sk:{sketch.name}", "changed": changed, **report}
+    if doc.parts:
+        from partkiln.features import after_sketch_change
+
+        regen = after_sketch_change(doc, [sketch.name], assumed)
+        if regen:
+            out["regen"] = regen
+    return out
 
 
 def _solve_or_refuse(sketch: Any, doing: str) -> dict[str, Any]:
@@ -661,6 +822,12 @@ def _v_param_set(doc: Document, args: dict[str, Any], assumed: dict[str, Any]) -
     }
     if resolved:
         result["sketches"] = resolved
+    if doc.parts:
+        from partkiln.features import after_param_change
+
+        regen = after_param_change(doc, changed_names, [r["id"][3:] for r in resolved], assumed)
+        if regen:
+            result["regen"] = regen
     return result
 
 
@@ -668,6 +835,13 @@ def _v_param_set(doc: Document, args: dict[str, Any], assumed: dict[str, Any]) -
 def _v_create(doc: Document, args: dict[str, Any], assumed: dict[str, Any]) -> dict[str, Any]:
     kind = args.get("kind")
     handler = _KINDS.get(str(kind))
+    if handler is None and not _FEATURES_LOADED[0]:
+        # P2's verbs register themselves on import; loaded on first need so a
+        # document that never creates a part never pays for the feature layer.
+        import partkiln.features  # noqa: F401
+
+        _FEATURES_LOADED[0] = True
+        handler = _KINDS.get(str(kind))
     if handler is None:
         raise CommandError(
             f"unknown create kind {kind!r}. partkiln creates: {', '.join(sorted(_KINDS))}.",
@@ -688,7 +862,26 @@ def _k_sketch(doc: Document, args: dict[str, Any], assumed: dict[str, Any]) -> d
             "create sketch needs plane: XY, XZ, YZ, plane:<name> or on:<face ref>.",
             code="pk_plane_missing",
         )
-    sketch = Sketch(name, str(plane))
+    plane = str(plane)
+    origin = args.get("origin")
+    if origin is not None:
+        if not plane.startswith("on:"):
+            raise CommandError(
+                "origin applies to an on:<face> plane only (XY/XZ/YZ and datums have their "
+                "own origin).",
+                code="pk_needs",
+            )
+        if "@" in plane:
+            raise CommandError("give the origin once: origin: or @ in the plane.", code="pk_needs")
+        if origin == "centroid":
+            plane = f"{plane}@centroid"
+        elif isinstance(origin, list | tuple) and len(origin) == 3:
+            plane = f"{plane}@{float(origin[0]):g},{float(origin[1]):g},{float(origin[2]):g}"
+        else:
+            raise CommandError("origin is 'centroid' or [x, y, z] in mm.", code="pk_needs")
+    elif plane.startswith("on:") and "@" not in plane:
+        assumed["origin"] = "the world origin projected onto the face"
+    sketch = Sketch(name, plane)
     deps: set[str] = set()
 
     def length(v: Any) -> float:
@@ -823,15 +1016,32 @@ def _v_delete(doc: Document, args: dict[str, Any], assumed: dict[str, Any]) -> d
     if not target:
         raise CommandError("delete needs id, e.g. sk:base.", code="pk_needs")
     target = str(target)
+    cascade = bool(args.get("cascade"))
+    if target.startswith(("part:", "feat:")) or (
+        doc.parts and target not in doc.sketches and not target.startswith("sk:")
+    ):
+        from partkiln.features import delete_target
+
+        return delete_target(doc, target, cascade, assumed)
     dependents = doc.dependents_of(target)
-    if dependents and not args.get("cascade"):
+    if dependents and not cascade:
         raise CommandError(
             f"{target} is used by {', '.join(dependents)}. Delete those first, or pass "
             "cascade: true to remove them with it.",
             code="pk_delete_blocked",
         )
     sketch = doc.sketch(target)
+    removed: list[str] = []
+    if dependents:
+        from partkiln.features import delete_target
+
+        for dep in dependents:
+            if dep.startswith("feat:") and any(p.has_feature(dep[5:]) for p in doc.parts.values()):
+                removed.extend(delete_target(doc, dep, True, assumed)["deleted"])
     del doc.sketches[sketch.name]
     for users in doc.params.users.values():
         users.discard(f"sk:{sketch.name}")
-    return {"deleted": f"sk:{sketch.name}", "sketches": len(doc.sketches)}
+    out: dict[str, Any] = {"deleted": f"sk:{sketch.name}", "sketches": len(doc.sketches)}
+    if removed:
+        out["cascaded"] = removed
+    return out
