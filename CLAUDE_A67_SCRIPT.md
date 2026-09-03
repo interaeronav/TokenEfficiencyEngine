@@ -143,7 +143,7 @@ naive arm is already flattered, reading one point in forty rather than what a
 real tool would return. The lane's caps are what keep the TEE arm flat as the
 cloud grows: the same five calls cost the same at 280 K points or 15 M.
 
-Tests: `server/tests/test_pointcloud_{store,geometry,io,tools}.py` (76 tests)
+Tests: `server/tests/test_pointcloud_{store,geometry,io,tools}.py` (80 tests)
 plus `fixtures_pointcloud.py`. Benchmark:
 `benchmarks/run_benchmarks.py::run_pointcloud_scenario`.
 

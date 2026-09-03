@@ -360,3 +360,41 @@ def test_a_rigid_transform_leaves_baselines_untouched(app, scan):
     again = call(app, "pc_level", cloud_id=lid)["cloud_id"]
     carried = call(app, "pc_control_verify", cloud_id=again)["baselines"][0]
     assert carried["measured_mm"] == added["measured_mm"]
+
+
+def test_the_boot_path_registers_the_lane_and_leaves_the_surface_alone(tmp_path):
+    """`_attach_pointcloud` is what the server actually calls at boot.
+
+    The other tests register the lane directly, so without this the wiring in
+    cli.py is the one part of the lane nothing exercises. It also pins the
+    claim the whole module rests on: ten new tools, zero of them always-loaded.
+    """
+    import anyio
+    from mcp.client import Client
+
+    from tee.cli import _attach_pointcloud
+    from tee.server import build_server
+
+    application = TeeApp({"fake": FakeAdapter()}, project_root=tmp_path)
+    try:
+        _attach_pointcloud(application, str(tmp_path))
+        registered = [n for n in application.registry.names() if n.startswith("pc_")]
+        assert len(registered) == 10, registered
+
+        async def fetch():
+            async with Client(build_server(application)) as client:
+                return (await client.list_tools()).tools
+
+        surface = anyio.run(fetch)
+        assert len(surface) == 17, "the always-loaded surface moved"
+        assert not [t for t in surface if t.name.startswith("pc_")]
+    finally:
+        application.shutdown()
+
+
+def test_every_registered_tool_is_tabled_in_the_trust_kernel(app):
+    """An untabled tool is a startup failure; this names it as a lane invariant."""
+    from tee.kernel import trust
+
+    for name in [n for n in app.registry.names() if n.startswith("pc_")]:
+        assert trust.capability_for(name), name

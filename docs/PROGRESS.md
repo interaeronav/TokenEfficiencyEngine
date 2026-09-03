@@ -10565,7 +10565,7 @@ zero added to the always-loaded 17**: `pc_open`, `pc_stat`, `pc_level`,
 New `pointcloud` extra (laspy[lazrs], scipy, numpy, ezdxf, trimesh) plus a
 `WITNESS` row.
 
-**Evidence: 1272 passed, 13 skipped** (full server suite, 79 s), of which 76 are
+**Evidence: 1276 passed, 13 skipped** (full server suite, 72 s), of which 80 are
 the new lane. Ruff clean over `src tests ../benchmarks`. Benchmark
 `run_pointcloud_scenario`: **91,820 naive → 682 TEE tokens, 99.26% saving**, and
 the naive arm is flattered — it reads one point in forty.
