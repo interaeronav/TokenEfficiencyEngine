@@ -152,13 +152,18 @@ correct for sheet metal, wrong here; the unit follows the domain, not the repo.
 
 ### 3.4 The scanner app is not assumed
 
-The A67 script says "PLY/LAS/E57 as **3D Scanner App** actually writes them". That string
-appears **nowhere** in this repo; the apps the field protocol names are **Polycam / RealityScan
-Mobile** (`docs/okongo-capture-protocol.md` §3), and `knowledge-base/25_.../02_reference-and-scanning.md`
-records Polycam Basic exporting *"point clouds (PLY, LAS, PTS, XYZ, DXF)"* — KB prose, so
-`confidence: low` and not grounding on its own. Rather than guess between them, `pc_open` reads
-the header of the file it is given and **reports the writer it finds**. Header quirks get
-recorded here when a real export lands (see §8).
+The A67 script's "PLY/LAS/E57 as **3D Scanner App** actually writes them" names no particular
+product — it is a generalisation for *whatever iPhone scanning app produced the export*
+(owner, 2026-09-03). That is the stronger requirement, not the weaker one: with no app
+specified, the lane may not hard-code any app's quirks, so `pc_open` reads the header of the
+file it is given and **reports the writer, SRS and point format it finds**.
+
+For context on what such an export tends to contain, the field protocol
+(`docs/okongo-capture-protocol.md` §3) sends the operator out with **Polycam / RealityScan
+Mobile**, and `knowledge-base/25_.../02_reference-and-scanning.md` records Polycam Basic
+exporting *"point clouds (PLY, LAS, PTS, XYZ, DXF)"* — KB prose, so `confidence: low` and not
+grounding on its own. Neither is wired into the reader. Real header quirks get recorded here
+when a real export lands (see §8).
 
 ---
 
@@ -286,9 +291,10 @@ those is a defect in this document.
    of A9 need one room export under 20 MB plus its tape measurements as a sidecar JSON. Until
    then the synthetic fixture carries the whole gate. When the export lands, §3.4 gets the
    writer's actual header quirks and this section shrinks.
-2. **Which app the owner is actually using** — the script says 3D Scanner App, the protocol says
-   Polycam / RealityScan. `pc_open` reports what it reads, so this resolves itself on first
-   contact rather than blocking.
+2. **Which app produced any given export is deliberately not a question this lane asks.** The
+   brief's "3D Scanner App" is a generalisation, so there is no app to special-case; `pc_open`
+   reports the writer it reads. This becomes an open question only if some real export turns
+   out to need handling the generic reader cannot give it.
 3. **Should slice segments become `tee-plan/1` facts?** It would light up `ex_export_ifc` and
    `bl_build_from_plan` for free. Deliberately **out of scope for A67**: the segments are
    geometry, and calling them walls is exactly the interpretation the phase's non-goal #1

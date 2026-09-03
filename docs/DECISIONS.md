@@ -1294,9 +1294,13 @@ not the unnumbered filename the brief gave: every file in that directory is
 `NN-slug.md`, and `00-index.md` carries a row per doc.
 
 **The scanner app is read, not assumed.** The brief said to digest the formats
-"as 3D Scanner App actually writes them". That string appears nowhere in this
-repo; `docs/okongo-capture-protocol.md` §3 names Polycam / RealityScan Mobile.
-`pc_open` reports the writer, SRS and point format it actually finds in the file.
+"as 3D Scanner App actually writes them"; the owner confirmed (2026-09-03) that
+this names no particular product — it is a generalisation for whatever iPhone
+scanner produced the export. That makes the requirement stronger, not weaker:
+with no app specified there is nothing to special-case, so `pc_open` reports the
+writer, SRS and point format it actually finds in the file. The field protocol's
+Polycam / RealityScan (`docs/okongo-capture-protocol.md` §3) is context for what
+such exports contain, not a target the reader is built against.
 
 Rulings learned while building, each pinned by a test:
 

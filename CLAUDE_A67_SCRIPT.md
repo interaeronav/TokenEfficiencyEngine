@@ -52,7 +52,7 @@ Each is recorded in `docs/DECISIONS.md` with the evidence that forced it.
 | `pc_register`, `pc_merge` | **not built** | `capture_register` already does ICP with a refusing RMS gate and a degeneracy guard. |
 | `pc_control_check` | **`pc_control_verify`** | "check" is a common English verb worth 3 points on a name match; `pc_control_check` outranked `ex_estimate` for "check the drawing" and cost the registry a recall slot. |
 | research doc unnumbered | `69-pointcloud-scan-prep.md` | every file in `docs/research/` is `NN-slug.md`. |
-| "as 3D Scanner App writes them" | read the file's own header | That string appears nowhere in the repo; the protocol names Polycam / RealityScan. `pc_open` reports the writer it finds. |
+| "as 3D Scanner App writes them" | read the file's own header | The name is a generalisation for whatever iPhone scanner produced the export (owner, 2026-09-03), which makes hard-coding any app's quirks wrong. `pc_open` reports the writer, SRS and point format it finds. |
 | A2 "normal-histogram should beat 0.1°" | **true, but only in 3D at k ≥ 80** | A 2D estimator collapsed to 26° of error. See below. |
 
 ---
