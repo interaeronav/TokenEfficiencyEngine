@@ -74,3 +74,72 @@ def make_room(
         "correction": 1.0 / scale,
     }
     return pts, truth
+
+
+def make_two_rooms(
+    step: float = 0.02,
+    noise: float = 0.012,
+    clutter: int = 4_000,
+    seed: int = 11,
+) -> tuple[np.ndarray, dict]:
+    """Two rooms either side of a thick partition, with furniture in the way.
+
+    The single-rectangle fixture cannot catch the failures that matter on a
+    real scan, because it has no wall thickness, no second room, no doorway
+    and no clutter. Measured on the Okongo test scan, an unguarded RANSAC
+    fitter ran 4 m diagonals through a bed and returned 133 m of "wall"
+    inside a 5 x 5 m room. This fixture reproduces that shape.
+
+    Layout (metres), walls 2.6 m high:
+        x = 0.00  west wall          y = 0.00  south wall
+        x = 2.40  partition, west face
+        x = 2.66  partition, east face   (260 mm thick)
+        x = 6.00  east wall          y = 4.00  north wall
+    The partition carries a 0.9 m doorway between y = 1.5 and y = 2.4.
+    """
+    rng = np.random.default_rng(seed)
+
+    def plane_x(x, y0, y1, z0=0.0, z1=2.6):
+        yy, zz = np.meshgrid(np.arange(y0, y1, step), np.arange(z0, z1, step), indexing="ij")
+        return np.c_[np.full(yy.size, x), yy.ravel(), zz.ravel()]
+
+    def plane_y(y, x0, x1, z0=0.0, z1=2.6):
+        xx, zz = np.meshgrid(np.arange(x0, x1, step), np.arange(z0, z1, step), indexing="ij")
+        return np.c_[xx.ravel(), np.full(xx.size, y), zz.ravel()]
+
+    faces = [
+        plane_x(0.00, 0.0, 4.0),
+        plane_x(6.00, 0.0, 4.0),
+        plane_y(0.00, 0.0, 6.0),
+        plane_y(4.00, 0.0, 6.0),
+        # the partition, both faces, interrupted by a doorway
+        plane_x(2.40, 0.0, 1.5),
+        plane_x(2.40, 2.4, 4.0),
+        plane_x(2.66, 0.0, 1.5),
+        plane_x(2.66, 2.4, 4.0),
+    ]
+    xx, yy = np.meshgrid(np.arange(0, 6.0, step), np.arange(0, 4.0, step), indexing="ij")
+    faces.append(np.c_[xx.ravel(), yy.ravel(), np.zeros(xx.size)])
+    points = np.vstack(faces)
+    points = points + rng.normal(0, noise, points.shape)
+
+    # furniture: scattered blobs in the middle of the big room, the exact
+    # thing a RANSAC line will try to join up into a wall
+    blobs = []
+    for cx, cy in ((4.2, 1.1), (3.4, 3.0), (5.0, 2.6)):
+        blobs.append(rng.normal([cx, cy, 0.6], [0.35, 0.30, 0.45], (clutter // 3, 3)))
+    points = np.vstack([points, *blobs])
+
+    truth = {
+        "west": 0.00,
+        "east": 6.00,
+        "south": 0.00,
+        "north": 4.00,
+        "partition_west": 2.40,
+        "partition_east": 2.66,
+        "partition_thickness": 0.26,
+        "door_from": 1.5,
+        "door_to": 2.4,
+        "height": 2.6,
+    }
+    return points, truth

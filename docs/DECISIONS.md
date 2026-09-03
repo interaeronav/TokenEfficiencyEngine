@@ -1345,3 +1345,45 @@ scan needs a wider ball than a dense one for the same accuracy.
 It would light up `ex_export_ifc` and `bl_build_from_plan` for free. It is also
 exactly the interpretation non-goal #1 forbids: the segments are geometry, and
 calling them walls is a judgement. It needs its own decision record.
+
+## A67 addendum — what the first real scan changed (2026-09-03)
+
+Owner: *"Use the zipped test scan file in the Okongo Dropbox folder, and use it
+to create a detailed architectural plan and 3d drawing"*. Evidence in research
+doc 69 §7b; drawings in `~/Downloads/Okongo-Scan-Test/`.
+
+**The synthetic fixture was not a sufficient gate, and this is the lesson.** One
+clean rectangle has no wall thickness, no second room, no doorway and no
+furniture. On the real capture (1,520,736 points, two rooms) `fit_lines`
+returned **35 segments totalling 133 m of wall inside a 5 x 5 m room**, running
+4 m diagonals through a bed and finding the same partition six times — while
+every synthetic acceptance test stayed green. A fixture that cannot fail is not
+a gate. `server/tests/fixtures_pointcloud.py` now also carries `make_two_rooms`,
+with the thickness, doorway and clutter the first one lacked.
+
+**A wall is continuous, and that is a fact about buildings, not a tuning knob.**
+Runs are split at gaps over 350 mm — which is simultaneously the correct
+treatment of a doorway — and must fill at least 65% of the 100 mm bins along
+their own length. This alone took the real scan from 133 m to 42.9 m.
+
+**A surface found twice is one surface; wall thickness is not.** Near-coincident
+parallel runs within 80 mm are merged best-supported-first, while the two faces
+of a 260 mm partition survive as the two genuine surfaces they are.
+
+**`fit="ortho"` is a declaration by the caller, not an assumption by the lane.**
+After `pc_level` removes the azimuth, every wall in a RECTILINEAR building is
+axis-parallel, so the mode finds walls as spikes in the histogram of
+perpendicular offsets — what a flat vertical surface actually is — and a
+diagonal never becomes a candidate. It would be the wrong choice for splayed or
+curved walls, which is why it is opt-in and why `fit="lines"` remains the
+default. On the real scan: 20 clean surfaces, 30.7 m.
+
+**The lane still does not produce drawings, and the deliverable respected that.**
+A67 non-goal 2 stands. The three A3 sheets issued to the owner were composed by
+a script OUTSIDE the lane, from the lane's geometry, under one rule stated on
+every sheet: grey is measured, black is fitted.
+
+**`pc_report` returned UNVERIFIED on the real scan, and that was the most
+valuable thing it said.** No tape measurement was supplied, so every dimension
+in those drawings is Apple's ARKit solution and nothing else. The verdict is not
+a limitation of the lane; it is the lane doing its job.

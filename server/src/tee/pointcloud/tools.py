@@ -237,11 +237,18 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
                 f"{', '.join(unknown)} is not a template format.",
                 fix="Use dxf, svg, or both.",
             )
-        segments, ignored = (
-            ([], len(pts2d))
-            if fit == "none"
-            else slice2d.fit_lines(pts2d, float(args.get("ortho_snap_deg") or 3.0))
-        )
+        if fit == "none":
+            segments, ignored = [], len(pts2d)
+        elif fit == "ortho":
+            segments, ignored = slice2d.fit_ortho(pts2d)
+        elif fit == "lines":
+            segments, ignored = slice2d.fit_lines(pts2d, float(args.get("ortho_snap_deg") or 3.0))
+        else:
+            raise TeeError(
+                "pc_unknown_fit",
+                f"'{fit}' is not a fit mode.",
+                fix="lines (any orientation), ortho (rectilinear building), or none.",
+            )
         if fit != "none" and not segments:
             raise TeeError(
                 "pc_no_segments",
@@ -322,7 +329,11 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
     template_args = {
         **cloud_arg,
         "thickness_m": {"type": "number", "description": "Band depth, default 0.05."},
-        "fit": {"type": "string", "enum": ["lines", "none"]},
+        "fit": {
+            "type": "string",
+            "enum": ["lines", "ortho", "none"],
+            "description": "ortho = declare the building rectilinear; far more robust.",
+        },
         "ortho_snap_deg": {"type": "number", "description": "Snap near-square lines, default 3."},
         "out": {"type": "array", "description": "Any of dxf, svg. Default ['dxf']."},
         "scale": {"type": "string", "description": "Paper scale for the SVG, e.g. '1:50'."},

@@ -285,12 +285,65 @@ those is a defect in this document.
 
 ---
 
+## 7b. The first real scan (2026-09-03) — and what it broke
+
+`measured 2026-09-03` on the owner's `test scan.zip` (Okongo Oneleiwa Dropbox).
+
+**What the archive actually is.** Not a point-cloud export: a raw 3D Scanner App
+2.5 capture from an `iPhone18,2` on iOS 26.6 — 1,827 frames of depth map +
+confidence map + `cameraPoseARFrame`, 305 RGB frames, and one already-fused
+`points.ply` of **1,520,736 coloured points** with normals. The fused cloud is
+the usable input; the per-frame depth is a back-projection lane this phase does
+not have and did not need. ARKit is Y-up and gravity-aligned, so `pc_open`'s
+`up_axis="y"` is the whole conversion.
+
+**The lane held up.** `pc_open` read 1.52 M ASCII-PLY points in 3.0 s for 89
+tokens; `pc_level` recovered the floor at **0.0000° residual with a 12.3 mm
+plane RMS over 129,247 floor points** and removed an 88.667° wall azimuth; the
+z-histogram gave a textbook room signature (floor spike at 0.00, ceiling spike
+at 2.60, flat wall returns between). Nine calls over a 1.5 M-point cloud cost
+**506 tokens** end to end.
+
+**The line fitter did not.** `fit_lines` returned **35 segments totalling 133 m
+of wall inside a 5 x 5 m room** — 4 m diagonals run through a bed and a
+wardrobe, and the same partition found six times. The synthetic fixture had
+hidden every one of these failures, because one clean rectangle has no wall
+thickness, no second room, no doorway and no furniture. RANSAC scores a
+candidate on inlier count alone, and in a cluttered room a long diagonal catches
+plenty of points by chance.
+
+Three guards were added, each an architectural fact rather than a tuned number:
+
+1. **A wall is continuous.** Runs are split at gaps over 350 mm — which is also
+   the correct treatment of a doorway — and a run must fill at least 65% of the
+   100 mm bins along its own length.
+2. **A surface found twice is one surface.** Near-coincident parallel runs
+   (within 80 mm) are merged, best-supported first. Wall THICKNESS survives:
+   the two faces of a 260 mm partition are 260 mm apart, not 80.
+3. **`fit="ortho"`, a new and explicit mode.** After `pc_level` has removed the
+   azimuth, every wall in a rectilinear building is axis-parallel, so walls are
+   found as **spikes in the histogram of perpendicular offsets** — which is what
+   a flat vertical surface actually is — and a diagonal never becomes a
+   candidate at all. It is a declaration by the caller, not an assumption by the
+   lane: it would be wrong for splayed or curved walls.
+
+Result on the same scan: **133 m -> 42.9 m** with the guards, and **20 clean
+axis-parallel surfaces totalling 30.7 m** with `fit="ortho"`. Both are now
+pinned by `server/tests/test_pointcloud_fit.py` against a two-room fixture that
+has the thickness, doorway and clutter the first one lacked.
+
+**The honest limit of the output.** No tape measurement was supplied, so
+`pc_report` returned **UNVERIFIED — "scale is the scanner's word alone"**, which
+is exactly right and is the single thing standing between these drawings and a
+buildable dimension. Two wall-to-wall tape readings would close it.
+
 ## 8. Open questions
 
-1. **No real fixture exists yet.** Acceptance A7 (token budget on a real scan) and the real arm
-   of A9 need one room export under 20 MB plus its tape measurements as a sidecar JSON. Until
-   then the synthetic fixture carries the whole gate. When the export lands, §3.4 gets the
-   writer's actual header quirks and this section shrinks.
+1. **ANSWERED 2026-09-03 for geometry, still open for scale.** A real capture arrived
+   (§7b) and the lane ran on it end to end. What it did NOT bring is tape measurements, so
+   `pc_control_*` — the part of the lane that exists precisely because A42 T6 had no measured
+   length — is still unexercised on real data, and every real dimension the lane has produced
+   is UNVERIFIED. Two wall-to-wall readings would close this.
 2. **Which app produced any given export is deliberately not a question this lane asks.** The
    brief's "3D Scanner App" is a generalisation, so there is no app to special-case; `pc_open`
    reports the writer it reads. This becomes an open question only if some real export turns

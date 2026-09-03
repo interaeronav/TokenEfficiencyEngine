@@ -10629,3 +10629,52 @@ tape measurements would make A7 and A9 real-world numbers.
 (untracked, dated 2026-09-02, the concurrent A66 session) carries 2 ruff errors
 — RUF059 at :471 and E501 at :779 — so `make check` fails on that file alone.
 Left untouched deliberately: that session may be mid-edit.
+
+## A67 addendum — the first real scan, and the drawings it produced (2026-09-03)
+
+Owner: *"Use the zipped test scan file in the Okongo Dropbox folder, and use it
+to create a detailed architectural plan and 3d drawing upload to download folder
+for me to see and as a test"*, then *"I'm off to bed again, continue without my
+prompt"*.
+
+**Input.** `~/Dropbox/02 Okongo Oneleiwa Project/test scan.zip` (185 MB) — a raw
+3D Scanner App 2.5 capture from an `iPhone18,2`, iOS 26.6: 1,827 depth +
+confidence + pose frames, 305 RGB frames, and a fused `points.ply` of
+**1,520,736 coloured points**. ARKit Y-up, so `pc_open(up_axis="y")`.
+
+**The lane, measured on real data:**
+
+```
+pc_open      1,520,736 pts in 3.0 s          89 tok
+pc_level     residual 0.0000 deg, floor RMS 12.32 mm over 129,247 floor pts
+             wall azimuth 88.667 deg removed  136 tok
+pc_stat      plane census 72.8% planar, 64.6% vertical, 25.6% horizontal
+z-histogram  floor spike at 0.00, ceiling spike at 2.60 - a textbook room
+whole session, nine calls on a 1.5 M-point cloud            506 tok
+```
+
+**The defect the real scan found.** `fit_lines` returned **35 segments totalling
+133 m of wall inside a 5 x 5 m room** - 4 m diagonals through a bed, the same
+partition six times - while every synthetic acceptance test stayed green. Fixed
+with three guards (continuity/gap-split, duplicate suppression, and a new opt-in
+`fit="ortho"` peak-finder), plus a `make_two_rooms` fixture that has the wall
+thickness, doorway and clutter the first one lacked. Result: **133 m -> 42.9 m**
+guarded, **20 surfaces / 30.7 m** in ortho mode. Seven new tests in
+`server/tests/test_pointcloud_fit.py`.
+
+**Delivered to `~/Downloads/Okongo-Scan-Test/`:** SK-01 floor plan (1:25 @ A3,
+dimensioned), SK-02 two sections (1:50), SK-03 four axonometric renders of the
+cloud in true colour, plus the DXF (metres, `$INSUNITS=6`, verified openable in
+CloudCompare), SVG, a 900 K-point levelled PLY, the QA sheet and a README. The
+drawing composer lives OUTSIDE the lane - A67 non-goal 2 stands.
+
+**Measured building:** clear height 2.604 m; overall internal 4,725 x 3,952 mm;
+Room 01 2.88 x 3.95 m (11.4 m2); Room 02 1.50 x 3.42 m (5.1 m2); partition 345 mm
+between fitted faces.
+
+**Verdict: UNVERIFIED.** No tape measurement was supplied, so every dimension is
+Apple's ARKit solution alone. Two wall-to-wall readings would let
+`pc_control_add` / `pc_control_verify` close it - and that is still the one part
+of the lane never exercised on real data.
+
+**Evidence: 1283 passed, 13 skipped.**
