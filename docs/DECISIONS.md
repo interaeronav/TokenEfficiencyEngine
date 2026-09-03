@@ -1200,3 +1200,144 @@ when built, is a client of `partkiln.document` exactly as seamkiln's is.
 
 **CI gets a `kiln` job on `[brep]` and the server job stops installing the
 1.3 GB `[cad]` stack** (`uv sync --all-extras --no-extra cad`, uv 0.12.5).
+
+**Rulings learned while building (2026-09-02, P0–P3), each pinned by a test:**
+
+- **A cut never glues.** `BRepAlgoAPI_Cut` with `SetGlue(GlueShift)` on
+  intersecting tools returned the UNCUT plate with `IsDone() == True`; glue
+  modes are only for fuses of touching copies and are reachable only behind
+  an explicit `touching=True`. Law 11 (`pk_no_effect`) guards every boolean.
+- **Counts are unique sub-shapes.** `TopExp_Explorer` visits a shared edge
+  once per owning face (F5: 624 visits, 312 edges); every count on the wire
+  comes from `TopExp.MapShapes_s`.
+- **Histories are built by hand.** Only the boolean builders, the hole
+  feature and `ShapeUpgrade_UnifySameDomain` expose `History()`; every other
+  builder answers `Generated/Modified/IsDeleted` per sub-shape, and
+  `BRepTools_History` is queried with `IsRemoved` (there is no `IsDeleted`).
+  A filleted edge is both deleted and the parent of its fillet face, so
+  `Generated` is read before `Remove`.
+- **The seam is filtered, never filleted.** `dir=Z` on F1 matches five raw
+  edges; OCCT accepts the cylinder seam in a fillet and generates nothing.
+  Selectors exclude seams by default and say so; an edge whose `Generated`
+  is empty is reported as failed for that edge.
+- **The assembly solver is `dogbox`.** scipy 1.17.1 `trf` stalls on a
+  rank-deficient Jacobian and MINPACK `lm` drifts along the free-rotation
+  null space (θ_z = −2π, later NaN); `dogbox`'s exact Gauss–Newton step is
+  the minimum-norm `lstsq`. Rotation vectors are wrapped to |θ| ≤ π because
+  the left Jacobian is singular at 2π. A conflict is charged to the LATER
+  constraint by incremental re-add, so its residual reads the whole 5.000
+  rather than a 2.5 split.
+- **The exact fit is contact, not interference.** OCCT 7.9.3's Common of a
+  Ø10 pin in a Ø10 hole is empty at fuzzy 0 and stays empty under 1e-9 mm
+  pose noise, so `FUZZY_MM = 0` and contact is `distance ≤ 1e-6`.
+- **The K-factor default is a choice, not a citation.** 0.44 sits inside
+  the cited 0.3–0.5 range; no standard fixes K; DIN 6935's `k` is a different
+  quantity; production parts pass `k` or a bend table.
+- **Volumes ride the wire at 3 dp** (D7 said 2): the fixture pins need the
+  third place, and a diff that rounds a −34.336 mm³ fillet to −34.34 hides
+  the digit the test asserts.
+- **A cosmetic thread changes nothing.** It is stored on the feature and
+  the fingerprint is bit-identical with and without it (Law 18).
+
+## A67 — the point-cloud scan-prep lane: `pc_*` (2026-09-03)
+
+Owner directive: the A67 brief (now `CLAUDE_A67_SCRIPT.md`), then mid-turn
+*"use TEE"* and *"TEE/QMAX"*, then *"COMPLETE ALL PHASES WITHOUT MY INPUT"*.
+Design of record research doc 69; user guide `docs/pointcloud-lane.md`.
+Rulings, each with the evidence that decided it:
+
+**`plyfile` is banned and the lane uses trimesh instead.** The brief listed
+`plyfile 1.1.5` as a core dependency. PyPI's own classifier for it reads
+`License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)`
+(fetched 2026-09-03). TEE ships MIT. This repo had already established the fact
+(research doc 43, PyPI-verified), already banned it
+(`voxkiln/src/voxkiln/license_lint.py:20`), and already performed vendor surgery
+on the TRELLIS.2 fork to excise it — and doc 43's own recorded replacement is
+"replace `.ply` IO with trimesh or drop". It was re-verified here rather than
+carried on trust, because a dependency table trusted once is trusted forever.
+
+**`pye57` and `open3d` are dropped, and NOT on licence grounds — on weight.**
+Both are MIT. `pye57` builds libE57Format, and CloudCompare 2.13.2 — already a
+lane dependency — ships `libQE57_IO_PLUGIN`, so E57 is one conversion away and
+refuses honestly when CloudCompare is absent. `open3d` is ~400 MB for ICP alone,
+and there is no ICP in this lane; `test_a46_no_heavy_imports.py` already bans
+that exact shape (vtkmodules 592 MB, torch 505 MB, OCP 225 MB). Recording the
+distinction matters: calling a weight decision a licence decision would corrupt
+the licence record.
+
+**`scipy` is declared explicitly.** It imports in `server/.venv` but appears
+nowhere in `server/pyproject.toml` — it arrives transitively via skfolio /
+PyPortfolioOpt / scenedetect. `cKDTree` is load-bearing for normal estimation,
+so a clean `uv sync` that dropped a carrier would have broken the lane silently.
+
+**No `pc_register` and no `pc_merge`.** `capture/align.py:86 register_icp()`
+already ICP-registers through CloudCompare with a refusing RMS gate and a 7-DOF
+degeneracy guard, and A42 T6 paid for that guard the hard way. A second
+registration answer that can disagree with the first is worse than none.
+
+**No `("pc_", …)` family row in the trust table; every tool tabled
+individually.** Same lesson the `cad_` and `trade_` comments in `trust.py`
+already record: a prefix default silently admits whatever is named next, and
+nearly every tool in this lane writes a file. `pc_stat` and `pc_control_verify`
+are `read-compute`; the other eight are `write-artifacts`.
+
+**`pc_control_check` was renamed `pc_control_verify`.** "check" is a common
+English verb and scores 3 points on a name match, so `pc_control_check` ranked
+first for the deliberately-vague query "check the drawing" and pushed
+`ex_estimate` from rank 5 to rank 6 — a real recall regression caught by
+`test_search_budget.py`. Four candidate names were scored against the whole
+case set before choosing. A new lane does not get to claim another lane's
+vocabulary just by being newer.
+
+**The research doc is numbered.** `docs/research/69-pointcloud-scan-prep.md`,
+not the unnumbered filename the brief gave: every file in that directory is
+`NN-slug.md`, and `00-index.md` carries a row per doc.
+
+**The scanner app is read, not assumed.** The brief said to digest the formats
+"as 3D Scanner App actually writes them". That string appears nowhere in this
+repo; `docs/okongo-capture-protocol.md` §3 names Polycam / RealityScan Mobile.
+`pc_open` reports the writer, SRS and point format it actually finds in the file.
+
+Rulings learned while building, each pinned by a test:
+
+**The floor is the LOWEST dominant horizontal plane, not the most populous
+one.** In a box room the floor and ceiling have the same inlier count to within
+noise, so a count-first selection is a coin flip — the first implementation
+levelled onto the ceiling and hung the room underneath it. The lane now collects
+every qualifying plane and takes the lowest. (`test_level_puts_the_room_above_
+its_floor_not_below_its_ceiling`.)
+
+**Normals must be estimated in 3D, and yaw must come from the full-height wall
+band.** Measured: a 2D XY-neighbourhood estimator kept 6 of 40,000
+neighbourhoods and returned **26.35°** of error, because 12 mm of noise on a
+15 mm grid is isotropic in projection. In 3D: k=20 → 0.073°, k=80 → 0.040°,
+k=160 → **0.004°**. And a 50 mm slice, as opposed to the 0.4–2.3 m band, gives
+**1.289°** against a 0.5° gate — so the slice and the yaw are different queries
+over different point sets, and sharing their estimator would look like a tidy
+simplification and be wrong. Both pinned.
+
+**PLY export is always origin-shifted.** trimesh writes `property float`
+(float32) in every encoding. Measured error against absolute coordinates: local
+0.000 mm, site-ENU 0.004 mm, **UTM 249.991 mm, ECEF 249.995 mm** — and ODM's
+`odm_georeferenced_model.laz`, the artifact this lane exists partly to read, is
+georeferenced by construction. The offset goes in the sidecar.
+
+**LAS scale is 1e-4, not the conventional 1e-3.** LAS stores int32 ordinates, so
+the file size is byte-identical across scales (6,800,375 B at every scale
+tested). 1e-3 costs 0.5 mm of quantisation — a quarter of the ±2 mm acceptance
+budget — for nothing. 1e-4 costs 0.05 mm and still addresses ±214 km.
+
+**Fit residual is reported as median, with max labelled.** Per-segment max sits
+at ~2.9σ of the noise floor: arithmetically right, and read as a failure by
+everyone who sees it.
+
+**The control snap radius is a sample-size floor, not a taste knob.** A 0.15 m
+patch (~310 points) left a 4 m baseline 2.0 mm long = 503 ppm, failing the
+500 ppm gate; 0.25 m (~860 points) lands at 78 ppm. The plane's standard error
+goes as σ/√n, so the radius now grows until it holds enough points — a sparse
+scan needs a wider ball than a dense one for the same accuracy.
+
+**Emitting `tee-plan/1` facts from slice segments is deferred, not forgotten.**
+It would light up `ex_export_ifc` and `bl_build_from_plan` for free. It is also
+exactly the interpretation non-goal #1 forbids: the segments are geometry, and
+calling them walls is a judgement. It needs its own decision record.

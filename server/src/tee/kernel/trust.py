@@ -207,6 +207,22 @@ _EXPLICIT: dict[str, str] = {
     "sense_viewport": "read-scene",
     "sense_camera": "read-scene",
     "sense_transcribe": "read-extract",
+    # --- A67: the point-cloud scan-prep lane ---
+    # DELIBERATELY NO ("pc_", ...) FAMILY ROW. Same lesson as cad_ and trade_
+    # above: a prefix default silently admits whatever is named next, and
+    # nearly every tool in this lane WRITES - a cloud into the workspace, a
+    # DXF onto disk. Reads get the open read tier; anything that mints a
+    # cloud or emits a file is write-artifacts, tabled one line at a time.
+    "pc_open": "write-artifacts",  # copies the cloud into .tee/pointcloud
+    "pc_stat": "read-compute",
+    "pc_level": "write-artifacts",
+    "pc_control_add": "write-artifacts",
+    "pc_control_verify": "read-compute",
+    "pc_scale_apply": "write-artifacts",
+    "pc_slice": "write-artifacts",
+    "pc_section": "write-artifacts",
+    "pc_export": "write-artifacts",
+    "pc_report": "write-artifacts",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",

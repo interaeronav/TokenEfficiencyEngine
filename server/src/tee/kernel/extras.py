@@ -39,6 +39,7 @@ WITNESS = {
     "pdf": "fpdf",
     "assets": "imagehash",
     "cad": "cadquery",
+    "pointcloud": "laspy",
 }
 
 # `cad` moved to a sidecar in A46 P1b and is NOT expected in TEE's own venv,

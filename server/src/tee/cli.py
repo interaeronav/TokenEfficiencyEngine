@@ -106,6 +106,17 @@ def _attach_capture(app, project: str, extract_store) -> None:
     register_capture_tools(app, Path(project), extract_store=extract_store)
 
 
+def _attach_pointcloud(app, project: str) -> None:
+    """Register the point-cloud scan-prep lane (A67). Needs the `pointcloud`
+    extra for LAS/LAZ; skips silently otherwise, as the kernel works without
+    it. This lane does NOT register clouds - capture_register already does."""
+    try:
+        from tee.pointcloud.tools import register_pointcloud_tools
+    except ImportError:
+        return
+    register_pointcloud_tools(app, Path(project))
+
+
 def _attach_assets(app, project: str, extract_store) -> None:
     """Register TEE Assets tools (stdlib core; astral/shapely lanes degrade
     with actionable errors when their extra is missing)."""
@@ -255,6 +266,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
     _attach_assets(app, args.project, extract_store)
     _attach_capture(app, args.project, extract_store)
+    _attach_pointcloud(app, args.project)
     _attach_pipeline(app, args.project)
     _attach_pins(app, args.project)
     _attach_design(app, args.project)

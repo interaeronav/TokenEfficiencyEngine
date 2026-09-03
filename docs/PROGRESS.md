@@ -10024,7 +10024,6 @@ tests as they stood before their re-statements - both modules re-run green
 after, 14 and 20); the server's 24 seamkiln adapter tests pass; lint clean
 on every file touched. Surface unchanged: 17 tools / 2,033 tok.
 
-
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
@@ -10512,3 +10511,121 @@ declare a `round(x, 3)` helper.
 **PROGRESS itself:** the commit helper that stages only A66's paths appended
 this campaign's entries to HEAD's copy on every commit and stacked five
 copies of them; this commit rebuilds the file with one.
+
+## A67 — the point-cloud scan-prep lane: `pc_*` built and closed (2026-09-03)
+
+Owner: the A67 brief, then mid-turn *"use TEE"* and *"TEE/QMAX"*, then
+*"COMPLETE ALL PHASES WITHOUT MY INPUT, I'M OFF TO BED"*. Plan of record
+`CLAUDE_A67_SCRIPT.md`; design of record research doc 69; user guide
+`docs/pointcloud-lane.md`. Decisions in `docs/DECISIONS.md` under the same
+heading.
+
+**The gap this closed, named precisely.** TEE already had the back half of
+reality capture (`capture_*`, A42, all phases CLOSED). It did not have: any
+binary point-cloud reader (`capture/tools.py:303` maps ODM's
+`odm_georeferenced_model.laz` as an artifact the lane *produces and never
+opens*); anything that consumes the tape measurements
+`docs/okongo-capture-protocol.md` §1/§4 sends the owner to site to collect; or
+RANSAC / plane fitting / normal estimation anywhere. A42 T6 is what the second
+gap cost: 7-DOF ICP on unreferenced video collapsed (scale → 0, RMS 15 µm,
+1.17 M points in a 0.5 mm blob) and scale had to be borrowed from the design
+envelope (×6.12). `pc_control_add` / `pc_control_verify` are that missing input.
+
+**Measured before design (this Mac, `server/.venv` py3.11.15, appendix fixture
+`seed=7` → 279,352 points):**
+
+```
+A1 level     residual tilt 0.0000 deg | floor RMS 11.7 mm     gate 0.05 / 12+-20%
+A2 yaw       3D normal-hist k=160  err 0.004 deg              gate 0.5
+             k=80 0.040 | k=40 0.068 | k=20 0.073
+             2D PCA full band 0.073 | 2D PCA 50 mm slice 1.289  <- FAILS
+             2D normals (XY neighbourhoods)         26.350      <- collapses
+A3 slice     4 segments, +2.1 / -0.8 mm                       gate +-5 mm
+A4 control   161 ppm; corrected +1.4 / -1.3 mm                gate 500 ppm / +-2 mm
+A7 budget    682 tokens for the whole 6-call sequence         gate 2,000
+   timing    level + yaw 0.24 s on 279,352 points
+
+format facts
+  trimesh PLY is float32: local 0.000 mm | ENU 0.004 | UTM 249.991 | ECEF 249.995
+  LAS scale sweep, file size IDENTICAL (6,800,375 B) at every scale:
+    1e-2 5.0000 mm | 1e-3 0.5000 | 1e-4 0.0500 | 1e-5 0.0050 mm
+  LAZ lossless vs LAS, 2.62x smaller; laspy chunk_iterator streams
+  ezdxf.units.M -> $INSUNITS 6 | .MM -> 4
+  CloudCompare 2.13.2 with QLAS_IO, QE57_IO, QRANSAC_SD, QHOUGH_NORMALS plugins
+  licences (PyPI, 2026-09-03): laspy BSD-2 | lazrs MIT | trimesh MIT
+                               plyfile GPL-3.0-or-later | pye57 MIT | open3d MIT
+```
+
+**Built.** `server/src/tee/pointcloud/` (store, io, level, control, slice2d,
+report, tools), mirroring `ex_*` in-tree on `server/.venv`. **Ten virtual tools,
+zero added to the always-loaded 17**: `pc_open`, `pc_stat`, `pc_level`,
+`pc_control_add`, `pc_control_verify`, `pc_scale_apply`, `pc_slice`,
+`pc_section`, `pc_export`, `pc_report`. Each tabled **individually** in
+`trust.py::_EXPLICIT` — no `("pc_", …)` family row, the `cad_`/`trade_` lesson.
+New `pointcloud` extra (laspy[lazrs], scipy, numpy, ezdxf, trimesh) plus a
+`WITNESS` row.
+
+**Evidence: 1272 passed, 13 skipped** (full server suite, 79 s), of which 76 are
+the new lane. Ruff clean over `src tests ../benchmarks`. Benchmark
+`run_pointcloud_scenario`: **91,820 naive → 682 TEE tokens, 99.26% saving**, and
+the naive arm is flattered — it reads one point in forty.
+
+**Facts learned:** the floor is the LOWEST dominant horizontal plane, not the
+most populous (floor and ceiling tie on count, and the first implementation hung
+the room under its ceiling); normals must be 3D (a 2D estimator kept 6 of 40,000
+neighbourhoods and returned 26° of error); yaw comes from the full-height wall
+band and never from the slice (1.289° vs a 0.5° gate); PLY export must be
+origin-shifted because trimesh writes float32; LAS scale 1e-4 is free precision
+and 1e-3 spends a quarter of the ±2 mm budget; fit residual is reported as
+median because max sits at ~2.9σ and reads as failure; and the control-snap
+radius is a sample-size floor (0.15 m → 503 ppm and a failing gate, 0.25 m →
+78 ppm), so it now grows until it holds enough points.
+
+**A defect this build found in its own brief:** `plyfile`, listed as a core
+dependency, is GPL-3.0-or-later — already banned in this repo by research doc 43
+and `voxkiln/license_lint.py`. Replaced with trimesh, which doc 43 had already
+recorded as the replacement. `pye57` and `open3d` were dropped too, but on
+weight, not licence — recorded separately so the licence record stays honest.
+
+**A regression this build caused and fixed:** registering `pc_control_check`
+pushed `ex_estimate` from rank 5 to rank 6 for the vague query "check the
+drawing", because "check" scores 3 points on a name match. Caught by
+`test_search_budget.py`; four candidate names were scored against the whole case
+set and the tool is now `pc_control_verify`.
+
+**A6 verified against third-party software, not just against ezdxf.**
+CloudCompare 2.13.2 opened the emitted DXF headless, found exactly 4 polylines,
+and exported them; every segment length it measured matches what `pc_slice`
+reported to **0.0000 mm** against a 1 mm gate:
+
+```
+cc_all_000000.asc  2 vertices -> 3.006200 m      pc_slice said 3.0062
+cc_all_000001.asc  2 vertices -> 2.916700 m      pc_slice said 2.9167
+cc_all_000002.asc  2 vertices -> 4.057100 m      pc_slice said 4.0571
+cc_all_000003.asc  2 vertices -> 4.052500 m      pc_slice said 4.0525
+$INSUNITS group 70 = 6 (metres), read from the raw file with no library
+```
+
+**A defect the live run found, after the suite was already green:** a baseline
+is a measurement OF a cloud, so it scales with the cloud - but `pc_scale_apply`
+carried the parent's `measured_mm` forward untouched. `pc_report` then read
+pre-correction deltas and called a freshly corrected scan **"SHAPE ONLY - do not
+scale off this drawing"**, the opposite of true. Fixed by transforming the
+baselines with the geometry; rigid ops (`pc_level`) still carry them untouched,
+because a rotation preserves distance. Both directions are now pinned. Live
+evidence after the fix: verdict SHAPE ONLY / worst 16.1 mm -> **TRUSTWORTHY /
+worst 0.8 mm**, and re-verifying the corrected cloud suggests a scale of
+0.9999996, i.e. it correctly reports that no further correction is needed. This
+is the argument for driving a lane end to end after the tests pass: 76 green
+tests did not catch it, because every one of them checked a single step.
+
+**Open:** `pc_crop`, `pc_clean`, `pc_ortho` and a `pc_merge` wrapping
+`capture_register` are deferred to a second pass. **No real fixture exists** —
+`testbeds/` is absent and there is no `.ply`/`.las`/`.e57` in the repo, so the
+synthetic fixture carries the whole gate; one room export under 20 MB plus its
+tape measurements would make A7 and A9 real-world numbers.
+
+**Not mine, still red:** `server/src/tee/adapters/partkiln/adapter.py`
+(untracked, dated 2026-09-02, the concurrent A66 session) carries 2 ruff errors
+— RUF059 at :471 and E501 at :779 — so `make check` fails on that file alone.
+Left untouched deliberately: that session may be mid-edit.

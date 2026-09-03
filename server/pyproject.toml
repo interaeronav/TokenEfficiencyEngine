@@ -102,6 +102,34 @@ medimg-monai = [
 cad = [
     "cadquery>=2.8.0",
 ]
+# A67: the point-cloud scan-prep lane (pc_*). Every inclusion and every
+# EXCLUSION is deliberate; the exclusions are the load-bearing part.
+#   laspy   BSD-2-Clause, lazrs MIT (PyPI-verified 2026-09-03) - LAS/LAZ,
+#           the one format the capture lane already PRODUCES
+#           (odm_georeferenced_model.laz) and could never read.
+#   scipy   BSD-3. Declared here ON PURPOSE: cKDTree is load-bearing for
+#           normal estimation and it currently reaches this venv only
+#           transitively, so a clean rebuild would silently drop it.
+#   numpy / ezdxf / trimesh already arrive with [extract]; listed so this
+#           extra is installable on its own.
+# NOT here, and none of these is an oversight:
+#   plyfile   GPL-3.0-or-later (PyPI classifier, verified 2026-09-03). TEE is
+#             MIT. research/43 already banned it and voxkiln performed vendor
+#             surgery to excise it; doc 43's recorded replacement is trimesh,
+#             which reads and writes PLY and is already here.
+#   pye57     MIT, but it builds libE57Format. CloudCompare 2.13.2 ships
+#             libQE57_IO_PLUGIN and is already a lane dependency, so E57 is a
+#             conversion away and refuses honestly when CC is absent.
+#   open3d    MIT, ~400 MB, for ICP alone - and there IS no ICP here:
+#             capture_register already owns it, gate and degeneracy guard
+#             included. test_a46_no_heavy_imports.py bans exactly this shape.
+pointcloud = [
+    "laspy[lazrs]>=2.7.0",
+    "scipy>=1.17.1",
+    "numpy>=2.4.6",
+    "ezdxf>=1.4.4",
+    "trimesh>=5.0.0",
+]
 # assets-embed / assets-gen are declared below but stay loosely pinned on
 # purpose: torch wheels are backend- and machine-specific (CUDA build vs the
 # Apple-Silicon build), so pinning an exact version here would break one of

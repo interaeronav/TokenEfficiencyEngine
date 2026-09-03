@@ -1228,6 +1228,80 @@ def run_senses_scenario() -> dict | None:
     }
 
 
+def run_pointcloud_scenario() -> dict | None:
+    """A67: what levelling and sectioning a room scan costs a model.
+
+    The naive arm is not a straw man. It is what a model must read to work a
+    point cloud through a tool that has no compact state: the cloud itself.
+    A 280 K-point room is 280 K XYZ triples, and "where is the floor" is a
+    question you cannot answer without them - so the naive arm reads a
+    DECIMATED cloud (every 40th point, the most generous honest reading) and
+    does the plane arithmetic itself.
+
+    The TEE arm is pc_open, pc_level, two control baselines, pc_control_verify
+    and pc_slice. Same cloud, same floor, same four walls, same scale check -
+    only the reporting differs, which is the whole claim.
+    """
+    try:
+        from tee.kernel.adapter import FakeAdapter
+        from tee.pointcloud.io import write as write_cloud
+        from tee.pointcloud.tools import register_pointcloud_tools
+    except ImportError as exc:
+        print(f"run_pointcloud_scenario: skipped ({exc})")
+        return None
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server" / "tests"))
+    from fixtures_pointcloud import make_room
+
+    points, _truth = make_room()
+    work = Path(tempfile.mkdtemp())
+    scan = work / "room.ply"
+    write_cloud(points, scan, "ply")
+
+    app = TeeApp({"fake": FakeAdapter()}, project_root=work)
+    try:
+        register_pointcloud_tools(app, work)
+        meter = Meter()
+
+        def call(tool, **args):
+            out = app.registry.call(tool, args)
+            meter.call({"tool": tool, **args}, out)
+            return out
+
+        opened = call("pc_open", path=str(scan))
+        levelled = call("pc_level", cloud_id=opened["cloud_id"])
+        cid = levelled["cloud_id"]
+        box = levelled["bbox_m"]
+        mid_y = (box[1] + box[4]) / 2
+        mid_x = (box[0] + box[3]) / 2
+        call("pc_control_add", cloud_id=cid, name="long wall",
+             p1=[box[0] + 0.05, mid_y, 1.2], p2=[box[3] - 0.05, mid_y, 1.2], true_mm=4000.0)
+        call("pc_control_add", cloud_id=cid, name="short wall",
+             p1=[mid_x, box[1] + 0.05, 1.2], p2=[mid_x, box[4] - 0.05, 1.2], true_mm=3000.0)
+        call("pc_control_verify", cloud_id=cid)
+        call("pc_slice", cloud_id=cid, z_m=1.2, out=["dxf"])
+    finally:
+        app.shutdown()
+        shutil.rmtree(work, ignore_errors=True)
+
+    naive = Meter()
+    naive.call({"request": "read the scan so I can find the floor"}, "")
+    decimated = points[::40]
+    naive.text("\n".join(f"{x:.4f} {y:.4f} {z:.4f}" for x, y, z in decimated))
+    naive.call({"request": "read it again after levelling to section it"}, "")
+    naive.text("\n".join(f"{x:.4f} {y:.4f} {z:.4f}" for x, y, z in decimated))
+
+    return {
+        "naive_tokens": naive.tokens,
+        "naive_calls": naive.round_trips,
+        "tee_tokens": meter.tokens,
+        "tee_calls": meter.round_trips,
+        "saving": 1 - meter.tokens / naive.tokens,
+        "points": len(points),
+        "decimation": 40,
+    }
+
+
 def run_seamkiln_scenario() -> dict | None:
     """A53 P4: what drafting, sewing, draping and fitting a tee costs a model.
 
@@ -1314,6 +1388,7 @@ def run_seamkiln_followup_scenario() -> dict | None:
     """
     try:
         from seamkiln.drape.dressing import dress  # noqa: F401
+
         from tee.adapters.seamkiln import SeamkilnAdapter
     except ImportError as exc:
         print(f"seamkiln follow-up scenario skipped ({exc})")
@@ -1799,9 +1874,11 @@ def main() -> None:
     senses_row = _safe(run_senses_scenario)
     seamkiln_row = _safe(run_seamkiln_scenario)
     seamkiln_followup_row = _safe(run_seamkiln_followup_scenario)
+    pointcloud_row = _safe(run_pointcloud_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
-                  fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row)
+                  fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row,
+                  pointcloud_row)
     _stage("total", t0)
 
 
@@ -1869,7 +1946,7 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
                   kb_row=None, web_row=None, gateway_row=None,
                   fabrication_row=None, senses_row=None, seamkiln_row=None,
-                  seamkiln_followup_row=None) -> None:
+                  seamkiln_followup_row=None, pointcloud_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -2126,6 +2203,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _seamkiln_followup_section(seamkiln_followup_row)
     else:
         lines += _carry_forward("## Garment lane: dress, zip, walk, hand off (A65)")
+    if pointcloud_row is not None:
+        lines += _pointcloud_section(pointcloud_row)
+    else:
+        lines += _carry_forward("## Point-cloud scan prep: level, scale-check, section (A67)")
     # Sections owned by the SIBLING runners (run_k4_mixed.py wrote the A42
     # scheduler row; run_p6_pipeline.py the A43 lane row). This file rewrites
     # RESULTS.md wholesale, so anything it does not carry forward is deleted
@@ -2190,6 +2271,30 @@ def _fabrication_section(f: dict) -> list[str]:
         f"{f['naive_calls']} | |",
         f"| TEE (solved batches + sheet files) | {f['tee_tokens']:,} | "
         f"{f['tee_calls']} | **{f['saving']:.1f}%** |",
+    ]
+
+
+def _pointcloud_section(row: dict) -> list[str]:
+    return [
+        "",
+        "## Point-cloud scan prep: level, scale-check, section (A67)",
+        "",
+        f"A {row['points']:,}-point room scan taken from raw file to a scale-verified DXF "
+        "the owner can trace.",
+        "",
+        "| Arm | Tokens | Calls |",
+        "|---|---|---|",
+        f"| naive (reads the cloud, every {row['decimation']}th point) | "
+        f"{row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| TEE (`pc_open` to `pc_slice`, digests only) | {row['tee_tokens']:,} | "
+        f"{row['tee_calls']} |",
+        "",
+        f"**Saving: {row['saving'] * 100:.1f}%.** The naive arm is already being flattered - "
+        f"reading 1 point in {row['decimation']} is far more generous than a real tool that "
+        "returns what it holds. The lane's own cap (no array over 64 elements, no string over "
+        "2 KB) is what keeps the TEE arm flat as the cloud grows: the same five calls cost the "
+        "same whether the scan is 280 K points or 15 M.",
+        "",
     ]
 
 

@@ -17,6 +17,7 @@ from tee.app import TeeApp
 from tee.extract.tools import register_extract_tools
 from tee.kernel.adapter import FakeAdapter
 from tee.pdf import register_pdf_tools
+from tee.pointcloud.tools import register_pointcloud_tools
 from tee.senses import register_sense_tools
 
 CASES = [
@@ -34,6 +35,11 @@ CASES = [
     ("dicom study", "med_find_studies"),
     ("ingest site photos", "ex_ingest"),
     ("query a semantic layer", "bi_query"),
+    # A67: the pc_* lane must stay findable without displacing the rest
+    ("open a lidar scan", "pc_open"),
+    ("level a point cloud on its floor", "pc_level"),
+    ("floor plan from a scan", "pc_slice"),
+    ("check a scan against a tape measurement", "pc_control_verify"),
     # deliberately vague - these are why the default is 5 and not 3
     ("make a document", "pdf_compose"),
     ("look at this", "sense_describe"),
@@ -50,6 +56,7 @@ def registry():
     register_extract_tools(app, root)
     register_sense_tools(app, root)
     register_pdf_tools(app, root)
+    register_pointcloud_tools(app, root)
     return app.registry
 
 

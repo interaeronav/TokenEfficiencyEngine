@@ -89,6 +89,21 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   seamkiln, headless-first with the GUI as a later phase, name `partkiln` /
   prefix `pk_`, v1 = parts + assemblies + drawings + exports with sheet
   metal last.
+- The A67 build (`pc_*`: a headless point-cloud scan-prep lane that turns a raw
+  scan into scale-verified, axis-aligned DXF/SVG tracing templates while the
+  model never sees a point) is **COMPLETE**; `CLAUDE_A67_SCRIPT.md` is the plan
+  of record, research doc 69 the design of record, `docs/pointcloud-lane.md` the
+  user guide. It is the FRONT half of reality capture and does not duplicate the
+  back half: `capture_register` still owns ICP, gate and degeneracy guard
+  included. Its measured laws outrank memory: `plyfile` is GPL-3.0-or-later and
+  BANNED (doc 43's recorded replacement, trimesh, is what the lane uses); trimesh
+  writes PLY as float32, so a UTM cloud loses 250 mm unless origin-shifted; LAS
+  scale 1e-4 costs no extra bytes while 1e-3 spends a quarter of a +-2 mm budget;
+  the floor is the LOWEST dominant horizontal plane, not the most populous; and
+  wall azimuth comes from 3D normals over the full-height band, never from a
+  slice. Every `pc_*` tool is tabled individually in the trust table - there is
+  deliberately no `pc_` family row.
+
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured
