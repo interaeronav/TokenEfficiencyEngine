@@ -8325,6 +8325,12 @@ lands at rank 4, which is why the default is 5 and not the smallest number
 that would have looked defensible. Reply cost **~370 → ~229 tokens**, a 38%
 cut on the most frequent call, with **zero recall lost**.
 
+*(Re-measured under A66 on 2026-09-02, when partkiln's fourteen tools took the
+corpus to 81: 28/29 at limit 3 and 29/29 at 5, 8 and 10 — the same shape, the
+same default, a different witness at rank 4. The numbers above are what was
+true in August against 42 tools; `server/tests/test_search_budget.py` now
+executes the current table rather than reciting it.)*
+
 `more` now names how many results were suppressed, so a caller can tell
 "that is everything" from "that is the top five" — 3 tokens to remove an
 ambiguity that would otherwise be resolved by guessing.
@@ -10023,7 +10029,6 @@ run reported 267 with two failures that were the swing-ratio and coat-guard
 tests as they stood before their re-statements - both modules re-run green
 after, 14 and 20); the server's 24 seamkiln adapter tests pass; lint clean
 on every file touched. Surface unchanged: 17 tools / 2,033 tok.
-
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 

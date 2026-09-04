@@ -1239,6 +1239,27 @@ when built, is a client of `partkiln.document` exactly as seamkiln's is.
 - **A cosmetic thread changes nothing.** It is stored on the feature and
   the fingerprint is bit-identical with and without it (Law 18).
 
+**Rulings from the adversarial audit (P4–P5 close, 123 agents, 31 findings
+confirmed and 8 killed), each pinned by a test that fails on the old code:**
+
+- **A check that samples a grid is not a check.** `min_wall` cast its rays
+  from the centre of each UV cell, so a 0.600 mm web between two holes was
+  never sampled and `check_spec` PASSED it against a 1.5 mm limit. The
+  measurement now samples the interior on a bounded lattice and reports the
+  worst point with its coordinates. A safety check that can miss is worse
+  than no check, because it is believed.
+- **A failed regen leaves the document as it was.** A rebuild that threw
+  part-way used to leave the document holding half-built parts with the old
+  script; regen now builds into a scratch document and swaps it in only on
+  success, exactly as a batch rolls back (Law 16).
+- **A replay rebuilds against the units it recorded.** Regen read
+  `doc.units` as it stood today, so a script written in inches replayed as
+  millimetres after a `set doc units=mm`. The unit in force at each command
+  is part of the command.
+- **A refusal keeps the door open.** Every `pk_*` refusal added by the audit
+  names the measured value, the limit it broke and the one edit that fixes
+  it; a refusal that only says no was treated as a defect and rewritten.
+
 ## A67 — the point-cloud scan-prep lane: `pc_*` (2026-09-03)
 
 Owner directive: the A67 brief (now `CLAUDE_A67_SCRIPT.md`), then mid-turn
