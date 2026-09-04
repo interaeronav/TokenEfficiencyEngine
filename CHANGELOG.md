@@ -3,7 +3,11 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased
+## 0.21.1 — 2026-09-04
+
+One change, and it is the one that lets Claude Desktop reach the two lanes
+0.20.0 and 0.21.0 shipped. Verified from a clean checkout of the commit this
+was cut from.
 
 ### One server, three lanes
 
