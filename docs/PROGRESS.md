@@ -11664,3 +11664,30 @@ the note says so.
 the traced cabinet envelope sits over them at a heavier pen with its dimensions.
 
 **Evidence: 63 passed**, all five sheets 0 legibility findings. Re-issued P07.
+
+## A67 — CLOSE (2026-09-04)
+
+The `pc_*` lane and the `drafting` critic are complete and the Okongo set is
+issued at P07. Five sheets, all clearing both critic tiers; handover note in
+`~/Downloads/Okongo-Scan-Test/HANDOVER.md`.
+
+**Final evidence: 1423 passed, 12 skipped** (server, excluding two seamkiln
+files the concurrent session has mid-edit), **63 passed** (drafting).
+
+**What the campaign shipped beyond its own script:** A67 planned a point-cloud
+lane. It also produced a two-tier drafting critic (`drafting/`, 24 rules), an
+elevation/axonometric module, and fixes to bugs in `pc_level`, `pc_control` and
+`capture_register` that only real data exposed.
+
+**The through-line, worth carrying into the next lane:** every defect in this
+campaign was found by data, not by review. The synthetic fixture passed while
+the fitter ran 4 m diagonals through a bed. The spec critic passed a sheet whose
+cut line crossed two room names. Two tape readings agreed on a scale factor that
+did not exist, because both shared an inward bias. A band parameter I told the
+owner was the judgement call turned out not to move the drawing at all. In each
+case the fix was to measure the thing rather than reason about it - and in each
+case the measurement was cheap and the reasoning was confident and wrong.
+
+**Open, deliberately:** `pc_crop`, `pc_clean`, `pc_ortho`, `pc_merge`; a scale
+still UNVERIFIED pending two more tape baselines; `CHECKED BY` unset on every
+sheet, which only the owner can close.
