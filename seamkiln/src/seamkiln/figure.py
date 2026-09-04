@@ -97,6 +97,13 @@ class Build:
     calf_r: float = 0.040
     # the arm's resting abduction, degrees
     arm_abduction: float = 32.0
+    # the trapezius: how far the neck's base rises above the shoulder line,
+    # as a fraction of H, with a slope from there down to each deltoid's
+    # top. 0 is the flat trunk top the figure always had (its deltoids
+    # stand 40 mm proud of it as bumps a sleeve cap has to climb); the
+    # survey's cervicale minus acromial height, 0.0375 H on women, is the
+    # drop a real shoulder line makes from the neck to the acromion.
+    trapezius: float = 0.0
     # how each proportion scales with a change of chest girth at fixed
     # stature: log-log slopes on chest circumference, stature held, from
     # the survey (see ALLOMETRY). Missing fields scale with exponent 0.
@@ -167,6 +174,7 @@ ANSUR_II: dict[str, tuple[float, float]] = {
     "trochanterionheight": (845.4, 900.9),
     "waistheightomphalion": (980.1, 1056.5),
     "cervicaleheight": (1395.7, 1517.3),
+    "acromialheight": (1335.1, 1440.7),
     "kneeheightmidpatella": (449.0, 488.4),
 }
 
@@ -201,10 +209,18 @@ def _female_build() -> Build:
             / ANSUR_II["stature"][1]
         )
     )
+    # the shoulder line's drop from the neck base to the acromion, and the
+    # deltoid's top above the joint, so the neck base sits that much above
+    # the shoulder joint and the slope ends on the deltoid
+    deltoid_r = MALE.deltoid_r * deltoid
+    shoulder_line_drop = (
+        ANSUR_II["cervicaleheight"][0] - ANSUR_II["acromialheight"][0]
+    ) / ANSUR_II["stature"][0]
     return replace(
         MALE,
         name="female",
         allometry=ALLOMETRY["female"],
+        trapezius=shoulder_line_drop + deltoid_r * 0.94 - MALE.shoulder_drop,
         pelvis_y=pelvis_y,
         waist_rise=waist_y - pelvis_y,
         spine=neck_y - waist_y,
@@ -221,7 +237,7 @@ def _female_build() -> Build:
         waist_r=MALE.waist_r * r("waistcircumference"),
         pelvis_r=MALE.pelvis_r * r("buttockcircumference"),
         bust=0.30,
-        deltoid_r=MALE.deltoid_r * deltoid,
+        deltoid_r=deltoid_r,
         neck_r_top=MALE.neck_r_top * r("neckcircumference"),
         neck_r_bottom=MALE.neck_r_bottom * r("neckcircumferencebase"),
         head_r=MALE.head_r * r("headcircumference"),
@@ -442,6 +458,19 @@ def figure(
     # with margin to spare through a walk.
     for tag in ("l", "r"):
         add(_ball(j[f"shoulder_{tag}"], H * b.deltoid_r, squash=(1.06, 0.94, 1.0)), SUIT)
+    if b.trapezius > 0.0:
+        # the shoulder line: from the neck's base down to the top of each
+        # deltoid, so a garment's shoulder seam rests on a slope that ends
+        # on the deltoid instead of a flat top with the deltoid proud of it
+        neck_base = j["neck"] + np.asarray([0.0, H * b.trapezius, 0.0])
+        for tag in ("l", "r"):
+            deltoid_top = j[f"shoulder_{tag}"] + np.asarray([0.0, H * b.deltoid_r * 0.94, 0.0])
+            add(
+                _frustum(
+                    neck_base, deltoid_top, H * b.neck_r_bottom * 0.95, H * b.deltoid_r * 0.60
+                ),
+                SUIT,
+            )
 
     belt = j["waist"] + np.asarray([0.0, -H * 0.014, 0.0])
     add(

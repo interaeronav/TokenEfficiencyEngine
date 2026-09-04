@@ -10358,6 +10358,32 @@ tee is dressed without the head basting that the block's deep cap
 needs, and this is the small version of the slide that basting was
 written to stop.
 
+**The creep, fixed (owner: "fix the sleeve creep").** Measured per frame
+against the body: both cap apexes sat 65-120 mm inboard of the deltoid
+crest, and on the creeping side the tee's own shoulder point and the apex
+walked outward together (164 to 200 mm in two strides) while the tee's
+centre moved 8 - the shoulder region climbing over the deltoid and the
+sleeve following down the arm (hem 44 to 89 mm down it). Four hypotheses
+tested and rejected on the same walk: the 11 mm lateral asymmetry after
+dressing (centred to 6 mm: still 33 mm of creep); the cap not hooked over
+the crest (shoulders narrowed to the survey's biacromial so the cap sat
+over the deltoid: the OTHER side crept 28); the loose neckline (93 mm of
+slack; a neck the opening engages: unchanged); and the dressing (with
+the head basted the cap folds and jams, no creep; with sleeves basted and
+no head, the other side crept inward). One side always walked and the
+other held: a friction ratchet on a level surface with nothing to centre
+it. The figure's trunk top is flat at the neck joint with the deltoid
+balls standing 40 mm proud of it, where a person's shoulder line falls
+from the neck to the acromion. `Build.trapezius` gives the female build
+that slope - the neck base raised by the survey's cervicale-minus-
+acromial drop (0.0375 H) plus the deltoid's top, two frusta down to the
+deltoids - and the male build keeps 0 and its digests. On it the tee's
+shoulder points sit symmetric at +-180 mm and stay: Esq 181 to 181, Dir
+-186 to -181, both sleeves settling 7 mm outward together; rest drape
+seams 0.38 mm mean and 4.6 max, worn, zero penetration, sleeves facing
+0.88 / 0.90. The guard: the block on the female figure through a stride
+and a half, both shoulder points within 12 mm (measured -1 and 0).
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE

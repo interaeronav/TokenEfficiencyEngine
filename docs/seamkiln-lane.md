@@ -353,7 +353,12 @@ widest trunk slice below the deltoids, and the rest of the body follows
 the chest by the survey's slopes at fixed stature (shoulders 0.09, upper
 arm 0.84, waist 1.12, hips 0.60 on the female build), because a trunk
 scaled alone left the shoulder girdle in free air and folded both sleeve
-caps. A women's M tee on the female figure at 1.65 m and 0.86 m:
+caps. The female build also has a trapezius: the shoulder line slopes from
+the neck base down to the deltoid tops by the survey's cervicale-minus-
+acromial drop, where the male figure's trunk top is flat with the deltoids
+standing proud of it - on that flat top a walking tee's shoulder ratcheted
+outward 36 mm in two strides; on the slope it holds to a millimetre. A
+women's M tee on the female figure at 1.65 m and 0.86 m:
 `camiseta_female_1_65_0_86.json` in the session scratchpad.
 
 ## Render properties on the card

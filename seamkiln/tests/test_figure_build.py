@@ -105,6 +105,82 @@ def test_a_chest_girth_fits_the_trunk_and_is_measured_where_cloth_touches() -> N
         figure(Pose(), height=H, chest_m=86.0)
 
 
+def test_the_female_build_has_the_surveys_shoulder_slope_and_the_male_none() -> None:
+    """The trapezius: the figure's trunk top was flat at the neck joint with
+    the deltoids standing 40 mm proud of it, and a cap sleeve on a walking
+    female figure ratcheted one shoulder of its tee outward 36 mm in two
+    strides - whichever side, whatever the neckline or the shoulder width.
+    With the shoulder line sloping from the neck base to the deltoid tops
+    by the survey's cervicale-minus-acromial drop, both shoulders held to
+    a millimetre. The male build keeps the flat top and its digests."""
+    drop = (ANSUR_II["cervicaleheight"][0] - ANSUR_II["acromialheight"][0]) / ANSUR_II["stature"][0]
+    assert 0.035 < drop < 0.040
+    assert FEMALE.trapezius == pytest.approx(drop + FEMALE.deltoid_r * 0.94 - MALE.shoulder_drop)
+    assert MALE.trapezius == 0.0
+    female = figure(Pose(), height=H, build="female")
+    assert female.is_watertight
+    # the shoulder line falls from the neck base to the deltoid: the highest
+    # trunk point inboard of the deltoid is higher than the deltoid's top
+    v = np.asarray(female.vertices)
+    j = female.metadata["joints"]
+    inboard = v[(np.abs(v[:, 0]) > 0.04) & (np.abs(v[:, 0]) < 0.10) & (v[:, 1] > j["neck"][1])]
+    deltoid_top = j["shoulder_l"][1] + H * FEMALE.deltoid_r * 0.94
+    assert inboard[:, 1].max() > deltoid_top + 0.02
+
+
+def test_a_tee_walks_on_the_female_figure_without_a_shoulder_creeping() -> None:
+    """The guard, coarse: the block's two shoulder points through a stride
+    and a half on the female figure, each within 12 mm of where it started
+    (measured -1 and 0 mm)."""
+    s = Session()
+    s.apply(Command("block", {"block": "tee"}))
+    s.apply(
+        Command(
+            "body",
+            {
+                "kind": "figure",
+                "build": "female",
+                "stature_m": H,
+                "pose": Pose.a_pose().as_values(),
+            },
+        )
+    )
+    s.apply(Command("arrange", {"particle_distance_mm": 20.0}))
+    s.apply(Command("drape", {"fabric": "cotton_jersey", "frames": 60}))
+    g = s.garment
+    r2 = g.rest_points_mm
+    lo, hi = g.panel_slices["FRONT"]
+    front = s.pattern.panel("FRONT")
+    ends = [
+        front.point_on_edge(3, 0.0),
+        front.point_on_edge(3, 1.0),
+        front.point_on_edge(5, 0.0),
+        front.point_on_edge(5, 1.0),
+    ]
+    outer = sorted(ends, key=lambda p: p[0])
+    left, right = outer[0], outer[-1]
+    il = lo + int(np.argmin(np.linalg.norm(r2[lo:hi] - np.asarray(left), axis=1)))
+    ir = lo + int(np.argmin(np.linalg.norm(r2[lo:hi] - np.asarray(right), axis=1)))
+    report = s.apply(
+        Command(
+            "walk",
+            {
+                "gait": "walk",
+                "cycles": 1.5,
+                "fps": 8.0,
+                "samples_per_cycle": 8,
+                "substeps": 12,
+                "voxel_mm": 12.0,
+            },
+        )
+    )
+    assert report["worn_throughout"] is True
+    frames = s.animation
+    for index in (il, ir):
+        drift = abs(float(frames[-1].points[index][0] - frames[0].points[index][0])) * 1000.0
+        assert drift < 12.0, f"a shoulder point crept {drift:.0f} mm"
+
+
 def test_an_unknown_build_is_refused_by_name() -> None:
     with pytest.raises(ValueError, match="no build 'elf'"):
         figure(Pose(), height=H, build="elf")
