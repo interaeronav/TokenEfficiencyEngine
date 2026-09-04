@@ -10419,6 +10419,31 @@ strain map says too, and the row is honest about which it reports
 says so. Two methods for the body's chest now agree within 1.3 % on the
 female figure (849 here, 860 by the figure's own joint-bounded scan).
 
+**The male trapezius (third of three), and the re-basing.** The male
+build gets the same shoulder line from the men's rows: cervicale minus
+acromial height 0.0436 H, plus the deltoid's top, 0.0692 H - 125 mm at
+1.80 m against the female build's 0.0616. The male mesh therefore
+changed, on purpose, and its pinned digests moved from 8244edd0dbca383f /
+4baa5771e2cae3c1 to 37e3345d44683396 / 5b6411bf14a97bff; its height,
+joints and every proportion are as they were. Re-measured, before (flat
+top) and after (slope), the tee block on the male figure at 1.75 m,
+default dressing, 12 mm, jersey, 280 frames: dressed seam max 10.5 to
+8.1; drape seams 0.28 / 10.7 to 0.19 / 8.5, worn, zero penetration both;
+facing sleeves 0.81 / 0.80 to 0.70 / 0.69, front 0.84 to 0.83, back 0.89
+to 0.84; the fit row's chest ease 50 mm, "close"; and the walk, two
+strides: shoulder points left -164 to -164 and right +162 to +162 -
+they hold to the millimetre where the flat top had them at +4 / -9 over
+a stride and a half. The block still needs its head basting on the
+slope: without it a seam opens 45 mm and the left sleeve slides 29 mm
+down the arm in two strides; at 30 mm of head the seam is 10 and the
+slide 22; at the default 60 the seams close at 8 and the shoulders hold.
+So the default dressing stays. The Camiseta on the male figure at
+1.55 m, no basting: seams 0.52 / 13.4 (from 0.32 / 4.0), sleeves facing
+0.90 / 0.92, sleeve strain 17-18 % (from 12) - the steeper male slope
+puts the cap sleeve under more tension, and the female build is the body
+for that tee. Every test that pinned a number on the flat-topped figure
+was re-run; those that moved are re-based below with both numbers.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
@@ -11921,3 +11946,33 @@ green. Formatted; the full gate is green now.
 `ruff format --check` clean across `src tests ../benchmarks`. The one remaining
 failure, `test_seamkiln_adapter.py::test_a_dxf_loads_as_a_batch_op_and_shows_in_the_diff`,
 belongs to the concurrent session's in-progress adapter edit, not to this work.
+
+### 0.21.0 cut and verified (2026-09-04)
+
+Bundle built from a **clean checkout of the release commit**, not from a
+working tree — `make mcpb` does `cp -R src`, and a parallel session had
+uncommitted work in `server/src` at the time. A release artifact must contain
+only committed code, so the build ran in a detached worktree at `92f4744`.
+
+```
+handshake: {'name': 'tee', 'version': '0.21.0'}
+always-loaded tools: 17
+search 'extrude a sketch' reaches pk_*: True   (pk_verbs at rank 1)
+pk_probe from the bundle -> REFUSED  pk_kernel_absent, naming both install routes
+tee-engine-0.21.0.mcpb  1,045,823 B  sha256 fdcf55f3f66502b7…
+```
+
+**The release run caught a defect three green suites had not.** The seamkiln
+adapter test in `server/tests` pinned `unit from $INSUNITS 4` for a file our
+own writer produces. The writer now emits R12, which carries no `$INSUNITS` —
+the unit rides in the Style System Text. The note was right and the pin was
+stale, but the shape of the miss is worth recording: **the change lived in
+`seamkiln/` and its own suite was green, while the assertion that broke sits
+in `server/tests`.** Only a full server run could see it, and a release build
+is exactly the moment that gap surfaces.
+
+**Suites at the cut:** server **1,468 passed / 12 skipped / 116 deselected**;
+partkiln **876 passed / 2 skipped**; seamkiln **429 passed / 5 skipped**
+(measured before the cut, on a quiet machine). Surface unchanged: **17 tools
+/ 2,033 tok**. Three version strings agree at 0.21.0 and
+`mcpb_manifest.json`'s `tools[]` is untouched at 17.
