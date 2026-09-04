@@ -14,6 +14,14 @@ print 337.515 and fail arithmetic done by eye). `mass_g` comes straight
 from the part card when it is there, else from `volume_mm3 x material`
 through `partkiln.materials.mass_g` (the same rounding).
 
+A card that can say NEITHER gets `mass_g: None`, never `0.000` (audited
+defect, 2026-09-04): a zero both printed a mass the kernel does not know to
+3 dp AND vanished silently from the sum, so a bill of materials understated
+the assembly by a whole part while looking precise. Every such part is
+named in `missing_mass` and `partial` is True, so `total_g` reads as the
+lower bound it is (CLAUDE.md hard rule 6: fail loud, and name the fix -
+here, the missing `material` or `mass_g`).
+
 A `virtual` component (the contract's generic `create object`, D5) lands as
 a row of kind `virtual` with whatever the card says - nothing when it says
 nothing - so a generic entity is counted, never a refusal.
@@ -29,14 +37,15 @@ from partkiln.document import CommandError
 VIEWS = ("parts", "structured")
 
 
-def _mass_g(part: str, card: dict[str, Any]) -> float:
-    if "mass_g" in card and card["mass_g"] is not None:
+def _mass_g(card: dict[str, Any]) -> float | None:
+    """One unit's mass in grams, or None when the card cannot say."""
+    if card.get("mass_g") is not None:
         return round(float(card["mass_g"]), 3) + 0.0
     if card.get("volume_mm3") is not None and card.get("material"):
         from partkiln.materials import mass_g
 
         return mass_g(str(card["material"]), float(card["volume_mm3"]))
-    return 0.0
+    return None
 
 
 def _row(
@@ -46,7 +55,11 @@ def _row(
     qty: int,
     components: list[str],
 ) -> dict[str, Any]:
-    each = _mass_g(comp.part_name, card)
+    each = _mass_g(card)
+    if each is None and comp.virtual:
+        # A virtual component is an annotation with no geometry (D5): the
+        # contract is "whatever the card says, nothing when it says nothing".
+        each = 0.0
     return {
         "item": item,
         "kind": "virtual" if comp.virtual else "part",
@@ -54,18 +67,21 @@ def _row(
         "qty": qty,
         "material": str(card.get("material") or "none"),
         "mass_g": each,
-        "total_g": round(each * qty, 3) + 0.0,
+        "total_g": None if each is None else round(each * qty, 3) + 0.0,
         "standard": str(card.get("standard_designation") or card.get("standard") or ""),
         "components": list(components),
     }
 
 
 def bom(asm: Assembly, parts: dict[str, dict[str, Any]], view: str = "parts") -> dict[str, Any]:
-    """`{view, rows, total_g, count}` for the assembly.
+    """`{view, rows, total_g, partial, missing_mass, count}` for the assembly.
 
     `parts` maps part name -> `{material, mass_g | volume_mm3, standard_designation}`;
     a component whose part has no card refuses naming the cards it does
     have, unless the component is virtual (then the row is empty of mass).
+    A card that names neither a mass nor a material leaves that row's
+    `mass_g`/`total_g` at None: `total_g` then sums only the rows that HAVE
+    a mass, `partial` is True and `missing_mass` names the parts to price.
     """
     if view not in VIEWS:
         raise CommandError(f"view {view!r} is not one of {', '.join(VIEWS)}.", code="pk_bad_op")
@@ -82,8 +98,18 @@ def bom(asm: Assembly, parts: dict[str, dict[str, Any]], view: str = "parts") ->
         for comp in asm.components.values():
             card = _card(comp.part_name, comp, cards)
             rows.append(_row(len(rows) + 1, comp, card, 1, [comp.name]))
-    total = round(sum(r["total_g"] for r in rows), 3) + 0.0
-    return {"view": view, "rows": rows, "total_g": total, "count": sum(r["qty"] for r in rows)}
+    total = round(sum(r["total_g"] for r in rows if r["total_g"] is not None), 3) + 0.0
+    # dict.fromkeys: first-use order, one entry per part even in the
+    # structured view where every instance is its own row.
+    missing = list(dict.fromkeys(r["part"] for r in rows if r["mass_g"] is None))
+    return {
+        "view": view,
+        "rows": rows,
+        "total_g": total,
+        "partial": bool(missing),
+        "missing_mass": missing,
+        "count": sum(r["qty"] for r in rows),
+    }
 
 
 def _card(part: str, comp: Component, cards: dict[str, dict[str, Any]]) -> dict[str, Any]:

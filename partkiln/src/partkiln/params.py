@@ -396,9 +396,20 @@ class Params:
                 f"{name!r} is reserved (a function, pi, or a unit). Pick another name.",
                 code="pk_bad_expr",
             )
-        if isinstance(expr, bool) or expr is None:
-            raise CommandError(f"{name}: {expr!r} is not a value.", code="pk_bad_expr")
-        text = str(expr).strip() if isinstance(expr, str) else repr(float(expr))
+        # D8/rule 6: what a model sends is never allowed back out as a raw
+        # TypeError. A list, a dict, None and a flag are all "not a value", and
+        # the refusal says what a value IS.
+        if isinstance(expr, str):
+            text = expr.strip()
+        elif isinstance(expr, int | float) and not isinstance(expr, bool):
+            text = repr(float(expr))
+        else:
+            raise CommandError(
+                f"{name}: {expr!r} is not a parameter value. A value is a number (12), a "
+                "unit literal ('12mm', '30deg') or an expression over the other parameters "
+                "('W/2 - 5mm').",
+                code="pk_bad_expr",
+            )
         evaluated = self.evaluate(text)  # validates the expression against the CURRENT table
         if name in evaluated.depends_on:
             raise CommandError(

@@ -11,6 +11,13 @@ Designations are parsed tolerantly ('M6', 'm6', 'M6x1', 'M6-1', 'M6 x 1.0')
 because the model is going to write all of them; a size that is not tabled
 refuses with the nearest sizes that are, and an unknown standard refuses with
 the ones that are supported. No OCP, no tee, no numpy.
+
+ASME B18.3 is the one INCH standard shipped: its columns in `iso4762.csv` are
+filled only on the imperial rows, which are spelled `#10-24`, `1/4-20`,
+`1-8` - designation and threads per inch, never a metric nominal. Those
+spellings are parsed here (`parse_imperial`), because a standard that
+`supported_standards()` advertises and no input can reach is worse than one
+that is not shipped at all.
 """
 
 from __future__ import annotations
@@ -48,6 +55,12 @@ _CLEARANCE_SERIES = {"close": "Close", "normal": "Normal", "loose": "Loose"}
 _DESIGNATION = re.compile(
     r"^\s*[Mm]?\s*(?P<nominal>\d+(?:\.\d+)?)\s*(?:[xX\u00d7\-]\s*(?P<pitch>\d+(?:\.\d+)?))?\s*$"
 )
+# An inch size as the ASME rows spell it: a gauge (`#10`) or a whole/fractional
+# inch (`1`, `1/4`, `5/16`), then a hyphen, then threads per inch.
+_IMPERIAL = re.compile(
+    r"^\s*(?P<size>#\s*\d{1,2}|\d{1,2}\s*/\s*\d{1,2}|\d{1,2})"
+    r"\s*[-xX\u00d7]\s*(?P<tpi>\d{1,3})\s*$"
+)
 
 
 def _refuse(message: str) -> CommandError:
@@ -67,6 +80,33 @@ def parse_designation(text: str | float) -> tuple[float, float | None]:
         )
     pitch = match.group("pitch")
     return float(match.group("nominal")), (float(pitch) if pitch is not None else None)
+
+
+def parse_imperial(text: str | float) -> str:
+    """'#10-24' / '1/4 - 20' / '1-8' -> the canonical row spelling, or a refusal.
+
+    Metric and imperial spellings overlap ('1-8' would parse as M1 x 0.8), so
+    only a lookup that already knows its standard is imperial comes here.
+    """
+    match = _IMPERIAL.match(str(text))
+    if match is None:
+        raise _refuse(
+            f"{text!r} is not an inch fastener size. Write the designation and the threads "
+            "per inch as the tables do: '#10-24', '1/4-20' or '1-8'."
+        )
+    size = re.sub(r"\s+", "", match.group("size"))
+    return f"{size}-{int(match.group('tpi'))}"
+
+
+def _table_imperial(size_cell: str | float) -> str | None:
+    """The canonical inch spelling of a 'Size' cell; None for a metric row."""
+    text = str(size_cell).strip()
+    if text.startswith("M"):
+        return None
+    try:
+        return parse_imperial(text)
+    except CommandError:
+        return None
 
 
 def size_key(nominal: float) -> str:
@@ -227,6 +267,25 @@ def drill_size(name: str) -> dict[str, Any]:
     )
 
 
+def _tabled_sizes(rows: list[dict[str, Any]], columns: list[str]) -> list[str]:
+    """The 'Size' cells this standard actually fills - what a refusal must name."""
+    return [str(r["Size"]).strip() for r in rows if all(r[c] != "" for c in columns)]
+
+
+def _refuse_size(key: str, asked: str, sizes: list[str], nearest: str = "") -> CommandError:
+    """A refusal that names the sizes that ARE available under `key`.
+
+    The whole list up to 40 entries: no shipped standard fills more (ASME
+    B18.3 fills 37, the widest), and half a list is what left the old refusal
+    ending 'Nearest tabled: .' with no candidate a model could try.
+    """
+    shown = ", ".join(sizes[:40]) + (f" ... ({len(sizes)} total)" if len(sizes) > 40 else "")
+    head = f"{key} does not table {asked}. "
+    if nearest:
+        head += f"Nearest tabled: {nearest}. "
+    return _refuse(head + f"Tabled sizes: {shown or '(none)'}.")
+
+
 def supported_standards() -> list[str]:
     return sorted(_STANDARDS)
 
@@ -249,9 +308,34 @@ def fastener(standard: str, size: str | float) -> dict[str, Any]:
             f"standard {standard!r} is not shipped. Supported: {', '.join(supported_standards())}."
         )
     filename, prefix = _STANDARDS[key]
-    nominal, wanted_pitch = parse_designation(size)
     rows = load_table(filename)
     columns = [c for c in rows[0] if c.startswith(prefix + ":")]
+    sizes = _tabled_sizes(rows, columns)
+    if prefix.startswith("asme"):  # the one inch standard: its rows are #10-24, 1/4-20, 1-8
+        try:
+            wanted = parse_imperial(size)
+        except CommandError:
+            raise _refuse_size(
+                key, f"{str(size)!r} (it is an INCH standard: designation-threads per inch)", sizes
+            ) from None
+        tabled = [
+            r
+            for r in rows
+            if _table_imperial(r["Size"]) == wanted and all(r[c] != "" for c in columns)
+        ]
+        if not tabled:
+            raise _refuse_size(key, wanted, sizes)
+        row = tabled[0]
+        return {
+            "standard": key,
+            "size": wanted,
+            "tpi": int(wanted.rsplit("-", 1)[1]),
+            "pitch_mm": None,
+            "units": "in",
+            **{c.split(":", 1)[1]: row[c] for c in columns},
+            **_stamp(filename),
+        }
+    nominal, wanted_pitch = parse_designation(size)
     hits = [r for r in rows if _table_nominal(r["Size"]) == nominal]
     if wanted_pitch is not None:
         pitched = [r for r in hits if _table_pitch(r["Size"]) in (None, wanted_pitch)]
@@ -259,14 +343,11 @@ def fastener(standard: str, size: str | float) -> dict[str, Any]:
     tabled = [r for r in hits if all(r[c] != "" for c in columns)]
     if not tabled:
         available = [
-            _table_nominal(r["Size"])
-            for r in rows
-            if _table_nominal(r["Size"]) is not None and all(r[c] != "" for c in columns)
+            n
+            for n in (_table_nominal(r["Size"]) for r in rows if str(r["Size"]).strip() in sizes)
+            if n is not None
         ]
-        raise _refuse(
-            f"{key} does not table {size_key(nominal)}. Nearest tabled: "
-            f"{_nearest([n for n in available if n is not None], nominal)}."
-        )
+        raise _refuse_size(key, size_key(nominal), sizes, _nearest(available, nominal))
     row = tabled[0]
     dims = {c.split(":", 1)[1]: row[c] for c in columns}
     row_pitch = _table_pitch(row["Size"])
@@ -274,7 +355,7 @@ def fastener(standard: str, size: str | float) -> dict[str, Any]:
         "standard": key,
         "size": size_key(nominal),
         "pitch_mm": row_pitch,
-        "units": "in" if prefix.startswith("asme") else "mm",
+        "units": "mm",
         **dims,
         **_stamp(filename),
     }
@@ -286,6 +367,7 @@ __all__ = [
     "drill_size",
     "fastener",
     "parse_designation",
+    "parse_imperial",
     "pitch",
     "size_key",
     "supported_standards",

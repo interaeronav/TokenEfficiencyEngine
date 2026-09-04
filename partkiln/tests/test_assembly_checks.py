@@ -236,3 +236,41 @@ def test_bom_virtual_component_and_refusals(f6) -> None:
     with pytest.raises(CommandError) as e:
         _ = asm.component("label").shape
     assert e.value.code == "pk_ref_empty"
+
+
+def test_bom_row_with_no_material_is_none_and_the_total_says_partial(f6) -> None:
+    """A mass that cannot be computed is `None`, never `0.000` (audited defect).
+
+    A card with neither `mass_g` nor a `material` used to print `0.000 g` and
+    add nothing to `total_g`: the bill understated the assembly by a whole
+    part while looking precise to 3 dp. Now the row says `None`, the part is
+    named in `missing_mass`, and `partial` marks the total as a lower bound.
+    """
+    block, pin = f6
+    asm = Assembly(
+        [
+            Component("block", "block", block, grounded=True),
+            Component("pin1", "pin", pin),
+        ]
+    )
+    priced = {"material": "steel", "volume_mm3": shapes.volume(block)}
+    out = bom(asm, {"block": priced, "pin": {"volume_mm3": shapes.volume(pin)}})
+    rows = {r["part"]: r for r in out["rows"]}
+    assert rows["block"]["mass_g"] == 238.869 and rows["block"]["total_g"] == 238.869
+    assert rows["pin"]["mass_g"] is None and rows["pin"]["total_g"] is None
+    assert rows["pin"]["material"] == "none"
+    assert out["total_g"] == 238.869  # the block alone, and it says so
+    assert out["partial"] is True and out["missing_mass"] == ["pin"]
+
+    whole = bom(
+        asm,
+        {"block": priced, "pin": {"material": "steel", "volume_mm3": shapes.volume(pin)}},
+    )
+    assert whole["total_g"] == 263.531
+    assert whole["partial"] is False and whole["missing_mass"] == []
+
+    # structured view: every instance of the unpriced part is named once
+    asm.add_component(Component("pin2", "pin", pin, pose=Pose((10.0, 0.0, 0.0))))
+    each = bom(asm, {"block": priced, "pin": {}}, view="structured")
+    assert [r["mass_g"] for r in each["rows"]] == [238.869, None, None]
+    assert each["partial"] is True and each["missing_mass"] == ["pin"]

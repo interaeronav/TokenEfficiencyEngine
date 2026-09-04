@@ -299,6 +299,71 @@ def check_voxkiln() -> Check:
     )
 
 
+def check_partkiln() -> Check:
+    """The mechanical CAD lane (A66). Two routes reach the kernel and they
+    fail differently, so the check names BOTH interpreters: the server's own
+    (a dev checkout with OCP already in it) and the sidecar venv under
+    `~/TEE/.tee/sidecars/partkiln`, which is the production route precisely
+    because it survives an extension upgrade and `tee_purge`. Reporting only
+    "installed" would hide the case this lane exists for - the extension
+    runtime is Python 3.13 with no OCP, so an in-process yes there is a no."""
+    import subprocess
+    import sys
+    from importlib.util import find_spec
+
+    from tee.adapters.partkiln.adapter import INSTALL_HINT, SIDECAR_INSTALL
+    from tee.adapters.partkiln.wire import SIDECAR_PY
+
+    here = f"server python {sys.version.split()[0]}"
+    try:
+        kernel_here = find_spec("partkiln") is not None
+        ocp_here = find_spec("OCP") is not None
+    except (ImportError, ValueError):
+        kernel_here = ocp_here = False
+
+    sidecar = ""
+    if SIDECAR_PY.is_file():
+        try:
+            probe = subprocess.run(
+                [
+                    str(SIDECAR_PY),
+                    "-c",
+                    "import platform,importlib.util as u;"
+                    "print(platform.python_version(),"
+                    "u.find_spec('partkiln') is not None,"
+                    "u.find_spec('OCP') is not None)",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            sidecar = probe.stdout.strip() or probe.stderr.strip()[:80]
+        except (OSError, subprocess.SubprocessError) as exc:
+            sidecar = f"unreadable ({type(exc).__name__})"
+
+    sidecar_ok = sidecar.split()[1:3] == ["True", "True"] if sidecar else False
+    if sidecar_ok:
+        return Check(
+            "partkiln",
+            "ok",
+            f"mode sidecar - {SIDECAR_PY} python {sidecar.split()[0]} with OCP; {here}"
+            + (", kernel + OCP here too" if kernel_here and ocp_here else ""),
+        )
+    if kernel_here and ocp_here:
+        return Check(
+            "partkiln",
+            "ok",
+            f"mode in-process - kernel and OCP importable in the {here}"
+            + (f"; sidecar present but incomplete ({sidecar})" if sidecar else "; no sidecar venv"),
+            fix="The sidecar venv is the production route (it survives an .mcpb upgrade "
+            f"and tee_purge, which wipe an editable install): {SIDECAR_INSTALL}",
+        )
+    detail = f"kernel absent - {here}, partkiln {kernel_here}, OCP {ocp_here}"
+    if sidecar:
+        detail += f"; sidecar {SIDECAR_PY} reports {sidecar}"
+    return Check("partkiln", "warn", detail + " - mechanical CAD unavailable", fix=INSTALL_HINT)
+
+
 def check_kb() -> Check:
     """Expert Knowledge Base corpus: root resolvable, manifest readable,
     drift count. Inactive is a plain state, not a failure."""
@@ -568,6 +633,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_bpy_wheel_abi(),
         check_unreal(),
         check_voxkiln(),
+        check_partkiln(),
         check_kb(),
         check_web(),
         check_state(),

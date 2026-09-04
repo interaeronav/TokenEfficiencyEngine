@@ -90,14 +90,29 @@ def validate(shape: Any) -> dict[str, Any]:
 
 
 def free_edges(shape: Any) -> int:
-    """Edges with a single ancestor face - the boundary of an open skin."""
+    """Edges with a single ancestor face - the boundary of an open skin.
+
+    A DEGENERATE edge is not one of them. A sphere's pole and a cone's apex
+    are edges of zero length that collapse a whole parametric boundary to a
+    point; they list ONE ancestor face and no skin ends there. Counting them
+    called a perfectly closed sphere open (measured 2026-09-04: 2 free edges
+    on a sphere, 1 on a cone, `closed` False for both), so
+    `BRep_Tool.Degenerated_s` drops them here.
+    """
+    from OCP.BRep import BRep_Tool
     from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
     from OCP.TopExp import TopExp
+    from OCP.TopoDS import TopoDS
     from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 
     ancestors = TopTools_IndexedDataMapOfShapeListOfShape()
     TopExp.MapShapesAndAncestors_s(shape, TopAbs_EDGE, TopAbs_FACE, ancestors)
-    return sum(1 for i in range(1, ancestors.Extent() + 1) if ancestors.FindFromIndex(i).Size() < 2)
+    return sum(
+        1
+        for i in range(1, ancestors.Extent() + 1)
+        if ancestors.FindFromIndex(i).Size() < 2
+        and not BRep_Tool.Degenerated_s(TopoDS.Edge_s(ancestors.FindKey(i)))
+    )
 
 
 def fix(shape: Any) -> tuple[Any, dict[str, Any]]:

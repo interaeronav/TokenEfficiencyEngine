@@ -66,8 +66,27 @@ def register_method(name: str, *, hidden: bool = False) -> Callable[[MethodHandl
     return wrap
 
 
+_METHODS_LOADED = [False]
+
+
+def _load_methods() -> None:
+    """Register the `pk_*` backends on first use, and never before.
+
+    `partkiln.methods` pulls in the feature layer (for the `import` builder)
+    and the standards tables; a client that only applies commands should not
+    pay for that at construction, and `import partkiln` must stay free of it
+    entirely. So the ONE generic door - `call` - opens it, which also means a
+    method is on the wire the moment it is registered, with no worker change.
+    """
+    if _METHODS_LOADED[0]:
+        return
+    _METHODS_LOADED[0] = True
+    import partkiln.methods  # noqa: F401 - importing registers the pk_* backends
+
+
 def known_methods() -> tuple[str, ...]:
     """Every advertised method, sorted - the list a refusal names."""
+    _load_methods()
     return tuple(sorted(name for name in KERNEL_METHODS if name not in _HIDDEN))
 
 
@@ -334,6 +353,7 @@ class LocalKernel:
         return out
 
     def call(self, method: str, params: dict[str, Any]) -> Any:
+        _load_methods()
         handler = KERNEL_METHODS.get(str(method))
         if handler is None:
             raise KernelError(
@@ -378,6 +398,7 @@ class LocalKernel:
             "commands": len(script.get("commands") or ()),
             "fingerprint": fingerprint,
             "brep": False,
+            "caches": [],
         }
 
     def restore(self, payload: dict[str, Any]) -> None:
@@ -423,16 +444,27 @@ class LocalKernel:
             )
 
     def discard(self, payload: dict[str, Any]) -> None:
+        """Remove the checkpoint AND the caches it wrote.
+
+        D3: the script is the checkpoint and the `.brep` files are a cache, so
+        discarding one has to take the other with it - `snapshot()` reports
+        them in `caches` as names beside `path`, and a name is resolved
+        against the checkpoint's own directory (never the cwd).
+        """
         if not isinstance(payload, dict):
             return
-        paths = [payload.get("path"), *(payload.get("files") or ()), *(payload.get("breps") or ())]
-        for raw in paths:
-            if not raw:
-                continue
-            target = Path(str(raw))
+        folder = Path(str(payload.get("path") or ".")).parent
+        named = [*(payload.get("caches") or ()), *(payload.get("files") or ())]
+        named += list(payload.get("breps") or ())
+        targets = [Path(str(payload["path"]))] if payload.get("path") else []
+        targets += [
+            path if path.is_absolute() else folder / path
+            for path in (Path(str(raw)) for raw in named if raw)
+        ]
+        for target in targets:
             try:
                 target.unlink()
-            except FileNotFoundError:
+            except OSError:  # already gone, a directory, or not ours to remove
                 continue
 
     def shutdown(self) -> None:

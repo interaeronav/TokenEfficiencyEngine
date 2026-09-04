@@ -127,18 +127,28 @@ class ToolRegistry:
         a weak result is distinguishable from a good one without spending
         describe round-trips to find out (SI-B2).
 
-        The default was 10 and is now 5, measured rather than guessed. Over
-        19 realistic queries (14 direct, 5 deliberately vague) against a
-        42-tool registry, recall was:
+        The default was 10 and is now 5, measured rather than guessed, and
+        RE-MEASURED whenever the corpus grows - a bigger registry is a
+        different measurement, not a broken one. Re-baselined 2026-09-04
+        (A66) over 29 realistic queries (21 direct, 8 deliberately vague)
+        against an 81-tool registry (67 before the partkiln lane's 14
+        `pk_*` tools):
 
-            limit 3   18/19      limit 5   19/19
-            limit 8   19/19      limit 10  19/19
+            limit 3   28/29      limit 5   29/29
+            limit 8   29/29      limit 10  29/29
 
-        Five finds everything ten finds. Three does not - "check the
-        drawing" lands at rank 4 - so this is the measured floor, not the
-        smallest number that looked defensible. The reply drops from ~370
-        to ~229 tokens, a 38% cut on EVERY search, which is the most
-        frequent call TEE makes on its own behalf.
+        Five finds everything ten finds. Three does not - "size from an
+        image" wants `ex_estimate` and lands at rank 4, behind three tools
+        that merely mention a size or an image - so this is the measured
+        floor, not the smallest number that looked defensible. (A50's
+        witness was "check the drawing"; `pk_check` and `pk_drawing` now
+        own both content words by NAME, so the query was reassigned to its
+        honest owner rather than tagged away.) The reply is ~237 tokens
+        against ~488 at a limit of 10, a 51% cut on EVERY search, which is
+        the most frequent call TEE makes on its own behalf.
+
+        `tests/test_search_budget.py::test_the_rebaselined_recall_table_holds`
+        EXECUTES that table, so the next lane cannot let it go stale here.
 
         `more` names how many were suppressed, so a caller who genuinely
         needs the tail can ask instead of guessing that the tail is empty.

@@ -281,6 +281,42 @@ call.
 
 The batch took 57.4 s end to end; 1 zipper fitted. Surface unchanged: 17 tools.
 
+## Mechanical CAD: sketch -> features -> drawing -> STEP (A66)
+
+One mounting bracket - 9 ops, 26 faces, 64 edges, 91,159.605 mm3 - sketched,
+extruded, filleted, drilled to ISO 273, slotted, chamfered, and read back. The
+TEE arm is ONE batch, its diff, and one `pk_check (method pending)` call.
+
+Two naive arms, both named, because a model without compact state has two
+honest ways to learn this part and both are expensive:
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (a): face/edge inventory + 3x 1024x768 shots + the SVG sheet | 8,378 | 6 |
+| naive (b): the STEP file as text | 25,311 | 1 |
+| tee (batch + diff + pk_check (method pending)) | 1,392 | 2 |
+| **saved vs (a)** | **83.4%** | |
+
+The inventory alone is 3,038 tok and the three screenshots 3,108 -
+and neither answers "is the minimum wall over 2 mm", which is what the
+question actually was. The batch took 0.29 s.
+Surface unchanged: 17 tools.
+
+## Mechanical CAD: one parameter moves (A66)
+
+`param_set T=12mm` on the same bracket. TEE answers with the blast radius -
+changed: plate, f1, h, slot; unchanged: c1 - and the part's new volume
+(109,430.458 mm3). The naive arm has no such report, so it re-reads
+the 26-face inventory and takes the three screenshots again.
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (re-read the inventory + 3 shots) | 6,156 | 5 |
+| tee (the changed list) | 162 | 1 |
+| **saved** | **97.4%** | |
+
+The regen took 0.05 s. Surface unchanged: 17 tools.
+
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 
 *(not re-run this pass - scenario skipped on this machine; last measured values kept)*

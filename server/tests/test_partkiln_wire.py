@@ -72,7 +72,27 @@ def test_the_method_set_round_trips(kernel: SidecarKernel, tmp_path: Path) -> No
     taken = kernel.fingerprint()
     assert taken == applied["fingerprint"]
     assert [c["op"] for c in kernel.script()["commands"]] == ["param_set", "create"]
-    assert [row["id"] for row in kernel.entities()] == ["sk:base"]
+    # D7: everything a batch can change is a row, so a two-command batch
+    # answers three - the doc, the parameter it set, the sketch it created.
+    # (The A65 lesson: a parameter the model cannot see is one it cannot fix,
+    # and pinning only the sketch let the other two rows go unwatched.)
+    rows = {row["id"]: row for row in kernel.entities()}
+    assert list(rows) == ["doc", "param:W", "sk:base"]
+    assert rows["doc"]["kind"] == "doc"
+    assert rows["doc"]["units"] == "mm"
+    assert rows["doc"]["sketches"] == 1 and rows["doc"]["parts"] == 0
+    assert rows["doc"]["script_commands"] == 2
+    assert rows["doc"]["fingerprint"] == taken  # the row agrees with the wire
+    assert rows["param:W"]["value"] == 10.0 and rows["param:W"]["unit"] == "mm"
+    assert rows["sk:base"]["dof"] == 0 and rows["sk:base"]["area_mm2"] == 60.0
+    # D7 again: summary rows are SCALARS ("~20 tok"). Coordinate lists,
+    # entity arrays and nested geometry belong to `detail`, and a summary
+    # that carried them would break hard rule 1 on every batch.
+    assert all(
+        isinstance(value, str | int | float | bool | None)
+        for row in rows.values()
+        for value in row.values()
+    ), f"a summary row carried non-scalar geometry: {rows}"
     assert kernel.detail("sk:base")["dof"] == 0
     assert kernel.call("ping", {})["alive"] is True
 

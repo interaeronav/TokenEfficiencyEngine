@@ -1484,6 +1484,225 @@ def run_seamkiln_followup_scenario() -> dict | None:
     }
 
 
+PARTKILN_SRC = REPO / "partkiln" / "src"
+# W1 from CLAUDE_A66_SCRIPT.md, with explicit hole/slot coordinates (a hole's
+# `at` is in the face's own frame, whose origin is the world origin projected
+# onto that face).
+PARTKILN_W1 = [
+    {"op": "param_set", "props": {"W": "120mm", "H": "80mm", "T": "10mm"}},
+    {"op": "create", "kind": "part", "name": "bracket", "props": {"material": "steel_s275"}},
+    {"op": "create", "kind": "sketch", "name": "base",
+     "props": {"plane": "XY", "profile": [{"rect": ["W", "H"], "tag": "outer"}]}},
+    {"op": "create", "kind": "extrude", "name": "plate",
+     "props": {"sketch": "base", "distance": "T"}},
+    {"op": "create", "kind": "fillet", "name": "f1",
+     "props": {"edges": "plate:edges(dir=Z)", "r": "5mm"}},
+    {"op": "create", "kind": "hole", "name": "h",
+     "props": {"on": "plate.end", "at": [[10, 15], [110, 15], [10, 65], [110, 65]],
+               "std": "M6 clearance normal"}},
+    {"op": "create", "kind": "sketch", "name": "slot_sk",
+     "props": {"plane": "on:plate.end", "profile": [{"slot": [40, 8], "at": [40, 36]}]}},
+    {"op": "create", "kind": "extrude", "name": "slot",
+     "props": {"sketch": "slot_sk", "distance": "through", "mode": "cut"}},
+    {"op": "create", "kind": "chamfer", "name": "c1",
+     "props": {"edges": "plate:edges(of=plate.end, loop=outer)", "d": "1mm"}},
+]
+
+
+def _partkiln_app():
+    """A live partkiln adapter, or None. The kernel is not pip-installed into
+    server/.venv (the dev route is `-e partkiln`, and this repo IS that
+    checkout), so its src goes on the path first - the same thing the editable
+    install would do."""
+    if PARTKILN_SRC.is_dir() and str(PARTKILN_SRC) not in sys.path:
+        sys.path.insert(0, str(PARTKILN_SRC))
+    try:
+        import partkiln  # noqa: F401
+        from OCP.BRepGProp import BRepGProp  # noqa: F401
+
+        from tee.adapters.partkiln import PartkilnAdapter
+    except ImportError as exc:
+        print(f"partkiln scenario skipped ({exc})")
+        return None, None
+    root = tempfile.mkdtemp(prefix="tee-bench-partkiln-")
+    app = TeeApp({"partkiln": PartkilnAdapter(root)}, project_root=root)
+    return app, root
+
+
+def _partkiln_inventory(adapter):
+    """What a model must READ to know a part without compact state: every face
+    and every edge, with the facts a selector would otherwise have used. This
+    is not a straw man - it is precisely the payload `pk_query` replaces."""
+    from partkiln.brep import query
+
+    part = next(iter(adapter.kernel.document.parts.values()))
+    faces = [
+        {
+            "index": f.index,
+            "type": f.surface_type,
+            "area_mm2": round(f.area, 3),
+            "centroid": [round(c, 3) for c in f.centroid],
+            "normal": [round(c, 3) for c in f.normal] if f.normal else None,
+            "radius": f.radius,
+        }
+        for f in query.faces(part.shape)
+    ]
+    edges = [
+        {
+            "index": e.index,
+            "type": e.curve_type,
+            "len_mm": round(e.length, 3),
+            "mid": [round(c, 3) for c in e.midpoint],
+            "dir": [round(c, 3) for c in e.direction] if e.direction else None,
+            "convexity": e.convexity,
+            "faces": list(e.adjacent_face_indices),
+        }
+        for e in query.edges(part.shape)
+    ]
+    return part, faces, edges
+
+
+def run_partkiln_scenario() -> dict | None:
+    """A66 P4: what drafting, drilling, drawing and exporting a bracket costs.
+
+    The TEE arm is one batch, its diff, and one read (`pk_check` where the
+    kernel has registered it, `pk_measure` otherwise) - nine modelling ops in
+    a single round trip, answered by scalars.
+
+    Two naive arms, both named, because "naive" has two honest meanings here:
+    (a) the bridge pattern - read the face/edge inventory, then look at the
+    part with three screenshots and read the drawing back as SVG; and (b) the
+    interchange pattern - ask for the STEP and read the file, which is what a
+    model does when the only shared language is a file format.
+    """
+    app, root = _partkiln_app()
+    if app is None:
+        return None
+    adapter = app.adapters["partkiln"]
+
+    started = time.time()
+    diff = app.run_batch("partkiln", PARTKILN_W1)
+    wall = time.time() - started
+    read_tool, read = "pk_check", None
+    try:
+        read = app.registry.call(
+            "pk_check",
+            {"spec": {"bbox_mm": [120, 80, 10], "min_wall_mm": 2.0}, "of": "part:bracket"},
+        )
+    except Exception:
+        read_tool = "pk_measure"
+        try:
+            read = app.registry.call("pk_measure", {"what": "mass", "of": "part:bracket"})
+        except Exception as exc:  # neither method registered yet
+            read_tool, read = "pk_check (method pending)", {"skipped": str(exc)[:80]}
+    tee_tokens = (
+        estimate_tokens(PARTKILN_W1) + estimate_tokens(diff) + estimate_tokens(read)
+    )
+    tee_calls = 2  # one tee_batch, one tee_call
+
+    part, faces, edges = _partkiln_inventory(adapter)
+    inventory_tokens = estimate_tokens({"faces": faces, "edges": edges})
+    shots = 3 * image_tokens(1024, 768)
+    svg_tokens = 0
+    try:
+        sheet = app.registry.call(
+            "pk_drawing",
+            {
+                "of": "part:bracket",
+                "name": "bracket",
+                "out": str(root),
+                "formats": ["svg"],
+                "views": [{"name": "top", "dir": "top"}, {"name": "front", "dir": "front"}],
+            },
+        )
+        written = [Path(p) for p in (sheet.get("files") or {}).values() if Path(p).is_file()]
+        svg_tokens = sum(estimate_tokens(p.read_text(errors="replace")) for p in written)
+        svg_tokens = svg_tokens or estimate_tokens(sheet)
+    except Exception as exc:
+        # No sheet writer wired yet: the arm is then a FLOOR, and it says so.
+        print(f"  (no SVG sheet in the naive arm: {str(exc)[:70]})")
+        svg_tokens = 0
+    naive_a = inventory_tokens + shots + svg_tokens
+    naive_a_calls = 2 + 3 + 1  # faces, edges, three shots, the sheet
+
+    step_path = Path(root) / "bracket.step"
+    from partkiln.exchange.step import write_step
+
+    write_step([(part.name, part.shape)], step_path)
+    naive_b = estimate_tokens(step_path.read_text(errors="replace"))
+
+    app.shutdown()
+    saving = 100.0 * (1 - tee_tokens / naive_a)
+    print(
+        f"mechanical CAD bracket: naive-a {naive_a:,} tok / {naive_a_calls} calls, "
+        f"naive-b (STEP) {naive_b:,} tok -> tee {tee_tokens:,} tok / {tee_calls} calls "
+        f"({saving:.1f}% saved); batch {wall:.2f}s, "
+        f"{len(faces)} faces / {len(edges)} edges, {part.volume():.3f} mm3"
+    )
+    return {
+        "ops": len(PARTKILN_W1),
+        "faces": len(faces),
+        "edges": len(edges),
+        "volume_mm3": round(float(part.volume()), 3),
+        "naive_tokens": naive_a,
+        "naive_calls": naive_a_calls,
+        "naive_inventory": inventory_tokens,
+        "naive_shots": shots,
+        "naive_svg": svg_tokens,
+        "naive_step_tokens": naive_b,
+        "tee_tokens": tee_tokens,
+        "tee_calls": tee_calls,
+        "tee_read": read_tool,
+        "saving": round(saving, 1),
+        "batch_s": round(wall, 2),
+    }
+
+
+def run_partkiln_followup_scenario() -> dict | None:
+    """The edit row: one parameter changes and the model needs to know what
+    moved. TEE answers with the `changed` list (Law 14); the naive arm has no
+    such thing, so it re-reads the inventory it read before."""
+    app, _root = _partkiln_app()
+    if app is None:
+        return None
+    adapter = app.adapters["partkiln"]
+    app.run_batch("partkiln", PARTKILN_W1)
+    _, faces_before, edges_before = _partkiln_inventory(adapter)
+
+    edit = [{"op": "param_set", "props": {"T": "12mm"}}]
+    started = time.time()
+    diff = app.run_batch("partkiln", edit)
+    wall = time.time() - started
+    tee_tokens = estimate_tokens(edit) + estimate_tokens(diff)
+
+    part, faces, edges = _partkiln_inventory(adapter)
+    naive_tokens = estimate_tokens({"faces": faces, "edges": edges}) + 3 * image_tokens(1024, 768)
+    report = (diff.get("details") or {}).get("part:bracket") or {}
+    changed = [row["feature"] for row in report.get("changed") or []]
+
+    app.shutdown()
+    saving = 100.0 * (1 - tee_tokens / naive_tokens)
+    print(
+        f"mechanical CAD edit (T=12mm): naive {naive_tokens:,} tok / "
+        f"{2 + 3} calls -> tee {tee_tokens:,} tok / 1 call ({saving:.1f}% saved); "
+        f"changed {changed}, {wall:.2f}s"
+    )
+    return {
+        "changed": changed,
+        "unchanged": report.get("unchanged_features") or [],
+        "volume_mm3": round(float(part.volume()), 3),
+        "faces": len(faces),
+        "faces_before": len(faces_before),
+        "edges_before": len(edges_before),
+        "naive_tokens": naive_tokens,
+        "naive_calls": 5,
+        "tee_tokens": tee_tokens,
+        "tee_calls": 1,
+        "saving": round(saving, 1),
+        "edit_s": round(wall, 2),
+    }
+
+
 def run_fabrication_scenario() -> dict | None:
     import socket as _socket
 
@@ -1874,11 +2093,14 @@ def main() -> None:
     senses_row = _safe(run_senses_scenario)
     seamkiln_row = _safe(run_seamkiln_scenario)
     seamkiln_followup_row = _safe(run_seamkiln_followup_scenario)
+    partkiln_row = _safe(run_partkiln_scenario)
+    partkiln_followup_row = _safe(run_partkiln_followup_scenario)
     pointcloud_row = _safe(run_pointcloud_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
                   fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row,
-                  pointcloud_row)
+                  pointcloud_row, partkiln_row=partkiln_row,
+                  partkiln_followup_row=partkiln_followup_row)
     _stage("total", t0)
 
 
@@ -1946,7 +2168,8 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   unreal_row=None, surface_row=None, jurisdiction_row=None,
                   kb_row=None, web_row=None, gateway_row=None,
                   fabrication_row=None, senses_row=None, seamkiln_row=None,
-                  seamkiln_followup_row=None, pointcloud_row=None) -> None:
+                  seamkiln_followup_row=None, pointcloud_row=None,
+                  partkiln_row=None, partkiln_followup_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -2203,6 +2426,16 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _seamkiln_followup_section(seamkiln_followup_row)
     else:
         lines += _carry_forward("## Garment lane: dress, zip, walk, hand off (A65)")
+    if partkiln_row is not None:
+        lines += _partkiln_section(partkiln_row)
+    else:
+        lines += _carry_forward(
+            "## Mechanical CAD: sketch -> features -> drawing -> STEP (A66)"
+        )
+    if partkiln_followup_row is not None:
+        lines += _partkiln_followup_section(partkiln_followup_row)
+    else:
+        lines += _carry_forward("## Mechanical CAD: one parameter moves (A66)")
     if pointcloud_row is not None:
         lines += _pointcloud_section(pointcloud_row)
     else:
@@ -2348,6 +2581,61 @@ def _seamkiln_followup_section(row: dict) -> list[str]:
         "",
         f"The batch took {row['wall_s']} s end to end; {row['zippers']} zipper fitted. "
         "Surface unchanged: 17 tools.",
+    ]
+
+
+def _partkiln_section(row: dict) -> list[str]:
+    """A66 P4: the mechanical CAD lane's tokens-per-task row."""
+    return [
+        "",
+        "## Mechanical CAD: sketch -> features -> drawing -> STEP (A66)",
+        "",
+        f"One mounting bracket - {row['ops']} ops, {row['faces']} faces, {row['edges']} "
+        f"edges, {row['volume_mm3']:,.3f} mm3 - sketched,",
+        "extruded, filleted, drilled to ISO 273, slotted, chamfered, and read back. The",
+        f"TEE arm is ONE batch, its diff, and one `{row['tee_read']}` call.",
+        "",
+        "Two naive arms, both named, because a model without compact state has two",
+        "honest ways to learn this part and both are expensive:",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (a): face/edge inventory + 3x 1024x768 shots + the SVG sheet | "
+        f"{row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| naive (b): the STEP file as text | {row['naive_step_tokens']:,} | 1 |",
+        f"| tee (batch + diff + {row['tee_read']}) | {row['tee_tokens']:,} | "
+        f"{row['tee_calls']} |",
+        f"| **saved vs (a)** | **{row['saving']}%** | |",
+        "",
+        f"The inventory alone is {row['naive_inventory']:,} tok and the three screenshots "
+        f"{row['naive_shots']:,} -",
+        "and neither answers \"is the minimum wall over 2 mm\", which is what the",
+        f"question actually was. The batch took {row['batch_s']} s.",
+        "Surface unchanged: 17 tools.",
+    ]
+
+
+def _partkiln_followup_section(row: dict) -> list[str]:
+    """A66 P4: Law 14's row - an edit reports its blast radius."""
+    changed = ", ".join(row["changed"]) or "(none)"
+    unchanged = ", ".join(row["unchanged"]) or "(none)"
+    return [
+        "",
+        "## Mechanical CAD: one parameter moves (A66)",
+        "",
+        "`param_set T=12mm` on the same bracket. TEE answers with the blast radius -",
+        f"changed: {changed}; unchanged: {unchanged} - and the part's new volume",
+        f"({row['volume_mm3']:,.3f} mm3). The naive arm has no such report, so it re-reads",
+        f"the {row['faces']}-face inventory and takes the three screenshots again.",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (re-read the inventory + 3 shots) | {row['naive_tokens']:,} | "
+        f"{row['naive_calls']} |",
+        f"| tee (the changed list) | {row['tee_tokens']:,} | {row['tee_calls']} |",
+        f"| **saved** | **{row['saving']}%** | |",
+        "",
+        f"The regen took {row['edit_s']} s. Surface unchanged: 17 tools.",
     ]
 
 

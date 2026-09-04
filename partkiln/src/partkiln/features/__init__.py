@@ -8,6 +8,13 @@ its function. The document imports this package lazily the first time a
 `create` names a kind it does not know (document.py), so `import partkiln`
 stays OCP-free and a P1 document never pays for it.
 
+This is also the verb boundary that binds the document's unit for the
+selectors a command evaluates (`naming.document_unit`): Law 12 says a bare
+number is the DOCUMENT's unit, and `plate:edges(len>5)` is a bare number, but
+`naming.resolve` is reached from `features/base.py` with a part and no
+document. Every path that builds or rebuilds a feature goes through one of
+the four functions here that bind it.
+
 The other half of this module is the regen plumbing the document calls
 back into: which features depend on a sketch, a parameter or another part
 (`dependents`), and the rebuilds an edit triggers - `set` on a feature
@@ -20,8 +27,14 @@ volume_mm3, fingerprint}` per part.
 
 from __future__ import annotations
 
+import ast
+import difflib
+import inspect
+import textwrap
+from functools import cache
 from typing import Any
 
+from partkiln import naming
 from partkiln.document import CommandError, Document, register_kind
 from partkiln.features import (  # noqa: F401 - importing registers the builders and datum kinds
     combine_split,
@@ -99,7 +112,8 @@ def _make_handler(kind: str) -> Any:
             feature.status = "cached"
             part.features.append(feature)
             return {"id": f"feat:{fid}", "kind": kind, "status": "cached"}
-        details = part.add_feature(doc, feature, assumed)
+        with naming.document_unit(doc.units):
+            details = part.add_feature(doc, feature, assumed)
         details["part"] = f"part:{part.name}"
         return details
 
@@ -167,6 +181,11 @@ def dependents(doc: Document, entity_id: str) -> list[str]:
 
 
 def _regen_where(doc: Document, predicate: Any, assumed: dict[str, Any]) -> dict[str, Any]:
+    with naming.document_unit(doc.units):
+        return _regen_where_inner(doc, predicate)
+
+
+def _regen_where_inner(doc: Document, predicate: Any) -> dict[str, Any]:
     reports: dict[str, Any] = {}
     touched: list[str] = []
     for name in sorted(doc.parts):
@@ -200,6 +219,97 @@ def after_param_change(
     wanted = {f"sk:{n}" for n in sketches}
     return _regen_where(
         doc, lambda f: bool(f.param_deps & params) or bool(f.depends & wanted), assumed
+    )
+
+
+# --------------------------------------------------------------------------- settable props
+
+# Props no builder body mentions because a shared helper in `base.py` reads
+# them: `parse_mode(args, ...)` takes `mode`, `boolean(...)` takes
+# `allow_no_effect`. A static read of the builder cannot see them.
+_HELPER_PROPS = ("allow_no_effect", "mode")
+# Handled by `set` itself, on every kind.
+_META_PROPS = ("name", "suppressed")
+
+
+def _props_read_by(fn: Any) -> set[str]:
+    """Every `args["x"]` / `args.get("x")` / `"x" in args` literal in a builder."""
+    tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "args"
+            and isinstance(node.slice, ast.Constant)
+            and isinstance(node.slice.value, str)
+        ):
+            found.add(node.slice.value)
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "get"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "args"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
+            found.add(node.args[0].value)
+        elif isinstance(node, ast.Compare) and isinstance(node.left, ast.Constant):
+            for op, comparator in zip(node.ops, node.comparators, strict=True):
+                if (
+                    isinstance(op, ast.In | ast.NotIn)
+                    and isinstance(comparator, ast.Name)
+                    and comparator.id == "args"
+                    and isinstance(node.left.value, str)
+                ):
+                    found.add(node.left.value)
+    return found
+
+
+@cache
+def settable_props(kind: str) -> tuple[str, ...]:
+    """The props a kind's builder actually reads, so `set` can refuse the rest.
+
+    Read from the builder's own source, not a hand-kept table, because a table
+    that drifts refuses a real prop - which is worse than the defect it fixes.
+    An empty tuple means "unknown, do not validate" (no builder, or the source
+    is not available): a false refusal must never be invented.
+    """
+    fn = BUILDERS.get(kind)
+    if fn is None:
+        return ()
+    try:
+        found = _props_read_by(fn)
+    except (OSError, TypeError, SyntaxError):  # source unavailable (frozen, zipped)
+        return ()
+    return tuple(sorted(found | set(_HELPER_PROPS)))
+
+
+def _check_props(feature: Feature, props: dict[str, Any]) -> None:
+    """Refuse a prop the kind has no use for, BEFORE anything is written.
+
+    Law 14's blast radius is a lie if the edit was a no-op: `set feat:h
+    {diameter: 12}` used to be stored, regenerate nothing and report success.
+    A prop the feature already carries stays settable, so `set` can never
+    refuse what `create` accepted.
+    """
+    known = set(settable_props(feature.kind))
+    if not known:
+        return
+    known |= set(feature.args)
+    unknown = [k for k in props if k not in known and k not in _META_PROPS]
+    if not unknown:
+        return
+    key = unknown[0]
+    near = difflib.get_close_matches(key, sorted(known), n=1, cutoff=0.5)
+    listed = ", ".join(settable_props(feature.kind))
+    raise CommandError(
+        f"{feature.kind} {feature.id} has no prop {key!r}"
+        + (f" - did you mean {near[0]!r}?" if near else "")
+        + f" Settable on a {feature.kind}: {listed}, plus {' and '.join(_META_PROPS)}.",
+        code="pk_bad_op",
     )
 
 
@@ -252,6 +362,14 @@ def set_target(
         )
     if feature is None:
         return _set_part(doc, part, props, assumed)
+    _check_props(feature, props)
+    with naming.document_unit(doc.units):
+        return _set_feature(doc, part, feature, target, props)
+
+
+def _set_feature(
+    doc: Document, part: Part, feature: Feature, target: str, props: dict[str, Any]
+) -> dict[str, Any]:
     changed: list[dict[str, Any]] = []
     for key, value in props.items():
         if key == "suppressed":
@@ -320,6 +438,13 @@ def _set_part(
 def delete_target(
     doc: Document, target: str, cascade: bool, assumed: dict[str, Any]
 ) -> dict[str, Any]:
+    with naming.document_unit(doc.units):
+        return _delete_target(doc, target, cascade, assumed)
+
+
+def _delete_target(
+    doc: Document, target: str, cascade: bool, assumed: dict[str, Any]
+) -> dict[str, Any]:
     part, feature = _locate(doc, target)
     if feature is None:
         entity = f"part:{part.name}"
@@ -386,4 +511,5 @@ __all__ = [
     "dependents",
     "fingerprint_payload",
     "set_target",
+    "settable_props",
 ]

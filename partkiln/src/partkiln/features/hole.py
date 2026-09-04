@@ -17,6 +17,15 @@ feature, echoed in the diff, and changes no geometry - the fingerprint is
 bit-identical with or without it. Measured seats on F1: counterbore d11 x 6
 removes 98.96 mm3, countersink 90 deg d12 on d10 removes 16.755 more.
 
+`count` is the number of holes that MATERIALISED, never `len(at)`: a tool
+whose point lies off the face cuts nothing, and a feature that reports what
+it was asked for instead of what it did is Law 11's silent failure one level
+up. A hole counts when its `.wall` role survives the boolean (that is the
+drilled cylinder, and `name_from_tool` already followed each tool through
+the history to find it). The points that cut nothing are named in a note;
+if NONE cut, the feature refuses `pk_no_effect` unless `allow_no_effect` is
+set - the same contract `boolean()` applies to the body as a whole.
+
 Roles: `<name>.<i>.wall` (the drilled cylinder, i from 1), `.bottom` (a
 blind hole's flat floor), `.seat` (the counterbore floor / the countersink
 cone) and `.seat.wall` (the counterbore cylinder). OCP is imported inside
@@ -229,9 +238,35 @@ def build_hole(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) -> Ou
             for f in _faces(cone):
                 if f.surface_type == "cone":
                     tool_roles.append((f"{i}.seat", f.shape))
-    shape, hist = boolean(part.shape, tools, "cut", feature, bool(args.get("allow_no_effect")))
+    allow_no_effect = bool(args.get("allow_no_effect"))
+    shape, hist = boolean(part.shape, tools, "cut", feature, allow_no_effect)
     names = name_from_tool(hist, shape, feature.id, tool_roles)
-    extra: dict[str, Any] = {"dia_mm": round(dia, 3), "count": len(points), "through": through}
+    drilled = {
+        int(role.split(".")[0]) for _n, role, _s in names if role.split(".")[1:2] == ["wall"]
+    }
+    missed = [i for i in range(1, len(points) + 1) if i not in drilled]
+    if missed:
+        listed = ", ".join(f"({points[i - 1][0]:g}, {points[i - 1][1]:g})" for i in missed)
+        where = f"{listed} in the frame of {args.get('on')}"
+        if not drilled and not allow_no_effect:
+            raise CommandError(
+                f"hole {feature.id}: none of the {len(points)} holes materialised - no drilled "
+                f"wall survives the cut. {where} lie off the face. Check `at` against the face "
+                "frame (x along world X from the projected origin), or pass allow_no_effect: "
+                "true to keep the feature.",
+                code="pk_no_effect",
+            )
+        notes.append(
+            f"{len(missed)} of {len(points)} points cut nothing and made no hole: {where}."
+        )
+    extra: dict[str, Any] = {
+        "dia_mm": round(dia, 3),
+        "count": len(drilled),
+        "requested": len(points),
+        "through": through,
+    }
+    if missed:
+        extra["missed"] = len(missed)
     if seat_kind:
         extra["seat"] = seat_kind
     return Outcome(

@@ -40,12 +40,16 @@ def require_ocp() -> None:
     """Refuse with the install line when OCP is absent.
 
     Raises `KernelError`, never `ImportError`, so the wire error is
-    `pk_no_brep` with the fix inline (Law: a refusal names the fix).
+    `pk_kernel_absent` (D8) with the fix inline (Law: a refusal names the
+    fix). The code is passed explicitly: `KernelError` defaults to
+    `pk_op_failed`, and a caller that branches on the one refusal it can
+    actually act on - install the extra - must be able to see it.
     """
     if not ocp_available():
         raise KernelError(
             "partkiln[brep] is not installed in this interpreter (no OCP module).",
             fix=INSTALL_LINE,
+            code="pk_kernel_absent",
         )
 
 

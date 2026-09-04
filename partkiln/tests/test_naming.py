@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from partkiln.document import CommandError
+from partkiln.document import CommandError, Document
 from partkiln.naming import (
     NameEntry,
     NameTable,
@@ -268,3 +268,124 @@ def test_fan_out_is_named_with_an_index_and_ambiguous_for_on() -> None:
     assert excinfo.value.code == "pk_ref_ambiguous" and "plate.end[1]" in str(excinfo.value)
     one = resolve(part, "plate.end[1]", "face", "one")
     assert one.count == 1
+
+
+# -- units in a selector's numeric filters (A66 defect audit) ----------------------------------
+
+
+def _inch_plate(name: str = "imperial"):
+    """A 4 x 2 x 0.4 INCH plate: 101.6 x 50.8 x 10.16 mm, so a bare `len>5`
+    reads 127 mm in this document and 5 mm in a millimetre one."""
+    doc = Document(name=name)
+    doc.apply({"op": "set", "id": "doc", "props": {"units": "in"}})
+    doc.apply({"op": "create", "kind": "part", "name": "plate"})
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "base",
+            "props": {"plane": "XY", "profile": [{"rect": [4, 2], "tag": "r"}]},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "plate",
+            "props": {"sketch": "base", "distance": 0.4},
+        }
+    )
+    return doc
+
+
+@pytest.mark.brep
+def test_numeric_filters_accept_a_unit_suffix(f1_part) -> None:
+    """F1's bore is r 5 mm = 0.19685 in and its long edges are 100 mm = 3.937 in.
+
+    Law 12 at the selector boundary: `r=0.19685in` must find the bore that
+    `r=0.19685` (mm) misses, and `len>4in` must find nothing where `len>4`
+    (mm) finds four. A suffix used to reach a bare `float()` and crash with
+    pk_op_failed 'report this'.
+    """
+    assert resolve(f1_part, "plate:faces(type=cyl, r=5mm)", "face").count == 1
+    assert resolve(f1_part, "plate:faces(type=cyl, r=0.19685in)", "face").names == ["hole1.1.wall"]
+    assert resolve(f1_part, "plate:edges(dir=X, len>3in)", "edge").count == 4
+    with pytest.raises(CommandError) as excinfo:
+        resolve(f1_part, "plate:edges(dir=X, len>4in)", "edge")
+    assert excinfo.value.code == "pk_ref_empty"
+    # area is the unit SQUARED: 9 in2 = 5806.4 mm2 keeps only the two 5921.46 mm2 faces
+    assert resolve(f1_part, "plate:faces(area>9in2)", "face").count == 2
+    assert resolve(f1_part, "plate:faces(area>9in)", "face").count == 2
+    # nearest is a point in the document's unit too
+    assert resolve(f1_part, "plate:edges(dir=X, nearest=[1.9685in,0,0.3937in])", "edge").names == [
+        "plate.end|plate.side.r.0"
+    ]
+    with pytest.raises(CommandError) as excinfo:
+        resolve(f1_part, "plate:faces(r=0.25in)", "face")
+    assert excinfo.value.code == "pk_ref_empty"
+    assert "Radii in scope: 5" in str(excinfo.value)
+
+
+@pytest.mark.brep
+def test_an_unknown_unit_in_a_filter_refuses_with_the_accepted_ones(f1_part) -> None:
+    for selector, kind in (
+        ("plate:faces(r=6qq)", "face"),
+        ("plate:edges(len>6qq)", "edge"),
+        ("plate:faces(area>6qq)", "face"),
+        ("plate:edges(nearest=[6qq,0,0])", "edge"),
+    ):
+        with pytest.raises(CommandError) as excinfo:
+            resolve(f1_part, selector, kind)
+        assert excinfo.value.code == "pk_unit_unknown", selector
+        assert "mm, cm, m, in, ft, mil" in str(excinfo.value), selector
+
+
+@pytest.mark.brep
+def test_a_bare_number_in_a_filter_is_the_document_unit() -> None:
+    """The inch plate's long edges are 4 in: `len>3` keeps them, `len>5` keeps none.
+
+    Read as millimetres (the old hard-wiring) `len>5` would keep all four.
+    """
+    doc = _inch_plate()
+    kept = doc.apply(
+        {
+            "op": "create",
+            "kind": "fillet",
+            "name": "f1",
+            "props": {"edges": "plate:edges(dir=X, len>3)", "r": 0.05},
+        }
+    )
+    assert kept["resolved"] == {"plate:edges(dir=X, len>3)": 4}
+    with pytest.raises(CommandError) as excinfo:
+        _inch_plate("imperial2").apply(
+            {
+                "op": "create",
+                "kind": "fillet",
+                "name": "f2",
+                "props": {"edges": "plate:edges(dir=X, len>5)", "r": 0.05},
+            }
+        )
+    assert excinfo.value.code == "pk_ref_empty"
+    assert "len>5" in str(excinfo.value)
+
+
+@pytest.mark.brep
+def test_a_one_reference_that_matches_nothing_refuses_pk_ref_empty() -> None:
+    """`pk_ref_ambiguous` said "it matched 0 ... name one of them" - of nothing.
+
+    D8: a refusal names the fix. Nothing matched, so the fix is what emptied
+    the scope plus the names that DO exist.
+    """
+    doc = build(F1())
+    doc.apply({"op": "set", "id": "feat:hole1", "props": {"suppressed": True}})
+    part = doc.parts["plate"]
+    with pytest.raises(CommandError) as excinfo:
+        resolve(part, "hole1:faces()", "face", "one")
+    message = str(excinfo.value)
+    assert excinfo.value.code == "pk_ref_empty"
+    assert "hole1" in message and "no faces" in message
+    assert "plate.end" in message  # the names that do exist
+    assert "plate:faces(" in message  # a selector that would match
+    with pytest.raises(CommandError) as excinfo:
+        resolve(part, [], "face", "one")
+    assert excinfo.value.code == "pk_ref_empty"

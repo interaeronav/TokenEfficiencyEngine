@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from partkiln.document import CommandError
+from partkiln.document import CommandError, Document
 from partkiln.params import ANGLE, LENGTH, SCALAR, Params
 
 
@@ -150,3 +150,26 @@ def test_as_dict_is_compact_and_rounded() -> None:
     p.set("third", "W/3")
     row = p.as_dict()["third"]
     assert row == {"name": "third", "value": 40.0, "unit": "mm", "expr": "W/3", "depends_on": ["W"]}
+
+
+def test_param_set_refuses_a_value_that_is_not_a_scalar() -> None:
+    """DEFECT 7: a list or a dict fell through `float(expr)` as a raw TypeError.
+
+    Rule 5/D8: user input never comes back as a bare TypeError - the refusal
+    carries a code and says what a parameter value may be.
+    """
+    p = fresh()
+    for value in ([1, 2], {"a": 1}, None, (3, 4), True):
+        with pytest.raises(CommandError) as excinfo:
+            p.set("X", value)  # type: ignore[arg-type]
+        assert excinfo.value.code == "pk_bad_expr"
+        message = str(excinfo.value)
+        assert "TypeError" not in message
+        assert "number" in message and "expression" in message
+    assert "X" not in p
+    # and through the verb the model actually writes, still not a TypeError
+    doc = Document()
+    with pytest.raises(CommandError) as excinfo:
+        doc.apply({"op": "param_set", "params": {"W": [1, 2]}})
+    assert excinfo.value.code == "pk_bad_expr"
+    assert doc.history == [] and doc.params.names() == []

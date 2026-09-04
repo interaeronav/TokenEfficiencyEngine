@@ -210,6 +210,15 @@ class TeeApp:
 
         register_seamkiln_tools(self)
 
+        # A66 P4: partkiln's mechanical CAD lane. Metadata only, for the same
+        # reason and one more: `import OCP` costs 26 s in a cold venv (P0a),
+        # so paying it at boot would break Law 17 before the first call. The
+        # kernel is reached through the adapter (in-process or the sidecar
+        # venv that survives the extension wipe) and never imported here.
+        from tee.adapters.partkiln.tools import register_partkiln_tools
+
+        register_partkiln_tools(self)
+
     @property
     def llm_cfg(self) -> dict:
         """[llm] config enriched with the state dir the switch profiles

@@ -58,6 +58,50 @@ def open_shell():
 
 
 @pytest.fixture(scope="module")
+def near_edge_bore():
+    """A 100x60x10 plate whose one d10 bore leaves 0.600 mm to the x=100 face.
+
+    100 - (94.4 + 5) = 0.6. The thinnest generatrix of the bore is a single
+    line in u, so a UV CELL-CENTRE grid never lands on it: measured
+    2026-09-04 the grid alone reports 1.922 mm at n=5 and is non-monotone in
+    n (n=7 1.216, n=9 0.645, n=13 0.768, n=21 0.608) - raising the sample
+    count is not a fix, which is why `min_wall` also runs face-pair extrema.
+    """
+    return shapes.cut(shapes.box(100, 60, 10), [shapes.cylinder(5, 12, (94.4, 24, -1))]).shape
+
+
+@pytest.fixture(scope="module")
+def wedge():
+    """A prism whose section tapers to a 0.2 mm heel at x=0 (true min wall 0.2).
+
+    The thin spot is ON the boundary of both faces that bound it, so no
+    interior sample of either can reach it; the face-pair extrema solution
+    lands exactly there (it is `IsOnEdge`, hence the projection back to (u, v)).
+    """
+    face = shapes.make_face_from_points([(0, 0, 0), (40, 0, 0), (40, 0, 5.0), (0, 0, 0.2)])
+    return shapes.prism(face, (0, 60, 0)).shape
+
+
+@pytest.fixture(scope="module")
+def filleted_plate():
+    """A 100x60x10 plate with two d6 holes and four r3 corner fillets.
+
+    Six cylindrical faces of radius 3, of which only the two holes are
+    concave from the material's side - the spec's `holes` rule must count 2.
+    """
+    plate = shapes.cut(
+        shapes.box(100, 60, 10),
+        [shapes.cylinder(3, 12, (25, 30, -1)), shapes.cylinder(3, 12, (75, 30, -1))],
+    ).shape
+    corners = [
+        e.shape
+        for e in query.edges(plate)
+        if e.curve_type == "line" and e.direction and abs(e.direction[2]) > 0.9
+    ]
+    return shapes.fillet(plate, corners, 3.0).shape
+
+
+@pytest.fixture(scope="module")
 def stepped_shaft():
     a = shapes.cylinder(10, 50)
     b = shapes.cylinder(15, 30, (0, 0, 50))
@@ -105,6 +149,18 @@ def test_validate_open_shell_is_not_closed_and_names_it(open_shell) -> None:
     assert report["solids"] == 0
     assert report["free_edges"] == 4
     assert report["problems"] == ["not a closed solid: 0 solids, 4 free edges"]
+
+
+def test_validate_a_sphere_and_a_cone_are_closed_solids() -> None:
+    """A degenerate edge is not a free edge (defect: the pole seam and the cone
+    apex have ONE ancestor face, so counting them called a closed solid open)."""
+    for solid, faces in ((shapes.sphere(10), 1), (shapes.cone(8, 0, 20), 2)):
+        report = validity.validate(solid)
+        assert report["valid"] is True and report["solids"] == 1
+        assert report["faces"] == faces
+        assert report["free_edges"] == 0
+        assert report["closed"] is True
+        assert report["problems"] == []
 
 
 def test_fix_reports_no_change_on_a_sound_solid(f1) -> None:
@@ -190,6 +246,10 @@ def test_min_wall_f4_housing_is_2mm(housing_f4) -> None:
 
 
 def test_min_wall_mesh_estimate_agrees_and_says_estimate(housing_f4) -> None:
+    # trimesh.proximity.thickness builds an R-tree index; rtree is the [mesh]
+    # extra, absent from this venv (measured 2026-09-04), so this is a skip
+    # naming the extra, never a silent pass.
+    pytest.importorskip("rtree", reason="trimesh.proximity.thickness needs partkiln[mesh]")
     w = wall.min_wall(housing_f4, method="mesh")
     assert w["method"] == "mesh" and w["estimate"] is True
     assert w["min_mm"] == pytest.approx(2.0, abs=0.02)
@@ -206,6 +266,65 @@ def test_min_wall_f5_100_holes_under_budget() -> None:
     dt = time.perf_counter() - t
     assert w["min_mm"] == 12.0  # plate thickness; hole pitch leaves 12 mm webs too
     assert dt < 2.0, f"F5 ray scan took {dt:.3f} s (measured 0.12 s for 2 650 rays)"
+
+
+def test_min_wall_mesh_refuses_when_rtree_is_absent(housing_f4, monkeypatch) -> None:
+    """A missing optional dependency is a refusal with the install line, never a
+    bare ModuleNotFoundError three frames down inside trimesh (D8)."""
+    monkeypatch.setitem(sys.modules, "rtree", None)  # `import rtree` -> ImportError
+    with pytest.raises(CommandError) as err:
+        wall.min_wall(housing_f4, method="mesh")
+    assert err.value.code == "pk_not_served"
+    message = str(err.value)
+    assert "rtree" in message and "partkiln[mesh]" in message
+    assert "method='ray'" in message
+
+
+def test_min_wall_measures_a_wall_no_uv_sample_lands_on(near_edge_bore) -> None:
+    """The 0.600 mm web between the bore and the x=100 face, which the UV grid
+    reports as 1.922 at n=5 and never converges to by raising n."""
+    w = wall.min_wall(near_edge_bore)
+    assert w["min_mm"] == 0.6
+    assert w["pairs_examined"] >= 1
+    assert w["face"]["type"] in ("cylinder", "plane")
+    for n in (5, 9, 21):
+        assert wall.min_wall(near_edge_bore, samples_per_face=n)["min_mm"] == 0.6
+    r = wall.check_wall(near_edge_bore, limit_mm=1.5)
+    assert r["ok"] is False and r["min_mm"] == 0.6
+    assert spec.check_spec(near_edge_bore, {"min_wall_mm": 1.5})["verdict"] == "fail"
+
+
+def test_min_wall_measures_a_wedge_heel_on_the_face_boundary(wedge) -> None:
+    assert shapes.volume(wedge) == pytest.approx(6240.0, abs=1e-6)
+    assert wall.min_wall(wedge)["min_mm"] == 0.2
+
+
+def test_min_wall_pair_pass_is_gated_and_says_when_it_gave_up(near_edge_bore, monkeypatch) -> None:
+    """The O(faces^2) pass is capped by face count and by extrema solves; a
+    capped answer says so rather than quietly reporting the grid's 1.922 mm as
+    if it were the wall."""
+    monkeypatch.setattr(wall, "FACE_CAP", 3)
+    w = wall.min_wall(near_edge_bore)
+    assert w["faces"] == 7 and w["pairs_examined"] == 0
+    assert w["pairs_capped"] is True and w["min_mm"] == 1.922
+    monkeypatch.setattr(wall, "FACE_CAP", 400)
+    monkeypatch.setattr(wall, "PAIR_CAP", 0)
+    capped = wall.min_wall(near_edge_bore)
+    assert capped["pairs_capped"] is True and capped["min_mm"] == 1.922
+
+
+def test_min_wall_ray_says_the_minimum_is_not_proven(f1) -> None:
+    """The search is a sampler plus a pruned face-pair pass: it can only ever
+    report an UPPER bound, so it labels itself and check_spec repeats it."""
+    w = wall.min_wall(f1)
+    assert w["min_mm"] == 10.0
+    assert w["estimate"] is True and w["proven"] is False
+    assert w["samples_per_face"] == 5 and w["faces"] == 7
+    result = spec.check_spec(f1, {"min_wall_mm": 5})
+    assert result["verdict"] == "pass"
+    (note,) = result["unproven"]
+    assert note.startswith("min_wall_mm") and "upper bound" in note
+    assert "5x5" in note
 
 
 def test_check_wall_finds_a_1_2mm_wall_under_a_2mm_limit(thin_wall) -> None:
@@ -317,6 +436,64 @@ def test_check_spec_counts_holes_by_unique_cylindrical_faces() -> None:
     bad = spec.check_spec(f5, {"holes": [{"dia": 8, "count": 99}, {"dia": 6, "count": 1}]})
     assert [v["got"] for v in bad["violations"]] == [100, 0]
     assert "seats count under their own diameter" in bad["violations"][0]["fix"]
+
+
+def test_check_spec_does_not_count_fillets_as_holes(filleted_plate) -> None:
+    """A fillet of the hole's radius is a CONVEX cylinder; only a concave one is
+    a hole. Six r3 cylinders, two holes - the correct part must pass its spec."""
+    radii = [f.radius for f in query.faces(filleted_plate) if f.surface_type == "cylinder"]
+    assert len(radii) == 6 and all(r == pytest.approx(3.0) for r in radii)
+    assert spec.check_spec(filleted_plate, {"holes": [{"dia": 6, "count": 2}]})["verdict"] == "pass"
+    bad = spec.check_spec(filleted_plate, {"holes": [{"dia": 6, "count": 6}]})
+    (v,) = bad["violations"]
+    assert v["got"] == 2 and v["limit"] == 6
+    assert "concave" in v["fix"] and "fillet" in v["fix"]
+
+
+def test_check_spec_refuses_a_bad_limit_instead_of_a_raw_valueerror(f1) -> None:
+    """User input never escapes as ValueError: every coercion is a refusal with
+    a D8 code and the fix (D8)."""
+    for bad in (
+        {"volume_mm3": ["big", 10]},
+        {"faces": "seven"},
+        {"holes": [{"dia": 6, "count": "two"}]},
+        {"min_wall_mm": 1, "wall_samples": "lots"},
+        {"mass_g": [1, 2], "density_kg_m3": "steelish"},
+    ):
+        with pytest.raises(CommandError) as err:
+            spec.check_spec(f1, bad)
+        assert err.value.code == "pk_bad_op", bad
+        assert "Fix:" in str(err.value), bad
+
+
+def test_check_spec_reads_lengths_in_the_documents_unit(f1) -> None:
+    """Law 12 at the spec boundary: a bare number is the DOCUMENT's unit, and
+    `strict_units` refuses it. F1 is 100 x 60 x 10 mm = 3.937 x 2.362 x 0.394 in."""
+    inches = spec.check_spec(
+        f1, {"bbox": [3.937008, 2.362205, 0.393701], "min_wall_mm": 0.3}, units="in"
+    )
+    assert inches["verdict"] == "pass"
+    fails = spec.check_spec(f1, {"bbox": [100, 60, 10]}, units="in")
+    assert fails["verdict"] == "fail" and len(fails["violations"]) == 3
+
+    class _Doc:
+        units = "in"
+        strict_units = False
+
+    assert spec.check_spec(f1, {"bbox": [3.937008, 2.362205, 0.393701]}, units=_Doc())["verdict"]
+
+    class _Strict:
+        units = "mm"
+        strict_units = True
+
+    with pytest.raises(CommandError) as err:
+        spec.check_spec(f1, {"min_wall_mm": 5}, units=_Strict())
+    assert err.value.code == "pk_unitless"
+    # A string carries its own unit, so it passes even under strict_units.
+    assert spec.check_spec(f1, {"min_wall_mm": "5mm"}, units=_Strict())["verdict"] == "pass"
+    with pytest.raises(CommandError) as err:
+        spec.check_spec(f1, {"min_wall_mm": 5}, units="furlong")
+    assert err.value.code == "pk_unit_unknown"
 
 
 def test_check_spec_parts_list_is_one_compound() -> None:

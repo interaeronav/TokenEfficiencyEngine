@@ -7,3 +7,7 @@ and the 14 `pk_*` virtual tools (`tools.py`) land on top of it; nothing here
 imports partkiln at runtime, so the server boots whether or not the kernel
 is installed.
 """
+
+from tee.adapters.partkiln.adapter import PartkilnAdapter
+
+__all__ = ["PartkilnAdapter"]

@@ -241,7 +241,11 @@ def test_variable_fillet_and_chamfers() -> None:
     edge = fixtures.edge_at(f1, (50.0, 0.0, 10.0))
     var = shapes.fillet(f1, [edge], (1.0, 3.0))
     assert var.is_done and var.ignored_edges == ()
-    assert shapes.volume(var.shape) < shapes.volume(f1)
+    # "less than F1" passed for ANY radius, including a constant r that quietly
+    # ignored the (start, end) pair; the 1->3 taper removes 94.763 mm3, which no
+    # constant radius does (r=1 -21.460, r=2 -85.841, r=3 -193.142; measured
+    # 2026-09-04 on OCP 7.9.3).
+    assert shapes.volume(var.shape) - shapes.volume(f1) == pytest.approx(-94.763, abs=5e-4)
     sym = shapes.chamfer(f1, [edge], 2.0)
     assert shapes.volume(sym.shape) - shapes.volume(f1) == pytest.approx(-200.0, abs=5e-4)
     asym = shapes.chamfer(f1, [edge], (2.0, 4.0))
@@ -261,6 +265,11 @@ def test_shell_in_and_out() -> None:
     assert shapes.volume(inner.shape) == pytest.approx(32000 - 36 * 36 * 18, abs=1e-6)
     assert shapes.counts(inner.shape)["faces"] == 11
     outer = shapes.shell(b, [top.shape], 2.0, "out")
+    # pinned, not just "> inner": the outward shell is 10370.737 mm3, LESS than
+    # the 10592 of 44x44x22 - 40x40x20 because the added corners are rounded
+    # (measured 2026-09-04); "> inner" passed for an operation that returned the
+    # solid box untouched.
+    assert shapes.volume(outer.shape) == pytest.approx(10370.737, abs=5e-4)
     assert shapes.volume(outer.shape) > shapes.volume(inner.shape)
     assert shapes.bbox(outer.shape)[0] == pytest.approx(-2.0, abs=1e-6)
     with pytest.raises(KernelError, match="'in' or 'out'"):
@@ -296,3 +305,22 @@ def test_make_face_refuses_bad_polygons() -> None:
         shapes.make_face_from_points([(0, 0, 0), (1, 0, 0)])
     with pytest.raises(KernelError, match="planar"):
         shapes.make_face_from_points([(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 5)])
+
+
+def test_require_ocp_refuses_with_the_kernel_absent_code(monkeypatch) -> None:
+    """The kernel-absent refusal must carry `pk_kernel_absent`, not the default.
+
+    `KernelError`'s default code is `pk_op_failed` (`_errors.py`), so a
+    `require_ocp()` that passed no code refused with "the operation failed"
+    and an adapter branching on `pk_kernel_absent` (D8) never saw it - the
+    one refusal a caller is meant to handle by installing the extra.
+    """
+    import partkiln.brep as brep
+
+    monkeypatch.setattr(brep, "_ocp_present", False)
+    assert brep.ocp_available() is False
+    with pytest.raises(KernelError) as e:
+        brep.require_ocp()
+    assert e.value.code == "pk_kernel_absent"
+    assert brep.INSTALL_LINE in str(e.value)
+    assert e.value.fix == brep.INSTALL_LINE

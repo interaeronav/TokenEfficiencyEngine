@@ -253,3 +253,36 @@ def test_a_card_without_a_source_is_refused(monkeypatch: pytest.MonkeyPatch) -> 
             materials.names()
     finally:
         materials._cards.cache_clear()
+
+
+def test_asme_b18_3_is_reachable_by_the_sizes_its_rows_use() -> None:
+    """`supported_standards()` advertised ASME B18.3 but no input could reach a row.
+
+    Its columns are filled only on the imperial rows (`#10-24`, `1/4-20`,
+    `1-8`), which the metric designation parser cannot spell - so every
+    lookup refused. The data supports the standard; the parser did not.
+    """
+    assert "ASME B18.3" in standards.supported_standards()
+    gauge = standards.fastener("ASME B18.3", "#10-24")
+    assert (gauge["size"], gauge["units"], gauge["tpi"]) == ("#10-24", "in", 24)
+    assert (gauge["dk"], gauge["k"], gauge["t"]) == (0.312, 0.19, 0.09)
+    assert gauge["pitch_mm"] is None
+    fractional = standards.fastener("asme b18.3", "1/4-20")
+    assert (fractional["size"], fractional["dk"], fractional["k"]) == ("1/4-20", 0.375, 0.25)
+    assert standards.fastener("ASME B18.3", "1-8")["size"] == "1-8"
+    assert standards.fastener("ASME B18.3", "1/2 - 13")["size"] == "1/2-13"
+
+
+def test_a_standard_that_does_not_table_a_size_names_the_ones_it_does() -> None:
+    """The refusal used to end 'Nearest tabled: .' - no candidate at all."""
+    with pytest.raises(CommandError) as excinfo:
+        standards.fastener("ASME B18.3", "M6")
+    message = str(excinfo.value)
+    assert excinfo.value.code == "pk_ref_unknown"
+    assert "#10-24" in message and "1/4-20" in message
+    with pytest.raises(CommandError) as excinfo:
+        standards.fastener("ASME B18.3", "#99-13")
+    assert "#10-24" in str(excinfo.value)
+    with pytest.raises(CommandError) as excinfo:
+        standards.fastener("ISO 4762", "#10-24")  # a metric standard, an imperial size
+    assert "M6" in str(excinfo.value)

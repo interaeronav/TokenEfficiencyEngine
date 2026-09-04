@@ -293,42 +293,36 @@ def test_apply_is_atomic_across_the_batch() -> None:
     assert str(caught.value).startswith("command 1 of 2 (create): unknown create kind 'widget'")
     assert kernel.fingerprint() == before
     assert len(kernel.document.history) == 1
-    assert kernel.entities() == []
+    # The rolled-back sketch left no row; the parameter that survived has one
+    # (D7: everything a batch can change is an entity), and so does the doc.
+    assert [row["id"] for row in kernel.entities()] == ["doc", "param:W"]
     with pytest.raises(CommandError) as caught:
         kernel.apply({"op": "param_set"})  # type: ignore[arg-type]
     assert caught.value.code == "pk_bad_op"
 
 
-def test_entities_and_detail_derive_from_the_summary_until_p2_adds_them() -> None:
+def test_entities_and_detail_come_from_the_document_now_that_it_has_them() -> None:
+    """P3/P4 gave `Document` its own `entities()`/`detail()` (D7), so the
+    kernel delegates and the rows carry the doc, the parameters and the
+    sketch; the summary-derived fallback below it is the path a document
+    without them still takes."""
     kernel = LocalKernel()
     kernel.apply([PARAM_SET, SKETCH])
-    rows = kernel.entities()
-    assert rows == [
-        {"kind": "sketch", "id": "sk:base", "plane": "XY", "dof": 0, "status": "ok", "closed": True}
-    ]
-
-    class Part:
-        def summary(self) -> dict[str, Any]:
-            return {"kind": "part", "faces": 7, "volume_mm3": 59214.602}
-
-    kernel.document.parts["plate"] = Part()
-    rows = kernel.entities()
-    assert rows[1] == {"id": "part:plate", "kind": "part", "faces": 7, "volume_mm3": 59214.602}
-    assert kernel.detail("part:plate") == {
-        "id": "part:plate",
-        "kind": "part",
-        "faces": 7,
-        "volume_mm3": 59214.602,
-    }
+    rows = {row["id"]: row for row in kernel.entities()}
+    assert set(rows) == {"doc", "param:W", "sk:base"}
+    assert rows["sk:base"]["plane"] == "XY"
+    assert rows["sk:base"]["dof"] == 0 and rows["sk:base"]["status"] == "ok"
+    assert rows["param:W"]["value"] == 10.0 and rows["param:W"]["unit"] == "mm"
+    assert rows["doc"]["sketches"] == 1 and rows["doc"]["script_commands"] == 2
 
     detail = kernel.detail("sk:base")
     assert detail["id"] == "sk:base" and detail["dof"] == 0
-    assert detail["coordinates"]  # opt-in geometry, only here (hard rule 1)
+    assert detail["dims"] and "coordinates" not in detail  # scalars only (hard rule 1)
     assert kernel.detail("doc")["fingerprint"] == kernel.fingerprint()
     with pytest.raises(CommandError) as caught:
         kernel.detail("sk:nope")
     assert caught.value.code == "pk_ref_unknown"
-    assert "sk:base" in str(caught.value) and "part:plate" in str(caught.value)
+    assert "sk:base" in str(caught.value)
 
 
 def test_a_document_that_grows_its_own_entities_is_delegated_to() -> None:
@@ -384,6 +378,9 @@ def test_snapshot_restore_discard_keep_the_document_handle(tmp_path: Path) -> No
         "commands": 2,
         "fingerprint": taken,
         "brep": False,
+        # no part, so no cache to name - `caches` is always there, so a
+        # `discard()` never has to open the json to find what to unlink.
+        "caches": [],
     }
 
     kernel.apply([{"op": "param_set", "params": {"W": "12mm"}}])

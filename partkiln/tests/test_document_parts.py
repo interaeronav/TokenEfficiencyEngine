@@ -313,7 +313,7 @@ def test_snapshot_fast_path_restores_shapes_and_names_without_regen(tmp_path: Pa
     doc = build(F2())
     snap = doc.snapshot("cp1", tmp_path)
     assert snap["brep"] is True and snap["commands"] == 8
-    assert set(snap) == {"label", "path", "commands", "fingerprint", "brep"}
+    assert set(snap) == {"label", "path", "commands", "fingerprint", "brep", "caches"}
     json_path = Path(snap["path"])
     assert json_path.name.startswith("cp1-") and json_path.parent == tmp_path
     assert (tmp_path / f"{json_path.stem}-bracket.brep").is_file()
@@ -439,3 +439,26 @@ def test_multiple_parts_need_naming_and_summary_lists_both() -> None:
     assert [r["id"] for r in rows] == ["part:a", "part:b"]
     assert rows[1]["mass_g"] == pytest.approx(500 * 7850 * 1e-6, abs=1e-3)
     assert rows[0]["volume_mm3"] == 0.0
+
+
+def test_discarding_a_checkpoint_removes_its_brep_caches(tmp_path: Path) -> None:
+    """DEFECT 8: `snapshot()` wrote `<stem>-<part>.brep` siblings and reported
+    only a BOOL, so `LocalKernel.discard()` - which unlinks `path` and whatever
+    `files`/`breps` the payload names - left every cache on disk forever.
+
+    D3: the script is the checkpoint and the B-rep is a cache; a cache the
+    owner cannot name is a leak.
+    """
+    from partkiln.client import LocalKernel
+
+    doc = build(F2())
+    snap = doc.snapshot("cp_discard", tmp_path)
+    assert snap["brep"] is True
+    assert snap["caches"] == [f"{Path(snap['path']).stem}-bracket.brep"]
+    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(
+        [Path(snap["path"]).name, *snap["caches"]]
+    )
+    kernel = LocalKernel()
+    kernel.discard(snap)
+    assert list(tmp_path.iterdir()) == []
+    kernel.discard(snap)  # discarding twice is not an error

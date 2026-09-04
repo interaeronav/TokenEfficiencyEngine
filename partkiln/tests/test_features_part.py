@@ -824,3 +824,85 @@ def test_deliberate_failures_are_one_command_error_naming_feature_and_fix(
     assert "Traceback" not in message and len(message) < 700
     assert doc.fingerprint() == before
     assert len(doc.history) == len(F1())
+
+
+# -- the defects the A66 audit found ------------------------------------------------------------
+
+
+def test_set_refuses_an_unknown_prop_and_names_the_real_one() -> None:
+    """A typo'd prop used to be stored, regenerate nothing and report success.
+
+    D8: a no-op that says it worked is the worst refusal of all. `diameter`
+    is not a hole prop - `dia` is - so `set` refuses and names the settable
+    props of that kind.
+    """
+    doc = build(F1())
+    before = doc.fingerprint()
+    with pytest.raises(CommandError) as excinfo:
+        doc.apply({"op": "set", "id": "feat:hole1", "props": {"diameter": 12}})
+    message = str(excinfo.value)
+    assert excinfo.value.code == "pk_bad_op"
+    assert "diameter" in message and "dia" in message
+    assert doc.fingerprint() == before
+    assert "diameter" not in doc.parts["plate"].feature("hole1").args
+    # a real prop still works, and so do the two meta props
+    assert doc.apply({"op": "set", "id": "feat:hole1", "props": {"dia": 12}})["props"] == [
+        {"key": "dia", "old": 10, "new": 12}
+    ]
+    assert doc.apply({"op": "set", "id": "feat:hole1", "props": {"suppressed": True}})["props"] == [
+        {"key": "suppressed", "old": False, "new": True}
+    ]
+    # nothing is written when one prop of a batch is wrong
+    with pytest.raises(CommandError):
+        doc.apply({"op": "set", "id": "feat:hole1", "props": {"dia": 14, "diameter": 14}})
+    assert doc.parts["plate"].feature("hole1").args["dia"] == 12
+
+
+def test_hole_counts_the_holes_that_were_actually_cut() -> None:
+    """`count` used to be `len(at)`: a tool that missed the body was silent.
+
+    Law 11's sibling - a feature reports what it DID, not what it was asked
+    for. One point on the face and one 500 mm off it makes exactly one hole.
+    """
+    doc = build(F1()[:3])
+    r = doc.apply(
+        {
+            "op": "create",
+            "kind": "hole",
+            "name": "h",
+            "props": {"on": "plate.end", "at": [[50, 30], [500, 30]], "dia": 10},
+        }
+    )
+    assert r["count"] == 1 and r["requested"] == 2 and r["missed"] == 1
+    assert r["names"] == ["h.1.wall"]
+    assert any("500" in n and "cut nothing" in n for n in r["notes"]), r["notes"]
+    assert r["delta_mm3"] == pytest.approx(-math.pi * 25 * 10, abs=5e-4)
+
+
+def test_a_hole_where_every_point_misses_refuses_rather_than_reporting_it_cut() -> None:
+    doc = build(F1()[:3])
+    with pytest.raises(CommandError) as excinfo:
+        doc.apply(
+            {
+                "op": "create",
+                "kind": "hole",
+                "name": "h",
+                "props": {"on": "plate.end", "at": [[500, 30], [600, 30]], "dia": 10},
+            }
+        )
+    assert excinfo.value.code == "pk_no_effect"
+    r = doc.apply(
+        {
+            "op": "create",
+            "kind": "hole",
+            "name": "h",
+            "props": {
+                "on": "plate.end",
+                "at": [[500, 30], [600, 30]],
+                "dia": 10,
+                "allow_no_effect": True,
+            },
+        }
+    )
+    assert r["count"] == 0 and r["requested"] == 2 and r["missed"] == 2
+    assert any("cut nothing" in n for n in r["notes"]), r["notes"]

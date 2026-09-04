@@ -19,22 +19,27 @@ The name before the colon is a part first, then a feature (a feature's scope
 is the faces it named and their edges). Filters: `normal=+Z`, `dir=Z` (line
 edges, either sign), `of=<role>` (the face `<feature>.<role>`; `loop=outer|
 inner` then picks its wires), `type=plane|cyl|cone|sphere|torus|bspline|
-line|circle`, `r=<mm>`, `len><mm>`, `len<<mm>`, `area><mm2>`, `convex|
+line|circle`, `r=<len>`, `len><len>`, `len<<len>`, `area><area>`, `convex|
 concave|tangent`, `nearest=[x,y,z]`, `created_by=<feature>`, `not(<filter>)`
 and `seams` (keep them). Seam edges are EXCLUDED by default and counted in
 `seam_excluded`: measured (A66 P0a), F1's fifth `dir=Z` edge is the
 cylinder seam, which OCCT accepts in a fillet and generates nothing for.
+Every numeric filter carries a unit or takes the document's (Law 12):
+`r=6mm`, `r=0.25in`, `len>3/8in`, `area>9in2` - the area unit squared.
 Cardinality is declared by the consuming field: `on` needs exactly one,
-`edges`/`faces` take many; 0 -> `pk_ref_empty` naming the filter that
-killed the last candidates, >1 where 1 is needed -> `pk_ref_ambiguous` with
-the candidates. OCP is imported inside functions only.
+`edges`/`faces` take many; 0 -> `pk_ref_empty` naming the filter (or the
+scope) that killed the last candidates and the names that DO exist, >1
+where 1 is needed -> `pk_ref_ambiguous` with the candidates. OCP is
+imported inside functions only.
 """
 
 from __future__ import annotations
 
 import math
 import re
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -47,6 +52,65 @@ _SELECTOR = re.compile(
 )
 _TYPE_ALIASES = {"cyl": "cylinder", "cylinder": "cylinder", "plane": "plane", "cone": "cone"}
 _KEY_TOL = 1e-3
+
+# A number inside a selector filter, split from its optional unit suffix, so
+# `area>9in2` can square the factor `partkiln.units` hands out per unit.
+_FILTER_NUMBER = re.compile(
+    r"^\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:\s*/\s*\d+(?:\.\d*)?)?)\s*"
+    r"([A-Za-z\u00b0\"']*)\s*(?:\^?2|\u00b2)?\s*$"
+)
+
+# The document's length unit for the command being run. Law 12: a bare number
+# is the DOCUMENT's unit, and a selector's `r=6` or `len>50` is a bare number
+# like any other - but `resolve()` is reached from `features/base.py` with a
+# part and no document, so the verb boundary binds it for the command instead
+# of every call site threading it. A ContextVar, not a module global: the
+# previous value is restored on exit, so a caller that binds nothing keeps the
+# documented default of millimetres.
+_UNIT: ContextVar[str] = ContextVar("partkiln_selector_unit", default="mm")
+
+
+@contextmanager
+def document_unit(unit: str) -> Iterator[None]:
+    """Bind the document's length unit for every selector evaluated inside."""
+    from partkiln import units
+
+    token = _UNIT.set(units.canonical_unit(unit, "length"))
+    try:
+        yield
+    finally:
+        _UNIT.reset(token)
+
+
+def selector_unit() -> str:
+    """The unit a bare number in a selector filter is in, right now."""
+    return _UNIT.get()
+
+
+def _filter_length(raw: str, ctx: dict[str, Any]) -> float:
+    """A filter's length in mm: `6mm`, `0.25in`, `3/8in`, or the document unit.
+
+    Every numeric filter goes through `partkiln.units` (Law 12) because a bare
+    `float()` crashed on any suffix with pk_op_failed 'report this', and read a
+    non-millimetre document's numbers as millimetres.
+    """
+    from partkiln import units
+
+    return units.parse_length(str(raw).strip(), default=ctx.get("unit") or "mm")
+
+
+def _filter_area(raw: str, ctx: dict[str, Any]) -> float:
+    """A filter's area in mm2. The unit is SQUARED: 9in2 (or 9in) = 5806.4 mm2."""
+    from partkiln import units
+
+    default = ctx.get("unit") or "mm"
+    text = str(raw).strip()
+    match = _FILTER_NUMBER.match(text)
+    if match is None:  # let units write the refusal, with the accepted suffixes
+        return units.parse_length(text, default=default)
+    magnitude, suffix = match.groups()
+    per_unit_mm = units.parse_length(f"1{suffix}" if suffix else 1.0, default=default)
+    return units.parse_length(magnitude, default="mm") * per_unit_mm * per_unit_mm
 
 
 # --------------------------------------------------------------------------- the table
@@ -328,6 +392,9 @@ class Resolved:
     names: list[str]
     seam_excluded: int = 0
     how: str = "name"
+    # (step, survivors) per filter, `("scope", n)` first: what a refusal for a
+    # reference that matched NOTHING names as the thing that emptied it.
+    trail: tuple[tuple[str, int], ...] = ()
 
     @property
     def count(self) -> int:
@@ -380,15 +447,17 @@ def _dot(a: Sequence[float], b: Sequence[float]) -> float:
     return sum(x * y for x, y in zip(a, b, strict=False))
 
 
-def _parse_point(text: str) -> tuple[float, float, float]:
+def _parse_point(text: str, ctx: dict[str, Any] | None = None) -> tuple[float, float, float]:
+    """`[x, y, z]` in the document's unit (or each component's own suffix), in mm."""
     inner = text.strip().strip("[]()")
     parts = [p for p in inner.split(",") if p.strip()]
     if len(parts) != 3:
-        raise CommandError(f"nearest needs [x, y, z] in mm, got {text!r}.", code="pk_needs")
-    try:
-        return (float(parts[0]), float(parts[1]), float(parts[2]))
-    except ValueError as exc:
-        raise CommandError(f"nearest needs three numbers, got {text!r}.", code="pk_needs") from exc
+        raise CommandError(
+            f"nearest needs [x, y, z] in {(ctx or {}).get('unit') or 'mm'}, got {text!r}.",
+            code="pk_needs",
+        )
+    values = [_filter_length(p, ctx or {}) for p in parts]  # refuses an unknown suffix
+    return (values[0], values[1], values[2])
 
 
 class Selector:
@@ -407,7 +476,7 @@ class Selector:
         self.kind = "face" if m.group("kind") == "faces" else "edge"
         self.filters = _split_filters(m.group("filters"))
 
-    def evaluate(self, part: Any, inv: Inventory) -> Resolved:
+    def evaluate(self, part: Any, inv: Inventory, unit: str | None = None) -> Resolved:
         scope_faces, scope_feature = _scope(part, inv, self.scope)
         if self.kind == "face":
             candidates = [inv.faces[i] for i in scope_faces]
@@ -421,7 +490,7 @@ class Selector:
                     seen.add(e.index)
                     candidates.append(e)
         keep_seams = False
-        ctx: dict[str, Any] = {"of": None}
+        ctx: dict[str, Any] = {"of": None, "unit": unit or _UNIT.get()}
         trail: list[tuple[str, int]] = [("scope", len(candidates))]
         for flt in self.filters:
             if flt == "seams":
@@ -454,7 +523,9 @@ class Selector:
             names = [inv.name_of_face(f.index) for f in candidates]
         else:
             names = [inv.name_of_edge(e.index) for e in candidates]
-        return Resolved(self.text, self.kind, candidates, names, seam_excluded, "selector")
+        return Resolved(
+            self.text, self.kind, candidates, names, seam_excluded, "selector", tuple(trail)
+        )
 
 
 def _scope(part: Any, inv: Inventory, scope: str) -> tuple[set[int], str | None]:
@@ -559,10 +630,10 @@ def _apply(
                 wanted.update(ring)
         return [c for c in candidates if c.index in wanted]
     if key == "r":
-        r = float(raw)
+        r = _filter_length(raw, ctx)
         return [c for c in candidates if c.radius is not None and abs(c.radius - r) <= _KEY_TOL]
     if key in ("len", "area"):
-        value = float(raw)
+        value = _filter_length(raw, ctx) if key == "len" else _filter_area(raw, ctx)
         attr = "length" if key == "len" else "area"
         rows = [c for c in candidates if hasattr(c, attr)]
         if op in (">", ">="):
@@ -571,7 +642,7 @@ def _apply(
             return [c for c in rows if getattr(c, attr) < value + 1e-9]
         return [c for c in rows if abs(getattr(c, attr) - value) <= _KEY_TOL]
     if key == "nearest":
-        point = _parse_point(raw)
+        point = _parse_point(raw, ctx)
         best = query.nearest(candidates, point)
         return [best] if best is not None else []
     if key == "created_by":
@@ -620,14 +691,19 @@ def _axis_name(v: Sequence[float]) -> str:
     return "oblique"
 
 
-def resolve(part: Any, ref: Any, kind: str, cardinality: str = "many") -> Resolved:
+def resolve(
+    part: Any, ref: Any, kind: str, cardinality: str = "many", unit: str | None = None
+) -> Resolved:
     """Resolve one reference (a name, a `name[k]`, an edge name or a selector).
 
     `kind` is 'face' or 'edge' (what the consuming field takes); `cardinality`
-    'one' refuses more than one hit with the candidates.
+    'one' refuses more than one hit with the candidates and none with the
+    names that exist. `unit` is what a bare number in a filter means: the
+    caller's document unit when it has one, else whatever `document_unit()`
+    bound for this command (Law 12).
     """
     if isinstance(ref, list | tuple):
-        merged: list[Resolved] = [resolve(part, r, kind, "many") for r in ref]
+        merged: list[Resolved] = [resolve(part, r, kind, "many", unit) for r in ref]
         infos = [i for r in merged for i in r.infos]
         names = [n for r in merged for n in r.names]
         out = Resolved(
@@ -638,7 +714,7 @@ def resolve(part: Any, ref: Any, kind: str, cardinality: str = "many") -> Resolv
             sum(r.seam_excluded for r in merged),
             "list",
         )
-        return _check_cardinality(out, cardinality)
+        return _check_cardinality(out, cardinality, part)
     text = str(ref).strip()
     if not text:
         raise CommandError("an empty reference names nothing.", code="pk_ref_unknown")
@@ -649,23 +725,67 @@ def resolve(part: Any, ref: Any, kind: str, cardinality: str = "many") -> Resolv
             raise CommandError(
                 f"{text} selects {sel.kind}s but this field takes {kind}s.", code="pk_ref_unknown"
             )
-        return _check_cardinality(sel.evaluate(part, inv), cardinality)
+        return _check_cardinality(sel.evaluate(part, inv, unit), cardinality, part, inv)
     if kind == "face":
-        return _check_cardinality(_resolve_face_name(part, inv, text), cardinality)
-    return _check_cardinality(_resolve_edge_name(part, inv, text), cardinality)
+        return _check_cardinality(_resolve_face_name(part, inv, text), cardinality, part, inv)
+    return _check_cardinality(_resolve_edge_name(part, inv, text), cardinality, part, inv)
 
 
-def _check_cardinality(res: Resolved, cardinality: str) -> Resolved:
-    if cardinality == "one" and res.count != 1:
-        listed = "; ".join(
-            f"{n} at {_fmt(_centre(i))}" for n, i in zip(res.names, res.infos, strict=False)
-        )[:400]
-        raise CommandError(
-            f"{res.ref} must name exactly one {res.kind}, it matched {res.count}: {listed}. "
-            "Add nearest=[x,y,z] or name one of them.",
-            code="pk_ref_ambiguous",
+def _check_cardinality(
+    res: Resolved, cardinality: str, part: Any = None, inv: Inventory | None = None
+) -> Resolved:
+    if cardinality != "one" or res.count == 1:
+        return res
+    if res.count == 0:
+        raise _empty_for_one(res, part, inv)
+    listed = "; ".join(
+        f"{n} at {_fmt(_centre(i))}" for n, i in zip(res.names, res.infos, strict=False)
+    )[:400]
+    raise CommandError(
+        f"{res.ref} must name exactly one {res.kind}, it matched {res.count}: {listed}. "
+        "Add nearest=[x,y,z] or name one of them.",
+        code="pk_ref_ambiguous",
+    )
+
+
+def _empty_for_one(res: Resolved, part: Any, inv: Inventory | None) -> CommandError:
+    """`pk_ref_empty`, never `pk_ref_ambiguous`: nothing matched.
+
+    "it matched 0 ... name one of them" named nothing a model could act on
+    (D8). Name what emptied it - the filter, or the scope that owns no
+    sub-shapes any more - then the names that DO exist and a selector over
+    the whole part, which is the same machinery the ambiguous case uses to
+    list its candidates.
+    """
+    killer = next((step for step, count in res.trail if count == 0), "")
+    if killer == "scope":
+        scope = res.ref.split(":", 1)[0]
+        why = (
+            f"the scope {scope!r} owns no {res.kind}s in the current body - it is suppressed, "
+            "failed, or a later feature consumed everything it made"
         )
-    return res
+    elif killer:
+        why = f"the filter {killer} left no candidate"
+    elif not res.ref:
+        why = "the reference is an empty list"
+    else:
+        why = "it resolved to no sub-shape"
+    if inv is None and part is not None:
+        try:
+            inv = part.inventory()
+        except CommandError:
+            inv = None
+    pool = []
+    if inv is not None:
+        pool = sorted(set(inv.face_names if res.kind == "face" else inv.edge_names))
+    shown = ", ".join(pool[:8]) + (f" ... ({len(pool)} total)" if len(pool) > 8 else "")
+    name = getattr(part, "name", "<part>")
+    return CommandError(
+        f"{res.ref or '[]'} must name exactly one {res.kind} and matched none: {why}. "
+        f"{res.kind.capitalize()} names now: {shown or '(none)'}. "
+        f"Select one by geometry: {name}:{res.kind}s(nearest=[x,y,z]).",
+        code="pk_ref_empty",
+    )
 
 
 def _fmt(p: Sequence[float]) -> str:
@@ -751,6 +871,10 @@ def _stale(
 
 
 def survivor_selector(part_name: str, entry: NameEntry) -> str:
+    """A selector that would survive a regen. A NameEntry's key is in mm, so the
+    numbers carry an explicit `mm` whenever the document's unit is not mm -
+    otherwise the suggestion would be re-read in that document's unit."""
+    unit = "" if _UNIT.get() == "mm" else "mm"
     kind, _size, centre, direction, radius = entry.key
     filters = [f"type={kind}"]
     if entry.kind == "face" and direction is not None:
@@ -758,8 +882,8 @@ def survivor_selector(part_name: str, entry: NameEntry) -> str:
     elif entry.kind == "edge" and direction is not None and kind == "line":
         filters.append(f"dir={_axis_name(direction).lstrip('+-')}")
     if radius is not None:
-        filters.append(f"r={radius:g}")
-    filters.append("nearest=[" + ",".join(f"{c:g}" for c in centre) + "]")
+        filters.append(f"r={radius:g}{unit}")
+    filters.append("nearest=[" + ",".join(f"{c:g}{unit}" for c in centre) + "]")
     plural = "faces" if entry.kind == "face" else "edges"
     return f"{part_name}:{plural}({', '.join(filters)})"
 
@@ -780,11 +904,13 @@ __all__ = [
     "Selector",
     "SubshapeKey",
     "build_inventory",
+    "document_unit",
     "edge_name",
     "is_selector",
     "key_of",
     "keys_match",
     "materialise",
     "resolve",
+    "selector_unit",
     "survivor_selector",
 ]

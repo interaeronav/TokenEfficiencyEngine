@@ -10024,6 +10024,7 @@ tests as they stood before their re-statements - both modules re-run green
 after, 14 and 20); the server's 24 seamkiln adapter tests pass; lint clean
 on every file touched. Surface unchanged: 17 tools / 2,033 tok.
 
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
@@ -10512,276 +10513,142 @@ declare a `round(x, 3)` helper.
 this campaign's entries to HEAD's copy on every commit and stacked five
 copies of them; this commit rebuilds the file with one.
 
-## A67 — the point-cloud scan-prep lane: `pc_*` built and closed (2026-09-03)
+### A66 P4 and P5 — the lane joins TEE, and the surface does not move (2026-09-04)
 
-Owner: the A67 brief, then mid-turn *"use TEE"* and *"TEE/QMAX"*, then
-*"COMPLETE ALL PHASES WITHOUT MY INPUT, I'M OFF TO BED"*. Plan of record
-`CLAUDE_A67_SCRIPT.md`; design of record research doc 69; user guide
-`docs/pointcloud-lane.md`. Decisions in `docs/DECISIONS.md` under the same
-heading.
-
-**The gap this closed, named precisely.** TEE already had the back half of
-reality capture (`capture_*`, A42, all phases CLOSED). It did not have: any
-binary point-cloud reader (`capture/tools.py:303` maps ODM's
-`odm_georeferenced_model.laz` as an artifact the lane *produces and never
-opens*); anything that consumes the tape measurements
-`docs/okongo-capture-protocol.md` §1/§4 sends the owner to site to collect; or
-RANSAC / plane fitting / normal estimation anywhere. A42 T6 is what the second
-gap cost: 7-DOF ICP on unreferenced video collapsed (scale → 0, RMS 15 µm,
-1.17 M points in a 0.5 mm blob) and scale had to be borrowed from the design
-envelope (×6.12). `pc_control_add` / `pc_control_verify` are that missing input.
-
-**Measured before design (this Mac, `server/.venv` py3.11.15, appendix fixture
-`seed=7` → 279,352 points):**
+Four agents in parallel (kernel methods and entities, the TEE adapter with its
+tools and wiring, drawings, sheet metal and the handoff), each with its own
+verifier. The first attempt at all four died on an API limit having written
+three files; they were relaunched on Opus and told to build on what survived.
 
 ```
-A1 level     residual tilt 0.0000 deg | floor RMS 11.7 mm     gate 0.05 / 12+-20%
-A2 yaw       3D normal-hist k=160  err 0.004 deg              gate 0.5
-             k=80 0.040 | k=40 0.068 | k=20 0.073
-             2D PCA full band 0.073 | 2D PCA 50 mm slice 1.289  <- FAILS
-             2D normals (XY neighbourhoods)         26.350      <- collapses
-A3 slice     4 segments, +2.1 / -0.8 mm                       gate +-5 mm
-A4 control   161 ppm; corrected +1.4 / -1.3 mm                gate 500 ppm / +-2 mm
-A7 budget    682 tokens for the whole 6-call sequence         gate 2,000
-   timing    level + yaw 0.24 s on 279,352 points
-
-format facts
-  trimesh PLY is float32: local 0.000 mm | ENU 0.004 | UTM 249.991 | ECEF 249.995
-  LAS scale sweep, file size IDENTICAL (6,800,375 B) at every scale:
-    1e-2 5.0000 mm | 1e-3 0.5000 | 1e-4 0.0500 | 1e-5 0.0050 mm
-  LAZ lossless vs LAS, 2.62x smaller; laspy chunk_iterator streams
-  ezdxf.units.M -> $INSUNITS 6 | .MM -> 4
-  CloudCompare 2.13.2 with QLAS_IO, QE57_IO, QRANSAC_SD, QHOUGH_NORMALS plugins
-  licences (PyPI, 2026-09-03): laspy BSD-2 | lazrs MIT | trimesh MIT
-                               plyfile GPL-3.0-or-later | pye57 MIT | open3d MIT
+surface: 17 always-loaded tools = 2033 tok on the wire; 140 virtual tools
 ```
 
-**Built.** `server/src/tee/pointcloud/` (store, io, level, control, slice2d,
-report, tools), mirroring `ex_*` in-tree on `server/.venv`. **Ten virtual tools,
-zero added to the always-loaded 17**: `pc_open`, `pc_stat`, `pc_level`,
-`pc_control_add`, `pc_control_verify`, `pc_scale_apply`, `pc_slice`,
-`pc_section`, `pc_export`, `pc_report`. Each tabled **individually** in
-`trust.py::_EXPLICIT` — no `("pc_", …)` family row, the `cad_`/`trade_` lesson.
-New `pointcloud` extra (laspy[lazrs], scipy, numpy, ezdxf, trimesh) plus a
-`WITNESS` row.
-
-**Evidence: 1276 passed, 13 skipped** (full server suite, 72 s), of which 80 are
-the new lane. Ruff clean over `src tests ../benchmarks`. Benchmark
-`run_pointcloud_scenario`: **91,820 naive → 682 TEE tokens, 99.26% saving**, and
-the naive arm is flattered — it reads one point in forty.
-
-**Facts learned:** the floor is the LOWEST dominant horizontal plane, not the
-most populous (floor and ceiling tie on count, and the first implementation hung
-the room under its ceiling); normals must be 3D (a 2D estimator kept 6 of 40,000
-neighbourhoods and returned 26° of error); yaw comes from the full-height wall
-band and never from the slice (1.289° vs a 0.5° gate); PLY export must be
-origin-shifted because trimesh writes float32; LAS scale 1e-4 is free precision
-and 1e-3 spends a quarter of the ±2 mm budget; fit residual is reported as
-median because max sits at ~2.9σ and reads as failure; and the control-snap
-radius is a sample-size floor (0.15 m → 503 ppm and a failing gate, 0.25 m →
-78 ppm), so it now grows until it holds enough points.
-
-**A defect this build found in its own brief:** `plyfile`, listed as a core
-dependency, is GPL-3.0-or-later — already banned in this repo by research doc 43
-and `voxkiln/license_lint.py`. Replaced with trimesh, which doc 43 had already
-recorded as the replacement. `pye57` and `open3d` were dropped too, but on
-weight, not licence — recorded separately so the licence record stays honest.
-
-**A regression this build caused and fixed:** registering `pc_control_check`
-pushed `ex_estimate` from rank 5 to rank 6 for the vague query "check the
-drawing", because "check" scores 3 points on a name match. Caught by
-`test_search_budget.py`; four candidate names were scored against the whole case
-set and the tool is now `pc_control_verify`.
-
-**A6 verified against third-party software, not just against ezdxf.**
-CloudCompare 2.13.2 opened the emitted DXF headless, found exactly 4 polylines,
-and exported them; every segment length it measured matches what `pc_slice`
-reported to **0.0000 mm** against a 1 mm gate:
+**P4 — the adapter and the fourteen tools.** `server/src/tee/adapters/partkiln/`
+holds the adapter (kernel chosen at first use: `LocalKernel` when both
+`partkiln` and `OCP` import in this interpreter, else the `SidecarKernel` over
+the NDJSON worker; `list_entities` maps the kernel's D7 rows to TEE `Entity`
+rows and answers from an in-process mirror while warming; `execute` translates
+the wire ops and makes ONE `apply` round trip; `_record` lifts `regen`'s blast
+radius, `assumed`, `resolved` and `no_effect` into the diff and upserts every
+created or modified entity; `capture` refuses `pk_capture_text_first` naming
+the SVG sheet, `pk_measure` and `tee_entity_detail`) and `tools.py` (the
+fourteen `pk_*` VirtualTools, each tabled individually, every handler lazy).
+`partkiln/methods.py` is the kernel side: `probe verbs lint query measure check
+standards materials bom drawing export import script`, with `drawing` and
+`flat` delegating to the phase modules or refusing `pk_not_served` by name.
+Wiring: `app.py` registers metadata-only, `cli.py` builds and submits the warm
+job, `doctor.py` reports the mode, both interpreters and the OCCT version.
 
 ```
-cc_all_000000.asc  2 vertices -> 3.006200 m      pc_slice said 3.0062
-cc_all_000001.asc  2 vertices -> 2.916700 m      pc_slice said 2.9167
-cc_all_000002.asc  2 vertices -> 4.057100 m      pc_slice said 4.0571
-cc_all_000003.asc  2 vertices -> 4.052500 m      pc_slice said 4.0525
-$INSUNITS group 70 = 6 (metres), read from the raw file with no library
+W1 bracket, live, in-process OCCT     9 ops, ONE batch, 0.29-0.53 s
+  plate +96,000.0 / 6 faces; f1 -214.602 / 10 (resolved 4); h -1368.478 / 14;
+  slot -3062.655 / 18; c1 -194.661 / 26 (resolved 8)
+  part 91,159.605 mm3, 715.603 g, bbox [120, 80, 10]
+  (the plan estimated 91,158.6 - the 1.0 mm3 is the chamfer, pinned to the measurement)
+edit T=12mm       changed [plate, f1, h, slot], unchanged [c1], 109,430.458 mm3, 0.05 s
+tee_scene_summary on the 12-row bracket   236 tok concise (the default), 728 detailed
+                                          - the P4 budget is 400, so 41 % headroom
+benchmark: bracket TEE 1,392 tok / 2 calls vs naive 8,378 / 6 (83.4 % saved)
+           STEP-as-text bound 25,311 tok; the edit row 162 tok vs 6,156 (97.4 %)
+warm job          import 0.304 s, RSS 286.5 MB, OCCT 7.9.3
 ```
 
-**A defect the live run found, after the suite was already green:** a baseline
-is a measurement OF a cloud, so it scales with the cloud - but `pc_scale_apply`
-carried the parent's `measured_mm` forward untouched. `pc_report` then read
-pre-correction deltas and called a freshly corrected scan **"SHAPE ONLY - do not
-scale off this drawing"**, the opposite of true. Fixed by transforming the
-baselines with the geometry; rigid ops (`pc_level`) still carry them untouched,
-because a rotation preserves distance. Both directions are now pinned. Live
-evidence after the fix: verdict SHAPE ONLY / worst 16.1 mm -> **TRUSTWORTHY /
-worst 0.8 mm**, and re-verifying the corrected cloud suggests a scale of
-0.9999996, i.e. it correctly reports that no further correction is needed. This
-is the argument for driving a lane end to end after the tests pass: 76 green
-tests did not catch it, because every one of them checked a single step.
+**P5a — drawings.** HLR per compound under named projectors, first- and
+third-angle layout, sections by half-space cut with hatch, details, dimensions
+whose values are READ FROM THE MODEL and carry `value_mm`, `projected_mm` and
+`agree`, hole tables, parts lists, and our own SVG writer beside ezdxf and
+fpdf2. F1 front `V 4 | H 9 + OutLineH 1`, top `5 | 5`, right `4 | H 10 +
+OutLineH 2`; the 96-fillet plate's front view is non-empty with
+`visible_union 26 > VCompound 9` — the union of the three visible compounds is
+what makes a filleted part drawable, and the script's "VCompound is empty"
+does NOT reproduce on this fixture (it was measured on a different plate); the
+test pins the union instead. F1 section at x=50 = 500.000 mm² in two faces; a
+stepped shaft's longitudinal section 2,700.000. DXF `$INSUNITS 4` with real
+`DIMENSION` entities reading 100.0 / 10.0; PDF mediabox 1190.55 × 841.89 pt;
+SVG and DXF byte-identical on repeat (ezdxf stamps a fresh GUID and timestamp
+at write time — both are normalised).
 
-**Open:** `pc_crop`, `pc_clean`, `pc_ortho` and a `pc_merge` wrapping
-`capture_register` are deferred to a second pass. **No real fixture exists** —
-`testbeds/` is absent and there is no `.ply`/`.las`/`.e57` in the repo, so the
-synthetic fixture carries the whole gate; one room export under 20 MB plus its
-tape measurements would make A7 and A9 real-world numbers.
+**P5b — sheet metal, flat first.** `BA = A(pi/180)(R + KT)`, `OSSB`, `BD`, the
+fold derived from the flat by replacing each bend strip with an annular
+sector. F7: BA **4.524** (4.398 at K 0.4, 4.712 at K 0.5), flat **76.524**,
+bend zone **376.991 mm³ — exactly equal across K**, and the OCCT fold agrees
+with the arithmetic to the last digit on every chain tested (W3 9,671.2389 mm³,
+folded bbox [60, 50, 40], folded − flat +18.850). A law came out of it: **K
+moves the blank, not the part** — a chain's folded volume is K-free. The
+handoff writes the manifest with units per file, and its deflection scales
+with the transform (F1 scaled to metres and meshed at the unscaled 0.1 mm came
+back as 18 triangles with the hole gone).
 
-**Not mine, still red:** `server/src/tee/adapters/partkiln/adapter.py`
-(untracked, dated 2026-09-02, the concurrent A66 session) carries 2 ruff errors
-— RUF059 at :471 and E501 at :779 — so `make check` fails on that file alone.
-Left untouched deliberately: that session may be mid-edit.
+### A66 — the kernel audited adversarially, and what it found (2026-09-04)
 
-## A67 addendum — the first real scan, and the drawings it produced (2026-09-03)
+123 agents: six dimensions swept the committed kernel (geometry, refusals,
+determinism, units and exchange, test quality, cross-module contracts), and
+every finding was then put to three independent refuters who had to REPRODUCE
+it or kill it. **39 findings, 8 killed, 31 confirmed** — 22 distinct defects
+after dedup. Then two fix waves, each defect with a regression test written
+FIRST and shown failing on the old code (the proof needs
+`-o pythonpath=<old tree>`: `partkiln/pyproject.toml` sets `pythonpath =
+["src"]` and pytest inserts that first, so a `PYTHONPATH` override silently
+passes).
 
-Owner: *"Use the zipped test scan file in the Okongo Dropbox folder, and use it
-to create a detailed architectural plan and 3d drawing upload to download folder
-for me to see and as a test"*, then *"I'm off to bed again, continue without my
-prompt"*.
+The three that mattered most:
 
-**Input.** `~/Dropbox/02 Okongo Oneleiwa Project/test scan.zip` (185 MB) — a raw
-3D Scanner App 2.5 capture from an `iPhone18,2`, iOS 26.6: 1,827 depth +
-confidence + pose frames, 305 RGB frames, and a fused `points.ply` of
-**1,520,736 coloured points**. ARKit Y-up, so `pc_open(up_axis="y")`.
+- **A spec check passed a wall it never measured.** `min_wall` sampled face UV
+  CELL CENTRES only, so on a 100×60×10 plate with a Ø10 bore at (94.4, 24) —
+  true minimum wall **0.600 mm** — it answered 1.922 and
+  `check_spec(min_wall_mm=1.5)` returned `pass`. Worse, the answer was
+  non-monotone in the sample count (1.922 / 1.216 / 0.645 / 0.768 / 0.608 at
+  n = 5, 7, 9, 13, 21), so "sample more" was not a fix. Now a second pass runs
+  `BRepExtrema_DistShapeShape` per non-adjacent face pair, projects each
+  solution back to its face with `GeomAPI_ProjectPointOnSurf` (not
+  `ParOnFaceS1/S2` — the governing solutions are `IsVertex`/`IsOnEdge`) and
+  casts the same inward ray: **0.600 mm at every sample count**, and the spec
+  fails. Gated by bbox-gap ordering with an early stop, so F5 is unchanged
+  (0.105 s, 5,353 candidate pairs, 0 examined); W3 costs 116 → 411 ms. The
+  result now says `estimate: True, proven: False` and `check_spec` carries an
+  `unproven` note — an upper bound is not a proof.
+- **A failed regen destroyed the document.** One bad edit truncated the history
+  and took the parts and sketches with it. `regen` now snapshots, replays and
+  only installs on success, refusing with the failing command named.
+- **A script did not rebuild what it recorded.** `regen` replayed against the
+  document's CURRENT settings, so after `set doc units=in` a 100 × 60
+  rectangle came back 2540 × 1524 and still claimed a fingerprint. The script
+  now carries the settings its commands were recorded under.
 
-**The lane, measured on real data:**
+The rest, each fixed with its test: holes reported the count REQUESTED, not
+cut (a point that missed the face was silent — now counted from the history,
+the missed points named, and a hole that cuts nothing refuses `pk_no_effect`);
+`set` on a feature accepted any prop silently (`diameter` for `dia` was a
+successful no-op — now refused with the real prop named, the settable list
+derived from the builder's own source); selector numbers ignored units
+(`r=6mm` crashed with "report this"; a bare number in an inch document was
+read as mm — now parsed through `units.parse_length` under a document-unit
+context); `check_spec` coerced user limits with bare `float()` and read every
+length as mm; a truncated checkpoint raised `JSONDecodeError`; `strict_units`
+told a model to write an angle in millimetres; degenerate edges made a sphere
+"not watertight"; fillet cylinders were counted as holes; ASME B18.3 was
+advertised but unreachable (its imperial sizes now parse); a BOM row with no
+material printed `0.000 g` and vanished from the total (now `None` with the
+total flagged `partial`); OBJ and 3MF reported a volume for a mesh they
+themselves flagged open; `require_ocp` refused with the wrong code;
+`fingerprint` hashed only solved coordinates, so five geometrically different
+sketches shared one hash; discarded checkpoints leaked their `.brep` caches;
+and three of the kernel's own tests were tautologies (a variable fillet
+asserted only "smaller than before" — every constant radius passed; a shell
+that returned the solid box passed; a 3MF tolerance twice the known deviation).
 
-```
-pc_open      1,520,736 pts in 3.0 s          89 tok
-pc_level     residual 0.0000 deg, floor RMS 12.32 mm over 129,247 floor pts
-             wall azimuth 88.667 deg removed  136 tok
-pc_stat      plane census 72.8% planar, 64.6% vertical, 25.6% horizontal
-z-histogram  floor spike at 0.00, ceiling spike at 2.60 - a textbook room
-whole session, nine calls on a 1.5 M-point cloud            506 tok
-```
+**The fourteen tools cost A50's recall guard its baseline, and it was
+re-measured rather than weakened.** The corpus went 67 → 81 tools;
+`pk_check` and `pk_drawing` both score 4.0 by NAME on "check the drawing" and
+push `ex_estimate` from rank 5 to 7, and no honest tag edit can undo a name
+hit. Recall re-measured over 29 cases: **3 → 28/29, 5 → 29/29, 8 → 29/29,
+10 → 29/29**. Five still finds everything ten finds and three still does not;
+the witness moved to `("size from an image", "ex_estimate")` at rank 4. The
+new test EXECUTES that table, because A50's evidence was prose and the prose
+went stale — as it had in `registry.py`'s own docstring, now corrected.
 
-**The defect the real scan found.** `fit_lines` returned **35 segments totalling
-133 m of wall inside a 5 x 5 m room** - 4 m diagonals through a bed, the same
-partition six times - while every synthetic acceptance test stayed green. Fixed
-with three guards (continuity/gap-split, duplicate suppression, and a new opt-in
-`fit="ortho"` peak-finder), plus a `make_two_rooms` fixture that has the wall
-thickness, doorway and clutter the first one lacked. Result: **133 m -> 42.9 m**
-guarded, **20 surfaces / 30.7 m** in ortho mode. Seven new tests in
-`server/tests/test_pointcloud_fit.py`.
-
-**Delivered to `~/Downloads/Okongo-Scan-Test/`:** SK-01 floor plan (1:25 @ A3,
-dimensioned), SK-02 two sections (1:50), SK-03 four axonometric renders of the
-cloud in true colour, plus the DXF (metres, `$INSUNITS=6`, verified openable in
-CloudCompare), SVG, a 900 K-point levelled PLY, the QA sheet and a README. The
-drawing composer lives OUTSIDE the lane - A67 non-goal 2 stands.
-
-**Measured building:** clear height 2.604 m; overall internal 4,725 x 3,952 mm;
-Room 01 2.88 x 3.95 m (11.4 m2); Room 02 1.50 x 3.42 m (5.1 m2); partition 345 mm
-between fitted faces.
-
-**Verdict: UNVERIFIED.** No tape measurement was supplied, so every dimension is
-Apple's ARKit solution alone. Two wall-to-wall readings would let
-`pc_control_add` / `pc_control_verify` close it - and that is still the one part
-of the lane never exercised on real data.
-
-**Evidence: 1283 passed, 13 skipped.**
-
-## A67 addendum 2 — the drafting critic and the corrected drawing set (2026-09-04)
-
-Owner: *"Create a feedback loop that critics these drawings to real world
-technical drafting standards and makes corrections"*.
-
-**Built:** `drafting/` — a standalone package (22 rules, two tiers, 37 tests).
-Tier 1 `critic.py` checks the sheet SPECIFICATION against SANS 10143 building
-drawing practice; tier 2 `legibility.py` checks the PLOTTED sheet for
-collisions. `corrector.py` applies fixes and reports every one; `loop.py` runs
-critique -> correct -> critique to a fixed point. Grounding came from TEE's own
-KB (`kb_search` -> `kb_read arch.drawing_documentation`), which cites SANS
-10143 and carries the [NA] City of Windhoek requirements - jurisdiction-correct
-for Okongo. Every rule carries a `firmness` field because the KB is
-`confidence: medium` and has not been checked against the purchased standard.
-
-**Result on the Okongo set:**
-
-```
-tier 1   77 findings as issued -> 0 open, 0 blocking (converged in 2 passes)
-         87 corrections applied and individually reported
-tier 2   SK-01 11 collisions -> 0 ; SK-02 -> 0 ; SK-03 -> 0
-```
-
-**The two blocking faults were real:** both sections were ORPHANS - SK-02 said
-"cut lines shown on SK-01" and SK-01 showed no cut lines. Ten pieces of text
-sat below the 2,5 mm legible minimum, some at 1,98 mm. Also corrected: plan
-1:25 -> 1:50 (1:25 is an enlarged-plan scale, this is a GA plan), border to
-0,70 mm, every pen onto the standard set, room NAMES beside the numbers, a
-third dimension chain across the measured 1949 mm opening, a stated level
-datum, revision P01, and the DO NOT SCALE note.
-
-**Facts learned:** the critic must read the spec, not the PDF, or a finding has
-no handle to fix it - but a second tier is unavoidable, because tier 1 passed a
-sheet whose cut line ran through two room names. A false positive costs more
-than a missed check: three were found and fixed against real sheets
-(annotation extents include the leader arrow; an Axes paints its own background
-over its contents; masked text is a dimension figure in a break in its line,
-which is correct drafting). Text needs 0,6 mm of clearance, not merely
-non-intersection. And the critic and corrector must share one tag definition -
-they disagreed, and two REJECT findings survived a loop that called itself
-converged.
-
-**The corrector will not invent a value a human owns.** CHECKED BY prints as
-`— NOT SET —` in red on all three sheets.
-
-**Evidence: 37 passed** (drafting), **1283 passed, 13 skipped** (server).
-Re-issued set in `~/Downloads/Okongo-Scan-Test/` at rev P01, with
-`drafting-critique.md` recording every correction.
-
-## A67 addendum 3 — line clarity on the Revit model (2026-09-04)
-
-Owner: *"Improve clarity and legibility of lines as per industry standards and
-practices and inspired by Revit"*.
-
-**Built into `drafting/`:** `resolve_pen(category, scale, cut=)` - a weight
-INDEX per category resolved through a scale-shift table, so the same wall is
-heavier at 1:20 (1.00 mm) than at 1:100 (0.50 mm) with nothing edited; two new
-rules (`PEN-FROM-CATEGORY`, `CUT-HEAVIER-THAN-PROJECTION`); paper-millimetre
-dash patterns; Revit-style halftone; and `linework.py` with corner closure and
-evidence-tested poche. 24 rules, 51 tests.
-
-**Measured on the Okongo plan:** 20 fitted faces -> **1** poche body
-(121.5 mm thick, 123 returns on its faces, **0 inside**), 3 of 20 faces
-extended to close a corner. The conservatism is the right answer: an
-interior-only scan never saw the outer face of the enclosing walls, so their
-thickness is unknown and the sheet states that rather than assuming 230 mm.
-
-**Facts learned:** a poche body shorter than 300 mm is 6 mm of paper and says
-nothing - found by a test the code failed, where a 100 mm stub against a 3 m
-wall passed the overlap fraction and became a "pier". And the legibility tier
-earned its keep again: enlarging the legend pushed the provenance note outside
-the frame, and the loop rejected the sheet until it was reflowed.
-
-**Evidence: 51 passed** (drafting), **1283 passed, 11 skipped** (server,
-excluding `test_seamkiln_adapter.py` and `test_seamkiln_materials_render.py`).
-
-**Not mine, still failing:** those two seamkiln files fail with
-`ImportError: cannot import name 'materials' from 'seamkiln'` - the concurrent
-session's package is mid-edit (`seamkiln/src/seamkiln/drape/solve.py` modified
-2026-09-02, untracked `seamkiln/tests/test_sweep_contact.py`). No commit of
-mine touches seamkiln. Left alone deliberately.
-
-## A67 addendum 4 — side views and a drawn axonometric (2026-09-04)
-
-Owner: *"Do a side view and 3D as well"*.
-
-**Built:** `drafting/views3d.py` (10 tests) - `face_extent` measures a face's
-vertical extent from its own returns, `elevation` projects a wall square-on,
-`wall_quads` extrudes, `painter_order` sorts back to front. Two new sheets:
-**SK-03 internal elevations** (Room 01's four walls at 1:50) and **SK-04
-axonometric** (a drawn, solid-shaded 3D); the earlier point-cloud sheet is
-renumbered **SK-05**.
-
-**Measured before building:** every principal face runs floor to ceiling with
-~104% height-bin coverage - EXCEPT two, which start at +0.22 and +0.69. That is
-why heights are per-face rather than global: extruding everything to 2.604 m
-would have drawn two walls that do not exist. 20 faces -> 16 solids.
-
-**Facts learned:** a side view of an interior-only scan is an INTERNAL
-elevation - there is no honest exterior elevation because the outside was never
-seen. Painter's order IS the hidden-surface removal. And an elevation of the
-opposite wall of a room comes out MIRRORED unless the along-axis is negated -
-pinned by a test, because a mirrored elevation is silently, confidently wrong.
-
-**Evidence: 61 passed** (drafting), all five sheets 0 legibility findings,
-critic 77 -> 0.
+**Suites at close:** partkiln **659 passed / 3 skipped**; server **1,346
+passed / 13 skipped / 115 deselected, zero failures**; `ruff check` and
+`ruff format --check` clean on `partkiln/`, `server/src` and `server/tests`.
+Surface unchanged: **17 tools / 2,033 tok**.

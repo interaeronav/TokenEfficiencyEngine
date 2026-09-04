@@ -95,12 +95,30 @@ def write_3mf(
         z.writestr(_entry("_rels/.rels"), _RELS)
         z.writestr(_entry("3D/3dmodel.model"), _model_xml(meshes))
     out.write_bytes(buffer.getvalue())
+    # Volume only when EVERY object is closed. trimesh answers the divergence
+    # theorem over the triangles whether or not the mesh has a hole in it
+    # (measured 2026-09-04: an open 100x60x10 box shell reads 60000.0 mm3, the
+    # CLOSED box's volume), so a total next to `watertight: False` would be a
+    # confident number for a shell that encloses nothing — and one open object
+    # poisons the sum, so no partial total is offered either.
+    open_objects = [name for name, m in meshes if not m.is_watertight]
+    watertight = not open_objects
     return file_result(
         out,
         objects=len(meshes),
         triangles=int(sum(len(m.faces) for _, m in meshes)),
-        watertight=all(bool(m.is_watertight) for _, m in meshes),
-        volume_mm3=float(sum(m.volume for _, m in meshes)),
+        watertight=watertight,
+        volume_mm3=float(sum(m.volume for _, m in meshes)) if watertight else None,
+        volume_note=(
+            None
+            if watertight
+            else (
+                f"volume omitted: {', '.join(open_objects)} "
+                f"{'is' if len(open_objects) == 1 else 'are'} not watertight at deflection "
+                f"{deflection_mm} mm, so the total would count a shell that encloses nothing. "
+                "Fix: export closed solids (sew the shells), or re-tessellate finer."
+            )
+        ),
         unit="millimeter",
         declares_units=True,
     )
@@ -110,7 +128,10 @@ def read_3mf(path: str | Path) -> dict[str, Any]:
     """Parse a core-spec 3MF: {unit, objects: [{name, triangles, watertight, volume}], volume}.
 
     Volume is in the file's declared unit (3MF defaults to millimeter when
-    the attribute is absent, per the spec); only `<mesh>` objects count.
+    the attribute is absent, per the spec); only `<mesh>` objects count. An
+    object whose triangles do not close gets `volume: None`, and one such
+    object makes the file total None (see `write_3mf`): a number from an
+    open mesh is a wrong number, not a rough one.
     """
     import numpy as np
     import trimesh
@@ -146,19 +167,21 @@ def read_3mf(path: str | Path) -> dict[str, Any]:
             dtype=np.int64,
         ).reshape(-1, 3)
         mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+        watertight = bool(mesh.is_watertight)
         objects.append(
             {
                 "name": obj.attrib.get("name", ""),
                 "triangles": len(mesh.faces),
-                "watertight": bool(mesh.is_watertight),
-                "volume": float(mesh.volume),
+                "watertight": watertight,
+                "volume": float(mesh.volume) if watertight else None,
             }
         )
+    closed = all(o["volume"] is not None for o in objects)
     return {
         "path": str(src),
         "unit": unit,
         "objects": objects,
-        "volume": float(sum(o["volume"] for o in objects)),
+        "volume": float(sum(o["volume"] for o in objects)) if closed else None,
     }
 
 

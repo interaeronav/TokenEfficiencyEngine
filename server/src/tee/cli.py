@@ -56,6 +56,24 @@ def _build_seamkiln_app(project: str, allow_code_exec: bool):
     )
 
 
+def _build_partkiln_app(project: str, allow_code_exec: bool):
+    """A66: partkiln headless. Like seamkiln the kernel is a library, so the
+    adapter is live the moment it is built - but unlike seamkiln it may live
+    in a sidecar interpreter and it pays a 26 s cold `import OCP` (P0a). Law
+    17 says no call ever waits on that, so the import is submitted here as an
+    interactive job and `probe`, `tee_scene_summary` and `tee_checkpoint`
+    answer from the in-process mirror until it lands."""
+    from tee.adapters.partkiln import PartkilnAdapter
+    from tee.app import TeeApp
+    from tee.config import ProjectConfig
+
+    config = ProjectConfig.load(project)
+    adapter = PartkilnAdapter(project, config=config.partkiln)
+    app = TeeApp({"partkiln": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
+    adapter.submit_warm(app.jobs)  # jobs.submit("partkiln_warm", ..., qos="interactive")
+    return app
+
+
 def _build_godot_app(project: str, port: int, allow_code_exec: bool):
     """A49: Godot headless. The adapter imports the project first if it has
     never been imported - a project without a .godot directory hangs
@@ -256,10 +274,12 @@ def cmd_serve(args: argparse.Namespace) -> int:
         app = _build_seamkiln_app(args.project, args.allow_code_exec)
     elif args.adapter == "godot":
         app = _build_godot_app(args.project, args.godot_port, args.allow_code_exec)
+    elif args.adapter == "partkiln":
+        app = _build_partkiln_app(args.project, args.allow_code_exec)
     else:
         print(
             f"adapter '{args.adapter}' is not recognised; available: fake, blender, "
-            "unreal, freecad, godot, seamkiln",
+            "unreal, freecad, godot, seamkiln, partkiln",
             file=sys.stderr,
         )
         return 2
@@ -342,7 +362,9 @@ def main(argv: list[str] | None = None) -> int:
 
     serve = sub.add_parser("serve", help="run the MCP server on stdio")
     serve.add_argument(
-        "--adapter", default="fake", help="adapter to serve (fake|blender|unreal|godot|seamkiln)"
+        "--adapter",
+        default="fake",
+        help="adapter to serve (fake|blender|unreal|freecad|godot|seamkiln|partkiln)",
     )
     serve.add_argument(
         "--godot-port", type=int, default=9879, help="Godot bridge port (9876/9877 are Blender's)"

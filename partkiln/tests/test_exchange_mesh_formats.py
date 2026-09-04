@@ -194,4 +194,82 @@ def test_3mf_declares_millimetres_and_reloads(ocp: Any, tmp_path: Path) -> None:
     # 100 d8 holes meshed at 0.1 mm are 0.10 % heavier than the B-rep (chords sit inside
     # every circle), so the two-object file is checked against its own mesh volume at 6 dp
     assert read_3mf(two["path"])["volume"] == pytest.approx(two["volume_mm3"], rel=1e-6)
-    assert two["volume_mm3"] == pytest.approx(F1_VOLUME + F5_VOLUME, rel=2e-3)
+    # rel=2e-3 was twice the deviation it was meant to allow, so a mesh 0.2 %
+    # wrong passed as "right". The mesh sum is 580289.034 mm3 (measured
+    # 2026-09-04), +0.102 % over the B-rep, and heavier is the only direction a
+    # chorded hole can err in.
+    assert two["volume_mm3"] == pytest.approx(580289.034, rel=1e-6)
+    assert two["volume_mm3"] > F1_VOLUME + F5_VOLUME
+
+
+def _open_shell() -> Any:
+    """The 100x60x10 box with its x=0 face removed: a shell that encloses nothing.
+
+    Measured 2026-09-04 on OCP 7.9.3: the tessellation is 10 triangles,
+    `is_watertight` is False, and trimesh's divergence-theorem volume is
+    exactly 60000.0 mm3 - the CLOSED box's volume, from a mesh with a
+    100x60 hole in it. That confident number is the defect this fixture pins.
+    """
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_Sewing
+    from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
+    from OCP.TopAbs import TopAbs_FACE
+    from OCP.TopExp import TopExp
+    from OCP.TopoDS import TopoDS
+    from OCP.TopTools import TopTools_IndexedMapOfShape
+
+    found = TopTools_IndexedMapOfShape()
+    TopExp.MapShapes_s(BRepPrimAPI_MakeBox(100.0, 60.0, 10.0).Shape(), TopAbs_FACE, found)
+    sew = BRepBuilderAPI_Sewing(1e-6)
+    for k in range(2, found.Extent() + 1):  # every face but the first
+        sew.Add(TopoDS.Face_s(found.FindKey(k)))
+    sew.Perform()
+    return sew.SewedShape()
+
+
+def test_open_shell_gets_no_volume_from_obj_or_3mf(ocp: Any, tmp_path: Path) -> None:
+    """A writer that flags `watertight: False` must not also print a volume.
+
+    trimesh answers 60000.0 mm3 for this open shell (see `_open_shell`); a
+    caller reading `volume_mm3` next to `watertight: False` would take it as
+    the part's mass basis. Volume is now reported ONLY when the mesh is
+    closed, and the note says why it is missing.
+    """
+    from partkiln.exchange import to_trimesh
+    from partkiln.exchange.obj import write_obj
+    from partkiln.exchange.threemf import write_3mf
+
+    shell = _open_shell()
+    mesh = to_trimesh(shell)
+    assert mesh.is_watertight is False
+    assert float(mesh.volume) == pytest.approx(60000.0, abs=1e-6)  # the wrong number, measured
+
+    obj = write_obj(shell, tmp_path / "open.obj")
+    assert obj["watertight"] is False
+    assert obj["volume_mm3"] is None
+    assert "watertight" in obj["volume_note"] and "0.1" in obj["volume_note"]
+
+    three = write_3mf([("open", shell)], tmp_path / "open.3mf")
+    assert three["watertight"] is False
+    assert three["volume_mm3"] is None
+    assert "open" in three["volume_note"]
+
+    # a closed solid still reports its volume, and says nothing is wrong
+    good = write_obj(_f1(), tmp_path / "closed.obj")
+    assert good["watertight"] is True
+    assert good["volume_mm3"] == pytest.approx(F1_VOLUME, rel=1e-3)
+    assert good["volume_note"] is None
+    # one open object poisons the whole 3MF total: no partial sum is offered
+    mixed = write_3mf([("plate", _f1()), ("open", shell)], tmp_path / "mixed.3mf")
+    assert mixed["watertight"] is False and mixed["volume_mm3"] is None
+
+    # the readers answer the same way about the same bytes
+    from partkiln.exchange.obj import read_obj
+    from partkiln.exchange.threemf import read_3mf
+
+    reloaded = read_obj(obj["path"])
+    assert reloaded["watertight"] is False and reloaded["volume"] is None
+    assert reloaded["extents"] == pytest.approx([100.0, 60.0, 10.0], abs=1e-6)
+    back = read_3mf(mixed["path"])
+    assert [o["watertight"] for o in back["objects"]] == [True, False]
+    assert back["objects"][0]["volume"] == pytest.approx(F1_VOLUME, rel=1e-3)
+    assert back["objects"][1]["volume"] is None and back["volume"] is None
