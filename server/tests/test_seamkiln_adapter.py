@@ -113,7 +113,10 @@ def test_a_dxf_loads_as_a_batch_op_and_shows_in_the_diff(adapter, tmp_path) -> N
     write_dxf(tee_block(), path, flavour="astm")
     diff = adapter.execute([{"op": "load", "props": {"path": str(path)}}])
     assert sorted(diff.created) == sorted(f"panel:{p.id}" for p in tee_block().panels)
-    assert diff.notes == ["load: 4 pieces from tee.dxf, unit from $INSUNITS 4"]
+    # The writer emits R12 now (that is what pattern CAD reads), and R12
+    # carries no $INSUNITS - the unit rides in the standard's Style System
+    # Text instead, which is where every real file we have measured puts it.
+    assert diff.notes == ["load: 4 pieces from tee.dxf, unit from header UNITS: METRIC"]
     assert [c.op for c in adapter.session.history] == ["load"]
     assert Session.replay(adapter.session.script()).fingerprint() == adapter.session.fingerprint()
 
