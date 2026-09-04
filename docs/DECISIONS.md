@@ -1493,3 +1493,39 @@ measured.
 **A body shorter than 300 mm is not drawn.** Found by a test the code failed: a
 100 mm stub against a 3 m wall satisfied the overlap fraction and became a
 "pier". At 1:50 that is 6 mm of paper communicating nothing.
+
+## A67 addendum 4 — side views and a drawn axonometric (2026-09-04)
+
+Owner: *"Do a side view and 3D as well"*. New sheets SK-03 (internal
+elevations) and SK-04 (axonometric); the earlier point-cloud sheet renumbered
+SK-05. New module `drafting/views3d.py`, 10 tests.
+
+**A side view of an interior-only scan is an INTERNAL elevation, not an
+exterior one.** The scan never saw the outside of the building, so there is no
+honest exterior elevation to draw. Each of Room 01's four walls is instead
+projected square-on with everything within 750 mm in front of it, which is
+standard practice for a bathroom or kitchen elevation set and is fully
+supported by the data.
+
+**The axonometric is a drawing, not a render — and the difference is the
+discipline.** Every fitted face is extruded over the vertical extent that ITS
+OWN returns cover. Measured on this scan, every principal face runs floor to
+ceiling with ~100% height coverage, but two do not: one starts at +0.22 and one
+at +0.69. Extruding everything to 2.604 would have drawn two walls that are not
+there. Heights come from the 0.7/99.3 percentiles so a single stray return
+cannot decide a wall's height, and a face with under 200 returns is not drawn
+at all. 20 faces became 16 solids.
+
+**Painter's order IS the hidden-surface removal.** Opaque solids drawn back to
+front occlude correctly with no visibility computation, which is why the sheet
+reads with line weights rather than pixels.
+
+**SK-04 is the interpretation; SK-05 is the evidence.** Keeping both, adjacent
+and numbered in that order, is the honest presentation: the drawn axonometric
+is what the fitting believes, and the point-cloud renders are what was actually
+measured. Neither is offered as a substitute for the other.
+
+**Elevations must not come out mirrored.** Looking at the two opposite walls of
+a room flips the along-axis, so `elevation()` negates it for two of the four
+cases and a test pins it. A mirrored elevation is a drawing that is confidently,
+silently wrong.

@@ -10760,3 +10760,28 @@ excluding `test_seamkiln_adapter.py` and `test_seamkiln_materials_render.py`).
 session's package is mid-edit (`seamkiln/src/seamkiln/drape/solve.py` modified
 2026-09-02, untracked `seamkiln/tests/test_sweep_contact.py`). No commit of
 mine touches seamkiln. Left alone deliberately.
+
+## A67 addendum 4 — side views and a drawn axonometric (2026-09-04)
+
+Owner: *"Do a side view and 3D as well"*.
+
+**Built:** `drafting/views3d.py` (10 tests) - `face_extent` measures a face's
+vertical extent from its own returns, `elevation` projects a wall square-on,
+`wall_quads` extrudes, `painter_order` sorts back to front. Two new sheets:
+**SK-03 internal elevations** (Room 01's four walls at 1:50) and **SK-04
+axonometric** (a drawn, solid-shaded 3D); the earlier point-cloud sheet is
+renumbered **SK-05**.
+
+**Measured before building:** every principal face runs floor to ceiling with
+~104% height-bin coverage - EXCEPT two, which start at +0.22 and +0.69. That is
+why heights are per-face rather than global: extruding everything to 2.604 m
+would have drawn two walls that do not exist. 20 faces -> 16 solids.
+
+**Facts learned:** a side view of an interior-only scan is an INTERNAL
+elevation - there is no honest exterior elevation because the outside was never
+seen. Painter's order IS the hidden-surface removal. And an elevation of the
+opposite wall of a room comes out MIRRORED unless the along-axis is negated -
+pinned by a test, because a mirrored elevation is silently, confidently wrong.
+
+**Evidence: 61 passed** (drafting), all five sheets 0 legibility findings,
+critic 77 -> 0.

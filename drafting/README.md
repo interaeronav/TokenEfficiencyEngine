@@ -51,6 +51,15 @@ is two surfaces with a gap. Each body reports the evidence it came from.
 `close_corners` extends faces to meet their neighbours — never truncates, never
 reaches further than 450 mm. A face is evidence over its own length only.
 
+## Elevations and a drawn axonometric
+
+`views3d.py` builds side views and a solid axonometric from the same fitted
+plan geometry, under the same rule as poché: **never invent a height.** Each
+face is extruded over the vertical extent its own returns cover, heights come
+from percentiles so one stray return cannot decide how tall a wall is, and a
+face with too few returns is not drawn. Solids are painted back to front —
+which *is* the hidden-surface removal, no visibility computation needed.
+
 ## Why the critic reads a spec and not a PDF
 
 A finding has to be actionable. `critique` names a field; the corrector edits
