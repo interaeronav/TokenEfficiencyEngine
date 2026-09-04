@@ -3,10 +3,11 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased
+## 0.21.0 — 2026-09-04
 
-Landed since 0.20.0 and **not yet cut as a release** — no bundle has been
-built or verified for this work, so the version strings still read 0.20.0.
+Everything 0.20.0 left named as a gap, plus the defects that closing them
+exposed. Verified from a clean checkout of the commit this was cut from, not
+from a working tree.
 
 ### partkiln: the ten named gaps, and four silent wrong answers
 
