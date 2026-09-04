@@ -675,7 +675,22 @@ def build_character(
     values[:, :, -1] = np.maximum(values[:, :, -1], spacing)
 
     vertices, faces = _marching_tetrahedra(values, axes)
-    faces = _orient_outward(vertices, faces)
+    try:
+        faces = _orient_outward(vertices, faces)
+    except ValueError as broken:
+        # MEASURED 2026-09-04, stature 1.80 m: cells_tall 25, 26, 27, 28 and 30
+        # polygonise into more than one piece while 24, 29 and every value from
+        # 31 up give a single shell. The grid is too coarse to bridge the wrist
+        # and the neck at those spacings, and the surface pinches off there.
+        # The shell check is right to refuse; on its own it blames the limbs,
+        # which is a dead end for a caller whose only mistake was the number
+        # they passed.
+        raise ValueError(
+            f"{broken} At cells_tall={cells_tall} the grid is probably too coarse to bridge "
+            "the wrist and the neck: measured on this machine at stature 1.80 m, 25-28 and 30 "
+            "break apart while 24, 29 and 31 upward do not. Fix: raise cells_tall (48 and 60 "
+            "are the measured working sizes)."
+        ) from broken
 
     # exact stature: a polygonised isosurface misses the apex of the skull by
     # a fraction of a cell, and a body silently short is a silent unit error.

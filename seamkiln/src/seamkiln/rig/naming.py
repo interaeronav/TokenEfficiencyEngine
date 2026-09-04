@@ -233,23 +233,26 @@ class JointMap:
 
 def _resolve(
     names: Sequence[str], required: Sequence[str], overrides: Mapping[str, str]
-) -> tuple[dict[str, str], list[str]]:
+) -> tuple[dict[str, str], list[str], dict[str, list[str]]]:
     by_key: dict[str, list[str]] = {}
     for name in names:
         by_key.setdefault(normalise(name), []).append(name)
     found: dict[str, str] = {}
     missing: list[str] = []
+    ambiguous: dict[str, list[str]] = {}
     for joint in required:
         if joint in overrides:
             continue
         for alias in ALIASES.get(joint, ()):
             hits = by_key.get(normalise(alias))
             if hits:
+                if len(hits) > 1:
+                    ambiguous[joint] = hits
                 found[joint] = hits[0]
                 break
         else:
             missing.append(joint)
-    return found, missing
+    return found, missing, ambiguous
 
 
 def map_joint_names(
@@ -290,7 +293,27 @@ def map_joint_names(
             "pass overrides= after renaming."
         )
 
-    found, missing = _resolve(names, required, overrides)
+    found, missing, ambiguous = _resolve(names, required, overrides)
+    if ambiguous:
+        # MEASURED, 2026-09-04: a Blender export of a Rigify character carries
+        # both the control bone `thigh.L` and the deform bone `DEF-thigh.L`
+        # (the exporter's "deform bones only" switch is OFF by default), and
+        # `normalise` strips DEF-/ORG-/MCH- so both fold to the same key. Taking
+        # the first hit made the mapping depend on the order `skin.joints`
+        # happened to list them: the same rig mapped hip_l to `thigh.L` one way
+        # round and `DEF-thigh.L` the other. The control bone owns no vertices
+        # in a baked export, so that leg then simply does not move - the exact
+        # silent wrong mapping this module was written to make impossible.
+        detail = "; ".join(f"{j}: {', '.join(hits)}" for j, hits in sorted(ambiguous.items()))
+        first = sorted(ambiguous)[0]
+        raise RigNameError(
+            f"{len(ambiguous)} of seamkiln's joints match MORE THAN ONE bone in this rig "
+            f"once namespaces and separators are folded away - {detail}. Choosing by the "
+            "order the file lists them would be a guess, and the wrong choice is silent: a "
+            "control bone owns no vertices, so the limb never moves. Fix: pass "
+            f"overrides={{{first!r}: {ambiguous[first][0]!r}}} naming the DEFORM bone for "
+            "each, or re-export with deform bones only."
+        )
     found.update(overrides)
     if overrides:
         notes.append(

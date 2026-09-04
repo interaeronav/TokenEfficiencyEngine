@@ -783,6 +783,67 @@ def test_duplicate_bone_names_refuse() -> None:
         map_joint_names(names)
 
 
+RIGIFY_CONTROLS = [
+    "spine",
+    "thigh.L",
+    "shin.L",
+    "thigh.R",
+    "shin.R",
+    "upper_arm.L",
+    "forearm.L",
+    "upper_arm.R",
+    "forearm.R",
+]
+RIGIFY_DEFORM = [f"DEF-{bone}" for bone in RIGIFY_CONTROLS[1:]]
+
+
+def test_a_rig_carrying_both_control_and_deform_bones_refuses_either_way_round() -> None:
+    """Measured 2026-09-04, and the reason this refusal exists: Blender's glTF
+    exporter writes ALL of an armature's bones as joints unless 'deform bones
+    only' is ticked, so a Rigify character's skin lists `thigh.L` AND
+    `DEF-thigh.L`. `normalise` strips DEF-/ORG-/MCH-, so both fold to `thighl`
+    and taking the first hit made the answer depend on the order the file
+    listed them - the same rig mapped hip_l to `thigh.L` one way round and
+    `DEF-thigh.L` the other. In a baked export the control bone owns no
+    vertices, so that leg silently never moves, which is precisely the failure
+    this module claims to make impossible. Both orders must refuse, and the
+    message must name the deform bone as the fix.
+    """
+    forwards = [*RIGIFY_CONTROLS, *RIGIFY_DEFORM]
+    backwards = [*RIGIFY_DEFORM, *RIGIFY_CONTROLS]
+    for names in (forwards, backwards):
+        with pytest.raises(RigNameError) as excinfo:
+            map_joint_names(names)
+        message = str(excinfo.value)
+        assert "MORE THAN ONE bone" in message
+        assert "thigh.L" in message and "DEF-thigh.L" in message
+        assert "overrides=" in message
+    # and the override the message points at is the way through
+    mapping = map_joint_names(
+        forwards,
+        overrides={
+            "hip_l": "DEF-thigh.L",
+            "hip_r": "DEF-thigh.R",
+            "knee_l": "DEF-shin.L",
+            "knee_r": "DEF-shin.R",
+            "shoulder_l": "DEF-upper_arm.L",
+            "shoulder_r": "DEF-upper_arm.R",
+            "elbow_l": "DEF-forearm.L",
+            "elbow_r": "DEF-forearm.R",
+        },
+    )
+    assert mapping.by_joint["hip_l"] == "DEF-thigh.L"
+    assert mapping.by_joint["trunk_lean"] == "spine"
+
+
+def test_a_deform_only_rigify_export_still_maps_without_an_override() -> None:
+    """The refusal above must not punish the correct export: with the deform
+    bones alone there is exactly one candidate per joint and it resolves."""
+    mapping = map_joint_names(["spine", *RIGIFY_DEFORM])
+    assert mapping.by_joint["hip_l"] == "DEF-thigh.L"
+    assert len(mapping.by_joint) == 9
+
+
 # --------------------------------------------------------------------------
 # reader and table together - the end the whole task exists for
 

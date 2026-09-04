@@ -213,6 +213,60 @@ class RiggedAvatar:
         }
 
 
+# The four left/right joint pairs, for the laterality check below.
+_MIRROR_PAIRS: tuple[tuple[str, str], ...] = (
+    ("hip_l", "hip_r"),
+    ("knee_l", "knee_r"),
+    ("shoulder_l", "shoulder_r"),
+    ("elbow_l", "elbow_r"),
+)
+
+
+def _check_laterality(body: SkinnedBody, slots: dict[str, int]) -> None:
+    """Refuse a rig whose LEFT joints are not all on the same side of it.
+
+    MEASURED 2026-09-04. `naming` maps by name and by name only, on purpose -
+    nothing is inferred from position - so a file whose `LeftUpLeg` and
+    `RightUpLeg` labels are exchanged is accepted and walks mirrored. A FULL
+    mirror cannot be caught from a rig alone: no bone carries the anatomical
+    fact of which side is left, and the file is simply lying. A PARTIAL swap
+    can, and it is the worse failure: swapping only the legs of this character
+    put `hip_l` at x = +0.0958 while `shoulder_l` stayed at x = -0.2350, so
+    seamkiln's "left" ran diagonally across the body and the limbs crossed
+    during the swing.
+
+    The test is each pair against the OTHER pairs, never against x = 0, so a
+    character modelled off-centre is not falsely refused.
+    """
+    signs: dict[str, float] = {}
+    for left, right in _MIRROR_PAIRS:
+        if left not in slots or right not in slots:
+            continue
+        gap = float(body.joints[slots[left]].rest[0, 3] - body.joints[slots[right]].rest[0, 3])
+        if abs(gap) < 1e-6:
+            raise RigSkinError(
+                f"{body.joints[slots[left]].name} and {body.joints[slots[right]].name} sit at "
+                f"the same x ({gap:+.3g} m apart), so this rig has no left and right to pose. "
+                "Fix: check the bind pose was exported, not a collapsed rest."
+            )
+        signs[f"{left}/{right}"] = 1.0 if gap > 0.0 else -1.0
+    if len(set(signs.values())) > 1:
+        min_count = min(list(signs.values()).count(v) for v in signs.values())
+        detail = ", ".join(
+            f"{pair} {'+x' if sign > 0 else '-x'}" for pair, sign in sorted(signs.items())
+        )
+        minority = sorted(k for k in signs if list(signs.values()).count(signs[k]) == min_count)
+        raise RigSkinError(
+            f"this rig's left/right bone NAMES disagree with where its bones are: {detail}. "
+            "seamkiln's left limbs would end up on both sides of the body and cross during "
+            f"the swing. Fix: swap the two bone names of {' or '.join(minority)} on export "
+            "(whichever pair is the mislabelled one - this check knows they disagree, not "
+            "which is right), or pass overrides= naming the bone that really is each joint. "
+            "A rig with ALL its sides swapped is self-consistent and CANNOT be caught here: "
+            "no bone carries the fact of which arm is the left one."
+        )
+
+
 def load_rigged_avatar(
     path: str | Path,
     *,
@@ -268,6 +322,9 @@ def load_rigged_avatar(
         notes.append(f"weights renormalised; they summed to 1 +- {drift:.3g} as stored")
     weights = body.weights / totals[:, None]
 
+    slots = joint_map.index_map(body.joint_names)
+    _check_laterality(body, slots)
+
     return RiggedAvatar(
         body=body,
         joint_map=joint_map,
@@ -275,7 +332,7 @@ def load_rigged_avatar(
         scale=float(scale),
         offset=offset,
         order=_evaluation_order(body.joints),
-        slots=joint_map.index_map(body.joint_names),
+        slots=slots,
         notes=tuple(notes),
     )
 

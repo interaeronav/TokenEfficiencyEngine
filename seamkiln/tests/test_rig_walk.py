@@ -237,15 +237,27 @@ def test_a_file_with_no_skin_refuses_instead_of_returning_a_statue(
     assert rigged_avatar(character_glb).describe()["joints"] == 19
 
 
-def test_a_body_with_no_rig_still_walks_rigidly_and_still_says_so(character_glb: str) -> None:
-    """The existing fallback, unchanged: a body kind the session cannot
-    articulate travels as one piece and the note says which body kind to use.
-    Asserted through the SESSION, because that is where the note lives and
-    where a regression would actually be felt.
+def test_a_body_with_no_rig_still_walks_rigidly_and_still_says_so(
+    character_glb: str, tmp_path
+) -> None:
+    """The fallback, unchanged: a body with NO skeleton travels as one piece
+    and the note says what to do about it. Asserted through the SESSION,
+    because that is where the note lives and where a regression would be felt.
+
+    The file must be a genuinely rigless one. This test used to pass the
+    RIGGED character here and still see the rigid note, because `body
+    kind=custom` could not articulate anything - which is precisely the defect
+    A65 P5b removed. Handing it the same file today articulates it, so the
+    test would be asserting the old world.
     """
+    flat = tmp_path / "norig.glb"
+    rigged_avatar(character_glb).mesh().export(flat)
+
     s = Session()
     s.apply(Command("block", {"block": "tee", "half_chest": 300.0}))
-    s.apply(Command("body", {"kind": "custom", "path": character_glb, "stature_m": H}))
+    body_out = s.apply(Command("body", {"kind": "custom", "path": str(flat), "stature_m": H}))
+    assert body_out["articulated"] is False
+    assert "no skinned node" in body_out["note"]
     s.apply(Command("arrange", {"particle_distance_mm": 18.0, "dress": False}))
     s.fabric = "cotton_jersey"
     out = s.apply(
@@ -264,7 +276,8 @@ def test_a_body_with_no_rig_still_walks_rigidly_and_still_says_so(character_glb:
     assert out["body"] == "custom"
     assert out["note"] == (
         "a 'custom' body has no joints to swing, so it travels as one piece "
-        "with the gait's rise; use body kind 'figure' for articulated limbs"
+        "with the gait's rise; use body kind 'figure' for articulated limbs, "
+        "or import a glTF that carries a skin"
     )
     assert out["worn_throughout"] is True
 
