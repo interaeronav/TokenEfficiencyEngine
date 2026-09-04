@@ -44,10 +44,15 @@ def a_pose_body():
 # the body. With friction's plane taken at the pushed point, and friction
 # never allowed to re-enter, it is 0.0 mm at 24 and 48 fps, 0.14 at 16 and
 # 0.0 at 32 (walk 0.0); the bound is a voxel.
-WALK_DRIFT_MM = 4.2
-RUN_DRIFT_MM = -6.0
+# Re-measured 2026-09-04 with the outline merge (the tee's fringe of short
+# outline edges gone): the walk +4.8 mm over three strides (+5.4, -0.6), the
+# run +18.0 (+12.9, +5.1: decaying). On the fringe-meshed tee they read
+# +4.2 (+5.0, -0.8) and -6.0 (-2.1, -3.9). The bounds stay 1.5 x the
+# measurement with a floor of a voxel.
+WALK_DRIFT_MM = 4.8
+RUN_DRIFT_MM = 18.0
 WALK_DRIFT_BOUND_MM = 10.0
-RUN_DRIFT_BOUND_MM = 10.0
+RUN_DRIFT_BOUND_MM = 27.0
 RUN_PENETRATION_BOUND_MM = 10.0
 
 
@@ -175,8 +180,10 @@ def test_a_garment_is_thrown_by_a_gait_and_stays_on(a_pose_body) -> None:
 
     Measured with the body moving continuously within each frame (three
     strides, the tee's centroid averaged over each stride so the bob cancels):
-    the walk at 12 fps drifts +4.2 mm over three strides (+5.0 then -0.8: it
-    saturates) and the run at 24 fps -6.0 (-2.1, -3.9); the hem swings 32 mm
+    the walk at 12 fps drifts +4.8 mm over three strides (+5.4 then -0.6: it
+    saturates) and the run at 24 fps +18.0 (+12.9, +5.1: decaying) on the
+    mesh with its outline fringe merged - +4.2 and -6.0 on the fringed mesh
+    the numbers were first taken on; the hem swings 32 mm
     a stride on the walk and 52-99 on the run. With the old animator - the
     body advancing between frames as a jump, each jump up into the cloth a
     full push in one substep - the same tee rode up 16 mm per walking stride

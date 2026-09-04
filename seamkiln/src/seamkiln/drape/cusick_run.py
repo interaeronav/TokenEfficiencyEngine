@@ -29,6 +29,7 @@ def run(
     disc_diameter_mm: float = DISC_DIAMETER_MM,
     stand_height_m: float = 0.30,
     pin_radius_mm: float = 10.0,
+    merge_fraction: float | None = None,
 ) -> dict[str, Any]:
     """One virtual drape test. Returns the coefficient and how it was got."""
     pattern = specimen(specimen_diameter_mm)
@@ -44,7 +45,11 @@ def run(
         rotation=np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]]),
     )
     garment = build_garment(
-        pattern, {"SPECIMEN": flat}, particle_distance=particle_distance, relax_passes=2
+        pattern,
+        {"SPECIMEN": flat},
+        particle_distance=particle_distance,
+        relax_passes=2,
+        **({} if merge_fraction is None else {"merge_fraction": merge_fraction}),
     )
     # The instrument has a CENTRING PIN through a hole in the specimen, and
     # so does this: without it a limp specimen slides off the 180 mm disc, the

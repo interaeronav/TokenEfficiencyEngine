@@ -10482,7 +10482,28 @@ guard now judging a seam by what it could hold rather than a fixed six
 points (a 34 mm sub-seam of a sewn run has four at 12 mm and cannot have
 six). The one test that wants the fringe - the crease guard - meshes
 without the merge and says so. Every static drape's mesh changes at the
-default; the full suite was run and what moved is recorded below.
+default. The full suite moved four tests, each re-measured both ways:
+
+- The gait drift on the mannequin: walk +4.8 mm over three strides (+5.4,
+  -0.6) from +4.2; run +18.0 (+12.9, +5.1, decaying) from -6.0, worn, no
+  penetration - the bound goes to 27 (1.5 x, floored at a voxel).
+- The zipper chain's stiffness test: free 288 / soft 116 / stiff 112
+  degrees of total turn became 115 / 112 / 108. The 175-degree margin was
+  the fringe wiggling along the opening; the stiffness effect is the
+  4-degree steps and the order holds, so the margin is 4.
+- The coat's caps on the male figure: the fringed mesh basted 235 points
+  on each cap edge and propped the cap on the deltoid, apex 56-71 mm above
+  the joint, with a seam 65 mm open; the merged mesh bastes 60, the cap
+  falls to where a dropped shoulder's cap falls (apex 100-113 mm below the
+  joint, 9-10 mm inboard, both sides within 13 mm of each other) and the
+  worst seam is 11 mm. Walked two strides: the sleeves slide 16 and 24 mm
+  down the arm against 18 and 29 on the fringed mesh, worn, no penetration
+  - nothing the hook protected is lost, and the test now asserts the same
+  state on both sides.
+- The coarse-mesh refusal: the first form of the thin-seam relaxation
+  exempted any seam shorter than six spacings and let a 26 mm mesh
+  through; a run is now judged by all its sub-seams together, a plain seam
+  by itself, and the refusal fires again.
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 

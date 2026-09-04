@@ -24,6 +24,7 @@ it is the single knob that trades drape detail for solve time.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 
 import numpy as np
 from scipy.spatial import Delaunay
@@ -87,30 +88,67 @@ class PanelMesh:
         }
 
 
-def resample_closed(outline: Polyline, spacing: float) -> tuple[np.ndarray, np.ndarray]:
-    """Boundary points at `spacing`, with every original vertex kept.
+MERGE_FRACTION = 0.5
+
+
+def resample_closed(
+    outline: Polyline, spacing: float, *, merge_fraction: float = MERGE_FRACTION
+) -> tuple[np.ndarray, np.ndarray]:
+    """Boundary points at `spacing`, with every corner kept.
 
     Original vertices are kept rather than replaced because they carry the
     outline's shape - drop a corner and the panel changes. Extra points are
     inserted between them where the gap is larger than the target.
+
+    `merge_fraction` drops a CURVE vertex that lies closer than that
+    fraction of `spacing` to the last kept point; corners are never
+    dropped. At 0 every original vertex is kept, and an outline sampled
+    every 5 mm on a 12 mm mesh leaves a fringe of short edges round every
+    piece: on the tee block 678 edges under a quarter of the spacing and
+    1,015 more under three quarters, which the strain report could not
+    exclude (it printed 31 % for sleeves carrying 7) and which were the
+    amplifier in the run's tunnelling. At the default 0.5 the block keeps
+    four of the first and 408 of the second, its worst seam closes from
+    12.6 mm to 5.1 and the report reads 9.2 % against a fringe-free 8.3,
+    while every bundled fabric's Cusick coefficient stays within 0.001 of
+    where it was; 0.7 removes the rest of the fringe but moves chiffon's
+    coefficient 0.016. Measured 2026-09-04.
     """
+    from seamkiln.pattern.geometry import VertexKind
+
     ring = to_array(outline)
-    closed = np.vstack([ring, ring[:1]])
     lengths = cumulative_length([*outline, outline[0]])
     total = float(lengths[-1])
     if total <= 0.0:
         raise ValueError("degenerate outline: zero perimeter")
 
+    keep = [0]
+    if merge_fraction > 0.0:
+        floor = merge_fraction * spacing
+        for index in range(1, len(ring)):
+            corner = getattr(outline[index], "kind", VertexKind.TURN) is VertexKind.TURN
+            gap = float(np.linalg.norm(ring[index] - ring[keep[-1]]))
+            closing = float(np.linalg.norm(ring[index] - ring[0]))
+            if corner or (gap >= floor and closing >= floor):
+                keep.append(index)
+    else:
+        keep = list(range(len(ring)))
+
     points: list[np.ndarray] = []
     params: list[float] = []
-    for index in range(len(closed) - 1):
-        start, end = closed[index], closed[index + 1]
+    kept = [*keep, keep[0]]
+    for a, b in pairwise(kept):
+        start, end = ring[a], ring[b]
         span = float(np.linalg.norm(end - start))
         steps = max(1, int(np.ceil(span / spacing)))
+        # arc-length parameters stay the outline's own, so seams keep
+        # their place on it whether or not a vertex between was merged
+        length_a = float(lengths[a])
+        length_b = float(lengths[b]) if b != keep[0] else total
         for k in range(steps):
             fraction = k / steps
             points.append(start + (end - start) * fraction)
-            params.append((lengths[index] + span * fraction) / total)
+            params.append((length_a + (length_b - length_a) * fraction) / total)
     return np.asarray(points, dtype=np.float64), np.asarray(params, dtype=np.float64)
 
 
@@ -168,8 +206,12 @@ def triangulate_panel(
     particle_distance: float = 20.0,
     include_cutouts: bool = True,
     relax_passes: int = 2,
+    merge_fraction: float = MERGE_FRACTION,
 ) -> PanelMesh:
-    """Triangulate one panel at the given particle distance (mm)."""
+    """Triangulate one panel at the given particle distance (mm).
+
+    `merge_fraction` merges outline curve vertices closer than that
+    fraction of the particle distance (see `resample_closed`)."""
     if particle_distance <= 0.0:
         raise ValueError(f"particle_distance must be > 0 mm, got {particle_distance}")
 
@@ -184,7 +226,9 @@ def triangulate_panel(
             "structure to hold the garment on the body, and it slides off."
         )
 
-    boundary_points, boundary_t = resample_closed(panel.outline, particle_distance)
+    boundary_points, boundary_t = resample_closed(
+        panel.outline, particle_distance, merge_fraction=merge_fraction
+    )
     polygon = Polygon(to_array(panel.outline))
     if not polygon.is_valid:
         polygon = polygon.buffer(0)

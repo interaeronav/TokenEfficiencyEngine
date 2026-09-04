@@ -163,10 +163,13 @@ def test_t3_a_fringe_across_a_crease_stays_on_a_sliding_body() -> None:
         ]
     )
     field = sdf_from_mesh(balls, voxel_mm=VOXEL_MM)
+    # meshed WITHOUT the outline merge: this guard wants the sliver fringe
+    # the merge was written to remove (see `resample_closed`)
     garment = build_garment(
         specimen(),
         {"SPECIMEN": Placement(flat=True, rotation=FLAT, origin_m=np.asarray([0.0, 0.45, 0.0]))},
         particle_distance=12.0,
+        merge_fraction=0.0,
     )
     fringe = _fringe(garment)
     assert len(fringe) > 100, "the specimen's outline should be a sliver fringe"

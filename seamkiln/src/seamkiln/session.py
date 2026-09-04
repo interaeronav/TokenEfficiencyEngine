@@ -755,7 +755,10 @@ def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
             raise CommandError(str(exc)) from exc
         session.frame = frame
     session.garment = build_garment(
-        pattern, placements, particle_distance=float(args.get("particle_distance_mm", 15.0))
+        pattern,
+        placements,
+        particle_distance=float(args.get("particle_distance_mm", 15.0)),
+        **({"merge_fraction": float(args["merge_fraction"])} if "merge_fraction" in args else {}),
     )
     if choice == "wrap" and session.body_spec.get("kind") == "figure":
         session.garment.points = session.garment.points + _figure_lift(session)

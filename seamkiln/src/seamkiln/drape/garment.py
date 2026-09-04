@@ -629,8 +629,12 @@ def build_garment(
     *,
     particle_distance: float = 15.0,
     relax_passes: int = 2,
+    merge_fraction: float | None = None,
 ) -> GarmentMesh:
-    """Triangulate, place, and wire every constraint the solver will need."""
+    """Triangulate, place, and wire every constraint the solver will need.
+
+    `merge_fraction` merges outline curve vertices closer than that
+    fraction of the particle distance before meshing (`resample_closed`)."""
     meshes: dict[str, PanelMesh] = {}
     points3d: list[np.ndarray] = []
     points2d: list[np.ndarray] = []
@@ -645,7 +649,10 @@ def build_garment(
                 "Every panel must be arranged before it can be draped."
             )
         mesh = triangulate_panel(
-            panel, particle_distance=particle_distance, relax_passes=relax_passes
+            panel,
+            particle_distance=particle_distance,
+            relax_passes=relax_passes,
+            **({} if merge_fraction is None else {"merge_fraction": merge_fraction}),
         )
         meshes[panel.id] = mesh
         points3d.append(placements[panel.id].apply(mesh.points))
@@ -672,7 +679,23 @@ def build_garment(
         pattern, meshes, slices, points
     )
 
-    thin = {name: n for name, n in counts.items() if 0 < n < MIN_SEAM_POINTS}
+    # A seam is thin when it got fewer points than it could hold. A sewn run
+    # arrives as sub-seams named `<run>-<k>`; a 34 mm sub-seam of a 213 mm
+    # cap has four points at 12 mm and cannot have six, so a run is judged
+    # by the points of all its sub-seams together, and a plain seam by its
+    # own.
+    def run_of(name: str) -> str:
+        base, sep, tail = name.rpartition("-")
+        return base if sep and tail.isdigit() and base else name
+
+    grouped: dict[str, int] = {}
+    for name, n in counts.items():
+        grouped[run_of(name)] = grouped.get(run_of(name), 0) + n
+    thin = {
+        name: n
+        for name, n in counts.items()
+        if 0 < n < MIN_SEAM_POINTS and grouped[run_of(name)] < MIN_SEAM_POINTS
+    }
     if thin:
         worst = ", ".join(f"{k} ({v} points)" for k, v in sorted(thin.items())[:4])
         finer = particle_distance * min(thin.values()) / MIN_SEAM_POINTS
