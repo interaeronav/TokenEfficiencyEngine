@@ -11977,3 +11977,37 @@ partkiln **876 passed / 2 skipped**; seamkiln **429 passed / 5 skipped**
 (measured before the cut, on a quiet machine). Surface unchanged: **17 tools
 / 2,033 tok**. Three version strings agree at 0.21.0 and
 `mcpb_manifest.json`'s `tools[]` is untouched at 17.
+
+### 0.21.0 installed into Claude Desktop (2026-09-04)
+
+Replaced the extension at `~/Library/Application Support/Claude/Claude
+Extensions/local.mcpb.interaeronav.token-efficiency-engine`, which was still
+on **0.18.0**. Desktop was not running, so the swap was safe; the old tree was
+backed up first. The per-extension settings file holds only `isEnabled` and
+`userConfig.project_root` — no version — so a file replace is the whole
+install and leaves no registry inconsistent.
+
+**The upgrade wiped the fleet extras, exactly as recorded.** `uv sync`
+provisions from the lock and removes anything installed on top: pydicom,
+skfolio, ortools, pulp, fpdf2, pypdf, numpy and scipy all went. Restored with
+the five extras that were actually present — `medimg`, `quant`, `solve`,
+`extract`, `pdf`. The set was derived rather than assumed: `ezdxf` present
+with `trimesh` absent identifies `extract` and rules out `pointcloud`, and
+torch/monai/transformers were absent before and are absent after, so
+`medimg-monai`, `assets-embed` and `assets-gen` were correctly not restored.
+
+Verified by launching the INSTALLED extension over MCP stdio with its own
+manifest command:
+
+```
+handshake: {'name': 'tee', 'version': '0.21.0'}
+always-loaded tools: 17
+tee_status: blender 5.2.0 LTS connected
+```
+
+**One thing left running, deliberately not killed:** a server from the OLD
+extension (pid 54203, up 2 d 14 h) still holds `/Users/john/TEE`. It is
+orphaned — Desktop is not running — and its interpreter is the venv that was
+just re-synced underneath it, so it should not be trusted. It will be
+replaced when Desktop next starts. Killing another session's long-lived
+process is the owner's call, not this session's.
