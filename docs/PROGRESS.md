@@ -11265,3 +11265,46 @@ the two captures disagree by:
 **Evidence: 63 passed** (drafting), all five sheets 0 legibility findings, critic
 0 open / 0 blocking. `drafting/examples/okongo_reissue.py` is now in the repo, so
 the set is reproducible.
+
+## A67 addendum 7 — tape check, and why no scale was applied (2026-09-04)
+
+Owner supplied two tape baselines: B1 (Room 01 north-south) 3960 mm, B2 (east-
+west) 2880 mm.
+
+**Result: the survey is checked, and NOT scaled.**
+
+```
+                     scan     tape    difference
+  Room 01 N-S        3963     3960    scan  3 mm long  (0.08%)
+  Room 01 E-W        2864     2880    scan 16 mm short (0.56%)
+```
+
+The two axes disagree in sign AND magnitude - a seven-fold difference in error
+- so there is no uniform factor to lock in. `pc_control_verify` refused, which
+is what it exists to do. Re-issued at P03 stating the check on every sheet.
+
+**The good news the tape delivered:** the A67 addendum 5 two-scan comparison
+implied +-120 mm. The tape says the FIRST scan is accurate to +3/-16 mm. Scan 2
+was the outlier, not scan 1.
+
+**A trap this exposed, worth remembering.** Measured through `pc_control_add`,
+both baselines agreed on a 1.008 factor and looked like a clean scale
+correction. They agreed because the local snap is biased INWARD at both ends -
+clutter is always on the room side - so a shared bias produced consistent-
+looking evidence for a scale error that is not there. The whole-wall histogram
+measurement (all returns, peak-finding) disagrees with the local patch by up to
+173 mm in this room and matches the tape to 3 mm.
+
+**Two fixes to `control.snap_to_surface`, both measured:**
+
+1. **Refit against the offset HISTOGRAM PEAK, not the mean.** Averaging puts
+   the plane between the wall and whatever stands in front of it.
+2. **Report `confidence`** - the share of the neighbourhood actually on the
+   snapped plane - and warn below 60%. Without it a pick in front of a curtain
+   returns a perfectly reasonable-looking plane and a baseline short by tens of
+   millimetres, with nothing to say it is wrong. Sweeping Room 01's walls, the
+   south wall never exceeds 48% anywhere along its length: it is curtained end
+   to end, and no local method can measure it.
+
+**Evidence: 49 passed** (pointcloud + tools), 63 (drafting), all five sheets 0
+legibility findings.

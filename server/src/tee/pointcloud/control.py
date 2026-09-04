@@ -24,6 +24,9 @@ from tee.kernel.errors import TeeError
 SNAP_RADIUS_M = 0.30
 SNAP_MIN_POINTS = 400
 SNAP_MAX_RADIUS_M = 1.20
+# Below this share of the neighbourhood on the snapped plane, the pick is in
+# front of something and the reading is not to be trusted.
+CLEAR_PICK = 0.60
 # doc 18 Rec. 5, reused: a free-scale deviation past this is a units problem,
 # not a calibration - reported as a conflict rather than silently applied.
 UNITS_CONFLICT = 0.02
@@ -31,7 +34,7 @@ UNITS_CONFLICT = 0.02
 
 def snap_to_surface(
     points: np.ndarray, pick: np.ndarray, radius: float = SNAP_RADIUS_M
-) -> tuple[np.ndarray, int]:
+) -> tuple[np.ndarray, int, float]:
     """Move an approximate 3D pick onto the local dominant plane.
 
     The operator aims by eye at a wall in a viewer; this is what makes that
@@ -53,11 +56,40 @@ def snap_to_surface(
     local = points[np.asarray(idx, dtype=int)]
     if len(local) < 3:
         return np.asarray(pick, dtype=float), len(local)
+    # Re-select and refit, the same discipline the line fitter needs. A single
+    # SVD over everything in the ball is biased by whatever else is within the
+    # radius - a bedhead 200 mm off the wall drags the plane with it, and the
+    # snap lands tens of millimetres inside the surface it was aiming at.
     centroid = local.mean(axis=0)
-    _, _, vt = np.linalg.svd(local - centroid, full_matrices=False)
-    normal = vt[-1]
+    normal = np.array([0.0, 0.0, 1.0])
+    for tol in (radius * 0.5, 0.06, 0.03):
+        _, _, vt = np.linalg.svd(local - centroid, full_matrices=False)
+        normal = vt[-1]
+        # The surface is the PEAK of the offset histogram, not the mean of it.
+        # Averaging puts the plane somewhere between the wall and whatever
+        # stands in front of it: measured on the Okongo scan, a least-squares
+        # snap between two curtained walls read 3790 mm where the walls are
+        # 3963 mm apart - a 173 mm error that made the tool useless exactly
+        # where a control baseline matters most. A wall is the densest return
+        # in its own neighbourhood; a curtain is not.
+        offsets = (local - centroid) @ normal
+        counts, edges = np.histogram(offsets, bins=max(12, int(radius / 0.01)))
+        peak = float((edges[counts.argmax()] + edges[counts.argmax() + 1]) / 2)
+        keep = np.abs(offsets - peak) < tol
+        if int(keep.sum()) < max(SNAP_MIN_POINTS // 8, 20):
+            centroid = centroid + normal * peak
+            break
+        local = local[keep]
+        centroid = local.mean(axis=0)
     snapped = np.asarray(pick, dtype=float)
-    return snapped - normal * float((snapped - centroid) @ normal), len(local)
+    on_plane = snapped - normal * float((snapped - centroid) @ normal)
+    # How much of the neighbourhood actually sits on the surface we snapped to.
+    # A pick in front of a curtain still returns a plane; without this number
+    # nothing distinguishes it from a pick on bare wall, and the resulting
+    # baseline is short by tens of millimetres with no sign that it is wrong.
+    ball = points[np.linalg.norm(points - np.asarray(pick, float), axis=1) < radius]
+    confidence = float((np.abs((ball - on_plane) @ normal) < 0.03).mean()) if len(ball) else 0.0
+    return on_plane, len(local), confidence
 
 
 def add_baseline(
@@ -75,8 +107,8 @@ def add_baseline(
             "true_mm must be the positive distance you measured.",
             fix="Pass the tape reading in millimetres.",
         )
-    a, na = snap_to_surface(points, np.asarray(p1, dtype=float))
-    b, nb = snap_to_surface(points, np.asarray(p2, dtype=float))
+    a, na, ca = snap_to_surface(points, np.asarray(p1, dtype=float))
+    b, nb, cb = snap_to_surface(points, np.asarray(p2, dtype=float))
     measured_mm = float(np.linalg.norm(b - a) * 1000.0)
     if measured_mm < 1.0:
         raise TeeError(
@@ -84,7 +116,7 @@ def add_baseline(
             f"'{name}' snapped to a {measured_mm:.2f} mm length - the two picks coincide.",
             fix="Pick two points on OPPOSITE surfaces, in cloud units (metres).",
         )
-    return {
+    out = {
         "name": str(name)[:64],
         "p1": [round(float(v), 4) for v in a],
         "p2": [round(float(v), 4) for v in b],
@@ -93,7 +125,16 @@ def add_baseline(
         "tol_mm": round(float(tol_mm), 2),
         "snapped_from": [round(float(v), 4) for v in p1] != [round(float(v), 4) for v in a],
         "neighbours": [int(na), int(nb)],
+        "confidence": [round(ca, 2), round(cb, 2)],
     }
+    if min(ca, cb) < CLEAR_PICK:
+        out["warning"] = (
+            f"only {min(ca, cb):.0%} of the neighbourhood at one end sits on the "
+            "surface it snapped to - the pick is in front of clutter, and the "
+            "baseline will read SHORT."
+        )
+        out["fix"] = "Move that pick to a clear length of bare wall and re-add."
+    return out
 
 
 def check(baselines: list[dict]) -> dict:

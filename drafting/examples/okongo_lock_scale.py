@@ -33,8 +33,11 @@ WORK = Path(
 # Where each baseline runs, in the levelled frame, from the P02 fit. The picks
 # are approximate on purpose - pc_control_add snaps each one to its local wall.
 BASELINES = {
-    "b1": ("ROOM 01 north-south", [0.10, -2.30, 1.20], [0.10, 1.57, 1.20]),
-    "b2": ("ROOM 01 east-west", [-1.27, -0.40, 1.20], [1.52, -0.40, 1.20]),
+    # Picks chosen where the WALL dominates its own neighbourhood, found by
+    # sweeping each wall: a pick in front of a curtain reads short by tens of
+    # millimetres and looks perfectly reasonable while doing it.
+    "b1": ("ROOM 01 north-south", [1.25, -2.27, 1.20], [1.25, 1.69, 1.20]),
+    "b2": ("ROOM 01 east-west", [-1.28, -0.70, 1.20], [1.59, 1.10, 1.20]),
     "b3": ("ROOM 02 east-west", [-3.12, -0.90, 1.20], [-1.70, -0.90, 1.20]),
 }
 
