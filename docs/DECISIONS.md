@@ -1387,3 +1387,63 @@ every sheet: grey is measured, black is fitted.
 valuable thing it said.** No tape measurement was supplied, so every dimension
 in those drawings is Apple's ARKit solution and nothing else. The verdict is not
 a limitation of the lane; it is the lane doing its job.
+
+## A67 addendum 2 — a drafting-standards critic for the drawings (2026-09-04)
+
+Owner: *"Create a feedback loop that critics these drawings to real world
+technical drafting standards and makes corrections"*. New package `drafting/`,
+standalone at the repo root on the seamkiln/partkiln/voxkiln precedent.
+
+**The critic reads the specification, not the PDF.** A finding has to be
+actionable: `critique` names a field, the corrector edits that field, the sheet
+is redrawn from the corrected data. Critiquing a rendered PDF would let you see
+a fault and leave no handle to fix it. That is what makes the loop close.
+
+**But a second tier was unavoidable, and the first sheet proved why.** Tier 1
+passed the re-issued SK-01 with zero findings while a section cut line ran
+straight through two room names. Conformance and legibility are different
+properties, and collisions are a fact about the plot, not the data. Tier 2
+measures drawn artists after the figure exists.
+
+**Provenance is attached to every rule, because the source is second-hand.**
+The numbers come from TEE's KB entry `arch.drawing_documentation`
+(`confidence: medium`), which cites SANS 10143 through public transcriptions
+and has NOT been checked against the purchased standard. Each rule therefore
+carries a `firmness` of `sans10143`, `convention` or `house`. CLAUDE.md's rule
+that the KB grounds nothing on its own is the reason this field exists rather
+than a footnote: 15 rules are attributed, 5 are not, and the module says which.
+
+**The corrector will not invent a value a human owns.** An unset checker prints
+`— NOT SET —` in red. A drawing that looks signed off and is not is worse than
+one that visibly is not, so the correction for a missing signature is to make
+the absence louder, never to fill it.
+
+**Every edit is reported.** Corrections come back as findings marked
+`autofixed`, so the full list of changes made on the owner's behalf is readable
+in one place. Nothing is silently improved.
+
+Rulings the build learned, each pinned by a test:
+
+**The critic and the corrector must share one definition of a tag.** The critic
+read `SECTION A-A` as tag `A-A` while the corrector wrote `A`; two REJECT
+findings survived a loop that reported itself converged. One `section_tag()`
+now serves both — and its own test then caught that it split on the ASCII
+hyphen only, so an en-dash title would have reproduced the same bug.
+
+**A false positive costs more than a missed check.** Three were found and fixed
+against real sheets: `Annotation.get_window_extent` includes the leader arrow,
+so a 2 mm label with a 35 mm leader measured 35 mm tall; an Axes paints its own
+white background, which "covered" every label inside it; and text with an
+opaque backing patch is a dimension figure sitting in a break in its own
+line — correct drafting, not a collision. Each would have trained the reader to
+skim the findings.
+
+**Text needs clearance, not merely non-intersection.** A caption 0,08 mm off a
+soffit line reads as sitting on it, so boxes are inflated 0,6 mm before being
+tested against graphics.
+
+**On the Okongo set: 77 findings, 0 after the loop.** The two blocking ones
+were real — both sections were orphans, cited on SK-02 as "cut lines shown on
+SK-01" while SK-01 showed none. Ten pieces of text were below the 2,5 mm
+legible minimum, some at 1,98 mm. The plan also moved from 1:25 to 1:50,
+because 1:25 is an enlarged-plan scale and this is a GA plan.

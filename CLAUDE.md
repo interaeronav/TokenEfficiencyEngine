@@ -89,6 +89,16 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   seamkiln, headless-first with the GUI as a later phase, name `partkiln` /
   prefix `pk_`, v1 = parts + assemblies + drawings + exports with sheet
   metal last.
+- The `drafting/` package (A67 addendum, 2026-09-04) is a two-tier drafting-
+  standards critic: tier 1 checks a sheet SPECIFICATION against SANS 10143
+  building drawing practice, tier 2 checks the PLOTTED sheet for collisions,
+  and `loop.run` corrects to a fixed point reporting every change. Its rules
+  come from the KB entry `arch.drawing_documentation` (`confidence: medium`,
+  NOT checked against the purchased SANS text), so every rule carries a
+  `firmness` of sans10143 / convention / house - do not cite it to a building
+  authority. It will not invent a value a human owns: an unset checker prints
+  `— NOT SET —`.
+
 - The A67 build (`pc_*`: a headless point-cloud scan-prep lane that turns a raw
   scan into scale-verified, axis-aligned DXF/SVG tracing templates while the
   model never sees a point) is **COMPLETE**; `CLAUDE_A67_SCRIPT.md` is the plan

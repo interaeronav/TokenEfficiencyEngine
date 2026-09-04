@@ -10678,3 +10678,52 @@ Apple's ARKit solution alone. Two wall-to-wall readings would let
 of the lane never exercised on real data.
 
 **Evidence: 1283 passed, 13 skipped.**
+
+## A67 addendum 2 — the drafting critic and the corrected drawing set (2026-09-04)
+
+Owner: *"Create a feedback loop that critics these drawings to real world
+technical drafting standards and makes corrections"*.
+
+**Built:** `drafting/` — a standalone package (22 rules, two tiers, 37 tests).
+Tier 1 `critic.py` checks the sheet SPECIFICATION against SANS 10143 building
+drawing practice; tier 2 `legibility.py` checks the PLOTTED sheet for
+collisions. `corrector.py` applies fixes and reports every one; `loop.py` runs
+critique -> correct -> critique to a fixed point. Grounding came from TEE's own
+KB (`kb_search` -> `kb_read arch.drawing_documentation`), which cites SANS
+10143 and carries the [NA] City of Windhoek requirements - jurisdiction-correct
+for Okongo. Every rule carries a `firmness` field because the KB is
+`confidence: medium` and has not been checked against the purchased standard.
+
+**Result on the Okongo set:**
+
+```
+tier 1   77 findings as issued -> 0 open, 0 blocking (converged in 2 passes)
+         87 corrections applied and individually reported
+tier 2   SK-01 11 collisions -> 0 ; SK-02 -> 0 ; SK-03 -> 0
+```
+
+**The two blocking faults were real:** both sections were ORPHANS - SK-02 said
+"cut lines shown on SK-01" and SK-01 showed no cut lines. Ten pieces of text
+sat below the 2,5 mm legible minimum, some at 1,98 mm. Also corrected: plan
+1:25 -> 1:50 (1:25 is an enlarged-plan scale, this is a GA plan), border to
+0,70 mm, every pen onto the standard set, room NAMES beside the numbers, a
+third dimension chain across the measured 1949 mm opening, a stated level
+datum, revision P01, and the DO NOT SCALE note.
+
+**Facts learned:** the critic must read the spec, not the PDF, or a finding has
+no handle to fix it - but a second tier is unavoidable, because tier 1 passed a
+sheet whose cut line ran through two room names. A false positive costs more
+than a missed check: three were found and fixed against real sheets
+(annotation extents include the leader arrow; an Axes paints its own background
+over its contents; masked text is a dimension figure in a break in its line,
+which is correct drafting). Text needs 0,6 mm of clearance, not merely
+non-intersection. And the critic and corrector must share one tag definition -
+they disagreed, and two REJECT findings survived a loop that called itself
+converged.
+
+**The corrector will not invent a value a human owns.** CHECKED BY prints as
+`— NOT SET —` in red on all three sheets.
+
+**Evidence: 37 passed** (drafting), **1283 passed, 13 skipped** (server).
+Re-issued set in `~/Downloads/Okongo-Scan-Test/` at rev P01, with
+`drafting-critique.md` recording every correction.
