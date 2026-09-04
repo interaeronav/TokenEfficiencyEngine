@@ -77,6 +77,41 @@ capabilities and hand back the exact ops.
   be turned. It gets the **wrap** arrangement and is **dressed** on arrange.
 - **`anny`**, **`posed`**, **`custom`** — parametric, posed-mannequin, and
   your own mesh (units and up-axis inferred and reported). Wrap arrangement.
+- **`custom` from a glTF that carries a SKIN keeps its skeleton and walks on
+  its own legs.** Everything else walks as one piece, and the answer says
+  which in `articulated`. See below.
+
+### A body you bring, that actually bends
+
+Until A65 P5b every imported body slid along the floor as a statue: the mesh
+loader flattens a scene, so trimesh could not see a skin even when the file
+carried one, and `walk` sent every non-figure body to the rigid path. Hand it
+a skinned `.glb` now and it articulates.
+
+The measurement that settles it — rigid motion can travel, rise and turn, but
+it cannot change the distance between two of a body's own vertices. Over one
+walk cycle, left hand to right foot: **0.932 → 1.116 m articulated, a spread
+of 183 mm; 0.000 mm rigid.** The pelvis rise of 46 mm is *earned* — the feet
+are put on the ground each frame and the pelvis lifts because the stance leg
+straightens — where the rigid rise is the gait's scripted number echoed back.
+
+Three things it refuses rather than guesses, because each one otherwise ends
+as a confident fit report about a body that never moved: a file with **no
+skin** falls back to the mesh loader and says so (an honest property of the
+file); bones that cannot be **mapped** onto seamkiln's nine joints refuse by
+name, never by string similarity or position, because a mis-mapped limb bends
+the wrong way and reads as a solver bug; and a body whose height is not a
+body's refuses outright. `adjust` reshapes the mesh, so the bind pose no
+longer fits it — the rig is dropped and the answer says which, because
+skinning against a stale bind pose tears a limb.
+
+**Bring your own, or generate one.** `seamkiln.rig.character.build_character`
+authors a clothable rigged humanoid from one number, its stature — licence
+clean, deterministic to the byte, no download and no dependency (the skinned
+glTF is written and read by hand, because trimesh ignores skins and adding a
+glTF library was not worth it). For a production-quality body, research doc 67
+§2 names **Anny** (Apache-2.0, assets CC0). **SMPL/SMPL-X/STAR are
+non-commercial and cannot ship here.**
 
 `arrangement="auto"` records the choice it made, so a replay makes it too.
 

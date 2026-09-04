@@ -719,8 +719,10 @@ def register_seamkiln_tools(app) -> None:
                 "posed": "the mannequin at joint angles",
                 "figure": "a clothable figure with joints (arms/legs/trunk) that the dressing "
                 "lane asks directly; walks with articulated limbs",
-                "custom": "your own mesh from 'path'; units and up-axis inferred and REPORTED; "
-                "walks as one piece (no rig)",
+                "custom": "your own mesh from 'path'; units and up-axis inferred and "
+                "REPORTED. A glTF carrying a SKIN keeps its skeleton and walks with "
+                "articulated limbs; any other file walks as one piece and the answer "
+                "says which, in 'articulated'",
             },
             "joints": list(JOINTS),
             "figure_parts": list(PARTS),

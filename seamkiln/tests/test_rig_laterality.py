@@ -19,6 +19,15 @@ Two cases, and they are not the same:
   limbs crossed on the swing. That is detectable without any anatomical
   knowledge - the four pairs simply have to agree on which way round they
   are - and `skin._check_laterality` now refuses it.
+
+And a third case, added 2026-09-04 after the guard above was measured against
+a file it should not have refused. A rig whose LABELS are right and whose BIND
+POSE crosses the arms disagrees with itself here in exactly the same way, and
+was refused with a message pointing at `overrides=` - which did not lift it,
+because the check runs on positions after the mapping. A refusal that names a
+route the caller cannot take is worse than a plain no, so naming BOTH bones of
+a pair by hand is now taken as the statement it is, and that pair is not
+position-checked. It takes both because it takes two bones to state a side.
 """
 
 from __future__ import annotations
@@ -31,7 +40,7 @@ import numpy as np
 import pytest
 
 from seamkiln.rig.character import build_character
-from seamkiln.rig.gltf_write import write_glb
+from seamkiln.rig.gltf_write import Skeleton, write_glb
 from seamkiln.rig.skin import RigSkinError, load_rigged_avatar
 
 _GLB_MAGIC = 0x46546C67
@@ -66,10 +75,39 @@ def _mirror(names: tuple[str, ...]) -> dict[str, str]:
 
 
 @pytest.fixture(scope="module")
-def character_glb(tmp_path_factory: pytest.TempPathFactory) -> Path:
+def character():
+    return build_character(1.80, cells_tall=32)
+
+
+@pytest.fixture(scope="module")
+def character_glb(tmp_path_factory: pytest.TempPathFactory, character) -> Path:
     path = tmp_path_factory.mktemp("laterality") / "body.glb"
-    character = build_character(1.80, cells_tall=32)
     write_glb(path, character.primitive(), character.skeleton)
+    return path
+
+
+@pytest.fixture(scope="module")
+def crossed_glb(tmp_path_factory: pytest.TempPathFactory, character) -> Path:
+    """A rig whose labels are RIGHT and whose bind pose puts each arm on the
+    other side of the body - the folded-arms bind a studio really does export.
+
+    Only the arm chain's bind positions are mirrored, so the file stays
+    internally consistent (`write_glb` derives the inverse bind matrices from
+    the skeleton it is given). The mesh does not follow the bones, which is of
+    no consequence to the guard under test: it reads bind positions and
+    nothing else.
+    """
+    path = tmp_path_factory.mktemp("laterality") / "crossed.glb"
+    skeleton = character.skeleton
+    positions = np.array(skeleton.positions, copy=True)
+    for side in ("Left", "Right"):
+        for bone in ("Shoulder", "Arm", "ForeArm", "Hand"):
+            positions[skeleton.names.index(f"{side}{bone}"), 0] *= -1.0
+    write_glb(
+        path,
+        character.primitive(),
+        Skeleton(names=skeleton.names, parents=skeleton.parents, positions=positions),
+    )
     return path
 
 
@@ -190,3 +228,63 @@ def test_the_guard_is_translation_invariant(character_glb: Path, tmp_path: Path)
     )
     rig = load_rigged_avatar(target)
     assert np.all(rig.body.joints[rig.slots["hip_l"]].rest[0, 3] > 4.0)
+
+
+ARMS = {
+    "shoulder_l": "LeftArm",
+    "shoulder_r": "RightArm",
+    "elbow_l": "LeftForeArm",
+    "elbow_r": "RightForeArm",
+}
+
+
+def test_a_crossed_bind_pose_is_refused_and_the_route_it_names_works(crossed_glb: Path) -> None:
+    """The third case. The refusal is right to fire - four pairs that disagree
+    look the same whether the names lie or the pose crosses, and this check
+    cannot tell which - but the way out it offers has to be real."""
+    with pytest.raises(RigSkinError) as caught:
+        load_rigged_avatar(crossed_glb)
+    message = str(caught.value)
+    assert "left/right bone NAMES disagree" in message
+    assert "shoulder_l/shoulder_r +x" in message and "hip_l/hip_r -x" in message
+    assert "BIND POSE" in message and "naming BOTH" in message
+
+    rig = load_rigged_avatar(crossed_glb, overrides=ARMS)
+    assert rig.slots["shoulder_l"] == rig.body.joint_index("LeftArm")
+    assert float(rig.body.joints[rig.slots["shoulder_l"]].rest[0, 3]) > 0.0
+    assert float(rig.body.joints[rig.slots["hip_l"]].rest[0, 3]) < 0.0
+
+
+def test_naming_one_end_of_a_pair_is_not_a_statement_about_the_pair(crossed_glb: Path) -> None:
+    """It takes two bones to state a side, so one override leaves the pair
+    position-checked - and a pair still in the check still disagrees."""
+    for partial in ({"shoulder_l": "LeftArm"}, {"shoulder_l": "LeftArm", "elbow_l": "LeftForeArm"}):
+        with pytest.raises(RigSkinError, match="left/right bone NAMES disagree"):
+            load_rigged_avatar(crossed_glb, overrides=partial)
+
+
+def test_consenting_to_a_pair_costs_the_evidence_that_pair_carried(
+    character_glb: Path, tmp_path: Path
+) -> None:
+    """The price of the consent rule, pinned rather than hidden.
+
+    This check works by DISAGREEMENT between pairs - it never asks where x = 0
+    is - so vouching for the arms takes the arms out of the comparison. A file
+    whose LEGS are the mislabelled ones then has nothing left to disagree with
+    and is accepted: refused with no overrides, accepted with the arms named.
+    That is the same blind spot the fully mirrored rig has above, reached on
+    purpose this time, and it is the honest outcome - the caller has stated
+    that the arms are right, and half a body cannot contradict itself.
+    """
+    swapped = _renamed(
+        character_glb,
+        tmp_path / "legs_swapped_with_arms_named.glb",
+        _mirror(("LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg")),
+    )
+    with pytest.raises(RigSkinError, match="left/right bone NAMES disagree"):
+        load_rigged_avatar(swapped)
+
+    rig = load_rigged_avatar(swapped, overrides=ARMS)
+    # the cost, as a number: hip_l now drives the bone on the body's +x side
+    assert float(rig.body.joints[rig.slots["hip_l"]].rest[0, 3]) > 0.0
+    assert float(rig.body.joints[rig.slots["shoulder_l"]].rest[0, 3]) < 0.0
