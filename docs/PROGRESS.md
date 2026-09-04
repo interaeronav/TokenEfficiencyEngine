@@ -10308,6 +10308,22 @@ does; it returned a report and dropped them, which left a walk with no
 way out to a renderer. Fingerprint `56ad17f50e07035d`; script and clip
 in the scratchpad.
 
+**Across the floor (owner: "make her walk across the floor").** The same
+walk with `travel` on, the figure built facing +x (`facing_deg` 90) and
+the heading along +x, so she walks facing the way she goes: the body
+travels 2.835 m in 2.1 s at the gait's 1.35 m/s, the tee's centroid
+2.758 m, settling 65-87 mm behind the body's mean (which swings with the
+limbs) after the first stride; worn on every frame, penetration 0.0 mm,
+worst seam 3.6 mm, hem swing 68 mm (45 in place), and the garment's
+height ends 32.5 mm higher against the gait's own end-pose rise of
++32.5 - carried, not slid. The rendered body per frame is the walk's own
+factory output plus heading x speed x time, which is exactly what the
+animator did; the clip's camera is a dolly that keeps its offset from
+the walker. One limitation seen on the way: the session fingerprint does
+not cover an animation (the drape is cleared after a walk, so the
+fingerprint is the pattern's), so a replayed walk is checked by its
+report, not its hash.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
