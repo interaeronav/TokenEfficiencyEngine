@@ -227,6 +227,23 @@ def edge_lines(
 
     Returns segments in world units, ready to draw at whatever pen the caller
     considers appropriate to what they are.
+
+    WHICH KNOB ACTUALLY MATTERS, measured on the Okongo cabinet wall (20 mm
+    cells, min_run 140 mm):
+
+        band   20 mm -> 19 lines,  4.9 m      band  80 mm -> 23 lines, 10.4 m
+        band   30 mm -> 16 lines,  5.4 m      band 120 mm -> 23 lines, 14.3 m
+        band   40 mm -> 22 lines, 10.2 m      band 300 mm -> 22 lines, 13.2 m
+
+    `band_m` is NOT the sensitive parameter it looks like: from 40 mm upward it
+    barely moves the drawing. Below about 40 mm there is a cliff - regions
+    fragment past `min_area_m2` and half the line work disappears - so a finer
+    band buys detail only until it silently costs you the drawing.
+
+    The knobs that do control the output are `min_run_m` (60 mm -> 41 lines,
+    300 mm -> 9) and the RASTER CELL, which interacts with scan density: at
+    10 mm cells this wall returns NO lines at all, because a sparser raster
+    puts every region under the area threshold.
     """
     from scipy import ndimage
 

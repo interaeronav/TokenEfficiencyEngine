@@ -619,7 +619,7 @@ def elev_body(canvas):
             interpolation="nearest",
             zorder=1,
         )
-        for a, b in V.edge_lines(img, extent, band_m=0.08, min_run_m=0.14):
+        for a, b in V.edge_lines(img, extent, band_m=0.04, min_run_m=0.14):
             ax.plot(
                 [a[0], b[0]],
                 [a[1], b[1]],
