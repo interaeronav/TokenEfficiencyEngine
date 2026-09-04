@@ -49,7 +49,7 @@ Each is recorded in `docs/DECISIONS.md` with the evidence that forced it.
 | dep `pye57` | CloudCompare's `libQE57_IO_PLUGIN` | MIT, but builds libE57Format. CloudCompare 2.13.2 is already a lane dependency and ships the reader. |
 | dep `open3d` | nothing — dropped | MIT, ~400 MB, for ICP alone — and there is no ICP here. `test_a46_no_heavy_imports.py` bans exactly this shape. |
 | `scipy` assumed present | **declared** in the extra | It reached `server/.venv` only transitively; a clean sync would have dropped `cKDTree` silently. |
-| `pc_register`, `pc_merge` | **not built** | `capture_register` already does ICP with a refusing RMS gate and a degeneracy guard. |
+| `pc_register`, `pc_merge` | **`pc_merge` wraps, `pc_register` never built** | `capture_register` already does ICP with a refusing RMS gate and a degeneracy guard, and `pc_merge` (second pass, 2026-09-04) calls it rather than reimplementing it. What the wrapper adds is a frame it names itself and a second opinion on the fit — see P8. |
 | `pc_control_check` | **`pc_control_verify`** | "check" is a common English verb worth 3 points on a name match; `pc_control_check` outranked `ex_estimate` for "check the drawing" and cost the registry a recall slot. |
 | research doc unnumbered | `69-pointcloud-scan-prep.md` | every file in `docs/research/` is `NN-slug.md`. |
 | "as 3D Scanner App writes them" | read the file's own header | The name is a generalisation for whatever iPhone scanner produced the export (owner, 2026-09-03), which makes hard-coding any app's quirks wrong. `pc_open` reports the writer, SRS and point format it finds. |
@@ -110,11 +110,15 @@ ball than a dense one for the same accuracy.
 | `control.py` | Baseline snap, scale solve, the drift and units-conflict verdicts |
 | `slice2d.py` | Band extraction, greedy RANSAC line fit with re-selection, DXF + SVG writers |
 | `report.py` | The QA sheet and its six-line verdict |
-| `tools.py` | The 10 virtual tools |
+| `condition.py` | Crop regions, statistical outlier removal, voxel thinning (P8) |
+| `ortho.py` | Rectified facade rasters with a burnt-in scale bar (P8) |
+| `merge.py` | Frame handling and the overlap second opinion around `capture_register` (P8) |
+| `tools.py` | The 14 virtual tools |
 
-**Ten tools, all virtual, zero added to the always-loaded 17.**
+**Fourteen tools, all virtual, zero added to the always-loaded 17.**
 `pc_open`, `pc_stat`, `pc_level`, `pc_control_add`, `pc_control_verify`,
-`pc_scale_apply`, `pc_slice`, `pc_section`, `pc_export`, `pc_report`.
+`pc_scale_apply`, `pc_slice`, `pc_section`, `pc_export`, `pc_report` (P1–P7),
+plus `pc_crop`, `pc_clean`, `pc_ortho`, `pc_merge` (P8).
 
 **Trust:** every tool tabled **individually** in `trust.py::_EXPLICIT` —
 deliberately **no** `("pc_", …)` family row. Same lesson the `cad_` and `trade_`
@@ -162,13 +166,71 @@ plus `fixtures_pointcloud.py`. Benchmark:
 3. **Meshing / surface reconstruction.** Different problem, different phase.
 4. **Photogrammetry.** That is `capture_*`'s territory.
 5. **A viewer.** CloudCompare is free and better.
-6. **Registration.** `capture_register` owns it, gate and guard included.
+6. **A second ICP.** `capture_register` owns registration, gate and guard
+   included. `pc_merge` (P8) calls it; it does not reimplement it.
+
+## P8 — the second pass (CLOSED 2026-09-04)
+
+The four tools P1–P7 deferred, landed on the proven spine. Fourteen `pc_*`
+tools now; the always-loaded surface is still 17 / ~2,033 tokens.
+
+- **`pc_crop`** — box, z range, XY polygon, or all three; `invert` drops the
+  region instead. Ray casting for the polygon is twenty lines here rather than
+  a shapely dependency for one call. A crop that would leave under 100 points
+  refuses, because that is almost always a units error and an eleven-point
+  cloud hides it until the DXF.
+- **`pc_clean`** — statistical outlier removal (threshold from the cloud's own
+  spacing distribution, so it needs no tuning between a room and a site) plus
+  optional voxel thinning. The voxel keeps the point NEAREST its cell centroid,
+  never the centroid: a returned point is something the scanner saw, and an
+  averaged one across an edge floats in mid-air.
+- **`pc_ortho`** — a rectified facade PNG. Scale bar and origin cross are burned
+  into the pixels, not drawn beside them, because a cropped and re-pasted copy
+  is what actually reaches whoever traces it.
+- **`pc_merge`** — wraps `capture_register`. Both clouds are shifted by the
+  datum's centroid before being written out, so the transform comes back in a
+  frame this module named rather than one CloudCompare chose (a UTM cloud would
+  otherwise be silently re-centred by CloudCompare's global shift). It reports
+  CloudCompare's RMS **and** its own overlap measure, because those two numbers
+  mean different things and only the pair is a verdict.
+
+### What driving it on the real scan changed
+
+Three defects the synthetic fixture could not have shown, all found by running
+the tools against the 900 K-point Okongo cloud:
+
+1. **`pc_crop` answered a question nobody asked, silently.** `z_range:
+   [0.05, 2.35]` on a PLY round trip returned the top HALF of the room, because
+   PLY origin-shifts and that cloud's floor is at z = −1.36. The crop was
+   correct and the request was not, and the response said nothing. It now says
+   `z 0.05..2.35 reaches past this cloud (z is -1.584..1.356)`.
+2. **Two depths of one facade overwrote each other.** `pc_ortho` named files by
+   cloud and azimuth only, so comparing a 400 mm and an 800 mm depth compared an
+   image with itself. Resolution and depth are in the filename now.
+3. **A point is a sample, not a pixel.** At 10 mm pixels on a cloud sampled every
+   30 mm, one-pixel splats gave a 64%-white stipple — the same "looks more like a
+   texture" complaint the depth rasters drew. Each point now paints its own
+   measured footprint (`dot_px`, derived from spacing): coverage 64% → 92% on the
+   cabinet wall, and the vertical joints read as lines.
+
+### Measured, 2026-09-04, through the registry on the real cloud
+
+```
+pc_crop   900,000 -> 623,548 in 0.04 s
+pc_clean  17,728 outliers removed (2.8%) in 0.5 s; spacing 29.9 -> 28.8 mm
+pc_ortho  340 x 221 px @ 10 mm/px in 0.02 s, coverage 0.92, dot_px 3
+pc_merge  two halves, one rotated 4 deg and moved 120/80/30 mm:
+          ICP RMS 38.9 mm, overlap 0.408, overlap RMS 10.0 mm
+          reassembled bbox 5.099 x 5.355 x 2.924 vs 5.106 x 5.355 x 2.940
+```
+
+`tee_search_tools` re-measured at 85 tools with four new cases: limit 3 still
+misses exactly one of 33, limit 5 still finds all 33. Four more tools cost the
+search nothing, which is the claim progressive disclosure has to keep making.
 
 ## Open
 
-- **`pc_crop`, `pc_clean`, `pc_ortho`, and a `pc_merge` wrapping
-  `capture_register`** — deferred to a second pass on a proven spine.
-- **No real fixture exists yet.** `testbeds/` is absent and there is no
+- **No real fixture is committed.** `testbeds/` is absent and there is no
   `.ply`/`.las`/`.e57` anywhere in the repo. The synthetic fixture carries the
   whole gate. One room export under 20 MB plus its tape measurements as a
   sidecar JSON would turn A7 and A9 into real-world numbers and let doc 69 §3.4

@@ -1291,10 +1291,37 @@ nowhere in `server/pyproject.toml` — it arrives transitively via skfolio /
 PyPortfolioOpt / scenedetect. `cKDTree` is load-bearing for normal estimation,
 so a clean `uv sync` that dropped a carrier would have broken the lane silently.
 
-**No `pc_register` and no `pc_merge`.** `capture/align.py:86 register_icp()`
-already ICP-registers through CloudCompare with a refusing RMS gate and a 7-DOF
-degeneracy guard, and A42 T6 paid for that guard the hard way. A second
-registration answer that can disagree with the first is worse than none.
+**No `pc_register`, and `pc_merge` wraps rather than reimplements.**
+`capture/align.py:86 register_icp()` already ICP-registers through CloudCompare
+with a refusing RMS gate and a 7-DOF degeneracy guard, and A42 T6 paid for that
+guard the hard way. A second registration answer that can disagree with the
+first is worse than none. So `pc_merge` (second pass, 2026-09-04) calls it.
+What the wrapper is allowed to add is only what the caller cannot get from the
+existing tool: **a frame it names itself** — both clouds are shifted by the
+datum's centroid before being written out, so a site cloud in UTM is not
+silently re-centred by CloudCompare's own global shift and the returned matrix
+is usable — and **a second opinion on the fit**. CloudCompare's RMS is over the
+correspondences it chose; `pc_merge` also reports the fraction of each source
+that landed within 50 mm of the datum and the RMS within that overlap. Measured
+on the Okongo cloud split in two and one half disturbed by 4° and 145 mm: RMS
+38.9 mm, overlap 0.408, overlap RMS 10.0 mm. Only the pair is a verdict — the
+same 38.9 mm at 4% overlap would be two scans of different rooms.
+
+**`pc_ortho` splats each point at its measured footprint, not one pixel.**
+Asked for 10 mm pixels on a cloud sampled every 30 mm, a point-per-pixel render
+is 64% white and reads as a texture rather than a surface — the same complaint
+the drafting depth rasters drew from the owner. The dot width is derived from
+the cloud's own median spacing (`dot_px`, capped at 9), so nothing is invented:
+the sample is drawn at the size it actually represents. Coverage went 64% → 92%
+on the real cabinet wall, and the vertical joints became lines.
+
+**`pc_crop` reports when a region reaches past the cloud.** Found by driving
+the lane on the real scan: `z_range: [0.05, 2.35]` returned the top half of the
+Okongo bedroom, because PLY origin-shifts on write and that cloud's floor sits
+at z = −1.36. The crop was correct and the request was wrong, and nothing in
+the response distinguished the two. One line now does. The general rule this
+records: **a tool that can answer a different question than the one asked must
+say which question it answered.**
 
 **No `("pc_", …)` family row in the trust table; every tool tabled
 individually.** Same lesson the `cad_` and `trade_` comments in `trust.py`

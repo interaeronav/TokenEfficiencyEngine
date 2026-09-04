@@ -125,6 +125,7 @@ def register_icp(
         cmd += ["-ADJUST_SCALE"]
     if overlap_percent:
         cmd += ["-OVERLAP", str(int(overlap_percent))]
+
     # Save the ALIGNED source cloud - downstream C2M must run on the
     # registered cloud, never the raw one.
     #
@@ -137,8 +138,13 @@ def register_icp(
     # the FIRST name - the source is loaded first, so that is the aligned one.
     def _save_args(count: int) -> list[str]:
         names = " ".join(
-            str(registered_path if i == 0 else registered_path.with_name(
-                f"{registered_path.stem}-other{i}{registered_path.suffix}"))
+            str(
+                registered_path
+                if i == 0
+                else registered_path.with_name(
+                    f"{registered_path.stem}-other{i}{registered_path.suffix}"
+                )
+            )
             for i in range(count)
         )
         return ["-SAVE_CLOUDS", "FILE", names]

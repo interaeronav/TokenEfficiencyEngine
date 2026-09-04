@@ -26,6 +26,13 @@ name hit cannot be tagged away, `pk_drawing` does write drawings and
 three is not enough. The five direct `pk_*` cases were added for the same
 reason the `pc_*` block was: a lane that grows the corpus must be findable in
 it, or it has made every other search worse for nothing.
+
+RE-MEASURED 2026-09-04 (A67 second pass) at 85 tools, after `pc_crop`,
+`pc_clean`, `pc_ortho` and `pc_merge` landed and four cases were added for
+them. The table is unmoved - 3 still misses exactly one, 5 still finds all 33
+- so four more tools cost the search nothing. That is the result worth having:
+the case for progressive disclosure is that the corpus can grow without the
+reach getting worse, and this is the file that would catch it if it did.
 """
 
 from __future__ import annotations
@@ -62,6 +69,10 @@ CASES = [
     ("level a point cloud on its floor", "pc_level"),
     ("floor plan from a scan", "pc_slice"),
     ("check a scan against a tape measurement", "pc_control_verify"),
+    ("crop the clutter out of a scan", "pc_crop"),
+    ("remove outliers from a point cloud", "pc_clean"),
+    ("rectified facade image to trace", "pc_ortho"),
+    ("combine two scans into one cloud", "pc_merge"),
     # A66: the pk_* lane, 14 tools, is the corpus growth this file was
     # re-baselined against - so it is measured here rather than assumed
     ("dimensioned drawing sheet", "pk_drawing"),
@@ -137,7 +148,7 @@ def test_the_rebaselined_recall_table_holds(registry):
         for limit in (3, 5, 8, 10)
     }
     assert recall == {3: len(CASES) - 1, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
-    assert len(CASES) == 29  # 2026-09-04, an 81-tool registry (67 before pk_*)
+    assert len(CASES) == 33  # 2026-09-04, an 85-tool registry (67 before pk_*)
 
 
 def test_the_reply_stays_small(registry):

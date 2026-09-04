@@ -223,6 +223,10 @@ _EXPLICIT: dict[str, str] = {
     "pc_section": "write-artifacts",
     "pc_export": "write-artifacts",
     "pc_report": "write-artifacts",
+    "pc_crop": "write-artifacts",
+    "pc_clean": "write-artifacts",
+    "pc_ortho": "write-artifacts",
+    "pc_merge": "write-artifacts",  # shells out to CloudCompare via capture_*
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",

@@ -367,7 +367,7 @@ def test_the_boot_path_registers_the_lane_and_leaves_the_surface_alone(tmp_path)
 
     The other tests register the lane directly, so without this the wiring in
     cli.py is the one part of the lane nothing exercises. It also pins the
-    claim the whole module rests on: ten new tools, zero of them always-loaded.
+    claim the whole module rests on: fourteen new tools, zero always-loaded.
     """
     import anyio
     from mcp.client import Client
@@ -379,7 +379,7 @@ def test_the_boot_path_registers_the_lane_and_leaves_the_surface_alone(tmp_path)
     try:
         _attach_pointcloud(application, str(tmp_path))
         registered = [n for n in application.registry.names() if n.startswith("pc_")]
-        assert len(registered) == 10, registered
+        assert len(registered) == 14, registered  # 10 in the first pass, 4 in the second
 
         async def fetch():
             async with Client(build_server(application)) as client:

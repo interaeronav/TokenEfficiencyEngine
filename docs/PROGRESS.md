@@ -11749,9 +11749,9 @@ owner was the judgement call turned out not to move the drawing at all. In each
 case the fix was to measure the thing rather than reason about it - and in each
 case the measurement was cheap and the reasoning was confident and wrong.
 
-**Open, deliberately:** `pc_crop`, `pc_clean`, `pc_ortho`, `pc_merge`; a scale
-still UNVERIFIED pending two more tape baselines; `CHECKED BY` unset on every
-sheet, which only the owner can close.
+**Open, deliberately:** a scale still UNVERIFIED pending two more tape
+baselines; `CHECKED BY` unset on every sheet, which only the owner can close.
+(`pc_crop`, `pc_clean`, `pc_ortho` and `pc_merge` closed in P8 below.)
 
 ### A65 P5b — a body you bring, that actually bends (2026-09-04)
 
@@ -11857,3 +11857,67 @@ on a quiet machine; `ruff` and `ruff format` clean. Surface unchanged.
 been through this lane. Every fixture is authored by this repo or by
 Blender's own exporter, so the Mixamo naming forces the mapping layer to
 exist but has never met a real Maya or Character Creator export.
+
+### A67 P8 — the four deferred tools, and what the real scan taught them (2026-09-04)
+
+`pc_crop`, `pc_clean`, `pc_ortho`, `pc_merge` — the second pass the A67 script
+deferred to a proven spine. Fourteen `pc_*` tools now; the always-loaded surface
+is unmoved at **17 / ~2,033 tokens**, which is the only number that would have
+made this a bad trade.
+
+**New modules:** `condition.py` (crop regions, statistical outlier removal,
+voxel thinning), `ortho.py` (rectified facade rasters), `merge.py` (frame
+handling and an overlap measure around `capture_register`). All four tools are
+tabled individually in `trust.py::_EXPLICIT` as `write-artifacts`; still no
+`("pc_", …)` family row.
+
+**Measured through the registry on the real 900 K-point Okongo cloud:**
+
+```
+pc_crop   900,000 -> 623,548 in 0.04 s
+pc_clean  17,728 outliers removed (2.8%) in 0.54 s; spacing 29.9 -> 28.8 mm
+pc_ortho  340 x 221 px @ 10 mm/px in 0.02 s, coverage 0.92, dot_px 3
+pc_merge  the cloud split in two, one half rotated 4 deg and moved 120/80/30 mm:
+          ICP RMS 38.9 mm | overlap 0.408 | RMS within the overlap 10.0 mm
+          reassembled bbox 5.099 x 5.355 x 2.924 vs the original 5.106 x 5.355 x 2.940
+```
+
+The `pc_clean` pair is the one worth reading twice: it removed 2.8% of the
+points and the median spacing barely moved. That is the signature of taking
+sparse strays rather than surface.
+
+**Three defects the synthetic fixture could not have shown.** All three came
+from driving the tools on the real cloud after the 19 new unit tests were
+green — the same way the stale-baseline bug in `pc_scale_apply` surfaced in P7.
+
+1. **A crop answered a different question, silently.** `z_range: [0.05, 2.35]`
+   returned the top HALF of the bedroom, because PLY origin-shifts on write and
+   that cloud's floor sits at z = −1.36. The crop was right; the request was in
+   the wrong frame; the response could not tell them apart. It now says
+   `z 0.05..2.35 reaches past this cloud (z is -1.584..1.356)`. The general rule,
+   recorded in DECISIONS: **a tool that can answer a different question than the
+   one asked must say which question it answered.**
+2. **Two depths of one facade overwrote each other.** `pc_ortho` named files by
+   cloud and azimuth only, so comparing a 400 mm and an 800 mm depth compared an
+   image with itself. Resolution and depth are in the name now.
+3. **A point is a sample, not a pixel.** At 10 mm pixels on a 30 mm cloud, one-
+   pixel splats gave a 64%-white stipple — the owner's *"looks more like a
+   texture"* complaint about the depth rasters, reappearing in a new lane. Each
+   point now paints its measured footprint: coverage 64% → 92%, and the cabinet
+   wall's vertical joints read as lines.
+
+**Search re-measured at 85 tools** with four new `CASES` rows: limit 3 still
+misses exactly one of 33, limit 5 still finds all 33. Four more tools cost the
+reach nothing — which is the claim progressive disclosure has to keep earning,
+and `test_search_budget.py` is what would catch it failing.
+
+**One thing I got wrong in P7 and only found now:** `ruff format --check` was
+already red at HEAD. `align.py`, `test_capture_align.py` and
+`test_pointcloud_geometry.py` went in unformatted, so the repo's `make check`
+gate had been failing since that push while I was reporting pytest alone as
+green. Formatted; the full gate is green now.
+
+**Suites at close:** server **1,467 passed / 12 skipped**, `ruff check` and
+`ruff format --check` clean across `src tests ../benchmarks`. The one remaining
+failure, `test_seamkiln_adapter.py::test_a_dxf_loads_as_a_batch_op_and_shows_in_the_diff`,
+belongs to the concurrent session's in-progress adapter edit, not to this work.

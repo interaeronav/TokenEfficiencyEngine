@@ -190,8 +190,7 @@ def test_the_save_argument_grows_to_match_the_number_of_loaded_clouds(monkeypatc
         return "RMS: 0.0100\n"
 
     monkeypatch.setattr(align, "_run", fake_run)
-    result = align.register_icp(source, target, cfg={}, work_dir=tmp_path / "w",
-                                max_rms_m=0.5)
+    result = align.register_icp(source, target, cfg={}, work_dir=tmp_path / "w", max_rms_m=0.5)
     assert len(calls) == 2, "it must retry with the count CloudCompare asked for"
     assert len(calls[1][calls[1].index("FILE") + 1].split()) == 2
     assert result["rms_m"] == 0.01

@@ -240,18 +240,27 @@ def test_the_floor_is_found_even_when_it_is_a_small_part_of_the_surface():
     surface hypothesis.
     """
     rng = np.random.default_rng(5)
-    floor = np.c_[rng.uniform(0, 4, 3_000), rng.uniform(0, 3, 3_000),
-                  rng.normal(0, 0.01, 3_000)]
-    ceiling = np.c_[rng.uniform(0, 4, 9_000), rng.uniform(0, 3, 9_000),
-                    2.6 + rng.normal(0, 0.01, 9_000)]
+    floor = np.c_[rng.uniform(0, 4, 3_000), rng.uniform(0, 3, 3_000), rng.normal(0, 0.01, 3_000)]
+    ceiling = np.c_[
+        rng.uniform(0, 4, 9_000), rng.uniform(0, 3, 9_000), 2.6 + rng.normal(0, 0.01, 9_000)
+    ]
     walls = []
     for x in (0.0, 4.0):
-        walls.append(np.c_[np.full(9_000, x) + rng.normal(0, 0.01, 9_000),
-                           rng.uniform(0, 3, 9_000), rng.uniform(0, 2.6, 9_000)])
+        walls.append(
+            np.c_[
+                np.full(9_000, x) + rng.normal(0, 0.01, 9_000),
+                rng.uniform(0, 3, 9_000),
+                rng.uniform(0, 2.6, 9_000),
+            ]
+        )
     for y in (0.0, 3.0):
-        walls.append(np.c_[rng.uniform(0, 4, 9_000),
-                           np.full(9_000, y) + rng.normal(0, 0.01, 9_000),
-                           rng.uniform(0, 2.6, 9_000)])
+        walls.append(
+            np.c_[
+                rng.uniform(0, 4, 9_000),
+                np.full(9_000, y) + rng.normal(0, 0.01, 9_000),
+                rng.uniform(0, 2.6, 9_000),
+            ]
+        )
     cloud = np.vstack([floor, ceiling, *walls])
     assert len(floor) / len(cloud) < 0.07, "the floor must be the minority surface"
 

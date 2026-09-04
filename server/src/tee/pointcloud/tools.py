@@ -15,7 +15,7 @@ import numpy as np
 
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
-from tee.pointcloud import control, io, report, slice2d
+from tee.pointcloud import condition, control, io, merge, ortho, report, slice2d
 from tee.pointcloud import level as level_mod
 from tee.pointcloud.store import CloudStore, digest, spacing
 
@@ -323,7 +323,186 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
         meta = store.meta(cloud_id)
         return report.write_sheet(meta, store.out_dir() / f"{cloud_id}-qa.md")
 
+    # -- conditioning ------------------------------------------------------
+
+    def _attrs(cloud_id: str) -> tuple[np.ndarray | None, np.ndarray | None]:
+        return store.attr(cloud_id, "rgb"), store.attr(cloud_id, "int")
+
+    def _take(arr: np.ndarray | None, sel: np.ndarray) -> np.ndarray | None:
+        return None if arr is None else arr[sel]
+
+    def pc_crop(args: dict[str, Any]) -> dict[str, Any]:
+        cloud_id, pts = _points(args)
+        keep = np.ones(len(pts), dtype=bool)
+        used: list[str] = []
+        notes: list[str] = []
+        if args.get("box") is not None:
+            box = [float(v) for v in args["box"]]
+            keep &= condition.crop_box(pts, box)
+            used.append("box")
+            notes += [
+                note
+                for axis in range(3)
+                if (note := condition.out_of_range(pts, axis, box[axis], box[axis + 3]))
+            ]
+        if args.get("z_range") is not None:
+            z_range = [float(v) for v in args["z_range"]]
+            keep &= condition.crop_z(pts, z_range)
+            used.append("z_range")
+            if note := condition.out_of_range(pts, 2, min(z_range), max(z_range)):
+                notes.append(note)
+        if args.get("polygon_xy") is not None:
+            keep &= condition.crop_polygon(pts, args["polygon_xy"])
+            used.append("polygon_xy")
+        if not used:
+            raise TeeError(
+                "pc_no_region",
+                "pc_crop was given nothing to crop to.",
+                fix="Pass box, z_range or polygon_xy (they combine).",
+            )
+        if args.get("invert"):
+            keep = ~keep
+            used.append("inverted")
+        condition.guard_survivors(int(keep.sum()), "This crop")
+        colors, intensity = _attrs(cloud_id)
+        new_id = store.mint(
+            pts[keep],
+            parent=cloud_id,
+            op="crop",
+            extra={"by": used},
+            colors=_take(colors, keep),
+            intensity=_take(intensity, keep),
+        )
+        out = {
+            "cloud_id": new_id,
+            "parent": cloud_id,
+            "kept": int(keep.sum()),
+            "dropped": int((~keep).sum()),
+            "by": used,
+            **digest(pts[keep]),
+        }
+        if notes:
+            out["note"] = " ".join(notes)
+        return out
+
+    def pc_clean(args: dict[str, Any]) -> dict[str, Any]:
+        cloud_id, pts = _points(args)
+        before, before_spacing = len(pts), spacing(pts)
+        colors, intensity = _attrs(cloud_id)
+        steps: dict[str, Any] = {}
+        if args.get("sor") is not False:
+            keep = condition.statistical_outliers(
+                pts,
+                k=int(args.get("sor_k") or condition.SOR_K),
+                std_mul=float(args.get("sor_std") or condition.SOR_STD),
+            )
+            condition.guard_survivors(int(keep.sum()), "Outlier removal")
+            pts, colors, intensity = pts[keep], _take(colors, keep), _take(intensity, keep)
+            steps["outliers_removed"] = before - len(pts)
+        if args.get("voxel_m"):
+            idx = condition.voxel_downsample(pts, float(args["voxel_m"]))
+            condition.guard_survivors(len(idx), "Voxel downsampling")
+            steps["voxel_removed"] = len(pts) - len(idx)
+            pts, colors, intensity = pts[idx], _take(colors, idx), _take(intensity, idx)
+        if not steps:
+            raise TeeError(
+                "pc_clean_no_op",
+                "pc_clean was asked to do nothing.",
+                fix="Leave sor on, or pass voxel_m (0.02 is a 20 mm grid).",
+            )
+        new_id = store.mint(
+            pts,
+            parent=cloud_id,
+            op="clean",
+            extra=steps,
+            colors=colors,
+            intensity=intensity,
+        )
+        return {
+            "cloud_id": new_id,
+            "parent": cloud_id,
+            "before": before,
+            "after": len(pts),
+            **steps,
+            "spacing_mm": [round(before_spacing * 1000, 2), round(spacing(pts) * 1000, 2)],
+            **digest(pts),
+        }
+
+    def pc_ortho(args: dict[str, Any]) -> dict[str, Any]:
+        cloud_id, pts = _points(args)
+        if args.get("azimuth_deg") is None:
+            raise TeeError(
+                "pc_no_azimuth",
+                "pc_ortho needs the direction the facade faces.",
+                fix="azimuth_deg: 0 looks along +Y, 90 along +X. pc_level reports the wall grid.",
+            )
+        azimuth = float(args["azimuth_deg"])
+        px_per_m = float(args.get("px_per_m") or 100.0)
+        depth = None if args.get("depth_m") is None else float(args["depth_m"])
+        # resolution and depth go in the NAME: two renders of the same facade
+        # are the comparison the tool exists for, and one silently overwriting
+        # the other is how you end up comparing an image with itself
+        stem = f"{cloud_id}-ortho{round(azimuth) % 360:03d}-{round(px_per_m)}px"
+        if depth is not None:
+            stem += f"-d{round(depth * 1000)}mm"
+        rendered = ortho.render(
+            pts,
+            store.out_dir() / f"{stem}.png",
+            azimuth_deg=azimuth,
+            px_per_m=px_per_m,
+            colors=store.attr(cloud_id, "rgb"),
+            depth_m=depth,
+            spacing_m=spacing(pts),
+        )
+        return {"cloud_id": cloud_id, "azimuth_deg": azimuth, **rendered}
+
     # -- registration ------------------------------------------------------
+
+    def pc_merge(args: dict[str, Any]) -> dict[str, Any]:
+        ids = [str(c) for c in (args.get("cloud_ids") or [])]
+        if len(ids) < 2:
+            raise TeeError(
+                "pc_merge_needs_two",
+                f"pc_merge got {len(ids)} cloud(s).",
+                fix="Pass at least two cloud_ids; the FIRST is the datum and never moves.",
+            )
+        cfg = dict(getattr(app.config, "capture", {}) or {})
+        base = store.points(ids[0])
+        stacked, fits = [base], []
+        for cloud_id in ids[1:]:
+            moving = store.points(cloud_id)
+            fit = merge.register_onto(
+                moving,
+                base,
+                cfg=cfg,
+                work_dir=store.out_dir() / "merge",
+                max_rms_m=args.get("max_rms_m"),
+                overlap_percent=args.get("overlap_percent"),
+            )
+            stacked.append(fit["points"])
+            fits.append(
+                {
+                    "cloud_id": cloud_id,
+                    "rms_mm": None if fit["rms_m"] is None else round(fit["rms_m"] * 1000, 1),
+                    **merge.overlap(fit["points"], base),
+                }
+            )
+        points = np.vstack(stacked)
+        new_id = store.mint(
+            points,
+            parent=ids[0],
+            op="merge",
+            extra={"sources": ids, "fits": fits},
+        )
+        return {
+            "cloud_id": new_id,
+            "datum": ids[0],
+            "merged": len(ids),
+            "count": len(points),
+            "fits": fits,
+            "frame": "the first cloud is the datum and was not transformed",
+            **digest(points),
+        }
 
     cloud_arg = {"cloud_id": {"type": "string", "description": "From pc_open or any pc_* call."}}
     template_args = {
@@ -506,6 +685,94 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
             pc_export,
             ["pointcloud", "scan", "export", "write", "ply", "las", "laz", "e57", "decimate"],
             [{"cloud_id": "pc_1a2b3c4d5e", "format": "las"}],
+        ),
+        (
+            "pc_crop",
+            "Keep (or drop) a region of a cloud: a box, a z range, an XY polygon, or all three.\n"
+            "Mints a new cloud - the original is untouched, so an over-tight crop costs one id. "
+            "Crop the furniture out before pc_slice and the wall fits stop chasing clutter.",
+            {
+                "type": "object",
+                "properties": {
+                    **cloud_arg,
+                    "box": {"type": "array", "description": "[x0,y0,z0, x1,y1,z1] in metres."},
+                    "z_range": {"type": "array", "description": "[z_min, z_max] in metres."},
+                    "polygon_xy": {"type": "array", "description": "[[x,y], ...] in metres."},
+                    "invert": {"type": "boolean", "description": "Drop the region instead."},
+                },
+                "required": ["cloud_id"],
+            },
+            pc_crop,
+            ["pointcloud", "scan", "cloud", "crop", "clip", "trim", "region", "box", "clutter"],
+            [{"cloud_id": "pc_1a2b3c4d5e", "z_range": [0.0, 2.4]}],
+        ),
+        (
+            "pc_clean",
+            "Strip outliers (sparse-neighbourhood test) and optionally downsample to a voxel.\n"
+            "The outlier threshold comes from the cloud's own spacing, so it needs no tuning "
+            "between a room scan and a site scan. Run before fitting, not after.",
+            {
+                "type": "object",
+                "properties": {
+                    **cloud_arg,
+                    "sor": {"type": "boolean", "description": "Outlier removal, on by default."},
+                    "sor_k": {"type": "integer", "description": "Neighbours to judge by, def 16."},
+                    "sor_std": {"type": "number", "description": "Std devs allowed, default 2.0."},
+                    "voxel_m": {"type": "number", "description": "Grid size, e.g. 0.02 for 20 mm."},
+                },
+                "required": ["cloud_id"],
+            },
+            pc_clean,
+            ["pointcloud", "scan", "cloud", "clean", "denoise", "outlier", "downsample", "voxel"],
+            [{"cloud_id": "pc_1a2b3c4d5e", "voxel_m": 0.02}],
+        ),
+        (
+            "pc_ortho",
+            "Rectified orthographic PNG of one facade, to trace an elevation off.\n"
+            "No perspective, so a millimetre is the same length everywhere; the scale bar and "
+            "origin cross are burned into the pixels so a cropped copy still measures.",
+            {
+                "type": "object",
+                "properties": {
+                    **cloud_arg,
+                    "azimuth_deg": {"type": "number", "description": "0 = faces +Y, 90 = +X."},
+                    "px_per_m": {"type": "number", "description": "Default 100 (10 mm pixels)."},
+                    "depth_m": {"type": "number", "description": "Keep only this depth of wall."},
+                },
+                "required": ["cloud_id", "azimuth_deg"],
+            },
+            pc_ortho,
+            [
+                "pointcloud",
+                "scan",
+                "ortho",
+                "orthographic",
+                "facade",
+                "elevation",
+                "rectify",
+                "image",
+                "raster",
+                "trace",
+            ],
+            [{"cloud_id": "pc_1a2b3c4d5e", "azimuth_deg": 180, "depth_m": 0.6}],
+        ),
+        (
+            "pc_merge",
+            "Merge several scans into one cloud. The FIRST cloud is the datum and never moves.\n"
+            "Registration is capture_register's ICP, gate and degeneracy guard - not a second "
+            "one. Reports per-source RMS AND how much of each scan actually overlapped.",
+            {
+                "type": "object",
+                "properties": {
+                    "cloud_ids": {"type": "array", "description": "Two or more; first = datum."},
+                    "max_rms_m": {"type": "number", "description": "Refuse a worse fit than this."},
+                    "overlap_percent": {"type": "integer", "description": "Hint for ICP."},
+                },
+                "required": ["cloud_ids"],
+            },
+            pc_merge,
+            ["pointcloud", "scan", "merge", "register", "align", "icp", "combine", "join"],
+            [{"cloud_ids": ["pc_1a2b3c4d5e", "pc_9f8e7d6c5b"]}],
         ),
         (
             "pc_report",
