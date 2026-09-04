@@ -10308,21 +10308,42 @@ does; it returned a report and dropped them, which left a walk with no
 way out to a renderer. Fingerprint `56ad17f50e07035d`; script and clip
 in the scratchpad.
 
-**Across the floor (owner: "make her walk across the floor").** The same
-walk with `travel` on, the figure built facing +x (`facing_deg` 90) and
-the heading along +x, so she walks facing the way she goes: the body
-travels 2.835 m in 2.1 s at the gait's 1.35 m/s, the tee's centroid
-2.758 m, settling 65-87 mm behind the body's mean (which swings with the
-limbs) after the first stride; worn on every frame, penetration 0.0 mm,
-worst seam 3.6 mm, hem swing 68 mm (45 in place), and the garment's
-height ends 32.5 mm higher against the gait's own end-pose rise of
-+32.5 - carried, not slid. The rendered body per frame is the walk's own
-factory output plus heading x speed x time, which is exactly what the
-animator did; the clip's camera is a dolly that keeps its offset from
-the walker. One limitation seen on the way: the session fingerprint does
-not cover an animation (the drape is cleared after a walk, so the
-fingerprint is the pattern's), so a replayed walk is checked by its
-report, not its hash.
+**Across the floor (owner: "make her walk across the floor"), and the
+check that caught it (owner: "check the last video for correctness").**
+The travelling walk: the figure built facing +x (`facing_deg` 90), the
+heading along +x, the body moving at the gait's 1.35 m/s. The first clip
+reported worn on every frame, penetration 0.0 mm and seams under 4 mm,
+and was WRONG: a numeric pass over the 26 frames found the front piece
+level with the back (-7 to -14 mm in x where the torso is 250 mm deep),
+both sleeves 30-43 cm from any arm, the tee's centroid 10 cm behind the
+trunk - she was dressed sideways, and the renders confirmed it (arms out
+of the neckline, a cap flap at the front of each shoulder). Three
+defects, all in the turn: `frame_from_figure` ignored `facing_deg` (the
+arms it hands the wrap path faced +z); `wrap_arrangement` hung the body
+panels on a cylinder whose angle 0 is +z and took the sleeve's "outward"
+hint as the sign of the shoulder's x, which is 0 once she faces +x; and
+`figure()` turned its mesh but not the joints it records in the
+metadata. Each is fixed (the frame turns, body panels add the facing to
+their angle, the hint is neck-to-shoulder, the joints turn) and held by
+`test_a_turned_figure_is_dressed_facing_its_way`: front ahead of back
+in x, each sleeve at its turned arm. The "worn" and seam numbers were
+true of a sideways tee - a tube of cloth round a torso is worn whichever
+way it points - which is why the check reads the geometry and not the
+report.
+
+Corrected, measured on the frames: the front leads the back by 159-214
+mm, the sleeves sit at the turned arms (z = +-0.24 m against shoulder
+joints at +-0.243), the rest drape's seams 3.8 mm max as in place, worn
+on every frame, penetration 0.0 mm, worst seam 4.1 mm, hem swing 53 mm,
+the body travelled 2.835 m and the tee's centroid 2.758, and the
+garment's height change over the walk is +12.7 mm against the gait's own
+end-pose rise of +12.7 - carried, not slid. The tee's centroid rides
+105-114 mm behind the trunk's centre while walking (36 at the start):
+the gait leans the trunk forward and the tee hangs plumb from the
+shoulders. The largest garment move between frames is 129 mm against
+the body's 412. One limitation stands: the session fingerprint does not
+cover an animation (the drape is cleared after a walk), so a replayed
+walk is checked by its report and by this instrument, not by a hash.
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 

@@ -79,24 +79,33 @@ class BodyFrame:
         return max(self.shoulder_y + self.cap_m + pattern_drop_m - float(self.neck[1]), 0.0)
 
 
-def frame_from_figure(pose: Any, *, height: float = 1.80, build: Any = "male") -> BodyFrame:
-    """A BodyFrame from `seamkiln.figure`'s own joints - exact, no measuring."""
+def frame_from_figure(
+    pose: Any, *, height: float = 1.80, build: Any = "male", facing_deg: float = 0.0
+) -> BodyFrame:
+    """A BodyFrame from `seamkiln.figure`'s own joints - exact, no measuring.
+
+    `facing_deg` turns the frame the way `figure(facing_deg=)` turns the
+    mesh. Without it a figure built facing +x was dressed by a frame facing
+    +z: the tee went on sideways, its front level with its back and both
+    sleeves 30-43 cm from any arm, and the drape still reported "worn".
+    """
+    from seamkiln.figure import _yaw, joints
     from seamkiln.figure import build as figure_build
-    from seamkiln.figure import joints
 
     b = figure_build(build)
     j = joints(pose, height=height, build=b)
+    turn = _yaw(float(facing_deg)) if facing_deg else np.eye(3)
     arms = {}
     for tag in ("l", "r"):
         shoulder, elbow = j[f"shoulder_{tag}"], j[f"elbow_{tag}"]
         direction = elbow - shoulder
         arms[tag] = (
-            np.asarray(shoulder, dtype=np.float64),
-            direction / max(float(np.linalg.norm(direction)), 1e-9),
+            turn @ np.asarray(shoulder, dtype=np.float64),
+            turn @ (direction / max(float(np.linalg.norm(direction)), 1e-9)),
         )
     return BodyFrame(
         shoulder_y=float(j["shoulder_l"][1]),
-        neck=np.asarray(j["neck"], dtype=np.float64),
+        neck=turn @ np.asarray(j["neck"], dtype=np.float64),
         arms=arms,
         cap_m=height * b.deltoid_r + height * 0.006,  # the deltoid ball, plus its stand
         source="figure joints",
@@ -198,6 +207,7 @@ def wrap_arrangement(
     height: float = 1.80,
     clearance_m: float | None = None,
     roles: dict[str, str] | None = None,
+    facing_deg: float = 0.0,
 ) -> dict[str, Placement]:
     """Place panels round a cylinder whose radius the PATTERN dictates.
 
@@ -205,7 +215,12 @@ def wrap_arrangement(
     radius, and each panel's centre angle is the arc position of its own
     centre - so two front halves land side by side instead of on top of each
     other. Sleeves wrap a cylinder of their own width, hung down the arm.
-    `roles` names the pieces when their ids do not (`piece_roles`).
+    `roles` names the pieces when their ids do not (`piece_roles`);
+    `facing_deg` is the way the body faces (a placement angle of 90 puts a
+    panel at +x, the same turn `figure(facing_deg=90)` gives its front) -
+    the sleeves take theirs from the frame's arms, the body panels need it
+    said, and a figure facing +x dressed with it unsaid wore its tee
+    sideways.
     """
     from seamkiln.drape.garment import piece_roles
 
@@ -245,10 +260,18 @@ def wrap_arrangement(
                     "or hand the frame explicit arm axes."
                 )
             shoulder, direction = frame.arms[tag]
+            # "outward" is from the neck to this shoulder, level: the sign
+            # of the shoulder's x was outward only for a body facing +z
+            lateral = np.asarray(shoulder, dtype=np.float64) - np.asarray(
+                frame.neck, dtype=np.float64
+            )
+            lateral[1] = 0.0
+            if float(np.linalg.norm(lateral)) < 1e-9:
+                lateral = np.asarray([1.0, 0.0, 0.0])
             rotation = _sleeve_frame(
                 direction,
                 _front_edge_side(pattern, panel.id, fronts),
-                outward=np.asarray([np.sign(float(shoulder[0])) or 1.0, 0.0, 0.0]),
+                outward=lateral / float(np.linalg.norm(lateral)),
             )
             width_mm = panel.bbox[2] - panel.bbox[0]
             # The cap starts ABOVE the deltoid. A sleeve is drafted with its
@@ -270,7 +293,7 @@ def wrap_arrangement(
             continue
         minx, _, maxx, _ = panel.bbox
         centre_x = (minx + maxx) / 2000.0 - group_centre[role]
-        base = 180.0 if role == "back" else 0.0
+        base = (180.0 if role == "back" else 0.0) + float(facing_deg)
         placements[panel.id] = Placement(
             radius_m=radius,
             centre_angle_deg=base + math.degrees(centre_x / radius),

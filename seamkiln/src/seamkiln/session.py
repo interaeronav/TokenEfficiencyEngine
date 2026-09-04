@@ -586,6 +586,7 @@ def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
                 Pose.from_values(session.body_spec.get("pose", {})),
                 height=height,
                 build=session.body_spec.get("build", "male"),
+                facing_deg=float(session.body_spec.get("facing_deg", 0.0)),
             )
         else:
             try:
@@ -596,7 +597,13 @@ def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
                     "Use body kind 'figure', or pass arrangement='cylinder'."
                 ) from exc
         try:
-            placements = wrap_arrangement(pattern, frame, height=height, roles=roles)
+            placements = wrap_arrangement(
+                pattern,
+                frame,
+                height=height,
+                roles=roles,
+                facing_deg=float(session.body_spec.get("facing_deg", 0.0)),
+            )
         except ValueError as exc:
             raise CommandError(str(exc)) from exc
         session.frame = frame

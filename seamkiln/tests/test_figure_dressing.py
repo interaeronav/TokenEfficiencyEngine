@@ -360,6 +360,35 @@ def test_a_figure_is_dressed_on_arrange_and_the_script_replays_it() -> None:
     assert Session.replay(s.script()).fingerprint() == s.fingerprint()
 
 
+def test_a_turned_figure_is_dressed_facing_its_way() -> None:
+    """A figure built facing +x must get its garment facing +x: the front
+    panel ahead of the back, each sleeve on an arm. The frame the wrap path
+    hangs the garment on ignored the turn, and the drape still said worn."""
+    from seamkiln.pattern.fixtures import tee_block
+
+    s = Session()
+    s.apply(Command("block", {"block": "tee"}))
+    s.apply(Command("body", {"kind": "figure", "stature_m": H, "facing_deg": 90.0}))
+    s.apply(Command("arrange", {"particle_distance_mm": 20.0, "dress": False}))
+    g = s.garment
+    lo, hi = g.panel_slices["FRONT"]
+    front = g.points[lo:hi].mean(axis=0)
+    lo, hi = g.panel_slices["BACK"]
+    back = g.points[lo:hi].mean(axis=0)
+    assert front[0] - back[0] > 0.10, (
+        f"the front leads the back by {(front[0] - back[0]) * 1000:.0f} mm in x"
+    )
+    assert abs(front[2] - back[2]) < 0.05, "and not in z"
+    joints = s.body.metadata["joints"]
+    for panel, tag in (("SLEEVE_L", "l"), ("SLEEVE_R", "r")):
+        lo, hi = g.panel_slices[panel]
+        sleeve = g.points[lo:hi].mean(axis=0)
+        shoulder = np.asarray(joints[f"shoulder_{tag}"])
+        # the built figure's joints were turned with its mesh; the arm hangs below
+        assert np.linalg.norm(sleeve[[0, 2]] - shoulder[[0, 2]]) < 0.12, (panel, sleeve, shoulder)
+    assert tee_block().panel("FRONT").id == "FRONT"
+
+
 def test_walk_uses_the_sessions_own_body() -> None:
     """It did not: the verb built a posed mannequin whatever body had been
     chosen, so 'walk' on a figure or an imported avatar animated something

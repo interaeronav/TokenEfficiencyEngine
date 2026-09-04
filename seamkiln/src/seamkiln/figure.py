@@ -523,6 +523,12 @@ def figure(
         turn = np.eye(4)
         turn[:3, :3] = _yaw(facing_deg)
         body.apply_transform(turn)
+        # the joints turn with the mesh they describe: left unturned, a
+        # figure facing +x reported its shoulders at +-x while its arms
+        # hung at +-z, and a check that trusted them read a sleeve on the
+        # arm as 34 cm off it
+        yaw = _yaw(facing_deg)
+        j = {k: (yaw @ v if isinstance(v, np.ndarray) else v) for k, v in j.items()}
     body.metadata["part_per_face"] = per_face
     body.metadata["part_per_vertex"] = per_vertex
     body.metadata["joints"] = {
