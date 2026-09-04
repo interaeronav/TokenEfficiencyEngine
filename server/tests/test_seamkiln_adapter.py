@@ -139,6 +139,70 @@ def test_arrange_carries_the_roles_a_cad_pattern_needs() -> None:
     assert "roles" not in _translate({"op": "arrange", "props": {}}, 0)[1]["args"]
 
 
+def test_a_cad_pattern_goes_from_dxf_to_a_fit_report_in_one_batch(adapter, tmp_path) -> None:
+    """The lane's value as TEE sees it: a pattern named by its maker, with
+    no seams, arrives as a DXF and leaves as a fit report - load, sew,
+    arrange with roles, drape, fit, one tee_batch. Every op has its own
+    test; this one catches a passthrough that drops an argument."""
+    from dataclasses import replace
+
+    from seamkiln.pattern.dxf import write_dxf
+    from seamkiln.pattern.fixtures import tee_block
+    from seamkiln.pattern.model import Pattern
+
+    renamed = {
+        "FRONT": "Frente",
+        "BACK": "Costas",
+        "SLEEVE_L": "MangaDir",
+        "SLEEVE_R": "MangaEsq",
+    }
+    block = tee_block()
+    cad = Pattern(
+        name="camiseta",
+        panels=[replace(panel, id=renamed[panel.id]) for panel in block.panels],
+        units="mm",
+    )  # no seams: a DXF never carries them
+    path = tmp_path / "camiseta.dxf"
+    write_dxf(cad, path, flavour="astm")
+    read_ids = {f"{renamed[p.id]}": renamed[p.id] for p in block.panels}
+
+    def sew(id_, a, b, **more):
+        return {"op": "sew", "props": {"id": id_, "a": a, "b": b, **more}}
+
+    # the block's own seam table, spoken to the renamed pieces
+    seams = [
+        sew(
+            s.id,
+            [f"{renamed[s.a.panel]}#{s.a.edge}"],
+            [f"{renamed[s.b.panel]}#{s.b.edge}"],
+            gather=s.gather,
+        )
+        for s in block.seams
+    ]
+    roles = {"Frente": "front", "Costas": "back", "MangaDir": "sleeve_l", "MangaEsq": "sleeve_r"}
+    diff = adapter.execute(
+        [
+            {"op": "load", "props": {"path": str(path)}},
+            *seams,
+            {
+                "op": "arrange",
+                "props": {"body": "mannequin", "roles": roles, "particle_distance_mm": COARSE},
+            },
+            {"op": "drape", "props": {"fabric": "cotton_jersey", "frames": 40}},
+            {"op": "fit", "props": {"allow_unconverged": True}},
+        ]
+    )
+    loaded = [name for name in diff.created if name.startswith("panel:")]
+    assert sorted(loaded) == sorted(f"panel:{p}" for p in read_ids)
+    assert any(note.startswith("load: 4 pieces") for note in diff.notes)
+    assert len(adapter.session.pattern.seams) == len(block.seams)
+    assert diff.details["garment"]["contact"]["worn"] is True
+    chest = diff.details["fit"]["chest"]
+    assert chest["cloth_mm"] is not None and chest["body_mm"] > 900.0
+    assert chest["verdict"] in ("close", "relaxed", "fitted", "snug")
+    assert [c.op for c in adapter.session.history][:2] == ["load", "sew"]
+
+
 def test_drape_arranges_first_rather_than_refusing(adapter) -> None:
     """Session.drape arranges when nothing is arranged yet. A refusal that a
     caller can only answer by typing the obvious next step is friction, not

@@ -10452,7 +10452,11 @@ cap-to-armhole runs, ten commands - it makes the same twenty seams to
 four decimals in t and three in gather, and drapes on the female figure
 to the same fingerprint, 57e98e9763dd1c3b, seams 0.383 / 4.55 mm. The
 session script is seventeen commands (`camiseta_via_sew.json` in the
-scratchpad).
+scratchpad). And the CAD path is proven end to end through TEE: a test
+hands the adapter a DXF of the block under Portuguese names with no
+seams and asks for a fit report in one `tee_batch` - load, ten sews,
+arrange with roles, drape, fit - and reads the pieces as created
+entities and the chest row in the diff.
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
