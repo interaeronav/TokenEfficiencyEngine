@@ -538,7 +538,11 @@ from matplotlib.patches import Polygon as MplPoly
 from drafting import views3d as V
 from drafting.spec import Line, Sheet, Text, TitleBlock, View
 
-R1 = dict(w=-1.315, e=1.568, s=-2.225, n=1.610)
+# Derived from the SAME faces the plan dimensions to. This had been a
+# hard-coded box from an older fit, so the elevations quoted widths the plan
+# did not - 2883 against the plan's 2854.
+R1 = dict(w=R1_W, e=R1_E, s=W_S, n=W_N)
+CEILING = float(np.percentile(P[:, 2], 99.8))
 # COMPASS: fixed by the owner (2026-09-04) identifying E4 as the SOUTH wall,
 # the one carrying the bedroom cabinets. One named wall fixes the other three,
 # to within the building's own skew from true north. Nothing here is surveyed:
@@ -572,8 +576,8 @@ def _new_sheet(number, title, subtitle, views):
 sheet3 = _new_sheet(
     "SK-03",
     "INTERNAL ELEVATIONS — as-scanned survey",
-    "Room 01 looking at each wall square-on   ·   halftone = measured returns   ·   "
-    "heavy = the wall face, light = fittings against it",
+    "Room 01, each wall square-on   ·   DEPTH-SHADED: pale = at the wall, dark = "
+    "proud of it toward the viewer, white = nothing returned (an opening)",
     [
         View("ga_elevation", f"ELEVATION {tag}", SC3, levels=["FFL ±0.000", "SOFFIT +2.604"])
         for tag, _, _, _, _, _, _ in ELEVS
@@ -588,11 +592,26 @@ def elev_body(canvas):
     P_ = lambda cat, cut=False: S.resolve_pen(cat, SC3, cut=cut) * S.POINTS_PER_MM
     cols = 2
     for k, (tag, name, axis, pos, lo, hi, look) in enumerate(ELEVS):
-        pts = V.elevation(P, axis, pos, lo, hi, look)
+        # Inset off the return walls: their faces sit exactly at lo/hi and
+        # otherwise print as black bands down both edges of every elevation.
+        pts = V.elevation(P, axis, pos, lo + 0.04, hi - 0.04, look, depth=0.60)
         width = float(pts[:, 0].max())
+        img, extent = V.depth_raster(pts, z_hi=CEILING)
         cx, cy = 26 + (k % cols) * (width * 1000 / SC3 + 44), 168 - (k // cols) * 88
         ax, _, _ = canvas.view_axes(cx, cy, ((-0.25, -0.30), (width + 0.25, 3.55)), SC3)
-        ax.scatter(pts[:, 0], pts[:, 1], s=0.35, c=[S.halftone(GREY, 0.5)], linewidths=0, zorder=1)
+        # Depth-shaded: at the wall is pale, proud toward the viewer is dark,
+        # and a cell with no return stays white so an opening reads as a hole.
+        # Flat stipple threw all three away and gave four identical grey boxes.
+        ax.imshow(
+            img,
+            extent=extent,
+            origin="lower",
+            cmap="bone_r",
+            vmin=0.0,
+            vmax=0.35,
+            interpolation="nearest",
+            zorder=1,
+        )
         for lvl in (0.0, 2.604):
             ax.plot(
                 [-0.2, width + 0.2], [lvl, lvl], color="#c0392b", lw=P_("floor", cut=True), zorder=4
@@ -604,14 +623,27 @@ def elev_body(canvas):
         ax.text(
             width, -0.16, f"{width * 1000:.0f}", fontsize=7.1, color=MUTED, ha="right", va="top"
         )
+        dim(
+            ax,
+            (width + 0.14, 0.0),
+            (width + 0.14, CEILING),
+            f"{CEILING * 1000:.0f}",
+            0.0,
+            vertical=True,
+            size=6.8,
+        )
     canvas.scale_bar(300, 96, SC3)
     canvas.notes_panel(
         26,
         78,
         [
-            "Each elevation looks square-on at one wall of Room 01, with everything",
-            "within 750 mm in front of it projected onto the wall plane.",
-            "Widths are between the fitted faces of the adjoining walls.",
+            "Each elevation looks square-on at one wall of Room 01. Every return",
+            "within 600 mm of the wall is kept and shaded by its DEPTH from that",
+            "wall - so a cabinet reads dark against a pale wall, and an opening,",
+            "which returns nothing, reads white. Nothing is outlined or traced:",
+            "these are the measurements, shaded, not an interpretation of them.",
+            "Widths are inset 40 mm off each return wall, whose own face would",
+            "otherwise print as a black band down both edges.",
             "",
             sheet3.level_datum,
             "",

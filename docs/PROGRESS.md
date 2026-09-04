@@ -11489,3 +11489,36 @@ ruff reformats between runs. Multi-edit scripts now apply per-file and roll back
 as a unit, so a partial write cannot leave the file half-patched.
 
 **Evidence: 63 passed** (drafting), all five sheets 0 legibility findings.
+
+## A67 addendum 10 — the elevations rebuilt (2026-09-04)
+
+Owner: *"sides views don't make any sense"*. They were right; four defects.
+
+1. **They were built on a stale hard-coded room box.** `R1 = dict(w=-1.315,
+   e=1.568, ...)` was frozen from an older fit, so the elevations quoted 2883
+   where the plan dimensioned 2854. Now derived from the SAME faces the plan
+   uses.
+2. **Depth was thrown away.** `elevation()` returned only (along, z), so the
+   wall, a cabinet 400 mm proud of it and the strip of floor within reach all
+   landed in one grey mass. It now returns depth too, and `depth_raster()`
+   keeps the NEAREST surface per cell - a cabinet front and the wall behind it
+   share a cell, and the front is what you see.
+3. **The subtitle promised line weights the drawing did not have** ("heavy =
+   the wall face, light = fittings"). It now describes what is actually drawn:
+   pale at the wall, dark proud of it, white where nothing returned.
+4. **No heights.** An elevation exists to carry them; each now dimensions the
+   clear height.
+
+Also: the return walls sit exactly at the along-limits and printed as black
+bands down both edges, so the extent is inset 40 mm.
+
+**A bug worth remembering:** `np.maximum.at` on a NaN-initialised array leaves
+NaN, because NaN propagates through maximum - so the first depth raster rendered
+completely blank. Accumulate in -inf, convert to NaN afterwards.
+
+**What these are, honestly:** depth images, not line elevations. Outlining the
+openings and cabinet fronts would mean segmenting the depth map, which is
+interpretation - the same line A67 non-goal 1 draws. The shading shows the
+relief that was measured and leaves the reading to the reader.
+
+**Evidence: 63 passed**, all five sheets 0 legibility findings.

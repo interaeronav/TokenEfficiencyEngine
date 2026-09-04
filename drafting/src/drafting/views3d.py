@@ -63,11 +63,17 @@ def elevation(
     look: float,
     depth: float = ELEVATION_DEPTH_M,
 ) -> np.ndarray:
-    """A wall seen square-on: everything just in front of it, on its plane.
+    """A wall seen square-on: (along, z, depth) for everything in front of it.
+
+    DEPTH IS RETURNED, not discarded. Flattening it was what made the first
+    elevations unreadable: the wall, a wardrobe 400 mm proud of it, and the
+    strip of floor within reach all landed in one grey mass with nothing to
+    separate them. Depth is what tells an opening from a surface and a cabinet
+    from the wall behind it.
 
     `look` is +1 or -1, the direction the viewer faces along `axis`. Returns
-    (along, z) with `along` running left-to-right as the viewer sees it, which
-    is what stops an elevation coming out mirrored.
+    `along` left-to-right as the viewer sees it, which is what stops an
+    elevation coming out mirrored.
     """
     other = 1 - axis
     toward = (points[:, axis] - position) * look
@@ -79,11 +85,37 @@ def elevation(
     )
     sub = points[keep]
     if not len(sub):
-        return np.empty((0, 2))
+        return np.empty((0, 3))
     along = sub[:, other]
     if (axis == 0 and look > 0) or (axis == 1 and look < 0):
         along = -along
-    return np.c_[along - along.min(), sub[:, 2]]
+    return np.c_[along - along.min(), sub[:, 2], toward[keep]]
+
+
+def depth_raster(
+    elev: np.ndarray, cell: float = 0.02, z_lo: float = 0.0, z_hi: float = 2.70
+) -> tuple[np.ndarray, tuple[float, float, float, float]]:
+    """Nearest-surface depth per cell, as an image with its extent.
+
+    Nearest rather than mean: a cabinet front and the wall behind it fall in
+    the same cell, and the front is what you see. Empty cells come back as NaN
+    so an opening reads as a hole rather than as depth zero.
+    """
+    if not len(elev):
+        return np.zeros((1, 1)), (0.0, 1.0, z_lo, z_hi)
+    w = float(elev[:, 0].max())
+    nx = max(2, int(w / cell))
+    nz = max(2, int((z_hi - z_lo) / cell))
+    ix = np.clip((elev[:, 0] / max(w, 1e-9) * (nx - 1)).astype(int), 0, nx - 1)
+    iz = np.clip(((elev[:, 1] - z_lo) / max(z_hi - z_lo, 1e-9) * (nz - 1)).astype(int), 0, nz - 1)
+    # Accumulate in -inf, NOT NaN. np.maximum propagates NaN, so a NaN-filled
+    # image stays NaN at every cell it touches and the elevation renders blank.
+    # Empty cells become NaN only afterwards, so an opening still reads as a
+    # hole rather than as zero depth.
+    img = np.full((nz, nx), -np.inf)
+    np.maximum.at(img, (iz, ix), elev[:, 2])
+    img[np.isinf(img)] = np.nan
+    return img, (0.0, w, z_lo, z_hi)
 
 
 def iso_matrix(azimuth_deg: float = 45.0, elevation_deg: float = 28.0) -> np.ndarray:
