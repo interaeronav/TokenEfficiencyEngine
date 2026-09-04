@@ -10899,7 +10899,7 @@ lint` green. Surface unchanged: **17 tools / 2,033 tok**.
 
 The owner supplied `~/Desktop/clothing assets and avatars` (1.1 GB of CLO
 practice and marketplace assets) and asked what was usable. **Two of the
-forty-one archives carry a genuine industry DXF**, and they close the half of
+forty archives carry a genuine industry DXF**, and they close the half of
 A65 P5 that could not be closed without one. Neither file is committed —
 they are CLO tutorial content and the geometry is not ours to redistribute —
 so what follows is the measurement, and the structural census is the evidence
@@ -10914,16 +10914,19 @@ PRODUCT  CLO Network OnlineAuth 2024.1.260   (Calça, 13 panels, 2024-10-21)
 VERSION  3     SAMPLE SIZE  M     UNITS  METRIC
 ```
 
-**Everything the reader predicted about a real file was right.** `$ACADVER`
-reads `AC1006` and ezdxf reports the document as `AC1009` — an R12-era file,
-exactly as the module's docstring says every CLO, Gerber and Lectra export
-is. There is **no `$INSUNITS` key at all**, so the unit came from the third
-rung of `_resolve_units`: the ASTM header's `UNITS: METRIC` text, resolving
-to `scale_mm 10.0` — CLO writes centimetres. A reader that had assumed
-millimetres would have produced a garment a tenth of its size, with every
-seam closing perfectly and a fit report full of confident numbers. Both
-`*Model_Space` and `*Paper_Space` appeared and were skipped, the friction the
-docstring predicted six months early.
+**The files broke the reader first.** Both returned **zero pieces** until the
+entry above fixed the three causes it names. Everything below was measured
+AFTER that fix, against committed HEAD, and is verification rather than
+prophecy: nothing here vindicates the reader's original guesses, because the
+guesses were wrong and the files corrected them. What the fix bought is
+visible in one number — `scale_mm` resolves to **10.0** from the header, so a
+reader that had gone on assuming millimetres would have produced a garment a
+tenth of its size, every seam closing perfectly, the fit report full of
+confident numbers. That is precisely the silent failure `custom_avatar`
+refuses on a mis-scaled body, arriving through the other door. Two smaller
+observations stand alongside: `$ACADVER` reads `AC1006` while ezdxf reports
+the document as `AC1009`, and both `*Model_Space` and `*Paper_Space` appear
+and are skipped — the one friction the module's docstring did predict.
 
 **`unknown_layers={}` on both files, with `strict=True`.** Every layer CLO
 wrote is one the ASTM dialect already knew:
@@ -10978,3 +10981,108 @@ one of these avatars out of CLO as FBX/OBJ, or Anny (Apache-2.0, assets CC0),
 which research doc 67 §2 already named as the avatar answer — and either way
 the blocker is that `custom_avatar` loads with `trimesh.load(force="mesh")`
 and discards the skeleton, so a rigged body would still walk as a statue.
+
+### A66 gap closure — the ten gaps acted on, and four silent wrong answers found doing it (2026-09-04)
+
+Owner: *"acton all the 'deliberately not being done'"*. Every numbered gap at
+the tail of the P6 entry is now closed or deliberately scoped, and closing
+them turned up **four defects of the worst class this project recognises: a
+confident wrong answer, with no refusal and no warning.** None was in the
+gaps; all four were found by building the fixes.
+
+**The four silent wrong answers.**
+
+1. **A sketch with partially overlapping profiles built a corrupt solid.**
+   `nest_loops` knew only *disjoint* and *nested* and decided which by
+   ray-casting ONE representative point into a chord polygon. A dumbbell —
+   two Ø8 circles bridged by a 40×4 bar, one sketch — removed **502.655 mm³,
+   exactly one circle**; the other two profiles vanished. `BRepCheck_Analyzer`
+   called the result *valid* while `BRepClass3d_SolidClassifier` put a point
+   deep in the plate, far from any cut, OUTSIDE the solid. Crossing loops are
+   now detected pairwise (conservative box, then `BRepExtrema_DistShapeShape`,
+   then shared area) and unioned into one region, declared once as
+   `assumed["overlap"]`. The dumbbell removes **2,299.194 mm³**, and the test
+   DERIVES that: lens `2(√12 + 8·asin ½) = 15.30578 mm²`, union
+   `2π·16 + 160 − 2·15.30578 = 229.9194 mm²`, ×10 mm.
+2. **A hole tangent to its outer wire vanished** (5,340.708 mm² where
+   π(1600−100) = **4,712.389** is right): the sample point landed exactly on
+   the boundary and `_inside` tested a strict `<`. Same for a hole inside an
+   arc bulge but outside the chord polygon.
+3. **A self-crossing loop extruded to nothing and reported success.** A
+   bowtie passes `closed()`, so no pair test ever examined it; OCCT returned
+   the SIGNED sum of the lobes and `create extrude` answered
+   `status: ok, volume_mm3: 0.0, solids: 1` on a face the analyzer calls
+   invalid. Now `pk_sketch_open`, naming both curves and the crossing point.
+4. **`pk_check` passed a spec for four holes on a part with none.** A 40×20
+   pocket with r5 corners: `holes: [{dia: 10, count: 4}]` → **pass**, and
+   `count: 0` → *fail, "found 4"*. It counted concave cylindrical FACES, so
+   corner radii were holes and a split bore counted twice.
+
+**The ruling that closed the fourth: `holes` counts what a hole table
+tables.** `pk_check` and `pk_drawing` must never give two different answers
+about one part — that is indefensible to anyone holding the sheet. So the
+predicate moved to `brep/holes.py` and BOTH call it; a second implementation
+is precisely how they came to disagree. Consequences, each pinned: a pocket's
+corner radii are not holes; a bore split across faces is one hole; two
+coaxial blind holes with metal between them are two; and **a slot's two ends
+are no longer two holes** — a behaviour change, with a new `slots` rule so a
+slot is still checkable, and a refusal that says which rule to use.
+
+**The gaps themselves.**
+
+| # | Gap | Outcome |
+| --- | --- | --- |
+| 1 | No GUI | A Qt shell, 16 controls, **10 of 37 kinds**, tested with Qt absent |
+| 2 | `cad_measure` ran a second OCCT | **1,346.1 → 20.7 ms, 65×**, zero subprocesses |
+| 3 | Capture refusal named a route that did not exist | Refusal corrected and **walked end to end** to a 512×288 JPEG |
+| 4 | CI cost | **3,553 → ~1,001 MB per push**, coverage proven unchanged |
+| 5 | Coil and modelled threads | Both, with the cosmetic path provably untouched |
+| 6 | ISO 286 fits | Derived from the formulas; **no table transcribed** |
+| 7 | `pdf_compose` had no vector block | Added; a 100 mm line measures **99.998 mm** |
+| 8 | A slot printed as two holes | Closed on the sheet AND in the checker |
+| 9 | Exports lost the assembly solve | Components written at solved poses |
+| 10 | No second OCCT had read our STEP | FreeCAD **7.8.1** reads it, 15 tests |
+
+**Three of those gaps paid out more than they cost.** Gap 4 was not "install
+less": **2,189 MB of the server job was `nvidia-*` and Triton binaries a
+GPU-less runner can never execute**, and both CI jobs hashed the same locks
+with no cache suffix, so they shared one key and whichever finished second
+never saved — a permanent miss. Gap 8's old code put a 40×8 slot's ends at x
+**21.454 / 58.546** for a slot centred at 40 — each off by exactly 2r/π. Gap
+7's verifier found `compose` writing `nan 28.35 m` into a PDF content stream
+and answering `ok: true`.
+
+**And two fixes had to be fixed.** Defect A's shipped `_merge_coaxial` merged
+coaxial holes unconditionally, so two Ø10 blind holes 5 mm deep from opposite
+faces of a **30 mm** plate — 20 mm of solid metal between them — printed as
+`1 row, Ø10 THRU`; a shop drills through the wall. It now classifies the
+midpoint of the axial gap, so metal blocks the merge and air does not, and
+the clevis case (air, genuinely one bore) still reads as one. Gap 1's new
+`gui` extra pulled in **PySide6 (LGPL-3.0)** without registering it in the
+licence gate's extra-only table — behaviourally safe, but nothing asserted
+the core never *declares* it, and now something does.
+
+**Verified numbers.** Cosmetic thread: same shape object, delta exactly
+`0.0`, fingerprint identical (Law 18 holds). Modelled M6: **275.4858 mm³**
+against **275.4864** re-derived from ISO 68-1 by Pappus, rel −2.4e-6. Coil:
+1,188.096 against 1,188.09661, rel −5.1e-7. Fits: **103 grade/size
+combinations and 178 position deviations, zero disagreements** against an
+independent re-implementation; `iso286.json` holds exactly **one** micrometre
+value, a documented exception ISO's own footnote prints, stored quoted with
+its clause.
+
+**Suites at close:** partkiln **876 passed / 2 skipped**; server **1,442
+passed / 12 skipped / 116 deselected**, zero failures; `ruff check` and `ruff
+format --check` clean on `partkiln/`, `server/src`, `server/tests` and
+`.github/scripts`. Surface unchanged: **17 tools / 2,033 tok**, 140 virtual.
+W1 bracket **91,159.605 mm³ / 715.603 g**, fingerprint `5c693b2b3fe7d08c`,
+hole table **5 rows**, six dims agree. Acceptance session **10 steps, 0
+skipped, 3.86 s, 6,289 tok**.
+
+**Still open, and named rather than hidden:** modelled threads carry no fit
+class (the profile is ISO 68-1 *basic*, zero allowance); `gui/app.py` has
+never been executed because PySide6 is not installed here, so its widget
+wiring is reviewed but unexercised; the union-refusal and `_compound` paths
+in the profile fix are unreachable code, because no planar fuse could be made
+to fail honestly and none will be faked; and A65 P5b — a rigged character the
+lane can actually walk — is in flight separately.

@@ -78,6 +78,14 @@
       "authority": "EN 1993-1-1:2005 3.2.6 (steel design values), EN 10025-2:2019 (S275/S355 ReH), EN 10130:2006 (DC01), EN 10088-1 (1.4301 density), grade datasheet class for 100Cr6; everything else an engineering handbook range",
       "units": "kg/m3, N/mm2",
       "notes": "Every value carries {value, unit, source, honesty}. honesty standard_value = the number the named standard prints; datasheet = a grade datasheet class; typical_range = a handbook range, the midpoint served with the range beside it; derived = computed here. No value was taken from a banned bulk source."
+    },
+    "iso286.json": {
+      "source": "https://cdn.standards.iteh.ai/samples/4201/65932c6743c94be8b27f0aa0c67376f0/ISO-R-286-1962.pdf (the publicly downloadable ISO/R 286:1962 preview, clauses 2.1.1 and 2.1.2)",
+      "licence": "own",
+      "retrieved": "2026-09-04",
+      "authority": "ISO 286-1 clauses 2.1.1, 2.1.2 (standard tolerance factor and grades) and 1.6.20, 1.6.21 (basic shaft, basic hole), as printed in ISO/R 286:1962",
+      "units": "micrometres; size steps in mm",
+      "notes": "NOT a tolerance table and never derived from one: the file holds the formula parameters partkiln computes with (the size steps, the tolerance factor's coefficients, the grade multiples of i, the decade rule and the position power laws) plus the size intervals over which that arithmetic was checked to agree exactly with published values on 2026-09-04. The checks used engineersedge.com/international_tol.htm and unitcheatsheet.com (both citing ISO 286-1:2010) and cobanengineering.com for the position formulae; no value from any of them is stored. Outside the checked intervals partkiln refuses rather than serve a number it knows differs from the standard's own rounding, whose clause 2.1.4 is not in the public preview."
     }
   }
 }

@@ -125,7 +125,13 @@ CARRIER_ALLOWED = frozenset({"cadquery-ocp-proxy"})
 
 # Distributions allowed ONLY inside a named extra, with the licence that is
 # the reason: the core must never reach them.
-EXTRA_ONLY: dict[str, tuple[str, str]] = {"fpdf2": ("pdf", "LGPL-3.0-only")}
+EXTRA_ONLY: dict[str, tuple[str, str]] = {
+    "fpdf2": ("pdf", "LGPL-3.0-only"),
+    # The Qt shell's dependency. Registered here for the same reason fpdf2 is:
+    # FORBIDDEN_ON_IMPORT already proves the core never LOADS Qt, but nothing
+    # else asserts the core never DECLARES it.
+    "pyside6": ("gui", "LGPL-3.0-only"),
+}
 
 # Third-party CAD datasets whose licence forbids what a fixture would do with them.
 BANNED_DATASETS = ("Fusion 360 Gallery", "Text2CAD", "CAD-Recode", "GenCAD-Code")
@@ -374,9 +380,10 @@ def test_no_declared_dependency_carries_a_non_commercial_licence() -> None:
     assert not hits, "\n".join(hits)
 
 
-def test_fpdf2_lives_only_in_the_pdf_extra() -> None:
-    """fpdf2 is LGPL-3.0-only. It is allowed exactly where TEE allows it: an
-    optional extra the core never reaches (drawing/pdf.py imports it lazily)."""
+def test_weak_copyleft_lives_only_in_its_named_extra() -> None:
+    """fpdf2 and PySide6 are LGPL-3.0-only. Each is allowed exactly where TEE
+    allows it: an optional extra the core never reaches (drawing/pdf.py imports
+    fpdf2 lazily; gui/app.py is the only module that names Qt)."""
     for name, (extra, licence) in EXTRA_ONLY.items():
         assert name in L.declared_requirements(extra), f"{name} should be declared under [{extra}]"
         assert name not in L.closure(L.declared_requirements()), (

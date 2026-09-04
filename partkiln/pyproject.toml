@@ -54,6 +54,15 @@ pdf = [
 threemf = [
     "lib3mf>=2.4",
 ]
+# The Qt shell (`partkiln.gui`), added after the headless kernel and a client
+# of it. PySide6 is LGPL-3.0-only for the Qt modules it wraps, dynamically
+# linked and never vendored - the same posture as fpdf2 above, and the same
+# rule: the core never imports it. `python -m partkiln.gui.app` is the entry
+# point; nothing is registered as a console script, because a kernel that
+# installs a window on the PATH is not headless-first.
+gui = [
+    "PySide6>=6.7",
+]
 # checks.wall method='mesh' only: trimesh.proximity.thickness indexes the
 # triangles with an R-tree, and rtree (MIT, over libspatialindex MIT) is the
 # only implementation it accepts. The B-rep path (method='ray') is the

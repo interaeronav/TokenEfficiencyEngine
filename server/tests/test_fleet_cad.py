@@ -195,3 +195,163 @@ def test_cadquery_measures_a_step_solid(tmp_path):
     assert m["kind"] == "solid"
     assert m["valid"] is True
     assert m["volume"] == pytest.approx(20 * 10 * 5 - math.pi * 16 * 5, rel=1e-6)
+
+
+# -- A66 gap 2: the warm kernel already in this process ---------------------
+
+
+class _FakePartkilnKernel:
+    """A kernel that answers `measure` the way the real one does and counts
+    the calls, so a test can prove the wire was used and the file was read
+    rather than imported into a document."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict]] = []
+
+    def alive(self) -> bool:
+        return True
+
+    def call(self, method: str, params: dict) -> dict:
+        self.calls.append((method, dict(params)))
+        assert method == "measure", method
+        what = params["what"]
+        if what == "mass":
+            return {
+                "what": "mass",
+                "source": "step:AP242",
+                "volume_mm3": 91159.605,
+                "area_mm2": 23675.133,
+                "bbox_mm": [120.0, 80.0, 10.0],
+            }
+        return {
+            "what": "faces",
+            "source": "step:AP242",
+            "bodies": [{"of": "bracket", "faces": 26, "solids": 1, "valid": True}],
+        }
+
+
+@pytest.fixture
+def warm_partkiln(tmp_path):
+    """A PartkilnAdapter holding a live kernel, registered the way a served
+    one is. Discarded explicitly: the registry is a WeakSet, but a test must
+    not leave a warm kernel behind for the next one to route into."""
+    from tee.adapters.partkiln import adapter as pk
+
+    fake = _FakePartkilnKernel()
+    adapter = pk.PartkilnAdapter(tmp_path, kernel=fake)
+    adapter._state = "warm"
+    try:
+        yield adapter, fake
+    finally:
+        pk._LIVE.discard(adapter)
+
+
+def _no_subprocess(monkeypatch):
+    """Make any spawn a loud failure: the point of the routing is that none
+    happens."""
+
+    def boom(*a, **k):
+        raise AssertionError(f"a process was spawned: {a[0] if a else a}")
+
+    monkeypatch.setattr(cad.subprocess, "run", boom)
+
+
+def test_measure_uses_a_warm_partkiln_kernel_instead_of_spawning_a_second_occt(
+    tmp_path, monkeypatch, warm_partkiln
+):
+    """A66 gap 2. With no in-process CadQuery the STEP route spawned a
+    one-shot interpreter that paid a fresh OCP import to read one volume
+    (1,531.2 ms measured) while a warm partkiln kernel holding the same
+    OCCT sat idle in the same process (23.0 ms for the two reads)."""
+    _adapter, fake = warm_partkiln
+    step = tmp_path / "part.step"
+    step.write_text("ISO-10303-21;\n")  # never parsed here: the kernel answers
+    monkeypatch.setattr(cad, "have", lambda name: False)
+    _no_subprocess(monkeypatch)
+
+    m = cad.measure({"path": str(step)})
+
+    assert m["engine"] == "partkiln", "the answer must name the kernel that replied"
+    assert m["volume"] == pytest.approx(91159.605)
+    assert m["area"] == pytest.approx(23675.133)
+    assert m["bbox"] == [120.0, 80.0, 10.0]
+    assert m["valid"] is True
+    # Read-only: `measure` with a path reads the shape; `import` would have
+    # put the file into the live document, and cad_measure is read-compute.
+    assert [c[0] for c in fake.calls] == ["measure", "measure"]
+    assert all(c[1]["path"] == str(step) for c in fake.calls)
+
+
+def test_measure_falls_back_to_the_one_shot_route_when_no_kernel_is_warm(
+    tmp_path, monkeypatch, warm_partkiln
+):
+    """A kernel that is cold, warming or dead is not a route. Nothing is
+    started to make one: the old path runs exactly as it did."""
+    adapter, fake = warm_partkiln
+    adapter._state = "warming"
+    step = tmp_path / "part.step"
+    step.write_text("ISO-10303-21;\n")
+    monkeypatch.setattr(cad, "have", lambda name: False)
+    monkeypatch.setattr(cad, "_sidecar_python", lambda spec: None)
+
+    with pytest.raises(TeeError) as err:
+        cad.measure({"path": str(step)})
+    assert err.value.code == "cad_no_kernel"
+    assert fake.calls == []
+
+
+def test_a_refusing_kernel_does_not_turn_a_measurable_file_into_an_error(
+    tmp_path, monkeypatch, warm_partkiln
+):
+    """The routed read is an optimisation. When it refuses - an open shell,
+    a product partkiln's reader will not pick - the call falls through to
+    the route it would have taken anyway."""
+    _adapter, fake = warm_partkiln
+
+    def refuse(method, params):
+        raise RuntimeError("pk_op_failed: holds no product geometry")
+
+    monkeypatch.setattr(fake, "call", refuse)
+    step = tmp_path / "part.step"
+    step.write_text("ISO-10303-21;\n")
+    monkeypatch.setattr(cad, "have", lambda name: False)
+    monkeypatch.setattr(cad, "_sidecar_python", lambda spec: None)
+
+    with pytest.raises(TeeError) as err:
+        cad.measure({"path": str(step)})
+    assert err.value.code == "cad_no_kernel"
+
+
+def test_live_kernel_never_starts_or_warms_anything(tmp_path):
+    """`live_kernel()` is a question, not a constructor: a cold adapter
+    answers None rather than paying the 26 s OCP import inside a
+    read-compute tool (Law 17)."""
+    from tee.adapters.partkiln import adapter as pk
+
+    cold = pk.PartkilnAdapter(tmp_path, kernel=_FakePartkilnKernel())
+    try:
+        assert cold._state == "cold"
+        assert pk.live_kernel() is None
+        cold._state = "warm"
+        assert pk.live_kernel() is cold._kernel
+        cold.close()
+        assert pk.live_kernel() is None, "a closed adapter offers no kernel"
+    finally:
+        pk._LIVE.discard(cold)
+
+
+@pytest.mark.skipif(not probe.have("cadquery"), reason="cadquery not installed")
+def test_an_in_process_cadquery_still_wins(tmp_path, monkeypatch, warm_partkiln):
+    """The routing is only ever a substitute for the SPAWN. Where CadQuery
+    is importable it answers in 10.0 ms with full precision and its own
+    validity check, and the kernel is not consulted at all."""
+    import cadquery as cq
+
+    _adapter, fake = warm_partkiln
+    step = tmp_path / "part.step"
+    cq.exporters.export(cq.Workplane("XY").box(20, 10, 5), str(step))
+
+    m = cad.measure({"path": str(step)})
+
+    assert m["engine"] == "in-process"
+    assert fake.calls == []

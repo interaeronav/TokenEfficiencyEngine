@@ -2,7 +2,7 @@
 
 `import partkiln` must succeed with no OCP installed (D1), so this package's
 `__init__` imports none of its siblings and no OCP. Every sibling module
-(`shapes`, `query`, `history`, `fingerprint`, `mesh`, `fixtures`) calls
+(`shapes`, `query`, `holes`, `history`, `fingerprint`, `mesh`, `fixtures`) calls
 `require_ocp()` at its top BEFORE its OCP imports, so importing any of them
 without the wheel is one clear `KernelError` naming the install line - never
 an `ImportError` three frames deep inside OCP's own package.

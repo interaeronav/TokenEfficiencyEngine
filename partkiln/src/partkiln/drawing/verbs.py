@@ -119,8 +119,14 @@ def build_drawing(doc: Any, name: str, props: dict[str, Any]) -> Drawing:
         if drawing.holes:
             drawing.notes.extend(_dims.hole_notes(drawing.holes))
         else:
+            # Two silences reach here and this note cannot tell them apart:
+            # a hole exists but no view looks down its axis, OR nothing in the
+            # part is a hole. Until 2026-09-04 it asserted the first, so a
+            # filleted pocket - viewed down its corner axes already - was told
+            # to add a view that would never find anything. It says both.
             drawing.notes.append(
-                "hole table: no view looks down a hole axis; add a view along the holes"
+                "hole table: nothing tabled as a hole - either no view looks down a hole "
+                "axis, or this part's cylinders are fillets and corner radii, not holes"
             )
     if props.get("parts_list"):
         drawing.parts = _dims.parts_list(doc)

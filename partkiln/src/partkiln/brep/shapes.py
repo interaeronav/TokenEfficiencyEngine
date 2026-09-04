@@ -241,6 +241,32 @@ def is_concave_cylinder(face: TopoDS_Face) -> bool:
     return sum(a * b for a, b in zip(radial, outward, strict=True)) < 0.0
 
 
+def cylinder_sweep_deg(face: TopoDS_Face) -> float:
+    """How far around its own axis this cylindrical face actually goes, in degrees.
+
+    A drilled hole's wall closes on itself (360 deg, seam included); a corner
+    radius does not. Read from the AREA, never from the parametric bounds:
+    measured 2026-09-04, a hole split into two half-cylinders by a mirror-join
+    reports u bounds 90 deg -> 450 deg (a whole turn) on a face whose area is
+    157.080 mm2 - exactly half a turn of r5 x 10. The bounds lie where the
+    area does not.
+
+    A cylindrical patch has area = r * sweep * height, and `v` on a cylinder
+    IS the distance along the axis, so the height is the face's own v extent.
+    A trim that is not a uv rectangle (a hole clipped by a slanted face) holds
+    less area than its uv box, so this UNDER-reports: the error can only drop
+    a hole from a table, never invent one.
+    """
+    surface = BRepAdaptor_Surface(face)
+    radius = surface.Cylinder().Radius()
+    height = abs(surface.LastVParameter() - surface.FirstVParameter())
+    if radius <= 0.0 or height <= 0.0:
+        return 0.0
+    props = GProp_GProps()
+    BRepGProp.SurfaceProperties_s(face, props)
+    return math.degrees(abs(props.Mass()) / (radius * height))
+
+
 def counts(shape: TopoDS_Shape) -> dict[str, int]:
     """Unique {solids, faces, edges, vertices} - never explorer visits (Law 20)."""
     out: dict[str, int] = {}
@@ -853,11 +879,13 @@ __all__ = [
     "counts",
     "cut",
     "cylinder",
+    "cylinder_sweep_deg",
     "draft",
     "fillet",
     "fix",
     "fuse",
     "inertia",
+    "is_concave_cylinder",
     "is_seam",
     "is_valid",
     "loft",

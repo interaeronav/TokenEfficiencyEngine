@@ -14,15 +14,28 @@ Rules and the limit each reads:
   volume_mm3   `[lo, hi]` or `{min, max}` band
   mass_g       band, needs a material (argument, or `spec["material"]`) or
                `spec["density_kg_m3"]`; refuses `pk_needs` without one
-  holes        `[{dia, count, tol?}]` - CONCAVE cylindrical faces of that
-               radius, UNIQUE faces (Law 20). Concave is the whole rule: a
-               fillet of the same radius is the same surface with the
-               material on the other side, and counting by radius alone
-               failed a correct part (measured 2026-09-04: a plate with 2 d6
-               holes and 4 r3 corner fillets reported 6 holes). A counterbore
-               seat or a cosmetic thread is not a separate hole either: the
-               seat is a second, larger cylinder and counts under ITS
-               diameter; a thread moves no geometry (Law 18).
+  holes        `[{dia, count, tol?}]` - exactly what a HOLE TABLE would table
+               as a hole of that diameter, counted by `brep.holes.hole_walls`,
+               which is the ONE predicate `pk_check` and `pk_drawing` share.
+               This rule used to be its own second answer, and the two
+               disagreed: measured 2026-09-04, a 40 x 20 pocket with r5 corner
+               radii and NO HOLES AT ALL passed `holes: [{dia: 10, count: 4}]`
+               and failed `count: 0` with "found 4", while the sheet for the
+               same part tabled nothing. A sheet and a check that disagree are
+               indefensible to whoever is holding both.
+               So: a corner radius is NOT a hole (concave, but its wall never
+               closes); a bore split across several faces by a seam or a mirror
+               join is ONE hole; two coaxial blind holes with METAL between
+               them are TWO; and a SLOT's two ends are not holes at all - a
+               slot is a slot, and `slots` is the rule that checks it. A
+               counterbore seat is a second, larger cylinder and counts under
+               ITS diameter; a cosmetic thread moves no geometry (Law 18) and
+               is never counted.
+  slots        `[{width, length?, count?, tol?}]` - slots, counted from the
+               same predicate: two equal-radius concave ends joined by planar
+               walls TANGENT to both. `width` is the end diameter, `length`
+               the overall cut length (centre distance + one diameter) and is
+               OPTIONAL - leave it out to count every slot of that width.
   min_wall_mm  a number; measured by `checks.wall` (inward ray casting). That
                measure is an UPPER bound, so a rule that passes is listed in
                `unproven` with its sample density - it was not disproven,
@@ -51,6 +64,7 @@ RULES = (
     "volume_mm3",
     "mass_g",
     "holes",
+    "slots",
     "min_wall_mm",
     "valid",
     "watertight",
@@ -167,6 +181,20 @@ class _Measured:
             self._cache["faces"] = query.faces(self.shape)
         return self._cache["faces"]
 
+    def holes(self) -> list[Any]:
+        """Every cylindrical wall of the shape, merged and classified.
+
+        Cached because `holes` and `slots` read the same answer and a spec may
+        carry several rows of each: the merge classifies solid points and may
+        scan the edges, and measuring it twice would be paying twice for one
+        fact.
+        """
+        if "holes" not in self._cache:
+            from partkiln.brep import holes as _holes
+
+            self._cache["holes"] = _holes.hole_walls(self.shape, self.faces())
+        return self._cache["holes"]
+
     def wall(self, limit: float, samples: int) -> dict[str, Any]:
         if "wall" not in self._cache:
             from partkiln.checks.wall import check_wall
@@ -245,6 +273,45 @@ def _rule_band(rule: str, m: _Measured, limit: Any) -> list[dict[str, Any]]:
     return []
 
 
+_SEATS_NOTE = " (seats count under their own diameter, cosmetic threads are never counted)"
+
+
+def _not_counted(m: _Measured, walls: Sequence[Any], dia: float, tol: float) -> str:
+    """Which cylinders of this diameter the count passed over, and why.
+
+    A count that is only a number sends the model looking through the whole
+    part for four holes that were never there. Every cylinder of the asked-for
+    diameter that is not a hole is named here with the reason it is not one,
+    because a verdict without the fix costs a second call (D8).
+    """
+    from partkiln.brep import shapes as _shapes
+
+    def hit(radius: float | None) -> bool:
+        return radius is not None and abs(2.0 * radius - dia) <= tol
+
+    cylinders = [f for f in m.faces() if f.surface_type == "cylinder" and hit(f.radius)]
+    convex = sum(1 for f in cylinders if not _shapes.is_concave_cylinder(f.shape))
+    ends = sum(1 for w in walls if w.kind == "slot" and hit(w.radius))
+    partial = sum(1 for w in walls if w.kind == "partial" and hit(w.radius))
+    said = []
+    if convex:
+        said.append(
+            f"{convex} convex cylinder(s) of d{dia:g} - a fillet or a boss is not a hole, "
+            "a hole's wall is concave"
+        )
+    if ends:
+        said.append(
+            f"{ends} slot end(s) of d{dia:g} - a slot is one slot, not two holes; check it "
+            "with the slots rule"
+        )
+    if partial:
+        said.append(
+            f"{partial} concave wall(s) of d{dia:g} that never close a full turn - a corner "
+            "radius or a notch, which belongs to its pocket and not to a hole table"
+        )
+    return ("" if not said else " NOT counted: " + "; ".join(said) + ".") + _SEATS_NOTE
+
+
 def _rule_holes(m: _Measured, limit: Any, unit: str | None) -> list[dict[str, Any]]:
     if isinstance(limit, dict):
         limit = [limit]
@@ -254,10 +321,8 @@ def _rule_holes(m: _Measured, limit: Any, unit: str | None) -> list[dict[str, An
             "Fix: write holes: [{dia: 10, count: 1}].",
             code="pk_bad_op",
         )
-    from partkiln.brep import shapes as _shapes
-
-    cylinders = [f for f in m.faces() if f.surface_type == "cylinder" and f.radius is not None]
-    bores = [f for f in cylinders if _shapes.is_concave_cylinder(f.shape)]
+    walls = m.holes()
+    bores = [w for w in walls if w.kind == "hole"]
     out = []
     for row in limit:
         if not isinstance(row, dict) or "dia" not in row:
@@ -269,29 +334,68 @@ def _rule_holes(m: _Measured, limit: Any, unit: str | None) -> list[dict[str, An
         dia = parse_length(row["dia"], unit)
         tol = _DEFAULT_TOL if "tol" not in row else parse_length(row["tol"], unit)
         want = _count("holes", row.get("count", 1))
-        matches = [f for f in bores if abs(2.0 * f.radius - dia) <= tol]
-        got = len(matches)
+        got = sum(1 for w in bores if abs(2.0 * w.radius - dia) <= tol)
         if got != want:
-            seen = sorted({_r3(2.0 * f.radius) for f in bores})
-            convex = sum(1 for f in cylinders if abs(2.0 * f.radius - dia) <= tol) - got
+            seen = sorted({_r3(2.0 * w.radius) for w in bores})
             out.append(
                 {
                     "rule": "holes",
                     "dia": _r3(dia),
                     "got": got,
                     "limit": want,
-                    "fix": f"expected {want} concave cylindrical face(s) of d{dia:g}, found "
-                    f"{got}; hole diameters present: {seen}"
-                    + (
-                        f" ({convex} convex cylinder(s) of d{dia:g} were NOT counted: a fillet "
-                        "or a boss is not a hole)"
-                        if convex
-                        else ""
-                    )
-                    + " (seats count under their own diameter, cosmetic threads are never "
-                    "counted)",
+                    "fix": f"expected {want} hole(s) of d{dia:g}, found {got}; hole diameters "
+                    f"present: {seen}" + _not_counted(m, walls, dia, tol),
                 }
             )
+    return out
+
+
+def _rule_slots(m: _Measured, limit: Any, unit: str | None) -> list[dict[str, Any]]:
+    if isinstance(limit, dict):
+        limit = [limit]
+    if not isinstance(limit, Sequence) or isinstance(limit, str):
+        raise CommandError(
+            f"slots wants [{{width, length}}...], got {limit!r}. "
+            "Fix: write slots: [{width: 8, length: 40, count: 1}].",
+            code="pk_bad_op",
+        )
+    from partkiln.brep import holes as _holes
+
+    sizes = [_holes.slot_size(a, b) for a, b in _holes.slot_ends(m.holes())]
+    out = []
+    for row in limit:
+        if not isinstance(row, dict) or "width" not in row:
+            raise CommandError(
+                f"each slots entry needs width (length and count are optional), got {row!r}. "
+                "Fix: write {width: 8, length: 40, count: 1}.",
+                code="pk_bad_op",
+            )
+        width = parse_length(row["width"], unit)
+        length = None if "length" not in row else parse_length(row["length"], unit)
+        tol = _DEFAULT_TOL if "tol" not in row else parse_length(row["tol"], unit)
+        want = _count("slots", row.get("count", 1))
+        got = sum(
+            1
+            for w, ln in sizes
+            if abs(w - width) <= tol and (length is None or abs(ln - length) <= tol)
+        )
+        if got == want:
+            continue
+        asked = f"{width:g} wide" + ("" if length is None else f" x {length:g} long")
+        seen = sorted({(_r3(w), _r3(ln)) for w, ln in sizes})
+        out.append(
+            {
+                "rule": "slots",
+                "width": _r3(width),
+                **({} if length is None else {"length": _r3(length)}),
+                "got": got,
+                "limit": want,
+                "fix": f"expected {want} slot(s) {asked}, found {got}; slots present as "
+                f"[width, length]: {[list(s) for s in seen]} (a slot is two equal-radius "
+                "concave ends joined by planar walls TANGENT to both - two holes with air "
+                "between them stay two holes, and a slot's ends are never counted by `holes`)",
+            }
+        )
     return out
 
 
@@ -424,6 +528,8 @@ def check_spec(
             violations += _rule_band(rule, m, limit)
         elif rule == "holes":
             violations += _rule_holes(m, limit, unit)
+        elif rule == "slots":
+            violations += _rule_slots(m, limit, unit)
         elif rule == "min_wall_mm":
             violations += _rule_wall(m, limit, samples, unit)
             report = m.wall_report()

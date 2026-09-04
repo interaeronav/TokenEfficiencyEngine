@@ -144,7 +144,10 @@ def stage_export(args: argparse.Namespace) -> int:
         "export",
         {
             "format": "step",
-            "of": ["housing", "shaft"],
+            # The ASSEMBLY, not a list of parts: one product per component at
+            # the pose the solve reached. A list of parts writes each body in
+            # its OWN frame, which is a file that looks right and is wrong.
+            "of": "asm",
             "out": str(paths["export"] / "shaft_housing.step"),
             "schema": "AP242",
             "roundtrip": not probe,
@@ -157,13 +160,19 @@ def stage_export(args: argparse.Namespace) -> int:
             f"        round trip: volume_ok {trip['volume_ok']}  faces_ok {trip['faces_ok']}  "
             f"rel {trip['volume_rel']:.2e}"
         )
-    # Say what the file does NOT carry, because a receiver cannot tell:
-    # `pk_export` writes part bodies in their own coordinates. The solved
-    # poses live in the assembly and in this example's manifest.
+    # Say whose coordinates the file is in, because a receiver cannot tell.
+    # The manifest is the source of that sentence, never a literal typed here:
+    # a print that disagrees with the file is worse than no print at all.
+    place = out["manifest"].get("placement", {})
     print(
-        "        the two products are in PART coordinates: the solved assembly pose is not "
-        "written into the STEP (a named gap, doc 68) - the manifest carries it"
+        f"        frame {out['manifest']['frame']}  poses_written "
+        f"{out['manifest']['poses_written']}"
     )
+    for row in place.get("components", []):
+        xyz = ", ".join(f"{v:.3f}" for v in row["pose"]["translation"])
+        print(f"        {row['name']:<10} placed_by {row['placed_by']:<8} at [{xyz}]")
+    if "note" in place:
+        print(f"        {place['note']}")
     files = _common.files({"step": out["path"]})
     _common.write_manifest(
         paths,
@@ -172,7 +181,7 @@ def stage_export(args: argparse.Namespace) -> int:
                 "step": {k: out[k] for k in ("schema", "products", "unit") if k in out},
                 "step_roundtrip": out.get("roundtrip"),
                 "manifest": out["manifest"],
-                "poses_written": False,
+                "poses_written": out["manifest"]["poses_written"],
                 "files": files,
             }
         },

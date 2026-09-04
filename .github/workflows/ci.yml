@@ -5,9 +5,19 @@ on:
     branches: ["**"]
   pull_request:
 
+# One branch, one run. A second push makes the first run's answer worthless,
+# and keying the group on the branch (head_ref on a pull_request, ref_name on a
+# push) also collapses the duplicate pair that a single commit fires when it is
+# both pushed and the head of an open PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   server:
     runs-on: ubuntu-latest
+    # A hung job otherwise bills the default six hours.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: server
@@ -17,22 +27,65 @@ jobs:
         with:
           python-version: "3.11"
           enable-cache: true
-      # NOT --all-extras: the [cad] stack (cadquery + cadquery-ocp + casadi +
-      # VTK) is 1.3 GB and 31 packages, and since A66 nothing in this job
-      # needs it - partkiln reaches OCCT through its own [brep] extra in the
-      # `kiln` job below, and the cad_* adapter tests run against fakes.
-      - run: uv sync --all-extras --no-extra cad
-      - run: uv run ruff check src tests
-      - run: uv run ruff format --check src tests
-      # DCC-marked tests need a live Blender/Unreal and are skipped by
-      # default; this runs the full fake-adapter suite.
-      - run: uv run pytest -q
+          # setup-uv's default cache-dependency-glob is repo-wide - `**/uv.lock`
+          # plus `**/requirements*.txt` - so this job and `kiln` hashed the SAME
+          # three files (server/, seamkiln/ and voxkiln/uv.lock) and computed the
+          # SAME cache key. Whichever finished first saved its cache; the other found
+          # the key already taken, never saved its own, and restored wheels it
+          # could not use. A suffix per job and a glob per project fixes both
+          # halves, and an unrelated seamkiln re-lock no longer invalidates this.
+          cache-suffix: server
+          cache-dependency-glob: server/uv.lock
+      # NOT --all-extras, and the arithmetic is the reason. Measured off
+      # server/uv.lock (linux x86_64 / cp311 wheels): `--all-extras --no-extra
+      # cad` downloads 166 packages / 3,409.0 MB. 2,754.5 MB of that is the
+      # three torch-bearing extras, and 2,189.4 MB of THAT is nvidia-* and
+      # triton CUDA binaries that a GPU-less runner can never execute. What
+      # stays is 127 packages / 654.5 MB. The torch coverage does not go with
+      # them - see the CPU-build step below.
+      # [cad] stays out for the A66 reason: partkiln reaches OCCT through its
+      # own [brep] extra in `kiln`, and the cad_* adapter tests run on fakes.
+      # `--locked` fails loudly if pyproject.toml moved without a re-lock.
+      - run: >-
+          uv sync --locked --all-extras --no-extra cad
+          --no-extra assets-embed --no-extra assets-gen --no-extra medimg-monai
+      - run: uv run --no-sync ruff check src tests
+      - run: uv run --no-sync ruff format --check src tests
+      # torch and MONAI are coverage, not decoration. Three tests run only when
+      # they import - test_fleet_med's two MONAI cases and
+      # test_assets_ml::test_make_convs_circular_patches_padded_convs_only - and
+      # A46's two no-heavy-import guards are VACUOUS without them: they assert
+      # that torch and monai never reach sys.modules, which proves nothing when
+      # neither is installed. So they are installed, from the CPU index:
+      # 202.3 MB instead of 2,754.5 MB, and identical at runtime because the
+      # runner has no GPU. The version is read back out of the lock, so this
+      # pin cannot drift away from the one `uv sync` would have used. That
+      # index serves torch's whole dependency tree on its own, so there is no
+      # --extra-index-url and no --index-strategy unsafe-best-match here.
+      - name: torch (CPU build) and MONAI, pinned to the lock
+        run: |
+          lock() { python3 "$GITHUB_WORKSPACE/.github/scripts/lock_version.py" uv.lock "$1"; }
+          # Assign first: under `bash -e` a failed assignment aborts the step,
+          # while a failed substitution inside the install line would only hand
+          # uv an empty argument.
+          torch_pin="$(lock torch)"
+          monai_pin="$(lock monai)"
+          uv pip install --index-url https://download.pytorch.org/whl/cpu "$torch_pin"
+          uv pip install "$monai_pin"
+      # --no-sync is load-bearing: a plain `uv run` re-syncs from the lock and
+      # would uninstall the step above before the suite ran.
+      # DCC-marked tests need a live Blender/Unreal and are skipped by default;
+      # this runs the full fake-adapter suite.
+      - run: uv run --no-sync pytest -q
 
   # A66: the mechanical CAD kernel. Its own package, its own extras, its own
-  # job - `[brep]` is cadquery-ocp-novtk (~250 MB, zero VTK dylibs), which is
-  # what makes running the OCCT-backed suite on every push affordable.
+  # job - `[brep]` is cadquery-ocp-novtk (67.6 MB of the job's 144.2 MB, zero
+  # VTK dylibs), which is what makes running the OCCT-backed suite on every
+  # push affordable. This is already the cheap job; there is nothing here to
+  # cut, only a cache key to stop it sharing.
   kiln:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: partkiln
@@ -42,10 +95,16 @@ jobs:
         with:
           python-version: "3.11"
           enable-cache: true
+          cache-suffix: kiln
+          # partkiln ships no uv.lock, so the default `**/uv.lock` glob keyed
+          # this job's cache on three OTHER projects' locks - it went stale when
+          # they changed and stayed stale when partkiln's own deps changed.
+          # pyproject.toml is the file that actually decides what installs here.
+          cache-dependency-glob: partkiln/pyproject.toml
       - run: uv sync --extra brep --extra dev
-      - run: uv run ruff check src tests examples
-      - run: uv run ruff format --check src tests examples
+      - run: uv run --no-sync ruff check src tests examples
+      - run: uv run --no-sync ruff format --check src tests examples
       # `slow` is the rebuild-timing and cross-process determinism battery;
       # everything else, including the three example pipelines in --probe
       # mode, runs here.
-      - run: uv run pytest -q -m "not slow"
+      - run: uv run --no-sync pytest -q -m "not slow"

@@ -9,6 +9,20 @@ are shared on purpose: a loop that closes only because two corner points are
 `coincident` is walked through the merged point, so the wire is closed
 topologically, not just within tolerance.
 
+Disjoint and nested are not the only two readings. Loops whose boundaries
+genuinely CROSS - three overlapping profiles drawn as one dumbbell - are
+neither, and asking `_inside(<one sampled point>, other)` about them answers
+at random: the A66 defect B was a dumbbell whose two outer bulbs were
+classified as a hole and a separate face, cutting exactly one circle out of
+the plate and leaving a solid whose interior classified OUT. So a crossing is
+now DETECTED before nesting is asked anything (`_Overlap`: two boundaries
+that never meet cannot cross, and two that do meet are told apart by the area
+they share - none is a touch, all of the smaller is a nesting, part of it is
+the crossing), and every crossing cluster is FUSED into one region and
+declared in the feature's `assumed` (Law 19: default and declare), because
+one region is what a drawing of overlapping closed profiles means. Only a
+fuse OCCT cannot do refuses, naming the two profiles (Law 6).
+
 Frames. A sketch is drawn in its own (x, y); the frame says where that is in
 the world: `XY` (x -> X, y -> Y, normal +Z), `XZ` (x -> X, y -> Z, normal -Y:
 the right-hand rule, X x Z), `YZ` (x -> Y, y -> Z, normal +X), `plane:<name>`
@@ -187,6 +201,7 @@ class Profile:
     edges: list[tuple[str, Any]] = field(default_factory=list)
     area_mm2: float = 0.0
     loops: int = 0
+    assumed: dict[str, Any] = field(default_factory=dict)
 
     def edge_tag(self, edge: Any) -> str | None:
         for tag, e in self.edges:
@@ -242,51 +257,91 @@ def _loops(sketch: Sketch) -> list[Loop]:
     return out
 
 
-def _inside(point: tuple[float, float], loop: Loop) -> bool:
-    if loop.is_circle:
-        return math.dist(point, loop.points[0]) < loop.radius
-    x, y = point
-    inside = False
-    pts = loop.points
-    for i in range(len(pts)):
-        x0, y0 = pts[i]
-        x1, y1 = pts[(i + 1) % len(pts)]
-        if (y0 > y) != (y1 > y):
-            xi = x0 + (y - y0) * (x1 - x0) / (y1 - y0)
-            if x < xi:
-                inside = not inside
-    return inside
-
-
 def _representative(loop: Loop) -> tuple[float, float]:
+    """A point ON the loop's boundary - a corner, or the circle's +x point.
+
+    On the boundary, not inside it, so that a pair whose boundaries are known
+    to stay apart can be classified by "how far is this point from that face":
+    zero means inside, anything else means outside, with no third answer.
+    """
     if loop.is_circle:
         cx, cy = loop.points[0]
         return (cx + loop.radius, cy)
     return loop.points[0]
 
 
-def nest_loops(loops: list[Loop]) -> list[tuple[Loop, list[Loop]]]:
-    """(outer, [holes]) groups: a loop is a hole of the smallest loop containing it."""
-    ordered = sorted(loops, key=lambda lp: -abs(lp.area))
+# ------------------------------------------------------------------ crossing loops
+
+_TOUCH_TOL = 1e-7  # mm: two boundaries nearer than this are taken to meet
+
+
+def _loop_bbox(loop: Loop, sketch: Sketch) -> tuple[float, float, float, float]:
+    """A CONSERVATIVE (xmin, ymin, xmax, ymax) for `loop`.
+
+    An arc contributes its whole circle rather than its chord: a box that
+    missed a bulge would rule out a crossing that is really there, and this
+    box exists only to skip pairs that cannot possibly meet.
+    """
+    if loop.is_circle:
+        cx, cy = loop.points[0]
+        r = loop.radius
+        return (cx - r, cy - r, cx + r, cy + r)
+    xs = [x for x, _ in loop.points]
+    ys = [y for _, y in loop.points]
+    for tag, _reversed in loop.tags:
+        curve = sketch.entities[tag]
+        if isinstance(curve, Arc):
+            cx, cy = sketch.xy(curve.center)
+            sx, sy = sketch.xy(curve.start)
+            r = math.hypot(sx - cx, sy - cy)
+            xs += [cx - r, cx + r]
+            ys += [cy - r, cy + r]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _boxes_apart(a: tuple[float, ...], b: tuple[float, ...]) -> bool:
+    return (
+        a[2] < b[0] - _TOUCH_TOL
+        or b[2] < a[0] - _TOUCH_TOL
+        or a[3] < b[1] - _TOUCH_TOL
+        or b[3] < a[1] - _TOUCH_TOL
+    )
+
+
+def _nest(
+    loops: list[Loop], clusters: list[list[int]], overlap: _Overlap
+) -> list[tuple[int, list[int]]]:
+    """(outer cluster, [hole clusters]): a region is a hole of the SMALLEST
+    region containing it, exactly as before - but containment is the measured
+    `overlap.inside`, never a point sampled into a chord polygon.
+
+    One member decides for its whole cluster, which is sound: a loop that
+    crosses another cannot also cross their container, or container and
+    crossed loop would be one cluster.
+    """
+    areas = [sum(abs(loops[i].area) for i in c) for c in clusters]
+    order = sorted(range(len(clusters)), key=lambda k: -areas[k])
+
+    def held(inner: int, outer: int) -> bool:
+        member = clusters[inner][0]
+        return any(overlap.inside(member, i) for i in clusters[outer])
+
     parent: dict[int, int | None] = {}
-    for i, lp in enumerate(ordered):
-        parent[i] = None
-        for j in range(i - 1, -1, -1):  # smallest container wins: walk from the smallest up
-            if _inside(_representative(lp), ordered[j]):
-                parent[i] = j
+    for pos, k in enumerate(order):
+        parent[k] = None
+        for j in reversed(order[:pos]):  # smallest container wins: walk from the smallest up
+            if held(k, j):
+                parent[k] = j
                 break
     depth: dict[int, int] = {}
-    for i in range(len(ordered)):
-        d, p = 0, parent[i]
-        while p is not None:
-            d, p = d + 1, parent[p]
-        depth[i] = d
-    groups: list[tuple[Loop, list[Loop]]] = []
-    for i, lp in enumerate(ordered):
-        if depth[i] % 2 == 0:
-            holes = [ordered[k] for k in range(len(ordered)) if parent[k] == i]
-            groups.append((lp, holes))
-    return groups
+    for k in range(len(clusters)):
+        d, up = 0, parent[k]
+        while up is not None:
+            d, up = d + 1, parent[up]
+        depth[k] = d
+    return [
+        (k, [h for h in range(len(clusters)) if parent[h] == k]) for k in order if depth[k] % 2 == 0
+    ]
 
 
 # --------------------------------------------------------------------------- OCCT
@@ -400,11 +455,332 @@ class _Builder:
         return mw.Wire()
 
 
+_APART, _TOUCH, _CROSS, _I_IN_J, _J_IN_I = range(5)
+
+
+class _Overlap:
+    """How every pair of loops really sits - the question `nest_loops` used to
+    answer by sampling one point per loop into a chord polygon.
+
+    Nothing here is sampled. Boxes rule out pairs that cannot meet (an arc
+    contributes its whole circle, so a bulge is never missed). For the rest,
+    the two boundaries are measured: if they stay more than `_TOUCH_TOL`
+    apart they cannot cross, and a point ON one boundary at zero distance
+    from the other's face says which holds which. If they DO meet, the area
+    they share decides - none is a touch (two circles tangent at a point stay
+    two faces), all of the smaller one is a nesting (a hole tangent to its
+    outer wire is still a hole), all of BOTH is the same region drawn twice,
+    and anything else is the partial overlap that used to be classified at
+    random and built a wrong solid in silence.
+
+    Wires and faces are built once and cached; the crossing branch reuses them.
+    """
+
+    def __init__(self, sketch: Sketch, frame: Frame, loops: list[Loop]) -> None:
+        self.sketch = sketch
+        self.frame = frame
+        self.loops = loops
+        self.builder = _Builder(sketch, frame)
+        self.boxes = [_loop_bbox(lp, sketch) for lp in loops]
+        self._wires: dict[int, Any] = {}
+        self._faces: dict[int, Any] = {}
+        self._areas: dict[int, float] = {}
+        self._edges: dict[int, list[tuple[str, Any]]] = {}
+        self._rel: dict[tuple[int, int], int] = {}
+
+    # -- the shapes, built once ------------------------------------------------
+
+    def wire(self, i: int) -> Any:
+        w = self._wires.get(i)
+        if w is None:
+            mark = len(self.builder.edges)
+            w = self.builder.wire(self.loops[i])
+            self._edges[i] = list(self.builder.edges[mark:])
+            self._wires[i] = w
+        return w
+
+    def edges_of(self, i: int) -> list[tuple[str, Any]]:
+        self.wire(i)
+        return self._edges[i]
+
+    def face(self, i: int) -> Any:
+        f = self._faces.get(i)
+        if f is None:
+            from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
+
+            mk = BRepBuilderAPI_MakeFace(self.wire(i), True)
+            if not mk.IsDone():
+                raise CommandError(
+                    f"sketch {self.sketch.name}: the loop starting at "
+                    f"{self.loops[i].tags[0][0]} is not planar or does not bound a face.",
+                    code="pk_op_failed",
+                )
+            f = mk.Face()
+            self._faces[i] = f
+        return f
+
+    def area(self, i: int) -> float:
+        """The face's OCCT area - exact for arcs, unlike a chord polygon."""
+        a = self._areas.get(i)
+        if a is None:
+            from partkiln.brep import shapes
+
+            a = shapes.area(self.face(i))
+            self._areas[i] = a
+        return a
+
+    # -- the measurements ------------------------------------------------------
+
+    def _boundary_in_face(self, i: int, j: int) -> bool:
+        """Is loop `i`'s boundary point inside face `j`? Only ever asked of a
+        pair whose boundaries stay apart, so the distance is 0 or well clear."""
+        from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
+        from OCP.BRepExtrema import BRepExtrema_DistShapeShape
+        from OCP.gp import gp_Pnt
+
+        x, y = _representative(self.loops[i])
+        v = BRepBuilderAPI_MakeVertex(gp_Pnt(*self.frame.to_world(x, y))).Vertex()
+        dist = BRepExtrema_DistShapeShape(v, self.face(j))
+        dist.Perform()
+        return bool(dist.IsDone()) and dist.Value() <= _TOUCH_TOL
+
+    def _measure(self, i: int, j: int) -> int:
+        from OCP.BRepExtrema import BRepExtrema_DistShapeShape
+
+        from partkiln.brep import shapes
+
+        if _boxes_apart(self.boxes[i], self.boxes[j]):
+            return _APART
+        dist = BRepExtrema_DistShapeShape(self.wire(i), self.wire(j))
+        dist.Perform()
+        if not dist.IsDone() or dist.Value() > _TOUCH_TOL:
+            if self._boundary_in_face(i, j):
+                return _I_IN_J
+            if self._boundary_in_face(j, i):
+                return _J_IN_I
+            return _APART
+        ai, aj = self.area(i), self.area(j)
+        tol = 1e-7 * max(min(ai, aj), 1.0)
+        shared = shapes.area(shapes.common(self.face(i), self.face(j)).shape)
+        if shared <= tol:
+            return _TOUCH
+        held_i, held_j = shared >= ai - tol, shared >= aj - tol
+        if held_i and held_j:
+            return _CROSS  # the same region drawn twice: one region is the answer
+        if held_i:
+            return _I_IN_J
+        if held_j:
+            return _J_IN_I
+        return _CROSS
+
+    def relation(self, i: int, j: int) -> int:
+        key = (i, j) if i < j else (j, i)
+        rel = self._rel.get(key)
+        if rel is None:
+            rel = self._measure(*key)
+            self._rel[key] = rel
+        return rel
+
+    def inside(self, i: int, j: int) -> bool:
+        """Is loop `i` inside loop `j`? False for a pair that crosses or only
+        touches - neither holds the other."""
+        if i == j:
+            return False
+        rel = self.relation(i, j)
+        return rel == (_I_IN_J if i < j else _J_IN_I)
+
+    def self_crossing(self, i: int) -> tuple[str, str, tuple[float, float, float]] | None:
+        """The two curve tags of loop `i` that cross each other, and where.
+
+        A loop that crosses ITSELF is closed, so `sketch.closed()` passes and
+        every pairwise measurement above is about a *different* loop - yet the
+        face OCCT makes of it is invalid and its area is the SIGNED sum of the
+        lobes: a symmetric bowtie reads 0 mm2 and an asymmetric one reads the
+        difference, not the figure the user drew. Nothing downstream notices
+        (an extrude of it answered `status: ok, volume 0.0`), so it is caught
+        here. `ShapeAnalysis_Wire.CheckSelfIntersection` is the detector -
+        measured False on every legitimate fixture, tangent-arc slots included.
+        """
+        from OCP.IntRes2d import IntRes2d_SequenceOfIntersectionPoint
+        from OCP.ShapeAnalysis import ShapeAnalysis_Wire
+        from OCP.TColgp import TColgp_SequenceOfPnt
+        from OCP.TColStd import TColStd_SequenceOfReal
+
+        wire = self.wire(i)
+        saw = ShapeAnalysis_Wire(wire, self.face(i), _TOUCH_TOL)
+        if not saw.CheckSelfIntersection():
+            return None
+        data = saw.WireData()
+        tags = self.edges_of(i)
+
+        def tag_of(num: int) -> str:
+            edge = data.Edge(num)
+            return next((t for t, e in tags if e.IsSame(edge)), f"edge {num}")
+
+        n = data.NbEdges()
+        for a in range(1, n + 1):
+            for b in range(a, n + 1):
+                pts2d = IntRes2d_SequenceOfIntersectionPoint()
+                pts3d = TColgp_SequenceOfPnt()
+                errs = TColStd_SequenceOfReal()
+                hit = (
+                    saw.CheckIntersectingEdges(a, pts2d, pts3d, errs)
+                    if a == b
+                    else saw.CheckIntersectingEdges(a, b, pts2d, pts3d, errs)
+                )
+                if hit and pts3d.Length():
+                    p = pts3d.Value(1)
+                    x, y, _ = self.frame.to_local((p.X(), p.Y(), p.Z()))
+                    return (tag_of(a), tag_of(b), (round(x, 3), round(y, 3), 0.0))
+        first = self.loops[i].tags[0][0]
+        return (first, first, (0.0, 0.0, 0.0))
+
+    def clusters(self) -> list[list[int]]:
+        """Loops grouped by "crosses, directly or through another"."""
+        n = len(self.loops)
+        parent = list(range(n))
+
+        def find(a: int) -> int:
+            while parent[a] != a:
+                parent[a] = parent[parent[a]]
+                a = parent[a]
+            return a
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                if self.relation(i, j) == _CROSS:
+                    ra, rb = find(i), find(j)
+                    if ra != rb:
+                        parent[max(ra, rb)] = min(ra, rb)
+        groups: dict[int, list[int]] = {}
+        for i in range(n):
+            groups.setdefault(find(i), []).append(i)
+        return [groups[k] for k in sorted(groups)]
+
+
+def _cannot_union(overlap: _Overlap, cluster: Sequence[int]) -> str:
+    tags = [overlap.loops[i].tags[0][0] for i in cluster]
+    return (
+        f"sketch {overlap.sketch.name}: the overlapping profiles {tags[0]} and {tags[1]} could "
+        "not be unioned into one region. Move one so they no longer overlap, or draw the outline "
+        "you want as a single closed loop."
+    )
+
+
+def _surviving(tagged: Sequence[tuple[str, Any]], hmap: Any, shape: Any) -> list[tuple[str, Any]]:
+    """The tagged edges again, after a boolean: each one followed to its
+    successors and kept only if that successor is still in `shape`, so
+    `side.<tag>` still names the wall a sketch entity swept."""
+    from OCP.TopAbs import TopAbs_EDGE
+    from OCP.TopoDS import TopoDS
+
+    from partkiln.brep import history, shapes
+
+    # `unique_subshapes` downcasts; a history successor does not, and an
+    # undowncast TopoDS_Shape blows up inside TopExp.FirstVertex_s later, so
+    # the surviving edge is taken from the map rather than from the history.
+    present = shapes.unique_subshapes(shape, TopAbs_EDGE)
+    out: list[tuple[str, Any]] = []
+    for tag, edge in tagged:
+        for succ in history.follow(edge, [hmap]):
+            if succ.ShapeType() != TopAbs_EDGE:
+                continue
+            here = next((q for q in present if q.IsSame(succ)), None)
+            if here is None:
+                continue
+            if not any(t == tag and e.IsSame(here) for t, e in out):
+                out.append((tag, TopoDS.Edge_s(here)))
+    return out
+
+
+def _region(overlap: _Overlap, cluster: Sequence[int]) -> tuple[list[Any], list[tuple[str, Any]]]:
+    """One planar region from a cluster: the loop itself when it crosses
+    nothing, else the FUSE of the crossing loops - the reading a drawing of
+    overlapping closed profiles means."""
+    from OCP.TopAbs import TopAbs_FACE
+
+    from partkiln.brep import history, shapes
+
+    faces = [overlap.face(i) for i in cluster]
+    tagged = [pair for i in cluster for pair in overlap.edges_of(i)]
+    if len(faces) == 1:
+        return faces, tagged
+    fused = shapes.fuse(faces)
+    if not fused.is_done:
+        raise CommandError(_cannot_union(overlap, cluster), code="pk_op_failed")
+    shape, unified = shapes.unify(fused.shape)
+    out = shapes.unique_subshapes(shape, TopAbs_FACE)
+    if not out:
+        raise CommandError(_cannot_union(overlap, cluster), code="pk_op_failed")
+    hmap = history.from_algo(fused.history).merge(unified)
+    return out, _surviving(tagged, hmap, shape)
+
+
+def _compound(faces: Sequence[Any]) -> Any:
+    from OCP.BRep import BRep_Builder
+    from OCP.TopoDS import TopoDS_Compound
+
+    comp = TopoDS_Compound()
+    mk = BRep_Builder()
+    mk.MakeCompound(comp)
+    for f in faces:
+        mk.Add(comp, f)
+    return comp
+
+
+def _region_profile(
+    sketch: Sketch, frame: Frame, loops: list[Loop], overlap: _Overlap, clusters: list[list[int]]
+) -> Profile:
+    """The profile when some loops cross: every cluster fused into one region,
+    regions nested as loops were, and the union DECLARED (Law 19)."""
+    from OCP.TopAbs import TopAbs_FACE
+
+    from partkiln.brep import history, shapes
+
+    faces: list[Any] = []
+    edges: list[tuple[str, Any]] = []
+    total = 0.0
+    for outer_k, hole_ks in _nest(loops, clusters, overlap):
+        outer_faces, tagged = _region(overlap, clusters[outer_k])
+        holes: list[Any] = []
+        for hk in hole_ks:
+            hole_faces, hole_edges = _region(overlap, clusters[hk])
+            holes.extend(hole_faces)
+            tagged = [*tagged, *hole_edges]
+        if holes:
+            base = outer_faces[0] if len(outer_faces) == 1 else _compound(outer_faces)
+            res = shapes.cut(base, holes)
+            if not res.is_done:
+                raise CommandError(
+                    f"sketch {sketch.name}: the loops inside "
+                    f"{loops[clusters[outer_k][0]].tags[0][0]} could not be cut from it as holes. "
+                    "Move them clear of its boundary, or draw the outline as a single loop.",
+                    code="pk_op_failed",
+                )
+            shape, unified = shapes.unify(res.shape)
+            outer_faces = shapes.unique_subshapes(shape, TopAbs_FACE)
+            tagged = _surviving(tagged, history.from_algo(res.history).merge(unified), shape)
+        faces.extend(outer_faces)
+        edges.extend(tagged)
+        total += sum(shapes.area(f) for f in outer_faces)
+    merged = [c for c in clusters if len(c) > 1]
+    names = ", ".join(loops[i].tags[0][0] for c in merged for i in c)
+    count = sum(len(c) for c in merged)
+    assumed = {
+        "overlap": f"{count} overlapping loops ({names}) unioned into "
+        f"{len(merged)} region{'' if len(merged) == 1 else 's'}"
+    }
+    return Profile(frame, faces, edges, round(total, 3), len(loops), assumed)
+
+
 def build_profile(sketch: Sketch, frame: Frame) -> Profile:
     """Faces from every closed loop of `sketch`, placed in `frame` (mm).
 
-    Refuses `pk_sketch_open` (naming the gap) when any drawn curve is off a
-    closed loop, and `pk_needs` when the sketch has no curves at all.
+    Loops that CROSS are detected first and fused into one region each, with
+    the union declared in `Profile.assumed` - never classified as nested or
+    disjoint by a sampled point, which is how defect B built a wrong solid in
+    silence. Refuses `pk_sketch_open` (naming the gap) when any drawn curve is
+    off a closed loop, and `pk_needs` when the sketch has no curves at all.
     """
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
     from OCP.ShapeFix import ShapeFix_Face
@@ -426,10 +802,28 @@ def build_profile(sketch: Sketch, frame: Frame) -> Profile:
     loops = _loops(sketch)
     if not loops:
         raise CommandError(f"sketch {sketch.name} has no closed loop.", code="pk_sketch_open")
+    overlap = _Overlap(sketch, frame, loops)
+    for i, loop in enumerate(loops):
+        crossing = overlap.self_crossing(i)
+        if crossing is not None:
+            a, b, (x, y, _z) = crossing
+            where = f"{a} crosses {b}" if a != b else f"{a} crosses itself"
+            raise CommandError(
+                f"sketch {sketch.name}: the loop starting at {loop.tags[0][0]} crosses itself "
+                f"({where} at ({x:g}, {y:g}) mm), so its area is the signed sum of its lobes, "
+                "not the figure drawn. Split it into separate closed loops, or move a point so "
+                "the boundary no longer crosses.",
+                code="pk_sketch_open",
+            )
+    clusters = overlap.clusters()
+    if any(len(c) > 1 for c in clusters):
+        return _region_profile(sketch, frame, loops, overlap, clusters)
     builder = _Builder(sketch, frame)
     faces: list[Any] = []
     total = 0.0
-    for outer, holes in nest_loops(loops):
+    for outer_k, hole_ks in _nest(loops, clusters, overlap):
+        outer = loops[clusters[outer_k][0]]
+        holes = [loops[clusters[k][0]] for k in hole_ks]
         mk = BRepBuilderAPI_MakeFace(builder.wire(outer), True)
         for hole in holes:
             mk.Add(builder.wire(hole))
@@ -502,6 +896,5 @@ __all__ = [
     "build_profile",
     "face_frame",
     "make_frame",
-    "nest_loops",
     "split_plane_ref",
 ]

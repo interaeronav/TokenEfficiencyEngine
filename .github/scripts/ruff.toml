@@ -1,0 +1,11 @@
+# ruff discovers config by walking up from the file, and there is none at the
+# repo root - so without this the CI helpers here were linted with ruff's
+# DEFAULTS (88 columns, target-version inferred), which reads `tomllib` as a
+# third-party package and demands an import order that is wrong on 3.11.
+# These are server/pyproject.toml's settings, so one `ruff check .github/scripts`
+# now agrees with the rest of the repo.
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]

@@ -22,8 +22,10 @@ Everything a batch can change reaches `Diff.upserts` (the SceneCache goes
 blind otherwise - the A65 lesson); a failed command is ONE `TeeError` with
 the kernel's own code, message and fix, and it says the batch rolled back,
 because the kernel already did that (Law 16). The checkpoint is the script;
-the `.brep` beside it is a cache (D3). No pixels in v1: `capture()` refuses
-`pk_capture_text_first` naming the three text routes.
+the `.brep` beside it is a cache (D3). No pixels: `capture()` refuses
+`pk_capture_text_first` naming the three text routes AND, step by step, the
+manual GLB-through-Blender route - which is manual because this process
+serves one adapter and holds no Blender to import into.
 """
 
 from __future__ import annotations
@@ -31,6 +33,7 @@ from __future__ import annotations
 import contextlib
 import json
 import time
+import weakref
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
@@ -90,6 +93,40 @@ def _in_process_available() -> bool:
         return False
 
 
+# A66 gap 2: every adapter built in THIS process, so a lane holding no
+# adapter handle can ask whether an OCCT kernel is already warm here before
+# it spawns a second one. A WeakSet, so registration never keeps an adapter
+# alive and `close()` empties the kernel it would otherwise have offered.
+_LIVE: weakref.WeakSet[PartkilnAdapter] = weakref.WeakSet()
+
+
+def live_kernel() -> Any | None:
+    """A partkiln kernel this process ALREADY holds warm, or None.
+
+    The caller is `tee.fleet.cad`: with no in-process CadQuery, `cad_measure`
+    spawns a one-shot interpreter that pays a fresh OCP import to read one
+    volume - 1,531.2 ms measured on bracket.step (88,585 B, 2026-09-04)
+    against 23.0 ms on a kernel that is already warm. Two OCCT processes
+    where one would do.
+
+    Nothing is started, warmed or respawned here, and that is the whole
+    contract: a cold, warming, dead or absent kernel answers None and the
+    caller keeps the route it had. `state == "warm"` is the gate rather than
+    "a kernel object exists" because a `LocalKernel` imports OCP lazily, and
+    a read-compute tool that silently paid the 26 s cold import would break
+    Law 17 in the one place nobody would look for it.
+    """
+    for adapter in list(_LIVE):
+        kernel = adapter._kernel
+        if kernel is None or adapter._state != "warm":
+            continue
+        alive = getattr(kernel, "alive", None)
+        if callable(alive) and not alive():
+            continue
+        return kernel
+    return None
+
+
 class PartkilnAdapter:
     """A mechanical CAD document, in-process or in the sidecar that survives upgrades."""
 
@@ -118,6 +155,7 @@ class PartkilnAdapter:
         self._doc_name = "untitled"
         self._notes: list[str] = []  # respawn notes, drained into the next diff
         self._epoch = 0
+        _LIVE.add(self)
 
     # -- routes and the kernel ------------------------------------------------
 
@@ -378,13 +416,36 @@ class PartkilnAdapter:
                 self._kernel.discard(payload)
 
     def capture(self, view: str, max_bytes: int) -> bytes:
+        """Refuse pixels, and name a route the caller can actually walk.
+
+        A66 gap 3. The shipped refusal advertised "a JPEG through Blender is
+        the P6 opt-in" and no such opt-in was ever built - a fix naming a
+        door that is not there is worse than a plain no, because the reader
+        goes looking for it. There is no in-adapter shortcut to build
+        either: `cli._build_partkiln_app` serves ONE adapter, so this
+        process holds no Blender adapter for `as_import` to run a batch on,
+        and `capture()` receives no app handle to reach the asset lane with.
+        So the honest ending is the manual route, step by step, in the order
+        the acceptance session ran it (`examples/acceptance/run_tee.py`
+        step 7), with every tool named exactly as it is registered.
+        """
         raise TeeError(
             "pk_capture_text_first",
-            "partkiln renders no pixels in v1: the numbers are the evidence and a model's eye "
-            "is advice.",
-            fix="pk_drawing writes an SVG sheet (views and dimensions READ from the model); "
-            "pk_measure answers mass, bbox, clearance and interference; tee_entity_detail "
-            "answers one entity. A JPEG through Blender is the P6 opt-in.",
+            "partkiln renders no pixels: the numbers are the evidence and a model's eye is advice.",
+            fix="Text first: pk_drawing writes an SVG/DXF/PDF sheet (views and dimensions "
+            "READ from the model); pk_measure answers mass, bbox, clearance and "
+            "interference; tee_entity_detail answers one entity. For a JPEG, hand the part "
+            "to Blender yourself - a TEE served on partkiln holds only that adapter, so "
+            "nothing in this session can do it for you: (1) pk_export format=glb "
+            "out=<dir>/<name>.glb "
+            "target=blender, writing into a directory that holds that GLB alone (as_ingest "
+            "keys a local asset by file STEM, so bracket.glb beside bracket.stl is one "
+            "entry and the last one wins); (2) in a TEE served on Blender (tee serve "
+            "--adapter blender, with the bridge add-on answering): as_ingest "
+            "directory=<dir>; (3) as_import asset=local:<name> adapter=blender "
+            "asset_class=model target_dims=[x, y, z] - metres and Z-up, which is "
+            "pk_measure what=bbox / 1000, NOT the GLB manifest's Y-up extents - and it "
+            "verifies the read-back dimensions; (4) tee_capture adapter=blender.",
         )
 
     def close(self) -> None:

@@ -37,6 +37,7 @@ from typing import Any
 from partkiln import naming
 from partkiln.document import CommandError, Document, register_kind
 from partkiln.features import (  # noqa: F401 - importing registers the builders and datum kinds
+    coil,
     combine_split,
     edge,
     extrude,
@@ -45,6 +46,7 @@ from partkiln.features import (  # noqa: F401 - importing registers the builders
     revolve,
     shell_draft,
     sweep_loft,
+    thread,
     workplane,
 )
 from partkiln.features.base import BUILDERS, Feature, get_part, r3

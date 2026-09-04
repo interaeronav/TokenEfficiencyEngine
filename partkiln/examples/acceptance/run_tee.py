@@ -519,19 +519,16 @@ def step4_drawing(app: TeeApp, session: Session) -> dict[str, Any]:
     assert dxf.header.get("$INSUNITS") == 4  # millimetres
     assert facts["PDF mediabox_pt"] == [1190.55, 841.89]  # A3 landscape
     assert len(m6_rows) == 4
-    # Six rows: the four M6 holes and the slot's two end cylinders. The four r5
-    # corner fillets are the same surface with the material on the other side
-    # and are NOT rows - this session is what found them printing as `4x d10`
-    # (fixed 2026-09-04; the guard below is what keeps them out).
-    assert len(sheet["hole_table"]) == 6, sheet["hole_table"]
+    # Five rows: the four M6 holes and the slot, as ONE slot. The four r5 corner
+    # fillets are the same surface with the material on the other side and are
+    # NOT rows - this session is what found them printing as `4x d10` (fixed
+    # 2026-09-04; the guard below is what keeps them out). The slot's two end
+    # cylinders were a sixth and seventh row until the slot pairing landed.
+    assert len(sheet["hole_table"]) == 5, sheet["hole_table"]
     assert all(r["dia_mm"] != 10.0 for r in sheet["hole_table"]), "a fillet came back"
-    if any(abs(r["dia_mm"] - 8.0) < 1e-9 for r in sheet["hole_table"]):
-        session.note(
-            "GAP (drawing/dims.py:hole_table): a slot's two end cylinders are listed as "
-            "2x d8 THRU. They ARE concave cut cylinders, so this is honest, but drafting "
-            "practice dimensions a slot as a slot (width, length, R). Naming the two ends "
-            "as one slot feature is the refinement; it is not a wrong number today."
-        )
+    slots = [r for r in sheet["hole_table"] if r.get("kind") == "slot"]
+    assert len(slots) == 1, sheet["hole_table"]
+    assert slots[0]["length_mm"] == 40.0, slots[0]
     session.close(4, "pk_drawing to SVG + DXF + PDF, read back", facts)
     return facts
 
@@ -609,8 +606,10 @@ def step6_cross_kernel(app: TeeApp, session: Session, *, occt: str) -> dict[str,
     session.note(
         f"cad_measure reads the STEP through cadquery {probe['cadquery'].get('version')}, "
         f"which sits on the SAME OCP wheel the kernel uses (OCCT {occt}): a "
-        "second READER over one OCCT build, not a second OCCT version. FreeCAD's OCCT 7.8.1 "
-        "is the genuinely different kernel and its bridge was not up."
+        "second READER over one OCCT build, not a second OCCT version. The second OCCT "
+        "build is FreeCAD's 7.8.1, and it does NOT need the GUI-bound RPC bridge below: "
+        "partkiln/tests/test_interop_freecad.py drives FreeCAD's own bundled interpreter "
+        "as a subprocess and compares volume, bbox and counts against this kernel."
     )
     if _port_open(*FREECAD_RPC):
         try:

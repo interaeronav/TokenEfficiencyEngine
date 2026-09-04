@@ -26,14 +26,19 @@ millimetres, so text, arrowheads and offsets keep their size at any scale
 (ISO 3098: 3.5 mm characters). Dimensions of the same view and axis stack at a
 fixed pitch in declaration order, which makes a baseline chain a chain.
 
-The hole table reads cylindrical faces whose axis is the line of sight - dia
-from the model radius, x/y from the view frame - and names them from the part's
-inventory; the note line ("4x d6.6 THRU (M6 clearance, ISO 273 medium)") comes
+The hole table asks `brep.holes` which walls of the solid are holes - the same
+predicate `pk_check`'s `holes` rule asks, so a sheet and a check can never give
+two answers about one part - keeps the ones whose axis is the line of sight,
+and reads dia from the model radius and x/y from the view frame, naming them
+from the part's inventory; the note line ("4x d6.6 THRU (M6 clearance, ISO 273 medium)") comes
 from the owning hole feature's `std` argument through `partkiln.standards`, so
 the standard on the sheet is the standard the geometry was cut to. ISO 273's
 three series are Close/Normal/Loose in the shipped table and fine/medium/coarse
 in the standard's own words (`data/manifest.json`), so the note prints the
-standard's word.
+standard's word. Two ends walled together tangentially are ONE slot row
+("40 x 8 SLOT THRU"), because a drafter dimensions a slot as a slot, and a
+cylinder whose wall does not close a full turn is a corner radius, not a
+hole, and is left off the table entirely.
 
 OCP is imported inside functions only.
 """
@@ -830,13 +835,6 @@ def _angle_geometry(view: View, dim: Dimension) -> DimGeometry:
 # --------------------------------------------------------------------------- hole table
 
 
-def _cylinder_axis(face_shape: Any) -> Vec3:
-    from OCP.BRepAdaptor import BRepAdaptor_Surface
-
-    d = BRepAdaptor_Surface(face_shape).Cylinder().Axis().Direction()
-    return (d.X(), d.Y(), d.Z())
-
-
 def _std_note(part: Any, name: str) -> str:
     """`M6 clearance, ISO 273 medium` for a hole cut to a standard, else ''.
 
@@ -877,76 +875,166 @@ def _std_note(part: Any, name: str) -> str:
     return ""
 
 
+def _pair_name(a: str, b: str) -> str:
+    """`slot.side.slot.a0+a1`: both ends named, the shared prefix said once.
+
+    The TAG cell has to say WHICH faces the row merged - a drafter checking a
+    slot against the model needs both - and a slot's two ends come from one
+    feature and differ only in the last segment, so folding the shared prefix
+    keeps the cell the size of a hole's instead of doubling it.
+    """
+    head_a, _, tail_a = a.rpartition(".")
+    head_b, _, tail_b = b.rpartition(".")
+    if head_a and head_a == head_b:
+        return f"{head_a}.{tail_a}+{tail_b}"
+    return f"{a}+{b}"
+
+
+def _wall_name(names: Sequence[str]) -> str:
+    """The name of a wall that reached the inventory as one face, or as several.
+
+    One face keeps its own name. Two fold through `_pair_name`, so a hole a
+    mirror-join split reads `notch.side.c+m.notch.side.c` and the reader can
+    check both halves against the model. More than two is joined plainly: the
+    cell has to say WHICH faces the row merged, and inventing a shorter name
+    would hide exactly the thing a drafter is checking.
+    """
+    if len(names) == 1:
+        return names[0]
+    if len(names) == 2:
+        return _pair_name(names[0], names[1])
+    return "+".join(names)
+
+
+def _slot_row(
+    part: Any,
+    view: View,
+    names: Sequence[Sequence[str]],
+    a: Any,
+    b: Any,
+) -> dict[str, Any]:
+    """One slot as one row: width, overall length, centre, angle and depth.
+
+    Every number is read from the model, and the two that are geometry -
+    `dia_mm` and `length_mm` - are read by `brep.holes.slot_size`, the same
+    measure `pk_check`'s `slots` rule uses. What is left here is the DRAWING:
+    the centre projected into this view frame, and `angle_deg`, the long axis
+    folded into [0, 180) so it does not depend on which end the inventory
+    listed first.
+    """
+    from partkiln.brep import holes as _holes
+
+    delta = _holes.slot_offset(a, b)
+    centre = (
+        a.point[0] + 0.5 * delta[0],
+        a.point[1] + 0.5 * delta[1],
+        a.point[2] + 0.5 * delta[2],
+    )
+    width, length = _holes.slot_size(a, b)
+    x, y = view.frame.to_view(centre)
+    dx, dy = view.frame.vector(delta)
+    return {
+        "name": _pair_name(_wall_name(names[0]), _wall_name(names[1])),
+        "x": _r3(x),
+        "y": _r3(y),
+        "dia_mm": _r3(width),
+        "depth": a.depth,
+        "note": _std_note(part, names[0][0]),
+        # Only a slot carries these three, so a plate of 100 holes costs the
+        # same tokens it did before this feature existed (rule 1).
+        "kind": "slot",
+        "length_mm": _r3(length),
+        "angle_deg": _r3(math.degrees(math.atan2(dy, dx)) % 180.0),
+    }
+
+
 def hole_table(part: Any, view: View) -> list[dict[str, Any]]:
     """Every hole seen down its own axis in this view, as table rows.
 
-    A row is `{name, x, y, dia_mm, depth}`: `dia_mm` is twice the model radius
-    (never a typed size), `x`/`y` are the axis in the view frame, and `depth` is
-    `THRU` when the cylinder spans the body along its own axis.
+    A hole row is `{name, x, y, dia_mm, depth}`: `dia_mm` is twice the model
+    radius (never a typed size), `x`/`y` are the axis in the view frame, and
+    `depth` is `THRU` when the cylinder spans the body along its own axis.
 
-    A cylinder only counts when the material lies OUTSIDE it, the same test
-    `holes` uses in `checks/spec.py`. Radius and axis alone cannot tell a hole
-    from a corner fillet, and until 2026-09-04 they did not: the W1 bracket's
-    four r5 fillets printed as `4x d10` on the sheet beside its four real M6
-    holes, ten rows for six features. A drawing that invents a hole is worse
-    than a drawing that omits one, because a shop will drill it.
+    WHAT a hole is - as opposed to a corner radius, half a bore or one end of
+    a slot - is not this module's question to answer twice: `brep.holes`
+    answers it once, for this table and for `pk_check`'s `holes` rule
+    together, and its module docstring carries the three tests and the parts
+    that paid for them. A sheet and a check that disagree about the same part
+    are indefensible to whoever is holding both, and they did disagree until
+    2026-09-04.
+
+    What is left here is the sheet: the view frame, the names a drafter checks
+    against the model, the standard note, and `kind: "slot"` with `length_mm`
+    and `angle_deg` for a slot, which is dimensioned as a slot rather than as
+    two holes 32 mm apart.
+
+    A wall that closes nothing and is not half of a slot is left OFF the sheet
+    rather than renamed. Naming it needs its whole feature, not its corner: a
+    pocket is a closed chain of walls and radii, and `brep.holes` is handed
+    cylinders one at a time. The table would have to invent the outline, and
+    inventing is the failure the predicate exists to stop. A pocket row, read
+    from that chain, is the open work.
     """
-    from partkiln.brep import shapes as _shapes
+    from partkiln.brep import holes as _holes
 
     inv = part.inventory()
-    direction = view.frame.direction
-    body_box = _shapes.bbox(part.shape)
+    walls = _holes.hole_walls(part.shape, inv.faces, inv.edges, view.frame.direction)
+    names = [[inv.name_of_face(i) for i in wall.indices] for wall in walls]
     rows: list[dict[str, Any]] = []
-    for i, face in enumerate(inv.faces):
-        if face.surface_type != "cylinder" or face.radius is None:
+    for a, wall in enumerate(walls):
+        b = wall.partner
+        if b is not None:
+            if a < b:
+                rows.append(_slot_row(part, view, (names[a], names[b]), wall, walls[b]))
             continue
-        axis = _cylinder_axis(face.shape)
-        if abs(_dot(axis, direction)) < 1.0 - 1e-6:
-            continue
-        if not _shapes.is_concave_cylinder(face.shape):
-            continue  # a fillet or a boss: same surface, material on the other side
-        name = inv.name_of_face(i)
-        x, y = view.frame.to_view(face.centroid)
-        span = _face_span(face, axis)
-        body = _body_span(body_box, axis)
+        if wall.kind != "hole":
+            continue  # a corner radius, a notch, an orphaned slot end: not a hole
+        x, y = view.frame.to_view(wall.point)
         rows.append(
             {
-                "name": name,
+                "name": _wall_name(names[a]),
                 "x": _r3(x),
                 "y": _r3(y),
-                "dia_mm": _r3(2.0 * face.radius),
-                "depth": "THRU" if abs(span - body) < 1e-6 else _num(span),
-                "note": _std_note(part, name),
+                "dia_mm": _r3(2.0 * wall.radius),
+                "depth": wall.depth,
+                "note": _std_note(part, names[a][0]),
             }
         )
     rows.sort(key=lambda r: (r["x"], r["y"], r["name"]))
     return rows
 
 
-def _face_span(face: Any, axis: Vec3) -> float:
-    x0, y0, z0, x1, y1, z1 = face.bbox
-    return abs(_dot((x1 - x0, y1 - y0, z1 - z0), tuple(abs(c) for c in axis)))
-
-
-def _body_span(box: Sequence[float], axis: Vec3) -> float:
-    return abs(
-        _dot(
-            (box[3] - box[0], box[4] - box[1], box[5] - box[2]),
-            tuple(abs(c) for c in axis),
-        )
-    )
-
-
 def hole_notes(rows: Sequence[dict[str, Any]]) -> list[str]:
-    """One note per distinct (dia, depth, standard): `4x d6.6 THRU (...)`."""
+    """One note per distinct feature: `4x d6.6 THRU (...)`, `40 x 8 SLOT THRU`.
+
+    A slot groups on (length, width, depth, standard) and prints the two
+    lengths a shop cuts to; a hole groups as it always did. Both are built the
+    same way - count prefix only when there is more than one, the standard in
+    brackets - so the block reads as one house style.
+    """
     groups: dict[tuple[Any, ...], int] = {}
     for row in rows:
-        key = (row["dia_mm"], row["depth"], row.get("note", ""))
+        if row.get("kind") == "slot":
+            key: tuple[Any, ...] = (
+                "slot",
+                row["dia_mm"],
+                row["depth"],
+                row.get("note", ""),
+                row["length_mm"],
+            )
+        else:
+            key = ("hole", row["dia_mm"], row["depth"], row.get("note", ""))
         groups[key] = groups.get(key, 0) + 1
     notes: list[str] = []
-    for (dia, depth, note), count in sorted(groups.items(), key=lambda kv: kv[0][0]):
+    for key, count in sorted(groups.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+        kind, dia, depth, note = key[0], key[1], key[2], key[3]
         head = f"{count}× " if count > 1 else ""  # noqa: RUF001 - the drawing symbol
-        text = f"{head}Ø{_num(dia)} {depth}"
+        if kind == "slot":
+            # `40 x 8 SLOT THRU`: the two lengths a shop cuts to, in the order
+            # a drafter says them (overall length by width).
+            text = f"{head}{_num(key[4])} × {_num(dia)} SLOT {depth}"  # noqa: RUF001
+        else:
+            text = f"{head}Ø{_num(dia)} {depth}"
         if note:
             text += f" ({note})"
         notes.append(text)
@@ -992,6 +1080,26 @@ def parts_list(doc: Any, view_kind: str = "parts") -> list[dict[str, Any]]:
         for row in report["rows"]:
             rows.append({**row, "assembly": name})
     return rows
+
+
+_FROM_HOLES = ("FULL_TURN_MIN_DEG", "SLOT_TOL_MM")
+
+
+def __getattr__(name: str) -> Any:
+    """The thresholds the hole table applies, forwarded from `brep.holes`.
+
+    They are the KERNEL's numbers now, not the drawing's, and there must be
+    exactly one of each - a sheet and a check that round differently is the
+    class of defect this whole extraction closed. Forwarded lazily because
+    reading them costs the OCP import, and `import partkiln.drawing` must not
+    (D1, pinned by `test_importing_the_drawing_package_costs_no_ocp`), and
+    kept OUT of `__all__` because their home is `brep.holes`, not here.
+    """
+    if name in _FROM_HOLES:
+        from partkiln.brep import holes
+
+        return getattr(holes, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __all__ = [

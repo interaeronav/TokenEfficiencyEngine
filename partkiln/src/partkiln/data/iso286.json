@@ -1,0 +1,336 @@
+{
+  "_about": "ISO 286 standard tolerances and fundamental deviations as FORMULAE, never as a copied table. Every number below is a coefficient, an exponent, a size-step bound or an interval over which partkiln's own arithmetic was checked - no tolerance value from the published tables is stored here.",
+  "authority": "ISO 286-1, clauses 2.1.1 and 2.1.2 as printed in ISO/R 286:1962 (the publicly downloadable preview of the first edition; the clause numbering survives into ISO 286-1:2010)",
+  "size_steps_mm": [
+    [
+      1,
+      3
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      6,
+      10
+    ],
+    [
+      10,
+      18
+    ],
+    [
+      18,
+      30
+    ],
+    [
+      30,
+      50
+    ],
+    [
+      50,
+      80
+    ],
+    [
+      80,
+      120
+    ],
+    [
+      120,
+      180
+    ],
+    [
+      180,
+      250
+    ],
+    [
+      250,
+      315
+    ],
+    [
+      315,
+      400
+    ],
+    [
+      400,
+      500
+    ]
+  ],
+  "size_step_rule": "clause 2.1.1: the formulae are evaluated once per step at D, the geometric mean of the step's extreme diameters; for the whole step up to 3 mm D is the geometric mean of 1 and 3.",
+  "tolerance_factor": {
+    "expression": "i_um = 0.45 * D**(1/3) + 0.001 * D",
+    "units": "micrometres for D in millimetres",
+    "clause": "2.1.2.1",
+    "range_mm": [
+      1,
+      500
+    ],
+    "beyond_500": "clause 2.1.2 of the first edition stops at 500 mm; the 500-3150 mm factor I = 0.004*D + 2.1 was NOT verified against a primary text here, so partkiln refuses above 500 mm rather than derive it."
+  },
+  "grade_multiples_of_i": {
+    "5": 7,
+    "6": 10,
+    "7": 16,
+    "8": 25,
+    "9": 40,
+    "10": 64
+  },
+  "decade_rule": "clause 2.1.2.1, note: above IT6 the tolerance is multiplied by 10 at each fifth step, and the rule applies beyond IT16 - so IT(n+5) = 10 * IT(n) for n >= 6.",
+  "grade_exception": {
+    "grade": 6,
+    "step_mm": [
+      3,
+      6
+    ],
+    "value_um": 8,
+    "clause": "2.1.2.1, second footnote: 'But for one exception: the value 7.5 is rounded off to 8 for grade 6 in the diameter step above 3 up to 6 mm.'"
+  },
+  "grades_not_derivable": {
+    "1": "IT01, IT0 and IT1 have closed forms (0.3+0.008D, 0.5+0.012D, 0.8+0.020D micrometres) but partkiln's arithmetic on them did not reproduce a single published IT1 value, so they are refused rather than served.",
+    "2": "clause 2.1.2.2 note: IT2, IT3 and IT4 'have been scaled approximately geometrically between the values of IT1 and IT5' - an approximation, not a formula, so there is nothing to derive.",
+    "17": "IT17 and IT18 follow from the decade rule but no published value for them was consulted, so nothing verifies them."
+  },
+  "positions": {
+    "H": {
+      "applies": "hole",
+      "rule": "zero",
+      "text": "EI = 0",
+      "clause": "1.6.21, basic hole: 'hole the lower deviation of which is zero'"
+    },
+    "h": {
+      "applies": "shaft",
+      "rule": "zero",
+      "text": "es = 0",
+      "clause": "1.6.20, basic shaft: 'shaft the upper deviation of which is zero'"
+    },
+    "JS": {
+      "applies": "hole",
+      "rule": "symmetric",
+      "text": "ES = +IT/2, EI = -IT/2"
+    },
+    "js": {
+      "applies": "shaft",
+      "rule": "symmetric",
+      "text": "es = +IT/2, ei = -IT/2"
+    },
+    "f": {
+      "applies": "shaft",
+      "rule": "power",
+      "sign": -1,
+      "coefficient": 5.5,
+      "exponent": 0.41,
+      "text": "es = -5.5 * D**0.41 micrometres"
+    },
+    "g": {
+      "applies": "shaft",
+      "rule": "power",
+      "sign": -1,
+      "coefficient": 2.5,
+      "exponent": 0.34,
+      "text": "es = -2.5 * D**0.34 micrometres"
+    },
+    "n": {
+      "applies": "shaft",
+      "rule": "power",
+      "sign": 1,
+      "coefficient": 5.0,
+      "exponent": 0.34,
+      "text": "ei = +5.0 * D**0.34 micrometres"
+    },
+    "k": {
+      "applies": "shaft",
+      "rule": "power",
+      "sign": 1,
+      "coefficient": 0.6,
+      "exponent": 0.3333333333333333,
+      "grades": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "text": "ei = +0.6 * D**(1/3) micrometres, grades IT4 to IT7 only"
+    },
+    "F": {
+      "applies": "hole",
+      "rule": "mirror",
+      "of": "f",
+      "text": "EI = -es of the shaft of the same letter and grade"
+    },
+    "G": {
+      "applies": "hole",
+      "rule": "mirror",
+      "of": "g",
+      "text": "EI = -es of the shaft of the same letter and grade"
+    }
+  },
+  "positions_not_derivable": {
+    "a b c cd d e ef fg j": "either tabulated outright or (a, b, c) a piecewise fit whose branches partkiln did not verify; d and e have power forms (16*D**0.44, 11*D**0.41) that disagreed with published values by up to 1 um across the range, so they are refused.",
+    "m p r s t u v x y z za zb zc": "expressed in the standard as an IT grade plus a size-dependent increment that is tabulated, not computed - the increment cannot be derived, so partkiln refuses and asks for it.",
+    "J K M N P..ZC (holes)": "the special rule adds a correction delta = IT(n) - IT(n-1) on top of the mirrored shaft deviation; partkiln verifies neither the rule's scope nor the correction, so only holes F, G, H and JS are served.",
+    "A B C CD D E EF FG (holes)": "the general rule makes each of these the negated deviation of the shaft of the same letter, and partkiln refuses every one of those shafts, so it refuses these with them."
+  },
+  "verified_exact_mm": {
+    "_about": "The size intervals over which partkiln's derivation reproduced the published value EXACTLY, checked once on 2026-09-04 against the two reproductions named in verified_against. Outside these intervals partkiln refuses: the derivation is known to differ there. No published value is recorded - only where the arithmetic agreed.",
+    "it": {
+      "5": [
+        [
+          1,
+          500
+        ]
+      ],
+      "6": [
+        [
+          3,
+          315
+        ]
+      ],
+      "7": [
+        [
+          3,
+          6
+        ],
+        [
+          18,
+          400
+        ]
+      ],
+      "8": [
+        [
+          1,
+          500
+        ]
+      ],
+      "9": [
+        [
+          6,
+          120
+        ]
+      ],
+      "10": [
+        [
+          18,
+          50
+        ],
+        [
+          180,
+          250
+        ]
+      ],
+      "11": [
+        [
+          6,
+          315
+        ]
+      ],
+      "12": [
+        [
+          3,
+          6
+        ],
+        [
+          18,
+          400
+        ]
+      ],
+      "13": [
+        [
+          1,
+          500
+        ]
+      ],
+      "14": [
+        [
+          6,
+          120
+        ]
+      ],
+      "15": [
+        [
+          18,
+          50
+        ],
+        [
+          180,
+          250
+        ]
+      ],
+      "16": [
+        [
+          6,
+          315
+        ]
+      ]
+    },
+    "position": {
+      "f": [
+        [
+          3,
+          180
+        ]
+      ],
+      "g": [
+        [
+          3,
+          500
+        ]
+      ],
+      "k": [
+        [
+          3,
+          500
+        ]
+      ],
+      "n": [
+        [
+          3,
+          80
+        ],
+        [
+          120,
+          500
+        ]
+      ],
+      "h": [
+        [
+          1,
+          500
+        ]
+      ],
+      "H": [
+        [
+          1,
+          500
+        ]
+      ],
+      "js": [
+        [
+          1,
+          500
+        ]
+      ],
+      "JS": [
+        [
+          1,
+          500
+        ]
+      ],
+      "F": [
+        [
+          3,
+          180
+        ]
+      ],
+      "G": [
+        [
+          3,
+          500
+        ]
+      ]
+    }
+  },
+  "verified_against": [
+    "https://www.engineersedge.com/international_tol.htm (IT1-IT16, cites ISO 286-1:2010(E)), consulted 2026-09-04",
+    "https://unitcheatsheet.com/cheatsheets/iso-tolerance-grades.html (IT5-IT11 to 250 mm, cites ISO 286-1:2010 Table 1), consulted 2026-09-04",
+    "https://www.cobanengineering.com/Tolerances/UpperAndLowerDeviationsShafts.asp (shaft f, g, k, n spot rows) and .../FundamentalDeviation.asp (the position formulae and the mirror rule EI = -es), consulted 2026-09-04"
+  ]
+}

@@ -165,12 +165,13 @@ def test_step_4_no_fillet_reaches_the_hole_table(report) -> None:
     and a note telling a shop to drill four holes that do not exist. The
     drawing now applies the same concavity test `checks/spec.py` uses.
 
-    Six rows is the honest count: four M6 holes plus the slot's two end
-    cylinders, which are genuine concave cuts (the runner notes that a slot
-    would be better dimensioned as a slot - a refinement, not a wrong number).
+    Five rows is the honest count: four M6 holes plus the slot, tabled as one
+    slot. The slot's two end cylinders were two rows until they were paired
+    (they ARE genuine concave cuts, so the old count was never a wrong number -
+    just not how drafting practice dimensions a slot).
     """
     got = facts(report, 4)
-    assert got["hole table rows"] == 6
+    assert got["hole table rows"] == 5
     assert len(got["hole table M6 rows"]) == 4
     assert all(row[1] != 10.0 for row in got["hole table rows detail"]), got
 

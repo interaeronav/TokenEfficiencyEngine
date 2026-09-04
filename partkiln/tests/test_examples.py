@@ -118,7 +118,16 @@ def test_the_assembly_reports_dof_clearance_and_a_bom(manifests: dict[str, Any])
     assert check["clearance_mm"] == pytest.approx(0.1, abs=1e-6)
     assert check["bom"]["total_g"] == pytest.approx(1031.274, abs=5e-4)
     assert manifest["export"]["step"]["products"] == 2
-    assert manifest["export"]["poses_written"] is False
+    # The STEP is written in the ASSEMBLY's frame, so the poses are in the
+    # geometry and not only in the manifest beside it.
+    assert manifest["export"]["poses_written"] is True
+    place = manifest["export"]["manifest"]["placement"]
+    assert manifest["export"]["manifest"]["frame"] == "assembly:main"
+    assert place["grounded"] == ["housing"] and place["solved"] == ["shaft"]
+    poses = {row["name"]: row["pose"]["translation"] for row in place["components"]}
+    assert poses["housing"] == [0.0, 0.0, 0.0]
+    # The insert mate's own number: the collar face against the housing face.
+    assert poses["shaft"] == pytest.approx([-29.0, 30.0, 30.0], abs=1e-6)
 
 
 def test_the_sheet_bracket_reports_its_bend_table_and_layers(manifests: dict[str, Any]) -> None:

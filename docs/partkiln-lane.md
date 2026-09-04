@@ -206,7 +206,28 @@ for a face-and-edge inventory plus three screenshots plus the SVG sheet, and
 FEA, CAM, tube & pipe, harness, frame generators, mould features, direct
 edit, presentations, 3D PDF/DWF/DWG, USDz, and every proprietary format in
 both directions (Parasolid, SAT, JT, CATIA, NX, SolidWorks, Creo, Rhino, IFC,
-and `.ipt`/`.iam`/`.idw`). ISO 286 fits and modelled threads are later work
-with a reason: no permissively licensed source for the fit tables has been
-found, and a cosmetic thread that moved the volume would be a bug. There is
-no GUI yet; when there is, it will be a client of this same core.
+and `.ipt`/`.iam`/`.idw`).
+
+## What arrived after the first release
+
+- **ISO 286 fits** (`standards fit`, and `fit:` on a hole). No tolerance
+  table was transcribed: the grades are computed from the standard's own
+  published formulas with the clause cited, and a fit that cannot be derived
+  **refuses by name** rather than being guessed. Ask for `8H7/g6` or
+  `20H2/h2` and it says which value it does not have.
+- **A helical `coil` and a modelled `thread`**, beside the cosmetic one.
+  Cosmetic stays the default and stays cosmetic — same shape object, delta
+  exactly zero, fingerprint bit-identical. A modelled M6 costs ~0.6 s and 22
+  faces where the cosmetic one costs 2 ms, so it is asked for, never assumed.
+- **A Qt shell** (`partkiln[gui]`), a client of `partkiln.document` in the
+  same sense seamkiln's is: every control builds the same command dict a
+  batch accepts and shows the diff the kernel returned. It covers 10 of 37
+  kinds; the rest are listed in `docs/partkiln-gui.md` and asserted against
+  the kernel, so the list cannot rot silently.
+- **Overlapping sketch profiles are one region.** Draw three closed profiles
+  that cross and you meant a dumbbell, so they are unioned and the diff says
+  `assumed["overlap"]` once. Before this, they were classified as nested or
+  disjoint by a single sample point and silently built the wrong solid.
+- **A self-crossing loop refuses** (`pk_sketch_open`), naming both curves and
+  the point where they cross. A bowtie used to extrude to a face of zero
+  area and report `status: ok`.

@@ -7,6 +7,7 @@ figures, recorded in each module's docstring).
 
 from __future__ import annotations
 
+import math
 import subprocess
 import sys
 import time
@@ -99,6 +100,64 @@ def filleted_plate():
         if e.curve_type == "line" and e.direction and abs(e.direction[2]) > 0.9
     ]
     return shapes.fillet(plate, corners, 3.0).shape
+
+
+@pytest.fixture(scope="module")
+def pocket_r5():
+    """A 100x60x10 plate with a 40x20x5 pocket whose corners are r5 - and NO HOLES.
+
+    Four CONCAVE cylindrical faces of d10 (the material really is outside a
+    corner radius) each sweeping exactly 90 degrees. Counting concave faces
+    called this part four Ø10 holes; a hole table has never tabled one.
+    """
+    plate = shapes.cut(shapes.box(100, 60, 10), [shapes.box(40, 20, 6, (30, 20, 5))]).shape
+    corners = [
+        e.shape
+        for e in query.edges(plate)
+        if e.curve_type == "line"
+        and e.direction
+        and abs(e.direction[2]) > 0.9
+        # the pocket's own verticals, not the plate's four outside ones
+        and 30 - 1e-6 <= e.midpoint[0] <= 70 + 1e-6
+        and 20 - 1e-6 <= e.midpoint[1] <= 40 + 1e-6
+    ]
+    assert len(corners) == 4
+    return shapes.fillet(plate, corners, 5.0).shape
+
+
+def _drilled_from_both_faces(thickness: float, depth: float = 5.0):
+    """A 100x60 plate with a coaxial d10 blind hole `depth` deep from each face.
+
+    At 30 mm thick that is TWO holes with 20 mm of metal standing between them;
+    at 10 mm the two cuts meet and it is ONE Ø10 bore that reaches the face
+    list as two walls. Same construction, two answers, and the metal decides.
+    """
+    return shapes.cut(
+        shapes.box(100, 60, thickness),
+        [
+            shapes.cylinder(5, depth, (50, 30, thickness - depth)),
+            shapes.cylinder(5, depth, (50, 30, 0)),
+        ],
+    ).shape
+
+
+@pytest.fixture(scope="module")
+def slotted_plate():
+    """A 100x60x10 plate with one 40 x 8 through slot, cut by a fused tool.
+
+    Its two end cylinders are genuine concave d8 walls that each close half a
+    turn, joined to the flats by tangent edges: a slot, not two holes.
+    """
+    tool, _ = shapes.unify(
+        shapes.fuse(
+            [
+                shapes.box(32, 8, 12, (34, 26, -1)),
+                shapes.cylinder(4, 12, (34, 30, -1)),
+                shapes.cylinder(4, 12, (66, 30, -1)),
+            ]
+        ).shape
+    )
+    return shapes.cut(shapes.box(100, 60, 10), [tool]).shape
 
 
 @pytest.fixture(scope="module")
@@ -392,6 +451,8 @@ def test_check_spec_passes_f1_on_every_rule(f1) -> None:
             "volume_mm3": [59000, 59500],
             "mass_g": {"min": 464, "max": 465},
             "holes": [{"dia": 10, "count": 1}],
+            # F1's one bore is a hole and nothing else: no slot of any width.
+            "slots": [{"width": 10, "count": 0}],
             "min_wall_mm": "5mm",
             "valid": True,
             "watertight": True,
@@ -429,7 +490,8 @@ def test_check_spec_watertight_fails_on_an_open_shell(open_shell) -> None:
     assert v["rule"] == "watertight" and "4 free edges" in v["fix"]
 
 
-def test_check_spec_counts_holes_by_unique_cylindrical_faces() -> None:
+def test_check_spec_counts_a_hole_per_hole_on_f5() -> None:
+    """One row per hole, a hundred times, and unchanged by the shared predicate."""
     f5 = fixtures.build_F5()
     ok = spec.check_spec(f5, {"holes": [{"dia": 8, "count": 100}]})
     assert ok["verdict"] == "pass"
@@ -448,6 +510,128 @@ def test_check_spec_does_not_count_fillets_as_holes(filleted_plate) -> None:
     (v,) = bad["violations"]
     assert v["got"] == 2 and v["limit"] == 6
     assert "concave" in v["fix"] and "fillet" in v["fix"]
+
+
+# ----------------------------------------------------- holes counts what a table tables
+
+
+def test_check_spec_does_not_call_a_pocket_corner_radius_a_hole(pocket_r5) -> None:
+    """The defect, on the part that shows it plainest: a pocket with NO holes.
+
+    `holes` counted CONCAVE CYLINDRICAL FACES, and a corner radius is concave -
+    the material really is outside it. Measured 2026-09-04 on the old rule, a
+    40 x 20 pocket with r5 corners and not one hole in the part answered:
+
+        holes: [{dia: 10, count: 4}]  ->  verdict: pass
+        holes: [{dia: 10, count: 0}]  ->  verdict: fail, "found 4"
+
+    while `pk_drawing` tabled nothing for the same solid. A check that
+    confidently returns the wrong verdict is the worst thing this kernel can
+    do, and a check that contradicts the sheet is indefensible to whoever is
+    holding both. Both now answer from `brep.holes`.
+    """
+    cylinders = [f for f in query.faces(pocket_r5) if f.surface_type == "cylinder"]
+    assert len(cylinders) == 4  # the corner radii really are there,
+    assert all(shapes.is_concave_cylinder(f.shape) for f in cylinders)  # and really concave,
+    assert [round(shapes.cylinder_sweep_deg(f.shape), 6) for f in cylinders] == [90.0] * 4
+
+    assert spec.check_spec(pocket_r5, {"holes": [{"dia": 10, "count": 0}]})["verdict"] == "pass"
+    bad = spec.check_spec(pocket_r5, {"holes": [{"dia": 10, "count": 4}]})
+    assert bad["verdict"] == "fail"
+    (v,) = bad["violations"]
+    assert v["got"] == 0 and v["limit"] == 4
+    assert "found 0" in v["fix"] and "never close a full turn" in v["fix"]
+
+
+def test_check_spec_counts_a_bore_split_into_two_walls_once() -> None:
+    """5 + 5 through a 10 mm plate is ONE Ø10 hole, not two.
+
+    Two faces, one bore: the cuts meet, so there is no metal between them and
+    the walls merge. `depth` reads THRU because the union spans the body.
+    """
+    plate = _drilled_from_both_faces(10.0)
+    assert sum(1 for f in query.faces(plate) if f.surface_type == "cylinder") == 2
+    assert spec.check_spec(plate, {"holes": [{"dia": 10, "count": 1}]})["verdict"] == "pass"
+    two = spec.check_spec(plate, {"holes": [{"dia": 10, "count": 2}]})
+    assert two["verdict"] == "fail" and two["violations"][0]["got"] == 1
+
+
+def test_check_spec_counts_two_blind_holes_with_metal_between_them_as_two() -> None:
+    """The same construction through 30 mm leaves 20 mm of solid: TWO holes.
+
+    Coaxial and equal-radius is not enough to merge - a sheet that merged
+    these would send a drill through a standing wall - so the midpoint of the
+    gap is classified and the metal decides.
+    """
+    plate = _drilled_from_both_faces(30.0)
+    removed = 100.0 * 60.0 * 30.0 - mass.mass_properties(plate)["volume_mm3"]
+    assert removed == pytest.approx(2.0 * math.pi * 25.0 * 5.0, abs=1e-3)  # both holes, no more
+    assert spec.check_spec(plate, {"holes": [{"dia": 10, "count": 2}]})["verdict"] == "pass"
+    one = spec.check_spec(plate, {"holes": [{"dia": 10, "count": 1}]})
+    assert one["verdict"] == "fail" and one["violations"][0]["got"] == 2
+
+
+def test_check_spec_does_not_count_a_slots_two_ends_as_holes(slotted_plate) -> None:
+    """A BEHAVIOUR CHANGE, and a deliberate one: `holes` used to count 2 per slot.
+
+    A slot's ends are genuine concave d8 walls and `2x Ø8` was never a false
+    number - but a drafter dimensions a slot as a slot, `pk_drawing` prints one
+    `40 x 8 SLOT THRU` row, and the two tools must not disagree. `slots` is
+    where a slot is checked now, and the refusal says so.
+    """
+    ends = [f for f in query.faces(slotted_plate) if f.surface_type == "cylinder"]
+    assert len(ends) == 2 and all(shapes.is_concave_cylinder(f.shape) for f in ends)
+
+    assert spec.check_spec(slotted_plate, {"holes": [{"dia": 8, "count": 0}]})["verdict"] == "pass"
+    bad = spec.check_spec(slotted_plate, {"holes": [{"dia": 8, "count": 2}]})
+    (v,) = bad["violations"]
+    assert v["got"] == 0 and "2 slot end(s) of d8" in v["fix"] and "slots rule" in v["fix"]
+
+
+def test_check_spec_slots_measures_width_and_length(slotted_plate) -> None:
+    """Width is the end diameter, length the overall cut - both read from the
+    model, by the same `brep.holes.slot_size` the sheet's SLOT row prints."""
+    assert spec.check_spec(slotted_plate, {"slots": [{"width": 8, "length": 40}]})["verdict"] == (
+        "pass"
+    )
+    # length is optional: every slot of that width.
+    assert spec.check_spec(slotted_plate, {"slots": [{"width": 8}]})["verdict"] == "pass"
+    assert spec.check_spec(slotted_plate, {"slots": [{"width": "8mm", "count": 1}]})["verdict"] == (
+        "pass"
+    )
+    wrong = spec.check_spec(slotted_plate, {"slots": [{"width": 8, "length": 50}]})
+    assert wrong["verdict"] == "fail"
+    (v,) = wrong["violations"]
+    assert v["got"] == 0 and v["width"] == 8.0 and v["length"] == 50.0
+    assert "[[8.0, 40.0]]" in v["fix"]
+
+
+def test_check_spec_slots_finds_none_where_two_holes_share_a_radius() -> None:
+    """Two d8 holes 40 mm apart are not a 40 x 8 slot: nothing walls them
+    together, and inventing a slot is the mirror of inventing a hole."""
+    pair = shapes.cut(
+        shapes.box(100, 60, 10),
+        [shapes.cylinder(4, 12, (34, 30, -1)), shapes.cylinder(4, 12, (66, 30, -1))],
+    ).shape
+    assert spec.check_spec(pair, {"holes": [{"dia": 8, "count": 2}]})["verdict"] == "pass"
+    none = spec.check_spec(pair, {"slots": [{"width": 8, "length": 40}]})
+    assert none["verdict"] == "fail"
+    assert (
+        none["violations"][0]["got"] == 0
+        and "slots present as [width, length]: []" in (none["violations"][0]["fix"])
+    )
+
+
+def test_check_spec_slots_refuses_a_bad_row_with_the_fix(f1) -> None:
+    for bad in (
+        {"slots": "wide"},
+        {"slots": [{"length": 40}]},
+        {"slots": [{"width": 8, "count": "two"}]},
+    ):
+        with pytest.raises(CommandError) as err:
+            spec.check_spec(f1, bad)
+        assert err.value.code == "pk_bad_op", bad
+        assert "Fix:" in str(err.value), bad
 
 
 def test_check_spec_refuses_a_bad_limit_instead_of_a_raw_valueerror(f1) -> None:

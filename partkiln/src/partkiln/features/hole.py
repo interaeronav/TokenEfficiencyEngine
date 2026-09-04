@@ -14,7 +14,12 @@ against 0.46 s sequentially). A standard size carries its source into
 `assumed` and a note (ISO 273 clearance via bd_warehouse, Apache-2.0; tap
 drills likewise). A thread is COSMETIC (Law 18): it is stored on the
 feature, echoed in the diff, and changes no geometry - the fingerprint is
-bit-identical with or without it. Measured seats on F1: counterbore d11 x 6
+bit-identical with or without it. `fit: "H7"` is cosmetic for the same
+reason: the bore is cut at its BASIC size and the ISO 286 class only records
+the two limits it must be inspected to, so the diff carries `fit_min_mm` /
+`fit_max_mm` and the solid does not move. A fit partkiln cannot derive
+(`H7` at 8 mm, `P7` anywhere) refuses `pk_not_served` from `standards`
+rather than inventing limits - see `standards.fit`. Measured seats on F1: counterbore d11 x 6
 removes 98.96 mm3, countersink 90 deg d12 on d10 removes 16.755 more.
 
 `count` is the number of holes that MATERIALISED, never `len(at)`: a tool
@@ -151,6 +156,15 @@ def build_hole(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) -> Ou
         )
     if dia <= 0:
         raise CommandError(f"hole {feature.id}: dia must be > 0, got {dia:g} mm.", code="pk_needs")
+    fit_extra: dict[str, Any] = {}
+    if args.get("fit") is not None:
+        if args.get("std") is not None:
+            raise CommandError(
+                f"hole {feature.id}: give fit OR std, not both - a clearance or tap-drill hole "
+                "is sized by its own standard, not to an ISO 286 class.",
+                code="pk_spec_conflict",
+            )
+        fit_extra = _fit(str(args["fit"]), dia, feature.id, notes, cosmetic)
     if args.get("thread"):
         cosmetic["thread"] = str(args["thread"])
     if cosmetic.get("thread"):
@@ -267,6 +281,7 @@ def build_hole(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) -> Ou
     }
     if missed:
         extra["missed"] = len(missed)
+    extra.update(fit_extra)
     if seat_kind:
         extra["seat"] = seat_kind
     return Outcome(
@@ -281,6 +296,34 @@ def build_hole(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) -> Ou
         cosmetic=cosmetic,
         extra=extra,
     )
+
+
+def _fit(
+    spec: str, dia: float, feature_id: str, notes: list[str], cosmetic: dict[str, Any]
+) -> dict[str, Any]:
+    """An ISO 286 hole class on the drilled diameter: limits recorded, geometry untouched."""
+    from partkiln import standards
+
+    row = standards.limits(dia, spec)
+    if row["applies"] != "hole":
+        raise CommandError(
+            f"hole {feature_id}: fit {spec!r} is a SHAFT class; a bore takes the capital "
+            f"letter, e.g. {spec.upper()}.",
+            code="pk_needs",
+        )
+    cosmetic["fit"] = row["class"]
+    notes.append(
+        f"fit {row['class']} on {dia:g} mm: {row['min_mm']:.4g}/{row['max_mm']:.4g} mm "
+        f"(IT {row['it_um']:g} um, {row['basis']} from {row['authority'].split(',')[0]}) - "
+        "the bore is cut at its basic size, the class changes no geometry (Law 18)"
+    )
+    return {
+        "fit": row["class"],
+        "fit_min_mm": row["min_mm"],
+        "fit_max_mm": row["max_mm"],
+        "fit_it_um": row["it_um"],
+        "fit_basis": row["basis"],
+    }
 
 
 def _faces(shape: Any) -> list[Any]:

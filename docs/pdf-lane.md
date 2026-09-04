@@ -25,8 +25,23 @@ Install: `uv pip install 'tee-engine[pdf]'` (fpdf2 + pypdf).
 ```
 
 Kinds: `heading` (level 1–3), `paragraph`, `image`, `table`, `page_break`,
-`spacer`. **HEIC images embed with no conversion** — they open through the
-same door added in v0.11.0 and are handed to fpdf2 as JPEG in memory.
+`spacer` and `vector`. **HEIC images embed with no conversion** — they open
+through the same door added in v0.11.0 and are handed to fpdf2 as JPEG in
+memory.
+
+`vector` draws, rather than flows: `line`, `polyline`, `rect`, `circle`,
+`arc`, `path` and `text` placed at exact coordinates, with line width, dash
+pattern and colour. It exists because a drawing sheet is not prose — a
+hidden edge is a dashed line at a measured place, not a paragraph. Units are
+stated (`mm`, `cm`, `in`, `pt`) and so is the origin (`top_left` or
+`bottom_left`), because a sheet whose scale or origin is implicit is a sheet
+that lies; at 1:1 a 100 mm line measures 100 mm, and a test pins that by
+reading the content stream rather than the file size. Styling is not scaled
+with the geometry, so a 1:2 view keeps its line weights.
+
+The page size is a parameter, not an assumption: any named size or an
+explicit width and height, portrait or landscape, and the answer echoes back
+what it used.
 
 Returns a summary — `{path, pages, bytes, blocks_rendered}` — never the
 document. A PDF in a model's context is a token catastrophe and answers no

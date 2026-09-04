@@ -73,6 +73,8 @@ READERS = ("step", "stp", "iges", "igs", "brep")
 MEASURES = ("mass", "clearance", "interference", "wall", "section", "faces", "asm", "bbox")
 _MESH_SUFFIXES = (".stl", ".obj", ".3mf")
 _MAX_ROWS = 24  # sub-shape facts per answer; beyond this the count is the answer
+# How a component got where it is, for the export manifest's placement block.
+_PLACED_BY = ("ground", "solve", "authored")
 
 
 def _r3(value: float) -> float:
@@ -126,9 +128,114 @@ def _part(doc: Document, ref: Any, *, what: str = "this") -> Any:
     return part
 
 
+def _assembly_ref(doc: Document, ref: Any) -> Any | None:
+    """The `DocAssembly` that `ref` names, or None when it names no assembly.
+
+    Four spellings: `asm`, `assembly`, `asm:<name>` and a bare assembly name.
+    A part of the same name WINS the bare spelling, and `part:<name>` is never
+    an assembly - `of` has meant "a part" since 0.20.0 and a document that
+    grows an assembly called `bracket` must not silently re-point an export
+    that was already correct.
+    """
+    if not isinstance(ref, str):
+        return None
+    text = ref.strip()
+    if text.startswith("part:"):
+        return None
+    if text in ("asm", "assembly"):
+        key: str | None = None
+    elif text.startswith(("asm:", "assembly:")):
+        key = text.split(":", 1)[1]
+    elif text in doc.assemblies and text not in doc.parts:
+        key = text
+    else:
+        return None
+    from partkiln.assembly.verbs import assembly_of
+
+    return assembly_of(doc, {"assembly": key})
+
+
+def _placement(record: Any) -> list[dict[str, Any]]:
+    """Every real component of `record`, SOLVED, with its shape already moved.
+
+    The solve runs first (`DocAssembly.solved()` commits the poses onto the
+    components), then each body is copied through `BRepBuilderAPI_Transform`
+    by `assembly.interference.placed`. The part's own shape is never touched:
+    a document is not changed by exporting it, so the pose is applied to a
+    copy and the part stays in its own frame for the next export.
+
+    `placed_by` is the provenance the manifest owes a reader (gap 9d):
+    `ground` for a grounded component, `solve` for a free one that a live mate
+    or joint moved, `authored` for a free one no live constraint touches - it
+    sits exactly where the model put it, which is a fact about the document,
+    not a failure of the export.
+    """
+    from partkiln.assembly.interference import placed
+
+    report = record.solved()
+    live = [c for c in record.asm.constraints() if c.name not in record.suppressed]
+    constrained = {name for c in live for name in (c.a.component, c.b.component)}
+    dof_by = dict(report.dof_by_component)
+    rows: list[dict[str, Any]] = []
+    empty: list[str] = []
+    for component in record.asm.components.values():
+        if component.virtual:
+            continue
+        shape = component.shape_ref() if callable(component.shape_ref) else component.shape_ref
+        if shape is None:
+            empty.append(component.name)
+            continue
+        if component.grounded:
+            how = "ground"
+        elif component.name in constrained:
+            how = "solve"
+        else:
+            how = "authored"
+        row: dict[str, Any] = {
+            "name": component.name,
+            "part": component.part_name,
+            "placed_by": how,
+            "shape": placed(shape, component.pose),
+            "pose": component.pose.as_dict(6),
+        }
+        if dof_by.get(component.name):
+            row["dof"] = int(dof_by[component.name])
+        rows.append(row)
+    if empty:
+        raise KernelError(
+            f"{', '.join(empty)} has no body yet.",
+            fix="build every part the assembly instances before exporting it.",
+            code="pk_ref_empty",
+        )
+    if not rows:
+        raise KernelError(
+            f"assembly {record.name} has no component with a body.",
+            fix="create a component whose part is built (a virtual object has no geometry).",
+            code="pk_ref_empty",
+        )
+    return rows
+
+
 def _bodies(doc: Document, ref: Any) -> list[tuple[str, Any]]:
-    """(name, shape) for `of`: a part, a list of parts, or every part with a body."""
+    """(name, shape) for `of`: a part, a list of parts, every part with a body -
+    or an assembly, whose rows are its COMPONENTS at their solved poses.
+
+    One part can be instanced many times, so an assembly row is named for the
+    component, never for the part: four pins are `pin, pin2, pin3, pin4`, four
+    products, four places.
+    """
+    record = _assembly_ref(doc, ref)
+    if record is not None:
+        return [(row["name"], row["shape"]) for row in _placement(record)]
     if isinstance(ref, list | tuple):
+        for item in ref:
+            if _assembly_ref(doc, item) is not None:
+                raise KernelError(
+                    f"{item!r} is an assembly, and a list of `of` is a list of parts.",
+                    fix=f"pass of: {item!r} on its own to export every component at its "
+                    "solved pose.",
+                    code="pk_bad_request",
+                )
         return [(_part(doc, r).name, _part(doc, r).shape) for r in ref]
     if ref in (None, "", "all", "doc"):
         rows = [
@@ -307,6 +414,18 @@ _EXAMPLES: dict[str, dict[str, Any]] = {
         "props": {"profile": "sect", "path": "spine"},
     },
     "loft": {"op": "create", "kind": "loft", "name": "horn", "props": {"sections": ["a", "b"]}},
+    "coil": {
+        "op": "create",
+        "kind": "coil",
+        "name": "spring",
+        "props": {"profile": "wire", "axis": "Z", "pitch": "5mm", "turns": 6},
+    },
+    "thread": {
+        "op": "create",
+        "kind": "thread",
+        "name": "th",
+        "props": {"on": "shaft.side.o", "spec": "M6", "modelled": False},
+    },
     "hole": {
         "op": "create",
         "kind": "hole",
@@ -432,6 +551,8 @@ REQUIRED: dict[str, tuple[str, ...]] = {
     "revolve": ("sketch", "axis"),
     "sweep": ("profile", "path"),
     "loft": ("sections",),
+    "coil": ("profile", "axis", "pitch"),
+    "thread": ("on", "spec"),
     "hole": ("on", "at"),
     "fillet": ("edges",),
     "chamfer": ("edges",),
@@ -461,6 +582,7 @@ LENGTHS = (
     "dy",
     "offset",
     "len",
+    "length",
     "width",
     "height",
     "thickness",
@@ -755,10 +877,22 @@ def _lint_method_op(index: int, op: str, args: dict[str, Any], flag: Any, needs:
         flag(
             "pk_needs",
             f"batch[{index}]: check needs spec.",
-            'spec: {"bbox": [120, 80, 10], "min_wall_mm": 2} - '
-            "rules: bbox, volume_mm3, mass_g, holes, min_wall_mm, valid, watertight, "
-            "faces, edges.",
+            f'spec: {{"bbox": [120, 80, 10], "min_wall_mm": 2}} - rules: {_spec_rules()}.',
         )
+
+
+def _spec_rules() -> str:
+    """The spec vocabulary, read from the checker rather than retyped.
+
+    Both refusals below used to carry a hand-written list, and both went
+    stale the day `slots` was added - the exact drift `check_spec`'s own
+    unknown-rule refusal avoids by listing `RULES` dynamically. Importing
+    `checks.spec` is safe from the lint path: it touches no OCP (pinned by
+    `test_import_checks_is_ocp_free`).
+    """
+    from partkiln.checks.spec import RULES
+
+    return ", ".join(RULES)
 
 
 def _lint_sketch(
@@ -1189,8 +1323,7 @@ def m_check(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
         raise KernelError(
             "check needs spec: a dict of rules.",
             fix='spec: {"bbox": [120, 80, 10], "holes": [{"dia": 6.6, "count": 4}], '
-            '"min_wall_mm": 2} - rules: bbox, volume_mm3, mass_g, holes, min_wall_mm, valid, '
-            "watertight, faces, edges.",
+            f'"min_wall_mm": 2}} - rules: {_spec_rules()}.',
             code="pk_needs",
         )
     from partkiln.checks.spec import check_spec
@@ -1255,17 +1388,35 @@ def m_check(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
 
 @register_method("standards")
 def m_standards(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
-    """Clearance, tap, drill, pitch and fastener tables - each with source and licence."""
+    """Clearance, tap, drill, pitch, fastener and ISO 286 fit tables - each with
+    source and licence. `fit` and `fits` are the door onto `standards.fit`: it
+    shipped with the ISO 286 lane and, until the A66 verify pass, only
+    `create hole {fit: "H7"}` could reach it - a derivation with no verb."""
     from partkiln import standards
 
     what = str(params.get("what") or ("fastener" if params.get("standard") else "clearance"))
-    what = _one_of(what, ("clearance", "tap", "drill", "pitch", "fastener", "list"), "what")
+    what = _one_of(
+        what, ("clearance", "tap", "drill", "pitch", "fastener", "fit", "fits", "list"), "what"
+    )
     if what == "list":
         return {
             "what": "list",
             "standards": standards.supported_standards(),
             "series": ["close", "normal", "loose"],
             "note": "sizes are metric designations: M6, M6x0.75.",
+        }
+    if what == "fits":
+        return {"what": what, **standards.supported_fits()}
+    if what == "fit":
+        spec = _need(
+            params,
+            "designation",
+            "standards fit",
+            "designation: an ISO 286 fit such as '20H7/g6', or a single class 'H7'.",
+        )
+        return {
+            "what": what,
+            **standards.fit(str(spec), params.get("size"), supplied=params.get("supplied") or {}),
         }
     if what == "drill":
         name = _need(params, "name", "standards drill", "name: a drill designation, e.g. '#7'.")
@@ -1347,7 +1498,13 @@ def m_bom(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
 
 @register_method("export")
 def m_export(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
-    """Write a file and say what it declares about itself (the handoff manifest)."""
+    """Write a file and say what it declares about itself (the handoff manifest).
+
+    `of` is a part, a list of parts, or an ASSEMBLY (`asm`, `asm:<name>`, or
+    its bare name). An assembly writes one product per COMPONENT at its solved
+    pose, because one part can be instanced many times and four pins at the
+    origin is a file that looks right and is wrong.
+    """
     doc = _doc(kernel)
     fmt = str(
         _need(params, "format", "export", f"format: one of {', '.join(sorted(FORMATS))}.")
@@ -1369,14 +1526,17 @@ def m_export(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
         target = _one_of(target, tuple(TARGETS), "target")
     if FORMATS[fmt]["kind"] == "drawing":
         return _export_drawing(kernel, fmt, out_path, params)
-    bodies = _bodies(doc, params.get("of") or params.get("part"))
+    of = params.get("of") or params.get("part")
+    record = _assembly_ref(doc, of)
+    rows = _placement(record) if record is not None else None
+    bodies = [(row["name"], row["shape"]) for row in rows] if rows is not None else _bodies(doc, of)
     result = _write_bodies(fmt, bodies, out_path, params)
     result.update(
         {
             "id": f"export:{out_path.name}",
             "format": fmt,
             "of": [n for n, _s in bodies],
-            "manifest": _manifest(fmt, target),
+            "manifest": _manifest(fmt, target, record, rows),
         }
     )
     if fmt == "step" and params.get("roundtrip", True):
@@ -1427,12 +1587,24 @@ def _write_bodies(
     return write_glb(bodies, out, deflection_mm=tol)
 
 
-def _manifest(fmt: str, target: str | None) -> dict[str, Any]:
+def _manifest(
+    fmt: str,
+    target: str | None,
+    record: Any = None,
+    rows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """What the receiver has to be told, per format (D4) - and per target (A53's table).
 
     `partkiln.handoff` owns this table when the sheet-metal phase ships it;
     until then these are the same numbers, kept here so an export never
     answers "units: unknown".
+
+    `frame` says whose coordinates the FILE is in, and it is the manifest's
+    most load-bearing word: `part` means each body is in its own frame (what
+    `of: <part>` has always meant), `assembly:<name>` means the poses are
+    already baked into the geometry. The `placement` block is then provenance
+    - which component the SOLVE moved and which sits at its authored pose -
+    and no longer the only place the poses live, which was gap 9.
     """
     row = dict(FORMATS[fmt])
     row.pop("kind", None)
@@ -1455,15 +1627,53 @@ def _manifest(fmt: str, target: str | None) -> dict[str, Any]:
         # Optional, and owned by the sheet-metal phase: its table wins when it ships.
         from partkiln import handoff
     except ImportError:
-        return manifest
+        return _with_placement(manifest, record, rows)
     own = getattr(handoff, "manifest", None)
     if callable(own):
         try:
             extra = own(fmt, target)
         except Exception:  # a phase's own table must never break an export
-            return manifest
+            return _with_placement(manifest, record, rows)
         if isinstance(extra, dict):
             manifest.update(extra)
+    # LAST, deliberately: no other table may overwrite what the file actually
+    # contains. A manifest that disagrees with the geometry is worse than none.
+    return _with_placement(manifest, record, rows)
+
+
+def _with_placement(
+    manifest: dict[str, Any], record: Any, rows: list[dict[str, Any]] | None
+) -> dict[str, Any]:
+    """Stamp the frame, and for an assembly the per-component provenance."""
+    if record is None or rows is None:
+        manifest["frame"] = "part"
+        manifest["poses_written"] = False
+        return manifest
+    report = record.solved()
+    by = {how: [r["name"] for r in rows if r["placed_by"] == how] for how in _PLACED_BY}
+    manifest["frame"] = f"assembly:{record.name}"
+    manifest["poses_written"] = True
+    place: dict[str, Any] = {
+        "assembly": record.name,
+        "dof": report.dof,
+        "status": report.status,
+        "solved": by["solve"],
+        "grounded": by["ground"],
+        "authored": by["authored"],
+        "components": [{k: v for k, v in row.items() if k != "shape"} for row in rows],
+    }
+    if report.dof:
+        place["note"] = (
+            f"dof {report.dof} ({report.status}): the poses written here are ONE solution the "
+            "solver reached, not the only one. Constrain the assembly further if the file has "
+            "to be reproducible pose for pose."
+        )
+    if by["authored"]:
+        place["note_authored"] = (
+            f"{', '.join(by['authored'])} is free and no live mate or joint touches it: it is "
+            "written exactly where the model authored it, not where a solve put it."
+        )
+    manifest["placement"] = place
     return manifest
 
 

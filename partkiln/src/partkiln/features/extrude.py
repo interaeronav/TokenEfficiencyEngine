@@ -170,6 +170,7 @@ def build_extrude(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) ->
     vec = _scale(along, distance)
 
     profile = build_profile(sketch, start_frame)
+    assumed.update(profile.assumed)
     if taper and len(profile.faces) > 1:
         raise CommandError(
             f"extrude {feature.id}: a taper needs a single-loop profile; sketch {sketch.name} "

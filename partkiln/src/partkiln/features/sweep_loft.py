@@ -65,6 +65,7 @@ def build_sweep(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) -> O
         assumed["frenet"] = False
     frame = frame_for(doc, profile_sk.plane, part, feature)
     profile = build_profile(profile_sk, frame)
+    assumed.update(profile.assumed)
     if len(profile.faces) != 1:
         raise CommandError(
             f"sweep {feature.id}: the profile must be one closed loop; {profile_sk.name} has "
@@ -107,6 +108,7 @@ def build_loft(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) -> Ou
         feature.refs.append(f"sk:{sk.name}")
         frame = frame_for(doc, sk.plane, part, feature)
         profile = build_profile(sk, frame)
+        assumed.update(profile.assumed)
         if len(profile.faces) != 1:
             raise CommandError(
                 f"loft {feature.id}: section {sk.name} must be one closed loop, it has "

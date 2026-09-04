@@ -7,6 +7,7 @@ hand-editing is a defect, never a widened tolerance.
 
 from __future__ import annotations
 
+import math
 import os
 import subprocess
 import sys
@@ -588,6 +589,584 @@ def test_the_hole_note_cites_the_standard_the_hole_was_cut_to(f2_plate: Document
     assert len(drawing.holes) == 4
     assert drawing.dims[0].value_mm == 6.600 and drawing.dims[0].agree
     assert drawing.dims[0].text == "4\u00d7 \u00d86.6"
+
+
+# ------------------------------------------------------- a slot is one row, not two
+
+
+def _slot_plate(
+    angle: float | None = None,
+    length: float = 40.0,
+    width: float = 8.0,
+    depth: float | str = "through",
+) -> Document:
+    """A 120 x 80 x 10 plate with one slot at its centre - W1's slot, without
+    the fillets and the clearance holes that surround it there."""
+    profile: dict[str, Any] = {"slot": [length, width], "at": [60, 40], "tag": "s"}
+    if angle is not None:
+        profile["angle"] = angle
+    cut: dict[str, Any] = {"sketch": "cut", "distance": depth, "mode": "cut"}
+    if depth != "through":
+        cut["direction"] = "-"  # into the plate from its top face
+    doc = Document(name="slotted")
+    doc.apply({"op": "create", "kind": "part", "name": "plate"})
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "base",
+            "props": {"plane": "XY", "profile": [{"rect": [120, 80]}]},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "body",
+            "props": {"sketch": "base", "distance": 10},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "cut",
+            "props": {"plane": "on:body.end", "profile": [profile]},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "slot",
+            "props": cut,
+        }
+    )
+    return doc
+
+
+def _hole_sheet(doc: Document, name: str = "s", of: str = "plate") -> Any:
+    return build_drawing(
+        doc,
+        name,
+        {
+            "of": of,
+            "sheet": "A3L",
+            "views": [{"name": "top", "dir": "top"}],
+            "hole_table": True,
+        },
+    )
+
+
+def test_a_slot_tables_as_one_slot_and_not_as_two_holes() -> None:
+    """Two ends walled together tangentially are one feature on the sheet.
+
+    Both end cylinders are genuine concave cuts, so `2x d8 THRU` was never a
+    false number - but it is not what a shop cuts. It sends a reader looking
+    for two holes 32 mm apart (the CENTRE distance) where the model has a
+    40 mm slot, and it prints no length at all. Every number in the merged row
+    is read from the model: the width is twice the analytic radius and the
+    length is the axis-to-axis distance plus one diameter.
+    """
+    doc = _slot_plate()
+    drawing = _hole_sheet(doc)
+    assert len(drawing.holes) == 1, drawing.holes
+    row = drawing.holes[0]
+    assert row["kind"] == "slot"
+    assert row["dia_mm"] == 8.000  # the width: 2r, measured
+    assert row["length_mm"] == 40.000  # centre distance 32 + one diameter
+    assert (row["x"], row["y"]) == (60.0, 40.0)
+    assert row["angle_deg"] == 0.0 and row["depth"] == "THRU"
+    assert drawing.notes == ["40 \u00d7 8 SLOT THRU"]
+    # The centre is the AXIS, never the face centroid: a slot end is a HALF
+    # cylinder whose surface centroid sits 2r/pi = 2.546 mm off its own axis,
+    # which would read the 40 mm slot as 34.907.
+    inv = doc.parts["plate"].inventory()
+    ends = [f for f in inv.faces if f.surface_type == "cylinder" and f.radius == 4.0]
+    assert len(ends) == 2
+    assert round(abs(ends[1].centroid[0] - ends[0].centroid[0]), 3) == 37.093
+
+
+def test_two_holes_that_share_a_radius_are_not_a_slot() -> None:
+    """The tangent WALL is the test, never the radius.
+
+    These two d8 holes sit exactly 40 mm apart - the overall length of the W1
+    slot - and share the plate's top and bottom faces. Nothing joins them but
+    air. A merge here would print `40 x 8 SLOT THRU` for a part with no slot
+    in it, so the pair must stay two rows.
+    """
+    doc = Document(name="pair")
+    doc.apply({"op": "create", "kind": "part", "name": "plate"})
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "base",
+            "props": {"plane": "XY", "profile": [{"rect": [120, 80]}]},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "body",
+            "props": {"sketch": "base", "distance": 10},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "hole",
+            "name": "h",
+            "props": {"on": "body.end", "at": [[40, 40], [80, 40]], "dia": 8},
+        }
+    )
+    drawing = _hole_sheet(doc)
+    assert len(drawing.holes) == 2, drawing.holes
+    assert all("kind" not in row for row in drawing.holes)
+    assert [row["dia_mm"] for row in drawing.holes] == [8.0, 8.0]
+    assert round(drawing.holes[1]["x"] - drawing.holes[0]["x"], 3) == 40.0
+    assert drawing.notes == ["2\u00d7 \u00d88 THRU"]
+
+
+def test_a_hole_beside_a_slot_of_its_own_diameter_stays_a_hole() -> None:
+    """The sharpest negative: the same radius, in the same part, in the same cut.
+
+    A d8 hole 80 mm from a 40 x 8 slot shares the slot's ends' radius exactly.
+    Only the tangent walls tell them apart, so this is the case that would go
+    wrong the moment the test slipped from topology back to geometry.
+    """
+    doc = Document(name="mixed")
+    doc.apply({"op": "create", "kind": "part", "name": "plate"})
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "base",
+            "props": {"plane": "XY", "profile": [{"rect": [160, 80]}]},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "body",
+            "props": {"sketch": "base", "distance": 10},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "cut",
+            "props": {
+                "plane": "on:body.end",
+                "profile": [
+                    {"slot": [40, 8], "at": [40, 40], "tag": "s"},
+                    {"circle": 8, "at": [120, 40], "tag": "c"},
+                ],
+            },
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "slot",
+            "props": {"sketch": "cut", "distance": "through", "mode": "cut"},
+        }
+    )
+    drawing = _hole_sheet(doc)
+    assert [row.get("kind") for row in drawing.holes] == ["slot", None]
+    assert [row["dia_mm"] for row in drawing.holes] == [8.0, 8.0]
+    assert drawing.notes == ["\u00d88 THRU", "40 \u00d7 8 SLOT THRU"]
+
+
+def test_a_blind_slot_prints_the_depth_it_was_cut_to() -> None:
+    """A slot's depth is the hole table's own depth cell, unchanged: `THRU`
+    when the cut spans the body, the measured span otherwise."""
+    drawing = _hole_sheet(_slot_plate(depth=4))
+    row = drawing.holes[0]
+    assert row["kind"] == "slot" and row["depth"] == "4"
+    assert drawing.notes == ["40 \u00d7 8 SLOT 4"]
+
+
+def test_a_slot_reports_the_angle_it_is_drawn_at() -> None:
+    """The angle is the long axis projected into THIS view, folded to [0, 180)."""
+    drawing = _hole_sheet(_slot_plate(angle=30.0))
+    row = drawing.holes[0]
+    assert row["kind"] == "slot" and row["angle_deg"] == 30.0
+    assert row["length_mm"] == 40.000 and row["dia_mm"] == 8.000
+    assert (row["x"], row["y"]) == (60.0, 40.0)
+
+
+def test_the_w1_bracket_tables_five_rows_four_holes_and_one_slot() -> None:
+    """The gap this closes, on the part that found it.
+
+    W1 tabled six rows for five features: four M6 clearance holes and the
+    slot's two ends. The fillets had already been evicted (2026-09-04); the
+    slot is the last row that named a feature by its halves.
+    """
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:  # `examples/` sits beside `src/`, per test_examples.py
+        sys.path.insert(0, str(root))
+    from examples.bracket.model import OPS
+
+    kernel = LocalKernel()
+    kernel.apply(OPS)
+    drawing = _hole_sheet(kernel.document, of="bracket")
+    assert len(drawing.holes) == 5, drawing.holes
+    slots = [r for r in drawing.holes if r.get("kind") == "slot"]
+    assert len(slots) == 1
+    assert slots[0]["dia_mm"] == 8.000 and slots[0]["length_mm"] == 40.000
+    assert slots[0]["name"] == "slot.side.slot.a0+a1"
+    assert drawing.notes == [
+        "4\u00d7 \u00d86.6 THRU (M6 clearance, ISO 273 medium)",
+        "40 \u00d7 8 SLOT THRU",
+    ]
+
+
+def test_the_slot_note_reaches_the_svg_the_dxf_and_the_pdf(tmp_path: Path) -> None:
+    """A note nobody can read on the sheet is not a note."""
+    drawing = _hole_sheet(_slot_plate())
+    note = "40 \u00d7 8 SLOT THRU"
+    assert note in svg.render(drawing)
+
+    ezdxf = pytest.importorskip("ezdxf")
+    doc = ezdxf.readfile(dxf.write(drawing, tmp_path / "s.dxf"))
+    texts = [e.dxf.text for e in doc.modelspace() if e.dxftype() == "TEXT"]
+    assert note in texts, texts
+    assert "SLOT" in " ".join(texts) and "HOLE TABLE (1)" in texts
+
+    pytest.importorskip("fpdf", reason="partkiln[pdf] not installed")
+    pypdf = pytest.importorskip("pypdf")
+    text = pypdf.PdfReader(pdf.write(drawing, tmp_path / "s.pdf")).pages[0].extract_text()
+    assert "SLOT" in text and "40" in text
+
+
+# --------------------------------------- a corner radius is not a hole either
+
+
+def _plate(name: str, width: float = 120.0, height: float = 80.0, thick: float = 10.0) -> Document:
+    """A plain rectangular plate, the body every case below cuts into."""
+    doc = Document(name=name)
+    doc.apply({"op": "create", "kind": "part", "name": "plate"})
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "base",
+            "props": {"plane": "XY", "profile": [{"rect": [width, height]}]},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "body",
+            "props": {"sketch": "base", "distance": thick},
+        }
+    )
+    return doc
+
+
+def _pocket_plate() -> Document:
+    """A 120 x 80 x 10 plate with a 40 x 20 x 5 pocket whose corners are r5."""
+    doc = _plate("pocketed")
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "cut",
+            "props": {
+                "plane": "on:body.end",
+                "profile": [{"rect": [40, 20], "at": [60, 40], "tag": "p"}],
+            },
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "pocket",
+            "props": {"sketch": "cut", "distance": 5, "direction": "-", "mode": "cut"},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "fillet",
+            "name": "fr",
+            "props": {"edges": "pocket:edges(dir=Z)", "r": 5},
+        }
+    )
+    return doc
+
+
+def test_a_filleted_pocket_corner_is_not_a_hole() -> None:
+    """The same lie wearing the other hat: a corner radius that IS concave.
+
+    A convex fillet was evicted on 2026-09-04 because the material lay inside
+    it. A POCKET's vertical corner radius is genuinely concave - the material
+    really is outside it - so that test passes it honestly, and the table
+    printed `4x d10 THRU` for this pocket: four holes a shop drills into a
+    wall that has none, at a diameter (10) the part never mentions.
+
+    What separates them is closure. A corner radius tangent to two walls
+    meeting at interior angle t sweeps 180 - t degrees, 90 here and never
+    more than 180; a drilled hole's wall goes the whole way round.
+    """
+    doc = _pocket_plate()
+    drawing = _hole_sheet(doc)
+    assert drawing.holes == [], drawing.holes
+    assert not any("\u00d8" in note for note in drawing.notes), drawing.notes
+    # The corners are really there, really concave, and really a quarter turn:
+    # the row was dropped for the right reason, not because the pocket vanished.
+    inv = doc.parts["plate"].inventory()
+    corners = [f for f in inv.faces if f.surface_type == "cylinder"]
+    assert len(corners) == 4
+    assert all(f.radius == 5.0 for f in corners)
+    assert all(shapes.is_concave_cylinder(f.shape) for f in corners)
+    assert [round(shapes.cylinder_sweep_deg(f.shape), 6) for f in corners] == [90.0] * 4
+
+
+def test_two_crossing_slots_print_no_phantom_holes() -> None:
+    """Ends that cannot pair are still not holes.
+
+    Crossing a 60 x 8 slot with a 40 x 8 one splits the walls each end would
+    have paired through, so `_slot_pairs` honestly refuses to merge anything -
+    and the four half-cylinder ends then printed `4x d8 THRU`. Each sweeps
+    exactly half a turn, so none of them is a hole, and the sheet says
+    nothing rather than saying something false.
+    """
+    doc = _plate("crossed")
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "cut",
+            "props": {
+                "plane": "on:body.end",
+                "profile": [
+                    {"slot": [60, 8], "at": [60, 40], "tag": "a"},
+                    {"slot": [40, 8], "at": [60, 40], "angle": 90, "tag": "b"},
+                ],
+            },
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "cross",
+            "props": {"sketch": "cut", "distance": "through", "mode": "cut"},
+        }
+    )
+    drawing = _hole_sheet(doc)
+    assert drawing.holes == [], drawing.holes
+    inv = doc.parts["plate"].inventory()
+    ends = [f for f in inv.faces if f.surface_type == "cylinder"]
+    assert len(ends) == 4
+    assert [round(shapes.cylinder_sweep_deg(f.shape), 6) for f in ends] == [180.0] * 4
+
+
+def test_a_hole_that_reaches_the_inventory_as_two_faces_tables_once() -> None:
+    """One hole, two half-cylinders, ONE row - and the row names both halves.
+
+    Mirroring a half-round notch onto its own plane joins two half cylinders
+    into a single d10 bore, and the table printed `2x d10 THRU`: one hole
+    counted twice, the same species of lie as a fillet counted once. Faces
+    sharing an axis and a radius are one wall, so their sweeps add.
+
+    The sweep is read from the AREA and not from the parametric bounds
+    because the bounds lie here: the first half reports u from 90 to 450
+    degrees - a whole turn - on a face whose area is half of one.
+    """
+    doc = _plate("mirrored", width=60)
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "cut",
+            "props": {
+                "plane": "on:body.end",
+                "profile": [{"circle": 10, "at": [60, 40], "tag": "c"}],
+            },
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "notch",
+            "props": {"sketch": "cut", "distance": "through", "mode": "cut"},
+        }
+    )
+    doc.apply(
+        {"op": "create", "kind": "mirror", "name": "m", "props": {"of": "plate", "plane": "x=60"}}
+    )
+
+    drawing = _hole_sheet(doc)
+    assert len(drawing.holes) == 1, drawing.holes
+    row = drawing.holes[0]
+    assert row["dia_mm"] == 10.0 and row["depth"] == "THRU"
+    assert (row["x"], row["y"]) == (60.0, 40.0)
+    assert row["name"] == "notch.side.c+m.notch.side.c"
+    assert drawing.notes == ["\u00d810 THRU"]
+
+    inv = doc.parts["plate"].inventory()
+    halves = [f for f in inv.faces if f.surface_type == "cylinder"]
+    assert len(halves) == 2
+    assert [round(shapes.cylinder_sweep_deg(f.shape), 6) for f in halves] == [180.0, 180.0]
+    from OCP.BRepTools import BRepTools  # the bounds that lie, pinned as measured
+
+    u0, u1, _, _ = BRepTools.UVBounds_s(halves[0].shape)
+    assert round(math.degrees(u1 - u0), 6) == 360.0
+
+
+def test_a_hole_cut_from_both_sides_is_one_row_and_reads_THRU() -> None:
+    """One hole, two cuts, one row - and the depth is the UNION of the two.
+
+    Drilling a 10 mm plate 5 mm from each side leaves two full-turn walls on
+    one axis. The table printed them as two d10 holes 5 deep, and the deeper
+    of the two is not the answer either: the hole goes through. The wall's
+    reach is the union of its faces' reaches, read in the WALL's frame -
+    the two cuts point their axes opposite ways, and unioning +Z against -Z
+    would read this 10 mm plate as 15.
+    """
+    doc = _plate("both_sides", width=100, height=60)
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "up",
+            "props": {"plane": "XY", "profile": [{"circle": 10, "at": [50, 30], "tag": "u"}]},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "lower",
+            "props": {"sketch": "up", "distance": 5, "mode": "cut"},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "down",
+            "props": {
+                "plane": "on:body.end",
+                "profile": [{"circle": 10, "at": [50, 30], "tag": "d"}],
+            },
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "upper",
+            "props": {"sketch": "down", "distance": 5, "direction": "-", "mode": "cut"},
+        }
+    )
+    drawing = _hole_sheet(doc)
+    assert len(drawing.holes) == 1, drawing.holes
+    row = drawing.holes[0]
+    assert row["dia_mm"] == 10.0 and row["depth"] == "THRU"
+    assert row["name"] == "lower.side.u+upper.side.d"
+    assert drawing.notes == ["\u00d810 THRU"]
+
+
+def test_a_bore_a_keyway_has_cut_into_is_still_a_hole() -> None:
+    """The threshold from below, on the case that would break if it rose.
+
+    A d20 bore with a 3 mm keyway loses the arc between x = 48.5 and 51.5:
+    2 * asin(1.5 / 10) = 17.254 degrees of it, leaving 342.746. That is a
+    hole - a shop bores it - and it is why the closure test is 270 degrees
+    and not 360: a corner radius cannot reach 180, so the margin above it
+    buys room for real holes that a later feature has clipped.
+    """
+    doc = _plate("keyed", width=100, height=60)
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "sketch",
+            "name": "cut",
+            "props": {
+                "plane": "on:body.end",
+                "profile": [
+                    {"circle": 20, "at": [50, 30], "tag": "b"},
+                    {"rect": [3, 4], "at": [48.5, 38], "tag": "k"},
+                ],
+            },
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "extrude",
+            "name": "bore",
+            "props": {"sketch": "cut", "distance": "through", "mode": "cut"},
+        }
+    )
+    drawing = _hole_sheet(doc)
+    assert [row["dia_mm"] for row in drawing.holes] == [20.0]
+    assert drawing.holes[0]["depth"] == "THRU"
+
+    inv = doc.parts["plate"].inventory()
+    (bore,) = [f for f in inv.faces if f.surface_type == "cylinder"]
+    swept = shapes.cylinder_sweep_deg(bore.shape)
+    assert round(swept, 3) == 342.746
+    assert round(360.0 - 2.0 * math.degrees(math.asin(1.5 / 10.0)), 3) == 342.746  # the arithmetic
+    assert swept > dims_mod.FULL_TURN_MIN_DEG
+
+
+def test_a_through_a_blind_and_a_counterbored_hole_all_still_table() -> None:
+    """The positives the closure test must not touch, counterbore included.
+
+    A counterbore is two coaxial walls of DIFFERENT radii, so it tables under
+    each of its own diameters (d16 x 4 deep and d10 through the rest) and the
+    coaxial merge - which adds sweeps within one radius - never folds them
+    into one row or counts either twice.
+    """
+    doc = _plate("drilled", width=100, height=60)
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "hole",
+            "name": "thru",
+            "props": {"on": "body.end", "at": [[20, 30]], "dia": 10},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "hole",
+            "name": "bl",
+            "props": {"on": "body.end", "at": [[50, 30]], "dia": 8, "depth": 5},
+        }
+    )
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "hole",
+            "name": "cb",
+            "props": {
+                "on": "body.end",
+                "at": [[80, 30]],
+                "dia": 10,
+                "seat": {"kind": "counterbore", "dia": 16, "depth": 4},
+            },
+        }
+    )
+    drawing = _hole_sheet(doc)
+    assert [(r["name"], r["dia_mm"], r["depth"]) for r in drawing.holes] == [
+        ("thru.1.wall", 10.0, "THRU"),
+        ("bl.1.wall", 8.0, "5"),
+        ("cb.1.seat.wall", 16.0, "4"),
+        ("cb.1.wall", 10.0, "6"),
+    ]
 
 
 def test_the_parts_list_reads_the_bom_when_the_document_has_an_assembly() -> None:

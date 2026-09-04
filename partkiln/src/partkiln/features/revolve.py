@@ -97,6 +97,7 @@ def build_revolve(doc: Any, part: Any, feature: Any, assumed: dict[str, Any]) ->
             f"revolve {feature.id}: angle must be in (0, 360], got {angle:g}.", code="pk_needs"
         )
     profile = build_profile(sketch, frame)
+    assumed.update(profile.assumed)
     tools: list[Any] = []
     tool_roles: list[tuple[str, Any]] = []
     multi = len(profile.faces) > 1

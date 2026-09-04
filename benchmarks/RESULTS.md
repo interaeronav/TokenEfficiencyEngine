@@ -29,7 +29,7 @@ contact sheet and one 300-token detail crop in total.
 
 | | Tokens | Round-trips/attaches | Saving |
 |---|---|---|---|
-| naive re-attach | 65,048 | 44 | |
+| naive re-attach | 65,052 | 44 | |
 | TEE ingest-once | 4,467 | 12 | 93.1% |
 
 Fixture media are deliberately tiny; real drawing sets, 4K site
@@ -112,14 +112,14 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,033** |
 | same, by `model_dump()` | 17 | 2,500 |
-| flat server, one tool per capability | 139 | 15,851 |
+| flat server, one tool per capability | 157 | 19,438 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 122 tools they contribute live behind the
-meta-tools. Reaching one costs 548 tokens (one search +
+surface - the 140 tools they contribute live behind the
+meta-tools. Reaching one costs 545 tokens (one search +
 one describe), so the flat design only pays off in a session that
-uses more than ~28 distinct long-tail tools.
+uses more than ~35 distinct long-tail tools.
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 
@@ -220,7 +220,7 @@ Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
 | seeing | `tee_media`, default budget (1002x563) | 756 |
 | blind | `sense_describe` (local model reads it) | 65 |
 
-**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 14.5s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
+**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 15.1s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
 
 This supersedes an informal *33x* quoted during A47, which compared the
 PROVIDER's input tokens against the answer rather than what a host pays.
@@ -255,11 +255,11 @@ diff, and one `sk_fit` call.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (outlines + draped mesh) | 80,408 | 5 |
-| tee (batch + diff + sk_fit) | 599 | 2 |
+| naive (outlines + draped mesh) | 80,459 | 5 |
+| tee (batch + diff + sk_fit) | 597 | 2 |
 | **saved** | **99.3%** | |
 
-Drape took 19.6 s; seams closed to 0.577 mm mean; worn: True.
+Drape took 12.3 s; seams closed to 0.35 mm mean; worn: True.
 The always-loaded surface is unchanged at 17 tools - seamkiln joins through
 the Adapter protocol and fourteen `sk_*` virtual tools (six at A53; the A65
 audit added `sk_hardware`, `sk_avatar`, `sk_touch`, `sk_handoff` and friends).
@@ -275,11 +275,11 @@ call.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (outlines + dressed mesh + per-frame meshes + hardware) | 549,090 | 11 |
-| tee (batch + diff + sk_hardware) | 1,432 | 2 |
+| naive (outlines + dressed mesh + per-frame meshes + hardware) | 548,926 | 11 |
+| tee (batch + diff + sk_hardware) | 1,486 | 2 |
 | **saved** | **99.7%** | |
 
-The batch took 57.4 s end to end; 1 zipper fitted. Surface unchanged: 17 tools.
+The batch took 39.2 s end to end; 1 zipper fitted. Surface unchanged: 17 tools.
 
 ## Mechanical CAD: sketch -> features -> drawing -> STEP (A66)
 
@@ -299,7 +299,7 @@ honest ways to learn this part and both are expensive:
 
 The inventory alone is 3,038 tok and the three screenshots 3,108 -
 and neither answers "is the minimum wall over 2 mm", which is what the
-question actually was. The batch took 0.29 s.
+question actually was. The batch took 0.06 s.
 Surface unchanged: 17 tools.
 
 ## Mechanical CAD: one parameter moves (A66)
@@ -316,6 +316,18 @@ the 26-face inventory and takes the three screenshots again.
 | **saved** | **97.4%** | |
 
 The regen took 0.05 s. Surface unchanged: 17 tools.
+
+## Point-cloud scan prep: level, scale-check, section (A67)
+
+A 279,352-point room scan taken from raw file to a scale-verified DXF the owner can trace.
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (reads the cloud, every 40th point) | 91,820 | 2 |
+| TEE (`pc_open` to `pc_slice`, digests only) | 682 | 6 |
+
+**Saving: 99.3%.** The naive arm is already being flattered - reading 1 point in 40 is far more generous than a real tool that returns what it holds. The lane's own cap (no array over 64 elements, no string over 2 KB) is what keeps the TEE arm flat as the cloud grows: the same five calls cost the same whether the scan is 280 K points or 15 M.
+
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 

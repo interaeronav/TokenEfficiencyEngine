@@ -212,8 +212,70 @@ def _sidecar_python(spec: dict[str, Any]) -> Path | None:
     return cand if cand.is_file() else None
 
 
+def _partkiln_payload(path: Path) -> dict[str, Any] | None:
+    """The same numbers from a partkiln kernel this process already holds warm.
+
+    A66 gap 2 - two OCCT processes where one would do. With no in-process
+    CadQuery (the shipped bundle drops the `cad` extra on purpose) every
+    STEP measurement spawns a one-shot interpreter that pays a fresh OCP
+    import to read one volume: **1,531.2 ms** on bracket.step (88,585 B,
+    2026-09-04, best of three) against **23.0 ms** for the two round trips
+    this makes - `measure mass` for volume/area/bbox and `measure faces` for
+    validity - on a kernel that is already up. Both are read-only: partkiln
+    measures a `path` by reading the shape, never by importing it into the
+    live document, so a read-compute tool stays one.
+
+    Nothing is started here. `live_kernel()` answers None for a cold,
+    warming, dead or absent kernel and the one-shot route below runs exactly
+    as it did, so this can only make the call faster, never possible where
+    it was not. Any refusal from the routed read also falls through to that
+    route: an optimisation must never turn a measurable file into an error.
+
+    `engine` says `partkiln`, and it matters. A caller using `cad_measure`
+    as a second reader of a partkiln export is then reading the SAME kernel
+    in the same process - not a cross-check at all (PROGRESS gap 10), and
+    the field is the only place that admits it. The volume and area also
+    arrive at the kernel's own 3 dp rather than this module's 6: measured
+    2.05e-09 relative on the bracket, far under the 1e-6 the acceptance
+    session asserts, but a real difference and not a hidden one.
+    """
+    try:
+        from tee.adapters.partkiln.adapter import live_kernel
+    except ImportError:  # a build without the partkiln adapter
+        return None
+    kernel = live_kernel()
+    if kernel is None:
+        return None
+    try:
+        mass = kernel.call("measure", {"what": "mass", "path": str(path)})
+        faces = kernel.call("measure", {"what": "faces", "path": str(path)})
+        bodies = faces.get("bodies") or []
+        if not bodies:
+            return None
+        return {
+            "kind": "solid",
+            "volume": float(mass["volume_mm3"]),
+            "area": float(mass["area_mm2"]),
+            "bbox": [float(v) for v in mass["bbox_mm"]],
+            "valid": all(bool(body.get("valid")) for body in bodies),
+            "where": "partkiln",
+        }
+    except Exception:
+        return None  # the one-shot route was going to run anyway; let it
+
+
 def _measure_step(path: Path, spec: dict[str, Any], started: float) -> dict[str, Any]:
-    """STEP/BREP via CadQuery - in-process if present, else the sidecar."""
+    """STEP/BREP through a BREP kernel - the cheapest one already running.
+
+    Three rungs in cost order, all measured end to end through `measure()`
+    on bracket.step (88,585 B, 2026-09-04, best of three): an in-process
+    CadQuery, 10.0 ms; a partkiln kernel this process already holds warm,
+    23.0 ms over the wire (A66 gap 2); the one-shot CAD sidecar, 1,531.2 ms,
+    nearly all of it a fresh interpreter paying a fresh OCP import. The
+    middle rung is skipped whenever no partkiln kernel is warm, which is
+    every server that does not serve one.
+    """
+    payload: dict[str, Any] | None = None
     if have("cadquery"):
         import cadquery as cq
 
@@ -239,6 +301,8 @@ def _measure_step(path: Path, spec: dict[str, Any], started: float) -> dict[str,
                 fix="Check the file is a valid solid model.",
             ) from exc
     else:
+        payload = _partkiln_payload(path)
+    if payload is None:
         py = _sidecar_python(spec)
         if py is None:
             raise TeeError(
@@ -298,7 +362,9 @@ def measure(spec: dict[str, Any]) -> dict[str, Any]:
     """Scalar geometry facts about an existing solid.
 
     Binary STL is measured HERE with no dependency at all. STEP and BREP
-    need a real kernel and go in-process or to the sidecar (A46 P1b)."""
+    need a real kernel: in-process CadQuery (A46 P1b), else a partkiln
+    kernel already warm in this process (A66 gap 2), else the one-shot
+    sidecar. `engine` in the answer names which one replied."""
     path = Path(str(spec.get("path") or "")).expanduser()
     if not str(spec.get("path") or "") or not path.is_file():
         raise TeeError(
