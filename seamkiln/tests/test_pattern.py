@@ -260,8 +260,12 @@ def test_dxf_round_trip_is_lossless(tmp_path) -> None:
     back, report = read_dxf(path, flavour="astm")
     assert report.pieces == 4
     assert report.unknown_layers == {}
+    # ezdxf rebuilds the layout blocks in memory for any file it loads; the
+    # bytes we wrote carry neither (test_dxf_clo holds that), and the reader
+    # skipping them is what lets it read anyone else's file too.
     assert report.skipped_blocks == ["*Model_Space", "*Paper_Space"]
-    assert report.insunits == 4  # millimetres survived the trip
+    assert report.insunits == 0, "R12 has no $INSUNITS; the unit is the SST"
+    assert report.units_source == "header UNITS: METRIC"
 
     for piece in original.panels:
         got = back.panel(piece.id)
@@ -301,12 +305,13 @@ def test_an_unknown_layer_refuses_and_names_the_dialect(tmp_path) -> None:
     with pytest.raises(DxfDialectError) as excinfo:
         read_dxf(path, flavour="astm")
     message = str(excinfo.value)
-    assert "layer 77" in message
+    assert "layer 77 holds 1 LWPOLYLINE across 1 piece" in message  # what, not just how much
     assert "'astm'" in message
     assert "strict=False" in message  # the fix is named, not just the problem
 
     lenient, report = read_dxf(path, flavour="astm", strict=False)
-    assert report.unknown_layers == {"77": 1}
+    assert report.unknown_layers == {"77": {"entities": {"LWPOLYLINE": 1}, "pieces": 1}}
+    assert report.observed_layers == ["1"]
     assert len(lenient.panels) == 1
 
 
@@ -339,10 +344,20 @@ def test_dialects_declare_whether_they_were_verified() -> None:
 
 
 def test_written_dxf_reports_the_r13_gap_rather_than_implying_it(tmp_path) -> None:
+    """R13 is still unwritable, and the report still says so - but the gap is
+    now closed downwards, to the R12 the receiving systems actually read,
+    not upwards to an R2000 none of them accept."""
     report = write_dxf(tee_block(), tmp_path / "t.dxf", flavour="astm")
-    assert report["dxfversion"] == "R2000"
+    assert report["dxfversion"] == "R12"
     assert "R13" in report["dxfversion_note"]
-    assert report["layout_blocks_present"] == ["*Model_Space", "*Paper_Space"]
+    assert report["gerber_safe"] is True
+    assert report["layout_blocks_present"] == []
+    assert report["drawing_unit_mm"] == 10.0 and report["sst_units"] == "METRIC"
+
+
+def test_an_unknown_dxf_version_refuses_and_names_the_default(tmp_path) -> None:
+    with pytest.raises(DxfDialectError, match="R12 is the default"):
+        write_dxf(tee_block(), tmp_path / "t.dxf", version="R13")
 
 
 # -- plotting ----------------------------------------------------------------

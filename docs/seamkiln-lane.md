@@ -51,6 +51,7 @@ s.save_script("coat.json")          # replays to the same garment, anywhere
 | --- | --- | --- |
 | `block`, `panel`, `seam`, `allowance`, `delete` | draft the pattern | A53 |
 | `load` | a pattern from a DXF (AAMA/ASTM) in place of the current one; `units_mm` overrides the file's unit | A65 |
+| `sew` | two runs of edges joined at shared breakpoints: a sleeve cap across a three-edge armhole in one command, the gather the runs' own ratio | A65 |
 | `body` | `mannequin` · `anny` · `posed` · **`figure`** (`build` male · female, `chest_m`) · `custom` | A53 / A58 / A65 |
 | `arrange` | place panels; `arrangement` = `auto` · `cylinder` · `wrap`; `dress`; `roles` names a CAD pattern's front, back and sleeves | A53 / A65 |
 | `drape`, `fit`, `techpack`, `export` | simulate, measure, document, write files | A53 |
@@ -305,19 +306,47 @@ and the reason its bridge cannot import a mesh.
 
 ## Interchange, fabric and licences
 
-Unchanged from A53 and still enforced: DXF in both dialects (AAMA unverified
-and flagged), 1:1 plotter sheets, 3D with exact UVs, the tech pack; every
+Unchanged from A53 and still enforced: DXF in both dialects (AAMA's low
+layers now confirmed against a real Optitex export; the table stays flagged
+until the rest are), 1:1 plotter sheets, 3D with exact UVs, the tech pack; every
 bundled fabric card is tier `plausible` and says so; the licence gate
 (`seamkiln/tests/test_licences.py`) fails the build if Triangle, `smplx` or
 ArcSim data enters the dependency closure and names the replacement.
 
-`read_dxf` reads what pattern CAD actually exports (measured on CLO 2024
-DXF-AAMA/ASTM files, 2026-09-04): R12 heavy `POLYLINE`s as well as
-`LWPOLYLINE`s; the unit from `units_mm=` first, then a non-zero `$INSUNITS`,
-then the header's "UNITS: METRIC / ENGLISH" system text (METRIC is
-centimetres; R12 has no `$INSUNITS` at all), else millimetres with a note -
-`ReadReport.units_source` says which won, and a piece outside 20 mm-3 m is
-noted rather than handed back. "PIECE NAME:" names the piece, SIZE /
+**The writer emits R12, because that is what pattern CAD reads.** Measured
+across four real files from three vendors, every one is `AC1009`. Gerber's
+parser is stricter still - it wants R12 with no `*Model_Space`/`*Paper_Space`
+block definitions, no TABLES section and 7-bit ASCII - so the file goes out
+through `ezdxf.addons.gerber_D6673`. We used to write R2000 to keep
+`$INSUNITS`, which was backwards: real files do not set it, and the one that
+did set it was wrong (below). R12 carries no `$INSUNITS`, so the writer emits
+the standard's mandatory Style System Text instead, in Title Case - the form
+the standard describes and Optitex writes; CLO's ALL CAPS is the
+non-conforming one, and the reader takes either. `version="R2000"` remains a
+named opt-out for a generic CAD viewer and reports `gerber_safe: False`.
+
+**A declaration is a claim; a measurement is evidence.** `read_dxf` resolves
+the unit from `units_mm=` first, then **a control piece**, then a non-zero
+`$INSUNITS`, then the header's "UNITS: METRIC / ENGLISH" text (METRIC is
+centimetres), else millimetres with a note. The control piece sits above the
+declarations because a purchased Optitex block declared `$INSUNITS 6`
+(metres) over geometry drawn in inches - trusting it made a 36-inch dress
+36 metres long, with every seam still closing. That file carried its own
+antidote, as pattern CAD does: a square marked `DO NOT CUT` and labelled
+`10"X10"`, there so the receiving system can check its own scale. When the
+two disagree the control piece wins, `units_conflict` reports both numbers
+and the ratio, and a note says so - loudly, because a file that contradicts
+itself is one you want to know about. A control piece is metadata and never
+comes back as a panel.
+
+`read_dxf` also reads R12 heavy `POLYLINE`s as well as `LWPOLYLINE`s, and
+`ReadReport.units_source` says which rung won; a piece outside 20 mm-3 m is
+noted rather than handed back. **An unknown layer says what it holds** -
+`layer 15 holds 15 TEXT across 6 pieces` - and `strict=True` refuses rather
+than guessing, because seamkiln will not invent a meaning for someone else's
+convention; `observed_layers` records which of the defined layers a file
+actually exercised, which is the evidence a `verified` flag needs.
+"PIECE NAME:" names the piece, SIZE /
 QUANTITY / "# n" land in `meta`, the style header in provenance. Layers
 84-87 are the standard's quality-validation curves, not geometry: counted,
 measured against the boundary (`qv_deviation_mm`, the chord error the import
@@ -329,10 +358,13 @@ catches a file that changed); through TEE it is the `load` batch op and
 `sk_interchange` `action="read"`, which calls the same verb.
 
 **A pattern from CAD, draped.** A DXF carries no seams and names its pieces
-as its maker did, so the import is three commands: `load`; one `seam` per
-join, with `t0`/`t1` splitting a sleeve cap across the three edges of an
-armhole at shared fractions of each run's length; then `arrange` with
-`roles` (`front` · `back` · `sleeve_l` · `sleeve_r`). One convention to
+as its maker did, so the import is three commands: `load`; one `sew` per
+join - two runs of edges walked from a shared landmark to a shared
+landmark (the shoulder point to the underarm), split at the union of
+their vertex breakpoints, a sleeve cap across a three-edge armhole in one
+command (a run's edge directions are read off how they touch; a
+single-edge run takes `reverse`); then `arrange` with `roles` (`front` ·
+`back` · `sleeve_l` · `sleeve_r`). One convention to
 know: seamkiln's arm `R` is the one beside the front's +x armhole, and CLO
 draws the front as worn, so CLO's "Manga Esquerda" (the wearer's left) goes
 on arm `R` - given the other way round the seams drag each sleeve across

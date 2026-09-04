@@ -128,7 +128,7 @@ def test_load_reads_a_dxf_and_the_script_replays_it(tmp_path) -> None:
     loaded = Session()
     result = loaded.apply(Command("load", {"path": str(path)}))
     assert result["panels"] == [p.id for p in drafted.pattern.panels]
-    assert result["units_source"] == "$INSUNITS 4" and result["notes"] == []
+    assert result["units_source"] == "header UNITS: METRIC" and result["notes"] == []
     assert len(result["sha256"]) == 16
     assert loaded.fingerprint() == drafted.fingerprint(), "the round trip changed an outline"
     assert [c.op for c in loaded.history] == ["load"]
