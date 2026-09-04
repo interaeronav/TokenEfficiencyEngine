@@ -14,6 +14,9 @@ this shape.
 uv pip install --python server/.venv/bin/python -e partkiln
 
 tee serve --adapter partkiln --project ~/parts
+# or, as the Desktop extension serves it - several lanes, the first is the default:
+tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/parts
+#   then a partkiln batch names its lane:  tee_batch adapter=partkiln ops=[...]
 ```
 
 The surface before A66 was 17 tools / 2,033 tok. After A66: 17 tools /

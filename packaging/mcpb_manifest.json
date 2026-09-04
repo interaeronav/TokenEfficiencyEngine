@@ -26,6 +26,10 @@
         "serve",
         "--adapter",
         "blender",
+        "--adapter",
+        "partkiln",
+        "--adapter",
+        "seamkiln",
         "--project",
         "${user_config.project_root}"
       ]

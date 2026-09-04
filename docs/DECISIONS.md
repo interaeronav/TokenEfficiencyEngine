@@ -1741,3 +1741,38 @@ skinned glTF is written and read by hand rather than adding a dependency —
 which is also the machinery a real studio file will need. Its joint names are
 Mixamo's and asserted **disjoint** from seamkiln's, so the mapping layer
 cannot be satisfied by accident.
+
+## One server, several adapters, and a declared default (2026-09-04)
+
+Owner directive: *"use TEE"*. Driving the new lanes from the model's seat on
+the live Desktop server found them unreachable by construction: the manifest
+served one adapter and the CLI could build only one, while `TeeApp` had taken
+a `dict` of adapters all along.
+
+**`--adapter` repeats, and the FIRST one listed is the declared default.**
+SI-B6 ruled that ambiguity fails loud — a wire-visible default of `fake` once
+broke every real server — and that ruling stands for an app built with
+several adapters and no declared default: `resolve_adapter(None)` still
+raises `adapter_required` listing the choices. But an operator who writes
+`--adapter blender --adapter partkiln` has not been ambiguous; they have
+declared an order. Law 19 says default and declare, so the first name is the
+default and `tee_status` reports it. Blender first in the manifest keeps
+every existing Desktop batch working with no `adapter=`; a batch for another
+lane names it. The alternative — forcing `adapter=` on every Desktop call —
+would have taxed the common case to protect against a mistake the order
+already prevents.
+
+**Serve every lane whether or not its kernel is present.** Measured: a lane
+whose kernel is absent boots in 0.3 s and refuses honestly at call time
+(`pk_kernel_absent`, `seamkiln_unavailable`), and the two adapters cost
+0.003 s and 0.015 s to construct, the 40 s cold `import OCP` running as a
+background job (Law 17). So the manifest lists all three unconditionally;
+the cost on a machine without the kernels is a truthful refusal, and the
+benefit on a machine with them is that the product can reach what it ships.
+
+**An install the running server cannot see is not the server's defect.** An
+editable install is a `.pth` hook `site.py` reads once at start; measured,
+`importlib.invalidate_caches()` does not reveal it and a restart does. The
+hint now says "then restart the server". The first theory — a stale import
+cache in `_need()` — was measured wrong before it was acted on, and that
+order of operations is the point.

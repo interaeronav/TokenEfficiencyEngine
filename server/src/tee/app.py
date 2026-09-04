@@ -110,10 +110,24 @@ class TeeApp:
         project_root: Path | str = ".",
         *,
         allow_code_exec: bool = False,
+        default_adapter: str | None = None,
     ):
         from tee.kernel.machine import MachineLedger
 
         self.adapters = adapters
+        # The DECLARED default for an omitted adapter= (Law 19: default and
+        # declare). `tee serve` sets it to the first --adapter listed, so a
+        # Desktop server holding blender + partkiln + seamkiln still routes an
+        # adapter-less batch to Blender. Checked before any side effect: a
+        # default naming no served adapter is a startup error, not a refusal
+        # the model meets on its first call.
+        if default_adapter is not None and default_adapter not in adapters:
+            known = ", ".join(adapters) or "(none)"
+            raise ValueError(
+                f"default_adapter '{default_adapter}' is not a configured adapter "
+                f"(configured: {known}); list it among the adapters or drop the default."
+            )
+        self.default_adapter = default_adapter
         self.caches: dict[str, SceneCache] = {name: SceneCache() for name in adapters}
         self.checkpoints = CheckpointManager()
         self.jobs = JobManager()
@@ -245,14 +259,22 @@ class TeeApp:
     # -- helpers -----------------------------------------------------------
 
     def resolve_adapter(self, name: str | None) -> str:
-        """Resolve an omitted adapter= to the sole configured adapter.
+        """Resolve an omitted adapter= to the declared default, else the sole
+        configured adapter.
 
-        Real deployments serve one adapter, so omitting the argument must
-        just work there (SI-B6: a wire-visible default of 'fake' failed on
-        every non-test server and taxed each call with an explicit
-        adapter=). Ambiguity fails loud with the configured choices."""
+        Omitting the argument must just work on a real server (SI-B6: a
+        wire-visible default of 'fake' failed on every non-test server and
+        taxed each call with an explicit adapter=). Since 2026-09-04 the
+        Desktop manifest serves blender + partkiln + seamkiln in ONE app, and
+        an operator who wrote `--adapter blender --adapter partkiln` has
+        DECLARED a default - the first listed - which tee_status reports
+        (Law 19: default and declare). SI-B6's loud failure guards against an
+        UNDECLARED default, so an app built with several adapters and no
+        default still fails loud, naming the choices."""
         if name is not None:
             return name
+        if self.default_adapter is not None:
+            return self.default_adapter
         if len(self.adapters) == 1:
             return next(iter(self.adapters))
         known = ", ".join(sorted(self.adapters)) or "(none)"
@@ -272,7 +294,17 @@ class TeeApp:
                 fix=f"Configured adapters: {known}.",
             )
         if not adapter.probe():
-            raise AdapterUnavailable(name, hint=self._busy_hint())
+            unavailable = AdapterUnavailable(name, hint=self._busy_hint())
+            if len(self.adapters) > 1:
+                # A multi-adapter server routes an omitted adapter= to its
+                # declared default; when that DCC is down the caller who
+                # wanted another lane needs the way there, not just "start
+                # Blender". Single-adapter servers keep the old text.
+                others = ", ".join(n for n in self.adapters if n != name)
+                unavailable.fix = (
+                    f"{unavailable.fix} Or pass adapter= to use another served adapter: {others}."
+                )
+            raise unavailable
         return adapter
 
     def cache(self, name: str) -> SceneCache:
@@ -459,6 +491,9 @@ class TeeApp:
             # what A45 forbids.
             "rooted_at": self._rootedness(),
         }
+        if self.default_adapter is not None:
+            # Declared, so an omitted adapter= is never a guess (Law 19).
+            payload["default_adapter"] = self.default_adapter
         if self.registry.disabled:
             payload["disabled_tools"] = sorted(self.registry.disabled)
         if self.gateway is not None:

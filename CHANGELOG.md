@@ -3,6 +3,32 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased
+
+### One server, three lanes
+
+`tee serve --adapter blender --adapter partkiln --adapter seamkiln` — the
+flag repeats, one server holds every adapter named, and **the first listed is
+the declared default**: a batch or read with no `adapter=` goes to it, and
+`tee_status` says which. Blender first, so nothing a Desktop session already
+does changes; `adapter=partkiln` or `adapter=seamkiln` reaches the lanes that
+until now could not be reached from the product that installs them. Measured
+from the Desktop extension's interpreter: boot 0.37 s, 17 tools, three
+adapters connected, `pk_probe` answering through the production sidecar.
+
+Serving a lane whose kernel is not installed costs a 0.3 s boot and an honest
+refusal naming the install — so the manifest lists all three unconditionally.
+
+### What it refuses, and why
+
+A multi-adapter app built *without* a declared default still refuses an
+omitted `adapter=` and lists the choices (SI-B6); only an explicit order
+declares a default. seamkiln's install hint now ends "then restart the
+server", because an editable install is a `.pth` hook read at interpreter
+start — measured, `invalidate_caches()` does not reveal it. And
+`--adapter fake --allow-code-exec` had been silently dropping the flag; it is
+honoured now.
+
 ## 0.21.0 — 2026-09-04
 
 Everything 0.20.0 left named as a gap, plus the defects that closing them

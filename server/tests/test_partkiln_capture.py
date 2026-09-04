@@ -6,10 +6,12 @@ is worse than a plain no: the reader stops reading and goes looking for it.
 So these tests hold the fix to two things at once - that it names the manual
 route STEP BY STEP, and that every tool it names is a tool that exists.
 
-Why the route stays manual, checked here so the reason cannot rot: a server
-built by `cli._build_partkiln_app` holds exactly ONE adapter, so there is no
-Blender adapter in this process for `as_import` to run its batch on, and
-`capture()` is handed no app to reach the asset lane through.
+Why the route stays manual, checked here so the reason cannot rot:
+`capture()` is handed no app to reach the asset lane through, and the
+partkiln lane builds no Blender adapter of its own - one is in the process
+only when the operator lists `--adapter blender` too (the Desktop manifest
+does, since 2026-09-04), and even then it is `as_import`'s batch, not
+`capture()`, that reaches it.
 """
 
 from __future__ import annotations
@@ -76,13 +78,17 @@ def test_the_text_routes_are_still_offered_first(refusal) -> None:
     assert fix.index("pk_drawing") < fix.index("pk_export")
 
 
-def test_a_partkiln_server_really_does_hold_no_blender_adapter() -> None:
+def test_the_partkiln_lane_builds_no_blender_adapter_of_its_own() -> None:
     """The reason the route is manual, pinned so a later reader does not
-    have to take the docstring's word for it."""
+    have to take the docstring's word for it. Until 2026-09-04 a partkiln
+    server held exactly one adapter; now `tee serve` holds every adapter
+    listed in ONE app, so what stays true is narrower: the partkiln lane
+    constructs only `PartkilnAdapter`, and `capture()` takes no app."""
     import inspect
 
     from tee import cli
 
-    source = inspect.getsource(cli._build_partkiln_app)
-    assert 'TeeApp({"partkiln": adapter}' in source
+    source = inspect.getsource(cli._partkiln_lane)
+    assert "PartkilnAdapter(" in source
     assert "blender" not in source.lower()
+    assert "app" not in inspect.signature(PartkilnAdapter.capture).parameters

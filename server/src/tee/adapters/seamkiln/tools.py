@@ -14,9 +14,10 @@ from typing import Any
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
+# measured: a .pth written after startup stays invisible (invalidate_caches() too) until restart
 INSTALL_HINT = (
     "seamkiln is not installed. From the repo root: "
-    "uv pip install --python <this interpreter> -e seamkiln"
+    "uv pip install --python <this interpreter> -e seamkiln, then restart the server"
 )
 
 

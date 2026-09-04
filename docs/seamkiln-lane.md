@@ -10,6 +10,10 @@ protocol, so it arrives with **no new always-loaded tools** —
 ```bash
 uv pip install -e seamkiln            # the kernel
 tee serve --adapter seamkiln --project ~/patterns
+# or, as the Desktop extension serves it - several lanes, the first is the default:
+tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/patterns
+#   then a seamkiln batch names its lane:  tee_batch adapter=seamkiln ops=[...]
+#   an editable `-e seamkiln` install is a .pth read at interpreter start: restart the server after it
 ```
 
 The surface before A53 was 17 tools / 2,033 tok. After A65: 17 tools /

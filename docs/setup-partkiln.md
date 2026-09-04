@@ -56,6 +56,17 @@ notes the respawn in the next diff.
 
 ## Serve
 
+**From Claude Desktop you do not start a server; the extension does, and it
+serves three lanes at once** (`--adapter blender --adapter partkiln
+--adapter seamkiln`, since the multi-adapter change of 2026-09-04). Blender
+is the declared default, so a batch with no `adapter=` goes there; a partkiln
+batch says `adapter=partkiln`. `pk_probe` answering `pk_not_served` means an
+older one-adapter bundle is installed, not a missing kernel - reinstall the
+current `.mcpb`. The kernel itself still has to be installed on one of the
+two routes below; the extension's own venv is wiped on every upgrade, which
+is why the sidecar route exists.
+
+
 ```bash
 tee serve --adapter partkiln --project ~/parts
 ```

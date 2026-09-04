@@ -12227,3 +12227,29 @@ default), and the manifest serves `--adapter blender --adapter partkiln
 working unchanged. Construction cost measured in the extension interpreter:
 SeamkilnAdapter 0.015 s, PartkilnAdapter 0.003 s + the background warm job.
 Surface must stay 17 tools / 2,033 tok.
+
+**Outcome — one server, three lanes (2026-09-04).** `--adapter` repeats;
+one `TeeApp` holds every adapter named; the first listed is the declared
+default and `tee_status` says so. Measured from the Desktop extension's own
+interpreter, running the working copy:
+
+```
+tee serve --adapter blender --adapter partkiln --adapter seamkiln
+  boot 0.37 s   17 tools   adapters: blender 5.2.0 LTS, partkiln, seamkiln   default_adapter: blender
+  tee_call pk_probe   -> ok, mode sidecar (warming, then warm)      not pk_not_served
+  tee_call sk_avatar  -> ok, bodies / joints / figure_parts / gaits
+  tee_scene_summary, no adapter=  -> Blender's 155 entities            the default, declared
+```
+
+Server suite **1,484 passed / 12 skipped / 116 deselected**; surface
+unchanged at **17 tools / 2,033 tok**; single-adapter invocations produce
+byte-identical tool sets (same count, same SHA) for every adapter. Twelve new
+tests run the real `cmd_serve`; against HEAD's `cli.py`/`app.py` **11 fail,
+1 passes** — the pass being SI-B6's loud `adapter_required`, deliberately
+preserved for an app built with several adapters and no declared default.
+One pre-existing quirk fell out: `--adapter fake --allow-code-exec` had been
+silently dropping the flag; it is honoured now like every other adapter.
+
+The manifest serves all three, blender first. **It reaches Desktop only with
+the next bundle** — the installed 0.21.0 still runs its own `src/` and its
+own one-adapter command — so this is cut as 0.21.1 below.

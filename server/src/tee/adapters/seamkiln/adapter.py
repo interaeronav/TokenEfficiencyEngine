@@ -26,9 +26,10 @@ from typing import Any
 from tee.kernel.adapter import AdapterInfo, Diff, Entity
 from tee.kernel.errors import TeeError
 
+# measured: a .pth written after startup stays invisible (invalidate_caches() too) until restart
 INSTALL_HINT = (
     "seamkiln is not installed. From the repo root: "
-    "uv pip install --python <this interpreter> -e seamkiln"
+    "uv pip install --python <this interpreter> -e seamkiln, then restart the server"
 )
 BUILTIN_BLOCKS = ("tee",)
 DEFAULT_PARTICLE_MM = 15.0

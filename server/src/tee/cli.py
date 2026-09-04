@@ -5,85 +5,127 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING, NamedTuple
 
 from tee import __version__
 
-
-def _build_fake_app(project: str):
+if TYPE_CHECKING:
     from tee.app import TeeApp
+    from tee.kernel.adapter import Adapter
+
+
+class Lane(NamedTuple):
+    """What one `--adapter NAME` contributes to the served app.
+
+    Building the adapter and registering its tools are two phases because
+    the app in between is SHARED: `tee serve --adapter blender --adapter
+    partkiln --adapter seamkiln` (the Desktop manifest since 2026-09-04)
+    holds every adapter named in ONE TeeApp, so a lane cannot construct the
+    app itself. It yields its adapter; `attach` runs once the app exists -
+    partkiln's warm-up job must land in the shared app's job manager, and
+    Blender's bl_*/hb_* tools register on the shared registry."""
+
+    name: str
+    adapter: Adapter
+    attach: Callable[[TeeApp], None] | None = None
+
+
+def _fake_lane() -> Lane:
     from tee.kernel.adapter import FakeAdapter
 
-    return TeeApp({"fake": FakeAdapter()}, project_root=Path(project))
+    return Lane("fake", FakeAdapter())
 
 
-def _build_blender_app(project: str, host: str, port: int, allow_code_exec: bool):
+def _blender_lane(host: str, port: int) -> Lane:
     from tee.adapters.blender.adapter import BlenderAdapter
     from tee.adapters.blender.tools import register_blender_tools
     from tee.adapters.blender.wire import BlenderWire
-    from tee.app import TeeApp
 
     adapter = BlenderAdapter(BlenderWire(host=host, port=port))
-    app = TeeApp({"blender": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
-    register_blender_tools(app, adapter)
-    from tee.adapters.blender.homebuilder import register_hb_tools
 
-    register_hb_tools(app, adapter)  # the joinery lane (A37); refuses w/ fix if HB absent
-    return app
+    def attach(app: TeeApp) -> None:
+        register_blender_tools(app, adapter)
+        from tee.adapters.blender.homebuilder import register_hb_tools
+
+        register_hb_tools(app, adapter)  # the joinery lane (A37); refuses w/ fix if HB absent
+
+    return Lane("blender", adapter, attach)
 
 
-def _build_unreal_app(project: str, host: str, port: int, allow_code_exec: bool):
+def _unreal_lane(host: str, port: int) -> Lane:
     from tee.adapters.unreal.adapter import UnrealAdapter
     from tee.adapters.unreal.tools import register_unreal_tools
     from tee.adapters.unreal.wire import UnrealWire
-    from tee.app import TeeApp
 
     adapter = UnrealAdapter(UnrealWire(host=host, port=port))
-    app = TeeApp({"unreal": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
-    register_unreal_tools(app, adapter)
-    return app
+    return Lane("unreal", adapter, lambda app: register_unreal_tools(app, adapter))
 
 
-def _build_seamkiln_app(project: str, allow_code_exec: bool):
+def _seamkiln_lane(project: str) -> Lane:
     """seamkiln needs no bridge and no running application - the garment
     kernel is a library, so the adapter is live the moment it is built."""
     from tee.adapters.seamkiln import SeamkilnAdapter
-    from tee.app import TeeApp
 
-    adapter = SeamkilnAdapter(project)
-    return TeeApp(
-        {"seamkiln": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec
-    )
+    return Lane("seamkiln", SeamkilnAdapter(project))
 
 
-def _build_partkiln_app(project: str, allow_code_exec: bool):
+def _partkiln_lane(project: str) -> Lane:
     """A66: partkiln headless. Like seamkiln the kernel is a library, so the
     adapter is live the moment it is built - but unlike seamkiln it may live
     in a sidecar interpreter and it pays a 26 s cold `import OCP` (P0a). Law
-    17 says no call ever waits on that, so the import is submitted here as an
-    interactive job and `probe`, `tee_scene_summary` and `tee_checkpoint`
-    answer from the in-process mirror until it lands."""
+    17 says no call ever waits on that, so the import is submitted as an
+    interactive job - on the SHARED app's job manager, hence in `attach` -
+    and `probe`, `tee_scene_summary` and `tee_checkpoint` answer from the
+    in-process mirror until it lands."""
     from tee.adapters.partkiln import PartkilnAdapter
-    from tee.app import TeeApp
     from tee.config import ProjectConfig
 
     config = ProjectConfig.load(project)
     adapter = PartkilnAdapter(project, config=config.partkiln)
-    app = TeeApp({"partkiln": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
-    adapter.submit_warm(app.jobs)  # jobs.submit("partkiln_warm", ..., qos="interactive")
-    return app
+    # jobs.submit("partkiln_warm", ..., qos="interactive")
+    return Lane("partkiln", adapter, lambda app: adapter.submit_warm(app.jobs))
 
 
-def _build_godot_app(project: str, port: int, allow_code_exec: bool):
+def _godot_lane(project: str, port: int) -> Lane:
     """A49: Godot headless. The adapter imports the project first if it has
     never been imported - a project without a .godot directory hangs
     `--headless -s` silently, which is a duty rather than a caveat."""
     from tee.adapters.godot import GodotAdapter, GodotWire
-    from tee.app import TeeApp
 
     adapter = GodotAdapter(wire=GodotWire(port=port), project=Path(project))
     adapter.ensure_bridge(repo_root=Path(__file__).resolve().parents[3])
-    return TeeApp({"godot": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
+    return Lane("godot", adapter)
+
+
+def build_app(lanes: list[Lane], project: str, *, allow_code_exec: bool) -> TeeApp:
+    """ONE TeeApp for every lane, in the order given.
+
+    The first lane is the declared default for an omitted adapter= - an
+    operator who wrote `--adapter blender --adapter partkiln` has said which
+    one, so the kernel routes there and tee_status reports it (Law 19),
+    while a library caller who builds several adapters with no default keeps
+    SI-B6's loud `adapter_required`. Lanes attach only after the app exists,
+    because what they attach (tools, the partkiln warm-up job) belongs to
+    the shared app, not to a private one per adapter."""
+    from tee.app import TeeApp
+
+    adapters: dict[str, Adapter] = {}
+    for lane in lanes:
+        if lane.name in adapters:
+            raise ValueError(f"adapter '{lane.name}' is listed twice; name each adapter once")
+        adapters[lane.name] = lane.adapter
+    app = TeeApp(
+        adapters,
+        project_root=Path(project),
+        allow_code_exec=allow_code_exec,
+        default_adapter=lanes[0].name if lanes else None,
+    )
+    for lane in lanes:
+        if lane.attach is not None:
+            lane.attach(app)
+    return app
 
 
 def _attach_extract(app, project: str, *, with_handoff: bool):
@@ -204,17 +246,14 @@ def _attach_uefn(app, project: str) -> None:
     register_uefn_tools(app, Path(project))
 
 
-def _build_freecad_app(project: str, allow_code_exec: bool):
+def _freecad_lane() -> Lane:
     """The fabrication lane (A37): FreeCADAdapter over the neka-nat bridge
     (the P0-decided one bridge) + fc_drawing / fc_export."""
     from tee.adapters.freecad.adapter import FreeCADAdapter
     from tee.adapters.freecad.tools import register_freecad_tools
-    from tee.app import TeeApp
 
     adapter = FreeCADAdapter()
-    app = TeeApp({"freecad": adapter}, project_root=Path(project), allow_code_exec=allow_code_exec)
-    register_freecad_tools(app, adapter)
-    return app
+    return Lane("freecad", adapter, lambda app: register_freecad_tools(app, adapter))
 
 
 def _attach_kb(app, project: str) -> None:
@@ -249,41 +288,57 @@ def _attach_gateway(app, project: str) -> None:
     register_gateway(app, Path(project))
 
 
+ADAPTER_NAMES = ("fake", "blender", "unreal", "freecad", "godot", "seamkiln", "partkiln")
+
+
+def _lane(name: str, args: argparse.Namespace, blender_port: int) -> Lane:
+    if name == "fake":
+        return _fake_lane()
+    if name == "blender":
+        return _blender_lane(args.blender_host, blender_port)
+    if name == "unreal":
+        return _unreal_lane(args.unreal_host, args.unreal_port)
+    if name == "freecad":
+        return _freecad_lane()
+    if name == "seamkiln":
+        return _seamkiln_lane(args.project)
+    if name == "godot":
+        return _godot_lane(args.project, args.godot_port)
+    if name == "partkiln":
+        return _partkiln_lane(args.project)
+    raise ValueError(name)  # unreachable: cmd_serve checks every name first
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
+
+    # `--adapter` repeats; omitted still means fake. Every name is checked
+    # before any adapter is built, so a typo in the third cannot leave the
+    # first two connected to their bridges for nothing.
+    names: list[str] = list(args.adapter or ["fake"])
+    for name in names:
+        if name not in ADAPTER_NAMES:
+            print(
+                f"adapter '{name}' is not recognised; available: {', '.join(ADAPTER_NAMES)}",
+                file=sys.stderr,
+            )
+            return 2
+        if names.count(name) > 1:
+            print(
+                f"adapter '{name}' is listed more than once; name each adapter once",
+                file=sys.stderr,
+            )
+            return 2
 
     config = ProjectConfig.load(args.project)
     blender_port = args.blender_port
     if blender_port == 9876 and config.blender_port:
         blender_port = config.blender_port
 
-    if args.adapter == "fake":
-        app = _build_fake_app(args.project)
-    elif args.adapter == "blender":
-        app = _build_blender_app(
-            args.project, args.blender_host, blender_port, args.allow_code_exec
-        )
-    elif args.adapter == "unreal":
-        app = _build_unreal_app(
-            args.project, args.unreal_host, args.unreal_port, args.allow_code_exec
-        )
-    elif args.adapter == "freecad":
-        app = _build_freecad_app(args.project, args.allow_code_exec)
-    elif args.adapter == "seamkiln":
-        app = _build_seamkiln_app(args.project, args.allow_code_exec)
-    elif args.adapter == "godot":
-        app = _build_godot_app(args.project, args.godot_port, args.allow_code_exec)
-    elif args.adapter == "partkiln":
-        app = _build_partkiln_app(args.project, args.allow_code_exec)
-    else:
-        print(
-            f"adapter '{args.adapter}' is not recognised; available: fake, blender, "
-            "unreal, freecad, godot, seamkiln, partkiln",
-            file=sys.stderr,
-        )
-        return 2
-    extract_store = _attach_extract(app, args.project, with_handoff=args.adapter == "blender")
+    lanes = [_lane(name, args, blender_port) for name in names]
+    app = build_app(lanes, args.project, allow_code_exec=args.allow_code_exec)
+    extract_store = _attach_extract(app, args.project, with_handoff="blender" in app.adapters)
     _attach_assets(app, args.project, extract_store)
     _attach_capture(app, args.project, extract_store)
     _attach_pointcloud(app, args.project)
@@ -361,10 +416,18 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     serve = sub.add_parser("serve", help="run the MCP server on stdio")
+    # No `default=`: argparse APPENDS to a list default, so default=["fake"]
+    # would turn `--adapter blender` into fake + blender. cmd_serve resolves
+    # an omitted flag to ["fake"].
     serve.add_argument(
         "--adapter",
-        default="fake",
-        help="adapter to serve (fake|blender|unreal|freecad|godot|seamkiln|partkiln)",
+        action="append",
+        metavar="NAME",
+        help=(
+            "adapter to serve (fake|blender|unreal|freecad|godot|seamkiln|partkiln); "
+            "repeatable - all named adapters share one server and the FIRST listed is "
+            "the default for an omitted adapter= (default: fake)"
+        ),
     )
     serve.add_argument(
         "--godot-port", type=int, default=9879, help="Godot bridge port (9876/9877 are Blender's)"
