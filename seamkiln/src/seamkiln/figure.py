@@ -144,7 +144,6 @@ ALLOMETRY: dict[str, dict[str, float]] = {
     },
 }
 
-MALE = Build(name="male", allometry=ALLOMETRY["male"])
 
 # ANSUR II means, millimetres, from the 2012 survey's public data files
 # (OpenLab, Penn State: 1,986 women, 4,082 men). Each female value of the
@@ -185,6 +184,23 @@ def shape_ratio(dimension: str) -> float:
     f, m = ANSUR_II[dimension]
     fs, ms = ANSUR_II["stature"]
     return (f / fs) / (m / ms)
+
+
+# The male build's trapezius from the men's rows, the same construction as
+# the female build's: the shoulder line falls from the neck base to the
+# acromion by cervicale minus acromial height, and the slope ends on the
+# deltoid's top. Until 2026-09-04 the male figure had a flat trunk top with
+# the deltoids standing proud of it, and a cap sleeve's shoulder ratcheted
+# outward on it in every walk; every number measured on the flat-topped
+# figure before that date is re-based in PROGRESS.
+_MALE_FLAT = Build(name="male", allometry=ALLOMETRY["male"])
+MALE = replace(
+    _MALE_FLAT,
+    trapezius=(ANSUR_II["cervicaleheight"][1] - ANSUR_II["acromialheight"][1])
+    / ANSUR_II["stature"][1]
+    + _MALE_FLAT.deltoid_r * 0.94
+    - _MALE_FLAT.shoulder_drop,
+)
 
 
 def _female_build() -> Build:

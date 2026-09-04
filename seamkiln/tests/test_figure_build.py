@@ -39,13 +39,15 @@ def _mesh_digest(mesh) -> str:
 
 
 def test_the_male_build_is_the_figure_as_it_was() -> None:
-    """Every A65 number was measured on this mesh; the build parameter must
-    not move a vertex of it. The digest was taken from the committed figure
-    before builds existed (commit 74ca576)."""
+    """The male build is the default, and the build parameter must not move a
+    vertex of it. The digests were re-based on 2026-09-04 when the male
+    figure got its trapezius (the flat-topped figure every A65 number was
+    first measured on read 8244edd0dbca383f / 4baa5771e2cae3c1; the numbers
+    re-measured on this mesh are in PROGRESS)."""
     rest, a = figure(Pose(), height=1.80), figure(Pose.a_pose(), height=1.75, facing_deg=15.0)
     assert figure(Pose(), height=1.80, build="male").vertices.tobytes() == rest.vertices.tobytes()
-    assert _mesh_digest(rest) == "8244edd0dbca383f"
-    assert _mesh_digest(a) == "4baa5771e2cae3c1"
+    assert _mesh_digest(rest) == "37e3345d44683396"
+    assert _mesh_digest(a) == "5b6411bf14a97bff"
     assert joints(Pose(), height=1.80)["build"] == "male"
 
 
@@ -105,18 +107,25 @@ def test_a_chest_girth_fits_the_trunk_and_is_measured_where_cloth_touches() -> N
         figure(Pose(), height=H, chest_m=86.0)
 
 
-def test_the_female_build_has_the_surveys_shoulder_slope_and_the_male_none() -> None:
+def test_both_builds_have_the_surveys_shoulder_slope() -> None:
     """The trapezius: the figure's trunk top was flat at the neck joint with
     the deltoids standing 40 mm proud of it, and a cap sleeve on a walking
     female figure ratcheted one shoulder of its tee outward 36 mm in two
     strides - whichever side, whatever the neckline or the shoulder width.
     With the shoulder line sloping from the neck base to the deltoid tops
     by the survey's cervicale-minus-acromial drop, both shoulders held to
-    a millimetre. The male build keeps the flat top and its digests."""
+    a millimetre; the male build got its own the same day, from the men's
+    rows."""
     drop = (ANSUR_II["cervicaleheight"][0] - ANSUR_II["acromialheight"][0]) / ANSUR_II["stature"][0]
     assert 0.035 < drop < 0.040
     assert FEMALE.trapezius == pytest.approx(drop + FEMALE.deltoid_r * 0.94 - MALE.shoulder_drop)
-    assert MALE.trapezius == 0.0
+    # and the male build, from the men's rows: a steeper shoulder line
+    male_drop = (ANSUR_II["cervicaleheight"][1] - ANSUR_II["acromialheight"][1]) / ANSUR_II[
+        "stature"
+    ][1]
+    assert 0.040 < male_drop < 0.048
+    assert MALE.trapezius == pytest.approx(male_drop + MALE.deltoid_r * 0.94 - MALE.shoulder_drop)
+    assert MALE.trapezius > FEMALE.trapezius > 0.05
     female = figure(Pose(), height=H, build="female")
     assert female.is_watertight
     # the shoulder line falls from the neck base to the deltoid: the highest

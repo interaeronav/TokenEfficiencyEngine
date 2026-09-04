@@ -10441,8 +10441,9 @@ So the default dressing stays. The Camiseta on the male figure at
 1.55 m, no basting: seams 0.52 / 13.4 (from 0.32 / 4.0), sleeves facing
 0.90 / 0.92, sleeve strain 17-18 % (from 12) - the steeper male slope
 puts the cap sleeve under more tension, and the female build is the body
-for that tee. Every test that pinned a number on the flat-topped figure
-was re-run; those that moved are re-based below with both numbers.
+for that tee. The full suite was re-run on the sloped male figure: 435
+passed, 5 skipped, and nothing needed re-basing beyond the two digests -
+every bound pinned on the flat-topped figure holds on the slope.
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
