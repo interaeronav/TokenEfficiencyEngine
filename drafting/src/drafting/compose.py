@@ -222,6 +222,9 @@ class SheetCanvas:
                 zorder=9,
             )
         )
+        # SCAN north, not true north. The direction comes from the dominant
+        # wall azimuth the leveller removed: it is a drawing convention, and a
+        # bare "N" on a survey drawing claims a bearing nobody measured.
         ax.text(
             x,
             y + r * 1.15,
@@ -232,6 +235,16 @@ class SheetCanvas:
             fontsize=self.type_size("grid"),
             weight="bold",
             color=INK,
+        )
+        ax.text(
+            x,
+            y + r * 1.75,
+            "SCAN",
+            ha="center",
+            va="bottom",
+            zorder=9,
+            fontsize=self.type_size("note"),
+            color=MUTED,
         )
 
     def section_mark(self, ax, tag: str, p1, p2, target: str) -> None:
