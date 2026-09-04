@@ -73,7 +73,56 @@ _X, _Y = _principal(SEGS, 0), _principal(SEGS, 1)
 # would put a figured dimension on a wall that is no longer there.
 W_W, W_E = _X[0], _X[-1]
 R2_E = min(_X[1:-1], key=lambda v: abs(v - (W_W + 1.5)))
-R1_W = max(_X[1:-1], key=lambda v: v)
+
+
+# Which surface a dimension goes to is a real question here, and the two sides
+# of Room 01 answer it differently.
+#
+# A BARE wall is the OUTERMOST return: furniture always stands inside it, so
+# searching a wide window and taking the extreme peak finds the wall. Searching
+# a narrow band and taking the innermost peak finds the wardrobe instead - that
+# mistake put the north wall 186 mm out.
+#
+# The west side is the exception. It is not one plane: four surfaces over about
+# 460 mm, blockwork with a built-in run in front of it, all along the room's
+# full length. A tape touches the INNERMOST of those, so that is what the
+# dimension goes to, and the sheet says so.
+def _outermost(points, axis, side, lo, hi, olo, ohi, zlo=1.10, zhi=1.35):
+    """The bare wall: the extreme dense surface across a wide window.
+
+    `olo`/`ohi` bound the OTHER axis to this room. Without them the search runs
+    out into the lobby and returns its wall instead - 82 mm of error, and the
+    kind that looks like a plausible dimension.
+    """
+    sel = points[
+        (points[:, 2] > zlo)
+        & (points[:, 2] < zhi)
+        & (points[:, axis] > lo)
+        & (points[:, axis] < hi)
+        & (points[:, 1 - axis] > olo)
+        & (points[:, 1 - axis] < ohi)
+    ]
+    counts, edges = np.histogram(sel[:, axis], bins=200)
+    strong = np.where(counts > 0.30 * counts.max())[0]
+    i = strong.max() if side > 0 else strong.min()
+    centre = float((edges[i] + edges[i + 1]) / 2)
+    return float(np.median(sel[np.abs(sel[:, axis] - centre) < 0.03][:, axis]))
+
+
+def _built_in_face(points, lo=-1.75, hi=-1.15, zlo=1.10, zhi=1.35):
+    """The west assembly's room-side face - the densest return nearest the room."""
+    sel = points[
+        (points[:, 2] > zlo) & (points[:, 2] < zhi) & (points[:, 0] > lo) & (points[:, 0] < hi)
+    ]
+    counts, edges = np.histogram(sel[:, 0], bins=60)
+    strong = np.where(counts > 0.30 * counts.max())[0]
+    centre = float((edges[strong.max()] + edges[strong.max() + 1]) / 2)
+    return float(np.median(sel[np.abs(sel[:, 0] - centre) < 0.025][:, 0]))
+
+
+R1_W = _built_in_face(P)
+R1_E = _outermost(P, 0, +1, 0.0, 1.72, -2.20, 1.50)
+WEST_LAYERS = 4
 W_S = _Y[0]
 W_N = min((v for v in _Y if v > 1.2), default=_Y[-1])
 R2_N = min((v for v in _Y if 0.5 < v < 1.4), default=W_N)
@@ -117,8 +166,8 @@ res = loop.run(
         "client": "J. Nangolo (owner)",
         "scale": "",
         "date": "2026-09-04",
-        "revision": "P02",
-        "revision_note": "Re-levelled; measured uncertainty added.",
+        "revision": "P04",
+        "revision_note": "Tape-checked; E-W dimensioned to the innermost west face.",
         "drawn_by": "TEE pc_* (A67)",
         "checked_by": "",
     },
@@ -126,8 +175,8 @@ res = loop.run(
     cuts={"A": ("SK-01", 270.0), "B": ("SK-01", 180.0)},
     provenance=(
         "iPhone LiDAR (3D Scanner App 2.5), 1,520,736 points; levelled to 0.0000 deg, "
-        "floor-plane RMS 13.0 mm. Repeatability +/-120 mm horizontal, +/-60 mm vertical, "
-        "measured against a second capture. SCALE UNVERIFIED - only a tape closes it."
+        "floor-plane RMS 13.0 mm. TAPE-CHECKED 2026-09-04 on two baselines. No scale "
+        "correction applied - see the note on face ambiguity."
     ),
 )
 # the measured chain closes the last finding honestly
@@ -229,7 +278,7 @@ def plan_body(canvas):
     # three chains: overall, grid-to-grid, opening
     dim(ax, (W_W, W_S), (W_E, W_S), f"{(W_E - W_W) * 1000:.0f}", -0.95)
     dim(ax, (W_W, W_S), (R2_E, W_S), f"{(R2_E - W_W) * 1000:.0f}", -0.52)
-    dim(ax, (R1_W, W_S), (W_E, W_S), f"{(W_E - R1_W) * 1000:.0f}", -0.52)
+    dim(ax, (R1_W, W_S), (R1_E, W_S), f"{(R1_E - R1_W) * 1000:.0f}", -0.52)
     dim(ax, (W_E, W_S), (W_E, W_N), f"{(W_N - W_S) * 1000:.0f}", 0.52, vertical=True)
     if DOOR:
         dim(
@@ -289,23 +338,26 @@ def plan_body(canvas):
     canvas.scale_bar(150, 14, SC)
     canvas.notes_panel(
         30,
-        88,
+        102,
         [
             "LEGEND   pens resolved from category and view scale (1:%d)" % SC,
-            "  halftone stipple  measured LiDAR returns in the 50 mm section band (25,432 pts)",
-            "  solid poche       wall CUT by this view, filled where both faces were measured",
-            "                    and the band between them held no returns (%d body)" % len(BODIES),
-            "  heavy outline     surface cut by this view      light outline  fittings beyond",
-            "  blue chain        section cut line with direction of view",
+            "  halftone  measured LiDAR returns in the 50 mm section band (25,432 pts)",
+            "  poche     wall CUT by this view, filled only where both faces were measured",
+            "            and nothing was returned between them (%d body)" % len(BODIES),
+            "  heavy / light outline   cut by this view / seen beyond it",
+            "  blue chain              section cut line with direction of view",
             "",
-            "  EXTERIOR WALL THICKNESS IS NOT SHOWN: the scan is interior-only, so the",
-            "  outer face of the enclosing walls was never measured.",
+            f"  TAPE CHECK 2026-09-04    N-S  scan {(W_N - W_S) * 1000:.0f}  tape 3960  "
+            f"{3960 - (W_N - W_S) * 1000:+.0f} mm",
+            f"                           E-W  scan {(R1_E - R1_W) * 1000:.0f}  tape 2880  "
+            f"{2880 - (R1_E - R1_W) * 1000:+.0f} mm",
+            "  NO SCALE CORRECTION IS WARRANTED. Both axes read slightly SHORT but by",
+            "  different amounts, so no single factor fits. The E-W is the worse of the two",
+            "  because the west side of Room 01 presents FOUR surfaces over about 460 mm -",
+            "  blockwork, then a built-in run. This dimension goes to the INNERMOST face.",
+            "  CONFIRM WHICH FACE your joinery works to before ordering.",
             "",
-            "  UNCERTAINTY  the figured dimensions are the best estimate, not a tolerance:",
-            "  a second capture registered onto this one disagrees by a median of 119 mm.",
-            "  DO NOT SET OUT FROM THEM without checking on site with a tape.",
-            "",
-            *textwrap.wrap(sheet.provenance, 92),
+            "  EXTERIOR WALL THICKNESS IS NOT SHOWN: the scan is interior-only.",
         ],
     )
 

@@ -11366,3 +11366,42 @@ measurement (all returns, peak-finding) disagrees with the local patch by up to
 
 **Evidence: 49 passed** (pointcloud + tools), 63 (drafting), all five sheets 0
 legibility findings.
+
+## A67 addendum 8 — P04: the east-west explained (2026-09-04)
+
+Owner confirmed "settle the E-W 16 mm". Settled, and it is not a scale error.
+
+**The west side of Room 01 is not one plane.** At section height it presents
+FOUR dense surfaces over about 460 mm - x = -1.65, -1.545, -1.375 and -1.276 -
+every one of them running the room's full length. Blockwork with a built-in run
+in front of it. There is no single "east-west internal dimension" to be right
+or wrong about; the answer depends on which face you name, and the drawing now
+names it (the innermost, the one a tape touches).
+
+**Final, with both faces of each axis measured the same way:**
+
+```
+                scan     tape    difference
+  Room 01 N-S   3950     3960    10 mm short (0.25%)
+  Room 01 E-W   2854     2880    26 mm short (0.90%)
+```
+
+Both read short but by different amounts, so no uniform factor fits. The N-S -
+bare wall on both sides - agrees to 10 mm, and that is the honest measure of
+this survey's accuracy.
+
+**Three measurement rules this cost me, each learned by getting it wrong:**
+
+1. **A bare wall is the OUTERMOST return; furniture always stands inside it.**
+   Searching a narrow band for the "innermost" surface found the wardrobe in
+   front of the north wall and put that dimension 186 mm out.
+2. **Bound the OTHER axis to the room.** A wide N-S search that did not
+   constrain x ran out into the lobby and returned its wall - 82 mm of error,
+   and a plausible-looking number.
+3. **Measure both faces of a dimension the same way.** Mixing a histogram face
+   on one side with a fit_ortho face on the other injected 27 mm of pure method
+   difference and made the tape look 53 mm out instead of 26.
+
+**And a process note for myself:** four separate edits in this stretch printed
+"patched" while silently matching nothing, because ruff had reformatted the
+target between runs. Every string replacement into a formatted file now asserts.
