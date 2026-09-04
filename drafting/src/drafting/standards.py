@@ -252,6 +252,22 @@ RULES: tuple[Rule, ...] = (
         "Draw the cut line with a direction of view.",
     ),
     Rule(
+        "PEN-FROM-CATEGORY",
+        "Line widths are resolved from a category and the view scale",
+        "house rule, inspired by Revit's weight-index model",
+        "house",
+        "correct",
+        "Never hard-code a millimetre width on a drawn object.",
+    ),
+    Rule(
+        "CUT-HEAVIER-THAN-PROJECTION",
+        "What the view cuts is drawn heavier than what it sees beyond",
+        SANS,
+        "sans10143",
+        "correct",
+        "The cut is black, the beyond is grey.",
+    ),
+    Rule(
         "LEGIBILITY-OVERLAP",
         "No two pieces of text overlap on the plotted sheet",
         "house rule, declared as this module's own",
@@ -346,3 +362,103 @@ class Report:
 
     def __len__(self) -> int:
         return len(self.findings)
+
+
+# ==========================================================================
+# Line weight as a CATEGORY resolved against the view scale (A67 addendum 3)
+# ==========================================================================
+#
+# Inspired by Revit's model, NOT a copy of its numbers. Revit does not store a
+# millimetre width on a line; it stores a weight INDEX per category, and the
+# printed width is looked up from a table whose columns are view scales. The
+# same wall is therefore heavier at 1:20 than at 1:100 without anyone editing
+# it, and a whole set stays consistent because the weight lives on the
+# category rather than on each drawn object.
+#
+# The index->millimetre values below are this module's own (`firmness: house`),
+# built so every resolved width lands on the SANS pen set in LINE_WEIGHTS_MM.
+# Revit's shipped table is a different set of numbers and is not reproduced.
+#
+# The second Revit idea worth stealing is CUT versus PROJECTION: every category
+# carries two weights, and what the view plane slices through is drawn heavier
+# than what is merely seen beyond it. The KB states the same rule in words -
+# "the cut is black, the beyond is grey".
+
+PEN_INDEX_MM: dict[int, float] = {
+    1: 0.18,
+    2: 0.25,
+    3: 0.35,
+    4: 0.50,
+    5: 0.70,
+    6: 1.00,
+}
+# A larger drawing carries a heavier pen for the same category.
+SCALE_INDEX_SHIFT: dict[int, int] = {
+    1: +2,
+    2: +2,
+    5: +2,
+    10: +1,
+    20: +1,
+    25: +1,
+    50: 0,
+    100: -1,
+    200: -1,
+    500: -1,
+    1000: -1,
+}
+
+# category -> (cut index, projection index). Revit calls this Object Styles.
+CATEGORY_PENS: dict[str, tuple[int, int]] = {
+    "wall": (5, 2),
+    "partition": (4, 2),
+    "floor": (5, 1),
+    "opening": (3, 2),
+    "furniture": (2, 1),
+    "section_line": (4, 4),
+    "grid": (1, 1),
+    "dimension": (1, 1),
+    "annotation": (1, 1),
+    "border": (5, 5),
+    "title_block": (2, 2),
+}
+
+# Dash patterns are defined on the PAPER in millimetres, as Revit defines them,
+# so a dash reads the same length whatever the drawing is scaled to.
+LINE_PATTERNS_MM: dict[str, tuple[float, ...] | None] = {
+    "solid": None,
+    "dash": (3.0, 1.5),
+    "hidden": (2.0, 1.5),
+    "centre": (9.0, 1.5, 1.5, 1.5),
+    "overhead": (6.0, 2.0),
+}
+
+HALFTONE = 0.45  # Revit's halftone: background information, still legible
+
+
+def resolve_pen(category: str, scale_denominator: int, *, cut: bool = False) -> float:
+    """The printed width in mm for a category at a view scale.
+
+    This is the whole point of the indirection: nothing in a drawing carries a
+    hard-coded millimetre width, so re-scaling a view re-weights it correctly.
+    """
+    cut_index, projection_index = CATEGORY_PENS.get(category, (2, 1))
+    index = cut_index if cut else projection_index
+    index += SCALE_INDEX_SHIFT.get(scale_denominator, 0)
+    index = max(min(PEN_INDEX_MM), min(index, max(PEN_INDEX_MM)))
+    return PEN_INDEX_MM[index]
+
+
+def halftone(colour: str, amount: float = HALFTONE) -> tuple[float, float, float]:
+    """Fade a colour toward white the way Revit halftones a background layer."""
+    from matplotlib.colors import to_rgb
+
+    r, g, b = to_rgb(colour)
+    return tuple(c + (1.0 - c) * amount for c in (r, g, b))
+
+
+def dash_pattern(name: str, scale_points: float = 1.0):
+    """A matplotlib dash tuple in POINTS from a paper-millimetre pattern."""
+    spec = LINE_PATTERNS_MM.get(name)
+    if not spec:
+        return None
+    return (0, tuple(v * POINTS_PER_MM * scale_points for v in spec))

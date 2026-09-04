@@ -18,6 +18,39 @@ report = critique(drawing_set)          # what is wrong
 result = loop.run(drawing_set, ...)     # fix it, then check again, until fixed point
 ```
 
+## Line weight is a category, not a millimetre (inspired by Revit)
+
+Revit does not store a width on a line. It stores a weight **index** per
+category, and the printed width is resolved from a table whose columns are view
+scales — so the same wall is heavier at 1:20 than at 1:100 without anyone
+editing it, and a set stays consistent because the weight lives on the category.
+
+```python
+resolve_pen("wall", 50, cut=True)   # 0.70 mm
+resolve_pen("wall", 20, cut=True)   # 1.00 mm  - same category, larger view
+resolve_pen("wall", 50)             # 0.25 mm  - projection, not cut
+```
+
+Every resolved width lands on the SANS pen set, and the **cut is always heavier
+than the projection** — "the cut is black, the beyond is grey". Dash patterns
+are defined in paper millimetres, as Revit defines them, so a dash reads the
+same length whatever the view is scaled to. The index→millimetre values are
+this module's own (`firmness: house`); Revit's shipped table is a different set
+of numbers and is not reproduced.
+
+## Poché is an inference, so it is drawn only on evidence
+
+`linework.poche_bodies` fills a wall between two fitted faces — the single
+biggest legibility gain on a plan. Pairing two faces into one wall is a guess,
+and A67's non-goal forbids guessing which points are the wall, so the pairing is
+tested rather than assumed: **two faces are paired only when the band between
+them holds almost no returns.** A scanner sees both sides of a wall and nothing
+inside it, so an empty band is the signature of a solid; a band full of points
+is two surfaces with a gap. Each body reports the evidence it came from.
+
+`close_corners` extends faces to meet their neighbours — never truncates, never
+reaches further than 450 mm. A face is evidence over its own length only.
+
 ## Why the critic reads a spec and not a PDF
 
 A finding has to be actionable. `critique` names a field; the corrector edits

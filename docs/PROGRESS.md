@@ -10727,3 +10727,36 @@ converged.
 **Evidence: 37 passed** (drafting), **1283 passed, 13 skipped** (server).
 Re-issued set in `~/Downloads/Okongo-Scan-Test/` at rev P01, with
 `drafting-critique.md` recording every correction.
+
+## A67 addendum 3 — line clarity on the Revit model (2026-09-04)
+
+Owner: *"Improve clarity and legibility of lines as per industry standards and
+practices and inspired by Revit"*.
+
+**Built into `drafting/`:** `resolve_pen(category, scale, cut=)` - a weight
+INDEX per category resolved through a scale-shift table, so the same wall is
+heavier at 1:20 (1.00 mm) than at 1:100 (0.50 mm) with nothing edited; two new
+rules (`PEN-FROM-CATEGORY`, `CUT-HEAVIER-THAN-PROJECTION`); paper-millimetre
+dash patterns; Revit-style halftone; and `linework.py` with corner closure and
+evidence-tested poche. 24 rules, 51 tests.
+
+**Measured on the Okongo plan:** 20 fitted faces -> **1** poche body
+(121.5 mm thick, 123 returns on its faces, **0 inside**), 3 of 20 faces
+extended to close a corner. The conservatism is the right answer: an
+interior-only scan never saw the outer face of the enclosing walls, so their
+thickness is unknown and the sheet states that rather than assuming 230 mm.
+
+**Facts learned:** a poche body shorter than 300 mm is 6 mm of paper and says
+nothing - found by a test the code failed, where a 100 mm stub against a 3 m
+wall passed the overlap fraction and became a "pier". And the legibility tier
+earned its keep again: enlarging the legend pushed the provenance note outside
+the frame, and the loop rejected the sheet until it was reflowed.
+
+**Evidence: 51 passed** (drafting), **1283 passed, 11 skipped** (server,
+excluding `test_seamkiln_adapter.py` and `test_seamkiln_materials_render.py`).
+
+**Not mine, still failing:** those two seamkiln files fail with
+`ImportError: cannot import name 'materials' from 'seamkiln'` - the concurrent
+session's package is mid-edit (`seamkiln/src/seamkiln/drape/solve.py` modified
+2026-09-02, untracked `seamkiln/tests/test_sweep_contact.py`). No commit of
+mine touches seamkiln. Left alone deliberately.

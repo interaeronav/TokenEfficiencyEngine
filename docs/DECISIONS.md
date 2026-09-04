@@ -1447,3 +1447,49 @@ were real — both sections were orphans, cited on SK-02 as "cut lines shown on
 SK-01" while SK-01 showed none. Ten pieces of text were below the 2,5 mm
 legible minimum, some at 1,98 mm. The plan also moved from 1:25 to 1:50,
 because 1:25 is an enlarged-plan scale and this is a GA plan.
+
+## A67 addendum 3 — line clarity, on the Revit model (2026-09-04)
+
+Owner: *"Improve clarity and legibility of lines as per industry standards and
+practices and inspired by Revit"*.
+
+**A line weight is a CATEGORY resolved against the view scale, not a
+millimetre.** This is the idea worth taking from Revit, and the one the first
+issue lacked: Revit stores a weight index per category and looks the printed
+width up in a table whose columns are view scales, so the same wall is heavier
+at 1:20 than at 1:100 with nobody editing it, and a set stays consistent
+because the weight lives on the category rather than on each object.
+`resolve_pen(category, scale, cut=)` implements the model; every resolved width
+lands on the SANS pen set, and a test asserts that across every category and
+every preferred scale. **The index-to-millimetre values are this module's own
+(`firmness: house`)** — Revit's shipped table is a different set of numbers and
+is deliberately not reproduced.
+
+**Cut outranks projection, always.** Every category carries two weights and a
+test asserts `cut >= projection` for all of them, which is the KB's "the cut is
+black, the beyond is grey" made mechanical. The survey stipple is halftoned so
+it reads as background evidence rather than competing with the drawing.
+
+**Dash patterns are defined in PAPER millimetres**, as Revit defines them, so a
+chain dash reads the same length whatever the view is scaled to.
+
+**Poché is drawn only where the cloud proves a solid.** Filling the wall body
+between two faces is the single biggest legibility gain available on a plan,
+and pairing two faces into one wall is exactly the inference A67 non-goal 1
+forbids guessing at. So it is not guessed: two faces are paired only when the
+band between them holds almost no returns. A scanner sees both sides of a wall
+and nothing inside it, so an empty band is the signature of a solid and a band
+full of points is two surfaces with a gap. On the Okongo scan this produced
+**one** body out of twenty faces, and that conservatism is the correct answer:
+an interior-only scan never measured the outer face of the enclosing walls, so
+their thickness is unknown and the sheet says so rather than drawing an assumed
+230 mm.
+
+**Corner closure extends, never truncates, and never reaches beyond 450 mm.** A
+fitted face is evidence that a surface exists along its own length; stretching
+one across a room to meet something far away would be drawing a wall nobody
+measured.
+
+**A body shorter than 300 mm is not drawn.** Found by a test the code failed: a
+100 mm stub against a 3 m wall satisfied the overlap fraction and became a
+"pier". At 1:50 that is 6 mm of paper communicating nothing.
