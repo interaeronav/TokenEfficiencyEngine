@@ -156,6 +156,7 @@ VERBS_WITHOUT_A_BUTTON = (
     "grade",
     "handoff",
     "lace",
+    "load",
     "lock",
     "panel",
     "pinch",

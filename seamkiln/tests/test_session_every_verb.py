@@ -23,7 +23,14 @@ def every_verb(tmp_path) -> Session:
     def do(op: str, args: dict) -> dict:
         return s.apply(Command(op, args))
 
-    # -- draft: the pattern verbs, before any garment exists
+    # -- draft: the pattern verbs, before any garment exists. A pattern is
+    # loaded from a file first and the block then replaces it, so the load
+    # is exercised and replayed without leaving a seamless tee behind.
+    from seamkiln.pattern.dxf import write_dxf
+    from seamkiln.pattern.fixtures import tee_block
+
+    write_dxf(tee_block(), tmp_path / "loaded.dxf", flavour="astm")
+    do("load", {"path": str(tmp_path / "loaded.dxf")})
     do("block", {"block": "jacket-zip"})
     do("panel", {"id": "POCKET", "outline": [[0, 0], [120, 0], [120, 140], [0, 140]]})
     do("seam", {"id": "pocket-top", "a": "POCKET#2", "b": "FRONT_L#0"})

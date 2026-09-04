@@ -449,7 +449,14 @@ def walk(
     )
 
 
-def figure_factory(*, height: float = 1.80, facing_deg: float = 0.0, ground_y: float = 0.0):
+def figure_factory(
+    *,
+    height: float = 1.80,
+    facing_deg: float = 0.0,
+    ground_y: float = 0.0,
+    build: str = "male",
+    chest_m: float | None = None,
+):
     """A body_factory that walks the FIGURE, feet planted on the ground.
 
     The gait track carries a scripted `rise_m`; the figure ignores it. Its
@@ -462,7 +469,7 @@ def figure_factory(*, height: float = 1.80, facing_deg: float = 0.0, ground_y: f
 
     def factory(values: dict[str, float]):
         pose = Pose.from_values({k: v for k, v in values.items() if k != "rise_m"})
-        body = figure(pose, height=height, facing_deg=facing_deg)
+        body = figure(pose, height=height, facing_deg=facing_deg, build=build, chest_m=chest_m)
         # the lift stays emergent (solved from the feet each frame) and goes
         # to the animator as the offset: rigid, exact, never baked
         return body, standing_offset(body, ground_y)

@@ -81,6 +81,11 @@ class Session:
     zippers: dict[str, Any] = field(default_factory=dict)
     buttons: list[Any] = field(default_factory=list)
     handoffs: list[Any] = field(default_factory=list)
+    # A65 P5b. A rigged import keeps its skeleton HERE and its rest mesh in
+    # `body`, because everything downstream - the SDF, the measurements, the
+    # arrangements - wants a plain trimesh and always has. `walk` is the one
+    # verb that asks for the rig, and it is the only reason to keep it.
+    rig: Any = None  # seamkiln.rig.skin.RiggedAvatar, when the file had a skin
     arrangement: str = ""  # which arrangement built the garment: cylinder | wrap
     frame: Any = None  # seamkiln.drape.dressing.BodyFrame, when wrap was used
     avatar: dict[str, Any] = field(default_factory=dict)
@@ -382,6 +387,8 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 
     kind = str(args.get("kind", "mannequin")).lower()
     stature = float(args.get("stature_m", 1.75))
+    session.rig = None  # a new body never inherits the last one's skeleton
+    rig_note: str | None = None
     if kind == "anny":
         from seamkiln.drape.anny_body import anny_body
 
@@ -400,15 +407,46 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         from seamkiln.figure import figure, standing_offset
 
         pose = Pose.from_values({k: float(v) for k, v in (args.get("pose") or {}).items()})
-        session.body = figure(pose, height=stature, facing_deg=float(args.get("facing_deg", 0.0)))
-        session.body.apply_translation(standing_offset(session.body))
+        from seamkiln.figure import build as figure_build
+
+        try:
+            chosen = figure_build(str(args.get("build", "male")))
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
+        chest = args.get("chest_m")
+        try:
+            session.body = figure(
+                pose,
+                height=stature,
+                facing_deg=float(args.get("facing_deg", 0.0)),
+                build=chosen,
+                chest_m=float(chest) if chest is not None else None,
+            )
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
+        lift = standing_offset(session.body)
+        session.body.apply_translation(lift)
+        # the joints ride in the metadata and stand on the ground with the mesh
+        session.body.metadata["joints"] = {
+            k: ((np.asarray(v, dtype=np.float64) + lift).tolist() if isinstance(v, list) else v)
+            for k, v in session.body.metadata["joints"].items()
+        }
         session.avatar = {
             "kind": "figure",
+            "build": chosen.name,
+            "chest_m": float(chest) if chest is not None else None,
             "pose": pose.as_values(),
             "facing_deg": float(args.get("facing_deg", 0.0)),
         }
     elif kind in ("posed", "custom"):
-        from seamkiln.avatar import Pose, adjust, custom_avatar, describe, posed_mannequin
+        from seamkiln.avatar import (
+            Pose,
+            adjust,
+            custom_avatar,
+            describe,
+            posed_mannequin,
+            rigged_avatar,
+        )
 
         if kind == "posed":
             session.body = posed_mannequin(
@@ -420,22 +458,60 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
             path = args.get("path")
             if not path:
                 raise CommandError("a custom avatar needs 'path' - the mesh file to load.")
-            try:
-                session.body = custom_avatar(
-                    path,
-                    units=str(args.get("units", "auto")),
-                    up=str(args.get("up", "auto")),
-                    forward_z=bool(args.get("forward_z", True)),
-                )
-            except (OSError, ValueError) as exc:
-                raise CommandError(str(exc)) from exc
+            # A65 P5b: a glTF may carry a SKIN, and trimesh cannot see it, so
+            # the rigged reader is tried first for those. A file that simply
+            # has no skin falls back to the mesh loader and SAYS SO - that is
+            # an honest property of the file. Bones that cannot be MAPPED do
+            # not fall back: the fix is real (rename, or pass 'joints'), and
+            # quietly walking such a body as a statue would hide it.
+            if str(path).lower().endswith((".glb", ".gltf")):
+                from seamkiln.rig.gltf_read import RigReadError
+
+                try:
+                    session.rig = rigged_avatar(
+                        path,
+                        units=str(args.get("units", "auto")),
+                        overrides=args.get("joints"),
+                    )
+                    session.body = session.rig.mesh()
+                except RigReadError as exc:
+                    rig_note = f"{exc} It will walk as one piece."
+                except (OSError, ValueError) as exc:
+                    raise CommandError(str(exc)) from exc
+            if session.rig is None:
+                try:
+                    session.body = custom_avatar(
+                        path,
+                        units=str(args.get("units", "auto")),
+                        up=str(args.get("up", "auto")),
+                        forward_z=bool(args.get("forward_z", True)),
+                    )
+                except (OSError, ValueError) as exc:
+                    raise CommandError(str(exc)) from exc
             if "height_m" in args or "girth_scale" in args:
                 session.body = adjust(
                     session.body,
                     height_m=float(args["height_m"]) if "height_m" in args else None,
                     girth_scale=float(args.get("girth_scale", 1.0)),
                 )
+                if session.rig is not None:
+                    # `adjust` reshapes the MESH; the skeleton it was bound to
+                    # no longer matches it, and skinning against a stale bind
+                    # pose tears a limb. Drop the rig rather than bend a body
+                    # through bones that are in the wrong place now.
+                    session.rig = None
+                    rig_note = (
+                        "height_m/girth_scale reshaped the mesh, so its skeleton no longer "
+                        "fits it and was dropped: this body walks as one piece. Scale the "
+                        "avatar in its own file if you need it rigged at another size."
+                    )
             session.avatar = describe(session.body)
+            if session.rig is not None:
+                session.avatar["rig"] = {
+                    "joints": len(session.rig.body.joints),
+                    "mapped": sorted(session.rig.slots),
+                    "notes": list(session.rig.notes),
+                }
     else:
         raise CommandError(
             f"no body kind {kind!r}. Bodies: 'anny' (parametric, Apache-2.0), "
@@ -447,11 +523,16 @@ def _v_body(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     if kind == "figure":
         session.body_spec["pose"] = dict(session.avatar.get("pose", {}))
         session.body_spec["facing_deg"] = session.avatar.get("facing_deg", 0.0)
+        session.body_spec["build"] = session.avatar.get("build", "male")
+        session.body_spec["chest_m"] = session.avatar.get("chest_m")
     session.sdf = sdf_from_mesh(session.body, voxel_mm=float(args.get("voxel_mm", 8.0)))
     session.garment = session.drape = session.live = None
     out = {"kind": kind, "measurements": body_measurements(session.body)}
     if session.avatar:
         out["avatar"] = session.avatar
+    out["articulated"] = session.rig is not None
+    if rig_note:
+        out["note"] = rig_note
     return out
 
 
@@ -502,7 +583,9 @@ def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
             # figure has been stood on the ground - so the garment is built in
             # joint coordinates and lifted afterwards, once, below.
             frame = frame_from_figure(
-                Pose.from_values(session.body_spec.get("pose", {})), height=height
+                Pose.from_values(session.body_spec.get("pose", {})),
+                height=height,
+                build=session.body_spec.get("build", "male"),
             )
         else:
             try:
@@ -572,7 +655,14 @@ def _figure_lift(session: Session) -> np.ndarray:
     from seamkiln.figure import figure, standing_offset
 
     pose = Pose.from_values(session.body_spec.get("pose", {}))
-    return standing_offset(figure(pose, height=float(session.body_spec.get("stature_m", 1.75))))
+    return standing_offset(
+        figure(
+            pose,
+            height=float(session.body_spec.get("stature_m", 1.75)),
+            build=session.body_spec.get("build", "male"),
+            chest_m=session.body_spec.get("chest_m"),
+        )
+    )
 
 
 def _v_drape(session: Session, args: dict[str, Any]) -> dict[str, Any]:
@@ -1281,17 +1371,30 @@ def _v_walk(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         from seamkiln.avatar import figure_factory
 
         factory = figure_factory(
-            height=height, facing_deg=float(session.body_spec.get("facing_deg", 0.0))
+            height=height,
+            facing_deg=float(session.body_spec.get("facing_deg", 0.0)),
+            build=str(session.body_spec.get("build", "male")),
+            chest_m=session.body_spec.get("chest_m"),
         )
     elif kind in ("mannequin", "posed"):
         factory = None  # the animator's own posed mannequin
+    elif session.rig is not None:
+        # A65 P5b: an imported body WITH a skeleton articulates like the
+        # figure does. The gait's scripted rise is dropped on purpose - with
+        # the feet put on the ground each frame the pelvis rises because the
+        # stance leg straightens, which is the whole reason to bend a body
+        # rather than slide it.
+        from seamkiln.avatar import rigged_factory
+
+        factory = rigged_factory(session.rig)
     else:
         from seamkiln.avatar import rigid_factory
 
         factory = rigid_factory(session.body)
         note = (
             f"a {kind!r} body has no joints to swing, so it travels as one piece "
-            "with the gait's rise; use body kind 'figure' for articulated limbs"
+            "with the gait's rise; use body kind 'figure' for articulated limbs, "
+            "or import a glTF that carries a skin"
         )
     try:
         track = make_gait(

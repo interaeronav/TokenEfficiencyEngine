@@ -79,11 +79,13 @@ class BodyFrame:
         return max(self.shoulder_y + self.cap_m + pattern_drop_m - float(self.neck[1]), 0.0)
 
 
-def frame_from_figure(pose: Any, *, height: float = 1.80) -> BodyFrame:
+def frame_from_figure(pose: Any, *, height: float = 1.80, build: Any = "male") -> BodyFrame:
     """A BodyFrame from `seamkiln.figure`'s own joints - exact, no measuring."""
+    from seamkiln.figure import build as figure_build
     from seamkiln.figure import joints
 
-    j = joints(pose, height=height)
+    b = figure_build(build)
+    j = joints(pose, height=height, build=b)
     arms = {}
     for tag in ("l", "r"):
         shoulder, elbow = j[f"shoulder_{tag}"], j[f"elbow_{tag}"]
@@ -96,7 +98,7 @@ def frame_from_figure(pose: Any, *, height: float = 1.80) -> BodyFrame:
         shoulder_y=float(j["shoulder_l"][1]),
         neck=np.asarray(j["neck"], dtype=np.float64),
         arms=arms,
-        cap_m=height * 0.040 + height * 0.006,  # the deltoid ball, plus its stand
+        cap_m=height * b.deltoid_r + height * 0.006,  # the deltoid ball, plus its stand
         source="figure joints",
     )
 

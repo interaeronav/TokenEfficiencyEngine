@@ -28,6 +28,7 @@ the cape clasps with it, which is what `clasp_points` does.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass, replace
 from typing import Any
 
 import numpy as np
@@ -48,6 +49,162 @@ PARTS = ("suit", "skin", "boot", "glove", "belt", "emblem")
 # elliptical trunk is what locks a jacket's yaw, on a person and here.
 TORSO_SQUASH = (1.10, 0.78)  # x (width), z (depth) scale of the trunk parts
 SUIT, SKIN, BOOT, GLOVE, BELT, EMBLEM = range(6)
+
+
+@dataclass(frozen=True, slots=True)
+class Build:
+    """Every proportion of the figure as a fraction of stature (H).
+
+    `MALE` is the figure as it has always been - its numbers are the ones
+    every A65 measurement was made on and they stay bit-identical.
+    `FEMALE` is derived from measured sex differences, dimension by
+    dimension: the female/male ratio of the mean-relative-to-stature from
+    ANSUR II (2012, US Army, 1,986 women and 4,082 men; public domain) is
+    applied to the male figure's own value, so the stylisation stays and
+    only what differs between the sexes moves. The source rows are quoted
+    in `FEMALE`'s definition; anything not covered by a measured ratio is
+    left at the male value and says so.
+    """
+
+    name: str
+    # joints (fractions of H)
+    pelvis_y: float = 0.480
+    waist_rise: float = 0.115
+    spine: float = 0.195
+    head_rise: float = 0.085
+    shoulder_half: float = 0.135
+    shoulder_drop: float = 0.012
+    hip_half: float = 0.055
+    upper_arm: float = 0.170
+    forearm: float = 0.155
+    thigh: float = 0.245
+    calf: float = 0.230
+    # trunk radii and squash
+    chest_r: float = 0.106
+    waist_r: float = 0.068
+    pelvis_r: float = 0.086
+    torso_squash: tuple[float, float] = (1.10, 0.78)
+    bust: float = 0.0  # a bust's forward relief as a fraction of chest_r; 0 = none
+    # shoulders, neck, head
+    deltoid_r: float = 0.040
+    neck_r_top: float = 0.046
+    neck_r_bottom: float = 0.044
+    head_r: float = 0.072
+    # limbs
+    upper_arm_r: float = 0.034
+    forearm_r: float = 0.028
+    thigh_r: float = 0.056
+    calf_r: float = 0.040
+    # the arm's resting abduction, degrees
+    arm_abduction: float = 32.0
+
+
+MALE = Build(name="male")
+
+# ANSUR II means, millimetres, from the 2012 survey's public data files
+# (OpenLab, Penn State: 1,986 women, 4,082 men). Each female value of the
+# figure is the male figure's fraction times the survey's female/male ratio
+# of (mean / stature). Filled in by `_female_build()` below so the numbers
+# and their arithmetic are visible in one place.
+ANSUR_II: dict[str, tuple[float, float]] = {
+    # dimension: (women, men) - means over 1,986 women and 4,082 men, mm,
+    # computed 2026-09-04 from the public data files
+    "stature": (1628.5, 1756.2),
+    "chestcircumference": (946.9, 1058.7),
+    "waistcircumference": (860.9, 940.6),
+    "buttockcircumference": (1021.2, 1019.5),
+    "hipbreadth": (353.8, 345.7),
+    "biacromialbreadth": (365.3, 415.7),
+    "bideltoidbreadth": (450.3, 510.4),
+    "bicepscircumferenceflexed": (305.6, 358.1),
+    "forearmcircumferenceflexed": (264.1, 310.1),
+    "neckcircumference": (329.8, 397.6),
+    "neckcircumferencebase": (371.2, 434.6),
+    "thighcircumference": (616.1, 625.1),
+    "calfcircumference": (373.3, 392.3),
+    "headcircumference": (561.1, 574.4),
+    "chestdepth": (247.4, 253.8),
+    "shoulderelbowlength": (334.3, 363.7),
+    "radialestylionlength": (241.3, 267.9),
+    "trochanterionheight": (845.4, 900.9),
+    "waistheightomphalion": (980.1, 1056.5),
+    "cervicaleheight": (1395.7, 1517.3),
+    "kneeheightmidpatella": (449.0, 488.4),
+}
+
+
+def shape_ratio(dimension: str) -> float:
+    """women's mean / stature over men's mean / stature - what differs
+    between the sexes once size is taken out."""
+    f, m = ANSUR_II[dimension]
+    fs, ms = ANSUR_II["stature"]
+    return (f / fs) / (m / ms)
+
+
+def _female_build() -> Build:
+    r = shape_ratio
+    # the deltoid's overhang beyond the acromion, per side, relative to stature
+    f_over = (ANSUR_II["bideltoidbreadth"][0] - ANSUR_II["biacromialbreadth"][0]) / 2
+    m_over = (ANSUR_II["bideltoidbreadth"][1] - ANSUR_II["biacromialbreadth"][1]) / 2
+    deltoid = (f_over / ANSUR_II["stature"][0]) / (m_over / ANSUR_II["stature"][1])
+    # joint heights: pelvis from the trochanter, waist from the omphalion,
+    # the shoulder line from the cervicale - each as the male fraction
+    # times the survey's ratio, then the rises as their differences
+    pelvis_y = MALE.pelvis_y * r("trochanterionheight")
+    waist_y = (MALE.pelvis_y + MALE.waist_rise) * r("waistheightomphalion")
+    neck_y = (MALE.pelvis_y + MALE.waist_rise + MALE.spine) * r("cervicaleheight")
+    thigh = MALE.thigh * (
+        (
+            (ANSUR_II["trochanterionheight"][0] - ANSUR_II["kneeheightmidpatella"][0])
+            / ANSUR_II["stature"][0]
+        )
+        / (
+            (ANSUR_II["trochanterionheight"][1] - ANSUR_II["kneeheightmidpatella"][1])
+            / ANSUR_II["stature"][1]
+        )
+    )
+    return replace(
+        MALE,
+        name="female",
+        pelvis_y=pelvis_y,
+        waist_rise=waist_y - pelvis_y,
+        spine=neck_y - waist_y,
+        shoulder_half=MALE.shoulder_half * r("biacromialbreadth"),
+        hip_half=MALE.hip_half * r("hipbreadth"),
+        upper_arm=MALE.upper_arm * r("shoulderelbowlength"),
+        forearm=MALE.forearm * r("radialestylionlength"),
+        thigh=thigh,
+        calf=MALE.calf * r("kneeheightmidpatella"),
+        # the ribcage takes the chest-girth ratio; the bust is relief on top
+        # of it, sized so the measured girth over the bust lands on the
+        # ratio (see the test): 0.30 of the chest radius, measured
+        chest_r=MALE.chest_r * r("chestcircumference"),
+        waist_r=MALE.waist_r * r("waistcircumference"),
+        pelvis_r=MALE.pelvis_r * r("buttockcircumference"),
+        bust=0.30,
+        deltoid_r=MALE.deltoid_r * deltoid,
+        neck_r_top=MALE.neck_r_top * r("neckcircumference"),
+        neck_r_bottom=MALE.neck_r_bottom * r("neckcircumferencebase"),
+        head_r=MALE.head_r * r("headcircumference"),
+        upper_arm_r=MALE.upper_arm_r * r("bicepscircumferenceflexed"),
+        forearm_r=MALE.forearm_r * r("forearmcircumferenceflexed"),
+        thigh_r=MALE.thigh_r * r("thighcircumference"),
+        calf_r=MALE.calf_r * r("calfcircumference"),
+    )
+
+
+FEMALE = _female_build()
+BUILDS: dict[str, Build] = {"male": MALE, "female": FEMALE}
+
+
+def build(name: str | Build) -> Build:
+    if isinstance(name, Build):
+        return name
+    key = str(name or "male").strip().lower()
+    if key not in BUILDS:
+        raise ValueError(f"no build {name!r}; the figure has: {', '.join(sorted(BUILDS))}")
+    return BUILDS[key]
+
 
 JOINT_NAMES = (
     "pelvis",
@@ -127,25 +284,36 @@ def _yaw(degrees: float) -> np.ndarray:
     )
 
 
-def joints(pose: Any, *, height: float = 1.80, arm_abduction: float = 32.0) -> dict[str, Any]:
+def joints(
+    pose: Any,
+    *,
+    height: float = 1.80,
+    arm_abduction: float | None = None,
+    build: str | Build = MALE,
+) -> dict[str, Any]:
     """Every joint the figure hangs off, in metres. Y up, +Z forward, unturned.
 
     `pose` is a `seamkiln.avatar.Pose` (or anything with its attributes).
     """
+    b = globals()["build"](build)
+    if arm_abduction is None:
+        arm_abduction = b.arm_abduction
     H = height
     rise = float(getattr(pose, "rise_m", 0.0))
     lean = math.radians(float(getattr(pose, "trunk_lean", 0.0)))
 
-    pelvis = np.asarray([0.0, H * 0.480 + rise, 0.0])
-    waist = pelvis + np.asarray([0.0, H * 0.115, 0.0])
-    spine = H * 0.195
+    pelvis = np.asarray([0.0, H * b.pelvis_y + rise, 0.0])
+    waist = pelvis + np.asarray([0.0, H * b.waist_rise, 0.0])
+    spine = H * b.spine
     # 0.68 of the way up, not 0.55: lower, the widest point of the torso sat
     # at the bottom of the ribcage and the chest read as a bowl.
     chest = waist + np.asarray([0.0, math.cos(lean) * spine * 0.68, math.sin(lean) * spine * 0.68])
     neck = waist + np.asarray([0.0, math.cos(lean) * spine, math.sin(lean) * spine])
-    head = neck + np.asarray([0.0, math.cos(lean) * H * 0.085, math.sin(lean) * H * 0.085])
+    head = neck + np.asarray(
+        [0.0, math.cos(lean) * H * b.head_rise, math.sin(lean) * H * b.head_rise]
+    )
 
-    half = H * 0.135
+    half = H * b.shoulder_half
     out: dict[str, Any] = {
         "pelvis": pelvis,
         "waist": waist,
@@ -155,16 +323,17 @@ def joints(pose: Any, *, height: float = 1.80, arm_abduction: float = 32.0) -> d
         "shoulder_half": half,
         "height": H,
         "lean": lean,
+        "build": b.name,
     }
-    upper, fore = H * 0.170, H * 0.155
-    thigh, calf = H * 0.245, H * 0.230
+    upper, fore = H * b.upper_arm, H * b.forearm
+    thigh, calf = H * b.thigh, H * b.calf
     for side, tag in ((-1.0, "l"), (1.0, "r")):
-        shoulder = neck + np.asarray([side * half, -H * 0.012, 0.0])
+        shoulder = neck + np.asarray([side * half, -H * b.shoulder_drop, 0.0])
         swing = float(getattr(pose, f"shoulder_{tag}", 0.0))
         bend = float(getattr(pose, f"elbow_{tag}", 0.0))
         elbow = _swing(shoulder, upper, swing, abduct=side * arm_abduction)
         hand = _swing(elbow, fore, swing - bend, abduct=side * arm_abduction * 0.35)
-        hip = pelvis + np.asarray([side * H * 0.055, 0.0, 0.0])
+        hip = pelvis + np.asarray([side * H * b.hip_half, 0.0, 0.0])
         flex = float(getattr(pose, f"hip_{tag}", 0.0))
         knee_bend = float(getattr(pose, f"knee_{tag}", 0.0))
         knee = _swing(hip, thigh, flex)
@@ -186,25 +355,33 @@ def figure(
     pose: Any,
     *,
     height: float = 1.80,
-    arm_abduction: float = 32.0,
+    arm_abduction: float | None = None,
     facing_deg: float = 0.0,
+    build: str | Build = MALE,
+    chest_m: float | None = None,
 ) -> trimesh.Trimesh:
     """The figure, as one watertight mesh with a per-face part tag.
 
     The proportions are a garment's numbers, not a comic's: a 0.034H upper arm
     is 122 mm across on a 1.8 m body, a 0.106H chest is a 1.2 m girth. The
-    joints and part tags ride in `mesh.metadata`.
+    joints and part tags ride in `mesh.metadata`. `build` picks the
+    proportion set (`male`, the default and unchanged; `female`); `chest_m`
+    is a chest girth in metres, the number a pattern maker has, and scales
+    the trunk to it while the limbs, shoulders and lengths keep the build.
     """
+    b = globals()["build"](build)
+    if chest_m is not None:
+        b = fitted_to_chest(b, height, chest_m, pose=pose)
     H = height
-    j = joints(pose, height=H, arm_abduction=arm_abduction)
+    j = joints(pose, height=H, arm_abduction=arm_abduction, build=b)
     parts: list[tuple[trimesh.Trimesh, int]] = []
 
     def add(mesh, tag):
         if mesh is not None and len(mesh.faces):
             parts.append((mesh, tag))
 
-    chest_r, waist_r, pelvis_r = H * 0.106, H * 0.068, H * 0.086
-    trunk = np.diag([TORSO_SQUASH[0], 1.0, TORSO_SQUASH[1], 1.0])
+    chest_r, waist_r, pelvis_r = H * b.chest_r, H * b.waist_r, H * b.pelvis_r
+    trunk = np.diag([b.torso_squash[0], 1.0, b.torso_squash[1], 1.0])
 
     def trunk_part(mesh):
         # the trunk parts sit on the body's axis, so scaling about the origin
@@ -225,7 +402,7 @@ def figure(
     # refused anything wider. At 1.06 it is 153 mm, and a 1.3x sleeve hooks
     # with margin to spare through a walk.
     for tag in ("l", "r"):
-        add(_ball(j[f"shoulder_{tag}"], H * 0.040, squash=(1.06, 0.94, 1.0)), SUIT)
+        add(_ball(j[f"shoulder_{tag}"], H * b.deltoid_r, squash=(1.06, 0.94, 1.0)), SUIT)
 
     belt = j["waist"] + np.asarray([0.0, -H * 0.014, 0.0])
     add(
@@ -238,11 +415,22 @@ def figure(
     up = j["neck"] - j["waist"]
     up = up / max(float(np.linalg.norm(up)), 1e-9)
     front = np.asarray([0.0, -up[2], up[1]])
-    badge = j["waist"] + up * (H * 0.118) + front * (chest_r * TORSO_SQUASH[1])
+    badge = j["waist"] + up * (H * 0.118) + front * (chest_r * b.torso_squash[1])
     add(_ball(badge, H * 0.031, squash=(1.20, 1.35, 0.22)), EMBLEM)
+    if b.bust > 0.0:
+        # the bust: two shallow balls on the chest's front, their relief a
+        # fraction of the chest radius, so the garment's front hangs from
+        # them the way a woman's tee does rather than from a flat ribcage
+        for side in (-1.0, 1.0):
+            centre = (
+                j["chest"]
+                + np.asarray([side * chest_r * b.torso_squash[0] * 0.42, -chest_r * 0.10, 0.0])
+                + front * (chest_r * b.torso_squash[1] * 0.62)
+            )
+            add(_ball(centre, chest_r * b.bust, squash=(1.0, 0.92, 0.80)), SUIT)
 
-    head_r = H * 0.072
-    add(_frustum(j["neck"], j["head"], H * 0.046, H * 0.044), SKIN)
+    head_r = H * b.head_r
+    add(_frustum(j["neck"], j["head"], H * b.neck_r_top, H * b.neck_r_bottom), SKIN)
     crown = j["head"] + up * (head_r * 0.72)
     add(_ball(crown, head_r, squash=(0.94, 1.10, 1.02), subdivisions=3), SKIN)
     add(
@@ -255,8 +443,8 @@ def figure(
         SUIT,
     )
 
-    upper_r, fore_r = H * 0.034, H * 0.028
-    thigh_r, calf_r = H * 0.056, H * 0.040
+    upper_r, fore_r = H * b.upper_arm_r, H * b.forearm_r
+    thigh_r, calf_r = H * b.thigh_r, H * b.calf_r
     for tag in ("l", "r"):
         s_, e, h = j[f"shoulder_{tag}"], j[f"elbow_{tag}"], j[f"hand_{tag}"]
         # radii MATCH at every shared joint, or the limb reads as stacked tins
@@ -302,8 +490,81 @@ def figure(
         k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in j.items()
     }
     body.metadata["facing_deg"] = float(facing_deg)
-    body.metadata["seamkiln_figure"] = {"height_m": height, "parts": list(PARTS)}
+    body.metadata["seamkiln_figure"] = {
+        "height_m": height,
+        "parts": list(PARTS),
+        "build": b.name,
+    }
     return body
+
+
+def trunk_girth_m(mesh: trimesh.Trimesh, y: float, *, band: float = 0.006) -> float:
+    """The girth of the trunk alone at height `y`: the convex hull of the
+    slice, with the arms cut away at the shoulder joints' x."""
+    from shapely.geometry import MultiPoint
+
+    j = mesh.metadata["joints"]
+    # the trunk ends and the hanging upper arm begins between 0.85 and
+    # 1.0 of the shoulder joint's x on both builds; the deltoid balls sit
+    # above the chest joint, which is where the scan stops. A plane
+    # section, not a vertex band: the frusta are two rings with nothing
+    # between them, so a band between the rings finds no vertex at all.
+    half = abs(float(j["shoulder_l"][0])) * 0.95
+    _ = band
+    section = mesh.section(plane_origin=[0.0, y, 0.0], plane_normal=[0.0, 1.0, 0.0])
+    if section is None:
+        return 0.0
+    v = np.asarray(section.vertices)
+    pts = v[np.abs(v[:, 0]) < half][:, [0, 2]]
+    if len(pts) < 4:
+        return 0.0
+    return float(MultiPoint(pts).convex_hull.length)
+
+
+def chest_girth_m(mesh: trimesh.Trimesh) -> float:
+    """The figure's chest girth: the WIDEST trunk slice between the waist
+    and the shoulders, which is where a garment's chest meets the body.
+
+    Not the landmark scan's "chest": that scan reads the girth jump below
+    the ribcage (912 mm on the male figure at 1.65 m, against 1,043 mm at
+    the chest joint) and a body "matched" to a pattern by it was 8 % too
+    big where the cloth actually touched.
+    """
+    j = mesh.metadata["joints"]
+    # up to the chest joint and no higher: the deltoid balls' lowest point
+    # is 6 mm above it on the male build, and a scan that reached them read
+    # the shoulders (1,081 mm) for the chest and could not be fitted
+    lo, hi = float(j["waist"][1]), float(j["chest"][1])
+    return max(trunk_girth_m(mesh, y) for y in np.linspace(lo, hi, 24))
+
+
+def fitted_to_chest(b: Build, height: float, chest_m: float, *, pose: Any = None) -> Build:
+    """The build with its trunk scaled so the measured chest girth is `chest_m`.
+
+    Measured, not assumed: the girth is read off the built mesh with the
+    lane's own landmark scan, the trunk radii are scaled by the ratio, and
+    the read is repeated once - two passes land within a few millimetres
+    on both builds (see the test). Only the trunk moves: waist and pelvis
+    scale with the chest so the torso keeps its shape.
+    """
+    if chest_m <= 0.3 or chest_m > 2.0:
+        raise ValueError(f"chest_m is a girth in metres; {chest_m!r} is not a chest")
+    if pose is None:
+        from seamkiln.avatar import Pose
+
+        pose = Pose()
+    fitted = b
+    for _ in range(2):
+        measured = chest_girth_m(figure(pose, height=height, build=fitted))
+        k = chest_m / measured
+        fitted = replace(
+            fitted,
+            name=fitted.name,
+            chest_r=fitted.chest_r * k,
+            waist_r=fitted.waist_r * k,
+            pelvis_r=fitted.pelvis_r * k,
+        )
+    return fitted
 
 
 def clasp_points(
