@@ -10458,6 +10458,32 @@ seams and asks for a fit report in one `tee_batch` - load, ten sews,
 arrange with roles, drape, fit - and reads the pieces as created
 entities and the chest row in the diff.
 
+**The mesher's fringe (the third of the round).** `resample_closed` kept
+every outline vertex and only added points between them, so an outline
+sampled finer than the mesh left a fringe of short edges round every
+piece: on the tee block at 12 mm, 678 edges under a quarter of the
+spacing and 1,015 more under three quarters. The strain report could not
+exclude them (it printed 31 % for sleeves carrying 7), they were the
+amplifier in the run's tunnelling, and they cost seams: the block's worst
+gap on the mannequin was 12.6 mm. `merge_fraction` drops a curve vertex
+closer than that fraction of the spacing to the last kept point, never a
+corner, keeping the outline's own arc-length parameters so seams stay
+put. Measured on the mannequin, 12 mm, jersey, 280 frames - the block at
+0 / 0.5 / 0.7: fringe 678+1,015 / 4+408 / 0+202 edges, worst seam 12.6 /
+5.1 / 4.6 mm, strain reported 17.2 / 9.2 / 8.9 % against a fringe-free
+7.8 / 8.3 / 8.5, sleeves reported 31 / 7 / 6 %, sleeve facing 0.57-0.61 /
+0.58-0.68 / 0.74-0.71; the Camiseta, whose outline is already near the
+spacing, barely moves (fringe 315 to 255 to 243, report 15.6 to 15.4 %).
+The Cusick battery on three cards: denim 0.844 / 0.844 / 0.846, poplin
+0.550 / 0.550 / 0.549, chiffon 0.159 / 0.159 / 0.175 - all in their
+bands, and 0.5 within 0.001 of before. So 0.5 is the default
+(`MERGE_FRACTION`), on `arrange` as `merge_fraction`, with the thin-seam
+guard now judging a seam by what it could hold rather than a fixed six
+points (a 34 mm sub-seam of a sewn run has four at 12 mm and cannot have
+six). The one test that wants the fringe - the crease guard - meshes
+without the merge and says so. Every static drape's mesh changes at the
+default; the full suite was run and what moved is recorded below.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
@@ -12110,3 +12136,94 @@ tool-call log.
 face — north wall behind the curtain to south wall, at a stated height, with
 the curtain's position noted. A second unqualified reading will not settle the
 N–S axis.
+
+### "Use TEE": the new lanes reached from the product that installs them (2026-09-04)
+
+Owner: *"use TEE"*, then *"TEE/QMAX"*. `tee_status` on the live Desktop
+server already reports `llm_profile: qmax`, 171 virtual tools, Blender 5.2
+connected with 155 objects. Then the two new lanes were driven from the
+model's seat, and neither answered. What that found, in order:
+
+**1. Neither kernel was installed where the server runs.** `pk_probe` refused
+`pk_kernel_absent` naming both routes; `sk_avatar` refused
+`seamkiln_unavailable` naming its install. The production sidecar the A66
+design specified had never been created on this machine — every partkiln
+number to date came from the dev venv. Both refusals were followed
+literally:
+
+```
+uv venv --python 3.11 ~/TEE/.tee/sidecars/partkiln
+uv pip install --python ~/TEE/.tee/sidecars/partkiln/bin/python -e <repo>/partkiln[brep]
+    -> OCP + partkiln cold import 40.12 s, OCP bound: True          (survives upgrades)
+uv pip install --python "<ext>/.venv/bin/python" -e seamkiln
+    -> importable in 26.78 s cold; rig lane and control-piece rung present
+```
+
+**2. `pk_probe` then changed its answer to `pk_not_served`** — "no partkiln
+adapter is attached to this server" — and that is the structural fact of
+the day. The Desktop manifest serves `tee serve --adapter blender` and its
+`user_config` exposes only `project_root`; `--adapter` is a single string
+dispatched to one `_build_*_app`; each returns `TeeApp({name: adapter})`. So
+**Desktop can serve exactly one adapter, and the lanes shipped in 0.20.0 and
+0.21.0 are unreachable from the product that installs them, by
+construction.** The kernel is not the limit — `TeeApp.__init__` takes a
+`dict` of adapters and `resolve_adapter` already handles several (SI-B6:
+ambiguity fails loud, `adapter_required`). Only the CLI builds one.
+
+**3. The production route works, proven from the extension's own
+interpreter.** `tee serve --adapter partkiln` launched with the manifest's
+exact `uv run --directory <ext> --no-dev` form, Python 3.13.9, no OCP
+in-process, the sidecar doing the work:
+
+```
+handshake 0.21.0 | boot 0.35 s
+pk_probe   mode sidecar, state warm            (after the background warm job)
+tee_batch  ok in 0.2 s   (9.21 s on the very first batch, the warm job landing)
+  feat:plate   96,000.000 mm3   6 faces
+  feat:f1     -214.602 -> 95,785.398 mm3   10 faces   plate:edges(dir=Z) -> 4
+```
+
+The same numbers the dev venv produces, from the interpreter Desktop
+actually uses, with a 40 s cold import that blocked nothing (Law 17).
+
+**4. Both lanes boot with their kernel absent, and refuse honestly.**
+`--adapter seamkiln` on an interpreter without seamkiln: boot 0.32 s,
+`tee_status` shows `{'seamkiln': False}`, `tee_call sk_avatar` ->
+`seamkiln_unavailable` with the install line. (Verified at the 0.21.0 cut
+for partkiln: `pk_kernel_absent`.) Serving every lane on a machine with none
+of the kernels costs nothing but the truth.
+
+**5. An install the running server cannot see — measured, and NOT a defect.**
+After `-e seamkiln` landed in the extension venv, the live Desktop server
+kept answering `seamkiln_unavailable`. First theory: a stale
+`FileFinder` cache in `_need()`'s bare `import seamkiln`. **Wrong**, and the
+measurement said so: a package created after startup imports on retry with
+no `invalidate_caches()`. The real mechanism: an editable install is
+`_editable_impl_seamkiln.pth` -> `<repo>/seamkiln/src`, a `.pth` hook that
+`site.py` reads once at interpreter start. Measured: a `.pth` written after
+startup stays unimportable even after `importlib.invalidate_caches()`; only
+re-reading site dirs — what a restart does — shows it. So the refusal's fix
+is right but takes effect at the next server start, and the honest change is
+for the hint to say "then restart the server". `invalidate_caches()` was
+measured not to help and is not added. Confirmed the other way round: a
+FRESH `tee serve --adapter seamkiln` from the extension interpreter boots in
+0.39 s, `sk_avatar` answers in 0.3 s, `tee_status` shows `{'seamkiln': True}`,
+and it serves the corrected text from this morning — *"a glTF carrying a SKIN
+keeps its skeleton and walks with articulated limbs"* — so the install, the
+0.21.0 fix and the restart explanation all hold at once.
+
+**6. Two "Unknown tool" scares were this session's own bug.** Probing
+`pk_probe` and `sk_avatar` as top-level MCP tools returned `Unknown tool`;
+they are VIRTUAL tools, reached through `tee_call`. Re-run correctly, both
+answered. Recorded because for twenty minutes it looked like a registration
+defect that differed between two servers, and it was two invocation methods.
+
+**Ruling (implementation in flight):** `--adapter` becomes repeatable, one
+`TeeApp` holds every adapter named, **the first listed is the declared
+default** for an omitted `adapter=` (reported by `tee_status`; SI-B6's loud
+failure stays for an app built with several adapters and no declared
+default), and the manifest serves `--adapter blender --adapter partkiln
+--adapter seamkiln` — blender first, so every existing Desktop batch keeps
+working unchanged. Construction cost measured in the extension interpreter:
+SeamkilnAdapter 0.015 s, PartkilnAdapter 0.003 s + the background warm job.
+Surface must stay 17 tools / 2,033 tok.
