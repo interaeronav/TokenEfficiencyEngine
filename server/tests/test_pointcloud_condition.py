@@ -135,6 +135,45 @@ def test_a_crop_that_misses_the_cloud_entirely_is_named_differently(app, room):
         call(app, "pc_crop", cloud_id=cid, z_range=[40.0, 50.0])
 
 
+def test_a_crop_keeps_a_baseline_it_did_not_touch(app, room):
+    """A crop moves no point, so a measurement whose two ends survive is still
+    exactly true of the cropped cloud."""
+    cid, _, store = room
+    call(
+        app,
+        "pc_control_add",
+        cloud_id=cid,
+        name="width",
+        p1=[0.02, 1.5, 1.2],
+        p2=[3.98, 1.5, 1.2],
+        true_mm=4000,
+    )
+    out = call(app, "pc_crop", cloud_id=cid, z_range=[0.9, 1.6])
+    assert len(store.meta(out["cloud_id"])["controls"]) == 1
+    assert "baseline" not in out.get("note", "")
+
+
+def test_a_crop_drops_a_baseline_whose_picks_it_removed(app, room):
+    """The Okongo defect. The reason to crop is usually that the snap found the
+    wrong face - so carrying that reading forward poisons the verdict on the
+    very cloud that was made to fix it. pc_control_verify then reported drift
+    from a number measured on geometry this cloud no longer has."""
+    cid, _, store = room
+    call(
+        app,
+        "pc_control_add",
+        cloud_id=cid,
+        name="height",
+        p1=[2.0, 1.5, 0.02],
+        p2=[2.0, 1.5, 2.68],
+        true_mm=2700,
+    )
+    out = call(app, "pc_crop", cloud_id=cid, z_range=[0.9, 1.6])
+    surviving = {c["name"] for c in store.meta(out["cloud_id"])["controls"]}
+    assert "height" not in surviving, "a floor-to-ceiling pick cannot survive a 0.9-1.6 m crop"
+    assert "dropped 1 baseline" in out["note"] and "re-measure" in out["note"]
+
+
 # -- pc_clean --------------------------------------------------------------
 
 
@@ -276,3 +315,21 @@ def test_no_new_tool_dumps_points_into_the_response(app, room):
         call(app, "pc_ortho", cloud_id=cid, azimuth_deg=90.0, px_per_m=40),
     ]
     assert [v for r in responses for v in _violations(r)] == []
+
+
+# -- a tape is held level --------------------------------------------------
+
+
+def test_a_horizontal_baseline_measures_the_plan_distance(app, room):
+    """On the Okongo scan there is no single height where both faces of Room 01
+    are clean: the south side is a cabinet front below 930 mm and the north side
+    is grazing-angle and sparse above it. The picks have to sit at different
+    heights, and the straight 3D distance between them is then a diagonal - it
+    read 90 mm long on a 3.95 m room. A tape is held level; so is this."""
+    cid, _, _ = room
+    slanted = dict(p1=[0.02, 1.5, 0.4], p2=[3.98, 1.5, 2.2], true_mm=4000)
+    diagonal = call(app, "pc_control_add", cloud_id=cid, name="d", **slanted)
+    plan = call(app, "pc_control_add", cloud_id=cid, name="h", horizontal=True, **slanted)
+    assert plan["horizontal"] is True and diagonal["horizontal"] is False
+    assert plan["measured_mm"] < diagonal["measured_mm"] - 300
+    assert abs(plan["measured_mm"] - 4000) < 30, "the plan distance is the room's width"

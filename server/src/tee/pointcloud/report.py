@@ -27,6 +27,30 @@ def verdict(worst_mm: float | None, levelled: bool, controlled: bool) -> tuple[s
     return "UNRELIABLE", "drift exceeds 30 mm - re-register from smaller scans"
 
 
+def _root_source(chain: list) -> str:
+    """The file this lineage started from, which lives on the open step."""
+    return str(chain[0].get("source", "")) if chain else ""
+
+
+def _detail(step: dict) -> str:
+    """One line of what a step did.
+
+    Short lists are the whole point of some steps - a crop's `by=[box]` read as
+    an em dash in the QA sheet, which made the audit trail say a crop happened
+    without saying what it cropped. Long ones (a 16-float transform) stay out.
+    """
+    parts = []
+    for key, value in step.items():
+        if key in ("op", "at"):
+            continue
+        if isinstance(value, (list, tuple)):
+            if len(value) > 8 or any(isinstance(v, (list, tuple, dict)) for v in value):
+                continue
+            value = "/".join(str(v) for v in value)
+        parts.append(f"{key}={value}")
+    return ", ".join(parts)
+
+
 def write_sheet(meta: dict[str, Any], out: Path) -> dict[str, Any]:
     chain = meta.get("chain") or []
     controls = meta.get("controls") or []
@@ -46,7 +70,7 @@ def write_sheet(meta: dict[str, Any], out: Path) -> dict[str, Any]:
         f"- Points: {meta.get('count', 0):,}",
         f"- Colour: {'yes' if meta.get('has_colour') else 'no'} · "
         f"Intensity: {'yes' if meta.get('has_intensity') else 'no'}",
-        f"- Source: {meta.get('source') or 'unknown'}",
+        f"- Source: {meta.get('source') or _root_source(chain) or 'unknown'}",
         f"- Parent: {meta.get('parent') or '(root)'}",
         "",
         "## Transform chain",
@@ -55,10 +79,7 @@ def write_sheet(meta: dict[str, Any], out: Path) -> dict[str, Any]:
         "|---|---|---|",
     ]
     for i, step in enumerate(chain, 1):
-        detail = ", ".join(
-            f"{k}={v}" for k, v in step.items() if k not in ("op", "at") and not isinstance(v, list)
-        )
-        lines.append(f"| {i} | `{step.get('op')}` | {detail or '—'} |")
+        lines.append(f"| {i} | `{step.get('op')}` | {_detail(step) or '—'} |")
 
     lines += ["", "## Level", ""]
     if level_step:

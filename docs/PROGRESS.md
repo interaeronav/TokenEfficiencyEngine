@@ -12011,3 +12011,75 @@ orphaned — Desktop is not running — and its interpreter is the venv that was
 just re-synced underneath it, so it should not be trusted. It will be
 replaced when Desktop next starts. Killing another session's long-lived
 process is the owner's call, not this session's.
+
+### A67 P8b — the lane run end to end on the raw Okongo scan (2026-09-04)
+
+Owner: *"now run the full pipeline on the okongo scan with these"*. Not the
+levelled export — the **raw** capture, `points.ply`, **1,520,736 points**,
+85.8 MB of ASCII PLY straight off the phone.
+
+**15 calls · 1,701 tokens of tool responses · 7.4 s.** Reading the same cloud
+at one point in forty would cost about **228,000 tokens**. That ratio is the
+lane's whole argument, and this is the first time it has been measured on a
+real file rather than the fixture.
+
+```
+pc_open (up_axis=y)  1,520,736 pts, 38.9 mm spacing        3.1 s
+pc_clean             56,360 outliers (3.7%)                2.3 s
+pc_level             tilt 0.0000 deg | floor RMS 12.98 mm on 143,141 pts
+pc_crop  building    1,464,376 -> 1,159,185
+pc_crop  Room 01     449,979
+pc_control_add x2    B1 N-S 3836.9 / 3960 | B2 E-W 2853.2 / 2880  (horizontal)
+pc_control_verify    drift, not scale - no uniform factor fixes it
+pc_slice z=1.20      17 segments, residual median 14.2 mm, DXF + SVG
+pc_section           8 segments, residual median 9.0 mm
+pc_ortho x2          both walls of Room 01 at 10 mm/px
+pc_export laz        400,000 pts, 3.1 MB
+pc_report            UNRELIABLE, worst control 123.1 mm
+```
+
+**A6 satisfied on real data.** The DXF was opened independently: its longest
+polyline measures **4.0254 m** against `pc_slice`'s reported 4.0254, in metres
+with `$INSUNITS = 6`.
+
+**The refusal was right, and now the cause has a name.** E–W reproduced the
+previously recorded 2854 mm to **1 mm** from a completely independent re-run —
+so the lane is repeatable. N–S did not, and the reason is not scale: **Room 01
+has two north walls.** Two parallel surfaces 90 mm apart (y = 1.598 and 1.688)
+at *every* height from 1.0 to 2.4 m, side by side in plan rather than stacked.
+`pc_ortho` at azimuth 0 showed what the numbers could not: a **full-height
+curtain** across that wall. The south side is a 140 mm-broad diffuse band
+against Room 02's clean 50 mm plane. Room 01 therefore measures 3844, 3865,
+3929 **or** 4019 mm north–south depending which faces you pick, against a
+3960 tape. This is the west side's recorded "four parallel surfaces over
+460 mm", appearing on a second axis — and no uniform factor repairs it, which
+is exactly what `pc_control_verify` said. **It does not change the issued
+drawings**; it explains a number that was previously unexplained.
+
+**Three defects the run found, all now fixed and tested:**
+
+1. **`pc_crop` carried a stale baseline onto the cloud made to replace it.** A
+   crop moves no point, so a carried measurement looks valid — but the *snap*
+   is what changed, and the usual reason to crop is that the snap found the
+   wrong face. `pc_control_verify` duly reported drift from a number measured
+   on geometry the cropped cloud no longer had. Baselines whose picks survive
+   the region test now ride along; the rest are dropped with a note. Third time
+   this lane has learned it: **a derived cloud may inherit a measurement only
+   where the measurement is still true of it.**
+2. **`pc_control_add` could not express a level tape.** It measured the
+   straight 3D distance, and on this scan there is no height where both faces
+   are clean, so the picks must differ in height and the reading is a diagonal —
+   90 mm long on a 3.95 m room. `horizontal: true` measures the plan distance.
+3. **The QA sheet's audit trail said a crop happened without saying what it
+   cropped** — the renderer dropped every list value to keep the 16-float
+   transform out, and `by=["box"]` went with it. Short lists render now.
+
+**Suites at close:** server **1,471 passed / 12 skipped**, zero failures;
+`ruff check` and `ruff format --check` clean. Deliverables in
+`~/Downloads/Okongo-Scan-Test/pc-lane-run/` with `RUN-NOTE.md` and the full
+tool-call log.
+
+**Open, and only the owner can close it:** one tape reading taken to a *named*
+face — north wall behind the curtain to south wall, at a stated height, with
+the curtain's position noted. A second unqualified reading will not settle the
+N–S axis.

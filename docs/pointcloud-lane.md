@@ -59,6 +59,10 @@ pc_open  →  pc_crop  →  pc_clean  →  pc_level  →  pc_control_add ×2
    approximate: aim by eye and the tool snaps each onto its local surface.
    **Measure at least two distances**, as `docs/okongo-capture-protocol.md` §1
    already instructs — one baseline carries the noise of two plane fits.
+   Pass **`horizontal: true`** for a room width. A tape is held level, and the
+   two clean faces are often at different heights — on the Okongo scan the
+   south side is a cabinet front below 930 mm and the north side is a curtain —
+   so the straight 3D distance between two picks is a diagonal.
 7. **`pc_control_verify`** — compares every baseline against its tape reading
    and suggests one uniform scale. If the baselines disagree by more than their
    tolerance it says **drift**, not scale, and tells you no single factor will
@@ -81,6 +85,13 @@ pc_open  →  pc_crop  →  pc_clean  →  pc_level  →  pc_control_add ×2
 
 Every step that changes geometry mints a **new** `cloud_id` and records its
 parent, so nothing is destroyed and the lineage is auditable.
+
+A control baseline rides along that lineage, but only where it stays true. A
+crop moves no point, so a baseline whose two picks survive it is still exactly
+true of the cropped cloud and is carried; one whose pick was cropped away
+measures surfaces this cloud no longer has, so it is **dropped with a note**.
+That case is the common one, because the usual reason to crop is that the snap
+found the wrong face.
 
 ## What it deliberately does not do
 
@@ -120,6 +131,21 @@ lane's:
   the crop; it is a request in the wrong frame. `pc_crop` now says so in one
   line — `z 0.05..2.35 reaches past this cloud (z is -1.584..1.356)` — and
   `pc_open` reports the bbox, which is where to read the frame from.
+
+## When the answer is "your room has two of that wall"
+
+The lane's most useful refusal is `drift, not scale`, and on a real building it
+usually means neither drift nor scale — it means a **face ambiguity**. Room 01
+of the Okongo scan presents two parallel north surfaces 90 mm apart at every
+height (a full-height curtain and the wall beside it), a south surface 140 mm
+broad, and four parallel west surfaces over 460 mm. Depending which pair you
+choose it is 3844, 3865, 3929 or 4019 mm across.
+
+No uniform factor repairs that, and `pc_control_verify` says so rather than
+returning a number. When it does, the fix is not a better algorithm: it is one
+tape reading taken to a **named** face. `pc_ortho` is how you find out what the
+faces are — the curtain above was invisible in every number and obvious in the
+elevation.
 
 ## Accuracy, honestly
 

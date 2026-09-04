@@ -99,8 +99,17 @@ def add_baseline(
     p2: list[float],
     true_mm: float,
     tol_mm: float = 5.0,
+    horizontal: bool = False,
 ) -> dict:
-    """Record one tape baseline, snapping both picks to their local surfaces."""
+    """Record one tape baseline, snapping both picks to their local surfaces.
+
+    `horizontal` measures the PLAN distance instead of the straight 3D one,
+    because a tape across a room is held level. It is not a convenience: on the
+    Okongo scan there is no single height where both faces of Room 01 are clean
+    - the south wall is a cabinet front below 930 mm and the north wall is
+    grazing-angle and sparse above it - so the two picks have to sit at
+    different heights, and the 3D distance between them is a diagonal.
+    """
     if float(true_mm) <= 0:
         raise TeeError(
             "pc_bad_baseline",
@@ -109,7 +118,8 @@ def add_baseline(
         )
     a, na, ca = snap_to_surface(points, np.asarray(p1, dtype=float))
     b, nb, cb = snap_to_surface(points, np.asarray(p2, dtype=float))
-    measured_mm = float(np.linalg.norm(b - a) * 1000.0)
+    span = (b - a)[:2] if horizontal else b - a
+    measured_mm = float(np.linalg.norm(span) * 1000.0)
     if measured_mm < 1.0:
         raise TeeError(
             "pc_degenerate_baseline",
@@ -124,6 +134,7 @@ def add_baseline(
         "measured_mm": round(measured_mm, 2),
         "tol_mm": round(float(tol_mm), 2),
         "snapped_from": [round(float(v), 4) for v in p1] != [round(float(v), 4) for v in a],
+        "horizontal": bool(horizontal),
         "neighbours": [int(na), int(nb)],
         "confidence": [round(ca, 2), round(cb, 2)],
     }

@@ -159,6 +159,7 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
             list(args["p2"]),
             float(args["true_mm"]),
             float(args.get("tol_mm") or 5.0),
+            horizontal=bool(args.get("horizontal")),
         )
         meta = store.meta(cloud_id)
         controls = [c for c in (meta.get("controls") or []) if c["name"] != baseline["name"]]
@@ -171,6 +172,7 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
             "true_mm": baseline["true_mm"],
             "delta_mm": round(baseline["measured_mm"] - baseline["true_mm"], 2),
             "snapped": baseline["snapped_from"],
+            "horizontal": baseline["horizontal"],
             "baselines_on_cloud": len(controls),
         }
 
@@ -333,26 +335,20 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
 
     def pc_crop(args: dict[str, Any]) -> dict[str, Any]:
         cloud_id, pts = _points(args)
-        keep = np.ones(len(pts), dtype=bool)
+        tests: list[Any] = []
         used: list[str] = []
         notes: list[str] = []
-        if args.get("box") is not None:
-            box = [float(v) for v in args["box"]]
-            keep &= condition.crop_box(pts, box)
+        box = None if args.get("box") is None else [float(v) for v in args["box"]]
+        z_range = None if args.get("z_range") is None else [float(v) for v in args["z_range"]]
+        poly = args.get("polygon_xy")
+        if box is not None:
+            tests.append(lambda q, box=box: condition.crop_box(q, box))
             used.append("box")
-            notes += [
-                note
-                for axis in range(3)
-                if (note := condition.out_of_range(pts, axis, box[axis], box[axis + 3]))
-            ]
-        if args.get("z_range") is not None:
-            z_range = [float(v) for v in args["z_range"]]
-            keep &= condition.crop_z(pts, z_range)
+        if z_range is not None:
+            tests.append(lambda q, z=z_range: condition.crop_z(q, z))
             used.append("z_range")
-            if note := condition.out_of_range(pts, 2, min(z_range), max(z_range)):
-                notes.append(note)
-        if args.get("polygon_xy") is not None:
-            keep &= condition.crop_polygon(pts, args["polygon_xy"])
+        if poly is not None:
+            tests.append(lambda q, poly=poly: condition.crop_polygon(q, poly))
             used.append("polygon_xy")
         if not used:
             raise TeeError(
@@ -360,8 +356,25 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
                 "pc_crop was given nothing to crop to.",
                 fix="Pass box, z_range or polygon_xy (they combine).",
             )
+
+        def inside(query: np.ndarray) -> np.ndarray:
+            mask = np.ones(len(query), dtype=bool)
+            for test in tests:
+                mask &= test(query)
+            return ~mask if args.get("invert") else mask
+
+        keep = inside(pts)  # malformed regions refuse here, before anything is minted
+        if box is not None:
+            notes += [
+                note
+                for axis in range(3)
+                if (note := condition.out_of_range(pts, axis, box[axis], box[axis + 3]))
+            ]
+        if z_range is not None and (
+            note := condition.out_of_range(pts, 2, min(z_range), max(z_range))
+        ):
+            notes.append(note)
         if args.get("invert"):
-            keep = ~keep
             used.append("inverted")
         condition.guard_survivors(int(keep.sum()), "This crop")
         colors, intensity = _attrs(cloud_id)
@@ -373,6 +386,23 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
             colors=_take(colors, keep),
             intensity=_take(intensity, keep),
         )
+        # A crop moves no point, so a baseline whose two ends SURVIVE is still
+        # exactly true of this cloud and rides along. One whose end was cropped
+        # away is a measurement of surfaces this cloud no longer has - and that
+        # is the common case, because the reason to crop is usually that the
+        # snap found the wrong face. Carrying it forward poisoned the verdict
+        # on the very cloud that was made to fix it (found on the Okongo run).
+        carried = store.meta(new_id).get("controls") or []
+        if carried:
+            kept_controls = [
+                c for c in carried if inside(np.array([c["p1"], c["p2"]], dtype=float)).all()
+            ]
+            if len(kept_controls) != len(carried):
+                store.update_meta(new_id, controls=kept_controls)
+                notes.append(
+                    f"dropped {len(carried) - len(kept_controls)} baseline(s) whose picks "
+                    "this crop removed; re-measure them on this cloud."
+                )
         out = {
             "cloud_id": new_id,
             "parent": cloud_id,
@@ -581,7 +611,8 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
             "pc_control_add",
             "Record one tape/DISTO baseline against the cloud; picks snap to the local surface.\n"
             "This is what gives a drifting scan absolute scale. p1/p2 are approximate 3D picks "
-            "in cloud units - aim by eye, the snap fixes it.",
+            "in cloud units - aim by eye, the snap fixes it. Pass horizontal:true for a room "
+            "width, so two picks at different heights do not measure a diagonal.",
             {
                 "type": "object",
                 "properties": {
@@ -591,6 +622,11 @@ def register_pointcloud_tools(app, project_root: Path | str) -> CloudStore:
                     "p2": {"type": "array"},
                     "true_mm": {"type": "number", "description": "What the tape read."},
                     "tol_mm": {"type": "number"},
+                    "horizontal": {
+                        "type": "boolean",
+                        "description": "Measure the PLAN distance - a tape is held level. Use "
+                        "this when the two clean faces are at different heights.",
+                    },
                 },
                 "required": ["cloud_id", "name", "p1", "p2", "true_mm"],
             },

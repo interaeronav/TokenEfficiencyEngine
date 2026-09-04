@@ -1315,6 +1315,27 @@ the cloud's own median spacing (`dot_px`, capped at 9), so nothing is invented:
 the sample is drawn at the size it actually represents. Coverage went 64% → 92%
 on the real cabinet wall, and the vertical joints became lines.
 
+**A crop drops the baselines it cropped away.** A crop moves no point, so at
+first reading a carried measurement is still true. It is not: the *snap* is
+what changed, and the usual reason to crop at all is that the snap found the
+wrong face. On the Okongo run `pc_crop` handed a wrong-face reading to the very
+cloud that had been made to fix it, and `pc_control_verify` then reported drift
+from a number measured on geometry the cloud no longer contained. The rule is
+now positional: a baseline whose two picks both survive the region test rides
+along untouched; one whose pick was removed is dropped with a note telling the
+caller to re-measure. This is the third time this lane has learned the same
+lesson (`pc_scale_apply`'s stale baselines were the second) — **a derived
+cloud may inherit a measurement only where the measurement is still true of
+it.**
+
+**`pc_control_add(horizontal=True)` measures the plan distance.** A tape across
+a room is held level. The 3D distance was the only option, and on the Okongo
+scan there is no single height where both faces of Room 01 are clean — the
+south side is a cabinet front below 930 mm and the north side is a curtain — so
+the two picks must sit at different heights and the straight distance between
+them is a diagonal, 90 mm long on a 3.95 m room. Default stays 3D so nothing
+silently changes; the response says which was measured.
+
 **`pc_crop` reports when a region reaches past the cloud.** Found by driving
 the lane on the real scan: `z_range: [0.05, 2.35]` returned the top half of the
 Okongo bedroom, because PLY origin-shifts on write and that cloud's floor sits
