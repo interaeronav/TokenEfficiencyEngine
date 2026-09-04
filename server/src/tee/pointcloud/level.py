@@ -20,6 +20,13 @@ from tee.kernel.errors import TeeError
 HORIZONTAL_DOT = 0.95  # |n_z| above this is "near-horizontal"
 PLANE_TOL_M = 0.03
 RANSAC_ITERS = 400
+# A floor spans its room. This is what separates it from a table top, and it
+# is scale-free where an inlier-count threshold is not.
+MIN_FOOTPRINT_FRACTION = 0.25
+# A seed neighbourhood must be flat, or it is a corner and its normal is a lie.
+# Measured on the synthetic fixture: a genuinely flat patch scores 0.28-0.38
+# (12 mm of noise across a ~70 mm neighbourhood), a corner scores far higher.
+PATCH_FLATNESS = 0.50
 NORMAL_K = 160  # doc 69 4.2: k=160 -> 0.004 deg, k=20 -> 0.073 deg
 WALL_BAND_M = (0.4, 2.3)
 VERTICAL_DOT = 0.25  # |n_z| below this is "near-vertical"
@@ -55,22 +62,40 @@ def dominant_floor(
             return normal, centroid, rms, mask
 
     floor_min = max(100, len(points) // 200)
-    # Collect every qualifying horizontal plane, THEN choose. Picking the
-    # most populous one inline is the bug that puts a room under its ceiling:
-    # in a box room the two horizontal surfaces have the same point count to
-    # within noise, so "most inliers" is a coin flip that never reaches the
-    # height tie-break. Candidates are deduplicated by height.
+    # Hypothesise planes from LOCAL PATCHES, not from three random points.
+    # Three uniform samples must all land on the same surface to describe it,
+    # and on a real capture that is a lottery: the floor is 8.5% of the mesh
+    # of the Okongo second scan, so P(all three) is about 0.06% per iteration
+    # and 400 iterations found the CEILING instead - which has more area
+    # because the floor is under the furniture. One seed point plus its own
+    # neighbourhood is a real surface hypothesis every time.
+    from scipy.spatial import cKDTree
+
+    sample_n = min(len(points), 120_000)
+    sample_idx = rng.choice(len(points), sample_n, replace=False)
+    sample = points[sample_idx]
+    tree = cKDTree(sample)
+    k = min(48, len(sample) - 1)
+    seeds = rng.choice(len(sample), min(RANSAC_ITERS, len(sample)), replace=False)
+    _, neighbourhoods = tree.query(sample[seeds], k=k, workers=-1)
+
     candidates: dict[int, tuple[int, float, np.ndarray]] = {}
-    for _ in range(RANSAC_ITERS):
-        a, b, c = points[rng.choice(len(points), 3, replace=False)]
-        normal = np.cross(b - a, c - a)
-        norm = np.linalg.norm(normal)
-        if norm < 1e-9:
+    for row in neighbourhoods:
+        patch = sample[row]
+        centroid = patch.mean(axis=0)
+        _, sv, vt = np.linalg.svd(patch - centroid, full_matrices=False)
+        # The patch must actually BE flat. A neighbourhood that straddles a
+        # corner mixes floor and wall and yields a normal belonging to
+        # neither, which is how a diagonal slab through a tilted room came to
+        # be preferred over the floor.
+        if sv[1] <= 1e-9 or sv[2] / sv[1] > PATCH_FLATNESS:
             continue
-        normal = normal / norm
+        normal = vt[-1]
         if abs(normal[2]) < HORIZONTAL_DOT:
             continue
-        mask = np.abs((points - a) @ normal) < PLANE_TOL_M
+        if normal[2] < 0:
+            normal = -normal
+        mask = np.abs((points - centroid) @ normal) < PLANE_TOL_M
         hits = int(mask.sum())
         if hits < floor_min:
             continue
@@ -85,10 +110,22 @@ def dominant_floor(
             "No dominant near-horizontal plane found - the cloud may be on its side.",
             fix="Pass up_axis to pc_open, or floor_hint_z to pc_level.",
         )
-    # Among the planes that are genuinely surfaces (not a stray tabletop),
-    # the floor is the LOWEST one.
-    strongest = max(hits for hits, _, _ in candidates.values())
-    real = [c for c in candidates.values() if c[0] >= 0.5 * strongest]
+    # The floor is the lowest plane that is genuinely a FLOOR, and what makes
+    # it one is FOOTPRINT, not popularity. Filtering candidates by "at least
+    # half the inliers of the biggest plane" fails exactly where it matters:
+    # a floor under furniture is scanned far less than the open ceiling above
+    # it, so the real floor gets discarded as noise and the room is levelled
+    # upside down. Spanning the room is the test; a tabletop cannot pass it.
+    span = points[:, :2].max(axis=0) - points[:, :2].min(axis=0)
+    footprint = float(span[0] * span[1]) or 1.0
+    real = []
+    for hits, height, mask in candidates.values():
+        inliers = points[mask][:, :2]
+        extent = inliers.max(axis=0) - inliers.min(axis=0)
+        if float(extent[0] * extent[1]) >= MIN_FOOTPRINT_FRACTION * footprint:
+            real.append((hits, height, mask))
+    if not real:  # nothing spans the room: fall back to the most populous
+        real = [max(candidates.values(), key=lambda c: c[0])]
     mask = min(real, key=lambda c: c[1])[2]
     normal, centroid, rms = fit_plane(points[mask])
     mask = np.abs((points - centroid) @ normal) < PLANE_TOL_M

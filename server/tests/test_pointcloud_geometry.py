@@ -67,8 +67,11 @@ def test_level_puts_the_room_above_its_floor_not_below_its_ceiling(levelled):
     so 'most inliers' picked the ceiling and hung the room underneath it."""
     out, truth = levelled
     z = out["points"][:, 2]
-    assert z.min() > -0.1, "floor should sit at z=0"
-    assert z.max() == pytest.approx(truth["H"] * truth["scale"], abs=0.1)
+    # Percentiles, not extremes: z.max() over 279 K points with 12 mm of noise
+    # is a 4-sigma tail, which is the same reason views3d measures heights this
+    # way. Asserting on the extreme makes the test about the noise.
+    assert np.percentile(z, 0.2) > -0.06, "floor should sit at z=0"
+    assert np.percentile(z, 99.8) == pytest.approx(truth["H"] * truth["scale"], abs=0.08)
     # The floor's own 12 mm noise straddles zero, so a bare sign count proves
     # nothing. What proves it: essentially nothing sits BELOW the floor's
     # noise band, and the room's mass is up in the middle of its height.
@@ -223,3 +226,36 @@ def test_control_check_refuses_with_no_baselines():
     with pytest.raises(TeeError) as exc:
         control.check([])
     assert exc.value.code == "pc_no_baselines"
+
+
+def test_the_floor_is_found_even_when_it_is_a_small_part_of_the_surface():
+    """The failure the second Okongo scan exposed.
+
+    `dominant_floor` used to hypothesise a plane from three uniformly random
+    points, which requires all three to land on the same surface. On that
+    capture the floor was 8.5% of the sampled area (it is under the
+    furniture) while the ceiling was 14%, so P(three on the floor) was about
+    0.06% per iteration and 400 iterations levelled the room onto its CEILING.
+    Seeding from a point's own neighbourhood makes every iteration a real
+    surface hypothesis.
+    """
+    rng = np.random.default_rng(5)
+    floor = np.c_[rng.uniform(0, 4, 3_000), rng.uniform(0, 3, 3_000),
+                  rng.normal(0, 0.01, 3_000)]
+    ceiling = np.c_[rng.uniform(0, 4, 9_000), rng.uniform(0, 3, 9_000),
+                    2.6 + rng.normal(0, 0.01, 9_000)]
+    walls = []
+    for x in (0.0, 4.0):
+        walls.append(np.c_[np.full(9_000, x) + rng.normal(0, 0.01, 9_000),
+                           rng.uniform(0, 3, 9_000), rng.uniform(0, 2.6, 9_000)])
+    for y in (0.0, 3.0):
+        walls.append(np.c_[rng.uniform(0, 4, 9_000),
+                           np.full(9_000, y) + rng.normal(0, 0.01, 9_000),
+                           rng.uniform(0, 2.6, 9_000)])
+    cloud = np.vstack([floor, ceiling, *walls])
+    assert len(floor) / len(cloud) < 0.07, "the floor must be the minority surface"
+
+    out = level_mod.level(cloud, align_walls=False)
+    z = out["points"][:, 2]
+    assert np.median(z) > 0.5, "the room must sit ABOVE its floor"
+    assert z.max() == pytest.approx(2.6, abs=0.1)

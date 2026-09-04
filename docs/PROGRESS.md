@@ -11138,3 +11138,47 @@ wiring is reviewed but unexercised; the union-refusal and `_compound` paths
 in the profile fix are unreachable code, because no planar fuse could be made
 to fail honestly and none will be faked; and A65 P5b — a rigged character the
 lane can actually walk — is in flight separately.
+
+## A67 addendum 5 — the second scan (2026-09-04)
+
+Owner: *"there is a lidar obj file in the okongo dropbox folder called test2 to
+refine the measurements further"*.
+
+**What it is:** a textured MESH (187,372 verts / 334,300 faces, 105.2 m2), the
+app's reconstruction rather than raw returns, captured a day after scan 1 and
+covering LESS of the space (8 principal faces vs 12).
+
+**What it settles:**
+
+```
+                       scan 1 (points)   scan 2 (mesh)
+  level residual            0.0000 deg     0.0000 deg
+  floor-plane RMS            12.32 mm       12.65 mm
+  clear height                2.640 m        2.577 m    delta 63 mm
+  matched wall planes (registered via capture_register, ICP RMS 120 mm):
+      5 matched, median |offset| 119 mm, mean 106, worst 168
+```
+
+**It does NOT refine the dimensions - it bounds their uncertainty at about
++-60 mm vertical / +-120 mm horizontal.** Within-scan precision (12 mm) and
+between-scan drift (120 mm) measure different things. And repeatability is not
+accuracy: both captures share the same device's systematic scale error, so the
+verdict stays UNVERIFIED. Published dimensions unmoved - re-levelling scan 1
+shifted every named wall by <= 7 mm.
+
+**Two real bugs it exposed, both fixed and pinned:**
+
+1. `dominant_floor` picked the CEILING. Seeding from three uniformly random
+   points needs all three on one surface; the floor is 8.5% of this mesh (it is
+   under the furniture) against the ceiling's 14%, so the odds were ~0.06% per
+   iteration. Now seeds from a point's own neighbourhood, requires the patch to
+   be flat (measured: flat 0.28-0.38 s3/s2, corners far higher), and picks the
+   floor by FOOTPRINT not popularity - the old "half the biggest plane's
+   inliers" rule discarded the real floor.
+2. `capture_register` could not register cloud-onto-cloud: one filename passed
+   to -SAVE_CLOUDS while two clouds were loaded. Worked for the mesh-target case
+   A42 built; fails otherwise. Now reads the count from CloudCompare's own
+   message.
+
+**Evidence: 1423 passed, 12 skipped** (excluding the two seamkiln files the
+concurrent session has mid-edit).

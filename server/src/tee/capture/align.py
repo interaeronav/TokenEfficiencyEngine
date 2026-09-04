@@ -125,10 +125,32 @@ def register_icp(
         cmd += ["-ADJUST_SCALE"]
     if overlap_percent:
         cmd += ["-OVERLAP", str(int(overlap_percent))]
-    # save the ALIGNED source cloud - downstream C2M must run on the
-    # registered cloud, never the raw one
-    cmd += ["-SAVE_CLOUDS", "FILE", str(registered_path)]
-    output = _run(cmd, float(cfg.get("align_timeout_s", DEFAULT_TIMEOUT_S)), log_path)
+    # Save the ALIGNED source cloud - downstream C2M must run on the
+    # registered cloud, never the raw one.
+    #
+    # -SAVE_CLOUDS FILE needs one name per LOADED CLOUD, and how many that is
+    # depends on the inputs: a mesh target contributes none, a cloud target
+    # contributes one. Passing a single name worked for the mesh-target case
+    # this lane was built for and fails cloud-to-cloud with "specified 1 file
+    # names, but there are 2 clouds". CloudCompare states the count in that
+    # message, so ask it rather than guessing from file extensions, and keep
+    # the FIRST name - the source is loaded first, so that is the aligned one.
+    def _save_args(count: int) -> list[str]:
+        names = " ".join(
+            str(registered_path if i == 0 else registered_path.with_name(
+                f"{registered_path.stem}-other{i}{registered_path.suffix}"))
+            for i in range(count)
+        )
+        return ["-SAVE_CLOUDS", "FILE", names]
+
+    timeout = float(cfg.get("align_timeout_s", DEFAULT_TIMEOUT_S))
+    try:
+        output = _run(cmd + _save_args(1), timeout, log_path)
+    except TeeError as first:
+        wanted = re.search(r"but there are (\d+) clouds", first.message)
+        if not wanted:
+            raise
+        output = _run(cmd + _save_args(int(wanted.group(1))), timeout, log_path)
     rms_match = _RMS_LINE.search(output)
     if rms_match is None:
         raise TeeError(

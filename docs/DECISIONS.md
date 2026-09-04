@@ -1550,3 +1550,52 @@ measured. Neither is offered as a substitute for the other.
 a room flips the along-axis, so `elevation()` negates it for two of the four
 cases and a test pins it. A mirrored elevation is a drawing that is confidently,
 silently wrong.
+
+## A67 addendum 5 — the second scan, and two bugs it exposed (2026-09-04)
+
+Owner: *"there is a lidar obj file in the okongo dropbox folder called test2 to
+refine the measurements further"*. Comparison written to
+`~/Downloads/Okongo-Scan-Test/second-scan-comparison.md`.
+
+**A second scan does not refine the dimensions; it bounds their uncertainty.**
+`test2.zip` is a textured MESH — a reconstruction, not returns — captured a day
+after the first, covering less of the space (8 principal faces against 12).
+Registered onto scan 1 through `capture_register`, the five matched wall planes
+disagree by a **median of 119 mm, worst 168 mm**, against a within-scan
+floor-plane RMS of 12 mm. Those two numbers measure different things: one is
+noise inside a capture, the other is ARKit drift between captures. Clear height
+agrees to 63 mm, because gravity is measured by the IMU while horizontal
+position is dead-reckoned.
+
+**Repeatability is not accuracy, and no number of scans changes that.** Both
+captures come from the same device and share whatever systematic scale error it
+has. The drawings' verdict stays UNVERIFIED and only a tape closes it.
+
+**The published dimensions did not move.** Re-levelling scan 1 with the
+corrected algorithm shifted every named wall by ≤ 7 mm, so the sheets stand.
+
+**Bug 1: the floor finder was picking the ceiling.** `dominant_floor`
+hypothesised planes from three uniformly random points, which requires all three
+to land on the same surface. In this mesh the floor is 8.5% of the sampled area
+— it is under the furniture — and the ceiling is 14%, so P(three on the floor)
+was about 0.06% per iteration and 400 iterations levelled the room upside down.
+Three changes, each with a measured justification: seed from a point's own
+NEIGHBOURHOOD so every iteration is a real surface hypothesis; require that
+patch to be genuinely flat (a corner-straddling neighbourhood yields a normal
+belonging to neither surface, and measured on the fixture a flat patch scores
+0.28-0.38 against a corner's much higher ratio); and select the floor by
+FOOTPRINT rather than by inlier count, because a floor spans its room and that
+is what separates it from a table top. The old "at least half the inliers of the
+biggest plane" rule failed exactly where it mattered.
+
+**Bug 2: `capture_register` could not register a cloud onto a cloud.** It passed
+one name to `-SAVE_CLOUDS FILE` while two clouds were loaded. That works when
+the target is a MESH — the case A42 built and verified — and fails otherwise
+with "specified 1 file names, but there are 2 clouds". CloudCompare states the
+count in the message, so the lane now asks rather than guessing from file
+extensions, and keeps the first name because the source is loaded first.
+
+**A test of mine was asserting on an extreme.** `z.max()` over 279 K points with
+12 mm of noise is a 4-sigma tail; the assertion was about the noise, not the
+geometry. Percentiles, the same discipline `views3d` already applies to wall
+heights.

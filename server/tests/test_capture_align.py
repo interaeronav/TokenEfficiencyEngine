@@ -160,3 +160,38 @@ def test_degenerate_seven_dof_fit_refuses(tmp_path):
     assert excinfo.value.code == "capture_bad_registration"
     assert "Degenerate" in excinfo.value.message
     assert "scale references" in excinfo.value.fix
+
+
+def test_the_save_argument_grows_to_match_the_number_of_loaded_clouds(monkeypatch, tmp_path):
+    """Registering a cloud onto a CLOUD loads two, and -SAVE_CLOUDS FILE needs
+    one name per loaded cloud. Passing a single name worked for the mesh-target
+    case this lane was built for and failed cloud-to-cloud with
+    'specified 1 file names, but there are 2 clouds'.
+    """
+    from tee.capture import align
+
+    source = tmp_path / "a.asc"
+    target = tmp_path / "b.asc"
+    for path in (source, target):
+        path.write_text("0 0 0\n1 0 0\n0 1 0\n")
+    monkeypatch.setattr(align, "_binary", lambda *a, **k: "/bin/echo")
+
+    calls = []
+
+    def fake_run(cmd, timeout_s, log_path=None):
+        calls.append(cmd)
+        names = cmd[cmd.index("FILE") + 1].split()
+        if len(calls) == 1 and len(names) == 1:
+            raise align.TeeError(
+                "capture_align_failed",
+                "CloudCompare exited 1: Invalid parameter: specified 1 file "
+                "names, but there are 2 clouds",
+            )
+        return "RMS: 0.0100\n"
+
+    monkeypatch.setattr(align, "_run", fake_run)
+    result = align.register_icp(source, target, cfg={}, work_dir=tmp_path / "w",
+                                max_rms_m=0.5)
+    assert len(calls) == 2, "it must retry with the count CloudCompare asked for"
+    assert len(calls[1][calls[1].index("FILE") + 1].split()) == 2
+    assert result["rms_m"] == 0.01
