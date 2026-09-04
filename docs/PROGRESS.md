@@ -10345,6 +10345,19 @@ the body's 412. One limitation stands: the session fingerprint does not
 cover an animation (the drape is cleared after a walk), so a replayed
 walk is checked by its report and by this instrument, not by a hash.
 
+**The in-place clip, checked the same way (owner).** Correct: she faced
++z there, and on all 26 frames the front leads the back by 151-159 mm in
+z, the sleeves sit at x = +0.21..+0.24 and -0.20 against shoulder joints
+at +-0.21 with the cloth 13-27 mm off the arm, the tee's centroid rides
+36-45 mm behind the trunk (the lean; 105-114 when travelling, so travel
+adds 65 mm of trailing), and the largest garment move between frames is
+60 mm against the body's 111. One thing to watch, not fixed: the
+Esquerda sleeve creeps outward along the arm, +0.208 m to +0.235 over two
+strides, 13 mm a stride, while the Direita sleeve holds at -0.197 - the
+tee is dressed without the head basting that the block's deep cap
+needs, and this is the small version of the slide that basting was
+written to stop.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
