@@ -79,6 +79,7 @@ def test_unknown_verbs_list_the_known_ones() -> None:
     assert set(VERBS) == {
         # the pattern lane
         "block",
+        "load",
         "panel",
         "seam",
         "allowance",
@@ -112,6 +113,53 @@ def test_unknown_verbs_list_the_known_ones() -> None:
         "fold",
         "ease",
     }
+
+
+def test_load_reads_a_dxf_and_the_script_replays_it(tmp_path) -> None:
+    """A loaded pattern is a command like any other: it replaces the pattern
+    the way `block` does, it enters the script, and the script replays to the
+    same fingerprint. Written and read by seamkiln itself here; the CAD
+    exports the reader was fixed for are held by `test_dxf_clo.py`."""
+    drafted = Session()
+    drafted.apply(Command("block", {"block": "tee"}))
+    path = tmp_path / f"{drafted.name}.dxf"
+    drafted.apply(Command("export", {"format": "dxf", "out": str(path)}))
+
+    loaded = Session()
+    result = loaded.apply(Command("load", {"path": str(path)}))
+    assert result["panels"] == [p.id for p in drafted.pattern.panels]
+    assert result["units_source"] == "$INSUNITS 4" and result["notes"] == []
+    assert len(result["sha256"]) == 16
+    assert loaded.fingerprint() == drafted.fingerprint(), "the round trip changed an outline"
+    assert [c.op for c in loaded.history] == ["load"]
+    assert Session.replay(loaded.script()).fingerprint() == loaded.fingerprint()
+
+    # loading again replaces the pattern, and what was built on it
+    loaded.apply(Command("arrange", TINY))
+    assert loaded.garment is not None
+    loaded.apply(Command("load", {"path": str(path)}))
+    assert loaded.garment is None and loaded.drape is None
+
+
+def test_load_refuses_by_name_and_records_nothing(tmp_path) -> None:
+    session = Session()
+    with pytest.raises(CommandError, match="needs 'path'"):
+        session.apply(Command("load", {}))
+    with pytest.raises(CommandError, match="reads dxf"):
+        session.apply(Command("load", {"path": str(tmp_path / "body.obj")}))
+    with pytest.raises(CommandError, match="is not a file"):
+        session.apply(Command("load", {"path": str(tmp_path / "missing.dxf")}))
+    empty = tmp_path / "empty.dxf"
+    import ezdxf
+
+    ezdxf.new("R2000").saveas(empty)
+    with pytest.raises(CommandError, match="has no piece"):
+        session.apply(Command("load", {"path": str(empty)}))
+    garbage = tmp_path / "garbage.dxf"
+    garbage.write_text("not a dxf")
+    with pytest.raises(CommandError, match="load:"):
+        session.apply(Command("load", {"path": str(garbage)}))
+    assert session.history == [] and session.pattern is None
 
 
 def test_drape_arranges_and_arrange_makes_a_body() -> None:

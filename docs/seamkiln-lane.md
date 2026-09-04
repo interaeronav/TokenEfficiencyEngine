@@ -50,6 +50,7 @@ s.save_script("coat.json")          # replays to the same garment, anywhere
 | verb | what it does | added |
 | --- | --- | --- |
 | `block`, `panel`, `seam`, `allowance`, `delete` | draft the pattern | A53 |
+| `load` | a pattern from a DXF (AAMA/ASTM) in place of the current one; `units_mm` overrides the file's unit | A65 |
 | `body` | `mannequin` · `anny` · `posed` · **`figure`** · `custom` | A53 / A58 / A65 |
 | `arrange` | place panels; `arrangement` = `auto` · `cylinder` · `wrap`; `dress` | A53 / A65 |
 | `drape`, `fit`, `techpack`, `export` | simulate, measure, document, write files | A53 |
@@ -287,9 +288,10 @@ QUANTITY / "# n" land in `meta`, the style header in provenance. Layers
 measured against the boundary (`qv_deviation_mm`, the chord error the import
 carries), never imported. A file that keeps its sew line on layer 14 reads
 back with `meta["outline_is"] == "cut_line"` and the allowance measured, so
-`sew_line()` returns the piece. No session verb loads a DXF yet; the API
-and TEE's `sk_interchange` (`action="read"`, with `units_mm` and the same
-report fields) do.
+`sew_line()` returns the piece. The `load` verb reads a DXF in place of the
+pattern and enters the script (a replay re-reads the path; the fingerprint
+catches a file that changed); through TEE it is the `load` batch op and
+`sk_interchange` `action="read"`, which calls the same verb.
 
 ## Render properties on the card
 

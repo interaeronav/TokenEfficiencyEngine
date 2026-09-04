@@ -397,6 +397,7 @@ def _translate(op: dict[str, Any], index: int) -> list[dict[str, Any]]:
 
 
 _PASSTHROUGH = (
+    "load",
     "drape",
     "export",
     "grade",
@@ -448,6 +449,16 @@ def _record(adapter: SeamkilnAdapter, verb: str, result: dict, diff: Diff) -> No
             diff.created.append(entity.id)
             diff.upserts.append(entity)
         diff.notes.append(f"block: {len(result['panels'])} panels, {result['seams']} seams")
+    elif verb == "load":
+        for panel in adapter.session.pattern.panels:
+            entity = _panel_entity(panel)
+            diff.created.append(entity.id)
+            diff.upserts.append(entity)
+        diff.notes.append(
+            f"load: {len(result['panels'])} pieces from {Path(result['path']).name}, "
+            f"unit from {result['units_source']}"
+            + (f"; {'; '.join(result['notes'])}" if result.get("notes") else "")
+        )
     elif verb == "panel":
         entity = _panel_entity(adapter.session.pattern.panel(result["id"]))
         diff.created.append(entity.id)

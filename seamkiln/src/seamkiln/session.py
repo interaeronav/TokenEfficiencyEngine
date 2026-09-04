@@ -227,6 +227,76 @@ def _v_block(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     return {"panels": [p.id for p in session.pattern.panels], "seams": len(session.pattern.seams)}
 
 
+def _v_load(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Load a pattern from a file - DXF in the AAMA/ASTM dialects - in place of
+    the current one, the way `block` replaces it.
+
+    The script records the PATH, not the file: a replay re-reads it, and the
+    replay law's fingerprint (built from the outlines) is what catches a file
+    that changed in between. The result carries the file's sha256 so a caller
+    can pin what was read. The reader's own report rides along - which unit
+    won, the validation-curve deviation, the notes - because a DXF read in
+    the wrong unit is a doll's garment that drapes perfectly.
+    """
+    path = args.get("path")
+    if not path:
+        raise CommandError("load needs 'path' - the file to read. Formats: dxf (AAMA/ASTM).")
+    source = Path(str(path))
+    fmt = str(args.get("format") or source.suffix.lstrip(".") or "dxf").lower()
+    if fmt not in ("dxf", "aama", "astm"):
+        raise CommandError(
+            f"load reads dxf (AAMA/ASTM), not {fmt!r}. Export the pattern from your CAD "
+            "as DXF-AAMA or DXF-ASTM, one block per piece."
+        )
+    if not source.is_file():
+        raise CommandError(f"load: {source} is not a file.")
+    if session.pattern is not None:
+        for existing in session.pattern.panels:
+            _guard(session, f"panel:{existing.id}", "replacing the pattern with a loaded file")
+
+    from ezdxf import DXFError
+
+    from seamkiln.pattern.dxf import DxfDialectError, read_dxf
+
+    flavour = "aama" if fmt == "aama" else str(args.get("dialect", "astm"))
+    units_mm = args.get("units_mm")
+    try:
+        pattern, report = read_dxf(
+            source,
+            flavour=flavour,
+            strict=bool(args.get("strict", True)),
+            units_mm=float(units_mm) if units_mm is not None else None,
+        )
+    except (DxfDialectError, DXFError, ValueError, OSError) as exc:
+        raise CommandError(f"load: {exc}") from exc
+    if not pattern.panels:
+        raise CommandError(
+            f"load: {source.name} has no piece - no block with a closed boundary on layer 1 "
+            f"(skipped {', '.join(report.skipped_blocks) or 'nothing'}). Is it a pattern DXF "
+            "in the AAMA/ASTM layout, one block per piece?"
+        )
+
+    session.pattern = pattern
+    session.name = pattern.name
+    session.garment = session.drape = session.live = None
+    return {
+        "path": str(source),
+        "sha256": sha256(source.read_bytes()).hexdigest()[:16],
+        "style": report.header.get("STYLE NAME", ""),
+        "panels": [p.id for p in pattern.panels],
+        "names": {p.id: p.name for p in pattern.panels if p.name != p.id},
+        "seams": len(pattern.seams),
+        "insunits": report.insunits,
+        "units_source": report.units_source,
+        "scale_mm_per_unit": report.scale_mm,
+        "validation_curves": report.validation_curves,
+        "qv_deviation_mm": round(report.qv_deviation_mm, 3),
+        "skipped_blocks": report.skipped_blocks,
+        "unknown_layers": report.unknown_layers,
+        "notes": report.notes,
+    }
+
+
 def _v_panel(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     from seamkiln.pattern.geometry import Vertex, VertexKind
     from seamkiln.pattern.model import Panel, Pattern
@@ -1303,6 +1373,7 @@ def _v_unfasten(session: Session, args: dict[str, Any]) -> dict[str, Any]:
 
 _VERBS = {
     "block": _v_block,
+    "load": _v_load,
     "panel": _v_panel,
     "seam": _v_seam,
     "allowance": _v_allowance,

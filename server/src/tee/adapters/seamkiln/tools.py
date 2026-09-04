@@ -193,7 +193,7 @@ def register_seamkiln_tools(app) -> None:
     def interchange(args: dict[str, Any]) -> dict[str, Any]:
         _need()
         adapter = _adapter(app)
-        from seamkiln.pattern.dxf import DIALECTS, read_dxf, write_dxf
+        from seamkiln.pattern.dxf import DIALECTS, write_dxf
 
         action = str(args.get("action", "write")).lower()
         flavour = str(args.get("dialect", "astm"))
@@ -210,32 +210,19 @@ def register_seamkiln_tools(app) -> None:
                 }
             }
         if action == "read":
-            units_mm = args.get("units_mm")
-            pattern, report = read_dxf(
-                str(args["path"]),
-                flavour=flavour,
-                strict=bool(args.get("strict", True)),
-                units_mm=float(units_mm) if units_mm is not None else None,
-            )
-            # the same reset the session's own `block` verb performs: a new
-            # pattern, and nothing built on the old one survives
-            session = adapter.session
-            session.pattern = pattern
-            session.name = pattern.name
-            session.garment = session.drape = session.live = None
+            # the session's own `load` verb, so the read enters the script
+            # and replays like every other command
+            from seamkiln.session import Command, CommandError
+
+            load_args = {k: args[k] for k in ("path", "dialect", "strict", "units_mm") if k in args}
+            try:
+                result = adapter.session.apply(Command("load", load_args))
+            except CommandError as exc:
+                raise TeeError("seamkiln_load_refused", str(exc), fix=str(exc)) from exc
             return {
-                "pieces": report.pieces,
-                "style": report.header.get("STYLE NAME", ""),
-                "names": {p.id: p.name for p in pattern.panels if p.name != p.id},
-                "skipped_blocks": report.skipped_blocks,
-                "unknown_layers": report.unknown_layers,
-                "insunits": report.insunits,
-                "units_source": report.units_source,
-                "scale_mm_per_unit": report.scale_mm,
-                "validation_curves": report.validation_curves,
-                "qv_deviation_mm": round(report.qv_deviation_mm, 3),
-                "notes": report.notes,
-                "summary": pattern.summary(),
+                "pieces": len(result["panels"]),
+                **{k: v for k, v in result.items() if k != "panels"},
+                "summary": adapter.session.pattern.summary(),
             }
         if adapter._pattern is None:
             raise TeeError(
@@ -439,9 +426,11 @@ def register_seamkiln_tools(app) -> None:
             name="sk_interchange",
             description=(
                 "Read or write a pattern as industry DXF - the AAMA and ASTM dialects, "
-                "with the 23-layer map. `action='dialects'` returns the layer tables and "
-                "which of them this repo has verified; ASTM is verified, AAMA's layer map "
-                "is second-hand and says so."
+                "with the 23-layer map. `action='read'` is the session's `load` op (also "
+                "a tee_batch op): it replaces the pattern, enters the script and reports "
+                "which unit won. `action='dialects'` returns the layer tables and which "
+                "of them this repo has verified; ASTM is verified, AAMA's layer map is "
+                "second-hand and says so."
             ),
             schema={
                 "type": "object",

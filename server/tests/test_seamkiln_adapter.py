@@ -101,6 +101,27 @@ def test_the_full_lane_is_one_batch(adapter, tmp_path) -> None:
     assert report["seam_gaps"]["mean_gap_mm"] < 10.0
 
 
+def test_a_dxf_loads_as_a_batch_op_and_shows_in_the_diff(adapter, tmp_path) -> None:
+    """`load` is a tee_batch op: the pieces arrive as created entities, the
+    note says where the unit came from, and the session's script carries the
+    load so a replay rebuilds the same pattern."""
+    from seamkiln.pattern.dxf import write_dxf
+    from seamkiln.pattern.fixtures import tee_block
+    from seamkiln.session import Session
+
+    path = tmp_path / "tee.dxf"
+    write_dxf(tee_block(), path, flavour="astm")
+    diff = adapter.execute([{"op": "load", "props": {"path": str(path)}}])
+    assert sorted(diff.created) == sorted(f"panel:{p.id}" for p in tee_block().panels)
+    assert diff.notes == ["load: 4 pieces from tee.dxf, unit from $INSUNITS 4"]
+    assert [c.op for c in adapter.session.history] == ["load"]
+    assert Session.replay(adapter.session.script()).fingerprint() == adapter.session.fingerprint()
+
+    with pytest.raises(TeeError) as excinfo:
+        adapter.execute([{"op": "load", "props": {"path": str(tmp_path / "missing.dxf")}}])
+    assert "is not a file" in excinfo.value.fix
+
+
 def test_drape_arranges_first_rather_than_refusing(adapter) -> None:
     """Session.drape arranges when nothing is arranged yet. A refusal that a
     caller can only answer by typing the obvious next step is friction, not

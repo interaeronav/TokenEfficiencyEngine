@@ -10134,13 +10134,28 @@ with the allowance measured between the two rings (the tee block written at
 Through TEE the same file lands with `sk_interchange` `action="read"`, which
 now takes `units_mm` and returns `units_source`, the scale, the validation
 curve count and deviation, the notes and the style name beside the compact
-summary (one adapter test on the same R12 structure). Not done, recorded: no
-SESSION verb loads a DXF (the session exports only; the API and the TEE
-tool read); CLO's DXF-AAMA variant was not measured (both owner files were
-ASTM-style with the validation layers, and the AAMA dialect's table refuses
-84/85 under `strict` as it should until AAMA is verified). Suites:
-`test_pattern` + `test_dxf_clo` 46 passed, the server's seamkiln adapter
-tests 25 passed, lint clean, the always-loaded surface untouched.
+summary (one adapter test on the same R12 structure). Not done, recorded:
+CLO's DXF-AAMA variant was not measured (both owner files were ASTM-style
+with the validation layers, and the AAMA dialect's table refuses 84/85 under
+`strict` as it should until AAMA is verified). Suites: `test_pattern` +
+`test_dxf_clo` 46 passed, the server's seamkiln adapter tests 25 passed,
+lint clean, the always-loaded surface untouched.
+
+**The `load` verb (owner, same day: "add a session verb to load a dxf").**
+Until now the session could export a DXF but not read one: the API and the
+TEE tool could, which meant a loaded pattern was the one state a script
+could not rebuild. `load` (`path`, `dialect`, `strict`, `units_mm`) reads a
+DXF in place of the pattern the way `block` does - lock guard on every
+existing panel, garment/drape/live cleared, the session named after the
+style - and returns the reader's report with the file's sha256. The script
+records the path, not the file; a replay re-reads it and the replay law's
+fingerprint is what catches a file changed in between (a tee written and
+loaded back replays to the drafted session's own fingerprint). Refusals by
+name: no path, a non-DXF suffix, a missing file, a file with no piece, a
+file that is not DXF; none enters the history. In TEE it is a `load` batch
+op (named once in `_PASSTHROUGH`, pieces arrive as created entities with a
+note naming the unit's source) and `sk_interchange` `action="read"` now
+calls the verb instead of setting session state itself.
 
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
