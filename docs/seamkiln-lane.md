@@ -54,7 +54,7 @@ s.save_script("coat.json")          # replays to the same garment, anywhere
 | `sew` | two runs of edges joined at shared breakpoints: a sleeve cap across a three-edge armhole in one command, the gather the runs' own ratio | A65 |
 | `body` | `mannequin` · `anny` · `posed` · **`figure`** (`build` male · female, `chest_m`) · `custom` | A53 / A58 / A65 |
 | `arrange` | place panels; `arrangement` = `auto` · `cylinder` · `wrap`; `dress`; `roles` names a CAD pattern's front, back and sleeves | A53 / A65 |
-| `drape`, `fit`, `techpack`, `export` | simulate, measure, document, write files | A53 |
+| `drape`, `fit`, `techpack`, `export` | simulate, measure, document, write files; `fit` reports a `chest` row: the trunk's widest slice below the armpit against the cloth's own length round it | A53 / A65 |
 | `grade`, `cut` | parametric grading; darts, slashes, pleats | A54 |
 | `rip`, `pinch`, `lace`, `finish`, `animate` | tearing, symmetric pinching, lacing, washes and fur, blend shapes | A54 |
 | `lock`, `unlock` | protect a panel, the body, the fabric or everything | A55 |

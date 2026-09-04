@@ -10398,6 +10398,27 @@ armhole is one. It is a `tee_batch` op, on the GUI's gap list, and in the
 every-verb replay. Tests: the split's ranges and gather on a synthetic
 armhole, the mirrored run, the refusals, replay.
 
+**The fit report's chest (second of three).** Its landmark rows compare a
+tape round the OUTSIDE of the garment - the convex hull of its section -
+with a body girth at a fraction of stature, and the body's "chest" came
+from the girth jump below the ribcage. `fit` now adds a `chest` row: the
+body's trunk as the widest slice between the waist and the armpit (the
+envelope of the section loops round the axis, since a figure is parts
+laid over one another and the smallest axis loop is an inner frustum;
+the scan stops where the slice widens by a quarter in a step, the arms or
+the ledge joining), against the CLOTH round it - the torso panels' own
+section pieces chained across seam-sized gaps of 15 mm into a loop, read
+at the first height below the armpit where it closes, because a tee's
+front and back meet only through the sleeves at the armpit itself. On
+the block, cloth 1,039.8 mm on a 995.9 body: ease 43.9, "close", where
+the landmark row read 67 and "relaxed" (the pattern drafts 44). On the
+Camiseta on the female figure, cloth 949 on 849: ease 100 as worn against
+40 drafted - the cloth is stretched 5 % at that line, which is what the
+strain map says too, and the row is honest about which it reports
+(`cloth_mm`, `standing_mm` for the tape). A garment that does not close
+says so. Two methods for the body's chest now agree within 1.3 % on the
+female figure (849 here, 860 by the figure's own joint-bounded scan).
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE

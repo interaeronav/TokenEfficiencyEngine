@@ -219,12 +219,205 @@ def strain_map(garment: GarmentMesh, points: np.ndarray) -> dict[str, Any]:
     }
 
 
+def _loops_at(mesh: trimesh.Trimesh, y: float, *, join_m: float = 0.0) -> list[np.ndarray]:
+    """The loops of a horizontal section, as (n, 2) x-z polylines.
+
+    A watertight body sections into closed loops. A garment does not: its
+    panels are separate meshes held together by seam constraints, so its
+    section is open polylines - a front arc and a back arc whose ends meet
+    at the side seams within the seam gap. With `join_m` those are chained
+    end to nearest end into loops, bridging gaps up to that length.
+    """
+    section = mesh.section(plane_origin=[0.0, y, 0.0], plane_normal=[0.0, 1.0, 0.0])
+    if section is None:
+        return []
+    pieces = []
+    for entity in section.entities:
+        pts = np.asarray(entity.discrete(section.vertices))[:, [0, 2]]
+        if len(pts) >= 2:
+            pieces.append(pts)
+    if join_m <= 0.0:
+        return [pts for pts in pieces if len(pts) >= 3 and np.linalg.norm(pts[0] - pts[-1]) < 1e-6]
+    loops: list[np.ndarray] = []
+    pieces.sort(key=len, reverse=True)
+    while pieces:
+        chain = [pieces.pop(0)]
+        while True:
+            end = chain[-1][-1]
+            if len(chain) > 1 and np.linalg.norm(end - chain[0][0]) <= join_m:
+                break
+            best, best_d, flip = None, join_m, False
+            for i, pts in enumerate(pieces):
+                d0, d1 = np.linalg.norm(end - pts[0]), np.linalg.norm(end - pts[-1])
+                if d0 <= best_d:
+                    best, best_d, flip = i, d0, False
+                if d1 < best_d:
+                    best, best_d, flip = i, d1, True
+            if best is None:
+                break
+            pts = pieces.pop(best)
+            chain.append(pts[::-1] if flip else pts)
+        loop = np.vstack(chain)
+        if len(loop) >= 3:
+            loops.append(loop)
+    return loops
+
+
+def _loop_round_the_axis(loops: list[np.ndarray]) -> np.ndarray | None:
+    """The loop that goes round the body's own axis, if one does."""
+    from shapely.geometry import Point, Polygon
+
+    origin = Point(0.0, 0.0)
+    best = None
+    for loop in loops:
+        polygon = Polygon(loop)
+        if (
+            polygon.is_valid
+            and polygon.contains(origin)
+            and (best is None or polygon.length < best.length)
+        ):
+            best = polygon
+    return None if best is None else np.asarray(best.exterior.coords)
+
+
+def _perimeter(loop: np.ndarray) -> float:
+    closed = np.vstack([loop, loop[:1]])
+    return float(np.linalg.norm(np.diff(closed, axis=0), axis=1).sum())
+
+
+def _trunk_envelope(loops: list[np.ndarray]) -> np.ndarray | None:
+    """The outer envelope of every loop round the body's axis: the convex
+    hull of their points. A figure is parts laid over one another, not a
+    union, so a chest section holds a frustum, a ball and a bust inside
+    one another and the smallest loop is an inner part, not the body."""
+    from shapely.geometry import MultiPoint, Point, Polygon
+
+    origin = Point(0.0, 0.0)
+    inside = [loop for loop in loops if Polygon(loop).is_valid and Polygon(loop).contains(origin)]
+    if not inside:
+        return None
+    hull = MultiPoint([tuple(row) for row in np.vstack(inside)]).convex_hull
+    if hull.geom_type != "Polygon":
+        return None
+    return np.asarray(hull.exterior.coords)
+
+
+def trunk_chest(mesh: trimesh.Trimesh) -> dict[str, float]:
+    """The chest a garment meets: the widest slice of the TRUNK between the
+    waist and the armpit, in millimetres, with its height.
+
+    The landmark scan reads the chest as the girth jump below the ribcage
+    (912 mm on the figure at 1.65 m against 1,047 at the chest joint), and a
+    body matched to a pattern by it was 8 % too big where cloth touches.
+    Here each slice's trunk is the envelope of the loops round the body's
+    axis, so arms hanging beside it do not count, and the scan stops where
+    the slice widens by a quarter in one step - the arms or the shoulder
+    ledge joining the trunk - or at the shoulder line.
+    """
+    from seamkiln.drape.garment import body_landmarks
+
+    low = float(mesh.bounds[0][1])
+    height = float(mesh.bounds[1][1]) - low
+    waist_y = low + height * LANDMARKS.get("waist", 0.62)
+    shoulder_y = float(body_landmarks(mesh)["shoulder_y_m"])
+    best_girth, best_y, previous_width = 0.0, waist_y, None
+    heights = np.linspace(waist_y, shoulder_y - 0.02, 40)
+    step = float(heights[1] - heights[0])
+    for y in heights:
+        trunk = _trunk_envelope(_loops_at(mesh, y))
+        if trunk is None:
+            continue
+        width = float(trunk[:, 0].max() - trunk[:, 0].min())
+        if previous_width is not None and width > 1.25 * previous_width:
+            break
+        previous_width = width
+        girth = _perimeter(trunk)
+        if girth > best_girth:
+            best_girth, best_y = girth, float(y)
+    # a fine pass round the coarse maximum: the widest slice of a ball sits
+    # between two coarse samples and read 14 mm under the figure's own chest
+    for y in np.linspace(best_y - step, best_y + step, 11):
+        trunk = _trunk_envelope(_loops_at(mesh, float(y)))
+        if trunk is None:
+            continue
+        girth = _perimeter(trunk)
+        if girth > best_girth:
+            best_girth, best_y = girth, float(y)
+    return {"y_m": round(best_y, 4), "girth_mm": round(best_girth * 1000.0, 1)}
+
+
+def cloth_girth(garment: GarmentMesh, points: np.ndarray, y: float) -> dict[str, Any] | None:
+    """The CLOTH round the body at height y: the perimeter of the torso
+    panels' loop round the axis - the length a pattern maker calls ease
+    against - beside the hull a tape round the outside would read."""
+    from shapely.geometry import MultiPoint
+
+    chosen = set(torso_panels(garment, points))
+    keep = np.zeros(len(points), dtype=bool)
+    for panel_id in chosen:
+        first, last = garment.panel_slices[panel_id]
+        keep[first:last] = True
+    faces = garment.triangles[keep[garment.triangles].all(axis=1)]
+    mesh = trimesh.Trimesh(vertices=points, faces=faces, process=False)
+    loops = _loops_at(mesh, y, join_m=0.015)  # a closed seam's gap is millimetres; 15 bridges it
+    if not loops:
+        return None
+    flat = np.vstack(loops)
+    hull = MultiPoint([tuple(row) for row in flat]).convex_hull
+    standing = float(hull.length) * 1000.0 if hull.geom_type == "Polygon" else None
+    tube = _loop_round_the_axis(loops)
+    return {
+        "y_m": round(float(y), 4),
+        "girth_mm": round(_perimeter(tube) * 1000.0, 1) if tube is not None else None,
+        "standing_mm": round(standing, 1) if standing is not None else None,
+        "closed": tube is not None,
+    }
+
+
 def fit_report(garment: GarmentMesh, points: np.ndarray, body: trimesh.Trimesh) -> dict[str, Any]:
     """Everything a fitting would say, compactly. No vertices."""
     body_rows = body_measurements(body)
     garment_rows = garment_measurements(garment, points, body)
-    return {
+    report = {
         "body": body_rows,
         "ease": ease(garment_rows, body_rows),
         "strain": strain_map(garment, points),
     }
+    # The chest, measured where cloth meets body: the trunk's widest slice
+    # below the armpit, against the cloth's own length round it there. The
+    # landmark rows above compare a tape round the OUTSIDE of the garment
+    # (its hull) with a body girth at a fraction of stature: a fitted tee
+    # standing 20 mm off the body read as 185 mm of ease for a pattern
+    # drafted with 44, and was called oversized.
+    chest = trunk_chest(body)
+    cloth = None
+    if chest["girth_mm"] > 0.0:
+        # the trunk's widest slice is at the armpit's level, where a tee's
+        # front and back are joined only through the sleeves; the cloth's
+        # own loop closes just below it, and that is where it is read
+        for drop in np.arange(0.0, 0.0851, 0.005):
+            cloth = cloth_girth(garment, points, chest["y_m"] - float(drop))
+            if cloth is not None and cloth["girth_mm"] is not None:
+                break
+    if cloth is not None and cloth["girth_mm"] is not None:
+        delta = cloth["girth_mm"] - chest["girth_mm"]
+        report["chest"] = {
+            "y_m": chest["y_m"],
+            "cloth_y_m": cloth["y_m"],
+            "body_mm": chest["girth_mm"],
+            "cloth_mm": cloth["girth_mm"],
+            "ease_mm": round(delta, 1),
+            "verdict": _ease_verdict(delta),
+            "standing_mm": cloth["standing_mm"],
+            "note": "ease is cloth length round the trunk minus the trunk's widest girth "
+            "below the armpit; standing_mm is a tape round the outside",
+        }
+    elif cloth is not None:
+        report["chest"] = {
+            "y_m": chest["y_m"],
+            "body_mm": chest["girth_mm"],
+            "cloth_mm": None,
+            "standing_mm": cloth["standing_mm"],
+            "note": "the torso panels do not close round the body within 85 mm below the chest",
+        }
+    return report
