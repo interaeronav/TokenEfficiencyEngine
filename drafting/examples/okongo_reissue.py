@@ -171,8 +171,8 @@ res = loop.run(
         "client": "J. Nangolo (owner)",
         "scale": "",
         "date": "2026-09-04",
-        "revision": "P05",
-        "revision_note": "Compass fixed by owner; cabinet run identified on SK-03/E4.",
+        "revision": "P06",
+        "revision_note": "Cabinet run traced on E4 at owner's direction.",
         "drawn_by": "TEE pc_* (A67)",
         "checked_by": "",
     },
@@ -577,7 +577,7 @@ sheet3 = _new_sheet(
     "SK-03",
     "INTERNAL ELEVATIONS — as-scanned survey",
     "Room 01, each wall square-on   ·   DEPTH-SHADED: pale = at the wall, dark = "
-    "proud of it toward the viewer, white = nothing returned (an opening)",
+    "proud of it, white = nothing returned   ·   blue = traced envelope (E4 only)",
     [
         View("ga_elevation", f"ELEVATION {tag}", SC3, levels=["FFL ±0.000", "SOFFIT +2.604"])
         for tag, _, _, _, _, _, _ in ELEVS
@@ -597,6 +597,10 @@ def elev_body(canvas):
         pts = V.elevation(P, axis, pos, lo + 0.04, hi - 0.04, look, depth=0.60)
         width = float(pts[:, 0].max())
         img, extent = V.depth_raster(pts, z_hi=CEILING)
+        # Tracing is opt-in and only on the wall the OWNER identified as
+        # carrying joinery. On a bare wall a rectangle round every proud
+        # patch would be inventing furniture out of clutter.
+        traced = V.trace_outlines(img, extent) if "CABINET" in name else []
         cx, cy = 26 + (k % cols) * (width * 1000 / SC3 + 44), 168 - (k // cols) * 88
         ax, _, _ = canvas.view_axes(cx, cy, ((-0.25, -0.30), (width + 0.25, 3.55)), SC3)
         # Depth-shaded: at the wall is pale, proud toward the viewer is dark,
@@ -620,6 +624,38 @@ def elev_body(canvas):
         ax.plot([width, width], [0, 2.604], color=INK, lw=P_("wall", cut=True), zorder=4)
         ax.text(0, 3.50, f"ELEVATION {tag}", fontsize=8.5, weight="bold", color=INK, va="top")
         ax.text(0, 3.24, name, fontsize=7.1, color=MUTED, va="top")
+        for o in traced:
+            ax.add_patch(
+                MplPoly(
+                    [(o.x0, o.z0), (o.x1, o.z0), (o.x1, o.z1), (o.x0, o.z1)],
+                    closed=True,
+                    fc="none",
+                    ec=ACCENT,
+                    lw=S.resolve_pen("furniture", SC3, cut=True) * S.POINTS_PER_MM,
+                    zorder=5,
+                )
+            )
+            dim(ax, (o.x0, o.z1 + 0.16), (o.x1, o.z1 + 0.16), f"{o.width_mm:.0f}", 0.0, size=6.6)
+            dim(
+                ax,
+                (o.x0 - 0.14, o.z0),
+                (o.x0 - 0.14, o.z1),
+                f"{o.height_mm:.0f}",
+                0.0,
+                vertical=True,
+                size=6.6,
+            )
+            ax.text(
+                (o.x0 + o.x1) / 2,
+                o.z0 + 0.10,
+                f"TRACED ENVELOPE\nproud {o.depth_m * 1000:.0f} mm\n{o.fill:.0%} of it returned",
+                ha="center",
+                va="bottom",
+                fontsize=6.0,
+                color=ACCENT,
+                zorder=9,
+                bbox=dict(fc="white", ec="none", pad=1.0),
+            )
         ax.text(
             width, -0.16, f"{width * 1000:.0f}", fontsize=7.1, color=MUTED, ha="right", va="top"
         )
@@ -632,22 +668,28 @@ def elev_body(canvas):
             vertical=True,
             size=6.8,
         )
-    canvas.scale_bar(300, 96, SC3)
+    canvas.scale_bar(300, 100, SC3)
     canvas.notes_panel(
         26,
-        78,
+        74,
         [
-            "Each elevation looks square-on at one wall of Room 01. Every return",
-            "within 600 mm of the wall is kept and shaded by its DEPTH from that",
-            "wall - so a cabinet reads dark against a pale wall, and an opening,",
-            "which returns nothing, reads white. Nothing is outlined or traced:",
-            "these are the measurements, shaded, not an interpretation of them.",
+            "Each wall square-on. Every return within 600 mm is kept and shaded by",
+            "its DEPTH from the wall, so a cabinet reads dark and an opening, which",
+            "returns nothing, reads white. The shading is measurement, not reading.",
+            "",
+            "TRACING is opt-in and only on E4, the wall the OWNER named as carrying",
+            "the cabinets. A rectangle round a proud region IS a reading of the depth",
+            "map, so it is blue, called an ENVELOPE, and states how much of its own",
+            "area returned - 23% here means the extent is measured, the face is not.",
             "Widths are inset 40 mm off each return wall, whose own face would",
             "otherwise print as a black band down both edges.",
             "",
             sheet3.level_datum,
             "",
-            *textwrap.wrap(sheet3.provenance, 92),
+            # 108 chars wraps this provenance to exactly two lines. A [:2]
+            # slice would fit it too, and would silently drop the tail of a
+            # statement about how the survey was measured.
+            *textwrap.wrap(sheet3.provenance, 108),
         ],
     )
 

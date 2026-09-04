@@ -12,6 +12,8 @@ result reads with line weights rather than with pixels.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 
 MIN_FACE_RETURNS = 200
@@ -116,6 +118,94 @@ def depth_raster(
     np.maximum.at(img, (iz, ix), elev[:, 2])
     img[np.isinf(img)] = np.nan
     return img, (0.0, w, z_lo, z_hi)
+
+
+@dataclass
+class Outline:
+    """A rectangle traced round something standing proud of a wall."""
+
+    x0: float
+    x1: float
+    z0: float
+    z1: float
+    depth_m: float
+    fill: float  # how much of its own bounding box the region occupies
+    area_m2: float
+
+    @property
+    def width_mm(self) -> float:
+        return (self.x1 - self.x0) * 1000.0
+
+    @property
+    def height_mm(self) -> float:
+        return (self.z1 - self.z0) * 1000.0
+
+
+def trace_outlines(
+    img: np.ndarray,
+    extent: tuple[float, float, float, float],
+    *,
+    proud_m: float = 0.12,
+    min_area_m2: float = 0.15,
+    min_fill: float = 0.18,
+    edge_margin_m: float = 0.15,
+) -> list[Outline]:
+    """Rectangles round the things standing proud of a wall.
+
+    This IS interpretation, and it is opt-in for that reason: the caller has
+    to say a wall carries joinery before anything is traced round it. What the
+    scan supplies is the depth map; a rectangle is a reading of it.
+
+    Regions touching the raster's own edges are dropped - the floor and ceiling
+    strips and the return wall all sit within reach of the elevation plane and
+    are not fittings.
+
+    `fill` comes back on every outline and belongs on the drawing. A cabinet
+    front is scanned unevenly - on the Okongo run the counter's edges returned
+    far more than its face, and the main unit fills only 22% of its own
+    bounding box. That does not make the envelope wrong, but it does make it an
+    ENVELOPE rather than a measured face, and the reader has to be told which.
+    """
+    from scipy import ndimage
+
+    if not np.isfinite(img).any():
+        return []
+    nz, nx = img.shape
+    x0e, x1e, z0e, z1e = extent
+    cell_x = (x1e - x0e) / max(nx - 1, 1)
+    cell_z = (z1e - z0e) / max(nz - 1, 1)
+
+    proud = np.isfinite(img) & (img > proud_m)
+    # Mask the floor, ceiling and return-wall bands BEFORE labelling, not
+    # after. They are all "proud" of the elevation plane, so leaving them in
+    # bridges every fitting into one region spanning the whole sheet, which
+    # then fails every test and traces nothing at all.
+    mz = max(1, int(edge_margin_m / cell_z))
+    mx = max(1, int(edge_margin_m / cell_x))
+    proud[:mz, :] = False
+    proud[-mz:, :] = False
+    proud[:, -mx:] = False
+    proud = ndimage.binary_closing(proud, np.ones((3, 3)))
+    labels, count = ndimage.label(proud)
+
+    out: list[Outline] = []
+    for i in range(1, count + 1):
+        mask = labels == i
+        rows, cols = np.where(mask)
+        x_lo, x_hi = cols.min() * cell_x, cols.max() * cell_x
+        z_lo, z_hi = z0e + rows.min() * cell_z, z0e + rows.max() * cell_z
+        # anything reaching the floor, the ceiling or a return wall is the room,
+        # not a fitting
+        area = float(mask.sum()) * cell_x * cell_z
+        if area < min_area_m2:
+            continue
+        box = (rows.max() - rows.min() + 1) * (cols.max() - cols.min() + 1)
+        fill = float(mask.sum()) / max(box, 1)
+        if fill < min_fill:
+            continue
+        out.append(Outline(x_lo, x_hi, z_lo, z_hi, float(np.nanmedian(img[mask])), fill, area))
+    out.sort(key=lambda o: -o.area_m2)
+    return out
 
 
 def iso_matrix(azimuth_deg: float = 45.0, elevation_deg: float = 28.0) -> np.ndarray:

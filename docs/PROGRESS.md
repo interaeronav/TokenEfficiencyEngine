@@ -11522,3 +11522,122 @@ interpretation - the same line A67 non-goal 1 draws. The shading shows the
 relief that was measured and leaves the reading to the reader.
 
 **Evidence: 63 passed**, all five sheets 0 legibility findings.
+
+### A65 P5a — the Optitex file, and a declared unit that lies (2026-09-04)
+
+The owner bought the AAMA/DXF block the search identified (KD3020 easy summer
+dress, $75.90, `Author: Optitex` in the file's own text) to settle the ten
+unverified layers. It settled six, disputed one, and found something worth
+more than any of them.
+
+**Its `$INSUNITS` is wrong, and trusting it makes the garment 39× too big.**
+The file declares `$INSUNITS 6` — metres. Its drawing unit is the INCH. Three
+independent confirmations:
+
+```
+CONTROL PIECE block, labelled  Annotation: 10"X10"  Category: DO NOT CUT
+  raw extent                     10.0 x 10.0 units      -> 1 unit = 1 inch
+seller's own listing             "36.5 inches long"
+  dress front raw extent         36.62 units            -> 36.6 inches
+read through $INSUNITS 6         930.2 mm true  vs  36,622.3 mm as read
+```
+
+`_resolve_units` puts a non-zero `$INSUNITS` on its SECOND rung, above the
+header text, because an explicit declaration ought to outrank prose. On this
+file that rung is a **lie**, and the failure is exactly the one the module was
+written to prevent, arriving through the door we thought was safe: every seam
+still closes, every fit number is confident, and the dress is 36 metres long.
+CLO's files omit `$INSUNITS` entirely and were saved by the header text;
+Seamly2D omits it and was saved by the mm fallback; Optitex sets it and is
+wrong. **Three real writers, three different unit stories, and the only one
+that declared a unit declared it incorrectly.**
+
+**The file carries its own antidote, and it is industry practice.** A
+`CONTROL PIECE` block, `DO NOT CUT`, a square labelled with its true size, is
+there precisely so the receiving system can check its own scale. Nothing in
+seamkiln looks for it. It should: a labelled control square outranks any
+header, and a file whose control piece disagrees with its declared unit must
+refuse rather than drape. Recorded as the next change to the reader.
+
+**What it verified.** Six layers, in AAMA, which had **none** verified before
+(the table was assembled from secondary sources and marked `verified=False`):
+
+| layer | entity | feature | count |
+| --- | --- | --- | --- |
+| 1 | POLYLINE + TEXT | boundary + piece attributes | 8 + 31 |
+| 2 | POINT | turn_point | 121 |
+| 3 | POINT | curve_point | 301 |
+| 4 | POINT | **notch** | 29 |
+| 7 | LINE | grain | 8 |
+| 8 | POLYLINE | internal | 16 |
+
+A notch is a POINT on layer 4 — now confirmed by **two independent vendors**
+(CLO in ASTM, Optitex in AAMA), which retires the format's most divergent
+feature as a question. Layer 1's TEXT is the piece record in `Key: value`
+form: `Annotation: CUT 2`, `Category: P2 SIZE M/6`, `Piece Name: …`,
+`Material: KNIT`.
+
+**And one dispute, which is what the learn-mode was built for.** Optitex
+writes **layer 15**, which our AAMA table calls `drill_second`. It holds 15
+TEXT entities across 6 pieces, and they are free-form sewing notes: `CB`,
+`GUSSET`, `AH self binding 0.25"`, `fold`, `NO SEAM ALLOWANCE`, `NO SHRINKAGE
+INCLUDED`. That is annotation, not drill positions. Either the table is wrong
+or Optitex is non-conforming; given the table's provenance (secondary sources,
+never verified) against a real vendor file, the table is the likelier error.
+**Not silently rewritten** - recorded, and the table still refuses layer 15
+under ASTM rather than guessing.
+
+The strict-mode refusal that caught it, on its first real file, unprompted:
+
+```
+layer 15 holds 15 TEXT across 6 pieces - not defined by the 'astm' dialect.
+seamkiln will not guess what a layer means: say what these hold and the
+table can carry them.
+```
+
+**Still unverified after all this:** 5 (grade_reference), 6 (mirror), 9, 10,
+11 (cutout), 13 (drill), 14 (sew), 82, 86, 87. The listing said "no seam
+allowance", so 14 was never going to appear. A graded nest would exercise 5.
+
+**Fourth independent confirmation that real pattern DXF is R12:** `AC1009`,
+like CLO, like Seamly2D, like the ezdxf Gerber addon's requirement. And this
+file has **no HEADER section at all** - it opens straight into `SECTION/BLOCKS`,
+exactly the shape that addon produces and our writer does not.
+
+The file itself is the owner's purchased property and is NOT committed; what
+is recorded here is the structural census.
+
+## A67 addendum 11 — the cabinet run traced (2026-09-04)
+
+Owner: *"trace the outlines on the cabinet wall"*. With the owner naming the
+wall, tracing stops being a guess and becomes a request - so `views3d.
+trace_outlines()` is opt-in and E4 is the only elevation that gets it.
+
+**What it traced:** one envelope, **2056 x 789 mm, top at 930 mm above FFL,
+projecting 478 mm** from the wall. That reads as a standard base run.
+
+**And what it says about itself:** `23% of it returned`. The scanner saw the
+counter's edges far more than its face, so the rectangle is an ENVELOPE whose
+EXTENT is measured and whose face largely is not. Every outline carries its
+fill fraction onto the drawing for that reason - a low figure does not make the
+trace wrong, it makes it a different kind of claim.
+
+**Three things the tracer had to learn from this wall:**
+
+1. **Mask the floor, ceiling and return-wall bands BEFORE labelling.** All three
+   are "proud" of the elevation plane, so leaving them in bridges every fitting
+   into one region spanning the sheet, which then fails every test and traces
+   nothing. The first run returned zero outlines for exactly this reason.
+2. **A cabinet front is a plane at CONSTANT depth**, not merely something far
+   from the wall - the depth histogram on this wall is nearly flat from 60 to
+   600 mm because the slab catches floor and ceiling too.
+3. **`min_fill` of 0.35 rejected the real cabinet.** The run fills 23% of its
+   own bounding box. The criterion now sits at 0.18 and the figure is published
+   rather than used silently as a pass/fail.
+
+**Also fixed:** the elevation note still claimed "nothing is outlined or traced"
+after E4 gained an outline, and a `[:2]` slice on the wrapped provenance would
+have silently dropped the tail of a statement about how the survey was measured.
+Wrapped at 108 instead, which fits in two lines with nothing lost.
+
+**Evidence: 63 passed**, all five sheets 0 legibility findings.
