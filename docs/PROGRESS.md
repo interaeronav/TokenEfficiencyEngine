@@ -11223,3 +11223,45 @@ shifted every named wall by <= 7 mm.
 
 **Evidence: 1423 passed, 12 skipped** (excluding the two seamkiln files the
 concurrent session has mid-edit).
+
+## A67 addendum 6 — the set re-issued at rev P02 (2026-09-04)
+
+Owner: *"reissue the drawings with the corrected level and the measured
+uncertainty"*.
+
+**Re-levelled through the lane** (`pc_level` on the original opened cloud with
+the fixed floor finder): residual 0.0000 deg, floor RMS 13.01 mm, 141,730 floor
+points, azimuth 88.769. Nine calls, 615 tokens. DXF, SVG, 900 K PLY and QA sheet
+all regenerated from it.
+
+**Dimensions barely moved** - every named wall <= 7 mm, well inside the +-120 mm
+the two captures disagree by:
+
+```
+                       P01     P02
+  overall width       4725    4720
+  overall depth       3952    3950
+  Room 01             2883    2871
+  Room 02             1497    1501
+```
+
+**Three improvements the re-issue forced:**
+
+1. **Wall constants are now DERIVED from the fit on every run.** They had been
+   hard-coded from the P01 fit; a re-level moves them a few millimetres and a
+   stale constant would put a figured dimension on a wall that is no longer
+   there.
+2. **A revision is a RECORD, not a code.** `Revision(code, date, description,
+   by, checked)` added to the spec, a revision table drawn above the title
+   block, and the critic tightened: a code with no matching table entry, or an
+   entry missing its date/description/author, is now a finding. The corrector
+   also stopped hard-coding "P01" over a revision the caller supplied - which
+   would have sent a genuine re-issue out carrying the first issue's code.
+3. **The uncertainty is stated on every sheet**: "the figured dimensions are the
+   best estimate, not a tolerance: a second capture registered onto this one
+   disagrees by a median of 119 mm. DO NOT SET OUT FROM THEM without checking on
+   site with a tape."
+
+**Evidence: 63 passed** (drafting), all five sheets 0 legibility findings, critic
+0 open / 0 blocking. `drafting/examples/okongo_reissue.py` is now in the repo, so
+the set is reproducible.

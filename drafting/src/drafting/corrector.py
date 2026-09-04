@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from drafting import standards as S
-from drafting.spec import DrawingSet, Marker, Sheet
+from drafting.spec import DrawingSet, Marker, Revision, Sheet
 
 UNSET = "— NOT SET —"
 
@@ -62,13 +62,27 @@ def _fix_title_block(sheet: Sheet, report: S.Report, project: dict[str, str]) ->
         elif name == "drawing_title":
             supplied = sheet.title.split("—")[0].strip()
         elif name == "revision":
-            supplied = "P01"
+            # The caller's revision wins. Hard-coding P01 here meant a genuine
+            # re-issue silently went out carrying the first issue's code.
+            supplied = project.get("revision") or "P01"
         # An unknown human is left unknown, loudly.
         value = supplied or UNSET
         tb.fields[name] = value
         report.add(
             "TITLE-FIELDS", f"{sheet.number}/title block", f"{name} = {value}", autofixed=True
         )
+    code = tb.fields.get("revision")
+    if code and not any(r.code == code for r in sheet.revisions):
+        sheet.revisions.append(
+            Revision(
+                code=code,
+                date=project.get("date", ""),
+                description=project.get("revision_note", "Issued."),
+                by=project.get("drawn_by", ""),
+                checked="",
+            )
+        )
+        report.add("REVISION", f"{sheet.number}/revision table", f"{code} recorded", autofixed=True)
     notes = " ".join(tb.notes).upper()
     if S.DO_NOT_SCALE.rstrip(".") not in notes:
         tb.notes.append(S.DO_NOT_SCALE)

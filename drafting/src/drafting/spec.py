@@ -54,6 +54,19 @@ class View:
 
 
 @dataclass
+class Revision:
+    """One issue. The KB is explicit that a code alone is not enough: every
+    revision needs a date, a one-line description and the initials of the
+    author and the checker, listed in a table on the sheet."""
+
+    code: str
+    date: str
+    description: str
+    by: str = ""
+    checked: str = ""
+
+
+@dataclass
 class TitleBlock:
     fields: dict[str, str] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
@@ -71,6 +84,7 @@ class Sheet:
     lines: list[Line] = field(default_factory=list)
     markers: list[Marker] = field(default_factory=list)
     title_block: TitleBlock = field(default_factory=TitleBlock)
+    revisions: list[Revision] = field(default_factory=list)
     level_datum: str = ""
     dimension_units: str = "mm"
     provenance: str = ""

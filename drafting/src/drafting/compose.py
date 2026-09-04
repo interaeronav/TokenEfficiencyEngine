@@ -147,6 +147,36 @@ class SheetCanvas:
             self.text(x + 3, note_y, note, "note", weight="bold")
             note_y -= 5.2
 
+    def revision_table(self) -> None:
+        """Above the title block, newest first - where a reader looks for it."""
+        rows = list(reversed(self.spec.revisions))[:4]
+        if not rows:
+            return
+        bw, rh = 132.0, 5.2
+        bh = 6.0 + len(rows) * rh
+        x, y = self.w - bw - 14, 14.0 + 8.0 + 9 * 5.6 + 16.0 + 3.0
+        self.fig.add_artist(
+            plt.Rectangle(
+                self.F(x, y),
+                bw / self.w,
+                bh / self.h,
+                fill=False,
+                ec=INK,
+                lw=self.pen("title_block"),
+                transform=self.fig.transFigure,
+            )
+        )
+        self.text(x + 3, y + bh - 3.0, "REV", "note", weight="bold", color=MUTED)
+        self.text(x + 16, y + bh - 3.0, "DATE", "note", weight="bold", color=MUTED)
+        self.text(x + 40, y + bh - 3.0, "DESCRIPTION", "note", weight="bold", color=MUTED)
+        self.text(x + 106, y + bh - 3.0, "BY", "note", weight="bold", color=MUTED)
+        for i, rev in enumerate(rows):
+            yy = y + bh - 3.0 - (i + 1) * rh
+            self.text(x + 3, yy, rev.code, "note", weight="bold")
+            self.text(x + 16, yy, rev.date, "note")
+            self.text(x + 40, yy, rev.description[:46], "note")
+            self.text(x + 106, yy, (rev.by or "-")[:14], "note")
+
     def notes_panel(self, x: float, y: float, lines: list[str]) -> None:
         for i, line in enumerate(lines):
             self.text(x, y - i * 4.6, line, "note", color=MUTED, family="monospace")
@@ -276,4 +306,5 @@ def compose(sheet: Sheet, body: Callable[[SheetCanvas], None]) -> SheetCanvas:
     canvas.frame()
     body(canvas)
     canvas.title_block()
+    canvas.revision_table()
     return canvas

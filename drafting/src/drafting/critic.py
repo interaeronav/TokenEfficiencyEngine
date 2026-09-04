@@ -87,8 +87,20 @@ def critique_sheet(sheet: Sheet, whole_set: DrawingSet | None = None) -> S.Repor
     missing = [f for f in S.TITLE_BLOCK_FIELDS if not sheet.title_block.fields.get(f)]
     if missing:
         report.add("TITLE-FIELDS", f"{W}/title block", f"missing {', '.join(missing)}")
-    if not sheet.title_block.fields.get("revision"):
+    code = sheet.title_block.fields.get("revision")
+    if not code:
         report.add("REVISION", f"{W}/title block", "no revision code")
+    elif not any(r.code == code for r in sheet.revisions):
+        report.add(
+            "REVISION",
+            f"{W}/revision table",
+            f"issued as {code} with no entry for it in the revision table",
+        )
+    else:
+        entry = next(r for r in sheet.revisions if r.code == code)
+        missing = [f for f in ("date", "description", "by") if not getattr(entry, f)]
+        if missing:
+            report.add("REVISION", f"{W}/revision {code}", f"entry is missing {', '.join(missing)}")
     notes = " ".join(sheet.title_block.notes).upper()
     if S.DO_NOT_SCALE.rstrip(".") not in notes:
         report.add("DO-NOT-SCALE", f"{W}/title block", "the do-not-scale note is absent")

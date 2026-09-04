@@ -27,6 +27,22 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "SIM", "UP", "RUF"]
 
+# examples/ are DRIVER SCRIPTS, not library code. They import after mutating
+# sys.path (E402) and bind short lambdas for pen lookups inside a drawing body
+# (E731) because that is what makes a sheet definition readable. The checks
+# that catch real defects - F, B, RUF - still apply in full.
+[tool.ruff.lint.per-file-ignores]
+"examples/*" = [
+    "E402",   # imports follow a sys.path insert, which is the point of a driver
+    "E731",   # a short lambda for a pen lookup reads better inside a sheet body
+    "E501",   # legend text is laid out to the sheet, not to a line limit
+    "UP031",  # %d in a legend string is fine
+    "B905",   # zip over fixed-length literals
+    "RUF007", # zip(runs, runs[1:]) is clearer here than pairwise
+    "RUF059", # view_axes returns a triple; the sizes are often not needed
+    "RUF001", # en-dashes are deliberate in drawing titles
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

@@ -7,7 +7,17 @@ import pytest
 from drafting import standards as S
 from drafting.critic import critique, critique_sheet
 from drafting.okongo import as_issued
-from drafting.spec import DrawingSet, Line, Marker, Room, Sheet, Text, TitleBlock, View
+from drafting.spec import (
+    DrawingSet,
+    Line,
+    Marker,
+    Revision,
+    Room,
+    Sheet,
+    Text,
+    TitleBlock,
+    View,
+)
 
 
 def codes(report) -> set[str]:
@@ -34,6 +44,7 @@ def clean_sheet() -> Sheet:
         title_block=TitleBlock(
             fields=dict.fromkeys(S.TITLE_BLOCK_FIELDS, "x"), notes=[S.DO_NOT_SCALE]
         ),
+        revisions=[Revision("x", "2026-01-01", "First issue.", "AB")],
         provenance="tape survey",
     )
 
@@ -88,6 +99,19 @@ def test_levels_without_a_datum_are_caught():
     sheet.views[0].levels = ["FFL ±0.000"]
     sheet.level_datum = ""
     assert "LEVEL-DATUM" in codes(critique_sheet(sheet))
+
+
+def test_a_revision_code_with_no_table_entry_is_caught():
+    """A code on its own says nothing about what changed or who changed it."""
+    sheet = clean_sheet()
+    sheet.revisions = []
+    assert "REVISION" in codes(critique_sheet(sheet))
+
+
+def test_a_revision_entry_missing_its_author_is_caught():
+    sheet = clean_sheet()
+    sheet.revisions = [Revision("x", "2026-01-01", "First issue.", "")]
+    assert "REVISION" in codes(critique_sheet(sheet))
 
 
 def test_the_do_not_scale_note_is_required():
