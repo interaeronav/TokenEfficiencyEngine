@@ -1599,3 +1599,97 @@ extensions, and keeps the first name because the source is loaded first.
 12 mm of noise is a 4-sigma tail; the assertion was about the noise, not the
 geometry. Percentiles, the same discipline `views3d` already applies to wall
 heights.
+
+## A66 gap closure and A65 P5 — rulings from what real use found (2026-09-04)
+
+Owner directives: *"acton all the 'deliberately not being done'"*, *"build a
+character for the required tests"*, *"fix the reader to use the control
+piece"*. Each ruling below settled a question code could not settle for
+itself, and every one was forced by measurement rather than taste.
+
+**`holes` counts what a hole table tables.** `pk_check` returned **pass** for
+a spec of four Ø10 holes on a pocket that has none, because it counted
+concave cylindrical *faces*: corner radii were holes and a split bore counted
+twice. The fix could have been local, but `pk_check` and `pk_drawing` giving
+two different answers about one part is indefensible to anyone holding the
+sheet — so the predicate moved to `brep/holes.py` and both call it. A second
+implementation is exactly how they came to disagree. Consequences, each
+pinned: a pocket's corner radii are not holes, a bore split across faces is
+one hole, two coaxial blind holes with metal between them are two, and **a
+slot's two ends are no longer two holes** — a deliberate behaviour change,
+with a new `slots` rule so a slot stays checkable and a refusal that says
+which rule to use.
+
+**Overlapping sketch profiles are one region, unioned and declared.** Three
+crossing closed profiles are not an inconsistent spec — they have exactly one
+sane reading, the one every 2D sketcher gives — so Law 19 says default and
+declare, not refuse. `assumed["overlap"]` carries it once. Law 6 governs only
+the failure path: if the fuse genuinely fails, the refusal names both
+profiles by sketch tag. What is now impossible is the silent wrong answer:
+crossing is *detected*, so the accidental nested-or-disjoint verdict has no
+code path left.
+
+**A body's plane of symmetry is its SKELETON, not its tessellation.** The rig
+loader centred on the vertex mean; a handed Kuhn decomposition puts that mean
+5.0 mm off a midline the bounds and skeleton hit exactly, which
+`frame_from_mesh` read as 10.0 mm of arm asymmetry on a body that has none.
+It now takes the midpoint of the mapped left/right pairs, falls back to the
+bounds midpoint, and keeps the **mean for z** — a body is not its own mirror
+front to back, so there is no skeleton answer to take there. This moved
+pinned numbers in the rig tests and they were re-pinned, because the old ones
+encoded the error.
+
+**A rig's proportions are checked against this repo's own figure, and the
+code says so.** A swapped clavicle (`LeftShoulder`↔`LeftArm`) was accepted
+silently, putting every sleeve's pivot on the collarbone while still swinging
+plausibly. The band is derived from `seamkiln.figure` — upper arm 0.163,
+forearm 0.149, thigh 0.235 of the height the mesh actually spans — and is
+labelled in the source as **this repo's reference figure, NOT an
+anthropometric claim**, because we have not sourced anthropometric data and
+will not imply we have. The band 0.60–1.30 is deliberately wide: a clavicle
+swap reads 1.43× and a twist bone halves a segment, while stylisation inside
+the band is the character's business.
+
+**A control piece outranks a declared unit.** A purchased Optitex AAMA export
+declares `$INSUNITS 6` — metres — over geometry drawn in inches. Trusting the
+declaration made a 36-inch dress 36 metres long with every seam still
+closing. The file carried its own antidote, as pattern CAD does: a square
+marked `DO NOT CUT`, labelled `10"X10"`, there so the receiving system can
+check its own scale. It is now rung 2 of `_resolve_units`, above every
+declaration, and **it wins** — reported loudly with both numbers and the
+39.37× ratio, but not refused, because we are not uncertain: we know the
+answer, and blocking work we can do correctly is the wrong failure mode. A
+declaration is a claim; a measurement is evidence. A control piece is
+metadata and never returns as a panel.
+
+**The writer emits R12, and the Style System Text in Title Case.** Gerber's
+parser wants R12 with no `*Model_Space`/`*Paper_Space` definitions, no TABLES
+and 7-bit ASCII, so output goes through `ezdxf.addons.gerber_D6673`. We had
+written R2000 to preserve `$INSUNITS`, which was backwards — real files do
+not set it, and the one that did set it was wrong. On casing, two vendors
+write the same keys differently: CLO ALL CAPS, Optitex Title Case. The
+standard requires mixed case, so **CLO is the non-conforming writer** and
+following it would propagate its mistake. We write Title Case and the reader
+upper-cases before matching, so it takes either: write to the standard, read
+what arrives.
+
+**An unknown layer reports what it holds, and we do not go shopping.** No
+free file from Gerber, Lectra or Optitex exists, and every substitute writes
+*fewer* layers, not more (Seamly2D's AAMA export: two). Rather than treat the
+ten unverified layers as procurement debt, the reader makes the first real
+file anyone opens teach us: `layer 15 holds 15 TEXT across 6 pieces`, and
+`strict=True` refuses rather than guessing. `observed_layers` keeps
+defined-but-unwitnessed separate from unknown, which is the evidence a
+`verified` flag actually needs. Nothing here may promote a guess into the
+table — it caught Optitex writing sewing notes on a layer our AAMA table
+calls `drill_second`, and that was **recorded, not silently rewritten**.
+
+**A test fixture character is generated, never downloaded.** The owner's
+asset folder holds only obfuscated CLO `.avt` containers; SMPL and its
+relatives are non-commercial (doc 67 §2). A fixture must be deterministic,
+licence-clean and CI-runnable, so the rigged humanoid is authored in code
+from one number. `pygltflib` is absent and trimesh ignores glTF skins, so the
+skinned glTF is written and read by hand rather than adding a dependency —
+which is also the machinery a real studio file will need. Its joint names are
+Mixamo's and asserted **disjoint** from seamkiln's, so the mapping layer
+cannot be satisfied by accident.

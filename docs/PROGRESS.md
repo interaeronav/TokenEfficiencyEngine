@@ -11752,3 +11752,108 @@ case the measurement was cheap and the reasoning was confident and wrong.
 **Open, deliberately:** `pc_crop`, `pc_clean`, `pc_ortho`, `pc_merge`; a scale
 still UNVERIFIED pending two more tape baselines; `CHECKED BY` unset on every
 sheet, which only the owner can close.
+
+### A65 P5b — a body you bring, that actually bends (2026-09-04)
+
+Owner: *"build a character for the required tests"*. P5 named a character
+model as something only the owner could supply. That was half wrong: **the
+blocker was never the model, it was that the lane threw the skeleton away.**
+`custom_avatar` loads with `trimesh.load(path, force="mesh")`, which flattens
+a scene to one mesh, and `session.py`'s `walk` sent every non-figure body to
+`rigid_factory`. So the finest rigged character obtainable would still have
+slid along the floor as a statue, and everything the gait work bought — the
+pelvis rising ~50 mm in a walk, counter-phase arm swing, trunk lean — was
+lost on any body a studio brought.
+
+**The character is generated, not downloaded, and that is the design.** The
+owner's 1.1 GB asset folder holds only CLO `.avt` containers whose payloads
+are obfuscated; doc 67 §2 records SMPL/SMPL-X/STAR as non-commercial and
+unshippable. A fixture must be deterministic, licence-clean and runnable in
+CI, so `seamkiln.rig.character.build_character` authors a clothable rigged
+humanoid from one number — its stature. Anny (Apache-2.0, assets CC0) remains
+the route to a production body and is explicitly not this.
+
+**No new dependency.** `pygltflib` is absent and trimesh 5.1 **ignores glTF
+skins entirely**, so the skinned glTF is written and read by hand. That is
+not a workaround: reading real skin data is the machinery a studio file needs
+anyway, and it forced the reader to handle what real files do — `JOINTS_0` as
+unsigned byte *or* short, normalised-integer weights (measured quantisation
+cost: **9.804e-4** for ubyte, **3.815e-6** for ushort), interleaved
+`byteStride`, a skeleton root that is not the scene root.
+
+**The rig uses Mixamo names on purpose.** A studio file will never use
+seamkiln's `hip_l`/`elbow_l`, so an accidental match would have let the
+mapping layer stay unwritten. The character says `LeftUpLeg`/`LeftForeArm`
+and the joint names are asserted **disjoint** from both `figure.JOINT_NAMES`
+and `avatar.JOINTS`, so the mapping cannot be satisfied by accident.
+
+| measured | |
+| --- | --- |
+| mesh | 18,404 triangles / 9,204 vertices, watertight, 1 shell, Euler 2, winding consistent |
+| height | **exactly 1.800000 m** in float64; 4.8e-5 mm error through float32 |
+| clothable | upper arm **104.6 mm** across (figure.py 122.4; the unclothable first cut 194) |
+| trunk | 290.5 × 206.6 = **1.4059** wide-to-deep against `TORSO_SQUASH`'s 1.41026 |
+| `.glb` | 630,240 B, **byte-identical across two processes**, sha256 `3ef083f1…` |
+| column-major | `inverse(IBM) == each joint's world matrix` to **5.8e-8** |
+
+**The proof that it articulates, because a statue also travels.** Rigid
+motion is an isometry: it cannot change the distance between two of a body's
+own vertices. Over one walk cycle, left hand to right foot: **0.9323 →
+1.1157 m, spread 183.4 mm articulated; 0.000e+00 rigid.** Per-frame foot
+centroid movement **294.4 mm against a 35.9 mm pelvis** — 8.2× — where rigid
+gives 21.76 mm for pelvis, hand and foot alike, identical. The pelvis rise of
+**46.3 mm is earned**: the feet are put on the ground each frame and the
+pelvis lifts because the stance leg straightens, where the rigid rise is the
+gait's scripted number echoed back. A test asserts the two are not the same
+signal. Dressed: `touching_fraction` **0.4183**, seam mean gap **0.15 mm**.
+
+**Three judgement calls in the session wiring.** A file with no skin falls
+back to the mesh loader and says so — an honest property of the file. Bones
+that cannot be **mapped** refuse instead, because the fix is real (rename, or
+pass `joints`) and quietly walking that body as a statue is the failure this
+lane exists to remove. `adjust` reshapes the mesh, so the bind pose no longer
+fits it — skinning against a stale bind pose tears a limb, so the rig is
+dropped and the answer says which. And a new body never inherits the last
+one's skeleton.
+
+**Then an adversarial pass found four defects in a green lane, and the worst
+was silent.** Exchange `LeftShoulder`↔`LeftArm` and the file was **accepted
+with no note**: `shoulder_l` maps to the collarbone, the pivot moves 165.5 mm,
+`shoulder_l→elbow_l` goes from **0.164 to 0.233 of stature**, and the forearm
+still swings 177.5 mm against 180.2 — invisible in motion. A sleeve pivoting
+off the collarbone: exactly what `naming.py`'s own docstring cites as the
+reason never to fuzzy-match. The mapped skeleton is now checked against
+**seamkiln's own reference figure**, and the code says plainly these are
+`figure.py`'s proportions and NOT an anthropometric claim. They are stated
+against the height the mesh actually spans, because the figure's skull ball
+rises past nominal stature and a nominal 1.80 is a 1.874 m mesh: upper arm
+**0.163**, forearm 0.149, thigh 0.235, band **0.60–1.30** — wide on purpose,
+since a clavicle swap reads 1.43× and a twist bone halves a segment.
+`test_rig_proportions.py` re-derives all three from `figure.py` so the two
+cannot drift in silence.
+
+The other three: the loader **centred on the vertex mean**, and this
+character's Kuhn decomposition is handed, putting that mean 5.0 mm off a
+midline its bounds and skeleton hit exactly — which `frame_from_mesh` read as
+**10.0 mm of arm asymmetry on a body that has none**, against a neck it fixes
+at x = 0, reintroducing precisely the asymmetry the x-grid was built to
+remove. **A body's plane of symmetry is its skeleton, not its tessellation**:
+it now takes the midpoint of the mapped left/right pairs, falls back to the
+bounds midpoint, and keeps the *mean* for z, because a body is not its own
+mirror front to back. The laterality guard refused a crossed-arm bind pose
+while pointing at an `overrides=` route that did not lift it — a refusal
+naming a fix that cannot work. And nothing checked that a mapped bone owns
+any vertices, so moving every `LeftUpLeg` weight to `Hips` loaded without a
+word and the thigh skin then stayed put while the shin swung.
+
+Two stale claims went with them: `sk_avatar` told a model that a custom body
+*"walks as one piece (no rig)"* — the description it plans from — and
+`docs/seamkiln-lane.md` documented no rig lane at all.
+
+**Suites at close:** seamkiln **409 passed / 5 skipped**, zero failures, 14:10
+on a quiet machine; `ruff` and `ruff format` clean. Surface unchanged.
+
+**Still unproven, and said rather than hidden:** no genuine studio rig has
+been through this lane. Every fixture is authored by this repo or by
+Blender's own exporter, so the Mixamo naming forces the mapping layer to
+exist but has never met a real Maya or Character Creator export.

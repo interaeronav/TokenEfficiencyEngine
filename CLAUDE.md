@@ -70,9 +70,16 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   `seamkiln/tests/test_licences.py`: the best-documented open garment
   pipeline ships a NON-COMMERCIAL simulator, SMPL is non-commercial, and
   Shewchuk's Triangle cannot ship in a commercial product — doc 67 §2 names
-  every mine and its replacement. Two laws learned since A53 outrank taste:
-  never rely on a coarse preview, and cloth time per animation frame is
-  DERIVED from fps.
+  every mine and its replacement. **A65 P5 is now closed on both halves
+  (2026-09-04):** the DXF round trip is verified against real CLO 2024 and
+  Optitex exports rather than only against our own output, and an imported
+  rigged body walks on its own legs (`seamkiln/rig/`, a generated
+  licence-clean character — never SMPL, never a download). Four laws learned
+  since A53 outrank taste: never rely on a coarse preview; cloth time per
+  animation frame is DERIVED from fps; **a declaration is a claim and a
+  measurement is evidence** (a real Optitex file declares metres over inches,
+  so a control piece labelled `10"X10"` outranks `$INSUNITS`); and **a body's
+  plane of symmetry is its skeleton, not its tessellation**.
 - The A66 build (`partkiln`: a headless, AI-native mechanical CAD kernel —
   the Autodesk Inventor-class loop sketch → features → part → assembly →
   drawing → export, on OCCT through the already-installed OCP wheel, with

@@ -3,6 +3,71 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased
+
+Landed since 0.20.0 and **not yet cut as a release** — no bundle has been
+built or verified for this work, so the version strings still read 0.20.0.
+
+### partkiln: the ten named gaps, and four silent wrong answers
+
+Every gap listed at the close of 0.20.0 is closed or deliberately scoped: a Qt
+shell that is a client of the kernel (10 of 37 kinds, tested with Qt absent),
+`cad_measure` routed through the live kernel (**1,346 → 20.7 ms**), a capture
+refusal that named a route nobody could take — corrected, then walked end to
+end to a real JPEG, CI down from **3,553 MB to ~1,001 MB per push** with
+coverage proven unchanged, a helical `coil` and a modelled `thread` beside the
+cosmetic one, ISO 286 fits derived from the published formulas with **no table
+transcribed**, a vector block for TEE's own PDF lane, assembly exports that
+carry the solve, and FreeCAD's OCCT 7.8.1 reading our STEP.
+
+**None of the four worst defects was in a gap; all were found by building the
+fixes.** A sketch with partially overlapping profiles built a *corrupt* solid —
+a dumbbell removed 502.655 mm³, exactly one of its three profiles, while the
+analyzer called the result valid and the classifier put a point deep in the
+plate *outside* it. A hole tangent to its outer wire vanished entirely. A
+self-crossing bowtie extruded to a zero-area face and reported `status: ok`.
+And `pk_check` returned **pass** for four holes on a pocket that has none.
+
+### What it refuses, and why
+
+`holes` now counts what a hole table tables, from one shared predicate — two
+tools giving different answers about one part is indefensible to anyone
+holding the sheet. A slot's ends stop counting as holes and a `slots` rule
+keeps them checkable. Overlapping profiles are unioned and declared once
+rather than classified by accident; a self-crossing loop refuses by name.
+
+### seamkiln: a body you bring, that actually bends
+
+An imported body used to slide along the floor as a statue — the mesh loader
+flattens a scene, so a skin was invisible even when the file carried one. A
+skinned glTF now keeps its skeleton and `walk` bends it. Rigid motion cannot
+change the distance between two of a body's own vertices: over one cycle,
+left hand to right foot spreads **183.4 mm articulated and 0.000 rigid**, and
+the 46.3 mm pelvis rise is *earned* from the stance leg rather than scripted.
+
+The character is generated, not downloaded — deterministic, licence-clean, no
+dependency added (trimesh ignores glTF skins, so the format is written and
+read by hand). A mis-mapped rig refuses by name against proportions derived
+from this repo's own reference figure, labelled in the source as exactly that
+and not as an anthropometric claim.
+
+### seamkiln: write what pattern CAD reads, and trust the ruler over the label
+
+The DXF writer emitted files Gerber cannot parse; output now goes through
+`ezdxf.addons.gerber_D6673` as R12 — the version all four real files from
+three vendors use — carrying the standard's Style System Text in Title Case.
+
+**A declaration is a claim; a measurement is evidence.** A purchased Optitex
+export declares `$INSUNITS 6` (metres) over geometry drawn in inches, which
+made a 36-inch dress 36 metres long with every seam still closing. Pattern CAD
+ships its own antidote — a square marked `DO NOT CUT` labelled `10"X10"` — and
+that control piece now outranks every declaration in the file, reporting the
+conflict loudly rather than refusing, because we are not uncertain.
+
+An unknown layer now says *what it holds* (`layer 15 holds 15 TEXT across 6
+pieces`) and `strict` refuses rather than guessing, so the next real file
+teaches us instead of us buying one.
+
 ## 0.20.0 — 2026-09-04
 
 **A mechanical CAD kernel joins TEE, and the surface still does not move.**

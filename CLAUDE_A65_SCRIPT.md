@@ -205,13 +205,31 @@ Closed as "attempted, blocked by x86-only compiler flags baked into
 Codim-IPC on Apple Silicon"; `quality="bake"` is not offered. Details in
 `docs/PROGRESS.md`.
 
-## P5 — needs the owner (STILL OWED: cannot be done without them)
+## P5 — CLOSED, both halves (2026-09-04)
 
-- **A real industry DXF** (Gerber, Optitex, Lectra) to close A53 Gap 4. The
-  round-trip is lossless against seamkiln's own output; that claim is worth
-  what it sounds like only against a file another system wrote.
+- **A real industry DXF** to close A53 Gap 4. **Done.** The owner supplied two
+  CLO 2024 exports and purchased an Optitex AAMA block. Both read; the round
+  trip is lossless against files another system wrote (20 CLO panels, worst
+  area delta 0.000000 mm²). What they taught outranks the round trip: the
+  reader read **zero pieces** until it learned R12 heavy polylines and that
+  `UNITS: METRIC` means centimetres; a notch is a POINT on layer 4, confirmed
+  by two independent vendors; and the Optitex file declares `$INSUNITS 6`
+  (metres) over inches, so a **control piece outranks any declaration**. Six
+  AAMA layers verified where none were. Ten remain, and rather than buy more
+  files the reader now reports what an unknown layer HOLDS so the next real
+  file teaches us.
 - **A character model** if the shots are to move past the primitive-built
-  figure. The figure is clothable and dressable; it is not a face.
+  figure. **Done, and the ask was half wrong** — the blocker was never the
+  model but that `custom_avatar` threw the skeleton away, so any rigged body
+  walked as a statue. `seamkiln/rig/` generates a licence-clean rigged
+  humanoid from one number and articulates it: foot spread swings 0.484 m
+  where rigid motion holds it at exactly 0.000. A production-quality body is
+  still Anny (Apache-2.0, assets CC0); SMPL and its relatives cannot ship.
+
+*Still genuinely owed by the owner:* a DXF from a system other than CLO or
+Optitex — Gerber or Lectra — to settle the ten remaining layers, and a
+studio rig (a real Maya or Character Creator export) that the mapping layer
+has never met. Neither blocks the lane; both would strengthen it.
 
 ## Out of scope (unchanged from A53, minus the owner's override)
 
