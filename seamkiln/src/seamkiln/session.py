@@ -481,8 +481,17 @@ def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         _v_body(session, {})  # a default body beats a refusal nobody can act on
     choice = _arrangement_choice(session, str(args.get("arrangement", "auto")))
     height = float(session.body_spec.get("stature_m", 1.75))
+    roles = args.get("roles")
+    if roles is not None and not isinstance(roles, dict):
+        raise CommandError(
+            "roles must map panel ids to front | back | sleeve_l | sleeve_r, "
+            'e.g. {"Frente_M": "front", "Costas_M": "back", "Manga Esquerda_M": "sleeve_l"}.'
+        )
     if choice == "cylinder":
-        placements = top_arrangement(pattern, session.body)
+        try:
+            placements = top_arrangement(pattern, session.body, roles=roles)
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
     else:
         from seamkiln.drape.dressing import frame_from_figure, frame_from_mesh, wrap_arrangement
 

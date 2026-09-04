@@ -10157,6 +10157,58 @@ op (named once in `_PASSTHROUGH`, pieces arrive as created entities with a
 note naming the unit's source) and `sk_interchange` `action="read"` now
 calls the verb instead of setting session state itself.
 
+**The Camiseta draped (owner, same day: "load the Camiseta dxf and drape it
+on the mannequin").** The CLO women's M tee loaded through `load` and was
+sewn from its geometry - the DXF carries no seams. The edges said which was
+which: shoulders 120.5 vs 120.4 mm, sides 391 vs 385 (the front eased
+6 mm), the sleeve cap's short side 193 mm against a 196 mm front armhole
+and its long side 213 against a 221 mm back armhole. Twenty seams: six
+plain, and the four cap-to-armhole joins split at the union of both runs'
+vertex breakpoints so each sub-seam pairs one edge range with one (a scratch
+helper, `sew.py` in the session scratchpad, a candidate `sew` verb). The
+three 15 mm neck bindings were deleted - one particle row wide at 12 mm.
+Body: the mannequin at 1.65 m / 0.86 m chest (the tee's chest is 900 mm,
+the same 40 mm ease the block has on the default body). `arrange` gained
+`roles` (`piece_roles` in garment.py; through TEE the batch op carries it)
+because the arrangement read front/back/sleeve off block ids, and CAD ids
+are Portuguese.
+
+The first drape converged with 70 % mean strain in the sleeves and the
+front facing 20 % inward: the roles were the wrong way round. seamkiln's
+arm `R` is the one beside the front's +x armhole; CLO draws the front as
+worn, so its "Manga Esquerda" sits at +x and belongs on arm R. Swapped,
+280 frames of cotton jersey at 12 mm: seams mean 0.5 mm, max 6.4 (an
+armhole sub-seam), worn, zero penetration, every panel facing out (sleeves
+0.89-0.90, front 0.97, back 0.96); script and fingerprint `b7f0ad28ee45c161`
+in the scratchpad, two stills rendered headless.
+
+Three findings the numbers forced, all recorded and none fixed here:
+
+- **The strain report is blind to CAD outlines.** CLO samples curves every
+  5-12 mm, so on a 12 mm mesh the outline fringe is dense and its edges are
+  longer than the report's sliver floor (0.1 pd): it excluded 0 edges and
+  printed 81 % for a sleeve, 25 % of it fringe. Binned by rest length the
+  0.25-0.75 pd edges carry 52 % mean strain and the cloth edges (>= 0.75
+  pd) 10.8 %. The floor needs to be a fraction of pd that a resampled
+  outline respects, or the mesher's fringe needs merging (the recorded
+  mesh item).
+- **The sleeves strain 22-25 % in jersey, poplin and denim alike** (the
+  block's 2-4 %), worst at the underarm corners (5-7x), while both tees'
+  armhole band stretches 12-22 % in every fabric. A 600 mm strip hung from
+  its top elongates 0.0 % in all three, so this is geometry, not
+  compliance: the capsule mannequin's shoulder span (joints at +-185 mm
+  plus 41 mm arms) is wider than a women's M tee's 400 mm shoulder width,
+  and the short cap sleeve (98 mm cap, 151 mm long) is straightened over a
+  231 mm armhole drop. The fit report's 185 mm bust ease is that stretched
+  garment measured, not the pattern's 44. A body with the tee's own
+  proportions (the figure, or a narrower mannequin) is the comparison to
+  run next.
+- **The ease measure reads slack.** The block's 40 mm pattern ease
+  reports as 67 at the bust; the number is a slice girth, not cloth.
+
+Suites: `test_drape` + `test_session` + `test_figure_dressing` 61 passed,
+the server's seamkiln selection 26, lint clean.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE

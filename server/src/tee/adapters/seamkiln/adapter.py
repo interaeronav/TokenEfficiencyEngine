@@ -375,14 +375,17 @@ def _translate(op: dict[str, Any], index: int) -> list[dict[str, Any]]:
         )
         body_args = {k: v for k, v in props.items() if k in body_keys}
         body_args["kind"] = body_args.pop("body", "mannequin")
+        arrange_args: dict[str, Any] = {
+            "particle_distance_mm": props.get("particle_distance_mm", DEFAULT_PARTICLE_MM)
+        }
+        # a pattern from CAD is named by its maker: the roles say which piece
+        # is the front, the back and each sleeve (see `piece_roles`)
+        for key in ("roles", "arrangement", "dress"):
+            if key in props:
+                arrange_args[key] = props[key]
         return [
             {"op": "body", "args": body_args},
-            {
-                "op": "arrange",
-                "args": {
-                    "particle_distance_mm": props.get("particle_distance_mm", DEFAULT_PARTICLE_MM)
-                },
-            },
+            {"op": "arrange", "args": arrange_args},
         ]
     # A54 verbs pass straight through: they are already seamkiln Commands and
     # the adapter has nothing to translate. One tuple means a verb added to

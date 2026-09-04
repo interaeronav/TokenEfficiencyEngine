@@ -52,7 +52,7 @@ s.save_script("coat.json")          # replays to the same garment, anywhere
 | `block`, `panel`, `seam`, `allowance`, `delete` | draft the pattern | A53 |
 | `load` | a pattern from a DXF (AAMA/ASTM) in place of the current one; `units_mm` overrides the file's unit | A65 |
 | `body` | `mannequin` · `anny` · `posed` · **`figure`** · `custom` | A53 / A58 / A65 |
-| `arrange` | place panels; `arrangement` = `auto` · `cylinder` · `wrap`; `dress` | A53 / A65 |
+| `arrange` | place panels; `arrangement` = `auto` · `cylinder` · `wrap`; `dress`; `roles` names a CAD pattern's front, back and sleeves | A53 / A65 |
 | `drape`, `fit`, `techpack`, `export` | simulate, measure, document, write files | A53 |
 | `grade`, `cut` | parametric grading; darts, slashes, pleats | A54 |
 | `rip`, `pinch`, `lace`, `finish`, `animate` | tearing, symmetric pinching, lacing, washes and fur, blend shapes | A54 |
@@ -292,6 +292,17 @@ back with `meta["outline_is"] == "cut_line"` and the allowance measured, so
 pattern and enters the script (a replay re-reads the path; the fingerprint
 catches a file that changed); through TEE it is the `load` batch op and
 `sk_interchange` `action="read"`, which calls the same verb.
+
+**A pattern from CAD, draped.** A DXF carries no seams and names its pieces
+as its maker did, so the import is three commands: `load`; one `seam` per
+join, with `t0`/`t1` splitting a sleeve cap across the three edges of an
+armhole at shared fractions of each run's length; then `arrange` with
+`roles` (`front` · `back` · `sleeve_l` · `sleeve_r`). One convention to
+know: seamkiln's arm `R` is the one beside the front's +x armhole, and CLO
+draws the front as worn, so CLO's "Manga Esquerda" (the wearer's left) goes
+on arm `R` - given the other way round the seams drag each sleeve across
+the body. The measured drape of a CLO women's M tee on the mannequin is in
+PROGRESS (2026-09-04).
 
 ## Render properties on the card
 

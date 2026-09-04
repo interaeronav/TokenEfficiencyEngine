@@ -407,15 +407,54 @@ def sleeve_wear(
     return out
 
 
-def _front_edge_side(pattern: Any, sleeve_id: str) -> int | None:
-    """+1 if the sleeve edge sewn to a FRONT panel lies on the piece's +x
+ROLES = ("front", "back", "sleeve_l", "sleeve_r")
+
+
+def piece_roles(pattern: Any, roles: dict[str, str] | None = None) -> dict[str, str]:
+    """Which piece is the front, the back and each sleeve.
+
+    A block names its pieces FRONT, BACK, SLEEVE_L and SLEEVE_R and the
+    arrangement read the role off the id. A pattern that arrived from CAD
+    is named by its maker - Frente, Costas, Manga Esquerda - so the caller
+    can say the roles outright; ids the caller does not name keep the
+    reading from the id, and an unrecognised id is hung behind, as before.
+    """
+    given = dict(roles or {})
+    ids = {p.id for p in pattern.panels}
+    unknown = sorted(set(given) - ids)
+    if unknown:
+        raise ValueError(
+            f"roles name panels this pattern does not have: {unknown}; it has {sorted(ids)}"
+        )
+    bad = sorted(v for v in given.values() if v not in ROLES)
+    if bad:
+        raise ValueError(f"roles must be one of {ROLES}, not {bad}")
+    out: dict[str, str] = {}
+    for panel in pattern.panels:
+        if panel.id in given:
+            out[panel.id] = given[panel.id]
+            continue
+        name = panel.id.upper()
+        if name.startswith("SLEEVE"):
+            out[panel.id] = "sleeve_l" if name.endswith("L") else "sleeve_r"
+        elif name.startswith("FRONT"):
+            out[panel.id] = "front"
+        else:
+            out[panel.id] = "back"
+    return out
+
+
+def _front_edge_side(pattern: Any, sleeve_id: str, fronts: set[str] | None = None) -> int | None:
+    """+1 if the sleeve edge sewn to a front panel lies on the piece's +x
     side, -1 if on its -x side, None if no such seam is declared."""
     panel = pattern.panel(sleeve_id)
     edges = panel.edges()
     centre_x = (panel.bbox[0] + panel.bbox[2]) / 2.0
+    if fronts is None:
+        fronts = {p.id for p in pattern.panels if p.id.upper().startswith("FRONT")}
     for seam in pattern.seams:
         for mine, other in ((seam.a, seam.b), (seam.b, seam.a)):
-            if mine.panel == sleeve_id and other.panel.upper().startswith("FRONT"):
+            if mine.panel == sleeve_id and other.panel in fronts:
                 run = edges[mine.edge % len(edges)]
                 x = float(np.mean([v.x for v in run]))
                 return 1 if x >= centre_x else -1
@@ -471,15 +510,22 @@ def _sleeve_frame(
 
 
 def top_arrangement(
-    pattern: Pattern, body: trimesh.Trimesh, *, ease: float = 1.30
+    pattern: Pattern,
+    body: trimesh.Trimesh,
+    *,
+    ease: float = 1.30,
+    roles: dict[str, str] | None = None,
 ) -> dict[str, Placement]:
     """Front in front, back behind, sleeves out at the shoulders.
 
     `ease` is how much wider than the body the cloth starts. Starting tight
     is the classic own-goal: the first substep pushes half the panel through
     the body and the solver spends the drape recovering from its own
-    initial condition.
+    initial condition. `roles` names the pieces when their ids do not (see
+    `piece_roles`).
     """
+    cast = piece_roles(pattern, roles)
+    fronts = {pid for pid, role in cast.items() if role == "front"}
     marks = body_landmarks(body)
     radius = marks["chest_radius_m"] * ease
     arms = arm_axes(body, marks["chest_radius_m"])
@@ -497,9 +543,9 @@ def top_arrangement(
     placements: dict[str, Placement] = {}
 
     for panel in pattern.panels:
-        name = panel.id.upper()
-        if name.startswith("SLEEVE"):
-            side = "L" if name.endswith("L") else "R"
+        role = cast[panel.id]
+        if role.startswith("sleeve"):
+            side = "L" if role == "sleeve_l" else "R"
             arm = arms.get(side)
             if arm is None:
                 raise ValueError(
@@ -556,7 +602,7 @@ def top_arrangement(
             shoulder = np.asarray(arm["shoulder"], dtype=np.float64)
             rotation = _sleeve_frame(
                 np.asarray(arm["direction"]),
-                _front_edge_side(pattern, panel.id),
+                _front_edge_side(pattern, panel.id, fronts),
                 outward=np.asarray([np.sign(shoulder[0]) or 1.0, 0.0, 0.0]),
             )
             width_m = (panel.bbox[2] - panel.bbox[0]) * MM
@@ -570,7 +616,7 @@ def top_arrangement(
         else:
             placements[panel.id] = Placement(
                 radius_m=radius,
-                centre_angle_deg=0.0 if name.startswith("FRONT") else 180.0,
+                centre_angle_deg=0.0 if role == "front" else 180.0,
                 origin_m=np.zeros(3),
                 top_y_m=shoulder_y,
             )

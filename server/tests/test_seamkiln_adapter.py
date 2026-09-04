@@ -122,6 +122,20 @@ def test_a_dxf_loads_as_a_batch_op_and_shows_in_the_diff(adapter, tmp_path) -> N
     assert "is not a file" in excinfo.value.fix
 
 
+def test_arrange_carries_the_roles_a_cad_pattern_needs() -> None:
+    """Frente, Costas, Manga: the batch op names the pieces and the session's
+    arrange verb receives them unchanged, beside the body it builds."""
+    from tee.adapters.seamkiln.adapter import _translate
+
+    roles = {"Frente_M": "front", "Costas_M": "back", "Manga Esquerda_M": "sleeve_r"}
+    body, arrange = _translate(
+        {"op": "arrange", "props": {"body": "mannequin", "chest_m": 0.86, "roles": roles}}, 0
+    )
+    assert body == {"op": "body", "args": {"kind": "mannequin", "chest_m": 0.86}}
+    assert arrange["op"] == "arrange" and arrange["args"]["roles"] == roles
+    assert "roles" not in _translate({"op": "arrange", "props": {}}, 0)[1]["args"]
+
+
 def test_drape_arranges_first_rather_than_refusing(adapter) -> None:
     """Session.drape arranges when nothing is arranged yet. A refusal that a
     caller can only answer by typing the obvious next step is friction, not

@@ -188,6 +188,50 @@ def test_every_panel_must_be_arranged(body) -> None:
         build_garment(pattern, placements, particle_distance=COARSE)
 
 
+def test_roles_name_the_pieces_when_the_ids_do_not(body) -> None:
+    """A pattern from CAD is named by its maker - Frente, Costas, Manga - so
+    the caller says which piece is which, and the arrangement is the one the
+    block gets from its own ids. A wrong or unknown role refuses by name."""
+    from dataclasses import replace
+
+    from seamkiln.pattern.model import EdgeRef, Pattern, Seam
+
+    original = tee_block()
+    renamed = {
+        "FRONT": "Frente",
+        "BACK": "Costas",
+        "SLEEVE_L": "Manga Esq",
+        "SLEEVE_R": "Manga Dir",
+    }
+    pattern = Pattern(
+        name="camiseta",
+        panels=[replace(panel, id=renamed[panel.id]) for panel in original.panels],
+        seams=[
+            Seam(
+                EdgeRef(renamed[s.a.panel], s.a.edge, s.a.t0, s.a.t1),
+                EdgeRef(renamed[s.b.panel], s.b.edge, s.b.t0, s.b.t1),
+                gather=s.gather,
+                id=s.id,
+            )
+            for s in original.seams
+        ],
+        units="mm",
+    )
+    roles = {"Frente": "front", "Costas": "back", "Manga Esq": "sleeve_l", "Manga Dir": "sleeve_r"}
+    expected = top_arrangement(original, body)
+    got = top_arrangement(pattern, body, roles=roles)
+    for old, new in renamed.items():
+        assert np.allclose(got[new].rotation, expected[old].rotation)
+        assert np.allclose(got[new].origin_m, expected[old].origin_m)
+        assert got[new].centre_angle_deg == expected[old].centre_angle_deg
+    # without roles the Portuguese ids all read as body pieces hung behind
+    assert top_arrangement(pattern, body)["Frente"].centre_angle_deg == 180.0
+    with pytest.raises(ValueError, match="does not have"):
+        top_arrangement(pattern, body, roles={"FRONT": "front"})
+    with pytest.raises(ValueError, match="must be one of"):
+        top_arrangement(pattern, body, roles={"Frente": "collar"})
+
+
 def test_rest_lengths_come_from_the_pattern_not_the_arrangement(body) -> None:
     """The property that makes this a garment and not a shrink-wrap."""
     pattern = tee_block()
