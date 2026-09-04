@@ -208,6 +208,127 @@ def trace_outlines(
     return out
 
 
+def edge_lines(
+    img: np.ndarray,
+    extent: tuple[float, float, float, float],
+    *,
+    band_m: float = 0.08,
+    min_area_m2: float = 0.06,
+    min_run_m: float = 0.12,
+    smooth: int = 3,
+) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+    """Orthogonal edge runs bounding the surfaces in a depth map.
+
+    A depth image is a TEXTURE; a drawing is line work. This turns one into
+    the other the way a drafter would: group the map into surfaces at roughly
+    constant depth, take the boundary of each, and keep only the horizontal and
+    vertical runs of that boundary. Free contours would follow the noise and
+    wander; a room's fittings are rectilinear, and the runs say so.
+
+    Returns segments in world units, ready to draw at whatever pen the caller
+    considers appropriate to what they are.
+    """
+    from scipy import ndimage
+
+    if not np.isfinite(img).any():
+        return []
+    nz, nx = img.shape
+    x0e, x1e, z0e, z1e = extent
+    cell_x = (x1e - x0e) / max(nx - 1, 1)
+    cell_z = (z1e - z0e) / max(nz - 1, 1)
+
+    filled = np.where(np.isfinite(img), img, -1.0)
+    if smooth > 1:
+        filled = ndimage.median_filter(filled, size=smooth)
+    band = np.where(np.isfinite(img), np.floor(filled / band_m), -99).astype(int)
+
+    runs: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    min_cells = int(min_area_m2 / (cell_x * cell_z))
+    for value in np.unique(band):
+        if value < 0:
+            continue
+        labels, count = ndimage.label(band == value)
+        for i in range(1, count + 1):
+            mask = labels == i
+            if mask.sum() < min_cells:
+                continue
+            runs += _boundary_runs(mask, cell_x, cell_z, z0e, min_run_m)
+    return _merge_runs(runs, tol=max(cell_x, cell_z) * 1.5, gap=0.10)
+
+
+def _merge_runs(runs, tol, gap):
+    """Join collinear runs across small gaps.
+
+    Boundary extraction returns a line as a row of separate cell-runs wherever
+    the scan dropped a return, so an unmerged elevation is a dashed
+    approximation of itself. A drafted line is continuous.
+    """
+    horizontal, vertical, out = [], [], []
+    for a, b in runs:
+        (horizontal if abs(a[1] - b[1]) < 1e-9 else vertical).append((a, b))
+
+    for group, fixed_i, run_i in ((horizontal, 1, 0), (vertical, 0, 1)):
+        group.sort(key=lambda seg: (seg[0][fixed_i], min(seg[0][run_i], seg[1][run_i])))
+        current = None
+        for a, b in group:
+            lo, hi = sorted((a[run_i], b[run_i]))
+            fixed = a[fixed_i]
+            if current is not None and abs(fixed - current[0]) <= tol and lo <= current[2] + gap:
+                current = (current[0], current[1], max(current[2], hi))
+                continue
+            if current is not None:
+                out.append(_as_segment(current, fixed_i, run_i))
+            current = (fixed, lo, hi)
+        if current is not None:
+            out.append(_as_segment(current, fixed_i, run_i))
+    return out
+
+
+def _as_segment(run, fixed_i, run_i):
+    fixed, lo, hi = run
+    a = [0.0, 0.0]
+    b = [0.0, 0.0]
+    a[fixed_i] = b[fixed_i] = fixed
+    a[run_i], b[run_i] = lo, hi
+    return (tuple(a), tuple(b))
+
+
+def _boundary_runs(mask, cell_x, cell_z, z0e, min_run_m):
+    """Maximal horizontal and vertical runs along a region's boundary."""
+    out = []
+    pad = np.pad(mask, 1)
+    # a boundary cell is inside the region with a neighbour outside it
+    top = mask & ~pad[:-2, 1:-1]
+    bottom = mask & ~pad[2:, 1:-1]
+    left = mask & ~pad[1:-1, :-2]
+    right = mask & ~pad[1:-1, 2:]
+
+    for edge, horizontal, offset in (
+        (top, True, -0.5),
+        (bottom, True, 0.5),
+        (left, False, -0.5),
+        (right, False, 0.5),
+    ):
+        rows, cols = np.where(edge)
+        if not len(rows):
+            continue
+        key, run = (rows, cols) if horizontal else (cols, rows)
+        for k in np.unique(key):
+            line = np.sort(run[key == k])
+            breaks = np.nonzero(np.diff(line) > 1)[0]
+            for piece in np.split(line, breaks + 1):
+                length = (len(piece) - 1) * (cell_x if horizontal else cell_z)
+                if length < min_run_m:
+                    continue
+                if horizontal:
+                    z = z0e + (k + offset) * cell_z
+                    out.append(((piece[0] * cell_x, z), (piece[-1] * cell_x, z)))
+                else:
+                    x = (k + offset) * cell_x
+                    out.append(((x, z0e + piece[0] * cell_z), (x, z0e + piece[-1] * cell_z)))
+    return out
+
+
 def iso_matrix(azimuth_deg: float = 45.0, elevation_deg: float = 28.0) -> np.ndarray:
     a, e = np.deg2rad(azimuth_deg), np.deg2rad(elevation_deg)
     rz = np.array([[np.cos(a), -np.sin(a), 0], [np.sin(a), np.cos(a), 0], [0, 0, 1]])

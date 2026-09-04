@@ -171,8 +171,8 @@ res = loop.run(
         "client": "J. Nangolo (owner)",
         "scale": "",
         "date": "2026-09-04",
-        "revision": "P06",
-        "revision_note": "Cabinet run traced on E4 at owner's direction.",
+        "revision": "P07",
+        "revision_note": "Elevations redrawn as line work; cabinet run traced on E4.",
         "drawn_by": "TEE pc_* (A67)",
         "checked_by": "",
     },
@@ -576,8 +576,8 @@ def _new_sheet(number, title, subtitle, views):
 sheet3 = _new_sheet(
     "SK-03",
     "INTERNAL ELEVATIONS — as-scanned survey",
-    "Room 01, each wall square-on   ·   DEPTH-SHADED: pale = at the wall, dark = "
-    "proud of it, white = nothing returned   ·   blue = traced envelope (E4 only)",
+    "Room 01, each wall square-on   ·   line work traced from the measured depth; "
+    "the pale tint shows only where the scan returned   ·   blue = envelope (E4)",
     [
         View("ga_elevation", f"ELEVATION {tag}", SC3, levels=["FFL ±0.000", "SOFFIT +2.604"])
         for tag, _, _, _, _, _, _ in ELEVS
@@ -606,16 +606,28 @@ def elev_body(canvas):
         # Depth-shaded: at the wall is pale, proud toward the viewer is dark,
         # and a cell with no return stays white so an opening reads as a hole.
         # Flat stipple threw all three away and gave four identical grey boxes.
+        # A depth image is a texture. Standards want line work, so the raster
+        # drops to a flat silhouette showing only WHERE returns exist, and the
+        # drawing is carried by traced edges at proper pen weights.
         ax.imshow(
-            img,
+            np.where(np.isfinite(img), 1.0, np.nan),
             extent=extent,
             origin="lower",
-            cmap="bone_r",
+            cmap="Greys",
             vmin=0.0,
-            vmax=0.35,
+            vmax=11.0,
             interpolation="nearest",
             zorder=1,
         )
+        for a, b in V.edge_lines(img, extent, band_m=0.08, min_run_m=0.14):
+            ax.plot(
+                [a[0], b[0]],
+                [a[1], b[1]],
+                color=INK,
+                lw=S.resolve_pen("furniture", SC3) * S.POINTS_PER_MM,
+                solid_capstyle="butt",
+                zorder=4,
+            )
         for lvl in (0.0, 2.604):
             ax.plot(
                 [-0.2, width + 0.2], [lvl, lvl], color="#c0392b", lw=P_("floor", cut=True), zorder=4
@@ -673,10 +685,11 @@ def elev_body(canvas):
         26,
         74,
         [
-            "Each wall square-on. Every return within 600 mm is kept and shaded by",
-            "its DEPTH from the wall, so a cabinet reads dark and an opening, which",
-            "returns nothing, reads white. The shading is measurement, not reading.",
-            "",
+            "Each wall square-on. LINE WORK is traced from the measured depth: the",
+            "map is grouped into surfaces at roughly constant depth and the boundary",
+            "of each is drawn as its horizontal and vertical runs. The pale tint",
+            "behind shows only WHERE the scan returned - untinted means unmeasured,",
+            "not empty.",
             "TRACING is opt-in and only on E4, the wall the OWNER named as carrying",
             "the cabinets. A rectangle round a proud region IS a reading of the depth",
             "map, so it is blue, called an ENVELOPE, and states how much of its own",

@@ -11641,3 +11641,26 @@ have silently dropped the tail of a statement about how the survey was measured.
 Wrapped at 108 instead, which fits in two lines with nothing lost.
 
 **Evidence: 63 passed**, all five sheets 0 legibility findings.
+
+## A67 addendum 12 — the elevations become line work (2026-09-04)
+
+Owner: *"clean up the image and tracer as per standards and practices, at this
+stage it looks more like a texture"*. Correct - a depth raster is a texture, and
+SANS 10143 practice is line work.
+
+**`views3d.edge_lines()`**: group the depth map into surfaces at roughly
+constant depth, take each region's boundary, and keep only its HORIZONTAL and
+VERTICAL runs. Free contours would follow the noise and wander; a room's
+fittings are rectilinear and the runs say so. `_merge_runs()` then joins
+collinear runs across 100 mm gaps, because boundary extraction returns a line as
+a row of separate cell-runs wherever the scan dropped a return - unmerged, an
+elevation is a dashed approximation of itself.
+
+The raster drops to a flat SILHOUETTE showing only where returns exist, so the
+drawing is carried by the lines. Untinted now means unmeasured, not empty, and
+the note says so.
+
+**Measured on E4:** 45 raw runs at an 80 mm band, merging to continuous lines;
+the traced cabinet envelope sits over them at a heavier pen with its dimensions.
+
+**Evidence: 63 passed**, all five sheets 0 legibility findings. Re-issued P07.
