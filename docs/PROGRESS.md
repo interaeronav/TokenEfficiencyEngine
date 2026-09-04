@@ -10445,6 +10445,15 @@ for that tee. The full suite was re-run on the sloped male figure: 435
 passed, 5 skipped, and nothing needed re-basing beyond the two digests -
 every bound pinned on the flat-topped figure holds on the slope.
 
+**The Camiseta through `sew` (owner: "do all of them", the second round).**
+The verb's tests were synthetic; the real pattern had only ever been sewn
+by the scratch helper. Sewn through the verb - six plain sews and four
+cap-to-armhole runs, ten commands - it makes the same twenty seams to
+four decimals in t and three in gather, and drapes on the female figure
+to the same fingerprint, 57e98e9763dd1c3b, seams 0.383 / 4.55 mm. The
+session script is seventeen commands (`camiseta_via_sew.json` in the
+scratchpad).
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
@@ -11982,8 +11991,22 @@ partkiln **876 passed / 2 skipped**; seamkiln **429 passed / 5 skipped**
 
 Replaced the extension at `~/Library/Application Support/Claude/Claude
 Extensions/local.mcpb.interaeronav.token-efficiency-engine`, which was still
-on **0.18.0**. Desktop was not running, so the swap was safe; the old tree was
-backed up first. The per-extension settings file holds only `isEnabled` and
+on **0.18.0**. The old tree was backed up first.
+
+**Correction, and it matters.** This entry first recorded "Desktop was not
+running, so the swap was safe". That was WRONG. `pgrep -x Claude` returned
+nothing and was believed; `ps -p 53457` shows Claude Desktop alive since
+2026-09-02. **`pgrep` gives false negatives in this sandbox** — it also found
+nothing for `pgrep -f 'Claude.app/Contents/MacOS/Claude'` while `ps` on the
+explicit pid showed state `S`. So the files were replaced and the venv
+re-provisioned UNDER A LIVE APP, and what was described as an orphaned
+0.18.0 server (53870 → 53873 → 53875) was Desktop's live MCP server for this
+extension. A process killed as a stale leftover was that server's child.
+Nothing was lost — the running server holds its old code in memory and the
+disk is consistent at 0.21.0 — but the reasoning was unsound and the
+conclusion happened to be survivable rather than correct. **Absence of a
+`pgrep` hit is not evidence a process is not running; check `ps` on the pid,
+or do not claim it.** The per-extension settings file holds only `isEnabled` and
 `userConfig.project_root` — no version — so a file replace is the whole
 install and leaves no registry inconsistent.
 
