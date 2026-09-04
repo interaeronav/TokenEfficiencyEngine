@@ -123,6 +123,11 @@ def _built_in_face(points, lo=-1.75, hi=-1.15, zlo=1.10, zhi=1.35):
 R1_W = _built_in_face(P)
 R1_E = _outermost(P, 0, +1, 0.0, 1.72, -2.20, 1.50)
 WEST_LAYERS = 4
+# COMPASS, fixed by the owner on 2026-09-04 naming the cabinet wall as SOUTH:
+# their south is this frame's -x. One named wall fixes the other three, to
+# within the building's own skew. Nothing here is surveyed - the scan frame
+# came from the dominant wall azimuth, which is not a bearing.
+NORTH_BEARING_DEG = 90.0
 W_S = _Y[0]
 W_N = min((v for v in _Y if v > 1.2), default=_Y[-1])
 R2_N = min((v for v in _Y if 0.5 < v < 1.4), default=W_N)
@@ -166,8 +171,8 @@ res = loop.run(
         "client": "J. Nangolo (owner)",
         "scale": "",
         "date": "2026-09-04",
-        "revision": "P04",
-        "revision_note": "Tape-checked; E-W dimensioned to the innermost west face.",
+        "revision": "P05",
+        "revision_note": "Compass fixed by owner; cabinet run identified on SK-03/E4.",
         "drawn_by": "TEE pc_* (A67)",
         "checked_by": "",
     },
@@ -323,6 +328,17 @@ def plan_body(canvas):
             zorder=9,
             bbox=mask,
         )
+    ax.annotate(
+        "CABINET RUN (owner)\nfour surfaces, 460 deep\nsee SK-03 / E4",
+        xy=(R1_W - 0.06, -1.30),
+        xytext=(0.30, -2.00),
+        fontsize=6.6,
+        color=ACCENT,
+        zorder=10,
+        ha="center",
+        bbox=dict(fc="white", ec="none", pad=1.0),
+        arrowprops=dict(arrowstyle="->", color=ACCENT, lw=canvas.pen("hatch")),
+    )
     ax.text(
         -0.55,
         2.52,
@@ -334,7 +350,7 @@ def plan_body(canvas):
         zorder=9,
         bbox=dict(fc="white", ec="none", pad=1.0),
     )
-    canvas.north_point(ax, hi[0] - 0.45, hi[1] - 0.75, 0.40)
+    canvas.north_point(ax, hi[0] - 0.75, hi[1] - 0.95, 0.36, NORTH_BEARING_DEG, basis="PER OWNER")
     canvas.scale_bar(150, 14, SC)
     canvas.notes_panel(
         30,
@@ -357,7 +373,8 @@ def plan_body(canvas):
             "  460 mm, each running the room's full length. The scan CANNOT tell which is",
             "  structure and which is a full-height fitting: to a scanner they look the",
             "  same. This dimension goes to the INNERMOST. CONFIRM THE FACE before ordering.",
-            "  NORTH POINT IS SCAN NORTH, taken from the wall azimuth - NOT a bearing.",
+            "  COMPASS fixed by the owner naming the cabinet wall SOUTH; the other three",
+            "  follow. Not surveyed - no bearing was measured.",
             "",
             "  EXTERIOR WALL THICKNESS IS NOT SHOWN: the scan is interior-only.",
         ],
@@ -522,11 +539,15 @@ from drafting import views3d as V
 from drafting.spec import Line, Sheet, Text, TitleBlock, View
 
 R1 = dict(w=-1.315, e=1.568, s=-2.225, n=1.610)
+# COMPASS: fixed by the owner (2026-09-04) identifying E4 as the SOUTH wall,
+# the one carrying the bedroom cabinets. One named wall fixes the other three,
+# to within the building's own skew from true north. Nothing here is surveyed:
+# the scan frame came from the dominant wall azimuth, which is not a bearing.
 ELEVS = [
-    ("E1", "NORTH wall of Room 01", 1, R1["n"], R1["w"], R1["e"], -1.0),
-    ("E2", "EAST wall of Room 01", 0, R1["e"], R1["s"], R1["n"], -1.0),
-    ("E3", "SOUTH wall of Room 01", 1, R1["s"], R1["w"], R1["e"], +1.0),
-    ("E4", "WEST wall of Room 01 (partition)", 0, R1["w"], R1["s"], R1["n"], +1.0),
+    ("E1", "WEST wall of Room 01", 1, R1["n"], R1["w"], R1["e"], -1.0),
+    ("E2", "NORTH wall of Room 01", 0, R1["e"], R1["s"], R1["n"], -1.0),
+    ("E3", "EAST wall of Room 01", 1, R1["s"], R1["w"], R1["e"], +1.0),
+    ("E4", "SOUTH wall of Room 01 - CABINET RUN", 0, R1["w"], R1["s"], R1["n"], +1.0),
 ]
 SC3 = 50
 

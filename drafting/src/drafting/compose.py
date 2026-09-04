@@ -206,13 +206,33 @@ class SheetCanvas:
             color=MUTED,
         )
 
-    def north_point(self, ax, x: float, y: float, r: float) -> None:
+    def north_point(
+        self,
+        ax,
+        x: float,
+        y: float,
+        r: float,
+        bearing_deg: float = 0.0,
+        basis: str = "SCAN",
+    ) -> None:
+        """`bearing_deg` turns the arrow clockwise from up the page, so a plan
+        drawn for readability can still point at the real north.
+
+        `basis` says where the direction CAME FROM, and is not decoration. An
+        arrow taken from the dominant wall azimuth is a drawing convention; one
+        a client named is their word; neither is a surveyed bearing, and a bare
+        N claims to be one.
+        """
+        import numpy as _np
+
+        rad = _np.deg2rad(bearing_deg)
+        dx, dy = _np.sin(rad), _np.cos(rad)
         ax.add_patch(
             FancyArrow(
-                x,
-                y - r,
-                0,
-                2 * r,
+                x - dx * r,
+                y - dy * r,
+                2 * r * dx,
+                2 * r * dy,
                 width=r * 0.08,
                 head_width=r * 0.42,
                 head_length=r * 0.55,
@@ -226,8 +246,8 @@ class SheetCanvas:
         # wall azimuth the leveller removed: it is a drawing convention, and a
         # bare "N" on a survey drawing claims a bearing nobody measured.
         ax.text(
-            x,
-            y + r * 1.15,
+            x + dx * r * 1.45,
+            y + dy * r * 1.45,
             "N",
             ha="center",
             va="bottom",
@@ -236,10 +256,12 @@ class SheetCanvas:
             weight="bold",
             color=INK,
         )
+        # Offset ACROSS the arrow, not along it: a long basis label placed
+        # beyond the head runs back over the N when the arrow points sideways.
         ax.text(
-            x,
-            y + r * 1.75,
-            "SCAN",
+            x + dx * r * 1.5 - dy * r * 1.1,
+            y + dy * r * 1.5 + dx * r * 1.1,
+            basis,
             ha="center",
             va="bottom",
             zorder=9,

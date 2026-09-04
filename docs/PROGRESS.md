@@ -11455,3 +11455,37 @@ this survey's accuracy.
 **And a process note for myself:** four separate edits in this stretch printed
 "patched" while silently matching nothing, because ruff had reformatted the
 target between runs. Every string replacement into a formatted file now asserts.
+
+## A67 addendum 9 — the compass, and an over-interpretation corrected (2026-09-04)
+
+Owner: *"the cabinets are on the south wall in the bedroom"*, then confirmed
+SK-03/E4 is that wall.
+
+**Two defects on my side, both about claiming more than was measured.**
+
+1. **The north arrow claimed a bearing.** It came from the dominant wall azimuth
+   `pc_level` removes - a drawing convention - and was labelled bare "N". A
+   north point on a survey drawing asserts a direction; this one asserted one
+   nobody measured. `north_point` now takes a `bearing_deg` and a `basis`, and
+   the sheet reads "N / PER OWNER". Naming ONE wall fixes the other three to
+   within the building's own skew, so the elevations are relabelled: E1 west,
+   E2 north, E3 east, E4 SOUTH (the cabinet run).
+
+2. **I wrote "blockwork, then a built-in run" into a note.** The scan measured
+   four parallel surfaces over about 460 mm. Which is structure and which is
+   joinery is exactly the interpretation A67 non-goal 1 forbids guessing at, and
+   the check confirms it cannot be settled from geometry: no wall in the room
+   shows a base-cabinet step (largest 43 mm, and the wrong way round), and a
+   FULL-HEIGHT run would show none at all - to a scanner it is a wall. The note
+   now states what was measured and that the scan cannot tell; the cabinet run
+   is marked on the owner's authority, attributed to them on the sheet.
+
+**The joinery consequence:** the 2854 mm E-W goes to the innermost of those four
+surfaces, which is the cabinet front, not structure. That distinction is worth
+more than the 26 mm the tape disagreed by.
+
+**Process:** six string edits in this stretch asserted-and-failed, mostly because
+ruff reformats between runs. Multi-edit scripts now apply per-file and roll back
+as a unit, so a partial write cannot leave the file half-patched.
+
+**Evidence: 63 passed** (drafting), all five sheets 0 legibility findings.
