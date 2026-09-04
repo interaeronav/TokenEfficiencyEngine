@@ -27,6 +27,7 @@ from seamkiln.drape.garment import build_garment
 from seamkiln.drape.solve import DrapeSettings
 from seamkiln.figure import PARTS, clasp_points, figure, joints, standing_offset
 from seamkiln.pattern.fixtures import jacket_block, tee_block
+from seamkiln.pattern.model import Pattern
 from seamkiln.session import Command, CommandError, Session
 
 H = 1.80
@@ -103,6 +104,83 @@ def test_a_wrap_arrangement_takes_its_radius_from_the_pattern() -> None:
     assert placements["SLEEVE_L"].radius_m == pytest.approx(
         (sleeve.bbox[2] - sleeve.bbox[0]) / 1000.0 / (2 * math.pi), rel=1e-6
     )
+
+
+def test_a_wrap_arrangement_does_not_care_where_the_marker_put_the_piece() -> None:
+    """A CAD export carries its pieces at marker coordinates - a sleeve at
+    y = 1218..1369 - and the cap rise was read as the panel's absolute top,
+    hanging it 1.37 m over the joint. Every placement must be the same for
+    a pattern shifted a metre, and the block's own cap height must survive."""
+    from dataclasses import replace
+
+    from seamkiln.drape.dressing import sleeve_cap_height_mm
+    from seamkiln.pattern.geometry import Vertex
+
+    frame = frame_from_figure(Pose.a_pose(), height=1.75)
+    original = tee_block()
+    shifted = Pattern(
+        name="shifted",
+        panels=[
+            replace(
+                panel, outline=[Vertex(v.x + 500.0, v.y + 1000.0, v.kind) for v in panel.outline]
+            )
+            for panel in original.panels
+        ],
+        seams=list(original.seams),
+        units="mm",
+    )
+    # the block drafts its biceps line at y = 0, so the cap height is the
+    # panel's own top - the rule the shifted copy must reproduce
+    cap = original.panel("SLEEVE_L").bbox[3]
+    assert 120.0 < cap < 140.0
+    assert sleeve_cap_height_mm(original.panel("SLEEVE_L")) == pytest.approx(cap)
+    assert sleeve_cap_height_mm(shifted.panel("SLEEVE_L")) == pytest.approx(cap)
+    before = wrap_arrangement(original, frame, height=1.75)
+    after = wrap_arrangement(shifted, frame, height=1.75)
+    for pid in before:
+        assert np.allclose(after[pid].rotation, before[pid].rotation)
+        assert np.allclose(after[pid].origin_m, before[pid].origin_m)
+        assert after[pid].top_y_m == pytest.approx(before[pid].top_y_m)
+        assert after[pid].radius_m == pytest.approx(before[pid].radius_m)
+        assert after[pid].centre_angle_deg == pytest.approx(before[pid].centre_angle_deg)
+
+
+def test_a_wrap_arrangement_takes_roles_for_cad_named_pieces() -> None:
+    from dataclasses import replace
+
+    from seamkiln.pattern.model import EdgeRef, Seam
+
+    frame = frame_from_figure(Pose.a_pose(), height=1.75)
+    original = tee_block()
+    renamed = {
+        "FRONT": "Frente",
+        "BACK": "Costas",
+        "SLEEVE_L": "Manga Dir",
+        "SLEEVE_R": "Manga Esq",
+    }
+    pattern = Pattern(
+        name="camiseta",
+        panels=[replace(panel, id=renamed[panel.id]) for panel in original.panels],
+        seams=[
+            Seam(
+                EdgeRef(renamed[s.a.panel], s.a.edge, s.a.t0, s.a.t1),
+                EdgeRef(renamed[s.b.panel], s.b.edge, s.b.t0, s.b.t1),
+                gather=s.gather,
+                id=s.id,
+            )
+            for s in original.seams
+        ],
+        units="mm",
+    )
+    roles = {"Frente": "front", "Costas": "back", "Manga Dir": "sleeve_l", "Manga Esq": "sleeve_r"}
+    expected = wrap_arrangement(original, frame, height=1.75)
+    got = wrap_arrangement(pattern, frame, height=1.75, roles=roles)
+    for old, new in renamed.items():
+        assert np.allclose(got[new].rotation, expected[old].rotation)
+        assert np.allclose(got[new].origin_m, expected[old].origin_m)
+        assert got[new].centre_angle_deg == pytest.approx(expected[old].centre_angle_deg)
+    with pytest.raises(ValueError, match="must be one of"):
+        wrap_arrangement(pattern, frame, height=1.75, roles={"Frente": "yoke"})
 
 
 def test_the_collar_clears_the_shoulder_cap_by_derivation() -> None:

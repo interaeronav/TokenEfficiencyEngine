@@ -146,6 +146,28 @@ def _is_sleeve(panel_id: str) -> str | None:
     return "l" if upper.endswith("L") else "r"
 
 
+def sleeve_cap_height_mm(panel: Any) -> float:
+    """How far the cap rises above the sleeve's biceps line, in mm.
+
+    A bundled block drafts its sleeve with the biceps line at y = 0, so the
+    cap height was the panel's top - and a sleeve that arrived from CAD, at
+    y = 1218..1369 in its marker, was hung 1.37 m above the shoulder joint
+    and dragged onto the body inside out (both sleeves facing inward,
+    -0.26 and -0.19). The biceps line is the sleeve's own widest line: the
+    outline's extreme-x vertices are the underarm corners, and the cap is
+    what rises above them.
+    """
+    outline = panel.outline
+    left = min(outline, key=lambda v: v.x)
+    right = max(outline, key=lambda v: v.x)
+    biceps_y = (left.y + right.y) / 2.0
+    return max(float(panel.bbox[3]) - biceps_y, 0.0)
+
+
+def _panel_is_sleeve(panel_id: str, sleeves: set[str] | None) -> bool:
+    return panel_id in sleeves if sleeves is not None else _is_sleeve(panel_id) is not None
+
+
 def shoulder_drop_mm(pattern: Pattern) -> float:
     """How far the shoulder seam sits below the top of its panel, in mm.
 
@@ -173,6 +195,7 @@ def wrap_arrangement(
     *,
     height: float = 1.80,
     clearance_m: float | None = None,
+    roles: dict[str, str] | None = None,
 ) -> dict[str, Placement]:
     """Place panels round a cylinder whose radius the PATTERN dictates.
 
@@ -180,20 +203,38 @@ def wrap_arrangement(
     radius, and each panel's centre angle is the arc position of its own
     centre - so two front halves land side by side instead of on top of each
     other. Sleeves wrap a cylinder of their own width, hung down the arm.
+    `roles` names the pieces when their ids do not (`piece_roles`).
     """
+    from seamkiln.drape.garment import piece_roles
+
+    cast = piece_roles(pattern, roles)
+    fronts = {pid for pid, role in cast.items() if role == "front"}
     if clearance_m is None:
         clearance_m = frame.clearance(shoulder_drop_mm(pattern) / 1000.0)
     top_y = float(frame.neck[1]) + clearance_m
     _ = height
-    body_panels = [p for p in pattern.panels if _is_sleeve(p.id) is None]
+    body_panels = [p for p in pattern.panels if not cast[p.id].startswith("sleeve")]
     if not body_panels:
         raise ValueError("a wrap arrangement needs at least one body panel")
     total_mm = sum(p.bbox[2] - p.bbox[0] for p in body_panels)
     radius = total_mm / 1000.0 / (2.0 * math.pi)
+    # A panel's arc position is its centre RELATIVE to the panels it shares
+    # a side with, not its absolute x: a block lays two front halves either
+    # side of x = 0, but a CAD marker puts the back a metre to the right of
+    # the front, and read absolutely that started the back 33 degrees off
+    # its place before the seams pulled it round.
+    group_centre: dict[str, float] = {}
+    for base_role in ("front", "back"):
+        members = [p for p in body_panels if cast[p.id] == base_role]
+        if members:
+            group_centre[base_role] = float(
+                np.mean([(p.bbox[0] + p.bbox[2]) / 2000.0 for p in members])
+            )
 
     placements: dict[str, Placement] = {}
     for panel in pattern.panels:
-        tag = _is_sleeve(panel.id)
+        role = cast[panel.id]
+        tag = role[-1] if role.startswith("sleeve") else None
         if tag is not None:
             if tag not in frame.arms:
                 raise ValueError(
@@ -204,7 +245,7 @@ def wrap_arrangement(
             shoulder, direction = frame.arms[tag]
             rotation = _sleeve_frame(
                 direction,
-                _front_edge_side(pattern, panel.id),
+                _front_edge_side(pattern, panel.id, fronts),
                 outward=np.asarray([np.sign(float(shoulder[0])) or 1.0, 0.0, 0.0]),
             )
             width_mm = panel.bbox[2] - panel.bbox[0]
@@ -217,7 +258,7 @@ def wrap_arrangement(
             # the shoulder and settles on top of the ball (measured +71 mm
             # against a 68 mm ball); the worst armhole pair went from 120 mm
             # to 21.
-            cap_rise_m = max(float(panel.bbox[3]), 0.0) / 1000.0
+            cap_rise_m = sleeve_cap_height_mm(panel) / 1000.0
             placements[panel.id] = Placement(
                 radius_m=width_mm / 1000.0 / (2.0 * math.pi),
                 rotation=rotation,
@@ -226,8 +267,8 @@ def wrap_arrangement(
             )
             continue
         minx, _, maxx, _ = panel.bbox
-        centre_x = (minx + maxx) / 2000.0
-        base = 180.0 if panel.id.upper().startswith("BACK") else 0.0
+        centre_x = (minx + maxx) / 2000.0 - group_centre[role]
+        base = 180.0 if role == "back" else 0.0
         placements[panel.id] = Placement(
             radius_m=radius,
             centre_angle_deg=base + math.degrees(centre_x / radius),
@@ -351,8 +392,14 @@ def dress(
     standoff_mm: float = 10.0,
     baste_sleeves_to_body: bool = True,
     head_mm: float = 60.0,
+    sleeves: set[str] | None = None,
 ) -> Any:
     """Pin the named seams to the body, baste the rest, settle, release.
+
+    `sleeves` names the sleeve panels; without it the block convention
+    (SLEEVE_L / SLEEVE_R) is read off the ids, and a sleeve named by its
+    maker is basted like a body panel and its head is never pinned over
+    the shoulder - measured on a CAD tee as one sleeve facing 41 % inward.
 
     `anchors` maps a seam id to the (start, end) the seam should lie along -
     for a jacket, the two shoulder seams from neck to shoulder tip. Which end
@@ -426,7 +473,7 @@ def dress(
         held = pins > 0.0
         sleeve_particle = np.zeros(garment.n_points, dtype=bool)
         for panel_id, (lo, hi) in garment.panel_slices.items():
-            if _is_sleeve(panel_id) is not None:
+            if _panel_is_sleeve(panel_id, sleeves):
                 sleeve_particle[lo:hi] = True
         for seam_id, (lo, hi) in garment.seam_spans.items():
             if seam_id in anchors or hi <= lo:
@@ -469,7 +516,7 @@ def dress(
         # this, and both heads then start the release in the same state.
         rest = garment.rest_points_mm
         for panel_id, (lo, hi) in garment.panel_slices.items():
-            if _is_sleeve(panel_id) is None:
+            if not _panel_is_sleeve(panel_id, sleeves):
                 continue
             apex = lo + int(np.argmax(rest[lo:hi, 1]))
             if pins[apex] <= 0.0:

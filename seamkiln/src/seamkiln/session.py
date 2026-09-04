@@ -512,7 +512,10 @@ def _v_arrange(session: Session, args: dict[str, Any]) -> dict[str, Any]:
                     f"could not measure this body for a wrap arrangement: {exc}. "
                     "Use body kind 'figure', or pass arrangement='cylinder'."
                 ) from exc
-        placements = wrap_arrangement(pattern, frame, height=height)
+        try:
+            placements = wrap_arrangement(pattern, frame, height=height, roles=roles)
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
         session.frame = frame
     session.garment = build_garment(
         pattern, placements, particle_distance=float(args.get("particle_distance_mm", 15.0))
@@ -537,6 +540,9 @@ def _dress_now(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     anchors = {k: v for k, v in anchors.items() if k in session.garment.seam_spans}
     if not anchors:
         return {"dressed": False, "why": "no shoulder seams to pin on this pattern"}
+    from seamkiln.drape.garment import piece_roles
+
+    cast = piece_roles(session.pattern, args.get("roles"))
     result = dress(
         session.garment,
         session.sdf,
@@ -544,6 +550,9 @@ def _dress_now(session: Session, args: dict[str, Any]) -> dict[str, Any]:
         anchors=anchors,
         hold_frames=int(args.get("dress_frames", 180)),
         settle_frames=int(args.get("settle_frames", 220)),
+        sleeves={pid for pid, role in cast.items() if role.startswith("sleeve")},
+        baste_sleeves_to_body=bool(args.get("baste_sleeves", True)),
+        head_mm=float(args.get("baste_head_mm", 60.0)),
     )
     session.drape = result
     return {

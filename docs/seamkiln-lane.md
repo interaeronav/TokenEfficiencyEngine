@@ -301,8 +301,12 @@ armhole at shared fractions of each run's length; then `arrange` with
 know: seamkiln's arm `R` is the one beside the front's +x armhole, and CLO
 draws the front as worn, so CLO's "Manga Esquerda" (the wearer's left) goes
 on arm `R` - given the other way round the seams drag each sleeve across
-the body. The measured drape of a CLO women's M tee on the mannequin is in
-PROGRESS (2026-09-04).
+the body. On the figure the same commands take the wrap arrangement and
+the dressing; a short cap sleeve is dressed with `baste_head_mm: 0` and
+`baste_sleeves: false`, because the head basting that keeps a block's
+130 mm cap on the deltoid folds a 98 mm one (measured: sleeves facing 0.10
+with it, 0.93 without). The measured drapes of a CLO women's M tee on the
+mannequin and on the figure are in PROGRESS (2026-09-04).
 
 ## Render properties on the card
 

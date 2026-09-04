@@ -380,7 +380,7 @@ def _translate(op: dict[str, Any], index: int) -> list[dict[str, Any]]:
         }
         # a pattern from CAD is named by its maker: the roles say which piece
         # is the front, the back and each sleeve (see `piece_roles`)
-        for key in ("roles", "arrangement", "dress"):
+        for key in ("roles", "arrangement", "dress", "baste_sleeves", "baste_head_mm"):
             if key in props:
                 arrange_args[key] = props[key]
         return [

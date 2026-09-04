@@ -10209,6 +10209,47 @@ Three findings the numbers forced, all recorded and none fixed here:
 Suites: `test_drape` + `test_session` + `test_figure_dressing` 61 passed,
 the server's seamkiln selection 26, lint clean.
 
+**The Camiseta on the figure (owner: "drape it on the figure instead").**
+The figure has no chest control - its chest is 0.553 x stature - so
+1.55 m gives it the 856 mm chest the mannequin had (the tee's 900 mm
+chest, 44 mm ease); at 1.65 m it is 912 mm and the tee is 12 mm negative.
+The wrap path had three defects a CAD pattern exposed, each fixed and
+tested:
+
+- **The cap rise was the panel's absolute top.** A block drafts its
+  sleeve with the biceps line at y = 0, so `bbox[3]` was the cap height;
+  CLO's sleeve sits at y = 1218..1369 in its marker and was hung 1.37 m
+  above the joint, then dragged onto the body inside out (both sleeves
+  facing -0.26 and -0.19). `sleeve_cap_height_mm` reads the cap above the
+  sleeve's own widest line.
+- **A body panel's arc position was its absolute x.** The block lays two
+  front halves either side of x = 0; the marker puts the back a metre to
+  the right of the front, which started it 33 degrees off its place. The
+  position is now relative to the centre of the panels sharing its side.
+- **The wrap arrangement and the dressing read sleeves off the ids.**
+  `roles` now reaches `wrap_arrangement`, and `dress` takes the sleeve
+  ids, so a CAD sleeve is basted as a sleeve.
+
+Then the dressing itself: the head basting that keeps the block's 130 mm
+cap on the deltoid (A65: one cap slid 60 mm down the arm in every walk
+without it) FOLDS a 98 mm cap. Measured at 1.55 m, cotton jersey, 280
+frames, seams closed to 0.3 mm mean and 4 mm max in every case, worn,
+zero penetration: head basted 60 mm with the sleeves basted, sleeves
+facing 0.10 / 0.00 (47-51 % of near-body normals inward); 44 mm, 0.07 /
+-0.01; 25 mm, 0.62 / 0.26; head basting off with the sleeves basted,
+0.68 / 0.65; neither, **0.93 / 0.89** with the front and back at 0.94 -
+the block on the same figure reads 0.81 / 0.80. So the arrange verb takes
+`baste_sleeves` and `baste_head_mm` (recorded in the script; the TEE op
+carries them), the Camiseta is dressed with both off, and the default
+stays the block's until a rule is measured on more than two caps. Cloth
+strain on the figure: sleeves 11.9 / 11.8 %, front 4.0, back 2.6 - against
+the mannequin's 25 % sleeves - with the block's sleeves at 13.4 on the
+same figure. Fingerprint `f8cc581da5c938a2`; script and two stills in the
+scratchpad. Not done: the figure remains male-proportioned at every
+stature (deltoid radius 76 mm at 1.55 m against a 54 mm sleeve tube), so
+a women's block still meets a broad shoulder; a proportioned figure is the
+next body item.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
