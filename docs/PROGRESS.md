@@ -12253,3 +12253,33 @@ silently dropping the flag; it is honoured now like every other adapter.
 The manifest serves all three, blender first. **It reaches Desktop only with
 the next bundle** — the installed 0.21.0 still runs its own `src/` and its
 own one-adapter command — so this is cut as 0.21.1 below.
+
+### 0.21.1 cut and verified from a clean checkout (2026-09-04)
+
+Built in a detached worktree at `53d72ab` (0 dirty files; a parallel session
+holds uncommitted seamkiln work that must not ship), unzipped into a fresh
+directory, and driven with the manifest's **exact** command — which now
+serves three lanes:
+
+```
+uv run --directory <bundle> --no-dev tee serve --adapter blender --adapter partkiln --adapter seamkiln
+handshake: {'name': 'tee', 'version': '0.21.1'}   boot 2.16 s (fresh venv, first run)
+always-loaded tools: 17
+adapters: blender 5.2.0 LTS | partkiln (sidecar found on disk) | seamkiln ABSENT   default_adapter: blender
+tee_call pk_probe   -> ok, mode sidecar          tee_call sk_avatar -> seamkiln_unavailable, naming the install
+search 'extrude a sketch' reaches pk_*: True
+tee-engine-0.21.1.mcpb  1,048,883 B  sha256 0ca393e35c90ac08…
+```
+
+That single run is the ruling demonstrated: a lane whose kernel is absent
+costs nothing but a truthful refusal, the sidecar route is found by a venv
+that has never seen partkiln, and the declared default keeps every existing
+Desktop batch on Blender. Server suite at the cut **1,484 passed / 12
+skipped**; surface **17 tools / 2,033 tok**; three version strings agree and
+`tools[]` is untouched.
+
+**What installing it will do, so nobody is surprised:** Desktop re-provisions
+the venv from the lock, which wipes the five fleet extras AND the editable
+seamkiln install; both go back with two commands, then the server needs a
+restart for the `.pth` to be read. The partkiln sidecar is untouched by any
+of it — that is what the sidecar route is for.
