@@ -161,6 +161,7 @@ VERBS_WITHOUT_A_BUTTON = (
     "panel",
     "pinch",
     "rip",
+    "sew",
     "seam",
     "techpack",
     "unfasten",

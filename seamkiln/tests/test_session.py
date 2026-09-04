@@ -82,6 +82,7 @@ def test_unknown_verbs_list_the_known_ones() -> None:
         "load",
         "panel",
         "seam",
+        "sew",
         "allowance",
         "delete",
         "cut",
@@ -160,6 +161,94 @@ def test_load_refuses_by_name_and_records_nothing(tmp_path) -> None:
     with pytest.raises(CommandError, match="load:"):
         session.apply(Command("load", {"path": str(garbage)}))
     assert session.history == [] and session.pattern is None
+
+
+def _armhole_pattern() -> Session:
+    """A body whose armhole is three edges and a sleeve whose cap is one."""
+    s = Session()
+    s.apply(
+        Command(
+            "panel",
+            {
+                "id": "BODY",
+                "outline": [[0, 0], [100, 0], [100, 100], [70, 130], [40, 150], [0, 150]],
+            },
+        )
+    )
+    s.apply(Command("panel", {"id": "SLEEVE", "outline": [[0, 0], [120, 0], [120, 30], [0, 30]]}))
+    return s
+
+
+def test_sew_splits_a_cap_across_an_armhole_at_shared_breakpoints() -> None:
+    """One sleeve edge against three body edges: three seams, the sleeve's
+    ranges at the body's cumulative fractions, gather the length ratio."""
+    s = _armhole_pattern()
+    out = s.apply(
+        Command("sew", {"id": "cap", "a": ["SLEEVE#2"], "b": ["BODY#2", "BODY#3", "BODY#4"]})
+    )
+    lengths = [42.4264, 36.0555, 40.0]
+    total = sum(lengths)
+    assert out["a_mm"] == pytest.approx(120.0)
+    assert out["b_mm"] == pytest.approx(total, abs=0.01)
+    assert out["gather"] == pytest.approx(120.0 / total, abs=1e-3)
+    assert out["seams"] == ["cap-0", "cap-1", "cap-2"]
+    seams = {seam.id: seam for seam in s.pattern.seams}
+    cut1, cut2 = lengths[0] / total, (lengths[0] + lengths[1]) / total
+    assert (seams["cap-0"].a.t0, seams["cap-0"].a.t1) == pytest.approx((0.0, cut1), abs=1e-4)
+    assert (seams["cap-1"].a.t0, seams["cap-1"].a.t1) == pytest.approx((cut1, cut2), abs=1e-4)
+    assert (seams["cap-2"].a.t0, seams["cap-2"].a.t1) == pytest.approx((cut2, 1.0), abs=1e-4)
+    for k, edge in enumerate((2, 3, 4)):
+        assert (seams[f"cap-{k}"].b.panel, seams[f"cap-{k}"].b.edge) == ("BODY", edge)
+        assert (seams[f"cap-{k}"].b.t0, seams[f"cap-{k}"].b.t1) == (0.0, 1.0)
+    assert all(seam.gather == pytest.approx(120.0 / total, abs=1e-3) for seam in s.pattern.seams)
+    assert [c.op for c in s.history][-1] == "sew"
+    replayed = Session.replay(s.script())
+    assert [str(x.a) + str(x.b) for x in replayed.pattern.seams] == [
+        str(x.a) + str(x.b) for x in s.pattern.seams
+    ]
+
+
+def test_sew_reads_a_runs_direction_off_how_its_edges_touch() -> None:
+    """The armhole walked the other way: every body edge is traversed
+    backwards, so its ranges come back mirrored, and the sleeve edge has
+    to be told, since a single edge touches nothing."""
+    s = _armhole_pattern()
+    s.apply(
+        Command(
+            "sew",
+            {
+                "id": "cap",
+                "a": [{"panel": "SLEEVE", "edge": 2, "reverse": True}],
+                "b": ["BODY#4", "BODY#3", "BODY#2"],
+            },
+        )
+    )
+    seams = {seam.id: seam for seam in s.pattern.seams}
+    lengths = [40.0, 36.0555, 42.4264]
+    total = sum(lengths)
+    cut1 = lengths[0] / total
+    # the first interval is BODY#4 walked backwards (its own t runs 1 -> 0)
+    assert (seams["cap-0"].b.panel, seams["cap-0"].b.edge) == ("BODY", 4)
+    assert (seams["cap-0"].b.t0, seams["cap-0"].b.t1) == (0.0, 1.0)
+    assert (seams["cap-0"].a.t0, seams["cap-0"].a.t1) == pytest.approx((1.0 - cut1, 1.0), abs=1e-4)
+    with pytest.raises(CommandError, match="does not touch"):
+        s.apply(Command("sew", {"a": ["SLEEVE#2"], "b": ["BODY#2", "BODY#4"]}))
+    with pytest.raises(CommandError, match="needs 'b'"):
+        s.apply(Command("sew", {"a": ["SLEEVE#2"]}))
+    assert sum(1 for c in s.history if c.op == "sew") == 1, "a refused sew entered the script"
+
+
+def test_sew_of_one_edge_to_one_is_a_plain_seam() -> None:
+    s = _armhole_pattern()
+    out = s.apply(Command("sew", {"id": "hem", "a": "SLEEVE#0", "b": "BODY#0", "gather": 1.0}))
+    assert out["seams"] == ["hem"] and out["breakpoints"] == [0.0, 1.0]
+    (seam,) = s.pattern.seams
+    assert (seam.a.t0, seam.a.t1, seam.b.t0, seam.b.t1) == (
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+    ) and seam.gather == 1.0
 
 
 def test_drape_arranges_and_arrange_makes_a_body() -> None:

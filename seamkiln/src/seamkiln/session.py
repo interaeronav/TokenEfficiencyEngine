@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from hashlib import sha256
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -363,6 +364,152 @@ def _v_seam(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     pattern.seams.append(seam)
     session.garment = session.drape = session.live = None
     return {"id": seam.id}
+
+
+def _v_sew(session: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """Sew two RUNS of edges together, split wherever either run has a vertex.
+
+    A sleeve cap is one edge; the armhole it meets is three. `seam` joins one
+    edge range to one, so a cap took three seams with the sleeve's t-ranges
+    worked out by hand - the twenty seams a CAD tee needed. `sew` walks both
+    runs from a shared landmark to a shared landmark (the shoulder point to
+    the underarm), splits both at the union of their vertex breakpoints as
+    fractions of each run's own length, and records one seam per interval.
+    Inside a run the edges must touch end to end, and their directions are
+    read off that; a single-edge run is walked in its own direction unless
+    `reverse` says otherwise. `gather` defaults to the runs' length ratio,
+    so `true_up` measures the ease the pattern actually drafted.
+    """
+    from seamkiln.pattern.geometry import perimeter
+    from seamkiln.pattern.model import EdgeRef, Seam
+
+    pattern = _require_pattern(session)
+    run_a = _run_of_edges(pattern, args.get("a"), "a")
+    run_b = _run_of_edges(pattern, args.get("b"), "b")
+    for run in (run_a, run_b):
+        for panel_id, _, _ in run:
+            _guard(session, f"panel:{panel_id}", f"sewing {panel_id}")
+
+    def marks(run):
+        lengths = [perimeter(pattern.panel(p).edges()[e], closed=False) for p, e, _ in run]
+        total = sum(lengths)
+        if total <= 0.0:
+            raise CommandError("sew: a run has no length.")
+        out, acc = [0.0], 0.0
+        for length in lengths:
+            acc += length
+            out.append(acc / total)
+        out[-1] = 1.0
+        return out, total
+
+    marks_a, total_a = marks(run_a)
+    marks_b, total_b = marks(run_b)
+    gather = float(args["gather"]) if "gather" in args else total_a / total_b
+    breaks = sorted(set(marks_a) | set(marks_b))
+
+    def locate(run, run_marks, u0, u1):
+        for i, (panel_id, edge, reversed_) in enumerate(run):
+            if run_marks[i] <= u0 + 1e-9 and u1 <= run_marks[i + 1] + 1e-9:
+                span = run_marks[i + 1] - run_marks[i]
+                l0, l1 = (u0 - run_marks[i]) / span, (u1 - run_marks[i]) / span
+                if reversed_:
+                    l0, l1 = 1.0 - l1, 1.0 - l0
+                return EdgeRef(panel_id, edge, round(max(l0, 0.0), 6), round(min(l1, 1.0), 6))
+        raise CommandError(f"sew: no edge holds the interval [{u0:.4f}, {u1:.4f}].")
+
+    base = str(args.get("id") or f"{run_a[0][0]}-{run_b[0][0]}")
+    made: list[str] = []
+    for k, (u0, u1) in enumerate(pairwise(breaks)):
+        if u1 - u0 < 1e-6:
+            continue
+        seam = Seam(
+            a=locate(run_a, marks_a, u0, u1),
+            b=locate(run_b, marks_b, u0, u1),
+            gather=gather,
+            id=f"{base}-{k}" if len(breaks) > 2 else base,
+        )
+        pattern.seams.append(seam)
+        made.append(seam.id)
+    session.garment = session.drape = session.live = None
+    return {
+        "id": base,
+        "seams": made,
+        "a_mm": round(total_a, 2),
+        "b_mm": round(total_b, 2),
+        "gather": round(gather, 4),
+        "breakpoints": [round(u, 4) for u in breaks],
+    }
+
+
+def _run_of_edges(pattern, raw: Any, side: str) -> list[tuple[str, int, bool]]:
+    """[(panel, edge, walked_reversed)] for a run given as 'PANEL#e' strings or
+    {"panel", "edge", "reverse"} dicts, the directions read off how the
+    edges touch."""
+    items = raw if isinstance(raw, list | tuple) else [raw]
+    if not items or any(item is None for item in items):
+        raise CommandError(
+            f"sew needs '{side}': a run of edges, e.g. ['FRONT#11', 'FRONT#10', 'FRONT#9'] "
+            'or [{"panel": "SLEEVE_L", "edge": 3, "reverse": true}].'
+        )
+    parsed: list[tuple[str, int, bool | None]] = []
+    for item in items:
+        if isinstance(item, dict):
+            parsed.append((str(item["panel"]), int(item["edge"]), item.get("reverse")))
+        else:
+            text = str(item)
+            if "#" not in text:
+                raise CommandError(f"{text!r} is not an edge reference; use 'PANEL#edge'.")
+            panel_id, edge = text.split("#", 1)
+            parsed.append((panel_id, int(edge), None))
+
+    def ends(panel_id: str, edge: int):
+        try:
+            panel = pattern.panel(panel_id)
+            edges = panel.edges()
+            run = edges[edge]
+        except (KeyError, IndexError) as exc:
+            raise CommandError(f"sew: no edge {panel_id}#{edge}.") from exc
+        return (run[0].x, run[0].y), (run[-1].x, run[-1].y)
+
+    def close(p, q) -> bool:
+        return abs(p[0] - q[0]) < 1e-6 and abs(p[1] - q[1]) < 1e-6
+
+    out: list[tuple[str, int, bool]] = []
+    for i, (panel_id, edge, flag) in enumerate(parsed):
+        start, end = ends(panel_id, edge)
+        if len(parsed) == 1:
+            reversed_ = bool(flag)
+        elif i == 0:
+            nxt_start, nxt_end = ends(parsed[1][0], parsed[1][1])
+            if close(end, nxt_start) or close(end, nxt_end):
+                reversed_ = False
+            elif close(start, nxt_start) or close(start, nxt_end):
+                reversed_ = True
+            else:
+                raise CommandError(
+                    f"sew: {panel_id}#{edge} does not touch {parsed[1][0]}#{parsed[1][1]}; "
+                    "a run's edges follow one another end to end."
+                )
+        else:
+            prev = out[-1]
+            prev_start, prev_end = ends(prev[0], prev[1])
+            walk_end = prev_start if prev[2] else prev_end
+            if close(walk_end, start):
+                reversed_ = False
+            elif close(walk_end, end):
+                reversed_ = True
+            else:
+                raise CommandError(
+                    f"sew: {panel_id}#{edge} does not touch {prev[0]}#{prev[1]}; "
+                    "a run's edges follow one another end to end."
+                )
+        if flag is not None and len(parsed) > 1 and bool(flag) != reversed_:
+            raise CommandError(
+                f"sew: {panel_id}#{edge} is walked {'reversed' if reversed_ else 'forward'} by "
+                "how it touches its neighbours; drop 'reverse' or reorder the run."
+            )
+        out.append((panel_id, edge, reversed_))
+    return out
 
 
 def _v_allowance(session: Session, args: dict[str, Any]) -> dict[str, Any]:
@@ -1505,6 +1652,7 @@ _VERBS = {
     "load": _v_load,
     "panel": _v_panel,
     "seam": _v_seam,
+    "sew": _v_sew,
     "allowance": _v_allowance,
     "body": _v_body,
     "arrange": _v_arrange,

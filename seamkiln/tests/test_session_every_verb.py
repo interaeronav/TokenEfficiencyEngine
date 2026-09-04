@@ -34,6 +34,7 @@ def every_verb(tmp_path) -> Session:
     do("block", {"block": "jacket-zip"})
     do("panel", {"id": "POCKET", "outline": [[0, 0], [120, 0], [120, 140], [0, 140]]})
     do("seam", {"id": "pocket-top", "a": "POCKET#2", "b": "FRONT_L#0"})
+    do("sew", {"id": "pocket-side", "a": ["POCKET#1"], "b": ["FRONT_L#1"]})
     do("delete", {"id": "POCKET"})  # takes pocket-top with it
     do("cut", {"panel": "BACK", "op": "pleat", "at_x": 0.0, "depth_mm": 20.0})
     do("grade", {"target": {"chest": 1040.0}, "strict": False})

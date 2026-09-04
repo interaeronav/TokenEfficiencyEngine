@@ -10384,6 +10384,20 @@ seams 0.38 mm mean and 4.6 max, worn, zero penetration, sleeves facing
 0.88 / 0.90. The guard: the block on the female figure through a stride
 and a half, both shoulder points within 12 mm (measured -1 and 0).
 
+**The `sew` verb (owner: "do all of them", first of three).** Sewing the
+Camiseta took twenty `seam` commands with the sleeve caps' t-ranges worked
+out by hand in a scratch script. `sew` takes two RUNS of edges (`a`, `b`),
+walks both from a shared landmark to a shared landmark, splits both at
+the union of their vertex breakpoints as fractions of each run's own
+length and records one seam per interval, the gather the runs' length
+ratio unless given. A run's edge directions are read off how its edges
+touch end to end (a run that does not chain refuses by name); a
+single-edge run is walked in its own direction unless `reverse` says so.
+The twenty seams become seven commands; a sleeve cap across a three-edge
+armhole is one. It is a `tee_batch` op, on the GUI's gap list, and in the
+every-verb replay. Tests: the split's ranges and gather on a synthetic
+armhole, the mirrored run, the refusals, replay.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE

@@ -401,6 +401,7 @@ def _translate(op: dict[str, Any], index: int) -> list[dict[str, Any]]:
 
 _PASSTHROUGH = (
     "load",
+    "sew",
     "drape",
     "export",
     "grade",
