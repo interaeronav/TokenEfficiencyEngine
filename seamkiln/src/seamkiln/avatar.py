@@ -28,7 +28,18 @@ garment that never gets thrown, which looks like a stiff fabric and is not.
 
 `custom_avatar` takes a body the studio already has - any mesh trimesh can
 read - and checks it before letting it into the solver, because the failure
-mode for a wrongly-scaled avatar is a garment that appears to fit a doll.
+mode for a wrongly-scaled avatar is a garment that appears to fit a doll. It
+loads with `trimesh.load(force="mesh")`, which flattens a scene to ONE mesh
+and throws the skeleton away, so the body it returns can only be walked
+rigidly - `rigid_factory` - and it says so rather than bending a mesh with no
+joints to bend at.
+
+`rigged_avatar` is the way out of that for a file that HAS a skeleton: it
+reads the skin by hand (`rig.gltf_read`), maps the file's bone names onto the
+nine joints above (`rig.naming`) and returns a body that can be posed, and
+`rigged_factory` is its body_factory - the articulated mirror of
+`rigid_factory`, built to the same contract `figure_factory` meets so
+`animation.animate` drives it per frame without knowing which body it has.
 """
 
 from __future__ import annotations
@@ -459,6 +470,52 @@ def figure_factory(*, height: float = 1.80, facing_deg: float = 0.0, ground_y: f
     return factory
 
 
+def rigged_avatar(
+    path: str | Path,
+    *,
+    node: str | None = None,
+    overrides: dict[str, str] | None = None,
+    units: str = "auto",
+    ground_y: float = 0.0,
+) -> Any:
+    """Load a studio avatar WITH its skeleton, so it can be walked properly.
+
+    The counterpart to `custom_avatar`, and the reason it exists: trimesh 5.1
+    ignores glTF skins entirely, so the mesh loader cannot see a rig even when
+    the file has one. Refuses - by name, with the fix - on a file with no skin
+    at all, on bones that cannot be mapped onto seamkiln's joints, and on an
+    implausible height, because each of those failures otherwise shows up as a
+    confident fit report about a body that never moved.
+    """
+    from seamkiln.rig.skin import load_rigged_avatar
+
+    return load_rigged_avatar(path, node=node, overrides=overrides, units=units, ground_y=ground_y)
+
+
+def rigged_factory(avatar: Any, *, ground_y: float | None = 0.0):
+    """A body_factory that ARTICULATES an imported rigged avatar.
+
+    The mirror of `rigid_factory` and the same contract as `figure_factory`:
+    `(mesh, offset)` per frame, the mesh body-local and the offset a rigid
+    placement the solver carries exactly. With `ground_y` set (the default)
+    the gait's scripted `rise_m` is ignored and the body's lowest point is put
+    on the ground each frame, so the pelvis rises because the stance leg
+    straightens - the same emergent bob `figure_factory` gets, and the reason
+    it is worth articulating a body at all. `ground_y=None` keeps the scripted
+    rise instead, for a body whose feet are not modelled.
+    """
+
+    def factory(values: dict[str, float]):
+        if ground_y is None:
+            pose = Pose.from_values(values)
+            return avatar.mesh(replace(pose, rise_m=0.0)), (0.0, pose.rise_m, 0.0)
+        pose = Pose.from_values({k: v for k, v in values.items() if k != "rise_m"})
+        mesh = avatar.mesh(pose)
+        return mesh, (0.0, ground_y - float(mesh.bounds[0][1]), 0.0)
+
+    return factory
+
+
 def rigid_factory(mesh):
     """A body_factory for a body that CANNOT be posed: an imported avatar with
     no rig, or an Anny mesh. It moves as one piece and says so - the honest
@@ -643,6 +700,8 @@ __all__ = [
     "gait",
     "posed_mannequin",
     "replace",
+    "rigged_avatar",
+    "rigged_factory",
     "rigid_factory",
     "walk",
 ]
