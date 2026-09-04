@@ -34,18 +34,21 @@ def a_pose_body():
 
 # Measured drift of the tee's stride-averaged centroid over three strides,
 # with the body moving continuously within each frame (see the gait test):
-# walk at 12 fps +3.9 mm (per stride +4.6 then -0.7: saturating), run at
-# 24 fps -6.1 mm (-2.5, -3.6). The bounds are 1.5 x the measurement with a
-# floor of a voxel (10 mm). The run's worst penetration, 27.6 mm at one frame
-# per cycle, is the fastest sweeps tunnelling three or four particles through
-# a sheet held on both sides - the contact model's limit, recorded in
-# PROGRESS, not the schedule's: 38, 28, 29 and 33 mm at 16, 24, 32 and 48 fps
-# - and is bounded at 45 so it cannot grow quietly.
-WALK_DRIFT_MM = 3.9
-RUN_DRIFT_MM = -6.1
+# walk at 12 fps +4.2 mm (per stride +5.0 then -0.8: saturating), run at
+# 24 fps -6.0 mm (-2.1, -3.9). The bounds are 1.5 x the measurement with a
+# floor of a voxel (10 mm). The run's worst penetration was 27.6 mm at one
+# frame per cycle (38, 28, 29, 33 mm at 16, 24, 32, 48 fps): sliver-fringe
+# vertices at the shoulder-arm crease, thrown into the body by their 2.5 mm
+# rest edges, pushed out by the collision and put straight back by friction,
+# whose tangent plane came from the normal at the pre-push point 20 mm inside
+# the body. With friction's plane taken at the pushed point, and friction
+# never allowed to re-enter, it is 0.0 mm at 24 and 48 fps, 0.14 at 16 and
+# 0.0 at 32 (walk 0.0); the bound is a voxel.
+WALK_DRIFT_MM = 4.2
+RUN_DRIFT_MM = -6.0
 WALK_DRIFT_BOUND_MM = 10.0
 RUN_DRIFT_BOUND_MM = 10.0
-RUN_PENETRATION_BOUND_MM = 45.0
+RUN_PENETRATION_BOUND_MM = 10.0
 
 
 def _tee(body, pd: float = 12.0):
@@ -172,9 +175,9 @@ def test_a_garment_is_thrown_by_a_gait_and_stays_on(a_pose_body) -> None:
 
     Measured with the body moving continuously within each frame (three
     strides, the tee's centroid averaged over each stride so the bob cancels):
-    the walk at 12 fps drifts +3.9 mm over three strides (+4.6 then -0.7: it
-    saturates) and the run at 24 fps -6.1 (-2.5, -3.6); the hem swings 32 mm
-    a stride on the walk and 51-99 on the run. With the old animator - the
+    the walk at 12 fps drifts +4.2 mm over three strides (+5.0 then -0.8: it
+    saturates) and the run at 24 fps -6.0 (-2.1, -3.9); the hem swings 32 mm
+    a stride on the walk and 52-99 on the run. With the old animator - the
     body advancing between frames as a jump, each jump up into the cloth a
     full push in one substep - the same tee rode up 16 mm per walking stride
     and 40 per running stride, without saturating: 48 and 120 over these

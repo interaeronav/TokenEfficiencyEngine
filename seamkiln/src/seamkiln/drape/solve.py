@@ -248,8 +248,71 @@ def anisotropic_compliance(
 MAX_BEND_STEP = 0.20  # radians per iteration; see the note in the kernel
 
 
+# The blended field's distance and normalised gradient at a field-frame
+# point, for the moving path's second evaluations (see the kernel). It is
+# compiled ONCE per process and referenced by the kernel as a module global:
+# a helper created inside `_kernel()` was a closure variable of `run`, and a
+# kernel that captures a closure cannot use numba's on-disk cache - every
+# `drape()` recompiled it, 6.5 s a call, which turned a 23 ms interactive
+# step into 6,557 ms and a 15-minute suite into 51.
+field_at = None
+_RUN = None
+
+
+def _field_at_impl(grid, grid1, blend, mix, origin, spacing, px, py, pz):
+    """The blended field's distance and normalised gradient at a
+    field-frame point. Returns (d, nx, ny, nz, ok); ok is 0 off the
+    lattice or on a flat spot. Only the moving path calls this - the
+    static path keeps its inline evaluation, untouched."""
+    nx, ny, nz = grid.shape
+    fx = (px - origin[0]) / spacing
+    fy = (py - origin[1]) / spacing
+    fz = (pz - origin[2]) / spacing
+    if fx < 0.0 or fy < 0.0 or fz < 0.0:
+        return 0.0, 0.0, 0.0, 0.0, 0
+    if fx > nx - 1.001 or fy > ny - 1.001 or fz > nz - 1.001:
+        return 0.0, 0.0, 0.0, 0.0, 0
+    i0 = int(fx)
+    j0 = int(fy)
+    k0 = int(fz)
+    tx = fx - i0
+    ty = fy - j0
+    tz = fz - k0
+    d = 0.0
+    gx = 0.0
+    gy = 0.0
+    gz = 0.0
+    for di in range(2):
+        wxx = tx if di == 1 else 1.0 - tx
+        sx = 1.0 if di == 1 else -1.0
+        for dj in range(2):
+            wyy = ty if dj == 1 else 1.0 - ty
+            sy = 1.0 if dj == 1 else -1.0
+            for dk in range(2):
+                wzz = tz if dk == 1 else 1.0 - tz
+                sz = 1.0 if dk == 1 else -1.0
+                corner = grid[i0 + di, j0 + dj, k0 + dk]
+                if blend == 1:
+                    corner = corner + mix * (grid1[i0 + di, j0 + dj, k0 + dk] - corner)
+                d += wxx * wyy * wzz * corner
+                gx += sx * wyy * wzz * corner
+                gy += wxx * sy * wzz * corner
+                gz += wxx * wyy * sz * corner
+    norm = np.sqrt(gx * gx + gy * gy + gz * gz)
+    if norm < 1e-12:
+        return d, 0.0, 0.0, 0.0, 0
+    return d, gx / norm, gy / norm, gz / norm, 1
+
+
 def _kernel():
+    global field_at, _RUN
+
+    if _RUN is not None:
+        return _RUN
     from numba import njit, prange
+
+    if field_at is None:
+        field_at = njit(cache=True, fastmath=False)(_field_at_impl)
 
     @njit(cache=True, parallel=True, fastmath=False)
     def run(
@@ -682,6 +745,40 @@ def _kernel():
                     x[k, 0] += wnx * push
                     x[k, 1] += wny * push
                     x[k, 2] += wnz * push
+                    if moving == 1 and push > 0.25 * spacing:
+                        # A large push means the particle was thrown deep -
+                        # on a run, a sliver-fringe vertex forty times
+                        # lighter than its neighbours, flung 20 mm into the
+                        # crease of the shoulder ball and the arm by its
+                        # 2.5 mm rest edges. The push itself gets it out
+                        # (+2.9 mm, measured). What put it back was
+                        # FRICTION, which took its tangent plane from the
+                        # normal at the pre-push point, 20 mm inside the
+                        # union where the interior gradient is 97 degrees
+                        # off the surface: it cancelled the "tangential"
+                        # motion outright (the limit scales with the push)
+                        # and moved the particle straight back in, to a
+                        # fixed point that rode the surface at the body's
+                        # normal advance - 7.8, 9.7 and 9.6 mm at 24, 48 and
+                        # 96 substeps. So the plane friction acts in, the
+                        # contact normal it stores and the damping's touch
+                        # gate all come from the PUSHED point, where the
+                        # particle actually is.
+                        _dd, rnx, rny, rnz, ok = field_at(
+                            grid,
+                            grid1,
+                            blend,
+                            mix,
+                            origin,
+                            spacing,
+                            lx + lnx * push,
+                            ly + lny * push,
+                            lz + lnz * push,
+                        )
+                        if ok == 1:
+                            wnx = r00 * rnx + r01 * rny + r02 * rnz
+                            wny = r10 * rnx + r11 * rny + r12 * rnz
+                            wnz = r20 * rnx + r21 * rny + r22 * rnz
                     if moving == 1:
                         # How far the body's surface moved under this
                         # particle during the substep: the rigid part is
@@ -754,6 +851,29 @@ def _kernel():
                             x[k, 0] -= take * tx2
                             x[k, 1] -= take * ty2
                             x[k, 2] -= take * tz2
+                            if moving == 1 and push > 0.25 * spacing:
+                                # Friction is tangential; it must never put
+                                # a particle INSIDE the body. On a curved
+                                # surface a tangential move of a few
+                                # millimetres dips below the standoff, and
+                                # on a thrown fringe vertex the plane can be
+                                # off: re-sample the field where the
+                                # particle now is and, if it is inside, put
+                                # it back on the surface THERE.
+                                cx = x[k, 0] - t0
+                                cy = x[k, 1] - t1
+                                cz = x[k, 2] - t2
+                                clx = r00 * cx + r10 * cy + r20 * cz
+                                cly = r01 * cx + r11 * cy + r21 * cz
+                                clz = r02 * cx + r12 * cy + r22 * cz
+                                cd, cnx, cny, cnz, cok = field_at(
+                                    grid, grid1, blend, mix, origin, spacing, clx, cly, clz
+                                )
+                                if cok == 1 and cd < offset:
+                                    fix = offset - cd
+                                    x[k, 0] += (r00 * cnx + r01 * cny + r02 * cnz) * fix
+                                    x[k, 1] += (r10 * cnx + r11 * cny + r12 * cnz) * fix
+                                    x[k, 2] += (r20 * cnx + r21 * cny + r22 * cnz) * fix
 
                 for k in prange(n):
                     # restitution, on the velocity, where it belongs
@@ -802,6 +922,7 @@ def _kernel():
                     v[k, 1] = (x[k, 1] - prev[k, 1]) / h
                     v[k, 2] = (x[k, 2] - prev[k, 2]) / h
 
+    _RUN = run
     return run
 
 

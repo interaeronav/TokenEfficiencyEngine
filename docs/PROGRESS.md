@@ -10007,7 +10007,67 @@ walk. In order of what was found:
   as the contact model's limit (continuous collision, or cloth-cloth), not
   the schedule's and not the frame rate's. The two
   examples run the same loop (the cape's clasp pins ramp from the previous
-  frame's targets); their probes and the animator suite pass. The fur walk
+  frame's targets); their probes and the animator suite pass.
+
+- **The run's tunnelling, closed (2026-09-02, later the same day).** It was
+  not a sweep-through, a medial-axis crossing or a pinch, and not the
+  blend's envelope. The worst interval was replayed stage by stage in
+  Python, reproducing the kernel's numbers to the digit (−7.8, −5.8,
+  −6.9 mm for the three trapped particles): they are sliver-fringe OUTLINE
+  vertices (`p286` on FRONT, `p5698–5700` on SLEEVE_L - 2.5 mm rest edges,
+  a zero-rest seam, inverse mass 1e6, forty times lighter than a regular
+  particle) at the crease where the shoulder ball meets the arm. Each
+  substep their constraints threw them 20 mm into the body; the collision
+  push got them OUT, to +2.9 mm; and FRICTION put them straight back in,
+  because its tangent plane came from the normal at the pre-push point,
+  20 mm inside the union where the interior gradient is 97° off the
+  surface - the 8.2 mm of "tangential" motion was under `limit =
+  friction · push` (8.4, a limit that scales with the depth), so it was
+  cancelled outright. The fixed point then rode the surface at the body's
+  normal advance, 0.3 mm a substep, which is why neither substeps nor
+  frame rate moved the number. A sidedness draft (a memory of the last
+  contact normal, pushed along when the normal flips) measured inert -
+  guard on and off gave 7.787 to the digit - and was removed. The fix, on
+  the moving path only: when a push exceeds a quarter of a voxel, the
+  friction plane, the stored contact normal and the damping's touch gate
+  come from the field's gradient at the PUSHED point (R1); and after the
+  friction correction the field is re-sampled where the particle now is
+  and, if inside, it is put back on the surface there - friction is
+  tangential and may never re-enter (R2). R1 alone took the worst interval
+  to 0.0 / 0.7 / 0.0 mm at 24 / 48 / 96 substeps but left the run at
+  ~16 mm over three cycles and put 6.6 mm on the walk (a tangential move
+  of a few millimetres dips below the standoff on a curved surface); with
+  R2 the worst interval is 0.0 at every substep count and, over three
+  cycles: run 0.0 mm at 24 fps, 0.14 at 16, 0.0 at 32, 0.0 at 48 (from 28,
+  38, 29, 33); walk 0.0 (from 0.55); drifts +4.2 (walk), −6.0 / −2.2 /
+  −1.9 / +6.9 (run at 24 / 16 / 32 / 48) - unchanged in kind. Static path
+  bit-identical against the pre-moving-body dumps. Tests: the real case
+  (`test_the_run_that_tunnelled_no_longer_does`, slow: the run at 24 fps
+  under a voxel), a slab and a blended capsule sweeping 60 and 36 mm into
+  a held sheet (T1/T2: pushed ahead, never passed), a fringe across a
+  crease on a sliding body (T3, a guard). What the research pass found
+  the field does (PBD's continuous tier with the entry normal, Bridson's
+  trajectory collisions, Macklin's local optimisation from deep inside an
+  SDF, Houdini blending the collider's geometry per substep, production
+  cloth colliding against per-bone capsules) is in the plan of record;
+  none of it was needed for this defect, and the blend's envelope remains
+  the honest limit for a rigid move modelled as a blend: at 60 mm a 40 mm
+  capsule's two fields cancel between the positions and ten particles end
+  10.3 mm inside, before and after the fix alike - a rigid move belongs in
+  the rigid schedule. The fur walk re-run on the final kernel: worn on all
+  108 frames, worst seam anywhere 12.4 mm (15.2 before this fix), dressed
+  at 6.8. Environment note: mid-run the server venv was re-synced by the
+  parallel A66 session (trimesh 5.0 → 5.1), which dropped `rtree` and the
+  editable seamkiln - every drape failed on the import until both were
+  restored; the memory file records the restore. And a trap of the fix's
+  own making, caught by the interactive-rate tests: the field helper was
+  first written as a closure inside `_kernel()`, and a kernel that captures
+  a closure variable cannot use numba's on-disk cache - every `drape()`
+  recompiled it, 6.5 s a call, a 23 ms interactive step became 6,557 ms
+  and the suite took 51 minutes. The helper is a module-level jitted
+  function compiled once per process and referenced as a global, the
+  kernel memoised: 3.9 s to compile once, 0.13 s to load the cache in a
+  fresh process, 23 ms a call. The fur walk
   re-run in full on the moving body: dressed at 6.8 mm worst seam (12.1
   before), worst seam anywhere in the 4.5 s walk 15.2 mm, worn on every
   frame, and the jacket's stride-averaged height drifts −5.1 mm over four

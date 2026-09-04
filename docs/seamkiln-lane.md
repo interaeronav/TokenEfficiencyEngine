@@ -220,11 +220,17 @@ own limit is stated on every frame as `sweep_mm` (the largest move of any
 body vertex between poses): two fields pinch a limb of radius R moved δ by
 about δ²/8R, below the field's half-voxel while δ ≤ 2√(voxel·R), which is
 41 mm a frame for a forearm on a 10 mm voxel — the knob for that is fps,
-and the error falls with δ². What fps does not cure is tunnelling: on a
-run, the fastest limb sweeps push three or four particles of a sheet held
-on both sides 28–38 mm into the body at one frame per cycle, at 16 fps and
-at 48 alike, which is the one-sided field contact's limit and is recorded
-as such. The static path is bit-identical to what it was.
+and the error falls with δ². What looked like tunnelling on a run — three
+or four particles 28–38 mm inside the body at one frame per cycle, at
+every frame rate — was friction: sliver-fringe vertices thrown into the
+shoulder-arm crease by their 2.5 mm rest edges were pushed out by the
+collision and put straight back by a friction plane taken 20 mm inside the
+body, 97° off the surface. Friction's plane now comes from the pushed
+point and friction may never re-enter the body; the run reads 0.0 mm at
+24 and 48 fps. What remains honest is the blend's envelope: a rigid move
+larger than 2√(voxel·R) modelled as a blend leaves particles inside, so a
+rigid move goes in the rigid schedule. The static path is bit-identical to
+what it was.
 
 ## Live adjustment
 
