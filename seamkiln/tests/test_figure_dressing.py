@@ -386,6 +386,8 @@ def test_walk_uses_the_sessions_own_body() -> None:
     assert out["worn_throughout"] is True
     # it TRAVELLED, at the gait's own speed - not a number picked to frame a shot
     assert out["travelled_m"] == pytest.approx(1.35 * out["duration_s"], rel=0.15)
+    # the frames stay on the session, as animate's do, so a renderer can reach them
+    assert len(s.animation) == out["frames"] > 0
 
 
 def test_a_body_with_no_joints_walks_as_one_piece_and_says_so() -> None:

@@ -10294,6 +10294,20 @@ slice. Suites: `test_figure_build` 6, `test_gui_actions` and
 verb) green; the figure, avatar, session and drape modules re-run after
 the build.
 
+**She walks (owner: "walk her").** The same session, `walk` with the
+clinical walk gait, two strides at 12 fps, 8 samples a cycle, 24
+substeps, a 10 mm voxel, in place: 26 frames in 57 s (51 of them the
+bakes), worn on every frame, worst penetration 0.0 mm, worst seam 3.7 mm,
+hem swing 45 mm, and the garment's mean height ends 9.9 mm lower over
+the 2.1 s - the gait's own end-pose rise is -10.0 mm, so the tee rode the
+body and did not slide. The figure per frame is rebuilt from the frame's
+pose values with the same factory the walk used (build and chest ride in
+the body spec), so the render sees exactly the body the cloth saw.
+`walk` now keeps its frames on `session.animation` the way `animate`
+does; it returned a report and dropped them, which left a walk with no
+way out to a renderer. Fingerprint `56ad17f50e07035d`; script and clip
+in the scratchpad.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE

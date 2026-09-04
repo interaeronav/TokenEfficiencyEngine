@@ -1417,6 +1417,7 @@ def _v_walk(session: Session, args: dict[str, Any]) -> dict[str, Any]:
     except ValueError as exc:
         raise CommandError(str(exc)) from exc
     session.gait = track
+    session.animation = frames  # held like animate's, so an export can reach them
     if frames:
         session.garment.points = frames[-1].points
         session.drape = None  # the last frame is a POSE, not the rest drape
