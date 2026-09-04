@@ -210,17 +210,31 @@ def register_seamkiln_tools(app) -> None:
                 }
             }
         if action == "read":
+            units_mm = args.get("units_mm")
             pattern, report = read_dxf(
-                str(args["path"]), flavour=flavour, strict=bool(args.get("strict", True))
+                str(args["path"]),
+                flavour=flavour,
+                strict=bool(args.get("strict", True)),
+                units_mm=float(units_mm) if units_mm is not None else None,
             )
-            adapter._pattern = pattern
-            adapter._garment = None
-            adapter._drape = None
+            # the same reset the session's own `block` verb performs: a new
+            # pattern, and nothing built on the old one survives
+            session = adapter.session
+            session.pattern = pattern
+            session.name = pattern.name
+            session.garment = session.drape = session.live = None
             return {
                 "pieces": report.pieces,
+                "style": report.header.get("STYLE NAME", ""),
+                "names": {p.id: p.name for p in pattern.panels if p.name != p.id},
                 "skipped_blocks": report.skipped_blocks,
                 "unknown_layers": report.unknown_layers,
                 "insunits": report.insunits,
+                "units_source": report.units_source,
+                "scale_mm_per_unit": report.scale_mm,
+                "validation_curves": report.validation_curves,
+                "qv_deviation_mm": round(report.qv_deviation_mm, 3),
+                "notes": report.notes,
                 "summary": pattern.summary(),
             }
         if adapter._pattern is None:
@@ -441,6 +455,14 @@ def register_seamkiln_tools(app) -> None:
                     "strict": {
                         "type": "boolean",
                         "description": "Reading: refuse unknown layers. Default true.",
+                    },
+                    "units_mm": {
+                        "type": "number",
+                        "description": (
+                            "Reading: millimetres per drawing unit, overriding $INSUNITS "
+                            "and the header's UNITS text (METRIC = cm). Read the result's "
+                            "units_source before trusting a size."
+                        ),
                     },
                 },
             },

@@ -194,6 +194,49 @@ def test_the_long_tail_answers_without_an_adapter_scene(app) -> None:
     assert "arrange" in excinfo.value.fix
 
 
+def test_a_cad_export_reads_through_the_interchange_tool(app, tmp_path) -> None:
+    """What CLO writes: an R12 file (no $INSUNITS), a heavy POLYLINE boundary
+    in centimetres declared by the header's "UNITS: METRIC", the piece named
+    by its "PIECE NAME:" text. The tool must hand back millimetres and say
+    where the unit came from - the same file read as mm is doll-sized."""
+    import ezdxf
+
+    doc = ezdxf.new("R12")
+    space = doc.modelspace()
+    space.add_text("STYLE NAME: Camiseta", dxfattribs={"layer": "1", "insert": (0.0, 90.0)})
+    space.add_text("UNITS: METRIC", dxfattribs={"layer": "1", "insert": (0.0, 80.0)})
+    block = doc.blocks.new("Frente_M")
+    block.add_polyline2d(
+        [(0, 0), (45, 0), (45, 61), (0, 61)], close=True, dxfattribs={"layer": "1"}
+    )
+    for spot in ((0, 0), (45, 0), (45, 61), (0, 61)):
+        block.add_point(spot, dxfattribs={"layer": "2"})
+    block.add_polyline2d(
+        [(0, 0), (45, 0), (45, 61), (0, 61)], close=True, dxfattribs={"layer": "84"}
+    )
+    block.add_text("PIECE NAME: Frente", dxfattribs={"layer": "1", "insert": (1.0, 1.0)})
+    block.add_text("# 180", dxfattribs={"layer": "1", "insert": (1.0, 2.0)})
+    space.add_blockref("Frente_M", (0.0, 0.0))
+    path = tmp_path / "clo.dxf"
+    doc.saveas(path)
+
+    result = app.registry.call("sk_interchange", {"action": "read", "path": str(path)})
+    assert result["pieces"] == 1 and result["style"] == "Camiseta"
+    assert result["insunits"] == 0 and result["units_source"] == "header UNITS: METRIC"
+    assert result["scale_mm_per_unit"] == 10.0
+    assert result["validation_curves"] == 1 and result["notes"] == []
+    assert result["names"] == {"Frente_M": "Frente"}
+    assert result["summary"]["name"] == "Camiseta"
+    (piece,) = result["summary"]["pieces"]
+    assert (piece["id"], piece["edges"], piece["area_mm2"]) == ("Frente_M", 4, 274500.0)
+
+    forced = app.registry.call(
+        "sk_interchange", {"action": "read", "path": str(path), "units_mm": 1.0}
+    )
+    assert forced["units_source"] == "units_mm argument"
+    assert forced["summary"]["pieces"][0]["area_mm2"] == 2745.0
+
+
 def test_sk_tools_are_tabled_in_the_trust_kernel(app) -> None:
     """A tool the trust table does not know fails at STARTUP - so reaching
     this line at all is most of the assertion."""

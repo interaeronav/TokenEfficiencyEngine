@@ -29,17 +29,20 @@ corner instead of being re-guessed from angles.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import ezdxf
+from shapely.geometry import LinearRing, Point
 
-from seamkiln.pattern.geometry import Polyline, Vertex, VertexKind
+from seamkiln.pattern.geometry import Polyline, Vertex, VertexKind, area
 from seamkiln.pattern.model import InternalLine, LineKind, Mark, MarkKind, Panel, Pattern
 
 # $INSUNITS -> millimetres per drawing unit. 0 is "unitless", which is not a
-# unit but a missing declaration, and is treated as mm with a provenance note.
+# unit but a missing declaration: the reader then asks the header text, and
+# only after that falls back to mm with a note (see `_resolve_units`).
 INSUNITS_TO_MM: dict[int, float] = {0: 1.0, 1: 25.4, 2: 304.8, 4: 1.0, 5: 10.0, 6: 1000.0}
 MM_INSUNITS = 4
 POINT_TOLERANCE_MM = 1e-6
@@ -242,6 +245,35 @@ def _add_polyline(block, points: Polyline, layer: str, *, closed: bool) -> None:
 
 # -- reading -----------------------------------------------------------------
 
+# The style/piece "system text" of AAMA and ASTM files: TEXT entities of the
+# form "KEY: value" in model space (the style) and inside each block (the
+# piece). CLO writes STYLE NAME / AUTHOR / PRODUCT / UNITS / SAMPLE SIZE at
+# the top and PIECE NAME / SIZE / QUANTITY / "# n" per piece.
+_SYSTEM_TEXT = re.compile(r"^\s*([A-Za-z][A-Za-z /_-]*?)\s*:\s*(.*?)\s*$")
+
+# Header "UNITS:" -> millimetres per drawing unit. The standard's METRIC is
+# centimetres, not millimetres: measured on two CLO 2024 exports (a women's
+# tee front reads 45.5 x 61.0 cm, a trouser leg 38.4 x 104.2), and it is the
+# Gerber/Lectra convention the header keyword comes from. ENGLISH is inches.
+HEADER_UNITS_TO_MM: dict[str, float] = {
+    "METRIC": 10.0,
+    "CENTIMETERS": 10.0,
+    "CENTIMETRES": 10.0,
+    "CM": 10.0,
+    "MILLIMETERS": 1.0,
+    "MILLIMETRES": 1.0,
+    "MM": 1.0,
+    "ENGLISH": 25.4,
+    "INCHES": 25.4,
+    "INCH": 25.4,
+    "IN": 25.4,
+}
+
+# a piece whose longest side is outside this band is almost certainly read
+# in the wrong unit; the reader says so instead of handing back a 6 m sleeve
+PLAUSIBLE_PIECE_MM = (20.0, 3000.0)
+_QV_FEATURES = ("qv_boundary", "qv_internal", "qv_cutout", "qv_sew")
+
 
 @dataclass
 class ReadReport:
@@ -250,18 +282,41 @@ class ReadReport:
     skipped_blocks: list[str] = field(default_factory=list)
     scale_mm: float = 1.0
     insunits: int = 0
+    units_source: str = ""
+    header: dict[str, str] = field(default_factory=dict)
+    validation_curves: int = 0
+    qv_deviation_mm: float = 0.0
+    notes: list[str] = field(default_factory=list)
 
 
 def read_dxf(
-    path: str | Path, *, flavour: str = "astm", strict: bool = True
+    path: str | Path,
+    *,
+    flavour: str = "astm",
+    strict: bool = True,
+    units_mm: float | None = None,
 ) -> tuple[Pattern, ReadReport]:
-    """Read a pattern DXF. Unknown layers refuse by name unless `strict=False`."""
+    """Read a pattern DXF. Unknown layers refuse by name unless `strict=False`.
+
+    The drawing unit is resolved in this order, and the report says which
+    won: an explicit `units_mm` (millimetres per drawing unit); a non-zero
+    `$INSUNITS`; the header's "UNITS: METRIC / ENGLISH" system text (an R12
+    file - every CLO, Gerber and Lectra export - has no `$INSUNITS` at all);
+    else millimetres, with a note. Piece boundaries may be LWPOLYLINE or the
+    R12 heavy POLYLINE. Layers 84-87 are the standard's quality-validation
+    curves - a dense copy of the writer's curves, not geometry to cut - so
+    they are counted, measured against the boundary they validate, and never
+    imported as internal lines. When the file carries a closed sew line
+    (layer 14) the outline is the cut line and the panel says so
+    (`meta["outline_is"]`), with the allowance measured between the two.
+    """
     spec = dialect(flavour)
     source = Path(path)
     doc = ezdxf.readfile(source)
     insunits = int(doc.header.get("$INSUNITS", 0) or 0)
-    scale = INSUNITS_TO_MM.get(insunits, 1.0)
-    report = ReadReport(scale_mm=scale, insunits=insunits)
+    header = _system_text(doc.modelspace())
+    scale, units_source = _resolve_units(units_mm, insunits, header)
+    report = ReadReport(scale_mm=scale, insunits=insunits, units_source=units_source, header=header)
 
     panels: list[Panel] = []
     for block in doc.blocks:
@@ -284,8 +339,16 @@ def read_dxf(
         )
 
     report.pieces = len(panels)
+    if panels:
+        longest = max(max(p.bbox[2] - p.bbox[0], p.bbox[3] - p.bbox[1]) for p in panels)
+        low, high = PLAUSIBLE_PIECE_MM
+        if not low <= longest <= high:
+            report.notes.append(
+                f"the largest piece is {longest:.0f} mm across after reading the "
+                f"unit as {units_source}; pass units_mm= if that is wrong"
+            )
     pattern = Pattern(
-        name=source.stem,
+        name=header.get("STYLE NAME") or source.stem,
         panels=panels,
         units="mm",
         provenance={
@@ -293,21 +356,79 @@ def read_dxf(
             "dialect": spec.name,
             "dialect_verified": spec.verified,
             "insunits": insunits,
-            "insunits_note": "0 = undeclared; read as mm" if insunits == 0 else "",
+            "insunits_note": "0 = undeclared" if insunits == 0 else "",
             "scale_mm_per_unit": scale,
+            "units_source": units_source,
+            "header": header,
             "dxfversion": doc.dxfversion,
+            "validation_curves": report.validation_curves,
+            "qv_deviation_mm": report.qv_deviation_mm,
         },
     )
     return pattern, report
 
 
+def _resolve_units(
+    units_mm: float | None, insunits: int, header: dict[str, str]
+) -> tuple[float, str]:
+    if units_mm is not None:
+        if units_mm <= 0.0:
+            raise ValueError(f"units_mm must be millimetres per drawing unit, got {units_mm!r}")
+        return float(units_mm), "units_mm argument"
+    if insunits:
+        if insunits not in INSUNITS_TO_MM:
+            raise ValueError(
+                f"$INSUNITS {insunits} is not a length unit seamkiln reads "
+                f"(known: {sorted(INSUNITS_TO_MM)}); pass units_mm= explicitly"
+            )
+        return INSUNITS_TO_MM[insunits], f"$INSUNITS {insunits}"
+    declared = header.get("UNITS", "").strip().upper()
+    if declared:
+        if declared not in HEADER_UNITS_TO_MM:
+            raise ValueError(
+                f"header says 'UNITS: {declared}', which seamkiln does not read "
+                f"(known: {', '.join(sorted(HEADER_UNITS_TO_MM))}); pass units_mm= explicitly"
+            )
+        return HEADER_UNITS_TO_MM[declared], f"header UNITS: {declared}"
+    return 1.0, "undeclared; read as mm"
+
+
+def _system_text(space) -> dict[str, str]:
+    """`KEY: value` TEXT entities, first one of each key wins."""
+    found: dict[str, str] = {}
+    for entity in space:
+        kind = entity.dxftype()
+        if kind not in ("TEXT", "MTEXT"):
+            continue
+        text = entity.dxf.text if kind == "TEXT" else entity.text
+        match = _SYSTEM_TEXT.match(text or "")
+        if match:
+            found.setdefault(match.group(1).strip().upper(), match.group(2))
+    return found
+
+
+def _polyline_points(entity, scale: float) -> tuple[Polyline, bool]:
+    """LWPOLYLINE and the R12 heavy POLYLINE, as one thing."""
+    if entity.dxftype() == "LWPOLYLINE":
+        raw = [(float(x), float(y)) for x, y, *_ in entity.get_points()]
+        closed = bool(entity.closed)
+    else:
+        raw = [(float(v.dxf.location.x), float(v.dxf.location.y)) for v in entity.vertices]
+        closed = bool(entity.is_closed)
+    return [Vertex(x * scale, y * scale, VertexKind.CURVE) for x, y in raw], closed
+
+
 def _read_piece(block, spec: Dialect, scale: float, report: ReadReport) -> Panel | None:
-    boundary: Polyline | None = None
+    boundaries: list[Polyline] = []
     turn_points: set[tuple[float, float]] = set()
     curve_points: set[tuple[float, float]] = set()
     internals: list[InternalLine] = []
     marks: list[Mark] = []
+    validation: list[Polyline] = []
+    meta: dict[str, Any] = {}
+    annotations: list[str] = []
     name = block.name
+    named = False
 
     for entity in block:
         layer = entity.dxf.layer
@@ -318,18 +439,22 @@ def _read_piece(block, spec: Dialect, scale: float, report: ReadReport) -> Panel
             continue
 
         kind = entity.dxftype()
-        if kind == "LWPOLYLINE":
-            points = [
-                Vertex(float(x) * scale, float(y) * scale, VertexKind.CURVE)
-                for x, y, *_ in entity.get_points()
-            ]
+        if kind in ("LWPOLYLINE", "POLYLINE"):
+            if kind == "POLYLINE" and (entity.is_polygon_mesh or entity.is_poly_face_mesh):
+                report.notes.append(f"block {block.name}: a polyface mesh on layer {layer} skipped")
+                continue
+            points, closed = _polyline_points(entity, scale)
             if feature == "boundary":
-                boundary = points
+                boundaries.append(points)
+            elif feature in _QV_FEATURES:
+                report.validation_curves += 1
+                if feature == "qv_boundary":
+                    validation.append(points)
             else:
                 line_kind = next(
                     (k for k, f in _LINE_FEATURE.items() if f == feature), LineKind.INTERNAL
                 )
-                internals.append(InternalLine(line_kind, points, closed=bool(entity.closed)))
+                internals.append(InternalLine(line_kind, points, closed=closed))
         elif kind == "POINT":
             location = entity.dxf.location
             spot = (round(float(location.x) * scale, 6), round(float(location.y) * scale, 6))
@@ -343,7 +468,20 @@ def _read_piece(block, spec: Dialect, scale: float, report: ReadReport) -> Panel
                 )
                 marks.append(Mark(mark_kind, spot[0], spot[1]))
         elif kind in ("TEXT", "MTEXT"):
-            name = (entity.dxf.text if kind == "TEXT" else entity.text) or block.name
+            text = (entity.dxf.text if kind == "TEXT" else entity.text) or ""
+            match = _SYSTEM_TEXT.match(text)
+            if match:
+                key, value = match.group(1).strip().upper(), match.group(2)
+                if key == "PIECE NAME":
+                    name, named = value or block.name, True
+                else:
+                    meta.setdefault(key.lower().replace(" ", "_"), value)
+            elif text.strip().startswith("#"):
+                meta.setdefault("piece_number", text.strip().lstrip("#").strip())
+            elif feature in ("text", "annotation"):
+                annotations.append(text)
+            elif text.strip() and not named:
+                name = text.strip()  # seamkiln's own writer: the bare piece name
         elif kind == "LINE":
             start, end = entity.dxf.start, entity.dxf.end
             line_kind = next(
@@ -359,15 +497,53 @@ def _read_piece(block, spec: Dialect, scale: float, report: ReadReport) -> Panel
                 )
             )
 
-    if boundary is None:
+    if not boundaries:
         return None
+    if len(boundaries) > 1:
+        boundaries.sort(key=area, reverse=True)
+        report.notes.append(
+            f"block {block.name}: {len(boundaries)} boundary polylines; the largest is the piece"
+        )
+    boundary = boundaries[0]
+    if annotations:
+        meta["annotations"] = annotations
+
+    allowance = 0.0
+    sew = next((i for i in internals if i.kind is LineKind.SEW and i.closed), None)
+    if sew is not None:
+        # the file keeps both lines: the boundary (layer 1) is the cut line
+        # and the sew line is the piece; the allowance is their distance
+        allowance = _median_offset_mm(sew.points, boundary)
+        meta["outline_is"] = "cut_line"
+    if validation:
+        deviation = max(_max_offset_mm(curve, boundary) for curve in validation)
+        meta["qv_deviation_mm"] = round(deviation, 3)
+        report.qv_deviation_mm = max(report.qv_deviation_mm, deviation)
+
     return Panel(
         id=block.name,
         name=name,
         outline=_retag_from_points(boundary, turn_points, curve_points),
         internals=internals,
         marks=marks,
+        seam_allowance_mm=allowance,
+        meta=meta,
     )
+
+
+def _ring(outline: Polyline) -> LinearRing:
+    return LinearRing([(v.x, v.y) for v in outline])
+
+
+def _median_offset_mm(points: Polyline, boundary: Polyline) -> float:
+    ring = _ring(boundary)
+    distances = sorted(ring.distance(Point(v.x, v.y)) for v in points)
+    return round(float(distances[len(distances) // 2]), 3) if distances else 0.0
+
+
+def _max_offset_mm(points: Polyline, boundary: Polyline) -> float:
+    ring = _ring(boundary)
+    return max((float(ring.distance(Point(v.x, v.y))) for v in points), default=0.0)
 
 
 def _retag_from_points(

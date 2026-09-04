@@ -10090,6 +10090,58 @@ tests as they stood before their re-statements - both modules re-run green
 after, 14 and 20); the server's 24 seamkiln adapter tests pass; lint clean
 on every file touched. Surface unchanged: 17 tools / 2,033 tok.
 
+### The DXF reader reads what pattern CAD writes (2026-09-04, owner: "fix the dxf reader")
+
+Asked whether the owner's "clothing assets and avatars" folder was
+DXF-compatible: 40 archives, of which 38 are CLO's own formats (.zprj, .zpac,
+.avt, .btn - export from CLO as DXF-AAMA/ASTM for patterns and OBJ/GLB for
+avatars) and two are CLO 2024 DXF-AAMA/ASTM exports, and `read_dxf` returned
+**zero pieces** on both. Three measured causes, all in the reader, fixed:
+
+- **R12 writes heavy `POLYLINE`s**, not `LWPOLYLINE`s; the reader only read
+  the latter. Both now read through one helper (`_polyline_points`).
+- **R12 has no `$INSUNITS`**; the unit is the style system text "UNITS:
+  METRIC", and METRIC is **centimetres** (a women's tee front reads 455 x
+  610 mm, back 455 x 624, sleeve 340 x 151, a trouser leg 384 x 1042; at
+  1 mm/unit they were doll-sized). Units resolve in a stated order - the
+  `units_mm=` argument, a non-zero `$INSUNITS`, the header's UNITS, else mm
+  with a note - and `ReadReport.units_source` says which won. An unknown
+  header unit refuses by name; a longest piece outside 20 mm-3 m is noted.
+- **The piece name is the "PIECE NAME:" text**; the reader took the last
+  TEXT in the block ("# 180"). System text now goes where it belongs:
+  PIECE NAME to the name, SIZE / QUANTITY / "# n" to `meta`, STYLE NAME to
+  the pattern's name, the whole header to provenance.
+
+And one thing that was not a bug but would have become one: every CLO piece
+carries a second closed polyline on layer 84 and open ones on 85, which the
+new POLYLINE support would have imported as internal lines. Measured on all
+20 pieces they are not a sew line: they coincide with the boundary (signed
+distance median 0.0, p10 -0.1, p90 0.5 mm; every layer-3 curve point lies on
+them, no layer-2 turn point does) and enclose LESS area (piece 8: 0.8 vs
+61 cm2). They are the standard's **quality-validation curves** (ASTM 84-87:
+the writer's dense sampling of its curves), so the reader counts them (67
+and 10) and reports their maximum deviation from the boundary's chords -
+0.93 and 1.02 mm on these files, the chord error the import carries - and
+never imports them. The Desktop files are read-only owner files and are not
+vendored; the six tests in `test_dxf_clo.py` build the same structure with
+ezdxf (R12, heavy polylines, header text, no `$INSUNITS`).
+
+Also found by reading the writer: it puts the cut line on layer 1 and the
+sew line on 14, and `sew_line()` in the model already looked for
+`meta["outline_is"] == "cut_line"` - which the reader never set. It does now,
+with the allowance measured between the two rings (the tee block written at
+10 mm reads back 10.0, and its sew-line area equals the original to 1e-6).
+Through TEE the same file lands with `sk_interchange` `action="read"`, which
+now takes `units_mm` and returns `units_source`, the scale, the validation
+curve count and deviation, the notes and the style name beside the compact
+summary (one adapter test on the same R12 structure). Not done, recorded: no
+SESSION verb loads a DXF (the session exports only; the API and the TEE
+tool read); CLO's DXF-AAMA variant was not measured (both owner files were
+ASTM-style with the validation layers, and the AAMA dialect's table refuses
+84/85 under `strict` as it should until AAMA is verified). Suites:
+`test_pattern` + `test_dxf_clo` 46 passed, the server's seamkiln adapter
+tests 25 passed, lint clean, the always-loaded surface untouched.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
@@ -10827,3 +10879,87 @@ re-reading the world costs **6,156 tok**, the `changed` list costs **162** —
 passed / 14 skipped / 116 deselected, zero failures**; `ruff check` and `ruff
 format --check` clean on `partkiln/`, `server/src` and `server/tests`; `make
 lint` green. Surface unchanged: **17 tools / 2,033 tok**.
+
+### A65 P5a — a real CLO file finally read, and the round-trip held (2026-09-04)
+
+The owner supplied `~/Desktop/clothing assets and avatars` (1.1 GB of CLO
+practice and marketplace assets) and asked what was usable. **Two of the
+forty-one archives carry a genuine industry DXF**, and they close the half of
+A65 P5 that could not be closed without one. Neither file is committed —
+they are CLO tutorial content and the geometry is not ours to redistribute —
+so what follows is the measurement, and the structural census is the evidence
+that can be cited without shipping the pattern.
+
+Provenance, read out of the files' own ASTM headers rather than assumed:
+
+```
+AUTHOR   CLO Virtual Fashion Inc.
+PRODUCT  CLO Network OnlineAuth 2024.1.260   (Calça, 13 panels, 2024-10-21)
+         CLO Network OnlineAuth 2024.0.186   (Camiseta_Feminina, 7 panels, 2024-04-23)
+VERSION  3     SAMPLE SIZE  M     UNITS  METRIC
+```
+
+**Everything the reader predicted about a real file was right.** `$ACADVER`
+reads `AC1006` and ezdxf reports the document as `AC1009` — an R12-era file,
+exactly as the module's docstring says every CLO, Gerber and Lectra export
+is. There is **no `$INSUNITS` key at all**, so the unit came from the third
+rung of `_resolve_units`: the ASTM header's `UNITS: METRIC` text, resolving
+to `scale_mm 10.0` — CLO writes centimetres. A reader that had assumed
+millimetres would have produced a garment a tenth of its size, with every
+seam closing perfectly and a fit report full of confident numbers. Both
+`*Model_Space` and `*Paper_Space` appeared and were skipped, the friction the
+docstring predicted six months early.
+
+**`unknown_layers={}` on both files, with `strict=True`.** Every layer CLO
+wrote is one the ASTM dialect already knew:
+
+| layer | entity | feature | Calça | Camiseta |
+| --- | --- | --- | --- | --- |
+| 1 | POLYLINE + TEXT | boundary (+ annotation) | 13 + 494 | 7 + 345 |
+| 2 | POINT | turn_point | 402 | 132 |
+| 3 | POINT | curve_point | 816 | 540 |
+| 4 | POINT | **notch** | 17 | 10 |
+| 7 | LINE | grain | 13 | 7 |
+| 8 | POLYLINE + TEXT | internal | 56 + 154 | 6 + 12 |
+| 84 | POLYLINE | qv_boundary | 11 | 4 |
+| 85 | POLYLINE + TEXT | qv_internal | 56 + 55 | 6 + 6 |
+
+That settles the question the table could not settle about itself: **a notch
+is a POINT on layer 4**, not a line and not a block insert, which was the
+single most vendor-divergent feature in the format. It also bounds the claim
+honestly — CLO exercises **8 of the 18 layers** the dialect defines. Layers 5
+(grade_reference), 6 (mirror), 9, 10, 11 (cutout), 13 (drill), **14 (sew)**,
+82, 86 and 87 are still unverified against any real file, because CLO does
+not emit them in this export. `AAMA.verified` stays `False`: nothing here is
+an AAMA file.
+
+**The round trip is exactly lossless, and now that claim means something.**
+Read → `write_dxf` → read, across all 20 panels of both garments:
+**worst area delta 0.000000 mm²**, every vertex count, mark count and
+internal-line count identical (e.g. `1_M` 59 verts / 290,999.465 mm² / 4
+marks / 12 internals, unchanged). A65 P5 asked for exactly this, in these
+words: *"the round-trip is lossless against seamkiln's own output; that claim
+is worth what it sounds like only against a file another system wrote."* It
+now holds against a file CLO wrote.
+
+**Two findings worth keeping.** (1) Neither file carries a closed sew line
+(layer 14), so `meta["outline_is"]` is `None` and the measured allowance is
+`0.00` on every panel: **a CLO DXF in this configuration exports the cut line
+alone**, and any allowance must come from elsewhere. (2) The standard's
+quality-validation curves put a number on our own fidelity: max deviation
+**0.932 mm** (Calça) and **1.020 mm** (Camiseta), concentrated exactly where
+it should be — the trouser back (0.932), the back bodice (1.020) and the
+sleeves (0.765) — against **0.151 mm** on the flat shirt front. That is chord
+error where curvature is tightest, which is what layers 84-87 exist to
+measure, not an import fault.
+
+**What the folder does NOT contain: a usable avatar.** All seven bodies are
+CLO `.avt` — a `" AVT        CLO "` header wrapping a zip of `.top` and
+`.dan` payloads whose bytes are obfuscated, listed in a `clofiles.json` that
+still holds the original author's Windows paths. The only `.fbx` in 1.1 GB is
+a Sketchfab boot. `.zprj`/`.zpac` are out of scope by A53's own ruling. So
+**A65 P5b is untouched by this delivery**: the route remains either exporting
+one of these avatars out of CLO as FBX/OBJ, or Anny (Apache-2.0, assets CC0),
+which research doc 67 §2 already named as the avatar answer — and either way
+the blocker is that `custom_avatar` loads with `trimesh.load(force="mesh")`
+and discards the skeleton, so a rigged body would still walk as a statue.

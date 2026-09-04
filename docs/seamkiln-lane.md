@@ -275,6 +275,22 @@ bundled fabric card is tier `plausible` and says so; the licence gate
 (`seamkiln/tests/test_licences.py`) fails the build if Triangle, `smplx` or
 ArcSim data enters the dependency closure and names the replacement.
 
+`read_dxf` reads what pattern CAD actually exports (measured on CLO 2024
+DXF-AAMA/ASTM files, 2026-09-04): R12 heavy `POLYLINE`s as well as
+`LWPOLYLINE`s; the unit from `units_mm=` first, then a non-zero `$INSUNITS`,
+then the header's "UNITS: METRIC / ENGLISH" system text (METRIC is
+centimetres; R12 has no `$INSUNITS` at all), else millimetres with a note -
+`ReadReport.units_source` says which won, and a piece outside 20 mm-3 m is
+noted rather than handed back. "PIECE NAME:" names the piece, SIZE /
+QUANTITY / "# n" land in `meta`, the style header in provenance. Layers
+84-87 are the standard's quality-validation curves, not geometry: counted,
+measured against the boundary (`qv_deviation_mm`, the chord error the import
+carries), never imported. A file that keeps its sew line on layer 14 reads
+back with `meta["outline_is"] == "cut_line"` and the allowance measured, so
+`sew_line()` returns the piece. No session verb loads a DXF yet; the API
+and TEE's `sk_interchange` (`action="read"`, with `units_mm` and the same
+report fields) do.
+
 ## Render properties on the card
 
 A `Fabric` carries `roughness` (0 gloss .. 1 matte) and `texture` (a path or
