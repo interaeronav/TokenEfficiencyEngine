@@ -51,7 +51,7 @@ s.save_script("coat.json")          # replays to the same garment, anywhere
 | --- | --- | --- |
 | `block`, `panel`, `seam`, `allowance`, `delete` | draft the pattern | A53 |
 | `load` | a pattern from a DXF (AAMA/ASTM) in place of the current one; `units_mm` overrides the file's unit | A65 |
-| `body` | `mannequin` · `anny` · `posed` · **`figure`** · `custom` | A53 / A58 / A65 |
+| `body` | `mannequin` · `anny` · `posed` · **`figure`** (`build` male · female, `chest_m`) · `custom` | A53 / A58 / A65 |
 | `arrange` | place panels; `arrangement` = `auto` · `cylinder` · `wrap`; `dress`; `roles` names a CAD pattern's front, back and sleeves | A53 / A65 |
 | `drape`, `fit`, `techpack`, `export` | simulate, measure, document, write files | A53 |
 | `grade`, `cut` | parametric grading; darts, slashes, pleats | A54 |
@@ -307,6 +307,19 @@ the dressing; a short cap sleeve is dressed with `baste_head_mm: 0` and
 130 mm cap on the deltoid folds a 98 mm one (measured: sleeves facing 0.10
 with it, 0.93 without). The measured drapes of a CLO women's M tee on the
 mannequin and on the figure are in PROGRESS (2026-09-04).
+
+**The figure's builds.** `body figure build=female` is the figure with
+every proportion moved by the female/male ratio of mean-over-stature from
+ANSUR II (2012, 1,986 women and 4,082 men, public data): chest 0.96,
+waist 0.99, hips 1.08, shoulders 0.95, upper arm 0.92, neck 0.89, head
+1.05, lengths within 3 %. `build=male` is the figure exactly as it was,
+pinned by mesh digest. `chest_m` fits the trunk to a girth measured as the
+widest trunk slice below the deltoids, and the rest of the body follows
+the chest by the survey's slopes at fixed stature (shoulders 0.09, upper
+arm 0.84, waist 1.12, hips 0.60 on the female build), because a trunk
+scaled alone left the shoulder girdle in free air and folded both sleeve
+caps. A women's M tee on the female figure at 1.65 m and 0.86 m:
+`camiseta_female_1_65_0_86.json` in the session scratchpad.
 
 ## Render properties on the card
 

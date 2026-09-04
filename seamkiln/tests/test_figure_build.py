@@ -82,18 +82,25 @@ def test_the_survey_rows_are_the_published_means() -> None:
 
 
 def test_a_chest_girth_fits_the_trunk_and_is_measured_where_cloth_touches() -> None:
-    """`chest_m` is the widest trunk slice, read off the built mesh; two
-    passes land within 5 mm on either build, and the limbs keep the build."""
+    """`chest_m` is the widest trunk slice, read off the built mesh; the
+    passes land within 5 mm on either build, and the rest of the body
+    follows the chest by the survey's slopes: the shoulder joints barely,
+    the upper arm and the waist strongly, the lengths not at all."""
     for name in ("female", "male"):
         fitted = figure(Pose.a_pose(), height=H, build=name, chest_m=0.86)
         assert chest_girth_m(fitted) == pytest.approx(0.86, abs=0.005), name
         untouched = build(name)
         got = fitted_to_chest(untouched, H, 0.86, pose=Pose.a_pose())
-        assert (
-            got.upper_arm_r == untouched.upper_arm_r
-            and got.shoulder_half == untouched.shoulder_half
+        k = got.chest_r / untouched.chest_r
+        assert k < 1.0
+        slopes = untouched.allometry
+        assert got.shoulder_half / untouched.shoulder_half == pytest.approx(
+            k ** slopes["shoulder_half"]
         )
-        assert got.chest_r != untouched.chest_r
+        assert got.upper_arm_r / untouched.upper_arm_r == pytest.approx(k ** slopes["upper_arm_r"])
+        assert got.waist_r / untouched.waist_r == pytest.approx(k ** slopes["waist_r"])
+        assert got.shoulder_half / untouched.shoulder_half > got.upper_arm_r / untouched.upper_arm_r
+        assert got.head_r == untouched.head_r and got.upper_arm == untouched.upper_arm
     with pytest.raises(ValueError, match="girth in metres"):
         figure(Pose(), height=H, chest_m=86.0)
 

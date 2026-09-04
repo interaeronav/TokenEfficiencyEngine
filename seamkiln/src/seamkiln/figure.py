@@ -28,7 +28,7 @@ the cape clasps with it, which is what `clasp_points` does.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
@@ -97,9 +97,47 @@ class Build:
     calf_r: float = 0.040
     # the arm's resting abduction, degrees
     arm_abduction: float = 32.0
+    # how each proportion scales with a change of chest girth at fixed
+    # stature: log-log slopes on chest circumference, stature held, from
+    # the survey (see ALLOMETRY). Missing fields scale with exponent 0.
+    allometry: dict[str, float] = field(default_factory=dict)
 
 
-MALE = Build(name="male")
+# Log-log slopes of each dimension on chest circumference with stature held
+# constant, fitted 2026-09-04 on the survey's women and men. A chest fitted
+# 15 % smaller moves the shoulder joints 1.4 % in (women) but thins the
+# upper arm 13 % and the waist 16 %: the figure's shoulder girdle is mostly
+# bone and barely follows the chest, the arm is mostly muscle and does.
+ALLOMETRY: dict[str, dict[str, float]] = {
+    "female": {
+        "shoulder_half": 0.090,
+        "deltoid_r": 0.842,
+        "upper_arm_r": 0.842,
+        "forearm_r": 0.489,
+        "neck_r_top": 0.463,
+        "neck_r_bottom": 0.463,
+        "waist_r": 1.116,
+        "pelvis_r": 0.595,
+        "hip_half": 0.542,
+        "thigh_r": 0.689,
+        "calf_r": 0.444,
+    },
+    "male": {
+        "shoulder_half": 0.229,
+        "deltoid_r": 0.932,
+        "upper_arm_r": 0.932,
+        "forearm_r": 0.618,
+        "neck_r_top": 0.618,
+        "neck_r_bottom": 0.618,
+        "waist_r": 1.278,
+        "pelvis_r": 0.732,
+        "hip_half": 0.593,
+        "thigh_r": 0.902,
+        "calf_r": 0.647,
+    },
+}
+
+MALE = Build(name="male", allometry=ALLOMETRY["male"])
 
 # ANSUR II means, millimetres, from the 2012 survey's public data files
 # (OpenLab, Penn State: 1,986 women, 4,082 men). Each female value of the
@@ -166,6 +204,7 @@ def _female_build() -> Build:
     return replace(
         MALE,
         name="female",
+        allometry=ALLOMETRY["female"],
         pelvis_y=pelvis_y,
         waist_rise=waist_y - pelvis_y,
         spine=neck_y - waist_y,
@@ -541,11 +580,17 @@ def chest_girth_m(mesh: trimesh.Trimesh) -> float:
 def fitted_to_chest(b: Build, height: float, chest_m: float, *, pose: Any = None) -> Build:
     """The build with its trunk scaled so the measured chest girth is `chest_m`.
 
-    Measured, not assumed: the girth is read off the built mesh with the
-    lane's own landmark scan, the trunk radii are scaled by the ratio, and
-    the read is repeated once - two passes land within a few millimetres
-    on both builds (see the test). Only the trunk moves: waist and pelvis
-    scale with the chest so the torso keeps its shape.
+    Measured, not assumed: the girth is read off the built mesh as the
+    widest trunk slice, the chest radius is scaled by the ratio, and the
+    read is repeated until it lands (three passes, within 5 mm on both
+    builds - see the test). Everything else follows the chest by the
+    survey's allometry (`Build.allometry`, log-log slopes at fixed
+    stature): a chest fitted 15 % smaller on the female build moves the
+    shoulder joints 1.4 % in, thins the upper arm and the deltoid 13 %,
+    the waist 16 %, the hips 9 %. The first version scaled the trunk alone
+    and left the shoulder girdle where it was: fitted to 860 mm the
+    deltoids hung in free air outside the ribcage and both sleeve caps
+    folded under them (facing -0.93 on the cap band).
     """
     if chest_m <= 0.3 or chest_m > 2.0:
         raise ValueError(f"chest_m is a girth in metres; {chest_m!r} is not a chest")
@@ -553,18 +598,16 @@ def fitted_to_chest(b: Build, height: float, chest_m: float, *, pose: Any = None
         from seamkiln.avatar import Pose
 
         pose = Pose()
-    fitted = b
-    for _ in range(2):
-        measured = chest_girth_m(figure(pose, height=height, build=fitted))
-        k = chest_m / measured
-        fitted = replace(
-            fitted,
-            name=fitted.name,
-            chest_r=fitted.chest_r * k,
-            waist_r=fitted.waist_r * k,
-            pelvis_r=fitted.pelvis_r * k,
-        )
-    return fitted
+
+    def scaled(k: float) -> Build:
+        moved = {name: getattr(b, name) * k**e for name, e in b.allometry.items()}
+        return replace(b, chest_r=b.chest_r * k, **moved)
+
+    k = 1.0
+    for _ in range(3):
+        measured = chest_girth_m(figure(pose, height=height, build=scaled(k)))
+        k *= chest_m / measured
+    return scaled(k)
 
 
 def clasp_points(

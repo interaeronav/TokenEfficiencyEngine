@@ -10250,6 +10250,50 @@ stature (deltoid radius 76 mm at 1.55 m against a 54 mm sleeve tube), so
 a women's block still meets a broad shoulder; a proportioned figure is the
 next body item.
 
+**The figure, female-proportioned (owner: "make the figure female
+proportioned").** Not a taste: `figure(build=)` takes a `Build` - every
+fraction of stature in one dataclass - and `FEMALE` is `MALE` moved
+dimension by dimension by the female/male ratio of mean-over-stature from
+ANSUR II (the 2012 US Army survey, 1,986 women and 4,082 men, public data
+files read on 2026-09-04; the rows are quoted in `figure.py`). The ratios:
+chest 0.9645, waist 0.987, buttock 1.080, hip breadth 1.104, biacromial
+0.948, deltoid overhang 0.966, biceps 0.920, forearm 0.919, neck 0.894,
+head 1.054, thigh 1.063, calf 1.026, lengths 0.97-1.01. Measured on the
+built mesh at 1.65 m the trunk girths land on them: chest 0.966, waist
+0.987, hips 1.079. `MALE` is the figure as it was - the mesh digests of the
+committed figure are pinned in `test_figure_build.py` and the build
+parameter moves no vertex. Build and `chest_m` ride in the body spec, the
+frame, the walk factory and the script.
+
+Two things the fitting taught. The lane's "chest" landmark is the girth
+jump below the ribcage (912 mm on the male figure at 1.65 m against
+1,047 at the chest joint), so a body "matched" to a pattern by it was 8 %
+too big where cloth touches; `chest_girth_m` now reads the widest trunk
+slice below the deltoids by plane section (a vertex band finds nothing
+between a frustum's two rings). And a trunk scaled alone is wrong: fitted
+to 860 mm with the shoulder joints left at +-211 mm the deltoids hung in
+free air outside the ribcage and both sleeve caps folded under them
+(cap band facing -0.93; at the as-built 1,012 mm chest, +0.94). The survey
+has the answer as log-log slopes on chest at fixed stature - women:
+shoulders 0.09, deltoid and upper arm 0.84, forearm 0.49, neck 0.46,
+waist 1.12, hips 0.60, thigh 0.69; men steeper on every row - and
+`fitted_to_chest` applies them (`Build.allometry`), so an 860 mm chest
+moves the shoulders 1.4 % in and thins the arm 13 %.
+
+The Camiseta on the female figure at 1.65 m and 0.86 m (its own size,
+40 mm ease), 280 frames of jersey, no sleeve basting: seams 0.31 mm mean
+and 3.8 max, worn, zero penetration, facing sleeves 0.88 / 0.90 (caps
++0.95), front 0.92, back 0.91; cloth strain sleeves 9.4 / 9.3 %, front
+3.5, back 2.2 - against 25 % sleeves on the mannequin and 12 on the male
+figure. Fingerprint `62cdba698dc40ca5`; script and two stills in the
+scratchpad. Anny (Apache-2.0) was installed as a cross-check body and
+not used: its phenotypes are not measured against a survey either, and
+its default female at 1.65 m reads an 829 mm chest with the arms in the
+slice. Suites: `test_figure_build` 6, `test_gui_actions` and
+`test_session_every_verb` (the two the full run had failed on the `load`
+verb) green; the figure, avatar, session and drape modules re-run after
+the build.
+
 ## A66 — the mechanical CAD lane: `partkiln` directed and scripted (2026-09-02)
 
 Owner: *"create an autodesk inventor alternative that runs headless with TEE
