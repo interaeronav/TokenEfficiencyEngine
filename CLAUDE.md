@@ -76,9 +76,10 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
 - The A66 build (`partkiln`: a headless, AI-native mechanical CAD kernel —
   the Autodesk Inventor-class loop sketch → features → part → assembly →
   drawing → export, on OCCT through the already-installed OCP wheel, with
-  the TEE adapter adding ZERO always-loaded tools) is driven by
-  `CLAUDE_A66_SCRIPT.md`; research doc 68 is its design of record and
-  `docs/partkiln-lane.md` the user guide. Its measured facts outrank memory:
+  the TEE adapter adding ZERO always-loaded tools) is **COMPLETE**, P0–P6,
+  shipped as 0.20.0; `CLAUDE_A66_SCRIPT.md` is the plan of record, research
+  doc 68 the design of record and `docs/partkiln-lane.md` the user guide, with
+  ten numbered gaps at the tail of PROGRESS. Its measured facts outrank memory:
   OCCT does every core operation in milliseconds and fingerprints
   identically across processes; FreeCAD is NOT the kernel (`freecadcmd`
   crashed on the headless sketch+drawing probe; TechDraw SVG is GUI-bound;
@@ -88,7 +89,11 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   load-bearing. Owner decisions (2026-09-02): shippable MIT posture like
   seamkiln, headless-first with the GUI as a later phase, name `partkiln` /
   prefix `pk_`, v1 = parts + assemblies + drawings + exports with sheet
-  metal last.
+  metal last. Two laws the build taught: a hole table counts holes, not round
+  faces (a corner fillet is the same cylinder with the material on the other
+  side, and a drawing that invents a hole gets it drilled); and a check that
+  samples a grid is not a check — `min_wall` passed a 0.600 mm web because it
+  only sampled UV cell centres.
 - The `drafting/` package (A67 addendum, 2026-09-04) is a two-tier drafting-
   standards critic: tier 1 checks a sheet SPECIFICATION against SANS 10143
   building drawing practice, tier 2 checks the PLOTTED sheet for collisions,
