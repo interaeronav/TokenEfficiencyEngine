@@ -1516,14 +1516,22 @@ def _partkiln_app():
     install would do."""
     if PARTKILN_SRC.is_dir() and str(PARTKILN_SRC) not in sys.path:
         sys.path.insert(0, str(PARTKILN_SRC))
-    try:
-        import partkiln  # noqa: F401
-        from OCP.BRepGProp import BRepGProp  # noqa: F401
+    # The two probes go through `import_module` rather than a sorted import
+    # block because `partkiln` sits at the repo ROOT: a ruff run rooted there
+    # sorts it first-party and `tee` third, while `make lint` (from `server/`)
+    # sorts them the other way round. One block cannot be clean to both, and a
+    # `noqa` for one is an unused directive (RUF100) for the other.
+    from importlib import import_module
 
-        from tee.adapters.partkiln import PartkilnAdapter
-    except ImportError as exc:
-        print(f"partkiln scenario skipped ({exc})")
-        return None, None
+    for probe in ("partkiln", "OCP.BRepGProp"):  # the kernel, then its [brep] extra
+        try:
+            import_module(probe)
+        except ImportError as exc:
+            print(f"partkiln scenario skipped ({exc})")
+            return None, None
+
+    from tee.adapters.partkiln import PartkilnAdapter
+
     root = tempfile.mkdtemp(prefix="tee-bench-partkiln-")
     app = TeeApp({"partkiln": PartkilnAdapter(root)}, project_root=root)
     return app, root

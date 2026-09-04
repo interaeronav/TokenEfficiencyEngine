@@ -330,6 +330,92 @@ def test_check_needs_a_spec() -> None:
     assert caught.value.code == "pk_needs" and "min_wall_mm" in str(caught.value)
 
 
+def inch_kernel() -> LocalKernel:
+    """A 4 x 2 x 0.5 INCH plate in an inch document (101.6 x 50.8 x 12.7 mm)."""
+    pytest.importorskip("OCP", reason="partkiln[brep] not installed")
+    kernel = LocalKernel(Document(name="imperial", units="in"))
+    kernel.apply(
+        [
+            {"op": "create", "kind": "part", "name": "plate"},
+            {
+                "op": "create",
+                "kind": "sketch",
+                "name": "base",
+                "props": {"plane": "XY", "profile": [{"rect": [4, 2]}]},
+            },
+            {
+                "op": "create",
+                "kind": "extrude",
+                "name": "body",
+                "props": {"sketch": "base", "distance": 0.5},
+            },
+        ]
+    )
+    return kernel
+
+
+@pytest.mark.brep
+def test_check_reads_a_bare_spec_length_in_the_documents_unit() -> None:
+    """Law 12 at the VERB, not only at the API.
+
+    `checks.spec.check_spec` has taken `units=` since it was written, but the
+    `check` verb called it without one, so every bare number in a spec was
+    read as millimetres: in an inch document a 4 x 2 x 0.5 in plate failed
+    `bbox: [4, 2, 0.5]` and passed `bbox: [101.6, 50.8, 12.7]` - the inch
+    spec that is TRUE was the one refused.
+    """
+    kernel = inch_kernel()
+    assert kernel.call("measure", {"what": "bbox"})["bbox_mm"] == [101.6, 50.8, 12.7]
+    inches = kernel.call("check", {"of": "plate", "spec": {"bbox": [4, 2, 0.5]}})
+    assert inches["verdict"] == "pass"
+    millimetres = kernel.call("check", {"of": "plate", "spec": {"bbox": [101.6, 50.8, 12.7]}})
+    assert millimetres["verdict"] == "fail"
+    # A length that carries its own unit is unaffected either way.
+    assert (
+        kernel.call("check", {"of": "plate", "spec": {"bbox": ["101.6mm", "50.8mm", "12.7mm"]}})[
+            "verdict"
+        ]
+        == "pass"
+    )
+
+
+@pytest.mark.brep
+def test_check_under_strict_units_refuses_a_bare_spec_number() -> None:
+    """`strict_units` reaches the verb through the same `units=doc`."""
+    kernel = inch_kernel()
+    kernel.apply([{"op": "set", "id": "doc", "props": {"strict_units": True}}])
+    with pytest.raises(CommandError) as caught:
+        kernel.call("check", {"of": "plate", "spec": {"bbox": [4, 2, 0.5]}})
+    assert caught.value.code == "pk_unitless" and "strict_units" in str(caught.value)
+    assert (
+        kernel.call("check", {"of": "plate", "spec": {"bbox": ["4in", "2in", "0.5in"]}})["verdict"]
+        == "pass"
+    )
+
+
+@pytest.mark.brep
+def test_query_reads_a_bare_selector_filter_in_the_documents_unit() -> None:
+    """The same law on the other verb: `len>3` in an inch document is 3 INCHES.
+
+    `naming.resolve` is reached with a part that does not know the document,
+    so the unit is bound at the verb boundary (`features/__init__.py` does it
+    for every `create`). The query verb did not, so `len>3` matched all 12
+    edges of the plate - every one is longer than 3 mm - instead of the four
+    that are longer than 3 in.
+    """
+    kernel = inch_kernel()
+    long_edges = kernel.call("query", {"of": "plate", "what": "edges", "sel": "body:edges(len>3)"})
+    assert long_edges["count"] == 4
+    assert {fact["length_mm"] for fact in long_edges["facts"]} == {101.6}
+    # ...and a filter that carries its own unit still means what it says.
+    assert (
+        kernel.call("query", {"of": "plate", "what": "edges", "sel": "body:edges(len>3mm)"})[
+            "count"
+        ]
+        == 12
+    )
+
+
 # --------------------------------------------------------------------------- standards / materials
 
 
@@ -551,11 +637,23 @@ def test_check_over_the_assembly_reports_its_dof_and_interference() -> None:
 
 @pytest.mark.brep
 def test_a_virtual_component_is_counted_in_the_bom_without_a_mass() -> None:
+    """Counted, and honest about what it does not know.
+
+    A virtual component is the unmodelled purchased part (D5: a bearing
+    before anyone models it), so a card that says nothing leaves its mass
+    `None` and the total `partial` - the same rule defect 11 set for real
+    parts. It used to say `0.000`, which both invented a mass and let the
+    bearing vanish from the total while the row looked precise to 3 dp.
+    """
     kernel = f6_kernel(pins=1)
     kernel.apply([{"op": "create", "kind": "object", "name": "brg", "props": {"part": "brg6204"}}])
-    rows = {row["part"]: row for row in kernel.call("bom", {"view": "structured"})["rows"]}
-    assert rows["brg6204"]["kind"] == "virtual" and rows["brg6204"]["mass_g"] == 0.0
+    out = kernel.call("bom", {"view": "structured"})
+    rows = {row["part"]: row for row in out["rows"]}
+    assert rows["brg6204"]["kind"] == "virtual"
+    assert rows["brg6204"]["mass_g"] is None and rows["brg6204"]["total_g"] is None
     assert rows["block"]["mass_g"] == 238.869
+    assert out["partial"] is True and out["missing_mass"] == ["brg6204"]
+    assert out["count"] == 3  # the bearing is COUNTED, it is only unpriced
 
 
 def test_lint_walks_a_self_contained_batch_in_order() -> None:

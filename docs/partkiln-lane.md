@@ -196,7 +196,7 @@ gate test enforces all of it, and `pk_probe` prints the summary.
 
 The nine-op bracket above plus a slot and a chamfer: **0.29 s**, 26 faces,
 64 edges, 91,159.605 mm³, 715.603 g. As tokens
-(`benchmarks/RESULTS.md`): 1,392 tok / 2 calls, against 8,378 tok / 6 calls
+(`benchmarks/RESULTS.md`): 1,532 tok / 2 calls, against 8,404 tok / 6 calls
 for a face-and-edge inventory plus three screenshots plus the SVG sheet, and
 25,311 tok for the STEP file as text. The follow-up `param_set T=12mm`:
 **162 tok**, one call, against 6,156 tok to re-read everything.

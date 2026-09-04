@@ -35,6 +35,7 @@ from typing import Any
 from partkiln.document import CommandError
 from partkiln.drawing.dims import arrow_polygon, place
 from partkiln.drawing.hlr import Arc, Polyline, Prim, Segment
+from partkiln.drawing.svg import PARTS_COLUMNS, PARTS_WIDTHS, parts_table
 from partkiln.drawing.views import (
     LABEL_MM,
     TEXT_MM,
@@ -220,19 +221,11 @@ def render(drawing: Drawing, path: str | Path) -> Path:
             height,
         )
     if drawing.parts:
-        ty = _table(
-            pdf,
-            tx,
-            ty,
-            f"PARTS LIST ({len(drawing.parts)})",
-            ("ITEM", "PART", "QTY", "MATERIAL", "MASS g"),
-            [
-                (r["item"], r["part"], r["qty"], r["material"], r.get("total_g", 0.0))
-                for r in drawing.parts
-            ],
-            (14.0, 34.0, 12.0, 30.0, 20.0),
-            height,
-        )
+        # Same cells as the SVG and the DXF (`parts_table`, svg.py): an
+        # unpriced part's mass key exists and is None, and `.get(k, 0.0)`
+        # printed "None" into the sheet a shop reads.
+        heading, part_rows = parts_table(drawing)
+        ty = _table(pdf, tx, ty, heading, PARTS_COLUMNS, part_rows, PARTS_WIDTHS, height)
     for i, note in enumerate(drawing.notes):
         _text(pdf, tx, ty - i * 5.0, note, TEXT_MM, height)
 

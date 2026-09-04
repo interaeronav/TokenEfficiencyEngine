@@ -221,12 +221,18 @@ def test_bom_virtual_component_and_refusals(f6) -> None:
         "part": "object",
         "qty": 1,
         "material": "none",
-        "mass_g": 0.0,
-        "total_g": 0.0,
+        # None, not 0.0: a virtual component is the part nobody modelled yet
+        # (a bearing, a fastener), so a card that says nothing is ignorance,
+        # not a measured zero - defect 11's rule, applied to `create object`.
+        "mass_g": None,
+        "total_g": None,
         "standard": "",
         "components": ["label"],
     }
-    assert out["total_g"] == 337.517
+    assert out["total_g"] == 337.517  # the priced rows, and `partial` says so
+    assert out["partial"] is True and out["missing_mass"] == ["object"]
+    priced = bom(asm, {**parts, "object": {"mass_g": 0.0}})
+    assert priced["rows"][2]["mass_g"] == 0.0 and priced["partial"] is False
     with pytest.raises(CommandError) as e:
         bom(asm, {"block": {"mass_g": 1.0}})
     assert e.value.code == "pk_ref_unknown" and "'pin'" in str(e.value) and "block" in str(e.value)

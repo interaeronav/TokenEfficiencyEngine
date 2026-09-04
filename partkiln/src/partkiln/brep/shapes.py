@@ -52,6 +52,7 @@ from OCP.BRepBuilderAPI import (  # noqa: E402
 from OCP.BRepCheck import BRepCheck_Analyzer  # noqa: E402
 from OCP.BRepFilletAPI import BRepFilletAPI_MakeChamfer, BRepFilletAPI_MakeFillet  # noqa: E402
 from OCP.BRepGProp import BRepGProp  # noqa: E402
+from OCP.BRepLProp import BRepLProp_SLProps  # noqa: E402
 from OCP.BRepOffsetAPI import (  # noqa: E402
     BRepOffsetAPI_DraftAngle,
     BRepOffsetAPI_MakePipeShell,
@@ -76,6 +77,7 @@ from OCP.ShapeUpgrade import ShapeUpgrade_UnifySameDomain  # noqa: E402
 from OCP.TopAbs import (  # noqa: E402
     TopAbs_EDGE,
     TopAbs_FACE,
+    TopAbs_REVERSED,
     TopAbs_ShapeEnum,
     TopAbs_SOLID,
     TopAbs_VERTEX,
@@ -207,6 +209,36 @@ def unique_subshapes(shape: TopoDS_Shape, kind: TopAbs_ShapeEnum) -> list[TopoDS
     m = TopTools_IndexedMapOfShape()
     TopExp.MapShapes_s(shape, kind, m)
     return [_downcast(m.FindKey(i), kind) for i in range(1, m.Extent() + 1)]
+
+
+def is_concave_cylinder(face: TopoDS_Face) -> bool:
+    """Does the material lie OUTSIDE this cylindrical face - i.e. is it a hole?
+
+    The outward normal at the face's parametric midpoint points TOWARD the
+    axis for a hole (the material is the other way) and AWAY from it for a
+    fillet or a boss. Radius alone cannot tell them apart, and counting by
+    radius failed a correct part (see the module docstring).
+    """
+    surface = BRepAdaptor_Surface(face)
+    u = 0.5 * (surface.FirstUParameter() + surface.LastUParameter())
+    v = 0.5 * (surface.FirstVParameter() + surface.LastVParameter())
+    props = BRepLProp_SLProps(surface, u, v, 1, 1e-9)
+    if not props.IsNormalDefined():
+        return False
+    sign = -1.0 if face.Orientation() == TopAbs_REVERSED else 1.0
+    normal = props.Normal()
+    point = props.Value()
+    axis = surface.Cylinder().Axis()
+    origin, direction = axis.Location(), axis.Direction()
+    delta = (point.X() - origin.X(), point.Y() - origin.Y(), point.Z() - origin.Z())
+    along = delta[0] * direction.X() + delta[1] * direction.Y() + delta[2] * direction.Z()
+    radial = (
+        delta[0] - along * direction.X(),
+        delta[1] - along * direction.Y(),
+        delta[2] - along * direction.Z(),
+    )
+    outward = (sign * normal.X(), sign * normal.Y(), sign * normal.Z())
+    return sum(a * b for a, b in zip(radial, outward, strict=True)) < 0.0
 
 
 def counts(shape: TopoDS_Shape) -> dict[str, int]:

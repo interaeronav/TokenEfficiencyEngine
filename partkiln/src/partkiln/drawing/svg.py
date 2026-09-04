@@ -147,6 +147,40 @@ def _table(
     return out
 
 
+MASS_UNKNOWN = "?"
+PARTS_COLUMNS: tuple[str, ...] = ("ITEM", "PART", "QTY", "MATERIAL", "MASS g")
+PARTS_WIDTHS: tuple[float, ...] = (14.0, 34.0, 12.0, 30.0, 20.0)
+
+
+def parts_table(drawing: Drawing) -> tuple[str, list[tuple[str, ...]]]:
+    """The parts list as `(heading, rows)` - the one place the mass cell is formatted.
+
+    All three writers call this so the same bill prints the same cells on
+    every sheet, and because the honest cell is easy to undo one writer at a
+    time: a part the BOM cannot price carries `total_g: None` (the key EXISTS
+    and is None), so `float(x or 0.0)` printed `0.000 g` and `x.get(k, 0.0)`
+    printed the literal `None`. Both are lies on a drawing - one a mass
+    nobody measured, the other a defect a shop reads as a typo - so an
+    unknown mass prints `?` and the heading says the total is a lower bound
+    with the unpriced rows counted (Law: a drawing number is read back from
+    the model, never invented).
+    """
+    rows: list[tuple[str, ...]] = []
+    unpriced = 0
+    for r in drawing.parts:
+        total = r.get("total_g")
+        if total is None:
+            unpriced += 1
+            cell = MASS_UNKNOWN
+        else:
+            cell = _n(float(total))
+        rows.append((str(r["item"]), str(r["part"]), str(r["qty"]), str(r["material"]), cell))
+    heading = f"PARTS LIST ({len(drawing.parts)})"
+    if unpriced:
+        heading += f" - MASS PARTIAL, {unpriced} OF {len(rows)} UNPRICED"
+    return heading, rows
+
+
 def _window(view: View) -> list[str]:
     """The detail window drawn on the SOURCE view."""
     if view.window is None or view.kind == "detail":
@@ -204,21 +238,9 @@ def render(drawing: Drawing) -> str:
         )
         ty -= 5.0 * (len(rows) + 3)
     if drawing.parts:
-        rows = [
-            (r["item"], r["part"], r["qty"], r["material"], _n(float(r.get("total_g") or 0.0)))
-            for r in drawing.parts
-        ]
-        body.extend(
-            _table(
-                tx,
-                ty,
-                f"PARTS LIST ({len(drawing.parts)})",
-                ("ITEM", "PART", "QTY", "MATERIAL", "MASS g"),
-                rows,
-                (14.0, 34.0, 12.0, 30.0, 20.0),
-            )
-        )
-        ty -= 5.0 * (len(rows) + 3)
+        heading, part_rows = parts_table(drawing)
+        body.extend(_table(tx, ty, heading, PARTS_COLUMNS, part_rows, PARTS_WIDTHS))
+        ty -= 5.0 * (len(part_rows) + 3)
     for i, note in enumerate(drawing.notes):
         body.append(_text(tx, ty - i * 5.0, note, TEXT_MM, 0.0, "label"))
 
@@ -244,4 +266,12 @@ def write(drawing: Drawing, path: str | Path) -> Path:
     return destination
 
 
-__all__ = ["STYLE", "render", "write"]
+__all__ = [
+    "MASS_UNKNOWN",
+    "PARTS_COLUMNS",
+    "PARTS_WIDTHS",
+    "STYLE",
+    "parts_table",
+    "render",
+    "write",
+]

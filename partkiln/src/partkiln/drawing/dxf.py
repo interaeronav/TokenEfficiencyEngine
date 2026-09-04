@@ -42,6 +42,7 @@ from typing import Any
 from partkiln.document import CommandError
 from partkiln.drawing.dims import Dimension, arrow_polygon, place
 from partkiln.drawing.hlr import Arc, Polyline, Prim, Segment
+from partkiln.drawing.svg import PARTS_COLUMNS, PARTS_WIDTHS, parts_table
 from partkiln.drawing.views import (
     LABEL_MM,
     TEXT_MM,
@@ -266,18 +267,11 @@ def build(drawing: Drawing) -> Any:
             (26.0, 16.0, 16.0, 14.0, 16.0),
         )
     if drawing.parts:
-        ty = _table(
-            msp,
-            tx,
-            ty,
-            f"PARTS LIST ({len(drawing.parts)})",
-            ("ITEM", "PART", "QTY", "MATERIAL", "MASS g"),
-            [
-                (r["item"], r["part"], r["qty"], r["material"], r.get("total_g", 0.0))
-                for r in drawing.parts
-            ],
-            (14.0, 34.0, 12.0, 30.0, 20.0),
-        )
+        # `parts_table` (svg.py) formats the cells for all three writers: the
+        # mass key EXISTS and is None for an unpriced part, so `.get(k, 0.0)`
+        # here printed the literal string "None" on the sheet.
+        heading, part_rows = parts_table(drawing)
+        ty = _table(msp, tx, ty, heading, PARTS_COLUMNS, part_rows, PARTS_WIDTHS)
     for i, note in enumerate(drawing.notes):
         _text(msp, tx, ty - i * 5.0, note, TEXT_MM, "TITLE")
 

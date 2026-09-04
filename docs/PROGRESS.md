@@ -10657,3 +10657,113 @@ went stale — as it had in `registry.py`'s own docstring, now corrected.
 passed / 13 skipped / 115 deselected, zero failures**; `ruff check` and
 `ruff format --check` clean on `partkiln/`, `server/src` and `server/tests`.
 Surface unchanged: **17 tools / 2,033 tok**.
+
+### A66 P6 — shipped 0.20.0, and using it found the last defect (2026-09-04)
+
+**The lane is closed.** Three runnable examples, a `kiln` CI job, the version
+bumped in three places together, the bundle verified from a clean unzip, and a
+ten-step acceptance session driven entirely through TEE's public surface.
+
+**Using it found what testing it did not — again (Law 19).** The acceptance
+session drew the W1 bracket and counted **ten rows in its hole table for six
+features**. `drawing/dims.py:hole_table` took every cylindrical face whose axis
+faced the view, with no concavity test, so the four convex r5 corner fillets
+printed beside the four real M6 holes and the sheet carried a note reading
+`4× Ø10`. A shop reading that sheet drills four holes into thin air.
+`checks/spec.py` had learned this same lesson during the audit and already
+carried `_is_concave_cylinder`; the drawing never called it. The test is now
+`brep/shapes.is_concave_cylinder` — one implementation, where D1 says every
+OCP import belongs — and both callers use it. The bracket's table is **6 rows**
+(four M6 holes and the slot's two end cylinders) and its notes read
+`4× Ø6.6 THRU (M6 clearance, ISO 273 medium)` and `2× Ø8 THRU`. The regression
+test fillets a plate at **r3.3 so the fillets are Ø6.6 — the exact diameter of
+its own clearance holes** — and fails on the old code with four
+`corners.face[*]` rows indistinguishable from the real ones.
+
+**Three examples that run, not three examples that are described.** Each is a
+package with a stage per subcommand, a `--probe` short mode, and a manifest
+that says in words that a probe proves only that the pipeline runs (the coarse-
+preview law, written where someone would otherwise be tempted):
+
+| example | measured, full run |
+| --- | --- |
+| `bracket` (W1) | 9 ops in one batch, 498 ms; **91,159.605 mm³ / 715.603 g / bbox [120, 80, 10]**, fingerprint `5c693b2b3fe7d08c`; check `pass`; 6 dims read back 120/80/6.6/100/50/10 all `agree`; STEP AP242 88,585 B round trip rel 4.63e-15; GLB [0.12, 0.01, 0.08] m Y-up; STL 776 triangles watertight |
+| `shaft_housing` (W2) | DOF **0 → 6 → 2 → 1** as the components, insert mate and revolute joint land; interference 0, clearance **0.100 mm**, BOM **1,031.274 g**; STEP 2 products rel 1.26e-14 |
+| `sheet_bracket` (W3) | flat **96.524 × 50.000**, **BA 4.524 / OSSB 4.000 / BD 3.476**, zone 471.239 mm³, folded − flat **+18.850 mm³**; B-rep volume **9,576.206 == the arithmetic**, difference −0.000000 |
+
+**The acceptance session: ten steps, 3.40 s, 6,255 tokens.** Built the bracket
+in one batch (264 tok in, 1,106 tok diff), edited `T=12mm` and read the blast
+radius, checkpointed and rolled back and replayed the checkpoint in a
+*subprocess* to an identical fingerprint, drew the sheet and read the
+dimensions back out of the DXF with ezdxf (`get_measurement()` → 12.0 / 80.0 /
+120.0) and the mediabox out of the PDF with pypdf (1190.55 × 841.89 pt),
+exported and re-read the STEP at rel 0.0, sent the GLB into a headless Blender
+(boot 0.517 s) where it arrived upright at [0.12, 0.08, 0.012] m with
+`verify.ok`, solved the assembly (DOF 1, `over`, interference 329.867 mm³, BOM
+293.371 g), and ran a spec that passes beside one that fails naming
+got/limit/fix. **The session total is path-dependent** — tokens count the
+arguments and the arguments carry the output directory — so the per-step
+numbers are pinned and the total is not.
+
+**Three residues and a doctor that lied.** The BOM's honest `None` mass was
+being turned back into `0.000 g` by the SVG writer and printed as the literal
+string `None` by the DXF and PDF writers; one shared formatter now writes `?`
+and heads the table `MASS PARTIAL, 1 OF 2 UNPRICED`. The `check` verb read
+every bare spec length as millimetres even in an inch document, and the `query`
+verb resolved selector numbers outside the document-unit context — both now
+bind the document. A virtual component with no card reported `0.0 g`: it is
+`None`, because an unmodelled purchased part is ignorance, not a measured zero.
+And `tee doctor` reported `ok` for a directory containing **nothing** —
+`partkiln/` at the repo root is a namespace package, so `find_spec` says yes to
+any interpreter whose path includes the checkout; it now imports the kernel and
+names the OCCT version (7.9.3) read from wheel metadata, never by importing OCP
+(26 s cold — Law 17).
+
+**Bundle, from a clean unzip of `tee-engine-0.20.0.mcpb` (1,023,296 B):**
+
+```
+handshake: {'name': 'tee', 'version': '0.20.0'}
+always-loaded tools: 17
+search 'extrude a sketch' reaches pk_*: True   (pk_verbs at rank 1)
+pk_probe from the bundle -> REFUSED  pk_kernel_absent, naming both install routes
+```
+
+**Before and after, on the benchmark task** (draft a bracket, drill it, draw
+it, export STEP): naive with a face/edge inventory and screenshots **8,404 tok
+/ 6 calls**, naive by shipping the STEP text **25,311 tok**, TEE **1,532 tok /
+2 calls — 81.8 % saved**. The follow-up edit (`T=12mm`) is the sharper number:
+re-reading the world costs **6,156 tok**, the `changed` list costs **162** —
+**97.4 % saved**. Surface unchanged: **17 tools / 2,033 tok**, 140 virtual.
+
+**Numbered gaps, so none of them is a surprise later:**
+
+1. **No GUI.** Headless-first was the owner's decision; the Qt shell, when it
+   comes, is a client of `partkiln.document` exactly as seamkiln's is.
+2. **`cad_measure` still runs its own one-shot sidecar** rather than routing
+   through `pk_measure`; two OCCT processes where one would do.
+3. **`pk_capture` refuses and points at Blender by hand.** The adapter's
+   refusal advertises a P6 opt-in that does not exist — the route today is
+   `pk_export` → `as_import` → capture on the Blender adapter.
+4. **CI cost.** The `kiln` job installs `[brep]` (223 MB of site-packages, zero
+   VTK dylibs linked) and the server job drops `[cad]` (31 packages), but the
+   fleet extras still dominate a push.
+5. **Coil/helix and modelled threads (L1).** A thread is cosmetic and moves no
+   geometry; a real helical feature is not in v1.
+6. **ISO 286 fits (L2).** No permissively-licensed table of the tolerance
+   grades was found, so `fit` is out rather than guessed.
+7. **`pdf_compose` has no vector block**, so a drawing reaches a PDF through
+   `partkiln[pdf]` (fpdf2, LGPL, optional) and not through TEE's own PDF lane.
+8. **A slot prints as two holes.** Its end cylinders are genuine concave cuts,
+   so `2× Ø8 THRU` is honest — but drafting practice dimensions a slot as a
+   slot. Naming the two ends as one feature is the refinement.
+9. **`pk_export` writes part coordinates**, not the solved assembly poses; the
+   manifest carries the poses and the STEP does not.
+10. **No second OCCT has read our STEP.** `cad_measure` agrees to rel 0.0, but
+    it sits on the *same* OCP wheel — a second reader, not a second kernel.
+    FreeCAD's OCCT 7.8.1 is the genuinely independent check and its bridge was
+    not up.
+
+**Suites at close:** partkiln **675 passed / 3 skipped**; server **1,360
+passed / 14 skipped / 116 deselected, zero failures**; `ruff check` and `ruff
+format --check` clean on `partkiln/`, `server/src` and `server/tests`; `make
+lint` green. Surface unchanged: **17 tools / 2,033 tok**.

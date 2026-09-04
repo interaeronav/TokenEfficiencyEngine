@@ -153,3 +153,77 @@ def test_state_check_without_tee_dir_is_plain(tmp_path, monkeypatch):
     check = doctor.check_state()
     assert check.status == "ok"
     assert "no .tee/" in check.detail
+
+
+def _fake_sidecar(tmp_path, line: str):
+    """A stand-in for the sidecar interpreter that answers the probe with
+    `line`. The check only ever reads the probe's stdout, so a shell script
+    is a faithful double and needs no 250 MB venv to exist."""
+    fake = tmp_path / "python"
+    fake.write_text(f"#!/bin/sh\necho '{line}'\n")
+    fake.chmod(0o755)
+    return fake
+
+
+def test_partkiln_check_names_the_occt_version_of_the_sidecar(tmp_path, monkeypatch):
+    """A66 P6 acceptance: the doctor line must name the KERNEL version, not
+    just "installed" - two OCP wheels and two interpreters can disagree."""
+    from tee.adapters.partkiln import wire
+
+    monkeypatch.setattr(wire, "SIDECAR_PY", _fake_sidecar(tmp_path, "3.11.15 True True 7.9.3"))
+    check = doctor.check_partkiln()
+    assert check.status == "ok"
+    assert "mode sidecar" in check.detail
+    assert "OCCT 7.9.3" in check.detail
+    assert "server python" in check.detail  # both interpreters, always
+
+
+def test_partkiln_check_survives_a_sidecar_that_answers_the_old_probe(tmp_path, monkeypatch):
+    """A sidecar venv installed before the probe grew its fourth field still
+    answers three tokens; that is unknown OCCT, never an IndexError."""
+    from tee.adapters.partkiln import wire
+
+    monkeypatch.setattr(wire, "SIDECAR_PY", _fake_sidecar(tmp_path, "3.11.15 True True"))
+    check = doctor.check_partkiln()
+    assert check.status == "ok"
+    assert "OCCT ?" in check.detail
+
+
+def test_partkiln_check_warns_with_both_install_routes_when_absent(tmp_path, monkeypatch):
+    """partkiln is a separate install by design, so absence is a warn whose
+    fix names the dev venv AND the sidecar that survives an upgrade."""
+    from tee.adapters.partkiln import wire
+
+    monkeypatch.setattr(wire, "SIDECAR_PY", tmp_path / "nothing-here")
+    check = doctor.check_partkiln()
+    if check.status == "ok":  # a dev checkout with `-e partkiln` installed
+        assert "mode in-process" in check.detail
+        assert "OCCT" in check.detail
+    else:
+        assert check.status == "warn"
+        assert check.fix is not None
+        assert "sidecars/partkiln" in check.fix
+
+
+def test_partkiln_check_is_not_fooled_by_the_source_directory(tmp_path, monkeypatch):
+    """`partkiln/` sits at the repo ROOT, so any interpreter whose path
+    includes that root gets a NAMESPACE package of the same name and a bare
+    `find_spec` says yes to a kernel that cannot import. Running the doctor
+    from the checkout must not claim the lane works."""
+    from importlib.util import find_spec
+
+    from tee.adapters.partkiln import wire
+
+    try:  # order-dependent: another module may already have imported the kernel
+        import partkiln.client  # noqa: F401
+    except ImportError:
+        pass
+    else:
+        pytest.skip("the real kernel is importable in this interpreter - no shadow to test")
+    (tmp_path / "partkiln").mkdir()  # the shadow: a directory, no module
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setattr(wire, "SIDECAR_PY", tmp_path / "no-sidecar")
+    assert find_spec("partkiln") is not None  # the trap is armed
+    check = doctor.check_partkiln()
+    assert check.status == "warn"
+    assert "kernel absent" in check.detail

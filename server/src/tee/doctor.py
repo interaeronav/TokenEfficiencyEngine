@@ -321,6 +321,18 @@ def check_partkiln() -> Check:
     except (ImportError, ValueError):
         kernel_here = ocp_here = False
 
+    # The kernel version the lane will actually run. `occt_version()` reads the
+    # carrier wheel's metadata, so naming it here costs no `import OCP` - which
+    # is 26 s on a cold venv and must never be paid by a diagnostic (Law 17).
+    occt_here = None
+    if kernel_here:
+        try:
+            from partkiln.client import occt_version
+
+            occt_here = occt_version()
+        except ImportError:  # a half-installed kernel is a warn, not a crash
+            kernel_here = False
+
     sidecar = ""
     if SIDECAR_PY.is_file():
         try:
@@ -329,9 +341,12 @@ def check_partkiln() -> Check:
                     str(SIDECAR_PY),
                     "-c",
                     "import platform,importlib.util as u;"
+                    "from importlib.metadata import packages_distributions,version;"
+                    "d=(packages_distributions().get('OCP') or [None])[0];"
                     "print(platform.python_version(),"
                     "u.find_spec('partkiln') is not None,"
-                    "u.find_spec('OCP') is not None)",
+                    "u.find_spec('OCP') is not None,"
+                    "'.'.join(version(d).split('.')[:3]) if d else '?')",
                 ],
                 capture_output=True,
                 text=True,
@@ -341,19 +356,21 @@ def check_partkiln() -> Check:
         except (OSError, subprocess.SubprocessError) as exc:
             sidecar = f"unreadable ({type(exc).__name__})"
 
-    sidecar_ok = sidecar.split()[1:3] == ["True", "True"] if sidecar else False
+    fields = sidecar.split()
+    sidecar_ok = fields[1:3] == ["True", "True"] if sidecar else False
     if sidecar_ok:
+        sidecar_occt = fields[3] if len(fields) > 3 else "?"
         return Check(
             "partkiln",
             "ok",
-            f"mode sidecar - {SIDECAR_PY} python {sidecar.split()[0]} with OCP; {here}"
-            + (", kernel + OCP here too" if kernel_here and ocp_here else ""),
+            f"mode sidecar - {SIDECAR_PY} python {fields[0]} with OCCT {sidecar_occt}; {here}"
+            + (f", kernel + OCCT {occt_here or '?'} here too" if kernel_here and ocp_here else ""),
         )
     if kernel_here and ocp_here:
         return Check(
             "partkiln",
             "ok",
-            f"mode in-process - kernel and OCP importable in the {here}"
+            f"mode in-process - kernel and OCCT {occt_here or '?'} importable in the {here}"
             + (f"; sidecar present but incomplete ({sidecar})" if sidecar else "; no sidecar venv"),
             fix="The sidecar venv is the production route (it survives an .mcpb upgrade "
             f"and tee_purge, which wipe an editable install): {SIDECAR_INSTALL}",

@@ -841,11 +841,16 @@ def m_query(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
             "what: tree prints the feature tree instead.",
             code="pk_needs",
         )
+    from partkiln import naming
     from partkiln.naming import is_selector, resolve
 
     part = _part(doc, params.get("of") or params.get("part"), what="query")
     kind = "edge" if (what == "edges" or ":edges(" in str(ref) or "|" in str(ref)) else "face"
-    resolved = resolve(part, str(ref), kind, "many")
+    # Law 12 at the verb boundary, as `features/__init__.py` does it: a bare
+    # number in a filter (`len>3`) is the DOCUMENT's unit, and `resolve` is
+    # reached here with a part that does not know the document.
+    with naming.document_unit(doc.units):
+        resolved = resolve(part, str(ref), kind, "many")
     facts = [
         _subshape_facts(name, info, kind)
         for name, info in zip(resolved.names, resolved.infos, strict=False)
@@ -1209,7 +1214,10 @@ def m_check(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
         subject = ", ".join(f"part:{n}" for n, _s in bodies)
         if material is None and len(bodies) == 1:
             material = getattr(doc.parts.get(bodies[0][0]), "material", None)
-    out = check_spec(target, spec, material)
+    # `units=doc`: a bare length in the spec is the DOCUMENT's unit (Law 12),
+    # and under `strict_units` the document refuses it - the API had this from
+    # the start, the verb was reading every bare number as millimetres.
+    out = check_spec(target, spec, material, units=doc)
     out["of"] = subject
     if str(of or "").startswith("asm") or of == "assembly":
         record = _assembly(doc, params)
@@ -1523,11 +1531,16 @@ def _b_import(doc: Document, part: Any, feature: Feature, assumed: dict[str, Any
 @register_kind("import")
 def _k_import(doc: Document, args: dict[str, Any], assumed: dict[str, Any]) -> dict[str, Any]:
     """`create import` - the same shape as every other feature kind."""
+    from partkiln import naming
+
     part = get_part(doc, args, assumed)
     props = {k: v for k, v in args.items() if k not in ("kind", "name", "id", "part")}
     fid = doc.new_name(args, "import", {f.id: f for f in part.features})
     feature = Feature(fid, "import", props)
-    details = part.add_feature(doc, feature, assumed)
+    # The same unit binding every other `create <kind>` gets from
+    # `features/__init__.py`: this kind is registered here, so it binds it here.
+    with naming.document_unit(doc.units):
+        details = part.add_feature(doc, feature, assumed)
     details["part"] = f"part:{part.name}"
     return details
 

@@ -16,9 +16,36 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.11"
-      - run: uv sync --all-extras
+          enable-cache: true
+      # NOT --all-extras: the [cad] stack (cadquery + cadquery-ocp + casadi +
+      # VTK) is 1.3 GB and 31 packages, and since A66 nothing in this job
+      # needs it - partkiln reaches OCCT through its own [brep] extra in the
+      # `kiln` job below, and the cad_* adapter tests run against fakes.
+      - run: uv sync --all-extras --no-extra cad
       - run: uv run ruff check src tests
       - run: uv run ruff format --check src tests
       # DCC-marked tests need a live Blender/Unreal and are skipped by
       # default; this runs the full fake-adapter suite.
       - run: uv run pytest -q
+
+  # A66: the mechanical CAD kernel. Its own package, its own extras, its own
+  # job - `[brep]` is cadquery-ocp-novtk (~250 MB, zero VTK dylibs), which is
+  # what makes running the OCCT-backed suite on every push affordable.
+  kiln:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: partkiln
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - run: uv sync --extra brep --extra dev
+      - run: uv run ruff check src tests examples
+      - run: uv run ruff format --check src tests examples
+      # `slow` is the rebuild-timing and cross-process determinism battery;
+      # everything else, including the three example pipelines in --probe
+      # mode, runs here.
+      - run: uv run pytest -q -m "not slow"

@@ -883,6 +883,13 @@ def hole_table(part: Any, view: View) -> list[dict[str, Any]]:
     A row is `{name, x, y, dia_mm, depth}`: `dia_mm` is twice the model radius
     (never a typed size), `x`/`y` are the axis in the view frame, and `depth` is
     `THRU` when the cylinder spans the body along its own axis.
+
+    A cylinder only counts when the material lies OUTSIDE it, the same test
+    `holes` uses in `checks/spec.py`. Radius and axis alone cannot tell a hole
+    from a corner fillet, and until 2026-09-04 they did not: the W1 bracket's
+    four r5 fillets printed as `4x d10` on the sheet beside its four real M6
+    holes, ten rows for six features. A drawing that invents a hole is worse
+    than a drawing that omits one, because a shop will drill it.
     """
     from partkiln.brep import shapes as _shapes
 
@@ -896,6 +903,8 @@ def hole_table(part: Any, view: View) -> list[dict[str, Any]]:
         axis = _cylinder_axis(face.shape)
         if abs(_dot(axis, direction)) < 1.0 - 1e-6:
             continue
+        if not _shapes.is_concave_cylinder(face.shape):
+            continue  # a fillet or a boss: same surface, material on the other side
         name = inv.name_of_face(i)
         x, y = view.frame.to_view(face.centroid)
         span = _face_span(face, axis)

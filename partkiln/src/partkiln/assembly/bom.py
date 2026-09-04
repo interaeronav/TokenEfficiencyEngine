@@ -23,8 +23,12 @@ lower bound it is (CLAUDE.md hard rule 6: fail loud, and name the fix -
 here, the missing `material` or `mass_g`).
 
 A `virtual` component (the contract's generic `create object`, D5) lands as
-a row of kind `virtual` with whatever the card says - nothing when it says
-nothing - so a generic entity is counted, never a refusal.
+a row of kind `virtual` with whatever the card says - so a generic entity is
+counted, never a refusal - and when the card says nothing its mass is `None`
+too, on the same reasoning as defect 11 (audited 2026-09-04): a virtual
+component is the unmodelled purchased part (a bearing, a fastener, glue), so
+`0.000` is an understatement dressed as a measurement, not a fact. A caller
+who means weightless writes `mass_g: 0` on the card and the row says 0.000.
 """
 
 from __future__ import annotations
@@ -56,10 +60,6 @@ def _row(
     components: list[str],
 ) -> dict[str, Any]:
     each = _mass_g(card)
-    if each is None and comp.virtual:
-        # A virtual component is an annotation with no geometry (D5): the
-        # contract is "whatever the card says, nothing when it says nothing".
-        each = 0.0
     return {
         "item": item,
         "kind": "virtual" if comp.virtual else "part",
@@ -79,9 +79,10 @@ def bom(asm: Assembly, parts: dict[str, dict[str, Any]], view: str = "parts") ->
     `parts` maps part name -> `{material, mass_g | volume_mm3, standard_designation}`;
     a component whose part has no card refuses naming the cards it does
     have, unless the component is virtual (then the row is empty of mass).
-    A card that names neither a mass nor a material leaves that row's
-    `mass_g`/`total_g` at None: `total_g` then sums only the rows that HAVE
-    a mass, `partial` is True and `missing_mass` names the parts to price.
+    A card that names neither a mass nor a material - and a virtual
+    component with no card at all - leaves that row's `mass_g`/`total_g` at
+    None: `total_g` then sums only the rows that HAVE a mass, `partial` is
+    True and `missing_mass` names the parts to price.
     """
     if view not in VIEWS:
         raise CommandError(f"view {view!r} is not one of {', '.join(VIEWS)}.", code="pk_bad_op")

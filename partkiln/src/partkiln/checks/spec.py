@@ -245,40 +245,6 @@ def _rule_band(rule: str, m: _Measured, limit: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _is_concave_cylinder(face: Any) -> bool:
-    """Does the material lie OUTSIDE this cylindrical face - i.e. is it a hole?
-
-    The outward normal at the face's parametric midpoint points TOWARD the
-    axis for a hole (the material is the other way) and AWAY from it for a
-    fillet or a boss. Radius alone cannot tell them apart, and counting by
-    radius failed a correct part (see the module docstring).
-    """
-    from OCP.BRepAdaptor import BRepAdaptor_Surface
-    from OCP.BRepLProp import BRepLProp_SLProps
-    from OCP.TopAbs import TopAbs_REVERSED
-
-    surface = BRepAdaptor_Surface(face)
-    u = 0.5 * (surface.FirstUParameter() + surface.LastUParameter())
-    v = 0.5 * (surface.FirstVParameter() + surface.LastVParameter())
-    props = BRepLProp_SLProps(surface, u, v, 1, 1e-9)
-    if not props.IsNormalDefined():
-        return False
-    sign = -1.0 if face.Orientation() == TopAbs_REVERSED else 1.0
-    normal = props.Normal()
-    point = props.Value()
-    axis = surface.Cylinder().Axis()
-    origin, direction = axis.Location(), axis.Direction()
-    delta = (point.X() - origin.X(), point.Y() - origin.Y(), point.Z() - origin.Z())
-    along = delta[0] * direction.X() + delta[1] * direction.Y() + delta[2] * direction.Z()
-    radial = (
-        delta[0] - along * direction.X(),
-        delta[1] - along * direction.Y(),
-        delta[2] - along * direction.Z(),
-    )
-    outward = (sign * normal.X(), sign * normal.Y(), sign * normal.Z())
-    return sum(a * b for a, b in zip(radial, outward, strict=True)) < 0.0
-
-
 def _rule_holes(m: _Measured, limit: Any, unit: str | None) -> list[dict[str, Any]]:
     if isinstance(limit, dict):
         limit = [limit]
@@ -288,8 +254,10 @@ def _rule_holes(m: _Measured, limit: Any, unit: str | None) -> list[dict[str, An
             "Fix: write holes: [{dia: 10, count: 1}].",
             code="pk_bad_op",
         )
+    from partkiln.brep import shapes as _shapes
+
     cylinders = [f for f in m.faces() if f.surface_type == "cylinder" and f.radius is not None]
-    bores = [f for f in cylinders if _is_concave_cylinder(f.shape)]
+    bores = [f for f in cylinders if _shapes.is_concave_cylinder(f.shape)]
     out = []
     for row in limit:
         if not isinstance(row, dict) or "dia" not in row:

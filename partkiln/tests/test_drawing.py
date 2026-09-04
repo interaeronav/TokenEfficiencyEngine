@@ -536,6 +536,42 @@ def test_the_hole_table_has_one_row_per_hole_on_f5(f5: Document) -> None:
     assert drawing.holes_shown == 26 and len(drawing.holes) == 100
 
 
+def test_a_corner_fillet_is_not_a_hole(f2_plate: Document) -> None:
+    """A convex cylinder is a fillet, and a fillet must never reach the sheet.
+
+    Radius and axis alone cannot tell a hole from a corner fillet - they are
+    the same surface with the material on opposite sides. Until 2026-09-04 the
+    hole table took every cylinder whose axis faced the view, so filleting this
+    plate's four corners at r3.3 added `4x d6.6 THRU` rows indistinguishable
+    from its four real M6 clearance holes, and the note said eight. A shop
+    reading that sheet drills four holes into thin air.
+    """
+    doc = Document.replay(f2_plate.script())  # module-scoped fixture: never mutate it
+    doc.apply(
+        {
+            "op": "create",
+            "kind": "fillet",
+            "name": "corners",
+            "props": {"edges": "plate:edges(dir=Z)", "r": 3.3},  # r3.3 -> d6.6, as the holes
+        }
+    )
+    drawing = build_drawing(
+        doc,
+        "fillets",
+        {
+            "of": "bracket",
+            "sheet": "A3L",
+            "views": [{"name": "top", "dir": "top"}],
+            "hole_table": True,
+        },
+    )
+    assert len(drawing.holes) == 4, drawing.holes  # the holes, not the fillets
+    assert drawing.notes == ["4\u00d7 \u00d86.6 THRU (M6 clearance, ISO 273 medium)"]
+    # ... and the fillets really are there, at the very radius that fooled it.
+    inv = doc.parts["bracket"].inventory()
+    assert sum(1 for f in inv.faces if f.surface_type == "cylinder") == 8
+
+
 def test_the_hole_note_cites_the_standard_the_hole_was_cut_to(f2_plate: Document) -> None:
     drawing = build_drawing(
         f2_plate,
@@ -619,6 +655,109 @@ def test_a_parts_list_without_an_assembly_says_so(f1: Document) -> None:
     )
     assert drawing.parts == []
     assert any("no assembly" in note for note in drawing.notes)
+
+
+def _priced_and_unpriced_document() -> Document:
+    """Two parts in one assembly - one with a material, one without."""
+    import partkiln.assembly.verbs  # noqa: F401 - registers `create component`
+
+    doc = Document(name="bompart")
+    for name, side, height, material in (
+        ("block", 40, 20, "steel_s275"),
+        ("spacer", 10, 5, None),
+    ):
+        doc.apply({"op": "create", "kind": "part", "name": name, "props": {"material": material}})
+        doc.apply(
+            {
+                "op": "create",
+                "kind": "sketch",
+                "name": f"s_{name}",
+                "props": {"plane": "XY", "profile": [{"rect": [side, side]}]},
+            }
+        )
+        doc.apply(
+            {
+                "op": "create",
+                "kind": "extrude",
+                "name": f"b_{name}",
+                "props": {"sketch": f"s_{name}", "distance": height, "part": name},
+            }
+        )
+        doc.apply({"op": "create", "kind": "component", "props": {"part": name}})
+    return doc
+
+
+def _partial_sheet() -> Any:
+    return build_drawing(
+        _priced_and_unpriced_document(),
+        "partial",
+        {
+            "of": "block",
+            "sheet": "A3L",
+            "views": [{"name": "top", "dir": "top"}],
+            "parts_list": True,
+        },
+    )
+
+
+def test_an_unpriced_part_prints_a_placeholder_on_every_sheet(tmp_path: Path) -> None:
+    """A mass the BOM cannot compute is `?` on the sheet, never `0.000` or `None`.
+
+    The BOM answers `total_g: None` for a part with no material (defect 11),
+    but the three writers each undid it in their own way - SVG's
+    `float(x or 0.0)` printed `0.000` (a mass nobody measured) and DXF's and
+    PDF's `.get("total_g", 0.0)` printed the literal string `None`, because
+    the key EXISTS and is None. One shared formatter now writes the cell, and
+    the heading says the total is partial.
+    """
+    ezdxf = pytest.importorskip("ezdxf")
+    sheet = _partial_sheet()
+    rows = {r["part"]: r for r in sheet.parts}
+    assert rows["block"]["total_g"] == 251.2
+    assert rows["spacer"]["mass_g"] is None and rows["spacer"]["total_g"] is None
+
+    svg_texts = [(e.text or "") for e in ET.fromstring(svg.render(sheet)).iter(f"{SVG_NS}text")]
+    assert "MASS PARTIAL" in " ".join(svg_texts)
+    # The old SVG printed the spacer's unknown mass as the bare "0" its own
+    # number formatter makes of 0.0 - so the zero is pinned out by value.
+    assert "?" in svg_texts
+    assert not {"0", "0.0", "0.000", "None"} & set(svg_texts)
+
+    dxf_texts = [
+        e.dxf.text
+        for e in ezdxf.readfile(dxf.write(sheet, tmp_path / "p.dxf")).modelspace().query("TEXT")
+    ]
+    assert "?" in dxf_texts
+    assert not {"0", "0.0", "0.000", "None"} & set(dxf_texts)
+    assert any("MASS PARTIAL" in t for t in dxf_texts)
+
+    pytest.importorskip("fpdf", reason="partkiln[pdf] not installed")
+    pypdf = pytest.importorskip("pypdf")
+    text = pypdf.PdfReader(pdf.write(sheet, tmp_path / "p.pdf")).pages[0].extract_text()
+    assert "MASS PARTIAL" in text and "None" not in text
+
+    heading, cells = svg.parts_table(sheet)
+    assert heading == "PARTS LIST (2) - MASS PARTIAL, 1 OF 2 UNPRICED"
+    assert [c[-1] for c in cells] == ["251.2", "?"]
+
+
+def test_a_fully_priced_parts_list_says_nothing_about_partial() -> None:
+    """The heading marks a partial total only when one is partial."""
+    doc = _priced_and_unpriced_document()
+    doc.apply({"op": "set", "id": "part:spacer", "props": {"material": "steel_s275"}})
+    sheet = build_drawing(
+        doc,
+        "whole",
+        {
+            "of": "block",
+            "sheet": "A3L",
+            "views": [{"name": "top", "dir": "top"}],
+            "parts_list": True,
+        },
+    )
+    heading, cells = svg.parts_table(sheet)
+    assert heading == "PARTS LIST (2)"
+    assert [c[-1] for c in cells] == ["251.2", "3.925"]
 
 
 # --------------------------------------------------------------------------- SVG

@@ -3,6 +3,179 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.20.0 — 2026-09-04
+
+**A mechanical CAD kernel joins TEE, and the surface still does not move.**
+
+```bash
+# OCP is already in server/.venv, so never add [brep] there - the novtk wheel
+# ships the same top-level OCP package and would clobber it
+uv pip install --python server/.venv/bin/python -e partkiln
+
+tee serve --adapter partkiln --project ~/parts
+```
+
+`partkiln` is a headless, AI-native mechanical CAD kernel — constrained
+sketches, a feature tree, named topology, assemblies with mates and joints,
+drawings whose dimensions are read back from the model, and exports that
+declare their own units — built on Open CASCADE through the Apache-2.0 OCP
+wheel. Its own package at the repo root, MIT, permissive-only in process and
+enforced by a licence-gate test, with OCCT (LGPL-2.1-only WITH
+OCCT-exception-1.0, dynamically linked, `NOTICE` shipped) as the one named
+weak-copyleft dependency. It joins through the `Adapter` protocol: **17
+always-loaded tools / 2,033 tok before, 17 / 2,033 after.** The virtual
+catalogue went 126 → 140.
+
+### The Inventor loop, as declarative ops
+
+```
+sketch -> features -> part -> assembly -> drawing -> export -> Blender/Unreal
+```
+
+A part is a scene: `param_set`, `create` (part | sketch | extrude | revolve |
+sweep | loft | hole | fillet | chamfer | shell | draft | pattern | mirror |
+combine | split | plane | axis | point | component | mate | joint | drawing |
+sheet), `set`, `delete`, `export`, `check` — enumerable, no arbitrary-code
+door. Fourteen `pk_*` virtual tools carry the long tail (`pk_probe`,
+`pk_verbs`, `pk_lint`, `pk_query`, `pk_measure`, `pk_check`, `pk_standards`,
+`pk_materials`, `pk_bom`, `pk_drawing`, `pk_export`, `pk_flat`, `pk_import`,
+`pk_script`), each tabled **individually** in the trust kernel — three write
+files and two mutate the document, so there is deliberately no `pk_` family
+row that would hand a writer the open read tier.
+
+A whole mounting bracket — sketch, extrude, fillet, four M6 clearance holes
+to ISO 273, a chamfered loop, a through slot — is nine ops in **one** batch,
+0.29 s, and the answer is a diff: `feat:f1 {delta_mm3: -214.602, faces: 10,
+resolved: {"plate:edges(dir=Z)": 4}}`, `part:bracket {volume_mm3: 91159.605,
+mass_g: 715.603, bbox_mm: [120, 80, 10]}`. Never a mesh.
+
+### A sub-shape is addressed by name, never by an index
+
+`plate.end`, `h.1.wall`, `f1.face[0]`, or a selector like
+`plate:edges(of=end, loop=outer)` that resolves at regen and reports how many
+it caught. This is the difference that decides whether a model can drive a
+CAD kernel at all: the incumbents' automation hands you integer-indexed
+edges that renumber on the next feature. A selector that resolves to nothing
+refuses with candidates; a boolean that changes no topology is a **failed**
+boolean (`pk_no_effect`), not a silent success.
+
+An edit reports its blast radius. `param_set T=12mm` on that bracket answers
+`changed: [plate, f1, h, slot]`, `unchanged: [c1]`, `volume_mm3: 109430.458`
+in 0.05 s and **162 tokens** — instead of re-reading the part.
+
+### A drawing dimension is read back from the model, never typed
+
+Hidden-line removal per compound under named projectors, first- and
+third-angle layout, sections, details, hole tables, parts lists, and a title
+block, out to SVG, DXF and PDF. Every dimension carries `value_mm`,
+`projected_mm` and `agree`, so a sheet that disagrees with its own model says
+so. DXF is written with `$INSUNITS 4` and real `DIMENSION` entities whose
+`get_measurement()` returns the model's number; the PDF is a true A3 at
+1190.55 × 841.89 pt. SVG and DXF are byte-identical on repeat.
+
+A hole table counts holes, not round faces. A corner fillet and a drilled
+hole are the same cylindrical surface with the material on opposite sides,
+so the table tests which side it is on: filleting a plate at r3.3 does not
+add four `Ø6.6 THRU` rows beside its four real M6 clearance holes. A drawing
+that invents a hole is worse than one that omits it, because a shop will
+drill it.
+
+### Sheet metal, flat first
+
+`BA = A(π/180)(R + KT)`, `OSSB = (R+T)tan(A/2)`, `BD = 2·OSSB − BA`, and the
+folded solid derived from the flat by replacing each bend strip with an
+annular sector. At K 0.44 (partkiln's declared default inside the usual
+0.3–0.5 band — no standard fixes it), a t 2 / r 2 / 90° bend gives BA
+**4.524 mm**, BD **3.476**, and a 50/30 pair a flat length of **76.524**.
+The bend-zone volume is **376.991 mm³ at every K**, which is a law worth
+stating: **K moves the blank, not the part.** The flat pattern is arithmetic,
+so the shop can have the DXF — `OUTLINE`, `BEND_UP`, `BEND_DOWN`, `HOLES` —
+while the B-rep kernel is still warming.
+
+### Three pipelines you can run
+
+```bash
+cd partkiln
+PYTHONPATH=src python -m examples.bracket       all --out /tmp/bracket
+PYTHONPATH=src python -m examples.shaft_housing all --out /tmp/shaft
+PYTHONPATH=src python -m examples.sheet_bracket all --out /tmp/sheet
+```
+
+The bracket end to end (model, spec check, A3 sheet, STEP AP242 + GLB + STL);
+a stepped shaft in a bored housing (components, an insert mate, a revolute
+joint, DOF 6 → 2 → 1, 0.100 mm clearance, no interference, a 1,031.274 g
+BOM); and the flat-first sheet L (bend table, flat DXF, folded solid whose
+OCCT volume agrees with the arithmetic to the last digit: 9,576.206 mm³).
+Each stage hands the next one the **script**, not the solid, because the
+checkpoint is the script and the B-rep is a cache. `--probe` is the short
+mode, and its manifest says in words that a probe proves only that the
+pipeline runs — a coarse run is a different answer, not a rougher one.
+
+### The benchmark
+
+```
+bracket: sketch -> features -> drawing -> STEP
+  naive (a)  8,404 tok / 6 calls   (face+edge inventory, 3 screenshots, the SVG)
+  naive (b) 25,311 tok / 1 call    (the STEP file as text)
+  tee        1,532 tok / 2 calls   (one batch + its diff + one pk_measure)
+  81.8% saved vs (a)
+
+one parameter moves (T=12mm)
+  naive      6,156 tok / 5 calls   (re-read the inventory, re-shoot the views)
+  tee          162 tok / 1 call    (the changed list)
+  97.4% saved
+```
+
+The inventory alone is 3,038 tok and the three screenshots 3,108 — and
+neither answers "is the minimum wall over 2 mm", which is what the question
+actually was.
+
+### What it refuses, and why
+
+A minimum-wall check now says **what it proved and what it did not**. The old
+sampler read UV cell centres only: on a plate with a bore 0.600 mm from the
+edge it answered 1.922 mm and passed a 1.5 mm spec, and sampling harder made
+it worse, not better (1.922 / 1.216 / 0.645 / 0.768 / 0.608 at n = 5…21). A
+face-pair distance pass now finds **0.600 mm at every sample count** and the
+spec fails — and even when it passes, the answer carries `estimate: true,
+proven: false` and the rule is listed under `unproven`. An upper bound is not
+a proof, and saying so is the feature.
+
+`pk_probe` called from a bundle without partkiln installed refuses
+`pk_kernel_absent` with both install routes, not an ImportError — the `pk_*`
+registrations are metadata only. `pk_capture` refuses text-first and names
+the SVG sheet, `pk_measure` and `tee_entity_detail`. A call that lands inside
+the cold `import OCP` refuses `pk_warming` with the job id rather than
+blocking. DWG, 3D PDF, Parasolid, JT, USDz and the native `.ipt/.iam/.idw`
+containers are refused **by name** as out of scope; so are FEA, CAM and ISO
+286 fits, the last because no permissive source for the table exists.
+
+### The audit that came before the ship
+
+The committed kernel was swept adversarially — six dimensions, every finding
+put to three independent refuters who had to reproduce it or kill it: **39
+findings, 8 killed, 31 confirmed, 22 distinct defects** after dedup, each
+fixed with a regression test written first and shown failing on the old code.
+Beyond the wall check: a failed regen used to destroy the document (it now
+snapshots, replays and installs only on success); a script replayed against
+today's settings rather than the ones it was recorded under, so `set doc
+units=in` turned a 100 × 60 rectangle into 2540 × 1524 and still claimed a
+fingerprint; a hole reported the count requested rather than the count cut; a
+`set` with a misspelled prop was a silent no-op; and three of the kernel's
+own tests were tautologies that any wrong answer would have passed.
+
+### Also
+
+Version bumped in all three places at once — `server/pyproject.toml`, the
+`Makefile`'s `TEE_SERVER_VERSION` and `packaging/mcpb_manifest.json` — and
+the bundle verified from a clean unzip over MCP stdio with the exact command
+the manifest declares: handshake `0.20.0`, 17 always-loaded tools, `pk_*`
+reachable through search, and `pk_probe` refusing honestly because partkiln
+is a separate install. CI grew a `kiln` job on partkiln's own `[brep]` extra
+(cadquery-ocp-novtk, 223 MB of site-packages, zero VTK dylibs linked) and
+the server job stopped installing `[cad]` — 31 packages and 1.3 GB it no
+longer needs.
+
 ## 0.19.0 — 2026-09-01
 
 **A garment kernel joins TEE, and the surface does not move.**

@@ -285,17 +285,17 @@ The batch took 57.4 s end to end; 1 zipper fitted. Surface unchanged: 17 tools.
 
 One mounting bracket - 9 ops, 26 faces, 64 edges, 91,159.605 mm3 - sketched,
 extruded, filleted, drilled to ISO 273, slotted, chamfered, and read back. The
-TEE arm is ONE batch, its diff, and one `pk_check (method pending)` call.
+TEE arm is ONE batch, its diff, and one `pk_measure` call.
 
 Two naive arms, both named, because a model without compact state has two
 honest ways to learn this part and both are expensive:
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (a): face/edge inventory + 3x 1024x768 shots + the SVG sheet | 8,378 | 6 |
+| naive (a): face/edge inventory + 3x 1024x768 shots + the SVG sheet | 8,404 | 6 |
 | naive (b): the STEP file as text | 25,311 | 1 |
-| tee (batch + diff + pk_check (method pending)) | 1,392 | 2 |
-| **saved vs (a)** | **83.4%** | |
+| tee (batch + diff + pk_measure) | 1,532 | 2 |
+| **saved vs (a)** | **81.8%** | |
 
 The inventory alone is 3,038 tok and the three screenshots 3,108 -
 and neither answers "is the minimum wall over 2 mm", which is what the
