@@ -231,7 +231,10 @@ def register_extract_tools(app, project_root: Path | str) -> tuple[ExtractStore,
                 "required": ["reference_px", "target_px", "coplanar"],
             },
             handler=ex_estimate,
-            tags=["extract", "estimate", "dimension", "photo", "scale", "measure"],
+            # "image" and "size": what a caller says when asking for exactly
+            # this - measured on the Desktop registry (A68), "size from an
+            # image" ranked this tool sixth without them
+            tags=["extract", "estimate", "dimension", "photo", "image", "size", "scale", "measure"],
             examples=[
                 {
                     "reference_iso216": "a4",

@@ -447,12 +447,19 @@ def run_script(app, code: str, default_adapter: str | None = None) -> dict[str, 
 
     def call(name: str, args: dict | None = None):
         _spend_call(f"call('{name}')")
-        # Guard the lane this script is bound to, when there is one. A
-        # multi-lane script bound to none guards nothing here: which lane a
-        # virtual tool touches is its own metadata (A68 P1d), and a batch it
-        # runs takes its own checkpoint.
-        with contextlib.suppress(TeeError):
-            _guard(_lane(None))
+        # A68: checkpoint ONLY the lane this tool touches (kernel/lanes.py).
+        # An adapter-agnostic tool - pdf_compose, pk_measure, kb_search -
+        # snapshots nothing; before, every call() saved a .blend.
+        lane = app.registry.lane_of(name)
+        if lane == "adapter=":
+            named = (args or {}).get("adapter")
+            if named is not None:
+                _guard(str(named))
+            else:
+                with contextlib.suppress(TeeError):  # the sole / declared lane, if any
+                    _guard(_lane(None))
+        elif lane in app.adapters:
+            _guard(lane)
         return app.registry.call(name, args or {})
 
     def batch(ops: list, adapter: str | None = None, label: str | None = None):

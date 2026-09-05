@@ -183,6 +183,9 @@ class TeeApp:
             pass
         self.memory = ProjectMemory(Path(project_root))
         self.registry = ToolRegistry()
+        # A68: search prefers a tool whose lane is served over one whose lane
+        # is not (it would only refuse); the registry asks the app which are.
+        self.registry.served = lambda: set(self.adapters)
         self.response_log = ResponseLog()
         self.config = ProjectConfig.load(project_root)
         self.registry.disabled = set(self.config.disabled_tools)
@@ -789,6 +792,10 @@ class TeeApp:
         if self.default_adapter is not None:
             # Declared, so an omitted adapter= is never a guess (Law 19).
             payload["default_adapter"] = self.default_adapter
+        if len(self.adapters) > 1:
+            # A68: what each lane is FOR and what it takes - the one place a
+            # model can learn it at runtime. One capped line per lane.
+            payload["lanes"] = {name: self._lane_line(name) for name in self.adapters}
         if self.registry.disabled:
             payload["disabled_tools"] = sorted(self.registry.disabled)
         if self.gateway is not None:
@@ -803,6 +810,29 @@ class TeeApp:
         if alerts:
             payload["response_size_alerts"] = alerts
         return payload
+
+    def _lane_line(self, name: str) -> str:
+        """purpose · ops · kinds · tool families, capped (~45 tokens)."""
+        from tee.kernel import lanes as _lanes
+
+        vocab = self.vocab(name)
+        parts = [vocab.purpose or "(no purpose declared)"]
+        if vocab.ops is not None:
+            shown = ", ".join(vocab.ops[:6]) + (
+                f" +{len(vocab.ops) - 6}" if len(vocab.ops) > 6 else ""
+            )
+            parts.append(f"ops {shown}")
+        if vocab.kinds is not None:
+            shown = ", ".join(vocab.kinds[:6]) + (
+                f" +{len(vocab.kinds) - 6}" if len(vocab.kinds) > 6 else ""
+            )
+            parts.append(f"kinds {shown}")
+        families = [f for f in _lanes.families_for(name) if f.endswith("_")]
+        if families:
+            parts.append("tools " + "/".join(families))
+        if not vocab.renders:
+            parts.append("no pixels")
+        return " · ".join(parts)
 
     def recap(self) -> dict[str, Any]:
         """Eviction-safe resume (Phase 8, A12): a compact project recap

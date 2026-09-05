@@ -33,6 +33,25 @@ them. The table is unmoved - 3 still misses exactly one, 5 still finds all 33
 - so four more tools cost the search nothing. That is the result worth having:
 the case for progressive disclosure is that the corpus can grow without the
 reach getting worse, and this is the file that would catch it if it did.
+
+RE-BASELINED 2026-09-05 (A68) on the registry a Desktop server ACTUALLY
+serves: the manifest's three lanes with bl_*/hb_* attached and every kernel
+lane cmd_serve attaches - 173 tools, not the 85 this fixture used to hold.
+The first measurement on it found the old table false: "size from an image"
+ranked `ex_estimate` SIXTH, behind `bl_build_from_plan` (3.0 for the word
+"from" in its name), `pdf_compose`, `sk_body`, `board_compose` and
+`cad_scad_build`, because the tool never said "image" or "size" about
+itself. Tagging it with both - its own vocabulary, nobody else's - put it
+first. Five cases were added (three for the garment lane, which had none,
+and two for the routing this campaign is about), and the table re-run over
+38 cases:
+
+    limit 3   35/38      limit 5   38/38
+    limit 8   38/38      limit 10  38/38
+
+Three now misses three (watermark -> pdf_edit at 4, check the drawing ->
+pk_drawing at 5, best allocation -> quant_optimize at 4), five still finds
+everything, so the default stands on the corpus it is actually used on.
 """
 
 from __future__ import annotations
@@ -41,13 +60,6 @@ import json
 import tempfile
 
 import pytest
-
-from tee.app import TeeApp
-from tee.extract.tools import register_extract_tools
-from tee.kernel.adapter import FakeAdapter
-from tee.pdf import register_pdf_tools
-from tee.pointcloud.tools import register_pointcloud_tools
-from tee.senses import register_sense_tools
 
 CASES = [
     ("write a pdf report", "pdf_compose"),
@@ -93,17 +105,51 @@ CASES = [
     # or an image, so a default of 3 would lose it.
     ("size from an image", "ex_estimate"),
     ("find the best allocation", "quant_optimize"),
+    # A68: the garment lane had no case at all, and the registry this file
+    # measures is now the one a Desktop server serves (bl_*/hb_* attached,
+    # every kernel lane), so the lanes a model routes between are all here
+    ("tech pack for a garment", "sk_techpack"),
+    ("hand the garment to blender", "sk_handoff"),
+    ("plot the pattern at full size", "sk_plot"),
+    ("import a glb into the scene", "as_import"),
+    ("what ops does the mechanical cad lane take", "pk_verbs"),
 ]
 
 
 @pytest.fixture(scope="module")
 def registry():
+    """The registry a Desktop server actually serves (A68): the manifest's
+    three lanes with Blender's own bl_*/hb_* tools attached, and every
+    kernel lane cmd_serve attaches. Until A68 this fixture held 85 tools and
+    said 33/33 at the shipped limit; the 173-tool registry it now holds is
+    what the number has to be true of."""
+    from importlib import import_module
+
+    from tee import cli
+    from tee.adapters.partkiln import PartkilnAdapter
+
+    fake_kernel = import_module("fixtures_partkiln").FakeKernel
     root = tempfile.mkdtemp()
-    app = TeeApp({"blender": FakeAdapter()}, project_root=root)
-    register_extract_tools(app, root)
-    register_sense_tools(app, root)
-    register_pdf_tools(app, root)
-    register_pointcloud_tools(app, root)
+    lanes = [
+        cli._blender_lane("127.0.0.1", 1),  # registers bl_*/hb_*; never contacts a bridge
+        cli.Lane("partkiln", PartkilnAdapter(root, kernel=fake_kernel())),
+        cli._seamkiln_lane(root),
+    ]
+    app = cli.build_app(lanes, root, allow_code_exec=False)
+    store = cli._attach_extract(app, root, with_handoff=True)
+    cli._attach_assets(app, root, store)
+    cli._attach_capture(app, root, store)
+    cli._attach_pointcloud(app, root)
+    cli._attach_pipeline(app, root)
+    cli._attach_design(app, root)
+    cli._attach_senses(app, root)
+    cli._attach_pdf(app, root)
+    cli._attach_purge(app, root)
+    cli._attach_physical(app, root)
+    cli._attach_uefn(app, root)
+    cli._attach_kb(app, root)
+    cli._attach_llm(app, root)
+    cli._attach_web(app, root)
     return app.registry
 
 
@@ -124,8 +170,11 @@ def test_three_would_not_have_been_enough(registry):
     real query lands at rank 4, which is why 5 is the floor rather than the
     smallest defensible-looking number.
 
-    A66: the witness is now "size from an image" -> ex_estimate at rank 4.
-    Recall over CASES is 28/29 at limit 3 and 29/29 at 5, 8 and 10."""
+    A66: the witness was "size from an image" -> ex_estimate at rank 4.
+    A68: on the Desktop registry that query ranks first once the tool says
+    "image" about itself; three other queries land at rank 4-5 (watermark,
+    check the drawing, best allocation). Recall over CASES is 35/38 at
+    limit 3 and 38/38 at 5, 8 and 10."""
     beyond_three = [
         query
         for query, want in CASES
@@ -147,8 +196,8 @@ def test_the_rebaselined_recall_table_holds(registry):
         )
         for limit in (3, 5, 8, 10)
     }
-    assert recall == {3: len(CASES) - 1, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
-    assert len(CASES) == 33  # 2026-09-04, an 85-tool registry (67 before pk_*)
+    assert recall == {3: len(CASES) - 3, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
+    assert len(CASES) == 38  # 2026-09-05, the 173-tool Desktop registry (85 before A68)
 
 
 def test_the_reply_stays_small(registry):

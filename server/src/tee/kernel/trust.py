@@ -254,7 +254,11 @@ _EXPLICIT: dict[str, str] = {
     "as_material": "write-scene",
     "as_photo_material": "write-scene",
     "as_sun": "write-scene",
-    "as_sheet": "write-scene",
+    # A68: as_sheet writes a contact-sheet IMAGE and touches no scene; it was
+    # tabled write-scene by habit. Both are baseline, so nothing is granted
+    # by the correction - but a scene-writing tool must name its lane, and
+    # this one has none to name.
+    "as_sheet": "write-artifacts",
     "as_ingest": "write-state",
     "as_publish_library": "write-state",
     "as_generate": "call-engine",

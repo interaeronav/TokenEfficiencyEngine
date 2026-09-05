@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from tee.kernel import trust, trustctx
+from tee.kernel import lanes, trust, trustctx
 from tee.kernel.errors import TeeError
 
 _TYPE_CHECKS: dict[str, type | tuple[type, ...]] = {
@@ -40,6 +40,12 @@ class VirtualTool:
     # than a habit: a new tool cannot silently escape the check, because the
     # server refuses to boot until someone tables it.
     capability: str | None = None
+    # A68: the served lane this tool touches - an adapter name, lanes.ADAPTER_ARG
+    # for a tool that routes by its own adapter= argument, a proxy label, or
+    # None for an adapter-agnostic tool. Left None, it is resolved from the
+    # lane table AT REGISTRATION, and a scene-writing tool the table does not
+    # know fails at STARTUP (kernel/lanes.py).
+    lane: str | None = None
 
     @property
     def one_line(self) -> str:
@@ -72,6 +78,9 @@ class ToolRegistry:
         self.grants_watcher: Any = None
         self.trust_denials: list[dict[str, Any]] = []  # shadow band, for tee_trust
         self.audit_log = None  # set by the app: side-effecting calls are logged
+        # A68: the served lanes, for search's tie-break; set by the app. None
+        # means "no app": every lane counts as served.
+        self.served: Callable[[], set[str]] | None = None
 
     @property
     def grants(self) -> trust.Grants:
@@ -95,6 +104,9 @@ class ToolRegistry:
                 f"{tool.name}: '{tool.capability}' is not a known capability "
                 f"(kernel/trust.py owns the list)"
             )
+        if tool.lane is None:
+            tool.lane = lanes.lane_for(tool.name)
+        lanes.check(tool)  # a scene-writing tool says which scene, or the server does not boot
         if tool.schema.get("type") != "object":
             raise ValueError(f"{tool.name}: schema must be a plain object schema (A6)")
         props = tool.schema.get("properties", {})
@@ -117,6 +129,12 @@ class ToolRegistry:
 
     def names(self) -> list[str]:
         return sorted(self._tools)
+
+    def lane_of(self, name: str) -> str | None:
+        """The lane a registered tool touches (A68); None for an unknown or
+        adapter-agnostic tool."""
+        tool = self._tools.get(name)
+        return None if tool is None else tool.lane
 
     # -- meta-tool backends ------------------------------------------------
 
@@ -147,6 +165,10 @@ class ToolRegistry:
         against ~488 at a limit of 10, a 51% cut on EVERY search, which is
         the most frequent call TEE makes on its own behalf.
 
+        Re-baselined again 2026-09-05 (A68) on the registry a Desktop server
+        actually serves - 173 tools, 38 cases: limit 3 finds 35, limit 5
+        finds all 38. The 85-tool fixture had hidden one miss at 5.
+
         `tests/test_search_budget.py::test_the_rebaselined_recall_table_holds`
         EXECUTES that table, so the next lane cannot let it go stale here.
 
@@ -159,7 +181,10 @@ class ToolRegistry:
         # that actually stamps watermarks (A48). Short tokens carry no
         # topic and, being substrings, carry maximum noise.
         words = [w for w in re.split(r"[^a-z0-9]+", query.lower()) if len(w) > 2]
-        scored: list[tuple[float, str]] = []
+        # A68: at equal score a tool whose lane is served outranks one whose
+        # lane is not (it would only refuse); agnostic tools count as served.
+        served = self.served() if self.served is not None else None
+        scored: list[tuple[float, int, str]] = []
         for name, tool in self._tools.items():
             if name in self.disabled:
                 continue
@@ -167,6 +192,9 @@ class ToolRegistry:
                 (name.lower(), 3.0),
                 (" ".join(tool.tags).lower(), 2.0),
                 (tool.description.lower(), 1.0),
+                # the lane name LAST: it counts only when nothing else matched
+                # the word, so "blender render" still ranks bl_render by name
+                ((tool.lane or "").lower(), 1.0),
             )
             score = 0.0
             for word in words:
@@ -175,11 +203,19 @@ class ToolRegistry:
                         score += weight
                         break
             if score > 0 or not words:
-                scored.append((score, name))
-        scored.sort(key=lambda pair: (-pair[0], pair[1]))
+                unserved = int(
+                    served is not None
+                    and tool.lane not in (None, lanes.ADAPTER_ARG)
+                    and tool.lane
+                    in {"blender", "unreal", "freecad", "godot", "partkiln", "seamkiln", "fake"}
+                    and tool.lane not in served
+                )
+                scored.append((score, unserved, name))
+        scored.sort(key=lambda row: (-row[0], row[1], row[2]))
         result: dict[str, Any] = {
             "items": [
-                {"name": name, "summary": self._tools[name].one_line} for _, name in scored[:limit]
+                {"name": name, "summary": self._tools[name].one_line}
+                for _, _, name in scored[:limit]
             ]
         }
         if len(scored) > limit:
@@ -199,6 +235,8 @@ class ToolRegistry:
             "description": tool.description,
             "schema": tool.schema,
         }
+        if tool.lane is not None:
+            payload["lane"] = tool.lane  # A68: which served lane it touches
         if tool.examples:
             payload["examples"] = tool.examples
         return payload
