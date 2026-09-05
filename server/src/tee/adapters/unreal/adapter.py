@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from tee.kernel.adapter import AdapterInfo, Diff, Entity
+from tee.kernel.adapter import AdapterInfo, Diff, Entity, LaneVocab
 from tee.kernel.errors import TeeError
 
 from . import blueprint as bp_verify
@@ -56,6 +56,18 @@ class UnrealAdapter:
 
     def probe(self) -> bool:
         return self.wire.probe()
+
+    def vocab(self) -> LaneVocab:
+        """What this lane accepts (A68): the three typed ops codegen compiles,
+        any create kind (an actor class), files through import_asset_file."""
+        return LaneVocab(
+            ops=("create", "set", "delete"),
+            kinds=None,
+            kind_optional=True,
+            imports=("glb", "gltf", "fbx", "obj"),
+            renders=True,
+            purpose="Unreal Editor level: actors, Blueprints, render (pixels)",
+        )
 
     # -- entity ids --------------------------------------------------------
 

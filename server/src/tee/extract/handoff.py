@@ -89,7 +89,14 @@ def plan_to_ops(plan: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     return ops, wall_order
 
 
-def register_handoff_tools(app, store: ExtractStore, registry: FrameRegistry) -> None:
+def register_handoff_tools(
+    app, store: ExtractStore, registry: FrameRegistry, *, blender: bool = True
+) -> None:
+    """The extract-to-scene bridge. `bl_build_from_plan` and
+    `bl_check_against_plan` need a served Blender lane and register only
+    when `blender` is true; `ex_export_ifc` is an offline IFC writer that
+    touches no scene and registers always (A68 - it had been gated on a
+    Blender it never used)."""
     from tee.kernel.registry import VirtualTool
 
     def _plan_fact(source_ref: str) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -109,8 +116,9 @@ def register_handoff_tools(app, store: ExtractStore, registry: FrameRegistry) ->
         ops, wall_order = plan_to_ops(plan)
         created: list[str] = []
         result: dict[str, Any] = {}
+        lane = app.blender_lane()  # A68: the served Blender, by what it can do
         for start in range(0, len(ops), _BATCH_CHUNK):
-            result = app.run_batch("blender", ops[start : start + _BATCH_CHUNK])
+            result = app.run_batch(lane, ops[start : start + _BATCH_CHUNK])
             created.extend(result.get("created", []))
         manifest = {
             "kind": "build_manifest",
@@ -127,7 +135,11 @@ def register_handoff_tools(app, store: ExtractStore, registry: FrameRegistry) ->
             **{k: result[k] for k in ("epoch", "revision") if k in result},
         }
 
-    app.registry.register(
+    def _register_if_blender(tool: Any) -> None:
+        if blender:
+            app.registry.register(tool)
+
+    _register_if_blender(
         VirtualTool(
             name="bl_build_from_plan",
             description=(
@@ -157,8 +169,9 @@ def register_handoff_tools(app, store: ExtractStore, registry: FrameRegistry) ->
                 fix="Run bl_build_from_plan first.",
             )
         wall_map = manifests[-1]["walls"]
-        cache = app.cache("blender")
-        app.warm("blender")
+        lane = app.blender_lane()
+        cache = app.cache(lane)
+        app.warm(lane)
 
         # chain accuracy widens the tolerance honestly; an unregistered plan
         # frame means the plan was built directly in the site frame (identity)
@@ -223,7 +236,7 @@ def register_handoff_tools(app, store: ExtractStore, registry: FrameRegistry) ->
             "conformant": not conflicts,
         }
 
-    app.registry.register(
+    _register_if_blender(
         VirtualTool(
             name="bl_check_against_plan",
             description=(

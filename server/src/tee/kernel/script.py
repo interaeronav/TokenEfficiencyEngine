@@ -19,6 +19,7 @@ checkpointed at first use and rolled back on any uncaught error.
 from __future__ import annotations
 
 import ast
+import contextlib
 import time
 from typing import Any
 
@@ -405,14 +406,24 @@ class _Interp:
         yield from rec(0)
 
 
-def run_script(app, code: str, default_adapter: str = "fake") -> dict[str, Any]:
+def run_script(app, code: str, default_adapter: str | None = None) -> dict[str, Any]:
     """Validate, interpret, and atomically apply one script. Returns only the
     script's `result` (or its last expression) plus a compact side-effect
-    summary - intermediate tool outputs never leave the server."""
+    summary - intermediate tool outputs never leave the server.
+
+    `default_adapter` is the lane tee_script was called with, or None (A68):
+    then batch() routes each batch by content and the reads resolve the lane
+    lazily, so a script on a multi-lane server binds to no lane it did not
+    name."""
     tree = validate_script(code)
 
     calls = {"n": 0}
     touched: dict[str, str] = {}  # adapter -> script-scope checkpoint id
+
+    def _lane(adapter: str | None) -> str:
+        """The lane a read or a guard means: the one named, else the script's,
+        else what the app resolves (the sole lane, or a declared default)."""
+        return app.resolve_adapter(adapter or default_adapter)
 
     def _spend_call(label: str) -> None:
         calls["n"] += 1
@@ -431,36 +442,62 @@ def run_script(app, code: str, default_adapter: str = "fake") -> dict[str, Any]:
         if adapter is None or not adapter.probe():
             return
         cache = app.cache(adapter_name)
-        cp = app.checkpoints.create(adapter, "auto:script", cache.revision)
+        cp = app.checkpoints.create(adapter, "auto:script", cache.revision, lane=adapter_name)
         touched[adapter_name] = cp.id
 
     def call(name: str, args: dict | None = None):
         _spend_call(f"call('{name}')")
-        _guard(default_adapter)
+        # A68: checkpoint ONLY the lane this tool touches (kernel/lanes.py).
+        # An adapter-agnostic tool - pdf_compose, pk_measure, kb_search -
+        # snapshots nothing; before, every call() saved a .blend.
+        lane = app.registry.lane_of(name)
+        if lane == "adapter=":
+            named = (args or {}).get("adapter")
+            if named is not None:
+                _guard(str(named))
+            else:
+                with contextlib.suppress(TeeError):  # the sole / declared lane, if any
+                    _guard(_lane(None))
+        elif lane in app.adapters:
+            _guard(lane)
         return app.registry.call(name, args or {})
 
-    def batch(ops: list, adapter: str = default_adapter, label: str | None = None):
+    def batch(ops: list, adapter: str | None = None, label: str | None = None):
         _spend_call(f"batch({len(ops)} ops)")
-        _guard(adapter)
+        route = app.route_batch(ops, adapter or default_adapter)  # A68: by content
+        _guard(route.adapter)
         # the script-scope checkpoint from _guard owns atomicity here; an
         # inner per-batch checkpoint would be redundant dispatches (A35 P2)
-        return app.run_batch(adapter, ops, label, checkpoint=adapter not in touched)
+        return app.run_batch(
+            route.adapter,
+            ops,
+            label,
+            checkpoint=route.adapter not in touched,
+            routed=route.how,
+        )
 
-    def summary(adapter: str = default_adapter, **kwargs):
+    def summary(adapter: str | None = None, **kwargs):
         _spend_call("summary()")
-        app.warm(adapter)
-        return app.cache(adapter).summary(**kwargs)
+        if adapter is None and default_adapter is None and app.unbound():
+            return app.overview()  # A68: the lanes at a glance
+        lane = _lane(adapter)
+        app.warm(lane)
+        return app.cache(lane).summary(**kwargs)
 
-    def detail(entity_id: str, adapter: str = default_adapter):
+    def detail(entity_id: str, adapter: str | None = None):
         _spend_call("detail()")
-        ent = app.cache(adapter).get(entity_id)
+        if adapter is None and default_adapter is None and app.unbound():
+            lane = app.locate(entity_id)  # A68: found where it lives
+        else:
+            lane = _lane(adapter)
+        ent = app.cache(lane).get(entity_id)
         if ent is None:
-            raise TeeError("unknown_entity", f"No entity '{entity_id}' in '{adapter}'.")
+            raise TeeError("unknown_entity", f"No entity '{entity_id}' in '{lane}'.")
         return ent.detailed()
 
-    def diff(epoch: int, revision: int, adapter: str = default_adapter):
+    def diff(epoch: int, revision: int, adapter: str | None = None):
         _spend_call("diff()")
-        return app.cache(adapter).diff_since(epoch, revision)
+        return app.cache(_lane(adapter)).diff_since(epoch, revision)
 
     env: dict[str, Any] = {
         **_SAFE_BUILTINS,

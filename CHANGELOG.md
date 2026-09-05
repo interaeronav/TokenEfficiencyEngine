@@ -3,6 +3,66 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased — one server, N lanes, no hub (A68, 2026-09-05)
+
+0.21.1 put blender, partkiln and seamkiln in one server and made the first
+listed the default. Everything then went through Blender: a partkiln batch
+with no `adapter=` reached Blender's codegen and came back as a traceback
+naming no other lane, every `tee_script` call took a `.blend` checkpoint even
+for `pdf_compose`, the instructions told every model that TEE "drives Unreal
+Engine and Blender", and the only route from a part to a JPEG was four manual
+calls in "a TEE served on Blender". Research doc 70 is the design of record;
+`CLAUDE_A68_SCRIPT.md` the plan; the owner's rulings are in DECISIONS.
+
+### Content routes; the declared default is opt-in
+
+Every adapter declares what it accepts (`vocab()`: ops, create kinds, import
+suffixes, whether it renders, what it is for). A batch with no `adapter=` on
+a multi-lane server goes where its content says - an entity id to the lane
+that holds it, a create kind to the lane that makes it, a verb to the lane
+that speaks it - and the reply carries `adapter` and `routed`. Two lanes that
+both take a batch refuse naming them (`adapter_required`), an op no lane
+takes refuses naming the lanes that would (`op_not_in_lane`), ops that fit
+different lanes refuse (`batch_spans_lanes`). `tee serve --default-adapter
+NAME` declares a tie-breaker; the order of `--adapter` implies nothing, and
+the Desktop manifest declares none. Single-lane servers change no byte.
+
+### Reads and writes that name no lane
+
+`tee_scene_summary` with no lane is every lane at a glance; `tee_entity_detail`
+finds the id across lanes; `tee_checkpoint` snapshots every lane that holds
+state; `tee_rollback` finds a checkpoint by its global id in the lane that
+owns it; `tee_capture` goes to the one lane that renders; `tee_diff` refuses
+(stamps are per lane). `tee_script` checkpoints ONLY the lane a tool touches:
+`kernel/lanes.py` tables which lane every virtual tool belongs to, a
+write-scene tool with no lane fails at registration, search indexes the lane
+and prefers served lanes at equal score, and `tee_status` reports each lane's
+purpose, ops, kinds and tool families. Nine positional and literal Blender
+defaults in the kernel lanes became capability lookups; a headless lane
+(`pc_`, `pdf_`, `ex_`, `sense_`, `kb_`, the fleet) never touches a DCC.
+
+### The model is told, and the handoff lands
+
+The MCP instructions are built from what the server serves (the lanes and
+their purposes, the routing rule, which lanes never need a DCC), under the
+2 KB a deferring host truncates past; every `adapter=` parameter carries one
+line; `tee_search_tools` examples span the lanes. `pk_export`, `sk_handoff`
+and `fc_export` take `into=<lane|auto>` and land the written file in a served
+scene lane as one checkpointed batch with a read-back verdict - a JPEG of a
+part is `pk_export into=blender` then `tee_capture adapter=blender`. A landing
+is a write-scene the trust kernel decides as one. seamkiln's `ops_for` emitted
+a create of kind `import_file`, which Blender rejects; it now emits the
+`import_file` op.
+
+### Measured (Desktop composition, every call through the MCP layer)
+
+partkiln and seamkiln batches with no `adapter=`: 3 calls → **1**; a script
+calling `kb_status`: 1 Blender checkpoint → **0**; render a part: 4 calls →
+**2**; always-loaded surface 17 tools, 2,033 → 2,129 wire tokens (+96);
+search recall re-baselined on the real 173-tool registry (38 cases, 35 / 38
+/ 38 / 38 at limit 3 / 5 / 8 / 10). `benchmarks/RESULTS.md` and doc 70 §7
+carry the before/after table.
+
 ## 0.21.1 — 2026-09-04
 
 One change, and it is the one that lets Claude Desktop reach the two lanes

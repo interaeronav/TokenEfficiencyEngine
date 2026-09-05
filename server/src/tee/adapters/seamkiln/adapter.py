@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from tee.kernel.adapter import AdapterInfo, Diff, Entity
+from tee.kernel.adapter import AdapterInfo, Diff, Entity, LaneVocab
 from tee.kernel.errors import TeeError
 
 # measured: a .pth written after startup stays invisible (invalidate_caches() too) until restart
@@ -93,6 +93,25 @@ class SeamkilnAdapter:
         return {} if self._session is None else self._session.body_spec
 
     # -- Adapter protocol ---------------------------------------------------
+
+    def vocab(self) -> LaneVocab:
+        """What this lane accepts (A68): the wire verbs and the three create
+        kinds. It renders - through its own headless Blender - so pixels are
+        possible; capture() still refuses honestly when nothing is arranged
+        or no Blender is on the machine."""
+        return LaneVocab(
+            ops=_WIRE_OPS,
+            kinds=_KINDS,
+            kind_optional=False,
+            imports=(),
+            renders=True,
+            purpose="garment CAD + drape, headless: pattern->sew->body->drape->handoff",
+        )
+
+    def can_render(self) -> bool:
+        """Pixels are possible right now: a garment is arranged. (Whether a
+        Blender is on the machine is capture()'s own honest refusal.)"""
+        return self._garment is not None
 
     def info(self) -> AdapterInfo:
         try:
@@ -429,6 +448,7 @@ _PASSTHROUGH = (
     "ease",
 )
 _WIRE_OPS = ("create", "set", "delete", "arrange", *_PASSTHROUGH)
+_KINDS = ("block", "panel", "seam")  # what `create` translates, in _translate
 
 
 def _apply_translated(adapter: SeamkilnAdapter, op: dict, index: int, diff: Diff) -> None:

@@ -10,9 +10,10 @@ protocol, so it arrives with **no new always-loaded tools** —
 ```bash
 uv pip install -e seamkiln            # the kernel
 tee serve --adapter seamkiln --project ~/patterns
-# or, as the Desktop extension serves it - several lanes, the first is the default:
+# or, as the Desktop extension serves it - several lanes, none of them the hub (A68):
 tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/patterns
-#   then a seamkiln batch names its lane:  tee_batch adapter=seamkiln ops=[...]
+#   a batch of seamkiln kinds or verbs (block, panel, seam, sew, drape...) routes here by
+#   content and the reply says so; name the lane only when two could take it
 #   an editable `-e seamkiln` install is a .pth read at interpreter start: restart the server after it
 ```
 
@@ -291,6 +292,15 @@ and conforming importers convert, so a `.glb` gets **no** transform from us
 on its face through the floor. OBJ defines nothing, so there the transform is
 baked into the vertices. Blender and Unreal get load ops; Godot gets files
 and the reason its bridge cannot import a mesh.
+
+From TEE, `sk_handoff out=… into=blender` writes the bundle and lands it in
+the served Blender lane in the same call (A68): the garment and its hardware
+go in as one checkpointed `import_file` batch, no scale (the `.glb` declares
+metres), and the reply's `landed.verify` compares what Blender read back with
+the file's own extents. `into=auto` picks the one served lane that imports
+the file; with no `into` the bundle is written and the load ops handed back,
+as before. The load op is `import_file` — an op, not a create kind; until A68
+`ops_for` emitted a create of kind `import_file`, which Blender rejects.
 
 ## The rules that will bite you first
 

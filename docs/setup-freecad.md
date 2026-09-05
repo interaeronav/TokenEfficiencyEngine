@@ -62,9 +62,12 @@ comes free: `tee_batch` (auto-checkpointed via document save-copies),
   note the hard way: a dimension created in the same GUI dispatch as
   its view caches 0.0; the read-back is a second dispatch that touches
   and recomputes — handled inside the tool, pinned by test.)
-- `fc_export {objects, format: "step"|"glb", path}` — STEP for
-  fabricators; GLB feeds `as_ingest` → `as_import` into Unreal with
-  scale bands and read-back verification.
+- `fc_export {objects, format: "step"|"glb", path, into?}` — STEP for
+  fabricators; a GLB lands in a served scene lane with `into=<lane|auto>`
+  (one checkpointed `import_file` batch, read-back verdict — A68), or
+  feeds `as_ingest` → `as_import` for the asset library with scale bands.
+  A STEP with `into=` is refused (`handoff_import_unsupported`): no scene
+  lane imports it — export the GLB.
 
 ## The recorded acceptance (2026-08-29)
 

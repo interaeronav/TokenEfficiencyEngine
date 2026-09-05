@@ -10,10 +10,16 @@ progressive disclosure of tool surface — and **run work on the cheapest capabl
 engine**: heavy content is processed by local models into compact, cited
 briefs, chores run on local engines with verified results, and the metered
 cloud model spends its tokens only where its judgment is actually needed.
-It ships today with two production adapters, **Unreal Engine** and **Blender**:
-the proving ground where every pattern below is implemented and measured. The
-kernel is tool-agnostic (see [docs/DECISIONS.md](docs/DECISIONS.md), A32); the
-DCC knowledge lives entirely in the adapters.
+One server holds several **lanes** and none of them is the hub (A68):
+**Blender** and **Unreal Engine** for scenes and pixels, **partkiln** for
+mechanical CAD, **seamkiln** for garments and drape, and headless kernel
+lanes — point-cloud scan prep, PDF, extraction, senses, the fleet — that never
+touch a DCC. A batch goes to the lane that accepts what it contains and the
+reply says which; a lane is used only when the work needs it. Blender and
+Unreal remain the proving ground where every pattern below was first
+measured; the kernel is tool-agnostic (see
+[docs/DECISIONS.md](docs/DECISIONS.md), A32) and every lane's knowledge lives
+in its adapter.
 
 ## Why
 
@@ -77,10 +83,19 @@ itself with the savings meter (`report_savings`) and a portable
 
 ## Scope
 
-| Surface | Languages | Interfacing targets |
+| Lane | What it is for | Interfacing targets |
 |---|---|---|
-| Unreal Engine | C++, Blueprints, Python (editor), Verse | Python Editor Scripting, Remote Control API, commandlets |
-| Blender | Python 3, OSL, GLSL, physics solvers | bpy, headless `--background`, live-session bridge add-on |
+| Unreal Engine | levels, actors, Blueprints, render | Epic's MCP plugin, Python Editor Scripting, Remote Control API |
+| Blender | 3D scenes, materials, physics, render (pixels) | bpy, headless `--background`, live-session bridge add-on |
+| partkiln | mechanical CAD, headless: sketch → features → assembly → drawing → STEP | OCCT through the OCP wheel, in-process or a sidecar interpreter |
+| seamkiln | garment CAD + drape, headless: pattern → sew → body → drape → handoff | its own XPBD solver; renders through a headless Blender when asked for pixels |
+| FreeCAD, Godot | fabrication sheets; a headless game scene with `run_scene` evidence | neka-nat's RPC bridge; the Godot socket bridge |
+| headless kernel lanes | point clouds (`pc_*`), PDFs (`pdf_*`), extraction (`ex_*`), senses, the fleet | no DCC, ever |
+
+No lane is the default. A batch with no `adapter=` goes where its content
+says — an entity id to the lane that holds it, a create kind to the lane that
+makes it, a verb to the lane that speaks it — and the reply names the lane;
+an operator may declare a tie-breaker with `tee serve --default-adapter`.
 
 ## Repository layout
 
@@ -135,6 +150,13 @@ extension zip. Skills for Claude live under `skills/` (`tee-usage`,
 | uefn | `uefn_*` | Verse digest facts + lint, Scene Graph vocabulary, Blender→UEFN export lane |
 | pins | `pin_*` | marker actors carrying their own record (Unreal actor tags), filled from free asset sources, export/import across level rebuilds |
 | kb | `kb_*` | read-only, budgeted queries over the Expert Knowledge Base mirror; every answer carries the corpus's own confidence/jurisdiction flags and its Sources block |
+| partkiln | `pk_*` + batch verbs | mechanical CAD on OCCT: measure, check, dimensioned drawings, STEP/GLB export with a handoff manifest, sheet-metal flats, BOM |
+| seamkiln | `sk_*` + batch verbs | garment CAD + drape: blocks, sewing, bodies and gait, fit reports, AAMA/ASTM DXF, tech packs, handoff in the target's units |
+| pointcloud | `pc_*` | scan prep: open/level/scale-verify a raw scan, slice DXF/SVG templates, rectified orthos — the model never sees a point |
+| capture | `capture_*` | reality capture: photogrammetry ingest, reconstruct, ICP register, deviate, apply |
+| pdf, senses | `pdf_*`, `sense_*` | write and page-edit PDFs; vision and hearing for a host model that has none, via local models |
+| fleet | `solve_*`, `quant_*`, `med_*`, `cad_*`, `trade_*`, `bi_*` | fifteen headless services behind lazy imports: solvers, portfolios, DICOM, OpenSCAD, backtests, a semantic layer |
+| pipeline | `pipeline_*` | a project's own declared build steps, run as jobs with artifact diffs |
 
 ## Continuing the build (Claude)
 

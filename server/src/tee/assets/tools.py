@@ -26,10 +26,20 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
     search = AssetSearch(store, backends)
     lane = GenerationLane(builder=lambda: build_drivers(config))
     reg = app.registry
-    default_adapter = next(iter(app.adapters), "fake")
 
-    def _adapter(args: dict[str, Any]) -> str:
-        return str(args.get("adapter") or default_adapter)
+    def _adapter(args: dict[str, Any]) -> str | None:
+        """The lane the caller named, else the sole or declared one, else
+        None - and None means the kernel routes by CONTENT (A68): an import
+        goes where its file suffix can land, a set goes where its entity
+        lives. Never the first adapter listed."""
+        named = args.get("adapter")
+        if named:
+            return str(named)
+        return None if app.unbound() else app.resolve_adapter(None)
+
+    def _scene(args: dict[str, Any]) -> str:
+        """A scene READ needs one lane; an unbound multi-lane server asks."""
+        return app.resolve_adapter(_adapter(args))
 
     # -- sources / search --------------------------------------------------
 
@@ -124,7 +134,7 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
 
     def as_material(args):
         ops, provenance = materials_mod.assign_ops(str(args["id"]), str(args["query"]))
-        batch = app.run_batch(_adapter(args), ops, label=f"material:{provenance['name']}")
+        batch = app.run_routed(ops, _adapter(args), label=f"material:{provenance['name']}")
         return {
             "provenance": provenance,
             **{k: batch[k] for k in ("checkpoint", "modified", "epoch", "revision") if k in batch},
@@ -201,7 +211,11 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
             position["elevation_deg"], str(args.get("weather", "clear"))
         )
         if args.get("apply"):
-            adapter = _adapter(args)
+            # the sun is a light: the lane that makes one, unless named
+            adapter = (
+                _adapter(args)
+                or app.route_batch([{"op": "create", "kind": "light", "name": "Sun"}], None).adapter
+            )
             ops = context_mod.sun_ops(adapter, position)
             batch = app.run_batch(adapter, ops, label="sun")
             out.update(
@@ -240,7 +254,7 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
                 if item.get("id"):
                     ops.append({"op": "set", "id": item["id"], "props": props})
             if ops:
-                batch = app.run_batch(_adapter(args), ops, label="place")
+                batch = app.run_routed(ops, _adapter(args), label="place")
                 out["applied"] = True
                 out.update(
                     {
@@ -315,7 +329,7 @@ def register_asset_tools(app, project_root: Path | str, *, extract_store=None) -
             style_palette = [c["lab"] for c in brief.get("palette", [])] or None
         return verify_scene(
             app,
-            _adapter(args),
+            _scene(args),
             room=args.get("room"),
             region=str(args.get("region", "US")),
             style_palette=style_palette,

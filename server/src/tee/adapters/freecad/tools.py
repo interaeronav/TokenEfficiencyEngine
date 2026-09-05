@@ -201,7 +201,21 @@ def register_freecad_tools(app, adapter: FreeCADAdapter) -> None:
                 f"fc_export: {result['error']}",
                 fix="tee_scene_summary lists current ids.",
             )
-        return {"ok": True, **result, "format": fmt}
+        out = {"ok": True, **result, "format": fmt}
+        into = args.get("into")
+        if into:
+            # A68 P3: land the file in a served scene lane as one checkpointed
+            # batch. FreeCAD's document is millimetres; a GLB declares its own.
+            from tee.kernel.handoff_import import land
+
+            out["landed"] = land(
+                app,
+                files={Path(target).stem: target},
+                into=str(into),
+                units="mm",
+                caller="fc_export",
+            )
+        return out
 
     for tool in [
         VirtualTool(
@@ -241,19 +255,24 @@ def register_freecad_tools(app, adapter: FreeCADAdapter) -> None:
         VirtualTool(
             "fc_export",
             "Export FreeCAD solids for fabricators and engines: STEP "
-            "(geometry, opens everywhere) or glTF/GLB (as_ingest + "
-            "as_import take it into Unreal with scale bands and read-back).",
+            "(geometry, opens everywhere) or glTF/GLB. into=<lane|auto> lands a "
+            "GLB in a served scene lane as one checkpointed batch with read-back; "
+            "as_ingest + as_import remain the asset-library route.",
             {
                 "type": "object",
                 "properties": {
                     "objects": {"type": "array", "items": {"type": "string"}},
                     "format": {"type": "string"},
                     "path": {"type": "string"},
+                    "into": {
+                        "type": "string",
+                        "description": "land the file in this served lane (or auto); glb only",
+                    },
                 },
                 "required": ["objects", "path"],
             },
             fc_export,
-            tags=["freecad", "export", "step", "gltf", "fabrication"],
+            tags=["freecad", "export", "step", "gltf", "glb", "land", "handoff", "fabrication"],
         ),
     ]:
         app.registry.register(tool)

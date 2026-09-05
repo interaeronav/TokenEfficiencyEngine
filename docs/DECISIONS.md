@@ -1776,3 +1776,85 @@ editable install is a `.pth` hook `site.py` reads once at start; measured,
 hint now says "then restart the server". The first theory — a stale import
 cache in `_need()` — was measured wrong before it was acted on, and that
 order of operations is the point.
+
+## No lane is the hub: the declared default becomes opt-in (2026-09-05, A68)
+
+Owner directive: *"Integrate better all components of TEE — too much goes
+through Blender when there are other components that are able to work
+better."* Then, on the first plan: *"Allow to bypass Blender if not required.
+Decentralize the use of Blender or Unreal Engine."* Design of record:
+`docs/research/70-lane-routing-no-hub.md`; plan of record `CLAUDE_A68_SCRIPT.md`.
+
+**This revises the ruling of 2026-09-04 above.** That ruling made the first
+`--adapter` the declared default so that an omitted `adapter=` would "just
+work" on the Desktop server — the tax SI-B6 had refused to impose was
+`adapter=` on every call. Three audits found what that default actually
+does on a three-lane server: every adapter-less call, read or write, lands
+on Blender, and a partkiln op sent there comes back as a raw traceback with no
+hint that another lane accepts it. The default was not routing; it was a hub.
+
+**The kernel routes by content, and declares.** An omitted `adapter=` on a
+batch resolves by what the ops contain — an entity id names the lane whose
+cache holds it, a `create` kind names the lane that can create it, any other
+verb names the lanes that accept it — and the batch goes to the one lane that
+accepts every op, with `adapter` (and how it was chosen) in the reply. When
+several lanes accept the batch, the declared default breaks the tie if one was
+declared; otherwise the refusal names the lanes (SI-B6's loud failure,
+unchanged). When no lane accepts an op, the refusal names the lanes that
+would, per op. So the common case is no longer ambiguous, and the tax that
+justified a positional default no longer exists.
+
+**Therefore the default is opt-in.** `tee serve --default-adapter NAME`
+declares one (Law 19: default and declare — an explicit declaration is
+honoured and `tee_status` reports it). `--adapter` order no longer implies
+it, and the Desktop manifest declares none. Reads without a lane are
+decentralised rather than defaulted: `tee_scene_summary` answers a per-lane
+overview, `tee_entity_detail` finds the lane that holds the id,
+`tee_rollback` finds the lane that owns the checkpoint (ids were global and
+lane-stamped all along), `tee_checkpoint` snapshots every lane that has state,
+`tee_capture` goes to the one lane that can render, and `tee_diff` — whose
+stamps are per lane — asks for the lane by name.
+
+**A headless lane never touches a DCC.** Nine sites defaulted to Blender by
+position (`next(iter(app.adapters))`), by alphabet (`sorted(adapters)[0]`) or
+by name; each now resolves by capability (the served Blender for a tool that
+compiles to bpy; the served lane that can import a file for an importer) and
+refuses `blender_not_served` with the fix when there is none. `tee_script`
+checkpoints only the lane a tool actually touches; a script that calls
+`pdf_compose` takes no Blender snapshot. This is the structural form of
+"bypass Blender if not required".
+
+**Every adapter may declare its vocabulary — ONE optional method.** `vocab()`
+returns ops, create kinds, whether a kind may be omitted, the file suffixes
+it imports, whether it can render, and a one-line purpose. An adapter that
+says nothing claims everything and surfaces as an honest `adapter_required`
+on a multi-lane server until it speaks. partkiln's vocabulary is a closed
+tuple in the adapter (Law 17: routing never waits on the OCP warm-up),
+asserted against `partkiln.document.KINDS` where partkiln imports.
+
+**A scene-writing tool must say which scene.** `kernel/lanes.py` is one table,
+like the trust table: a `write-scene` virtual tool with no lane is a startup
+error. Found while tabling: `as_sheet` was tabled `write-scene` but writes a
+contact-sheet image and touches no scene; its row becomes `write-artifacts`.
+Both capabilities are baseline, so nothing is granted by the correction.
+
+**An export never imports unless told, and then through the trust check.**
+`pk_export`, `sk_handoff` and `fc_export` gain `into=<lane>` (or `auto` for
+the one served lane that can take the file). With no `into` they write a
+file, as before. The landing runs the target lane's `import_file` batch with
+the manifest's units — scale 1.0 for glTF, which is self-describing — and it
+checks `write-scene` at the point of use because the calling tool is
+`write-artifacts`. The partkiln capture refusal, which said "a TEE served on
+partkiln holds only that adapter, so nothing in this session can do it", was
+already false on the Desktop server and now names the two-call route. Found
+on the way: seamkiln's `ops_for` emitted `{"op":"create","kind":"import_file"}`,
+a shape Blender rejects; it now emits the `import_file` op.
+
+**What does not change.** SI-B6's loud refusal on undeclared ambiguity; the
+17-tool surface (the wire may grow under +100 tokens, measured; the
+instructions string stays under 2 KB because Claude Code truncates past it);
+the taint law; the search-vocabulary ruling (the recall table is re-measured
+over the Desktop composition, never edited to fit). Declined by the owner:
+`adapter=` on `bl_build_from_plan` / `bl_check_against_plan` / `capture_apply`
+(they stay Blender-bound, resolved by capability rather than position) and
+wiring the `drafting/` package.

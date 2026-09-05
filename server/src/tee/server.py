@@ -19,17 +19,20 @@ from mcp.server.mcpserver import Image, MCPServer
 
 from tee import __version__
 from tee.app import TeeApp
-from tee.kernel import trust, trustctx
+from tee.kernel import lanes, trust, trustctx
 from tee.kernel.budget import columnarize, enforce_budget
 from tee.kernel.errors import TeeError, internal_error_payload
 from tee.web.tools import WEB_LOOKUP_DESCRIPTION
 
 _CAPTURE_DEFAULT_KB = 16
 _CAPTURE_MAX_KB = 256
+# One line on every adapter= parameter (A68). Short on purpose: it rides on
+# eight tools, and the routing rule itself lives in the instructions.
+ADAPTER_PARAM_DOC = "lane; omit=routed"
 
 _DESC = {
     "tee_status": (
-        "Server, adapter and scene status: connected DCCs, scene revision stamps, "
+        "Server, lane and scene status: served lanes, scene revision stamps, "
         "active jobs, recent checkpoints. recap=true adds a compact project "
         "recap (scene kind counts, last checkpoints, extract store shape, "
         "project memory) rebuilt from server state - every TEE response is "
@@ -48,7 +51,7 @@ _DESC = {
     "tee_scene_summary": (
         "Compact scene summary: entity counts by kind plus a paged entity list "
         "(ids, names, kinds). Filter with kind=/name_contains=, page with "
-        "limit=/offset=. refresh=true rebuilds the cache from the DCC (new "
+        "limit=/offset=. refresh=true rebuilds the cache from the lane (new "
         "epoch). response_format='detailed' adds per-entity summary fields."
     ),
     "tee_entity_detail": (
@@ -63,15 +66,14 @@ _DESC = {
     "tee_batch": (
         "Apply a batch of typed operations atomically-ish with an automatic "
         "checkpoint first. Ops: {op:'create',kind,name,props} | "
-        "{op:'set',id,props} | {op:'delete',id}. Returns the checkpoint id and "
-        "the diff (never the full scene). One batch of N ops costs one round-trip "
-        "- prefer it over N calls."
+        "{op:'set',id,props} | {op:'delete',id} | a lane's own verb. Omit "
+        "adapter= and the ops pick the lane; the reply says which. Returns the "
+        "checkpoint id and the diff (never the full scene). One batch of N ops "
+        "costs one round-trip - prefer it over N calls."
     ),
-    "tee_checkpoint": (
-        "Create a named checkpoint of the current DCC state for later tee_rollback."
-    ),
+    "tee_checkpoint": ("Create a named checkpoint of a lane's state for later tee_rollback."),
     "tee_rollback": (
-        "Roll the DCC back to a checkpoint (by id like 'cp3' or by label). Later "
+        "Roll a lane back to a checkpoint (by id like 'cp3' or by label). Later "
         "checkpoints are discarded; the scene cache re-syncs (new epoch)."
     ),
     "tee_job": (
@@ -104,13 +106,12 @@ _DESC = {
     ),
     "tee_web_lookup": WEB_LOOKUP_DESCRIPTION,
     "tee_search_tools": (
-        "Search the long tail of DCC-specific tools by keywords (e.g. 'blender "
-        "material', 'bake physics'). Returns names + one-line summaries; then "
-        "tee_describe_tool for the schema and tee_call to invoke."
+        "Search the long tail of lane-specific tools by keywords (e.g. 'extrude a "
+        "sketch', 'drape a garment', 'bake physics'). Returns names + one-line "
+        "summaries; then tee_describe_tool for the schema, tee_call to invoke."
     ),
     "tee_describe_tool": (
-        "Full description, argument schema and examples for one virtual tool "
-        "found via tee_search_tools."
+        "Full description, argument schema, examples and lane of a virtual tool."
     ),
     "tee_call": (
         "Invoke a virtual tool by name with a JSON object of arguments (schema "
@@ -195,19 +196,13 @@ def _slim_schema(schema: dict) -> dict:
 
 
 def build_server(app: TeeApp) -> MCPServer:
-    mcp = MCPServer(
-        name="tee",
-        version=__version__,
-        instructions=(
-            "Token Efficiency Engine: drives Unreal Engine and Blender with "
-            "minimal tokens. Reads return compact summaries and diffs, never "
-            "full scene dumps; mutations run as batches with automatic "
-            "checkpoints. Search the long tail of DCC-specific tools with "
-            "tee_search_tools, inspect one with tee_describe_tool, invoke it "
-            "with tee_call. Track (epoch, revision) from responses and use "
-            "tee_diff to see what changed instead of re-reading the scene."
-        ),
-    )
+    # A68: the instructions are built from what THIS server serves - the
+    # lanes and what each is for, that none is the default, how an omitted
+    # adapter= routes, which lanes never need a DCC. A deferring host
+    # (Claude Code) indexes exactly tool names plus this string, so it is the
+    # one sentence a model reads before it searches (research 08); it stays
+    # under 2 KB, the cap past which that host truncates.
+    mcp = MCPServer(name="tee", version=__version__, instructions=lanes.instructions(app))
 
     # -- status / memory ---------------------------------------------------
 
@@ -276,6 +271,10 @@ def build_server(app: TeeApp) -> MCPServer:
         refresh: bool = False,
         response_format: str = "concise",
     ):
+        if adapter is None and app.unbound():
+            # A68: no lane named, none the hub - the server's lanes at a
+            # glance, never one lane's rows by position
+            return {"ok": True, **app.overview()}
         adapter = app.resolve_adapter(adapter)
         if adapter not in app.caches:
             app.adapter(adapter)  # raises with the known-adapter hint
@@ -284,7 +283,7 @@ def build_server(app: TeeApp) -> MCPServer:
             cache.resync(app.adapter(adapter))
         else:
             app.warm(adapter)
-        return {
+        out = {
             "ok": True,
             **cache.summary(
                 limit=limit,
@@ -294,12 +293,18 @@ def build_server(app: TeeApp) -> MCPServer:
                 detailed=response_format == "detailed",
             ),
         }
+        if len(app.adapters) > 1:
+            out["adapter"] = adapter  # Law 5: the reply says where the state is
+        return out
 
     @mcp.tool(structured_output=False, description=_DESC["tee_entity_detail"])
     @_tool(app, "tee_entity_detail")
     def tee_entity_detail(entity_id: str, adapter: str | None = None):
-        adapter = app.resolve_adapter(adapter)
-        app.adapter(adapter)
+        if adapter is None and app.unbound():
+            adapter = app.locate(entity_id)  # A68: found where it lives
+        else:
+            adapter = app.resolve_adapter(adapter)
+            app.adapter(adapter)
         ent = app.cache(adapter).get(entity_id)
         if ent is None:
             raise TeeError(
@@ -307,11 +312,20 @@ def build_server(app: TeeApp) -> MCPServer:
                 f"No entity '{entity_id}' in the {adapter} scene cache.",
                 fix="List ids with tee_scene_summary; refresh=true if the cache is stale.",
             )
-        return {"ok": True, "entity": ent.detailed(), **app.cache(adapter).stamp()}
+        out = {"ok": True, "entity": ent.detailed(), **app.cache(adapter).stamp()}
+        if len(app.adapters) > 1:
+            out["adapter"] = adapter
+        return out
 
     @mcp.tool(structured_output=False, description=_DESC["tee_diff"])
     @_tool(app, "tee_diff")
     def tee_diff(epoch: int, revision: int, adapter: str | None = None):
+        if adapter is None and app.unbound():
+            raise TeeError(
+                "adapter_required",
+                "Stamps are per lane; the reply the stamp came from carries `adapter`.",
+                fix=f"Pass adapter=<lane>: {', '.join(app.adapters)}.",
+            )
         adapter = app.resolve_adapter(adapter)
         app.adapter(adapter)
         app.warm(adapter)
@@ -324,18 +338,25 @@ def build_server(app: TeeApp) -> MCPServer:
     def tee_batch(ops: list[dict[str, Any]], adapter: str | None = None, label: str | None = None):
         if not ops:
             raise TeeError("empty_batch", "ops is empty.", fix="Send at least one operation.")
-        return app.run_batch(app.resolve_adapter(adapter), ops, label)
+        route = app.route_batch(ops, adapter)  # A68: by content when adapter= is omitted
+        return app.run_batch(route.adapter, ops, label, routed=route.how)
 
     @mcp.tool(structured_output=False, description=_DESC["tee_checkpoint"])
     @_tool(app, "tee_checkpoint")
     def tee_checkpoint(label: str, adapter: str | None = None):
+        if adapter is None and app.unbound():
+            return {"ok": True, **app.checkpoint_all(label)}  # A68: every lane with state
         adapter = app.resolve_adapter(adapter)
-        cp = app.checkpoints.create(app.adapter(adapter), label, app.cache(adapter).revision)
+        cp = app.checkpoints.create(
+            app.adapter(adapter), label, app.cache(adapter).revision, lane=adapter
+        )
         return {"ok": True, "checkpoint": cp.to_payload()}
 
     @mcp.tool(structured_output=False, description=_DESC["tee_rollback"])
     @_tool(app, "tee_rollback")
     def tee_rollback(ref: str, adapter: str | None = None):
+        if adapter is None and app.unbound():
+            return app.rollback_ref(ref)  # A68: the checkpoint knows its lane
         return app.rollback(app.resolve_adapter(adapter), ref)
 
     # -- jobs --------------------------------------------------------------
@@ -356,12 +377,13 @@ def build_server(app: TeeApp) -> MCPServer:
         with app.lock:
             try:
                 max_bytes = max(1, min(int(max_kb), _CAPTURE_MAX_KB)) * 1024
-                data = app.adapter(app.resolve_adapter(adapter)).capture(view, max_bytes)
+                lane = app.capture_lane(adapter)  # A68: the one lane that renders
+                data = app.adapter(lane).capture(view, max_bytes)
             except TeeError as exc:
                 return json.dumps(exc.to_payload(), ensure_ascii=False)
             except Exception as exc:
                 return json.dumps(internal_error_payload(exc), ensure_ascii=False)
-            app.response_log.record("tee_capture", {"bytes": len(data)})
+            app.response_log.record("tee_capture", {"bytes": len(data), "adapter": lane})
             return Image(data=data, format="jpeg")
 
     @mcp.tool(structured_output=False, description=_DESC["tee_media"])
@@ -400,7 +422,10 @@ def build_server(app: TeeApp) -> MCPServer:
         from tee.kernel.script import run_script
 
         try:
-            return run_script(app, code, default_adapter=app.resolve_adapter(adapter))
+            # A68: an omitted adapter= stays None - batch() routes by content
+            # and the reads resolve lazily, so a multi-lane script never
+            # binds to one lane it did not name.
+            return run_script(app, code, default_adapter=adapter)
         except TeeError as exc:
             # The rule-6 refusal stands; a local code model may add a repair
             # draft (A34 M2 chore 2) so the client no longer round-trips the
@@ -450,8 +475,13 @@ def build_server(app: TeeApp) -> MCPServer:
 
     # Slim the served schemas in place (SDK-private store: the wire-shape
     # lint in test_server_lint fails loudly if an SDK upgrade re-inflates
-    # or relocates them).
+    # or relocates them). A68: the same pass gives every adapter= parameter
+    # its one line - a bare {"type":"string"} told the model nothing about
+    # what to put there, and SI-B6 forbids a wire DEFAULT, not a description.
     for entry in mcp._tool_manager._tools.values():
         _slim_schema(entry.parameters)
+        prop = (entry.parameters.get("properties") or {}).get("adapter")
+        if prop is not None:
+            prop["description"] = ADAPTER_PARAM_DOC
 
     return mcp

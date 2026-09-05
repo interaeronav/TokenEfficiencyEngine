@@ -12304,3 +12304,160 @@ the venv from the lock, which wipes the five fleet extras AND the editable
 seamkiln install; both go back with two commands, then the server needs a
 restart for the `.pth` to be read. The partkiln sidecar is untouched by any
 of it — that is what the sidecar route is for.
+
+## A68 — no lane is the hub (2026-09-05)
+
+Owner: *"Integrate better all components of TEE — too much goes through
+Blender when there are other components that are able to work better."*
+Then, on the first plan: *"Allow to bypass Blender if not required.
+Decentralize the use of Blender or Unreal Engine."* Plan of record
+`CLAUDE_A68_SCRIPT.md`; design of record `docs/research/70-lane-routing-no-hub.md`;
+the ruling in DECISIONS (*No lane is the hub: the declared default becomes
+opt-in*), which revises 2026-09-04's "first listed is the default".
+
+### P0 — the finding, and the numbers before (2026-09-05)
+
+Three audits of the working tree (dispatch, the component inventory, the
+model-facing text) found the pull toward Blender is structural, in four
+layers — doc 70 §1 cites every line. The one that matters most: a partkiln
+op sent to the Desktop server with no `adapter=` reaches Blender's codegen,
+raises a raw `ValueError`, and comes back as `blender_error` whose fix says
+"roll back with tee_rollback" — nothing names the lane that accepts it. When
+Blender is *down* the refusal does name the other lanes. Better guidance on
+the failure path than on the success path.
+
+**P0b — measured before**, on ONE app composed like the Desktop manifest
+(blender as a stand-in that speaks exactly codegen's vocabulary and answers
+0.21.1's refusal, partkiln on the suite's `FakeKernel`, seamkiln real), every
+call through the real MCP layer (`benchmarks/run_benchmarks.py::run_routing_scenario`,
+new RESULTS section *Lane routing: no lane is the hub (A68)*):
+
+```
+partkiln batch, adapter omitted     3 calls / 731 tok   refused (blender_error); no lane in the fix; asked tee_status; retried
+seamkiln batch, adapter omitted     3 calls / 562 tok   same
+tee_script calling kb_status        1 call  / 586 tok   1 Blender checkpoint taken for an adapter-agnostic tool
+tee_scene_summary, adapter omitted  1 call  /  26 tok   Blender's rows, not the server's lanes
+render a partkiln part              4 calls / 477 tok   pk_export, as_ingest, as_import, tee_capture
+surface 17 tools / 2,033 tok · instructions 433 B · 173 virtual tools · default_adapter blender
+search recall over the FULL composition: limit 3: 29/33 · 5: 32/33 · 8: 33/33 · 10: 33/33
+```
+
+**Two things the before-run found that nobody had measured.** (1) The recall
+table was taken on an 85-tool fixture; on the 173-tool registry a Desktop
+server actually serves, the shipped limit of 5 misses one case — "size from
+an image" wants `ex_estimate` and ranks **sixth**, behind `bl_build_from_plan`,
+`pdf_compose`, `sk_body`, `board_compose`, `cad_scad_build` (A66 recorded it
+at rank 4 on the small corpus). P1d re-baselines on the real composition.
+(2) The suite's `FakeKernel` wrote a nine-byte text file for a GLB, so the
+manual render route could not even be *measured* on it — the asset indexer
+rightly skipped "bracket.glb: missing glTF magic header". It now writes a
+real minimal GLB (header + JSON chunk with the part's extents), which is what
+the handoff rows will land in P3.
+
+Baseline suite on this machine, before any kernel change: **1,402 passed /
+66 skipped / 8 failed**, the eight all environmental (six seamkiln tests
+needing `rtree`, one `[solve]` refusal text, one OpenSCAD-on-PATH); `rtree`
+and `networkx` installed here, the other two stay as they are on the owner's
+machine.
+
+**P1 — the kernel knows its lanes** (five commits: `f9e95b6` 1a, `8a21124`
+1b, `8423cd2` 1c, `97e4a18` 1d, `0272f52` 1e). 1a: `LaneVocab` — the
+optional eighth adapter method, `vocab()` (ops, create kinds, `kind_optional`,
+import suffixes, `renders`, `purpose`), declared by all seven shipped adapters
+and held equal to each one's dispatcher by `test_lane_vocab.py` (Blender's
+parsed from codegen, Godot's from `bridge.gd`; partkiln's static so routing
+never waits on OCP — Law 17); `TeeApp.route_batch` (explicit → entity id →
+create kind → verb → declared default → sole → `adapter_required` /
+`op_not_in_lane` / `batch_spans_lanes`); Blender pre-validates in the kernel
+(`codegen.check_batch` → `bad_op` / `bad_kind`, no wire trip, no traceback)
+and `run_batch` appends the cross-lane hint so no adapter knows the others.
+1b: `--default-adapter NAME` (validated at startup); `build_app` implies
+none; the manifest's args untouched. 1c: `overview`, `locate`,
+`checkpoint_all`, `CheckpointManager.find` (global ids; checkpoint stacks
+keyed by the served lane name — two fakes no longer share a stack, and one
+Blender `info()` wire call per checkpoint is gone), `capture_lane` /
+`renderers`, `rollback_ref`; `tee_script` guards only the tool's own lane
+and reads never checkpoint. 1d: `kernel/lanes.py` — `VirtualTool.lane`
+resolved at registration, the structural law that a `write-scene` /
+`exec-code` tool must name its lane, search's lane haystack (weight 1.0,
+last) with a served tie-break, `tee_status`'s per-lane block; `as_sheet`
+corrected to `write-artifacts` (DECISIONS). The recall table now runs on the
+Desktop composition's real registry: 38 cases, `{3: 35, 5: 38, 8: 38,
+10: 38}` — "size from an image" fixed by `ex_estimate` saying "image" and
+"size" in its own tags, never by touching another lane's. 1e: the nine
+Blender defaults (`next(iter(app.adapters))`, `sorted(adapters)[0]`, the
+literal `"blender"`) became capability lookups (`blender_lane`,
+`importer_lane`, `capture_lane`, `locate`); `as_import` branches by what the
+lane declares; `ex_export_ifc` registers on every server;
+`test_lane_defaults.py` greps the old habits out for good.
+
+**P2 — the model is told** (`bd70096`). `lanes.instructions(app)` builds the
+MCP instructions from the served lanes (purposes trimmed first under the
+2,048 B cap, never the routing rule; tested on the seven-lane and a
+sixty-lane composition); every `adapter=` parameter carries `lane;
+omit=routed` (SI-B6 kept: no wire default); `tee_batch` says the ops pick
+the lane; search examples span the lanes. Measured on the Desktop
+composition: 17 tools, **2,033 → 2,129 wire tokens (+96**, under the +100
+the owner set — the first draft measured +291 and was trimmed word by word);
+instructions 433 B → 1,571 B. README, quickstart (Lanes), troubleshooting
+(the lane refusals), adapter-kit (`vocab()`), the tee-usage skill, the
+manifest's description and keywords, and the two lane guides follow.
+
+**P3 — the handoff lands in-server.** `kernel/handoff_import.land(app,
+files=, into=, units=, expected_dims_m=, caller=)`: `into=` resolves to the
+named lane or, for `auto`, the one served lane whose vocab imports the
+suffix; a lane that cannot import it refuses `handoff_import_unsupported`
+naming one that can or the format to export instead; the landing is a
+write-scene decided by `registry.require()` (the same path as a tool's own
+row, shadow band included — a tainted job is refused, or recorded, exactly
+as a write-scene tool would be); one checkpointed `import_file` batch on
+that lane (Unreal through its content plugin, the `as_import` precedent);
+a read-back verdict against the writer's extents, with a glTF's own declared
+extents standing in when the writer's reply carried none. Scale: 1.0 for
+glb/gltf whatever the source's units, metres-per-declared-unit for formats
+that declare nothing, and a writer that declared none is refused
+(`handoff_units_unknown`), never guessed. Callers: `pk_export into=`
+(`target` defaults to a lane named for its application), `sk_handoff out=
+target= format= hardware= into=` (garment and hardware in ONE batch; the
+verb's load ops are run, not handed back), `fc_export into=`. seamkiln's
+`ops_for` now emits the `import_file` OP (0.21.1 emitted a create of kind
+`import_file`, which Blender rejects — its own test pinned the defect).
+The partkiln capture refusal names the two-call route (`pk_export into=`
+then `tee_capture adapter=`) and says what to do when no lane renders;
+`test_partkiln_capture.py` holds it to that and to naming only tools that
+exist. The acceptance example's step 7 is the two-call route on the ONE app
+holding both lanes. `docs/mac-handoff.md` prescribed no partkiln route and
+was left alone. Tests: `test_handoff_import.py` (23, the sk_handoff landing
+on a real arranged garment among them), seamkiln's `test_handoff.py` green;
+`numba` installed beside the dev venv here, which also turned the five
+"environmental" seamkiln adapter failures green.
+
+**P4 — measured after** (`benchmarks/run_benchmarks.py::run_routing_scenario`,
+same scenario and composition as P0b, the Blender stand-in now declaring
+Blender's vocabulary and pre-validating the way the real adapter does since
+1a; RESULTS section rewritten, doc 70 §7 carries the before/after table):
+
+```
+partkiln batch, adapter omitted     3 calls / 731 tok  ->  1 call / 232 tok   routed by kind; the reply says adapter and routed
+seamkiln batch, adapter omitted     3 calls / 562 tok  ->  1 call /  91 tok   routed by kind
+tee_script calling kb_status        1 Blender checkpoint  ->  0               an adapter-agnostic tool checkpoints nothing
+tee_scene_summary, adapter omitted  1 / 26 (one lane)  ->  1 / 103 (every lane)   the overview costs more than Blender's empty rows and answers the question
+render a partkiln part              4 calls / 477 tok  ->  2 calls / 370 tok  pk_export into=blender, tee_capture adapter=blender
+surface 17 tools / 2,033 tok  ->  17 / 2,129 (+96) · instructions 433 B -> 1,571 B (cap 2,048, tested) · default_adapter blender -> none
+search recall on the real 173-tool registry: 29/32/33/33 of 33  ->  35/38/38/38 of 38 at limit 3/5/8/10
+```
+
+Suite on the P3 snapshot: **1,499 passed / 66 skipped**, `make lint` clean;
+the two fleet refusals that need OpenSCAD on PATH and the `[solve]` extra
+deselected as on 2026-09-04. The seamkiln adapter suite that was
+environmental here is green with `numba` installed beside the dev venv.
+
+Open, and named rather than hidden: the version cut is the owner's call
+(0.22.0 if taken: `server/pyproject.toml`, `server/Makefile`
+`TEE_SERVER_VERSION`, the manifest `version`, `test_a46_version_agrees`);
+the `drafting/` critic is still unreachable from the server (doc 70 names it
+as a gap; the owner declined wiring it this campaign); `tee_script`'s
+`call()` guards a tool's own lane and stays silent when an `adapter=`-routed
+tool names none — the tool itself refuses, so no `script_adapter_required`
+code was added; the acceptance example's step 7 is rewritten to the two-call
+route but this machine has no Blender to run it on.

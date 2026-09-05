@@ -76,6 +76,44 @@ class Diff:
         return d
 
 
+@dataclass(frozen=True)
+class LaneVocab:
+    """What one lane accepts, declared so the kernel can route WITHOUT asking.
+
+    A68: an omitted adapter= resolves by what a batch contains - an entity id,
+    a create kind, an op verb - against these declarations, and the reply
+    says where the batch went. `ops`/`kinds` of None mean the lane claims
+    every verb / every kind (the default for an adapter that declares
+    nothing, which on a multi-lane server surfaces as an honest
+    adapter_required until it does). `kind_optional`: a create with no kind
+    is accepted (Blender makes a cube). `imports`: file suffixes an
+    import_file op lands. `renders`: capture() can answer pixels at all.
+    `purpose`: one line for tee_status and the instructions. Optional for
+    third-party adapters: the eighth method of the kit, `vocab()`."""
+
+    ops: tuple[str, ...] | None = None
+    kinds: tuple[str, ...] | None = None
+    kind_optional: bool = True
+    imports: tuple[str, ...] = ()
+    renders: bool = True
+    purpose: str = ""
+
+    def accepts_op(self, verb: Any) -> bool:
+        return self.ops is None or verb in self.ops
+
+    def accepts_kind(self, kind: Any) -> bool:
+        if kind is None:
+            return self.kind_optional
+        return self.kinds is None or kind in self.kinds
+
+    def accepts(self, op: dict[str, Any]) -> bool:
+        """One op, as the router judges it: verb first, then the create kind."""
+        verb = op.get("op")
+        if not self.accepts_op(verb):
+            return False
+        return verb != "create" or self.accepts_kind(op.get("kind"))
+
+
 @dataclass
 class AdapterInfo:
     id: str
@@ -148,6 +186,18 @@ class FakeAdapter:
 
     def probe(self) -> bool:
         return self._connected
+
+    def vocab(self) -> LaneVocab:
+        """The reference declaration: exactly the ops execute() dispatches,
+        any create kind, a kind-less create accepted."""
+        return LaneVocab(
+            ops=("create", "set", "assign_material", "delete"),
+            kinds=None,
+            kind_optional=True,
+            imports=(),
+            renders=True,
+            purpose="in-memory reference scene",
+        )
 
     def list_entities(self) -> list[Entity]:
         return [copy.deepcopy(e) for e in self._store.values()]

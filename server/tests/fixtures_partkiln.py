@@ -72,6 +72,34 @@ METHODS = (
 )
 
 
+def _write_minimal_glb(path: Path, extents_m: list[float]) -> None:
+    """The smallest GLB `tee.assets.gltf.probe` reads as a mesh with extents:
+    one node, one mesh, one POSITION accessor with min/max, no BIN chunk (the
+    probe reads the JSON chunk only). Twelve-byte header, one padded chunk."""
+    import struct
+
+    doc = {
+        "asset": {"version": "2.0", "generator": "fixtures_partkiln"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": [{"mesh": 0}],
+        "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+        "accessors": [
+            {
+                "type": "VEC3",
+                "componentType": 5126,
+                "count": 8,
+                "min": [0.0, 0.0, 0.0],
+                "max": [round(v, 6) for v in extents_m],
+            }
+        ],
+    }
+    body = json.dumps(doc, separators=(",", ":")).encode()
+    body += b" " * (-len(body) % 4)
+    chunk = struct.pack("<I4s", len(body), b"JSON") + body
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(chunk)) + chunk)
+
+
 class KernelRefusal(Exception):
     """What `partkiln.document.CommandError` looks like from outside: a code,
     a message that names the geometry, and the exact fix. Deliberately NOT a
@@ -409,7 +437,16 @@ class FakeKernel:
             )
         path = Path(str(out))
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(f"FAKE-{fmt.upper()}\n", encoding="utf-8")
+        if fmt == "glb":
+            # A REAL minimal GLB - header plus a JSON chunk whose POSITION
+            # accessor carries the part's extents - so the asset indexer and
+            # the glTF probe accept it (A68: the handoff rows land this file
+            # in a scene lane). Y-up, metres, as glTF states.
+            row = self.state["rows"].get(str(params.get("of") or ""), {})
+            bx, by, bz = (float(v) for v in (row.get("bbox_mm") or [120.0, 80.0, 10.0]))
+            _write_minimal_glb(path, [bx / 1000.0, bz / 1000.0, by / 1000.0])
+        else:
+            path.write_text(f"FAKE-{fmt.upper()}\n", encoding="utf-8")
         return {
             "path": str(path),
             "bytes": path.stat().st_size,

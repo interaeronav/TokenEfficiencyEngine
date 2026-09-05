@@ -18,10 +18,10 @@ import contextlib
 import math
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from tee.config import ProjectConfig
-from tee.kernel.adapter import Adapter
+from tee.kernel.adapter import Adapter, LaneVocab
 from tee.kernel.budget import ResponseLog
 from tee.kernel.checkpoints import CheckpointManager
 from tee.kernel.errors import AdapterUnavailable, TeeError
@@ -29,6 +29,21 @@ from tee.kernel.jobs import JobManager
 from tee.kernel.memory import ProjectMemory
 from tee.kernel.registry import ToolRegistry
 from tee.kernel.scene_cache import SceneCache
+
+
+class Route(NamedTuple):
+    """Where a batch goes and why (A68). `how` is None for an explicit
+    adapter=, else "sole" | "id" | "kind" | "op" | "default"."""
+
+    adapter: str
+    how: str | None
+
+
+# Refusal codes that mean "this lane does not speak that op": the ones the
+# kernel may answer with the lanes that do. Runtime failures stay silent.
+_VOCAB_REFUSALS = frozenset(
+    {"bad_op", "bad_kind", "bad_batch_op", "pk_bad_op", "seamkiln_bad_op", "seamkiln_bad_kind"}
+)
 
 
 def _values_match(requested: Any, actual: Any) -> bool:
@@ -103,6 +118,22 @@ def _trim_batch_echoes(
         payload["names"] = names
 
 
+def _vocab_line(vocab: LaneVocab, limit: int = 8) -> str:
+    """One lane's vocabulary in a refusal, capped: the menu is paid only on
+    error, and even then it must stay a sentence."""
+
+    def clip(items: tuple[str, ...]) -> str:
+        shown = ", ".join(items[:limit])
+        return shown + (f" +{len(items) - limit} more" if len(items) > limit else "")
+
+    ops = "any op" if vocab.ops is None else clip(vocab.ops)
+    if vocab.kinds is None:
+        kinds = "any kind" if vocab.accepts_op("create") else ""
+    else:
+        kinds = "kinds " + clip(vocab.kinds)
+    return f"{ops}" + (f" ({kinds})" if kinds else "")
+
+
 class TeeApp:
     def __init__(
         self,
@@ -115,12 +146,14 @@ class TeeApp:
         from tee.kernel.machine import MachineLedger
 
         self.adapters = adapters
-        # The DECLARED default for an omitted adapter= (Law 19: default and
-        # declare). `tee serve` sets it to the first --adapter listed, so a
-        # Desktop server holding blender + partkiln + seamkiln still routes an
-        # adapter-less batch to Blender. Checked before any side effect: a
-        # default naming no served adapter is a startup error, not a refusal
-        # the model meets on its first call.
+        # The DECLARED default: the lane a batch goes to when SEVERAL lanes
+        # accept it and none was named (Law 19: default and declare). A68:
+        # only `tee serve --default-adapter NAME` sets it - the order of
+        # --adapter implies nothing, so a Desktop server holding blender +
+        # partkiln + seamkiln has no hub; content routes, and a genuinely
+        # ambiguous batch refuses naming the lanes. Checked before any side
+        # effect: a default naming no served adapter is a startup error, not
+        # a refusal the model meets on its first call.
         if default_adapter is not None and default_adapter not in adapters:
             known = ", ".join(adapters) or "(none)"
             raise ValueError(
@@ -150,6 +183,9 @@ class TeeApp:
             pass
         self.memory = ProjectMemory(Path(project_root))
         self.registry = ToolRegistry()
+        # A68: search prefers a tool whose lane is served over one whose lane
+        # is not (it would only refuse); the registry asks the app which are.
+        self.registry.served = lambda: set(self.adapters)
         self.response_log = ResponseLog()
         self.config = ProjectConfig.load(project_root)
         self.registry.disabled = set(self.config.disabled_tools)
@@ -307,8 +343,324 @@ class TeeApp:
             raise unavailable
         return adapter
 
+    def vocab(self, name: str) -> LaneVocab:
+        """What a served lane declares it accepts; a lane that declares
+        nothing (no `vocab()`, or one that fails) claims everything."""
+        fn = getattr(self.adapters[name], "vocab", None)
+        if not callable(fn):
+            return LaneVocab()
+        try:
+            return fn()
+        except Exception:
+            return LaneVocab()
+
+    def route_batch(self, ops: list[dict[str, Any]], adapter: str | None) -> Route:
+        """Which lane a batch goes to, and why (A68: no lane is the hub).
+
+        An explicit adapter= is honoured as given. On a single-lane server
+        the sole lane takes everything, so its payloads never change. On a
+        multi-lane server an omitted adapter= resolves by CONTENT: an op that
+        names an entity goes where that entity lives; a create goes where its
+        kind is made; any other verb goes where it is accepted. One lane that
+        takes every op wins and the reply says so. Several: the declared
+        default breaks the tie if one was declared (Law 19), else the refusal
+        names them (SI-B6). None: the refusal names, per op, the lanes that
+        would take it."""
+        if adapter is not None:
+            return Route(adapter, None)
+        served = list(self.adapters)
+        if len(served) <= 1:
+            return Route(self.resolve_adapter(None), "sole")
+        vocabs = {name: self.vocab(name) for name in served}
+        per_op: list[tuple[str, set[str]]] = []
+        warmed = False
+        for index, op in enumerate(ops):
+            verb = op.get("op")
+            eid = op.get("id")
+            if eid is not None:
+                if not warmed:  # a cold cache holds nothing; warm() is a no-op afterwards
+                    for name in served:
+                        with contextlib.suppress(Exception):
+                            self.warm(name)
+                    warmed = True
+                holders = {n for n in served if self.caches[n].get(str(eid)) is not None}
+                if not holders:
+                    raise TeeError(
+                        "unknown_entity",
+                        f"batch[{index}]: no entity '{eid}' in any served lane "
+                        f"({', '.join(served)}).",
+                        fix="tee_scene_summary(adapter=<lane>) lists ids; refresh=true if the "
+                        "lane changed outside TEE. Or pass adapter= to pin the lane.",
+                    )
+                per_op.append(("id", holders))
+                continue
+            takers = {n for n, v in vocabs.items() if v.accepts(op)}
+            if not takers:
+                raise self._no_lane_for(index, op, vocabs)
+            per_op.append(("kind" if verb == "create" else "op", takers))
+        candidates = set(served)
+        for _, takers in per_op:
+            candidates &= takers
+        if len(candidates) == 1:
+            lane = next(iter(candidates))
+            how = next(k for k in ("id", "kind", "op") if any(kk == k for kk, _ in per_op))
+            return Route(lane, how)
+        if candidates:
+            if self.default_adapter in candidates:
+                return Route(self.default_adapter, "default")
+            names = ", ".join(sorted(candidates))
+            raise TeeError(
+                "adapter_required",
+                f"{len(candidates)} lanes accept this batch: {names}.",
+                fix="Pass adapter=<lane>; tee_status lists each lane's ops and kinds. An "
+                "operator can declare a tie-breaker with `tee serve --default-adapter NAME`.",
+            )
+        where = "; ".join(
+            f"op {i} ({ops[i].get('op')}) fits {', '.join(sorted(takers))}"
+            for i, (_, takers) in enumerate(per_op)
+        )
+        raise TeeError(
+            "batch_spans_lanes",
+            f"No single lane accepts every op: {where}.",
+            fix="A batch is one lane's checkpoint - send one batch per lane (tee_script can "
+            "chain them), or pass adapter= to pin one.",
+        )
+
+    def _no_lane_for(
+        self, index: int, op: dict[str, Any], vocabs: dict[str, LaneVocab]
+    ) -> TeeError:
+        verb = op.get("op")
+        what = f"create kind {op.get('kind')!r}" if verb == "create" else f"op {verb!r}"
+        menu = "; ".join(f"{name}: {_vocab_line(v)}" for name, v in vocabs.items())
+        return TeeError(
+            "op_not_in_lane",
+            f"batch[{index}]: no served lane accepts {what}.",
+            fix=f"Served lanes and what they take - {menu}. Pass adapter= to pin a lane; "
+            "tee_status lists them.",
+        )
+
+    def lane_accepts(self, name: str, ops: list[dict[str, Any]]) -> bool:
+        vocab = self.vocab(name)
+        return all(vocab.accepts(op) for op in ops)
+
+    def _other_lanes_hint(self, lane: str, ops: list[dict[str, Any]], exc: BaseException) -> str:
+        """After a lane refused an op it does not speak: the lanes that would
+        take the whole batch, so the kernel - not the adapter - names them."""
+        if getattr(exc, "code", None) not in _VOCAB_REFUSALS or len(self.adapters) < 2:
+            return ""
+        others = [n for n in self.adapters if n != lane and self.lane_accepts(n, ops)]
+        if not others:
+            return ""
+        return f" Lanes that accept this batch: {', '.join(others)} (pass adapter={others[0]})."
+
     def cache(self, name: str) -> SceneCache:
         return self.caches[name]
+
+    # -- decentralised reads (A68) ----------------------------------------
+    #
+    # On a multi-lane server with no declared default, a read that names no
+    # lane is answered ACROSS lanes rather than defaulted to one: the summary
+    # is an overview, an entity is found where it lives, a checkpoint covers
+    # every lane with state, a rollback finds the lane that owns the ref, and
+    # a capture goes to the one lane that can render. None of them snapshots.
+
+    def unbound(self) -> bool:
+        """Several lanes and no declared default: reads decentralise."""
+        return len(self.adapters) > 1 and self.default_adapter is None
+
+    # -- lanes by capability (A68 P1e) --------------------------------------
+    #
+    # Nine kernel-lane sites used to pick Blender by position (the first
+    # adapter listed), by alphabet, or by name. A headless lane never touches
+    # a DCC; a tool that genuinely needs one finds it by what it can do and
+    # refuses by name when it is not served.
+
+    def run_routed(
+        self, ops: list[dict[str, Any]], adapter: str | None, label: str | None = None
+    ) -> dict[str, Any]:
+        """A batch from a virtual tool: route by content when no lane was
+        named, then run and declare - what tee_batch does."""
+        route = self.route_batch(ops, adapter)
+        return self.run_batch(route.adapter, ops, label, routed=route.how)
+
+    def blender_lane(self, adapter: str | None = None) -> str:
+        """The served lane that runs Blender-side patterns (it executes
+        Python), for the tier-2 modeling ops, the sims, the UEFN export and
+        the extract-to-scene bridge. Named: checked. Unnamed: the one served
+        Blender, found by capability - never by position."""
+        able = [n for n, a in self.adapters.items() if hasattr(a, "execute_python")]
+        if adapter is not None:
+            if adapter not in self.adapters:
+                self.adapter(adapter)  # raises unknown_adapter with the served names
+            if adapter not in able:
+                raise TeeError(
+                    "unsupported_adapter",
+                    f"This tool compiles to Blender-side patterns; lane '{adapter}' cannot run it.",
+                    fix=f"Use the served Blender lane: {', '.join(able) or 'none is served'}.",
+                )
+            return adapter
+        if len(able) == 1:
+            return able[0]
+        if not able:
+            raise TeeError(
+                "blender_not_served",
+                f"This tool needs a Blender lane and none is served (served: "
+                f"{', '.join(self.adapters) or 'none'}).",
+                fix="tee serve --adapter blender ... ; on Desktop start Blender with the "
+                "bridge add-on and check tee_status.",
+            )
+        raise TeeError(
+            "adapter_required",
+            f"{len(able)} served lanes run Blender-side patterns: {', '.join(able)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
+    def importer_lane(self, suffix: str, adapter: str | None = None) -> str:
+        """The served lane that lands a file of this suffix as an import_file
+        op (what its vocab declares under `imports`). Named: as given. On a
+        single-lane or declared-default server: that lane, as before. Else
+        the one lane that takes the suffix, or a refusal naming the lanes."""
+        if adapter is not None:
+            return adapter
+        if not self.unbound():
+            return self.resolve_adapter(None)
+        ext = suffix.lower().lstrip(".")
+        takers = [n for n in self.adapters if ext in self.vocab(n).imports]
+        if len(takers) == 1:
+            return takers[0]
+        if not takers:
+            raise TeeError(
+                "handoff_no_importer",
+                f"No served lane imports '.{ext}' files (served: {', '.join(self.adapters)}).",
+                fix="Serve a lane that imports it (Blender takes glb/gltf/obj/fbx, Unreal "
+                "glb/gltf/fbx/obj), or export a format one of them takes.",
+            )
+        raise TeeError(
+            "handoff_importer_ambiguous",
+            f"{len(takers)} served lanes import '.{ext}': {', '.join(takers)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
+    def _connected(self, name: str) -> bool:
+        try:
+            return bool(self.adapters[name].probe())
+        except Exception:
+            return False
+
+    def overview(self) -> dict[str, Any]:
+        """Every lane's stamp and kind counts - no rows. Connected lanes are
+        warmed first so the counts are the lane's, not an empty cache's."""
+        lanes: dict[str, Any] = {}
+        for name in self.adapters:
+            connected = self._connected(name)
+            if connected:
+                with contextlib.suppress(Exception):
+                    self.warm(name)
+            cache = self.caches[name]
+            kinds: dict[str, int] = {}
+            for entity in cache.entities.values():
+                kinds[entity.kind] = kinds.get(entity.kind, 0) + 1
+            row: dict[str, Any] = {
+                "connected": connected,
+                "entities": len(cache.entities),
+                **cache.stamp(),
+            }
+            if kinds:
+                row["kinds"] = kinds
+            lanes[name] = row
+        return {"lanes": lanes, "note": "pass adapter=<lane> for entity rows"}
+
+    def locate(self, entity_id: str) -> str:
+        """The one served lane whose cache holds the id."""
+        for name in self.adapters:
+            with contextlib.suppress(Exception):
+                self.warm(name)
+        holders = [n for n in self.adapters if self.caches[n].get(entity_id) is not None]
+        if len(holders) == 1:
+            return holders[0]
+        if not holders:
+            raise TeeError(
+                "unknown_entity",
+                f"No entity '{entity_id}' in any served lane ({', '.join(self.adapters)}).",
+                fix="tee_scene_summary(adapter=<lane>) lists ids; refresh=true if the lane "
+                "changed outside TEE.",
+            )
+        raise TeeError(
+            "entity_ambiguous",
+            f"Entity '{entity_id}' exists in {len(holders)} lanes: {', '.join(holders)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
+    def checkpoint_all(self, label: str) -> dict[str, Any]:
+        """One label, every connected lane that holds state; lanes TEE has
+        never touched have nothing a checkpoint could restore and are listed
+        as skipped rather than snapshotted for nothing."""
+        taken: dict[str, str] = {}
+        skipped: list[str] = []
+        for name, adapter in self.adapters.items():
+            if not self._connected(name):
+                skipped.append(name)
+                continue
+            with contextlib.suppress(Exception):
+                self.warm(name)
+            cache = self.caches[name]
+            if not cache.has_state():
+                skipped.append(name)
+                continue
+            cp = self.checkpoints.create(adapter, label, cache.revision, lane=name)
+            taken[name] = cp.id
+        if not taken:
+            raise TeeError(
+                "nothing_to_checkpoint",
+                "No connected lane holds state to snapshot.",
+                fix="Pass adapter=<lane> to checkpoint one lane regardless.",
+            )
+        out: dict[str, Any] = {"checkpoints": taken}
+        if skipped:
+            out["skipped"] = skipped
+        return out
+
+    def renderers(self) -> list[str]:
+        """Connected lanes that can answer pixels right now."""
+        out: list[str] = []
+        for name, adapter in self.adapters.items():
+            if not self.vocab(name).renders or not self._connected(name):
+                continue
+            can = getattr(adapter, "can_render", None)
+            try:
+                if callable(can) and not can():
+                    continue
+            except Exception:
+                continue
+            out.append(name)
+        return out
+
+    def capture_lane(self, adapter: str | None) -> str:
+        """The lane a capture goes to: the one named, the sole or declared
+        lane, else the one connected lane that renders."""
+        if adapter is not None or not self.unbound():
+            return self.resolve_adapter(adapter)
+        lanes = self.renderers()
+        if len(lanes) == 1:
+            return lanes[0]
+        if not lanes:
+            raise TeeError(
+                "capture_no_renderer",
+                "No served lane can render pixels right now.",
+                fix=f"Served: {', '.join(self.adapters)}. Start a lane that renders (Blender, "
+                "Unreal) or arrange a garment in seamkiln, then pass adapter=<lane>. Text-first "
+                "lanes answer tee_scene_summary and their own measure tools instead.",
+            )
+        raise TeeError(
+            "capture_ambiguous",
+            f"{len(lanes)} lanes can render: {', '.join(lanes)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
+    def rollback_ref(self, ref: str) -> dict[str, Any]:
+        """Roll back by ref alone: the checkpoint knows its lane."""
+        lane, cp = self.checkpoints.find(ref)
+        return self.rollback(lane, cp.id)
 
     def warm(self, name: str) -> None:
         """Establish a cache baseline from the DCC on first contact, so diff
@@ -330,17 +682,26 @@ class TeeApp:
         label: str | None = None,
         *,
         checkpoint: bool = True,
+        routed: str | None = None,
     ) -> dict[str, Any]:
         """checkpoint=False is for callers that already hold an enclosing
         checkpoint and roll back on any raise (the script lane): the inner
         checkpoint+restore is then redundant work - on UE it doubled the
         cost of every scripted batch (A35 P2, two extra game-thread
-        dispatches per batch)."""
+        dispatches per batch).
+
+        `routed` is the Route.how the caller resolved; on a multi-lane server
+        the reply always carries `adapter` (Law 5: the reply says where the
+        state is) and, when the kernel decided by content, `routed`."""
         adapter = self.adapter(adapter_name)
         self.warm(adapter_name)
         cache = self.cache(adapter_name)
         cp_label = label or f"auto:batch-r{cache.revision + 1}"
-        cp = self.checkpoints.create(adapter, cp_label, cache.revision) if checkpoint else None
+        cp = (
+            self.checkpoints.create(adapter, cp_label, cache.revision, lane=adapter_name)
+            if checkpoint
+            else None
+        )
         try:
             diff = adapter.execute(ops)
         except Exception as exc:
@@ -359,8 +720,9 @@ class TeeApp:
                         "run tee_scene_summary(refresh=true)"
                     )
             if isinstance(exc, TeeError):
-                fix = f"{exc.fix} Batch {outcome}." if exc.fix else f"Batch {outcome}."
-                raise TeeError(exc.code, exc.message, fix=fix) from exc
+                hint = self._other_lanes_hint(adapter_name, ops, exc)
+                fix = f"{exc.fix}{hint} Batch {outcome}." if exc.fix else f"{hint} Batch {outcome}."
+                raise TeeError(exc.code, exc.message, fix=fix.strip()) from exc
             raise TeeError(
                 "batch_failed",
                 f"Batch failed: {type(exc).__name__}: {exc}",
@@ -376,6 +738,12 @@ class TeeApp:
         if cp is not None:
             payload["checkpoint"] = cp.id
         payload["applied"] = len(ops)
+        if len(self.adapters) > 1:
+            payload["adapter"] = adapter_name
+        if routed in ("id", "kind", "op"):
+            payload["routed"] = f"by {routed}; pass adapter= to pin"
+        elif routed == "default":
+            payload["routed"] = "declared default"
         payload.update(diff.to_payload())
         _trim_batch_echoes(ops, payload, prior)
         return payload
@@ -383,9 +751,12 @@ class TeeApp:
     def rollback(self, adapter_name: str, ref: str) -> dict[str, Any]:
         adapter = self.adapter(adapter_name)
         cache = self.cache(adapter_name)
-        cp = self.checkpoints.rollback(adapter, ref)
+        cp = self.checkpoints.rollback(adapter, ref, lane=adapter_name)
         cache.resync(adapter)  # continuity break + rebuild from restored state
-        return {"ok": True, "restored": cp.to_payload(), **cache.stamp()}
+        out: dict[str, Any] = {"ok": True, "restored": cp.to_payload(), **cache.stamp()}
+        if len(self.adapters) > 1:
+            out["adapter"] = adapter_name
+        return out
 
     def _rootedness(self) -> dict[str, Any]:
         """The project root, where grants would come from, and the tier
@@ -494,6 +865,10 @@ class TeeApp:
         if self.default_adapter is not None:
             # Declared, so an omitted adapter= is never a guess (Law 19).
             payload["default_adapter"] = self.default_adapter
+        if len(self.adapters) > 1:
+            # A68: what each lane is FOR and what it takes - the one place a
+            # model can learn it at runtime. One capped line per lane.
+            payload["lanes"] = {name: self._lane_line(name) for name in self.adapters}
         if self.registry.disabled:
             payload["disabled_tools"] = sorted(self.registry.disabled)
         if self.gateway is not None:
@@ -508,6 +883,29 @@ class TeeApp:
         if alerts:
             payload["response_size_alerts"] = alerts
         return payload
+
+    def _lane_line(self, name: str) -> str:
+        """purpose · ops · kinds · tool families, capped (~45 tokens)."""
+        from tee.kernel import lanes as _lanes
+
+        vocab = self.vocab(name)
+        parts = [vocab.purpose or "(no purpose declared)"]
+        if vocab.ops is not None:
+            shown = ", ".join(vocab.ops[:6]) + (
+                f" +{len(vocab.ops) - 6}" if len(vocab.ops) > 6 else ""
+            )
+            parts.append(f"ops {shown}")
+        if vocab.kinds is not None:
+            shown = ", ".join(vocab.kinds[:6]) + (
+                f" +{len(vocab.kinds) - 6}" if len(vocab.kinds) > 6 else ""
+            )
+            parts.append(f"kinds {shown}")
+        families = [f for f in _lanes.families_for(name) if f.endswith("_")]
+        if families:
+            parts.append("tools " + "/".join(families))
+        if not vocab.renders:
+            parts.append("no pixels")
+        return " · ".join(parts)
 
     def recap(self) -> dict[str, Any]:
         """Eviction-safe resume (Phase 8, A12): a compact project recap
@@ -571,9 +969,9 @@ class TeeApp:
         if self.gateway is not None:
             with contextlib.suppress(Exception):
                 self.gateway.shutdown()
-        for adapter in self.adapters.values():
+        for name, adapter in self.adapters.items():
             with contextlib.suppress(Exception):
-                self.checkpoints.discard_all(adapter)
+                self.checkpoints.discard_all(adapter, lane=name)
             close = getattr(adapter, "close", None)
             if close is not None:
                 with contextlib.suppress(Exception):
