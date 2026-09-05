@@ -126,6 +126,17 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   slice. Every `pc_*` tool is tabled individually in the trust table - there is
   deliberately no `pc_` family row.
 
+- The A68 build (no lane is the hub: content-routed lanes, decentralised
+  Blender/Unreal) is driven by `CLAUDE_A68_SCRIPT.md`; research doc 70 is its
+  design of record. Owner directive (2026-09-05): *"allow to bypass Blender if
+  not required; decentralize the use of Blender or Unreal Engine."* The kernel
+  routes a batch by what it contains (entity id → create kind → op verb) and
+  says where it went; the declared default is opt-in (`--default-adapter`) and
+  the Desktop manifest declares none; a headless lane never touches a DCC; an
+  export lands in a scene lane only when `into=` says so. Every adapter may
+  declare its vocabulary with ONE optional `vocab()`; a `write-scene` virtual
+  tool must name its lane in `kernel/lanes.py` or the server refuses to boot.
+
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured
