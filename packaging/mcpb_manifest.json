@@ -3,8 +3,8 @@
   "name": "Token Efficiency Engine",
   "display_name": "TEE \u2014 Token Efficiency Engine",
   "version": "0.21.1",
-  "description": "Help any AI complete tasks with minimal tokens \u2014 Blender and Unreal Engine adapters included",
-  "long_description": "TEE helps any AI optimize its token usage and improve its work efficiency. It is an AI resource manager between cloud and local intelligence: heavy content becomes compact cited briefs via local models, chores run locally with verified results, and the metered cloud model spends tokens only where its judgment is needed. It is an MCP server between an AI model and the tools it drives \u2014 shipping with Blender and Unreal Engine adapters \u2014 whose core metric is tokens per completed task. Reads return compact summaries and diffs instead of scene dumps, mutations run as checkpointed batches, and the long tail of DCC capability is reached through progressive disclosure rather than hundreds of always-loaded tools.\n\nBlender needs the TEE bridge extension (or the official Blender Lab MCP add-on); Unreal needs UE 5.8+ with Epic's ModelContextProtocol and AllToolsets plugins enabled. See the repository for setup.",
+  "description": "Help any AI complete tasks with minimal tokens \u2014 one server, several lanes (Blender, partkiln mechanical CAD, seamkiln garments, headless point-cloud/PDF/extraction lanes), none of them the hub",
+  "long_description": "TEE helps any AI optimize its token usage and improve its work efficiency. It is an AI resource manager between cloud and local intelligence: heavy content becomes compact cited briefs via local models, chores run locally with verified results, and the metered cloud model spends tokens only where its judgment is needed. It is an MCP server between an AI model and the tools it drives, whose core metric is tokens per completed task. One server holds several lanes \u2014 Blender for scenes and pixels, partkiln for mechanical CAD (sketch to STEP, headless), seamkiln for garments and drape, and headless kernel lanes for point clouds, PDFs, extraction and the senses \u2014 and none of them is the default: a batch goes to the lane that accepts what it contains and the reply says which, a headless lane never touches a DCC, and pixels come only from a lane that renders. Reads return compact summaries and diffs instead of scene dumps, mutations run as checkpointed batches, and the long tail of capability is reached through progressive disclosure rather than hundreds of always-loaded tools.\n\nBlender needs the TEE bridge extension (or the official Blender Lab MCP add-on); partkiln and seamkiln are Python kernels installed per docs/setup-partkiln.md and docs/seamkiln-lane.md; Unreal needs UE 5.8+ with Epic's ModelContextProtocol and AllToolsets plugins enabled. See the repository for setup.",
   "author": {
     "name": "interaeronav",
     "url": "https://github.com/interaeronav/TokenEfficiencyEngine"
@@ -108,6 +108,9 @@
   "keywords": [
     "blender",
     "unreal",
+    "mechanical-cad",
+    "garment-cad",
+    "point-cloud",
     "mcp",
     "token-efficiency",
     "3d",

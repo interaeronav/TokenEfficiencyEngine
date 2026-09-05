@@ -101,6 +101,35 @@ needs a generic fallback (the FreeCAD adapter stores unknown kinds as
 FeaturePython objects with dynamic properties; found by the P4
 rehearsal — this sentence is the kit-bug fix it credited).
 
+## The optional eighth method: `vocab()` (A68)
+
+On a server that holds several lanes, the kernel routes a batch with no
+`adapter=` by what the batch contains, against what each lane DECLARES it
+accepts. An adapter that declares nothing claims every op and every kind,
+which on a multi-lane server surfaces as an honest `adapter_required` for
+anything another lane also takes — so declare:
+
+```python
+from tee.kernel.adapter import LaneVocab
+
+    def vocab(self) -> LaneVocab:
+        return LaneVocab(
+            ops=("create", "set", "delete", "my_verb"),   # None = any verb
+            kinds=("widget", "gadget"),                    # None = any kind
+            kind_optional=False,   # a create with no kind is refused
+            imports=("glb",),      # file suffixes an import_file op lands
+            renders=False,         # can capture() ever answer pixels?
+            purpose="widgets, headless: draft -> check -> export",
+        )
+```
+
+Hold it equal to your dispatcher with a test (TEE's
+`tests/test_lane_vocab.py` does this for every shipped adapter): a
+declaration that drifts routes batches to a lane that will refuse them.
+`purpose` is what `tee_status` and the server instructions say about your
+lane. A lane that can render only sometimes may add `can_render() -> bool`
+(seamkiln: a garment is arranged).
+
 ## Prove it: the packaged contract suite
 
 ```python

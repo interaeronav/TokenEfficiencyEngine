@@ -232,7 +232,7 @@ server, the lanes with purpose, "none is the default unless declared", the
 Unreal; a scene lane only for scene work, pixels only through a lane that
 renders", and when to search the long tail — under 2,048 bytes on the
 seven-lane worst case. `tee_batch` gains one sentence; the search examples
-span lanes; `adapter` params say "lane; omit = routed". Skill, manifest,
+span lanes; `adapter` params say "lane; omit=routed". Skill, manifest,
 README, quickstart, troubleshooting and adapter-kit are reframed from
 "a Blender/Unreal MCP" to "lanes".
 

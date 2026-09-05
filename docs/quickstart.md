@@ -1,8 +1,11 @@
 # TEE quickstart
 
-TEE is an MCP server. Install it, point your MCP client at it, connect a
-DCC (Blender today; Unreal on machines with UE 5.8+), and drive the
-scene through compact, diff-based tools.
+TEE is an MCP server. Install it, point your MCP client at it, and drive
+your lanes through compact, diff-based tools: Blender or Unreal for scenes
+and pixels, partkiln for mechanical CAD, seamkiln for garments, and the
+headless kernel lanes (point clouds, PDFs, extraction, senses, the fleet)
+that never need a DCC at all. One server holds several lanes and none is
+the hub (see *Lanes* below).
 
 ## 1. Install the server
 
@@ -84,6 +87,36 @@ of definitions on the wire). The intended flow:
    `[web]` in the config).
 
 The `skills/tee-usage` skill packages this know-how for Claude.
+
+## 4b. Lanes: one server, several kernels, no hub
+
+```bash
+tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/work
+```
+
+is what the Claude Desktop extension runs. Every lane named is served by the
+one server; a lane whose kernel or application is absent costs a 0.3 s boot
+and an honest refusal naming its install. **No lane is the default** (A68):
+
+- `tee_batch` with no `adapter=` goes where its ops say — an op that names an
+  entity to the lane holding it, a `create` to the lane that makes that
+  `kind`, any other verb to the lane that speaks it — and the reply carries
+  `adapter` (and `routed` when the kernel decided). A batch two lanes accept
+  is refused naming them; an op no lane accepts is refused naming the lanes
+  that would.
+- `tee_scene_summary` with no lane is an overview of every lane;
+  `tee_entity_detail` finds the lane that holds the id; `tee_rollback` finds
+  the lane that owns the checkpoint; `tee_capture` goes to the one lane that
+  can render.
+- `tee_status` names each lane's purpose, ops, kinds and tool families.
+  Prefixes: `bl_`/`hb_` Blender, `pk_` partkiln, `sk_` seamkiln, `ue_`/`pin_`
+  Unreal, `fc_` FreeCAD; `pc_`, `pdf_`, `ex_`, `sense_`, `kb_` and the fleet
+  need no lane.
+- An operator who wants a tie-breaker declares one:
+  `--default-adapter NAME`; `tee_status` reports it.
+- A headless lane never touches a DCC. An export lands in a scene lane only
+  when told (`pk_export ... into=blender`), and pixels only come from a lane
+  that renders.
 
 ## 5. Unreal (physical machine)
 

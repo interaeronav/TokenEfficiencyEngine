@@ -19,17 +19,20 @@ from mcp.server.mcpserver import Image, MCPServer
 
 from tee import __version__
 from tee.app import TeeApp
-from tee.kernel import trust, trustctx
+from tee.kernel import lanes, trust, trustctx
 from tee.kernel.budget import columnarize, enforce_budget
 from tee.kernel.errors import TeeError, internal_error_payload
 from tee.web.tools import WEB_LOOKUP_DESCRIPTION
 
 _CAPTURE_DEFAULT_KB = 16
 _CAPTURE_MAX_KB = 256
+# One line on every adapter= parameter (A68). Short on purpose: it rides on
+# eight tools, and the routing rule itself lives in the instructions.
+ADAPTER_PARAM_DOC = "lane; omit=routed"
 
 _DESC = {
     "tee_status": (
-        "Server, adapter and scene status: connected DCCs, scene revision stamps, "
+        "Server, lane and scene status: served lanes, scene revision stamps, "
         "active jobs, recent checkpoints. recap=true adds a compact project "
         "recap (scene kind counts, last checkpoints, extract store shape, "
         "project memory) rebuilt from server state - every TEE response is "
@@ -48,7 +51,7 @@ _DESC = {
     "tee_scene_summary": (
         "Compact scene summary: entity counts by kind plus a paged entity list "
         "(ids, names, kinds). Filter with kind=/name_contains=, page with "
-        "limit=/offset=. refresh=true rebuilds the cache from the DCC (new "
+        "limit=/offset=. refresh=true rebuilds the cache from the lane (new "
         "epoch). response_format='detailed' adds per-entity summary fields."
     ),
     "tee_entity_detail": (
@@ -63,15 +66,14 @@ _DESC = {
     "tee_batch": (
         "Apply a batch of typed operations atomically-ish with an automatic "
         "checkpoint first. Ops: {op:'create',kind,name,props} | "
-        "{op:'set',id,props} | {op:'delete',id}. Returns the checkpoint id and "
-        "the diff (never the full scene). One batch of N ops costs one round-trip "
-        "- prefer it over N calls."
+        "{op:'set',id,props} | {op:'delete',id} | a lane's own verb. Omit "
+        "adapter= and the ops pick the lane; the reply says which. Returns the "
+        "checkpoint id and the diff (never the full scene). One batch of N ops "
+        "costs one round-trip - prefer it over N calls."
     ),
-    "tee_checkpoint": (
-        "Create a named checkpoint of the current DCC state for later tee_rollback."
-    ),
+    "tee_checkpoint": ("Create a named checkpoint of a lane's state for later tee_rollback."),
     "tee_rollback": (
-        "Roll the DCC back to a checkpoint (by id like 'cp3' or by label). Later "
+        "Roll a lane back to a checkpoint (by id like 'cp3' or by label). Later "
         "checkpoints are discarded; the scene cache re-syncs (new epoch)."
     ),
     "tee_job": (
@@ -104,13 +106,12 @@ _DESC = {
     ),
     "tee_web_lookup": WEB_LOOKUP_DESCRIPTION,
     "tee_search_tools": (
-        "Search the long tail of DCC-specific tools by keywords (e.g. 'blender "
-        "material', 'bake physics'). Returns names + one-line summaries; then "
-        "tee_describe_tool for the schema and tee_call to invoke."
+        "Search the long tail of lane-specific tools by keywords (e.g. 'extrude a "
+        "sketch', 'drape a garment', 'bake physics'). Returns names + one-line "
+        "summaries; then tee_describe_tool for the schema, tee_call to invoke."
     ),
     "tee_describe_tool": (
-        "Full description, argument schema and examples for one virtual tool "
-        "found via tee_search_tools."
+        "Full description, argument schema, examples and lane of a virtual tool."
     ),
     "tee_call": (
         "Invoke a virtual tool by name with a JSON object of arguments (schema "
@@ -195,19 +196,13 @@ def _slim_schema(schema: dict) -> dict:
 
 
 def build_server(app: TeeApp) -> MCPServer:
-    mcp = MCPServer(
-        name="tee",
-        version=__version__,
-        instructions=(
-            "Token Efficiency Engine: drives Unreal Engine and Blender with "
-            "minimal tokens. Reads return compact summaries and diffs, never "
-            "full scene dumps; mutations run as batches with automatic "
-            "checkpoints. Search the long tail of DCC-specific tools with "
-            "tee_search_tools, inspect one with tee_describe_tool, invoke it "
-            "with tee_call. Track (epoch, revision) from responses and use "
-            "tee_diff to see what changed instead of re-reading the scene."
-        ),
-    )
+    # A68: the instructions are built from what THIS server serves - the
+    # lanes and what each is for, that none is the default, how an omitted
+    # adapter= routes, which lanes never need a DCC. A deferring host
+    # (Claude Code) indexes exactly tool names plus this string, so it is the
+    # one sentence a model reads before it searches (research 08); it stays
+    # under 2 KB, the cap past which that host truncates.
+    mcp = MCPServer(name="tee", version=__version__, instructions=lanes.instructions(app))
 
     # -- status / memory ---------------------------------------------------
 
@@ -480,8 +475,13 @@ def build_server(app: TeeApp) -> MCPServer:
 
     # Slim the served schemas in place (SDK-private store: the wire-shape
     # lint in test_server_lint fails loudly if an SDK upgrade re-inflates
-    # or relocates them).
+    # or relocates them). A68: the same pass gives every adapter= parameter
+    # its one line - a bare {"type":"string"} told the model nothing about
+    # what to put there, and SI-B6 forbids a wire DEFAULT, not a description.
     for entry in mcp._tool_manager._tools.values():
         _slim_schema(entry.parameters)
+        prop = (entry.parameters.get("properties") or {}).get("adapter")
+        if prop is not None:
+            prop["description"] = ADAPTER_PARAM_DOC
 
     return mcp

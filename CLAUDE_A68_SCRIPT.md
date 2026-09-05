@@ -156,7 +156,7 @@ and after in tokens per completed task.
 `lanes.instructions(app)` builds the MCP instructions from what is served
 (≤ 2,048 bytes, tested on the seven-lane worst case); `tee_batch` gains one
 sentence; `tee_search_tools` examples span lanes; `adapter` params get
-"lane; omit = routed" (injected in the schema-slimming loop, SDK-independent);
+"lane; omit=routed" (injected in the schema-slimming loop, SDK-independent);
 `skills/tee-usage/SKILL.md`, the manifest text, README, quickstart,
 troubleshooting and adapter-kit reframed. *Acceptance:*
 `tests/test_instructions.py`; `test_server_lint` still 17 tools; the wire

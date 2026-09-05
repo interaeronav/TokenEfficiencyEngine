@@ -10,9 +10,10 @@ protocol, so it arrives with **no new always-loaded tools** —
 ```bash
 uv pip install -e seamkiln            # the kernel
 tee serve --adapter seamkiln --project ~/patterns
-# or, as the Desktop extension serves it - several lanes, the first is the default:
+# or, as the Desktop extension serves it - several lanes, none of them the hub (A68):
 tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/patterns
-#   then a seamkiln batch names its lane:  tee_batch adapter=seamkiln ops=[...]
+#   a batch of seamkiln kinds or verbs (block, panel, seam, sew, drape...) routes here by
+#   content and the reply says so; name the lane only when two could take it
 #   an editable `-e seamkiln` install is a .pth read at interpreter start: restart the server after it
 ```
 

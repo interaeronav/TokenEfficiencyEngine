@@ -109,3 +109,62 @@ def is_adapter_label(lane: str | None, served: set[str] | frozenset[str]) -> boo
     """A lane that is a served adapter's name - what search prefers and the
     script lane checkpoints. ADAPTER_ARG, None and proxy labels are not."""
     return lane is not None and lane in served
+
+
+INSTRUCTIONS_CAP_BYTES = 2_048  # research 08: Claude Code truncates past 2 KB
+
+
+def instructions(app: Any) -> str:
+    """The MCP instructions, built from what THIS server serves (A68).
+
+    A deferring host indexes exactly tool names plus these instructions
+    (research 08), so this is the one sentence a model reads before it
+    searches. It says what is served and what each lane is for, that no lane
+    is the default unless one was declared, how an omitted adapter= routes,
+    which lanes never need a DCC, and when to search the long tail. Always
+    under 2 KB: with many lanes the per-lane purposes are the first thing
+    trimmed, never the routing rule."""
+    served = list(app.adapters)
+    default = getattr(app, "default_adapter", None)
+
+    def lane_lines(with_purpose: bool) -> str:
+        rows = []
+        for name in served:
+            purpose = app.vocab(name).purpose if with_purpose else ""
+            rows.append(f"{name} ({purpose})" if purpose else name)
+        return ", ".join(rows) or "none"
+
+    def build(with_purpose: bool) -> str:
+        parts = [
+            "Token Efficiency Engine: one server, several lanes, none of them the hub. "
+            "Reads return compact summaries and diffs, never full dumps; mutations run as "
+            "checkpointed batches.",
+            f"Lanes served: {lane_lines(with_purpose)}.",
+            (
+                f"Declared default lane: {default} (only for a batch several lanes accept)."
+                if default
+                else "No lane is the default."
+            ),
+            "adapter= names a lane. Omit it and a batch goes where its content says - an "
+            "entity id to the lane that holds it, a create kind to the lane that makes it, a "
+            "verb to the lane that speaks it - and the reply carries adapter (and routed). A "
+            "batch two lanes take is refused naming them; an op no lane takes is refused "
+            "naming the lanes that would. tee_scene_summary with no lane is every lane at a "
+            "glance; tee_status lists each lane's purpose, ops and kinds.",
+            "Headless lanes (partkiln, seamkiln, pc_, pdf_, ex_, sense_, kb_, the fleet) never "
+            "need Blender or Unreal; use a scene lane only for scene work, and ask for pixels "
+            "(tee_capture) only from a lane that renders - text and measurements first.",
+            f"Tool prefixes: {LEGEND}.",
+            "Long tail: tee_search_tools by capability words (extrude a sketch, drape a "
+            "garment, level a scan, bake physics), tee_describe_tool for the schema and the "
+            "tool's lane, tee_call to invoke. Track (epoch, revision) from replies and use "
+            "tee_diff instead of re-reading a scene.",
+        ]
+        return " ".join(parts)
+
+    text = build(True)
+    if len(text.encode()) > INSTRUCTIONS_CAP_BYTES:
+        text = build(False)
+    if len(text.encode()) > INSTRUCTIONS_CAP_BYTES:  # a pathological lane list
+        text = text.encode()[: INSTRUCTIONS_CAP_BYTES - 3].decode(errors="ignore") + "..."
+    return text

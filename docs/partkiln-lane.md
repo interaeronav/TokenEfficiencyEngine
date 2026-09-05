@@ -14,9 +14,10 @@ this shape.
 uv pip install --python server/.venv/bin/python -e partkiln
 
 tee serve --adapter partkiln --project ~/parts
-# or, as the Desktop extension serves it - several lanes, the first is the default:
+# or, as the Desktop extension serves it - several lanes, none of them the hub (A68):
 tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/parts
-#   then a partkiln batch names its lane:  tee_batch adapter=partkiln ops=[...]
+#   a batch of partkiln kinds routes here by content and the reply says so;
+#   name the lane only when two lanes could take it:  tee_batch adapter=partkiln ops=[...]
 ```
 
 The surface before A66 was 17 tools / 2,033 tok. After A66: 17 tools /
