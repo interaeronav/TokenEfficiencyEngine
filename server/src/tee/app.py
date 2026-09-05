@@ -453,6 +453,139 @@ class TeeApp:
     def cache(self, name: str) -> SceneCache:
         return self.caches[name]
 
+    # -- decentralised reads (A68) ----------------------------------------
+    #
+    # On a multi-lane server with no declared default, a read that names no
+    # lane is answered ACROSS lanes rather than defaulted to one: the summary
+    # is an overview, an entity is found where it lives, a checkpoint covers
+    # every lane with state, a rollback finds the lane that owns the ref, and
+    # a capture goes to the one lane that can render. None of them snapshots.
+
+    def unbound(self) -> bool:
+        """Several lanes and no declared default: reads decentralise."""
+        return len(self.adapters) > 1 and self.default_adapter is None
+
+    def _connected(self, name: str) -> bool:
+        try:
+            return bool(self.adapters[name].probe())
+        except Exception:
+            return False
+
+    def overview(self) -> dict[str, Any]:
+        """Every lane's stamp and kind counts - no rows. Connected lanes are
+        warmed first so the counts are the lane's, not an empty cache's."""
+        lanes: dict[str, Any] = {}
+        for name in self.adapters:
+            connected = self._connected(name)
+            if connected:
+                with contextlib.suppress(Exception):
+                    self.warm(name)
+            cache = self.caches[name]
+            kinds: dict[str, int] = {}
+            for entity in cache.entities.values():
+                kinds[entity.kind] = kinds.get(entity.kind, 0) + 1
+            row: dict[str, Any] = {
+                "connected": connected,
+                "entities": len(cache.entities),
+                **cache.stamp(),
+            }
+            if kinds:
+                row["kinds"] = kinds
+            lanes[name] = row
+        return {"lanes": lanes, "note": "pass adapter=<lane> for entity rows"}
+
+    def locate(self, entity_id: str) -> str:
+        """The one served lane whose cache holds the id."""
+        for name in self.adapters:
+            with contextlib.suppress(Exception):
+                self.warm(name)
+        holders = [n for n in self.adapters if self.caches[n].get(entity_id) is not None]
+        if len(holders) == 1:
+            return holders[0]
+        if not holders:
+            raise TeeError(
+                "unknown_entity",
+                f"No entity '{entity_id}' in any served lane ({', '.join(self.adapters)}).",
+                fix="tee_scene_summary(adapter=<lane>) lists ids; refresh=true if the lane "
+                "changed outside TEE.",
+            )
+        raise TeeError(
+            "entity_ambiguous",
+            f"Entity '{entity_id}' exists in {len(holders)} lanes: {', '.join(holders)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
+    def checkpoint_all(self, label: str) -> dict[str, Any]:
+        """One label, every connected lane that holds state; lanes TEE has
+        never touched have nothing a checkpoint could restore and are listed
+        as skipped rather than snapshotted for nothing."""
+        taken: dict[str, str] = {}
+        skipped: list[str] = []
+        for name, adapter in self.adapters.items():
+            if not self._connected(name):
+                skipped.append(name)
+                continue
+            with contextlib.suppress(Exception):
+                self.warm(name)
+            cache = self.caches[name]
+            if not cache.has_state():
+                skipped.append(name)
+                continue
+            cp = self.checkpoints.create(adapter, label, cache.revision, lane=name)
+            taken[name] = cp.id
+        if not taken:
+            raise TeeError(
+                "nothing_to_checkpoint",
+                "No connected lane holds state to snapshot.",
+                fix="Pass adapter=<lane> to checkpoint one lane regardless.",
+            )
+        out: dict[str, Any] = {"checkpoints": taken}
+        if skipped:
+            out["skipped"] = skipped
+        return out
+
+    def renderers(self) -> list[str]:
+        """Connected lanes that can answer pixels right now."""
+        out: list[str] = []
+        for name, adapter in self.adapters.items():
+            if not self.vocab(name).renders or not self._connected(name):
+                continue
+            can = getattr(adapter, "can_render", None)
+            try:
+                if callable(can) and not can():
+                    continue
+            except Exception:
+                continue
+            out.append(name)
+        return out
+
+    def capture_lane(self, adapter: str | None) -> str:
+        """The lane a capture goes to: the one named, the sole or declared
+        lane, else the one connected lane that renders."""
+        if adapter is not None or not self.unbound():
+            return self.resolve_adapter(adapter)
+        lanes = self.renderers()
+        if len(lanes) == 1:
+            return lanes[0]
+        if not lanes:
+            raise TeeError(
+                "capture_no_renderer",
+                "No served lane can render pixels right now.",
+                fix=f"Served: {', '.join(self.adapters)}. Start a lane that renders (Blender, "
+                "Unreal) or arrange a garment in seamkiln, then pass adapter=<lane>. Text-first "
+                "lanes answer tee_scene_summary and their own measure tools instead.",
+            )
+        raise TeeError(
+            "capture_ambiguous",
+            f"{len(lanes)} lanes can render: {', '.join(lanes)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
+    def rollback_ref(self, ref: str) -> dict[str, Any]:
+        """Roll back by ref alone: the checkpoint knows its lane."""
+        lane, cp = self.checkpoints.find(ref)
+        return self.rollback(lane, cp.id)
+
     def warm(self, name: str) -> None:
         """Establish a cache baseline from the DCC on first contact, so diff
         stamps handed to the model are never computed against a cold cache
@@ -488,7 +621,11 @@ class TeeApp:
         self.warm(adapter_name)
         cache = self.cache(adapter_name)
         cp_label = label or f"auto:batch-r{cache.revision + 1}"
-        cp = self.checkpoints.create(adapter, cp_label, cache.revision) if checkpoint else None
+        cp = (
+            self.checkpoints.create(adapter, cp_label, cache.revision, lane=adapter_name)
+            if checkpoint
+            else None
+        )
         try:
             diff = adapter.execute(ops)
         except Exception as exc:
@@ -538,9 +675,12 @@ class TeeApp:
     def rollback(self, adapter_name: str, ref: str) -> dict[str, Any]:
         adapter = self.adapter(adapter_name)
         cache = self.cache(adapter_name)
-        cp = self.checkpoints.rollback(adapter, ref)
+        cp = self.checkpoints.rollback(adapter, ref, lane=adapter_name)
         cache.resync(adapter)  # continuity break + rebuild from restored state
-        return {"ok": True, "restored": cp.to_payload(), **cache.stamp()}
+        out: dict[str, Any] = {"ok": True, "restored": cp.to_payload(), **cache.stamp()}
+        if len(self.adapters) > 1:
+            out["adapter"] = adapter_name
+        return out
 
     def _rootedness(self) -> dict[str, Any]:
         """The project root, where grants would come from, and the tier
@@ -726,9 +866,9 @@ class TeeApp:
         if self.gateway is not None:
             with contextlib.suppress(Exception):
                 self.gateway.shutdown()
-        for adapter in self.adapters.values():
+        for name, adapter in self.adapters.items():
             with contextlib.suppress(Exception):
-                self.checkpoints.discard_all(adapter)
+                self.checkpoints.discard_all(adapter, lane=name)
             close = getattr(adapter, "close", None)
             if close is not None:
                 with contextlib.suppress(Exception):

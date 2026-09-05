@@ -442,7 +442,7 @@ def run_script(app, code: str, default_adapter: str | None = None) -> dict[str, 
         if adapter is None or not adapter.probe():
             return
         cache = app.cache(adapter_name)
-        cp = app.checkpoints.create(adapter, "auto:script", cache.revision)
+        cp = app.checkpoints.create(adapter, "auto:script", cache.revision, lane=adapter_name)
         touched[adapter_name] = cp.id
 
     def call(name: str, args: dict | None = None):
@@ -471,13 +471,18 @@ def run_script(app, code: str, default_adapter: str | None = None) -> dict[str, 
 
     def summary(adapter: str | None = None, **kwargs):
         _spend_call("summary()")
+        if adapter is None and default_adapter is None and app.unbound():
+            return app.overview()  # A68: the lanes at a glance
         lane = _lane(adapter)
         app.warm(lane)
         return app.cache(lane).summary(**kwargs)
 
     def detail(entity_id: str, adapter: str | None = None):
         _spend_call("detail()")
-        lane = _lane(adapter)
+        if adapter is None and default_adapter is None and app.unbound():
+            lane = app.locate(entity_id)  # A68: found where it lives
+        else:
+            lane = _lane(adapter)
         ent = app.cache(lane).get(entity_id)
         if ent is None:
             raise TeeError("unknown_entity", f"No entity '{entity_id}' in '{lane}'.")

@@ -276,6 +276,10 @@ def build_server(app: TeeApp) -> MCPServer:
         refresh: bool = False,
         response_format: str = "concise",
     ):
+        if adapter is None and app.unbound():
+            # A68: no lane named, none the hub - the server's lanes at a
+            # glance, never one lane's rows by position
+            return {"ok": True, **app.overview()}
         adapter = app.resolve_adapter(adapter)
         if adapter not in app.caches:
             app.adapter(adapter)  # raises with the known-adapter hint
@@ -284,7 +288,7 @@ def build_server(app: TeeApp) -> MCPServer:
             cache.resync(app.adapter(adapter))
         else:
             app.warm(adapter)
-        return {
+        out = {
             "ok": True,
             **cache.summary(
                 limit=limit,
@@ -294,12 +298,18 @@ def build_server(app: TeeApp) -> MCPServer:
                 detailed=response_format == "detailed",
             ),
         }
+        if len(app.adapters) > 1:
+            out["adapter"] = adapter  # Law 5: the reply says where the state is
+        return out
 
     @mcp.tool(structured_output=False, description=_DESC["tee_entity_detail"])
     @_tool(app, "tee_entity_detail")
     def tee_entity_detail(entity_id: str, adapter: str | None = None):
-        adapter = app.resolve_adapter(adapter)
-        app.adapter(adapter)
+        if adapter is None and app.unbound():
+            adapter = app.locate(entity_id)  # A68: found where it lives
+        else:
+            adapter = app.resolve_adapter(adapter)
+            app.adapter(adapter)
         ent = app.cache(adapter).get(entity_id)
         if ent is None:
             raise TeeError(
@@ -307,11 +317,20 @@ def build_server(app: TeeApp) -> MCPServer:
                 f"No entity '{entity_id}' in the {adapter} scene cache.",
                 fix="List ids with tee_scene_summary; refresh=true if the cache is stale.",
             )
-        return {"ok": True, "entity": ent.detailed(), **app.cache(adapter).stamp()}
+        out = {"ok": True, "entity": ent.detailed(), **app.cache(adapter).stamp()}
+        if len(app.adapters) > 1:
+            out["adapter"] = adapter
+        return out
 
     @mcp.tool(structured_output=False, description=_DESC["tee_diff"])
     @_tool(app, "tee_diff")
     def tee_diff(epoch: int, revision: int, adapter: str | None = None):
+        if adapter is None and app.unbound():
+            raise TeeError(
+                "adapter_required",
+                "Stamps are per lane; the reply the stamp came from carries `adapter`.",
+                fix=f"Pass adapter=<lane>: {', '.join(app.adapters)}.",
+            )
         adapter = app.resolve_adapter(adapter)
         app.adapter(adapter)
         app.warm(adapter)
@@ -330,13 +349,19 @@ def build_server(app: TeeApp) -> MCPServer:
     @mcp.tool(structured_output=False, description=_DESC["tee_checkpoint"])
     @_tool(app, "tee_checkpoint")
     def tee_checkpoint(label: str, adapter: str | None = None):
+        if adapter is None and app.unbound():
+            return {"ok": True, **app.checkpoint_all(label)}  # A68: every lane with state
         adapter = app.resolve_adapter(adapter)
-        cp = app.checkpoints.create(app.adapter(adapter), label, app.cache(adapter).revision)
+        cp = app.checkpoints.create(
+            app.adapter(adapter), label, app.cache(adapter).revision, lane=adapter
+        )
         return {"ok": True, "checkpoint": cp.to_payload()}
 
     @mcp.tool(structured_output=False, description=_DESC["tee_rollback"])
     @_tool(app, "tee_rollback")
     def tee_rollback(ref: str, adapter: str | None = None):
+        if adapter is None and app.unbound():
+            return app.rollback_ref(ref)  # A68: the checkpoint knows its lane
         return app.rollback(app.resolve_adapter(adapter), ref)
 
     # -- jobs --------------------------------------------------------------
@@ -357,12 +382,13 @@ def build_server(app: TeeApp) -> MCPServer:
         with app.lock:
             try:
                 max_bytes = max(1, min(int(max_kb), _CAPTURE_MAX_KB)) * 1024
-                data = app.adapter(app.resolve_adapter(adapter)).capture(view, max_bytes)
+                lane = app.capture_lane(adapter)  # A68: the one lane that renders
+                data = app.adapter(lane).capture(view, max_bytes)
             except TeeError as exc:
                 return json.dumps(exc.to_payload(), ensure_ascii=False)
             except Exception as exc:
                 return json.dumps(internal_error_payload(exc), ensure_ascii=False)
-            app.response_log.record("tee_capture", {"bytes": len(data)})
+            app.response_log.record("tee_capture", {"bytes": len(data), "adapter": lane})
             return Image(data=data, format="jpeg")
 
     @mcp.tool(structured_output=False, description=_DESC["tee_media"])

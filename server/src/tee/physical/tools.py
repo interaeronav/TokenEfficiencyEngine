@@ -102,7 +102,9 @@ def register_physical_tools(app, project_root: Path | str) -> None:
         adapter_name = _blender_only(args)
         adapter = app.adapter(adapter_name)
         cache = app.cache(adapter_name)
-        checkpoint = app.checkpoints.create(adapter, f"auto:{label}", cache.revision)
+        checkpoint = app.checkpoints.create(
+            adapter, f"auto:{label}", cache.revision, lane=adapter_name
+        )
         out = physics_mod.run_program(app, adapter_name, program)
         cache.resync(adapter)  # sim moved things outside the batch machinery
         return {"checkpoint": checkpoint.id, **out, **cache.stamp()}

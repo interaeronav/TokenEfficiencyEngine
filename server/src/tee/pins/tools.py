@@ -161,7 +161,9 @@ def register_pin_tools(app, project_root: Path | str) -> None:
         location_cm = [float(v) * 100.0 for v in location] if location else None
         yaw = args.get("yaw")
         dcc = app.adapter(adapter)
-        checkpoint = app.checkpoints.create(dcc, f"auto:pin:{pin_id}", app.cache(adapter).revision)
+        checkpoint = app.checkpoints.create(
+            dcc, f"auto:pin:{pin_id}", app.cache(adapter).revision, lane=adapter
+        )
         data = dcc.editor_python(
             program.upsert_program(
                 namespace,

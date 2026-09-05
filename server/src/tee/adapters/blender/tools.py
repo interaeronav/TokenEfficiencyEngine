@@ -67,7 +67,9 @@ def register_blender_tools(
         # (epoch, revision) continuity and sees exactly what the code did.
         app.warm("blender")
         cache = app.cache("blender")
-        cp = app.checkpoints.create(adapter, f"auto:exec-r{cache.revision + 1}", cache.revision)
+        cp = app.checkpoints.create(
+            adapter, f"auto:exec-r{cache.revision + 1}", cache.revision, lane="blender"
+        )
         before = {eid: ent.detailed() for eid, ent in cache.entities.items()}
         out = adapter.execute_python(args["code"], timeout=args.get("timeout") or 60.0)
         after = {e.id: e for e in adapter.list_entities()}

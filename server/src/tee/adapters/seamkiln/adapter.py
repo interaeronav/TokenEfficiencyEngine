@@ -108,6 +108,11 @@ class SeamkilnAdapter:
             purpose="garment CAD + drape, headless: pattern->sew->body->drape->handoff",
         )
 
+    def can_render(self) -> bool:
+        """Pixels are possible right now: a garment is arranged. (Whether a
+        Blender is on the machine is capture()'s own honest refusal.)"""
+        return self._garment is not None
+
     def info(self) -> AdapterInfo:
         try:
             _need_seamkiln()

@@ -203,7 +203,7 @@ def import_asset(
         # rollback guarantee a batch would give.
         dcc = app.adapter(adapter)
         checkpoint = app.checkpoints.create(
-            dcc, f"auto:import:{asset_ref}", app.cache(adapter).revision
+            dcc, f"auto:import:{asset_ref}", app.cache(adapter).revision, lane=adapter
         )
         imported = dcc.import_asset_file(
             source_path,
