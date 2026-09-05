@@ -468,6 +468,79 @@ class TeeApp:
         """Several lanes and no declared default: reads decentralise."""
         return len(self.adapters) > 1 and self.default_adapter is None
 
+    # -- lanes by capability (A68 P1e) --------------------------------------
+    #
+    # Nine kernel-lane sites used to pick Blender by position (the first
+    # adapter listed), by alphabet, or by name. A headless lane never touches
+    # a DCC; a tool that genuinely needs one finds it by what it can do and
+    # refuses by name when it is not served.
+
+    def run_routed(
+        self, ops: list[dict[str, Any]], adapter: str | None, label: str | None = None
+    ) -> dict[str, Any]:
+        """A batch from a virtual tool: route by content when no lane was
+        named, then run and declare - what tee_batch does."""
+        route = self.route_batch(ops, adapter)
+        return self.run_batch(route.adapter, ops, label, routed=route.how)
+
+    def blender_lane(self, adapter: str | None = None) -> str:
+        """The served lane that runs Blender-side patterns (it executes
+        Python), for the tier-2 modeling ops, the sims, the UEFN export and
+        the extract-to-scene bridge. Named: checked. Unnamed: the one served
+        Blender, found by capability - never by position."""
+        able = [n for n, a in self.adapters.items() if hasattr(a, "execute_python")]
+        if adapter is not None:
+            if adapter not in self.adapters:
+                self.adapter(adapter)  # raises unknown_adapter with the served names
+            if adapter not in able:
+                raise TeeError(
+                    "unsupported_adapter",
+                    f"This tool compiles to Blender-side patterns; lane '{adapter}' cannot run it.",
+                    fix=f"Use the served Blender lane: {', '.join(able) or 'none is served'}.",
+                )
+            return adapter
+        if len(able) == 1:
+            return able[0]
+        if not able:
+            raise TeeError(
+                "blender_not_served",
+                f"This tool needs a Blender lane and none is served (served: "
+                f"{', '.join(self.adapters) or 'none'}).",
+                fix="tee serve --adapter blender ... ; on Desktop start Blender with the "
+                "bridge add-on and check tee_status.",
+            )
+        raise TeeError(
+            "adapter_required",
+            f"{len(able)} served lanes run Blender-side patterns: {', '.join(able)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
+    def importer_lane(self, suffix: str, adapter: str | None = None) -> str:
+        """The served lane that lands a file of this suffix as an import_file
+        op (what its vocab declares under `imports`). Named: as given. On a
+        single-lane or declared-default server: that lane, as before. Else
+        the one lane that takes the suffix, or a refusal naming the lanes."""
+        if adapter is not None:
+            return adapter
+        if not self.unbound():
+            return self.resolve_adapter(None)
+        ext = suffix.lower().lstrip(".")
+        takers = [n for n in self.adapters if ext in self.vocab(n).imports]
+        if len(takers) == 1:
+            return takers[0]
+        if not takers:
+            raise TeeError(
+                "handoff_no_importer",
+                f"No served lane imports '.{ext}' files (served: {', '.join(self.adapters)}).",
+                fix="Serve a lane that imports it (Blender takes glb/gltf/obj/fbx, Unreal "
+                "glb/gltf/fbx/obj), or export a format one of them takes.",
+            )
+        raise TeeError(
+            "handoff_importer_ambiguous",
+            f"{len(takers)} served lanes import '.{ext}': {', '.join(takers)}.",
+            fix="Pass adapter=<lane>.",
+        )
+
     def _connected(self, name: str) -> bool:
         try:
             return bool(self.adapters[name].probe())

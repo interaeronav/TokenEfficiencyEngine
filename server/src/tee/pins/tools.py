@@ -49,7 +49,9 @@ def _fill_label(pin_id: str) -> str:
 def register_pin_tools(app, project_root: Path | str) -> None:
     config = getattr(app.config, "pins", {}) or {}
     namespace = str(config.get("namespace") or DEFAULT_NAMESPACE)
-    default_adapter = next(iter(app.adapters), "fake")
+    # A68: pins are Unreal actor tags, so the lane is Unreal - never "whichever
+    # adapter came first". _adapter_name refuses anything else by name.
+    default_adapter = "unreal"
 
     def _adapter_name(args: dict[str, Any]) -> str:
         name = str(args.get("adapter") or default_adapter)

@@ -132,22 +132,29 @@ def import_asset(
     backends: dict[str, Any],
     asset_ref: str,
     *,
-    adapter: str = "blender",
+    adapter: str | None = None,
     asset_class: str | None = None,
     target_dims: list[float] | None = None,
     location: list[float] | None = None,
     rotation: list[float] | None = None,
     name: str | None = None,
 ) -> dict[str, Any]:
+    # A68: the lane is the one named, else the sole or declared one, else -
+    # on an unbound multi-lane server - the one served lane that imports the
+    # file's suffix, decided once the file is known. Never "blender" by name.
+    if adapter is None and not app.unbound():
+        adapter = app.resolve_adapter(None)
     # 1. scene reuse check (asset_in_scene lesson): same asset already
-    #    placed -> report it instead of a second download/import
-    app.warm(adapter)
-    cache = app.caches.get(adapter)
+    #    placed -> report it instead of a second download/import. With no
+    #    lane decided yet, every served lane's cache is checked.
     existing = []
-    if cache is not None:
-        existing = [
-            e.id for e in cache.entities.values() if e.summary.get("asset_key") == asset_ref
-        ]
+    for scope in [adapter] if adapter is not None else list(app.adapters):
+        app.warm(scope)
+        cache = app.caches.get(scope)
+        if cache is not None:
+            existing += [
+                e.id for e in cache.entities.values() if e.summary.get("asset_key") == asset_ref
+            ]
 
     # 2. cache-or-download
     entry = ensure_cached(store, backends, asset_ref)
@@ -194,9 +201,11 @@ def import_asset(
         if entry.get("source") == "local"
         else str(store.asset_dir(entry["hash"]) / entry["primary"])
     )
-    if adapter == "blender":
-        ops = [{"op": "import_file", "path": source_path, "name": display, "props": props}]
-    elif adapter == "unreal":
+    if adapter is None:
+        # A68: the one served lane that imports this suffix, declared
+        adapter = app.importer_lane(source_path.rsplit(".", 1)[-1] if "." in source_path else "")
+    dcc = app.adapters.get(adapter)
+    if hasattr(dcc, "import_asset_file"):
         # Epic's AssetTools cannot import at all, and the sandboxed script lane
         # cannot reach the importer, so this runs through TEE's content plugin
         # rather than the typed batch. Checkpoint by hand to keep the same
@@ -219,6 +228,10 @@ def import_asset(
             **app.cache(adapter).stamp(),
         }
         ops = None
+    elif app.vocab(adapter).accepts_op("import_file"):
+        # Blender-shaped: the typed import_file op through the normal
+        # checkpointed batch (found by what the lane declares, not its name)
+        ops = [{"op": "import_file", "path": source_path, "name": display, "props": props}]
     else:
         if measured:
             props["dims_m"] = [round(v * scale, 4) for v in measured]

@@ -30,22 +30,17 @@ _DETERMINISM = physics_mod.DETERMINISM_NOTE
 
 def register_physical_tools(app, project_root: Path | str) -> None:
     reg = app.registry
-    default_adapter = next(iter(app.adapters), "fake")
 
     def _adapter(args: dict[str, Any]) -> str:
-        return str(args.get("adapter") or default_adapter)
+        """A scene read or sim: the lane named, else the sole or declared
+        one; an unbound multi-lane server asks (A68) rather than taking
+        whichever adapter came first."""
+        return app.resolve_adapter(args.get("adapter"))
 
     def _blender_only(args: dict[str, Any]) -> str:
-        name = _adapter(args)
-        adapter = app.adapters.get(name)
-        if adapter is None or not hasattr(adapter, "execute_python"):
-            raise TeeError(
-                "unsupported_adapter",
-                f"This op compiles to Blender-side patterns; adapter '{name}' cannot run it.",
-                fix="Use the blender adapter (UE Geometry Script targets "
-                "arrive with the physical machine).",
-            )
-        return name
+        """These ops compile to Blender-side patterns: the served Blender,
+        found by what it can do, never by its position in the list."""
+        return app.blender_lane(args.get("adapter"))
 
     # -- tier-2 modeling ---------------------------------------------------
 
@@ -73,8 +68,14 @@ def register_physical_tools(app, project_root: Path | str) -> None:
     # -- materials ---------------------------------------------------------
 
     def mat_assign(args):
-        adapter = _adapter(args)
         entity_id = str(args["id"])
+        named = args.get("adapter")
+        if named:
+            adapter = str(named)
+        elif app.unbound():
+            adapter = app.locate(entity_id)  # A68: where the entity lives
+        else:
+            adapter = app.resolve_adapter(None)
         volume = None
         app.warm(adapter)
         cache = app.caches.get(adapter)

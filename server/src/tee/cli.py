@@ -139,16 +139,17 @@ def build_app(
 
 def _attach_extract(app, project: str, *, with_handoff: bool):
     """Register TEE Extract tools when the extract extra is installed;
-    silently skip otherwise (the kernel works without it)."""
+    silently skip otherwise (the kernel works without it). The handoff
+    module always registers `ex_export_ifc` (an offline IFC writer that needs
+    no scene - A68); its two `bl_*` tools only when a Blender lane is served."""
     try:
         from tee.extract.tools import register_extract_tools
     except ImportError:
         return None
     store, registry = register_extract_tools(app, Path(project))
-    if with_handoff:
-        from tee.extract.handoff import register_handoff_tools
+    from tee.extract.handoff import register_handoff_tools
 
-        register_handoff_tools(app, store, registry)
+    register_handoff_tools(app, store, registry, blender=with_handoff)
     return store
 
 
