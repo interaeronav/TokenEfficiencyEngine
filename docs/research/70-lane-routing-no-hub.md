@@ -225,6 +225,15 @@ for glTF (the double-convert trap both handoff modules document); runs
 Callers: `pk_export into=`, `sk_handoff out= target= into=`, `fc_export into=`.
 The partkiln capture refusal becomes the two-call route.
 
+*As built (P3):* `land(app, files={name: path}, into, units, expected_dims_m,
+caller)` — a bundle's garment and hardware land in ONE batch; the write-scene
+check is `registry.require()`, the same decision path as a tool's own row
+(shadow band included); the 5 % read-back band and `max_deviation` moved
+INTO the kernel and the asset importer now imports them from there; a writer
+that declared no units for a non-self-describing format is refused
+(`handoff_units_unknown`), never guessed; when the writer's reply carried no
+extents, a glTF's own declared extents stand in for the verdict.
+
 ### 4.8 The model is told
 `lanes.instructions(app)` builds the MCP instructions from what is served: one
 server, the lanes with purpose, "none is the default unless declared", the
@@ -256,4 +265,28 @@ the 17-tool surface; the search-vocabulary ruling.
 
 ## 7. Measured after (P4)
 
-*Filled by P4.*
+Same scenario, same composition (`benchmarks/run_benchmarks.py::run_routing_scenario`,
+one app built the way the Desktop manifest serves it, every call through the
+real MCP layer), 2026-09-05. No default declared.
+
+| Task | Before (0.21.1) | After (A68) | What changed |
+|---|---|---|---|
+| partkiln batch, `adapter=` omitted | 3 calls / 731 tok | **1 / 232** | routed by create kind; the reply says `adapter: partkiln`, `routed: by kind` |
+| seamkiln batch, `adapter=` omitted | 3 / 562 | **1 / 91** | routed by create kind |
+| `tee_script` calling `kb_status` | 1 / 586, **1 Blender checkpoint** | 1 / 564, **0** | an adapter-agnostic tool checkpoints nothing |
+| `tee_scene_summary`, `adapter=` omitted | 1 / 26 (one lane's rows) | 1 / 103 (every lane) | the per-lane overview costs more tokens than Blender's empty rows did, and answers the question that was asked |
+| render a partkiln part | 4 / 477 | **2 / 370** | `pk_export into=blender`, then `tee_capture adapter=blender` |
+| always-loaded surface | 17 tools / 2,033 tok | 17 / **2,129** (+96) | one line on eight `adapter=` params, the routing sentence on `tee_batch`, lane-spanning search examples |
+| instructions | 433 B | 1,571 B | built from the served lanes; capped at 2,048 B by test on a seven-lane and a sixty-lane composition |
+| search recall (Desktop composition) | 29 / 32 / 33 / 33 of 33 at limit 3 / 5 / 8 / 10 | **35 / 38 / 38 / 38 of 38** | the recall table runs on the real 173-tool registry; `ex_estimate` says "image" and "size" in its own tags |
+| `default_adapter` in `tee_status` | `blender` | absent | declared only by `--default-adapter` |
+
+Suite: green on every phase's snapshot (`make lint` and the full `pytest`, the
+two fleet refusals that need OpenSCAD / the `[solve]` extra deselected as on
+2026-09-04). The seamkiln adapter suite that was environmental on this machine
+runs green once `numba` is installed beside the dev venv.
+
+What the numbers do not show: the `blender_error` traceback is gone from every
+path (Blender pre-validates in the kernel, no wire trip), the seamkiln
+`ops_for` defect is fixed, and the partkiln capture refusal names a route that
+exists. The version cut is the owner's call (0.22.0 if taken).

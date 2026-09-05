@@ -1331,21 +1331,38 @@ _ROUTING_GARMENT = [{"op": "create", "kind": "block", "props": {"block": "tee"}}
 
 
 def _blender_stand_in():
-    """Blender's vocabulary and 0.21.1's refusal shape, with no bridge.
+    """Blender's vocabulary and refusal shape, with no bridge.
 
-    Used where no Blender binary is on the machine. It accepts exactly the
-    ops and create kinds `adapters/blender/codegen.py` accepts and answers a
-    foreign op the way the real adapter did at 0.21.1 - `blender_error`, a
-    compacted traceback, and a fix that names no other lane. `snapshots`
-    counts checkpoints taken against it, `captures` the pixels asked of it."""
+    Used where no Blender binary is on the machine. It declares exactly the
+    vocabulary `adapters/blender/adapter.py` declares and pre-validates a
+    batch the way that adapter does since A68 P1a - `codegen.check_batch`,
+    so a foreign op is `bad_op`/`bad_kind` carrying Blender's own list
+    (0.21.1 answered `blender_error` with a compacted traceback and a fix
+    naming no other lane; the P0b "before" rows in RESULTS were taken
+    against that shape). An `import_file` lands a mesh whose dimensions are
+    what the GLB declares, so a landing's read-back verdict is real.
+    `snapshots` counts checkpoints taken against it, `captures` the pixels
+    asked of it."""
+    from tee.adapters.blender import codegen
+    from tee.adapters.blender.adapter import BlenderAdapter
     from tee.kernel.adapter import AdapterInfo, FakeAdapter
     from tee.kernel.errors import TeeError
+
+    def declared_dims(path) -> list[float]:
+        try:
+            from tee.assets import gltf
+
+            return [float(v) for v in gltf.probe(Path(str(path)))["extents_m"]]
+        except Exception:
+            return [0.12, 0.08, 0.01]
 
     class BlenderStandIn(FakeAdapter):
         def __init__(self) -> None:
             super().__init__()
             self.snapshots = 0
             self.captures = 0
+
+        vocab = BlenderAdapter.vocab  # the same declaration, from codegen's constants
 
         def info(self) -> AdapterInfo:
             return AdapterInfo(
@@ -1354,28 +1371,17 @@ def _blender_stand_in():
             )
 
         def execute(self, batch):
+            codegen.check_batch(batch)  # what the real adapter does before the wire
             rewritten = []
-            for i, op in enumerate(batch):
+            for op in batch:
                 verb = op.get("op")
-                if verb not in _BLENDER_OPS:
-                    raise TeeError(
-                        "blender_error",
-                        f"ValueError: unknown op {verb!r} (batch index {i})",
-                        fix="If this batch partially applied, roll back with tee_rollback.",
-                    )
-                if verb == "create" and op.get("kind", "cube") not in _BLENDER_KINDS:
-                    raise TeeError(
-                        "blender_error",
-                        f"ValueError: unknown kind {op.get('kind')!r} (batch index {i})",
-                        fix="If this batch partially applied, roll back with tee_rollback.",
-                    )
                 if verb == "import_file":
                     props = dict(op.get("props") or {})
-                    props.setdefault("dimensions", props.get("dims_m") or [0.12, 0.08, 0.01])
+                    props.setdefault("dimensions", declared_dims(op.get("path")))
                     rewritten.append(
                         {"op": "create", "kind": "mesh", "name": op.get("name"), "props": props}
                     )
-                elif verb in _BLENDER_OPS[5:]:
+                elif verb in codegen._MODELING_OPS:
                     raise TeeError("stand_in", f"the stand-in does not model ({verb}).")
                 else:
                     rewritten.append(op)
@@ -2871,10 +2877,23 @@ def _routing_section(f: dict) -> list[str]:
         f"instructions **{f['instructions_bytes']} B**; {f['virtual_tools']} virtual tools "
         f"registered; search recall over this composition {recall}.",
     ]
+    lines += ["", _ROUTING_BEFORE]
     if f.get("seamkiln_note"):
         lines += ["", f"*{f['seamkiln_note']}*"]
     lines.append("")
     return lines
+
+
+# The same scenario on the tree before A68 (0.21.1 behaviour, measured
+# 2026-09-05, P0b): kept in the section so the after-table reads against it.
+_ROUTING_BEFORE = (
+    "Before A68 (same scenario, same composition, declared default blender): partkiln batch "
+    "3 calls / 731 tok and seamkiln batch 3 / 562 (refused `blender_error`, no lane in the fix, "
+    "asked tee_status, retried); tee_script calling kb_status 1 / 586 with 1 Blender "
+    "checkpoint; tee_scene_summary 1 / 26 (one lane's rows, not the server's lanes); render a "
+    "partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / "
+    "2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33."
+)
 
 
 def _seamkiln_section(row: dict) -> list[str]:

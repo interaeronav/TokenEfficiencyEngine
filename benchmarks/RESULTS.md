@@ -330,17 +330,19 @@ A 279,352-point room scan taken from raw file to a scale-verified DXF the owner 
 
 ## Lane routing: no lane is the hub (A68)
 
-One server composed like the Desktop manifest (blender, partkiln, seamkiln; declared default: blender), every call through the real MCP layer. A row completes its task the way a model that knows nothing about lanes would: no adapter=; if refused and the refusal names the lane, retry with it; if it does not, ask tee_status and then retry.
+One server composed like the Desktop manifest (blender, partkiln, seamkiln; declared default: none), every call through the real MCP layer. A row completes its task the way a model that knows nothing about lanes would: no adapter=; if refused and the refusal names the lane, retry with it; if it does not, ask tee_status and then retry.
 
 | Task | Calls | Tokens | What happened |
 |---|---|---|---|
-| partkiln batch, adapter omitted | 3 | 731 | refused (blender_error); no lane in the fix, asked tee_status; retried ok |
-| seamkiln batch, adapter omitted | 3 | 562 | refused (blender_error); no lane in the fix, asked tee_status; retried ok |
-| tee_script calling kb_status | 1 | 586 | 1 Blender checkpoint(s) |
-| tee_scene_summary, adapter omitted | 1 | 26 | one lane's rows |
-| render a partkiln part | 4 | 477 | pk_export, as_ingest, as_import, tee_capture |
+| partkiln batch, adapter omitted | 1 | 232 | by kind; pass adapter= to pin |
+| seamkiln batch, adapter omitted | 1 | 91 | by kind; pass adapter= to pin |
+| tee_script calling kb_status | 1 | 564 | 0 Blender checkpoint(s) |
+| tee_scene_summary, adapter omitted | 1 | 103 | lanes overview |
+| render a partkiln part | 2 | 370 | pk_export into= then tee_capture |
 
-Always-loaded surface 17 tools / **2,033** wire tokens; instructions **433 B**; 173 virtual tools registered; search recall over this composition limit 3: 29/33, limit 5: 32/33, limit 8: 33/33, limit 10: 33/33.
+Always-loaded surface 17 tools / **2,129** wire tokens; instructions **1571 B**; 173 virtual tools registered; search recall over this composition limit 3: 35/38, limit 5: 38/38, limit 8: 38/38, limit 10: 38/38.
+
+Before A68 (same scenario, same composition, declared default blender): partkiln batch 3 calls / 731 tok and seamkiln batch 3 / 562 (refused `blender_error`, no lane in the fix, asked tee_status, retried); tee_script calling kb_status 1 / 586 with 1 Blender checkpoint; tee_scene_summary 1 / 26 (one lane's rows, not the server's lanes); render a partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / 2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33.
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 

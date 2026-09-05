@@ -127,8 +127,9 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   deliberately no `pc_` family row.
 
 - The A68 build (no lane is the hub: content-routed lanes, decentralised
-  Blender/Unreal) is driven by `CLAUDE_A68_SCRIPT.md`; research doc 70 is its
-  design of record. Owner directive (2026-09-05): *"allow to bypass Blender if
+  Blender/Unreal) is **COMPLETE**, P0–P4 (2026-09-05), measured before and
+  after in `benchmarks/RESULTS.md`; `CLAUDE_A68_SCRIPT.md` is its plan of
+  record and research doc 70 its design of record. Owner directive (2026-09-05): *"allow to bypass Blender if
   not required; decentralize the use of Blender or Unreal Engine."* The kernel
   routes a batch by what it contains (entity id → create kind → op verb) and
   says where it went; the declared default is opt-in (`--default-adapter`) and
