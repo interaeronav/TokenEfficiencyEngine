@@ -16,6 +16,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from tee.kernel.errors import TeeError
+
 PRELUDE = """
 import bpy
 import bmesh
@@ -326,6 +328,63 @@ _MODELING_OPS = (
     "profile_extrude",
     "param_set",
 )
+
+# A68: the vocabulary the interpreter above dispatches, declared once so the
+# kernel can route to Blender by content and refuse BEFORE the wire what the
+# interpreter would refuse inside Blender. tests/test_lane_vocab.py parses
+# BATCH_INTERPRETER and _create to hold these equal to the strings.
+BASE_OPS = ("create", "set", "delete", "assign_material", "import_file")
+CREATE_KINDS = (
+    "cube",
+    "plane",
+    "uv_sphere",
+    "ico_sphere",
+    "cylinder",
+    "cone",
+    "torus",
+    "monkey",
+    "empty",
+    "light",
+    "camera",
+)
+IMPORT_SUFFIXES = ("gltf", "glb", "obj", "fbx")
+
+
+def check_batch(ops: list[dict[str, Any]]) -> None:
+    """Refuse an op the interpreter would raise on, as a rule-6 TeeError.
+
+    Before A68 an unknown op reached Blender, raised a Python ValueError and
+    came back as `blender_error` plus a compacted traceback whose fix said
+    "roll back with tee_rollback" - nothing named the lane that accepts it.
+    Now the refusal is structured, costs no wire trip, and the kernel can
+    append the lanes that would accept the batch."""
+    for i, op in enumerate(ops):
+        verb = op.get("op")
+        if verb not in BASE_OPS and verb not in _MODELING_OPS:
+            raise TeeError(
+                "bad_op",
+                f"batch[{i}]: Blender has no op {verb!r}.",
+                fix=f"Blender ops: {', '.join(BASE_OPS)}; modeling ops: "
+                f"{', '.join(_MODELING_OPS)}.",
+            )
+        if verb == "create":
+            kind = op.get("kind", "cube")
+            if kind not in CREATE_KINDS:
+                raise TeeError(
+                    "bad_kind",
+                    f"batch[{i}]: Blender cannot create kind {kind!r}.",
+                    fix=f"Blender kinds: {', '.join(CREATE_KINDS)} (omit kind for a cube).",
+                )
+        if verb == "import_file":
+            path = str(op.get("path", ""))
+            ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+            if ext not in IMPORT_SUFFIXES:
+                raise TeeError(
+                    "bad_op",
+                    f"batch[{i}]: Blender cannot import {ext or 'a file with no suffix'!r}.",
+                    fix=f"import_file takes {', '.join(IMPORT_SUFFIXES)}; export glb from the "
+                    "source lane.",
+                )
 
 
 def program_batch(ops: list[dict[str, Any]], undo_label: str) -> str:

@@ -19,7 +19,7 @@ from typing import Any
 
 from tee.adapters.freecad import codegen
 from tee.adapters.freecad.wire import FreeCADWire
-from tee.kernel.adapter import AdapterInfo, Diff, Entity
+from tee.kernel.adapter import AdapterInfo, Diff, Entity, LaneVocab
 from tee.kernel.errors import TeeError
 
 DEFAULT_DOC = "TEE"
@@ -58,6 +58,19 @@ class FreeCADAdapter:
 
     def probe(self) -> bool:
         return self.wire.ping()
+
+    def vocab(self) -> LaneVocab:
+        """What this lane accepts (A68): three typed ops; any named create
+        kind (primitives, sketch/pad/pocket, or a generic FeaturePython) but
+        never a kind-less create."""
+        return LaneVocab(
+            ops=("create", "set", "delete"),
+            kinds=None,
+            kind_optional=False,
+            imports=(),
+            renders=True,
+            purpose="FreeCAD fabrication: sketch/pad/pocket, TechDraw sheets",
+        )
 
     # -- document ----------------------------------------------------------
 

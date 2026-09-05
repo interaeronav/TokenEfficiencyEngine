@@ -324,7 +324,8 @@ def build_server(app: TeeApp) -> MCPServer:
     def tee_batch(ops: list[dict[str, Any]], adapter: str | None = None, label: str | None = None):
         if not ops:
             raise TeeError("empty_batch", "ops is empty.", fix="Send at least one operation.")
-        return app.run_batch(app.resolve_adapter(adapter), ops, label)
+        route = app.route_batch(ops, adapter)  # A68: by content when adapter= is omitted
+        return app.run_batch(route.adapter, ops, label, routed=route.how)
 
     @mcp.tool(structured_output=False, description=_DESC["tee_checkpoint"])
     @_tool(app, "tee_checkpoint")
@@ -400,7 +401,10 @@ def build_server(app: TeeApp) -> MCPServer:
         from tee.kernel.script import run_script
 
         try:
-            return run_script(app, code, default_adapter=app.resolve_adapter(adapter))
+            # A68: an omitted adapter= stays None - batch() routes by content
+            # and the reads resolve lazily, so a multi-lane script never
+            # binds to one lane it did not name.
+            return run_script(app, code, default_adapter=adapter)
         except TeeError as exc:
             # The rule-6 refusal stands; a local code model may add a repair
             # draft (A34 M2 chore 2) so the client no longer round-trips the

@@ -39,7 +39,7 @@ from pathlib import Path
 from typing import Any
 
 from tee.adapters.partkiln.wire import DEFAULT_TIMEOUT_S, INSTALL_LINE, SIDECAR_PY
-from tee.kernel.adapter import AdapterInfo, Diff, Entity
+from tee.kernel.adapter import AdapterInfo, Diff, Entity, LaneVocab
 from tee.kernel.errors import TeeError
 
 # The dev route: OCP is ALREADY in server/.venv, and `cadquery-ocp-novtk`
@@ -61,6 +61,50 @@ WARM_IMPORT_S = 0.29  # measured P0a: the same import, second time
 _WIRE_OPS = ("create", "set", "delete", "param_set", "export", "check")
 _DEFERRABLE = ("export", "check")
 _BASE_VERBS = ("create", "delete", "param_set", "set")
+# A68: the closed create-kind set - partkiln.document.KINDS after
+# load_verb_modules(), asserted equal by tests/test_lane_vocab.py wherever
+# partkiln imports. Static here so routing never waits on the kernel (Law 17);
+# the kernel's own `verbs` answer replaces it once the warm-up has landed.
+_CREATE_KINDS = (
+    "angle",
+    "axis",
+    "ball",
+    "chamfer",
+    "coil",
+    "combine",
+    "component",
+    "cylindrical",
+    "draft",
+    "drawing",
+    "extrude",
+    "fillet",
+    "flush",
+    "hole",
+    "import",
+    "insert",
+    "joint",
+    "loft",
+    "mate",
+    "mirror",
+    "object",
+    "part",
+    "pattern",
+    "planar",
+    "plane",
+    "point",
+    "revolute",
+    "revolve",
+    "rigid",
+    "sheet",
+    "shell",
+    "sketch",
+    "slider",
+    "split",
+    "sweep",
+    "tangent",
+    "thread",
+)
+PURPOSE = "mechanical CAD, headless: sketch->features->assembly->drawing->STEP"
 # D7 id prefixes <-> entity kinds when a row carries no `kind`.
 _KIND_OF_PREFIX = {
     "doc": "doc",
@@ -150,6 +194,7 @@ class PartkilnAdapter:
         self._warm_started: float | None = None
         self.warm_job: str | None = None
         self._verbs: tuple[str, ...] | None = None
+        self._kinds: tuple[str, ...] | None = None  # the kernel's own create kinds, once asked
         self._rows: list[dict[str, Any]] = []  # the D7 mirror: last known entity rows
         self._history: list[dict[str, Any]] = []  # the script mirror: every applied command
         self._doc_name = "untitled"
@@ -281,6 +326,19 @@ class PartkilnAdapter:
             )
 
     # -- Adapter protocol --------------------------------------------------------
+
+    def vocab(self) -> LaneVocab:
+        """What this lane accepts (A68). Never asks the kernel: the closed
+        kind set stands until `verbs()` has been answered, so a batch routes
+        to partkiln while OCP is still importing (Law 17)."""
+        return LaneVocab(
+            ops=_WIRE_OPS,
+            kinds=self._kinds or _CREATE_KINDS,
+            kind_optional=False,
+            imports=(),
+            renders=False,
+            purpose=PURPOSE,
+        )
 
     def info(self) -> AdapterInfo:
         routes = self._routes()
@@ -497,6 +555,9 @@ class PartkilnAdapter:
         with contextlib.suppress(Exception):
             answer = self.kernel.call("verbs", {})
             found = _verb_names(answer)
+            kinds = _kind_names(answer)
+            if kinds:
+                self._kinds = tuple(sorted(set(kinds)))  # the kernel's word beats the closed set
         if not found and find_spec("partkiln") is not None:
             with contextlib.suppress(Exception):
                 from partkiln import document
@@ -696,6 +757,16 @@ def _split(
 def _kernel_name(entity_id: str, prefix: str) -> str:
     head, sep, tail = entity_id.partition(":")
     return tail if sep and head == prefix else entity_id
+
+
+def _kind_names(answer: Any) -> list[str]:
+    """The create kinds in a `verbs` answer ({"kinds": {...}} or a list)."""
+    inner = answer.get("kinds") if isinstance(answer, dict) else None
+    if isinstance(inner, dict):
+        return [str(k) for k in inner]
+    if isinstance(inner, list | tuple):
+        return [str(v) for v in inner if isinstance(v, str)]
+    return []
 
 
 def _verb_names(answer: Any) -> list[str]:
