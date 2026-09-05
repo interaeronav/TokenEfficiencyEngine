@@ -26,7 +26,11 @@ failures beyond it.
 | `blender_not_served` | a tool that compiles to Blender-side patterns (tier-2 modeling, sims, the UEFN export, the extract-to-scene bridge) found no Blender lane | `tee serve --adapter blender ...`; on Desktop start Blender with the bridge add-on and check `tee_status` |
 | `capture_no_renderer` / `capture_ambiguous` | no connected lane can render pixels right now / several can | start a lane that renders, arrange a garment in seamkiln, or pass `adapter=` |
 | `entity_ambiguous` / `checkpoint_ambiguous` | an id or a label exists in several lanes | pass `adapter=`; roll back by checkpoint id |
-| `handoff_no_importer` / `handoff_importer_ambiguous` | no served lane imports that file suffix / several do | export a suffix a served lane takes (Blender: glb/gltf/obj/fbx), or pass `adapter=` |
+| `handoff_no_importer` / `handoff_importer_ambiguous` | no served lane imports that file suffix / several do | export a suffix a served lane takes (Blender: glb/gltf/obj/fbx), or pass `adapter=` (`into=` on an export) |
+| `handoff_import_unsupported` | `pk_export` / `sk_handoff` / `fc_export` named a lane (`into=`) that does not import that suffix | the fix names a served lane that does, or the format to export instead (a STEP into Blender: export glb) |
+| `handoff_units_unknown` | landing an OBJ/FBX whose writer declared no units | export glb (self-describing), or state the units the writer used |
+| `handoff_file_missing` | `into=` on an export whose file was not written | export first; the path the export reply names is what lands |
+| `trust_denied` on an export with `into=` | landing a file in a scene is a write-scene, decided as one - a task carrying untrusted content may not do it | re-run the step yourself in a live turn if you have read the content and intend it |
 | `sense_adapter_required` | two connected lanes have a viewport | pass `adapter=` |
 
 `tee_status` shows `default_adapter` only when one was declared. A Desktop

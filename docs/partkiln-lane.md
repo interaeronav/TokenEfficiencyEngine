@@ -182,8 +182,13 @@ and the height of the smallest face the fillet had to roll across.
 `tee_capture` refuses `pk_capture_text_first`. The numbers are the evidence:
 `pk_drawing` writes an SVG sheet whose dimensions were read from the model,
 `pk_measure` answers mass, bbox, clearance and interference, and
-`tee_entity_detail` answers one entity. A JPEG through Blender is opt-in and
-lands with the handoff work, not before it.
+`tee_entity_detail` answers one entity. A JPEG is two calls away when a lane
+that renders is served beside this one (A68): `pk_export format=glb
+out=… into=blender` lands the part in that lane as one checkpointed batch —
+`into=auto` picks the one served lane that imports GLB, and the reply's
+`landed.verify` compares the read-back dimensions with the writer's extents —
+then `tee_capture adapter=blender`. Without `into`, an export never touches a
+scene.
 
 ## Licences
 

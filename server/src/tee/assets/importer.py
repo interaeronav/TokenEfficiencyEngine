@@ -17,8 +17,12 @@ from tee.assets import gltf
 from tee.assets.envelopes import envelope_for, load_envelopes, scale_policy
 from tee.assets.http import fetch_bytes
 from tee.kernel.errors import TeeError
+from tee.kernel.handoff_import import VERIFY_TOLERANCE, max_deviation
 
-_VERIFY_TOLERANCE = 0.05  # read-back dims within 5% (rotation-no-op lesson)
+# read-back dims within 5% (rotation-no-op lesson); the band and the measure
+# live in the kernel since A68, shared with the handoff landing
+_VERIFY_TOLERANCE = VERIFY_TOLERANCE
+_max_deviation = max_deviation
 
 
 def ensure_cached(store, backends: dict[str, Any], asset_ref: str) -> dict[str, Any]:
@@ -287,11 +291,3 @@ def import_asset(
     if existing:
         out["note"] = f"asset was already in the scene as {existing[:3]} - now placed twice"
     return out
-
-
-def _max_deviation(got: list[float], expected: list[float]) -> float:
-    worst = 0.0
-    for g, e in zip(got, expected, strict=False):
-        if e > 1e-6:
-            worst = max(worst, abs(g - e) / e)
-    return worst

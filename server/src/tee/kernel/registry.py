@@ -272,20 +272,36 @@ class ToolRegistry:
             grants=self.grants,
             taint=trustctx.taint(),
         )
+        self._decide(decision, tool.name)
+
+    def require(self, capability: str, *, name: str) -> None:
+        """The same decision, for a capability a handler exercises BEYOND its
+        own row (A68: an export that lands its file in a scene is a
+        write-scene, and asks here instead of riding on write-artifacts).
+        `name` labels the decision the way a tool's name would."""
+        decision = trust.check(
+            capability,
+            caller=trustctx.caller(),
+            grants=self.grants,
+            taint=trustctx.taint(),
+        )
+        self._decide(decision, name)
+
+    def _decide(self, decision: trust.Decision, name: str) -> None:
         if decision.allowed:
             return
         if decision.enforced or self.grants.enforce_quality_band:
-            decision.raise_if_denied(tool.name)
+            decision.raise_if_denied(name)
         trust.record_shadow_denial(
             {
-                "tool": tool.name,
+                "tool": name,
                 "capability": decision.capability,
                 "caller": decision.caller,
             }
         )
         self.trust_denials.append(
             {
-                "tool": tool.name,
+                "tool": name,
                 "capability": decision.capability,
                 "caller": decision.caller,
                 "reason": decision.reason,

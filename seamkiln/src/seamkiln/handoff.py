@@ -289,6 +289,14 @@ def ops_for(bundle: Bundle, *, name: str | None = None) -> list[dict[str, Any]]:
     Refuses rather than guesses. Godot's bridge has no file-import op, and
     emitting one that does not exist would fail inside the DCC instead of
     here, which is the expensive place to find out.
+
+    The op is `import_file` - an OP in TEE's scene lanes, not a create kind.
+    Until A68 this emitted `{"op": "create", "kind": "import_file"}`, which
+    Blender's codegen rejects (its create kinds are primitives), so the ops
+    that "load it where TEE can drive the target" never loaded anything;
+    the test that pinned that shape pinned the defect. No scale: a .glb
+    states metres and +Y up, and OBJ carries the target's transform baked
+    into its vertices - a scale here would double-convert.
     """
     spec = bundle.target
     if not spec.driven_by_tee:
@@ -297,21 +305,9 @@ def ops_for(bundle: Bundle, *, name: str | None = None) -> list[dict[str, Any]]:
             f"The files are written and the manifest says how they are oriented."
         )
     label = name or Path(bundle.files["garment"]).stem
-    ops = [
-        {
-            "op": "create",
-            "kind": "import_file",
-            "name": label,
-            "props": {"path": bundle.files["garment"]},
-        }
-    ]
+    ops = [{"op": "import_file", "path": bundle.files["garment"], "name": label}]
     if "hardware" in bundle.files:
         ops.append(
-            {
-                "op": "create",
-                "kind": "import_file",
-                "name": f"{label}-hardware",
-                "props": {"path": bundle.files["hardware"]},
-            }
+            {"op": "import_file", "path": bundle.files["hardware"], "name": f"{label}-hardware"}
         )
     return ops

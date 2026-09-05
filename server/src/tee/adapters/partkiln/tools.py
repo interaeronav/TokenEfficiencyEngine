@@ -169,7 +169,41 @@ def register_partkiln_tools(app: Any) -> None:
         return _call("drawing", args)
 
     def export(args: dict[str, Any]) -> dict[str, Any]:
-        return _call("export", args)
+        """`into=` lands the written file in a served scene lane (A68 P3).
+
+        The kernel never sees the key: the export runs as before, then the
+        file goes through `handoff_import.land` - the one served lane that
+        imports it (`auto`) or the named one, a write-scene the trust kernel
+        decides as such, one checkpointed batch on that lane, and a read-back
+        verdict against the writer's extents. Without `into` nothing touches a
+        scene. `target` defaults to the lane's application when the lane is
+        named for one, so the GLB is written in that application's convention.
+        """
+        args = dict(args or {})
+        into = args.pop("into", None)
+        into = str(into).strip() if into is not None else None
+        if into in ("blender", "unreal", "godot") and not args.get("target"):
+            args["target"] = into
+        written = _call("export", args)
+        if into:
+            from pathlib import Path
+
+            from tee.kernel.handoff_import import land, unit_m
+
+            path = str(written.get("path") or args.get("out") or "")
+            expected = None
+            metres = unit_m(written.get("units"))
+            if written.get("extents") and metres:
+                expected = [float(v) * metres for v in written["extents"]]
+            written["landed"] = land(
+                app,
+                files={Path(path).stem: path},
+                into=into,
+                units=written.get("units"),
+                expected_dims_m=expected,
+                caller="pk_export",
+            )
+        return written
 
     def flat(args: dict[str, Any]) -> dict[str, Any]:
         return _call("flat", args)
@@ -674,7 +708,11 @@ def register_partkiln_tools(app: Any) -> None:
                 "The manifest is the point: STEP and glTF declare their units, STL and OBJ "
                 "declare nothing, and the manifest says which - so the receiving "
                 "application is never asked to guess a scale. GLB is written Z-up-corrected "
-                "and in metres; the round trip is read back and its volume compared."
+                "and in metres; the round trip is read back and its volume compared.\n\n"
+                "into=<lane|auto> lands the written file in a served scene lane as one "
+                "checkpointed batch and reads its dimensions back (`landed.verify`); a JPEG "
+                "of the part is then tee_capture adapter=<that lane>. Without into, nothing "
+                "touches a scene."
             ),
             schema={
                 "type": "object",
@@ -688,6 +726,10 @@ def register_partkiln_tools(app: Any) -> None:
                     "schema": {"type": "string", "description": "AP242|AP214|AP203 (STEP)"},
                     "tol": {"type": "number", "description": "mesh deflection mm (default 0.05)"},
                     "target": {"type": "string", "description": "blender|unreal|godot"},
+                    "into": {
+                        "type": "string",
+                        "description": "land the file in this served lane (or auto); glb/obj",
+                    },
                     "job": {"type": "boolean", "description": "run as a background job"},
                 },
                 "required": ["format", "out"],
@@ -708,6 +750,7 @@ def register_partkiln_tools(app: Any) -> None:
                 "gltf",
                 "dxf",
                 "handoff",
+                "land",
                 "blender",
                 "unreal",
                 "godot",
@@ -718,7 +761,10 @@ def register_partkiln_tools(app: Any) -> None:
                 "parts",
                 "cad",
             ],
-            examples=[{"format": "step", "out": "out/bracket.step", "of": "part:bracket"}],
+            examples=[
+                {"format": "step", "out": "out/bracket.step", "of": "part:bracket"},
+                {"format": "glb", "out": "out/bracket.glb", "of": "part:bracket", "into": "auto"},
+            ],
         ),
         VirtualTool(
             name="pk_flat",

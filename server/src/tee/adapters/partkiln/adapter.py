@@ -23,9 +23,10 @@ blind otherwise - the A65 lesson); a failed command is ONE `TeeError` with
 the kernel's own code, message and fix, and it says the batch rolled back,
 because the kernel already did that (Law 16). The checkpoint is the script;
 the `.brep` beside it is a cache (D3). No pixels: `capture()` refuses
-`pk_capture_text_first` naming the three text routes AND, step by step, the
-manual GLB-through-Blender route - which is manual because this process
-serves one adapter and holds no Blender to import into.
+`pk_capture_text_first` naming the three text routes AND the two-call route
+to a JPEG - `pk_export format=glb into=<lane>` lands the part in a served
+lane that renders, `tee_capture adapter=<lane>` looks at it (A68: one server
+holds several lanes, and none of them is the hub).
 """
 
 from __future__ import annotations
@@ -479,31 +480,28 @@ class PartkilnAdapter:
         A66 gap 3. The shipped refusal advertised "a JPEG through Blender is
         the P6 opt-in" and no such opt-in was ever built - a fix naming a
         door that is not there is worse than a plain no, because the reader
-        goes looking for it. There is no in-adapter shortcut to build
-        either: `cli._build_partkiln_app` serves ONE adapter, so this
-        process holds no Blender adapter for `as_import` to run a batch on,
-        and `capture()` receives no app handle to reach the asset lane with.
-        So the honest ending is the manual route, step by step, in the order
-        the acceptance session ran it (`examples/acceptance/run_tee.py`
-        step 7), with every tool named exactly as it is registered.
+        goes looking for it. The 0.21.1 fix then prescribed four manual
+        calls "in a TEE served on Blender", false since one server holds
+        several lanes. A68 P3 built the door: `pk_export into=<lane>` lands
+        the GLB in a served lane that renders as one checkpointed batch
+        (`kernel/handoff_import.py`), and `tee_capture adapter=<lane>` is
+        the second call. `capture()` still takes no app handle - the route
+        is a tool the caller invokes, not a side effect of asking for pixels.
         """
         raise TeeError(
             "pk_capture_text_first",
             "partkiln renders no pixels: the numbers are the evidence and a model's eye is advice.",
             fix="Text first: pk_drawing writes an SVG/DXF/PDF sheet (views and dimensions "
             "READ from the model); pk_measure answers mass, bbox, clearance and "
-            "interference; tee_entity_detail answers one entity. For a JPEG, hand the part "
-            "to Blender yourself - a TEE served on partkiln holds only that adapter, so "
-            "nothing in this session can do it for you: (1) pk_export format=glb "
-            "out=<dir>/<name>.glb "
-            "target=blender, writing into a directory that holds that GLB alone (as_ingest "
-            "keys a local asset by file STEM, so bracket.glb beside bracket.stl is one "
-            "entry and the last one wins); (2) in a TEE served on Blender (tee serve "
-            "--adapter blender, with the bridge add-on answering): as_ingest "
-            "directory=<dir>; (3) as_import asset=local:<name> adapter=blender "
-            "asset_class=model target_dims=[x, y, z] - metres and Z-up, which is "
-            "pk_measure what=bbox / 1000, NOT the GLB manifest's Y-up extents - and it "
-            "verifies the read-back dimensions; (4) tee_capture adapter=blender.",
+            "interference; tee_entity_detail answers one entity. For a JPEG, land the part "
+            "in a served lane that renders and look there - two calls: (1) pk_export "
+            "format=glb out=<dir>/<name>.glb into=<lane> (into=auto picks the one served "
+            "lane that imports GLB; tee_status lists the lanes) - the GLB is Z-up-corrected "
+            "and in metres, the import is a checkpointed batch on that lane and the "
+            "reply's landed.verify compares the read-back dimensions with the writer's; "
+            "(2) tee_capture adapter=<lane>. No lane that renders is served? Start one "
+            "(tee serve --adapter blender --adapter partkiln, or on Desktop start Blender "
+            "with the bridge add-on) - this lane never renders and never will.",
         )
 
     def close(self) -> None:

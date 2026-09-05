@@ -293,6 +293,15 @@ on its face through the floor. OBJ defines nothing, so there the transform is
 baked into the vertices. Blender and Unreal get load ops; Godot gets files
 and the reason its bridge cannot import a mesh.
 
+From TEE, `sk_handoff out=… into=blender` writes the bundle and lands it in
+the served Blender lane in the same call (A68): the garment and its hardware
+go in as one checkpointed `import_file` batch, no scale (the `.glb` declares
+metres), and the reply's `landed.verify` compares what Blender read back with
+the file's own extents. `into=auto` picks the one served lane that imports
+the file; with no `into` the bundle is written and the load ops handed back,
+as before. The load op is `import_file` — an op, not a create kind; until A68
+`ops_for` emitted a create of kind `import_file`, which Blender rejects.
+
 ## The rules that will bite you first
 
 1. **Never rely on a coarse preview.** A drape that has not converged is a
