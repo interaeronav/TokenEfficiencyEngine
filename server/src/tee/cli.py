@@ -99,16 +99,25 @@ def _godot_lane(project: str, port: int) -> Lane:
     return Lane("godot", adapter)
 
 
-def build_app(lanes: list[Lane], project: str, *, allow_code_exec: bool) -> TeeApp:
-    """ONE TeeApp for every lane, in the order given.
+def build_app(
+    lanes: list[Lane],
+    project: str,
+    *,
+    allow_code_exec: bool,
+    default_adapter: str | None = None,
+) -> TeeApp:
+    """ONE TeeApp for every lane, in the order given, and NO lane the hub.
 
-    The first lane is the declared default for an omitted adapter= - an
-    operator who wrote `--adapter blender --adapter partkiln` has said which
-    one, so the kernel routes there and tee_status reports it (Law 19),
-    while a library caller who builds several adapters with no default keeps
-    SI-B6's loud `adapter_required`. Lanes attach only after the app exists,
-    because what they attach (tools, the partkiln warm-up job) belongs to
-    the shared app, not to a private one per adapter."""
+    A68 (owner: "decentralize the use of Blender or Unreal Engine"): the
+    order of `--adapter` no longer implies a default. An omitted adapter=
+    resolves by what the batch contains - entity id, create kind, op verb -
+    and only a batch several lanes accept needs a tie-breaker, which an
+    operator declares with `--default-adapter NAME` (Law 19: default and
+    declare; tee_status reports it). A library caller who builds several
+    adapters with no default keeps SI-B6's loud `adapter_required` for the
+    ambiguous case. Lanes attach only after the app exists, because what
+    they attach (tools, the partkiln warm-up job) belongs to the shared app,
+    not to a private one per adapter."""
     from tee.app import TeeApp
 
     adapters: dict[str, Adapter] = {}
@@ -120,7 +129,7 @@ def build_app(lanes: list[Lane], project: str, *, allow_code_exec: bool) -> TeeA
         adapters,
         project_root=Path(project),
         allow_code_exec=allow_code_exec,
-        default_adapter=lanes[0].name if lanes else None,
+        default_adapter=default_adapter,
     )
     for lane in lanes:
         if lane.attach is not None:
@@ -330,6 +339,14 @@ def cmd_serve(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 2
+    default = getattr(args, "default_adapter", None)
+    if default is not None and default not in names:
+        print(
+            f"--default-adapter '{default}' is not among the served adapters "
+            f"({', '.join(names)}); list it with --adapter or drop the flag",
+            file=sys.stderr,
+        )
+        return 2
 
     config = ProjectConfig.load(args.project)
     blender_port = args.blender_port
@@ -337,7 +354,9 @@ def cmd_serve(args: argparse.Namespace) -> int:
         blender_port = config.blender_port
 
     lanes = [_lane(name, args, blender_port) for name in names]
-    app = build_app(lanes, args.project, allow_code_exec=args.allow_code_exec)
+    app = build_app(
+        lanes, args.project, allow_code_exec=args.allow_code_exec, default_adapter=default
+    )
     extract_store = _attach_extract(app, args.project, with_handoff="blender" in app.adapters)
     _attach_assets(app, args.project, extract_store)
     _attach_capture(app, args.project, extract_store)
@@ -425,8 +444,17 @@ def main(argv: list[str] | None = None) -> int:
         metavar="NAME",
         help=(
             "adapter to serve (fake|blender|unreal|freecad|godot|seamkiln|partkiln); "
-            "repeatable - all named adapters share one server and the FIRST listed is "
-            "the default for an omitted adapter= (default: fake)"
+            "repeatable - all named adapters share one server and none is the hub: an "
+            "omitted adapter= routes by the batch's content (default: fake)"
+        ),
+    )
+    serve.add_argument(
+        "--default-adapter",
+        metavar="NAME",
+        help=(
+            "the served adapter a batch goes to when SEVERAL lanes accept it and no "
+            "adapter= was given; undeclared, such a batch is refused naming the lanes. "
+            "tee_status reports a declared default"
         ),
     )
     serve.add_argument(

@@ -146,12 +146,14 @@ class TeeApp:
         from tee.kernel.machine import MachineLedger
 
         self.adapters = adapters
-        # The DECLARED default for an omitted adapter= (Law 19: default and
-        # declare). `tee serve` sets it to the first --adapter listed, so a
-        # Desktop server holding blender + partkiln + seamkiln still routes an
-        # adapter-less batch to Blender. Checked before any side effect: a
-        # default naming no served adapter is a startup error, not a refusal
-        # the model meets on its first call.
+        # The DECLARED default: the lane a batch goes to when SEVERAL lanes
+        # accept it and none was named (Law 19: default and declare). A68:
+        # only `tee serve --default-adapter NAME` sets it - the order of
+        # --adapter implies nothing, so a Desktop server holding blender +
+        # partkiln + seamkiln has no hub; content routes, and a genuinely
+        # ambiguous batch refuses naming the lanes. Checked before any side
+        # effect: a default naming no served adapter is a startup error, not
+        # a refusal the model meets on its first call.
         if default_adapter is not None and default_adapter not in adapters:
             known = ", ".join(adapters) or "(none)"
             raise ValueError(
