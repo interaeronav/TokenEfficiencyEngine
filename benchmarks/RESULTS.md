@@ -328,6 +328,19 @@ A 279,352-point room scan taken from raw file to a scale-verified DXF the owner 
 
 **Saving: 99.3%.** The naive arm is already being flattered - reading 1 point in 40 is far more generous than a real tool that returns what it holds. The lane's own cap (no array over 64 elements, no string over 2 KB) is what keeps the TEE arm flat as the cloud grows: the same five calls cost the same whether the scan is 280 K points or 15 M.
 
+## Lane routing: no lane is the hub (A68)
+
+One server composed like the Desktop manifest (blender, partkiln, seamkiln; declared default: blender), every call through the real MCP layer. A row completes its task the way a model that knows nothing about lanes would: no adapter=; if refused and the refusal names the lane, retry with it; if it does not, ask tee_status and then retry.
+
+| Task | Calls | Tokens | What happened |
+|---|---|---|---|
+| partkiln batch, adapter omitted | 3 | 731 | refused (blender_error); no lane in the fix, asked tee_status; retried ok |
+| seamkiln batch, adapter omitted | 3 | 562 | refused (blender_error); no lane in the fix, asked tee_status; retried ok |
+| tee_script calling kb_status | 1 | 586 | 1 Blender checkpoint(s) |
+| tee_scene_summary, adapter omitted | 1 | 26 | one lane's rows |
+| render a partkiln part | 4 | 477 | pk_export, as_ingest, as_import, tee_capture |
+
+Always-loaded surface 17 tools / **2,033** wire tokens; instructions **433 B**; 173 virtual tools registered; search recall over this composition limit 3: 29/33, limit 5: 32/33, limit 8: 33/33, limit 10: 33/33.
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 

@@ -97,8 +97,31 @@ every `call()`, so `pdf_compose` costs a full `.blend` save.
 
 ## 3. Measured before (P0b)
 
-*Filled by P0b from `benchmarks/run_benchmarks.py::run_routing_scenario` on
-the working tree at HEAD.*
+`benchmarks/run_benchmarks.py::run_routing_scenario` on the tree at `ce3e13f`:
+ONE app composed like the Desktop manifest — blender as a stand-in that speaks
+exactly codegen's vocabulary and answers 0.21.1's refusal, partkiln on the
+suite's `FakeKernel`, seamkiln real — every call through the real MCP layer.
+A row completes its task the way a model that knows nothing about lanes
+would: no `adapter=`; if the refusal names the lane, retry with it; if not,
+ask `tee_status`, then retry.
+
+| task | calls | tokens | what happened |
+|---|---|---|---|
+| partkiln batch, adapter omitted | 3 | 731 | refused `blender_error`; no lane in the fix; asked `tee_status`; retried |
+| seamkiln batch, adapter omitted | 3 | 562 | same |
+| `tee_script` calling `kb_status` | 1 | 586 | **1 Blender checkpoint** for an adapter-agnostic tool |
+| `tee_scene_summary`, adapter omitted | 1 | 26 | Blender's rows, not the server's lanes |
+| render a partkiln part | 4 | 477 | `pk_export`, `as_ingest`, `as_import`, `tee_capture` |
+
+Surface 17 tools / 2,033 wire tokens; instructions 433 B; 173 virtual tools;
+`default_adapter: blender`. Search recall over the FULL composition — limit 3:
+29/33, **5: 32/33**, 8: 33/33, 10: 33/33. The table in `test_search_budget.py`
+was taken on an 85-tool fixture and says 33/33 at 5; on the registry a
+Desktop server serves, "size from an image" ranks `ex_estimate` sixth,
+behind `bl_build_from_plan`, `pdf_compose`, `sk_body`, `board_compose` and
+`cad_scad_build`. Also found: the suite's `FakeKernel` wrote nine bytes of
+text for a GLB, so the manual render route could not be measured until it
+wrote a real minimal one.
 
 ## 4. Design
 

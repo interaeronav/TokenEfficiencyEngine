@@ -12304,3 +12304,58 @@ the venv from the lock, which wipes the five fleet extras AND the editable
 seamkiln install; both go back with two commands, then the server needs a
 restart for the `.pth` to be read. The partkiln sidecar is untouched by any
 of it — that is what the sidecar route is for.
+
+## A68 — no lane is the hub (2026-09-05)
+
+Owner: *"Integrate better all components of TEE — too much goes through
+Blender when there are other components that are able to work better."*
+Then, on the first plan: *"Allow to bypass Blender if not required.
+Decentralize the use of Blender or Unreal Engine."* Plan of record
+`CLAUDE_A68_SCRIPT.md`; design of record `docs/research/70-lane-routing-no-hub.md`;
+the ruling in DECISIONS (*No lane is the hub: the declared default becomes
+opt-in*), which revises 2026-09-04's "first listed is the default".
+
+### P0 — the finding, and the numbers before (2026-09-05)
+
+Three audits of the working tree (dispatch, the component inventory, the
+model-facing text) found the pull toward Blender is structural, in four
+layers — doc 70 §1 cites every line. The one that matters most: a partkiln
+op sent to the Desktop server with no `adapter=` reaches Blender's codegen,
+raises a raw `ValueError`, and comes back as `blender_error` whose fix says
+"roll back with tee_rollback" — nothing names the lane that accepts it. When
+Blender is *down* the refusal does name the other lanes. Better guidance on
+the failure path than on the success path.
+
+**P0b — measured before**, on ONE app composed like the Desktop manifest
+(blender as a stand-in that speaks exactly codegen's vocabulary and answers
+0.21.1's refusal, partkiln on the suite's `FakeKernel`, seamkiln real), every
+call through the real MCP layer (`benchmarks/run_benchmarks.py::run_routing_scenario`,
+new RESULTS section *Lane routing: no lane is the hub (A68)*):
+
+```
+partkiln batch, adapter omitted     3 calls / 731 tok   refused (blender_error); no lane in the fix; asked tee_status; retried
+seamkiln batch, adapter omitted     3 calls / 562 tok   same
+tee_script calling kb_status        1 call  / 586 tok   1 Blender checkpoint taken for an adapter-agnostic tool
+tee_scene_summary, adapter omitted  1 call  /  26 tok   Blender's rows, not the server's lanes
+render a partkiln part              4 calls / 477 tok   pk_export, as_ingest, as_import, tee_capture
+surface 17 tools / 2,033 tok · instructions 433 B · 173 virtual tools · default_adapter blender
+search recall over the FULL composition: limit 3: 29/33 · 5: 32/33 · 8: 33/33 · 10: 33/33
+```
+
+**Two things the before-run found that nobody had measured.** (1) The recall
+table was taken on an 85-tool fixture; on the 173-tool registry a Desktop
+server actually serves, the shipped limit of 5 misses one case — "size from
+an image" wants `ex_estimate` and ranks **sixth**, behind `bl_build_from_plan`,
+`pdf_compose`, `sk_body`, `board_compose`, `cad_scad_build` (A66 recorded it
+at rank 4 on the small corpus). P1d re-baselines on the real composition.
+(2) The suite's `FakeKernel` wrote a nine-byte text file for a GLB, so the
+manual render route could not even be *measured* on it — the asset indexer
+rightly skipped "bracket.glb: missing glTF magic header". It now writes a
+real minimal GLB (header + JSON chunk with the part's extents), which is what
+the handoff rows will land in P3.
+
+Baseline suite on this machine, before any kernel change: **1,402 passed /
+66 skipped / 8 failed**, the eight all environmental (six seamkiln tests
+needing `rtree`, one `[solve]` refusal text, one OpenSCAD-on-PATH); `rtree`
+and `networkx` installed here, the other two stay as they are on the owner's
+machine.
