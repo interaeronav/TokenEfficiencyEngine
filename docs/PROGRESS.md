@@ -12562,5 +12562,36 @@ Open at the tail of A69:
    naming doc 71 rather than guessed.
 4. Holes, chamfers, revolves, shells, sweeps, lofts, sketch constraints,
    joints, drawings and CAM: each is one more verified §3 row and one more
-   emitter (doc 71 §7).
+   emitter (doc 71 §7). *Taken up by A70 below, except shells / sweeps /
+   lofts / CAM.*
 5. The version cut is the owner's call (0.22.0 if taken).
+
+## A70 — the Fusion lane v2 (2026-09-06)
+
+Owner directive: *"v2 should add holes, chamfers, revolves, sketch
+constraints, joints, drawings or the iges/sat/3mf/usd exports, each of which
+is one more verified row and one more emitter."* Doc 71 §3 rows 31–49 and
+§10 are the design of record; `CLAUDE_A70_SCRIPT.md` the plan; the decision
+is in DECISIONS ("every feature is a row and an emitter, and drawings are
+partkiln's").
+
+**P0 — the rows before the code.** Nineteen rows read from Autodesk's
+reference (fifty-odd pages) before any emitter: holes (three input
+constructors; position by face + point or by sketch point; `setDistanceExtent`
+NOT retired for holes, unlike the extrude call), chamfers
+(`createInput` RETIRED → `createInput2` + equal-distance edge sets), revolves
+(`createInput(profile, axis, op)` + `setAngleExtent`, current), sketch lines /
+points / origin, the eleven geometric constraints (`addOffset` retired), four
+dimension calls with a settable `parameter.expression`, joints (geometry by
+planar-face centre or point, seven motion setters, angle / offset
+ValueInputs, rotation and slide values), faces (surface type, normal flipped
+by `isParamReversed`, centroid, proxies), the four exporters (iges / sat /
+usd filename-first and component-only; 3mf geometry-first) — and the drawing
+surface read for its absence: **the Fusion API cannot create a drawing**
+(`DocumentTypes` has one member; `Drawing` has no sheets or views; the view
+pages do not exist), only export one the owner has open. Two facts the
+reference leaves open became smoke steps rather than guesses: a rectangle's
+line order (sides are named by position) and a face-placed hole's default
+direction (`flip` is exposed). Design in doc 71 §10: sketch-local addresses
+(`sk1/r0.bottom`, `sk1/c0.center`, `sk1/origin`), dimensions as entities and
+constraints not, faces by outward normal, `fu_drawing` through partkiln.

@@ -149,7 +149,13 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   run** (it fills §3's live column and decides the Desktop manifest, which is
   unchanged until then). Millimetres on the wire with the unit always
   written, centimetres inside; the timeline plus every parameter expression
-  is the checkpoint, and it says what it cannot restore.
+  is the checkpoint, and it says what it cannot restore. **v2 (A70) is driven
+  by `CLAUDE_A70_SCRIPT.md`** — holes, chamfers, revolves, sketch constraints
+  and dimensions, joints, the iges/sat/3mf/usd exports, each a verified row
+  (doc 71 §3, 31–49) and an emitter; its inverted premise outranks memory:
+  **the Fusion API cannot create a drawing** (row 49), so `fu_drawing` is
+  the partkiln route, and a rectangle's sides are named by position because
+  the API does not state their order.
 
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is

@@ -104,6 +104,25 @@ Base URL: `https://autodeskfusion360.github.io/FusionAPIReference/Fusion_API_Doc
 | 28 | `body.isVisible`, `sketch.isVisible` — read/write | `BRepBody_isVisible.htm`, `Sketch_isVisible.htm` | | ○ |
 | 29 | `UserParameter.deleteMe()` ("only if it is a UserParameter and it is not referenced by other parameters"); `UserParameter.name` settable, must be unique | `UserParameter.htm` | | ○ |
 | 30 | `STLExportOptions.unitType` (default: the design's default units), `OBJExportOptions.unitType` (default: centimetres) | `STLExportOptions.htm`, `OBJExportOptions.htm` | the enum's name was not in the page read, so v1 never SETS it: `fu_export` declares `units: cm` for obj and reads `unitType` back raw for the record | ○ |
+| 31 | `_root.features.holeFeatures.createSimpleInput(ValueInput)`, `.createCounterboreInput(d, cbDiameter, cbDepth)`, `.createCountersinkInput(d, csDiameter, csAngle)`; `holeFeatures.add(input) -> HoleFeature` | `HoleFeatures.htm`, `HoleFeatures_createSimpleInput.htm`, `HoleFeatures_createCounterboreInput.htm`, `HoleFeatures_createCountersinkInput.htm` | reals are centimetres (the countersink angle: radians), strings carry their units — the codegen writes `mm` and `deg`; `add` returns null on failure | ○ |
+| 32 | `hole.setPositionByPoint(planarEntity, point)`; `hole.setPositionBySketchPoint(sketchPoint)` | `HoleFeatureInput_setPositionByPoint.htm`, `HoleFeatureInput_setPositionBySketchPoint.htm` | planarEntity is a planar BRepFace or a ConstructionPlane, point a Point3D or a vertex; a Point3D "will be projected onto the plane along the planes normal" (non-associative); a sketch point orients the hole by its sketch's normal and "the natural direction will be opposite the normal of the sketch" | ○ |
+| 33 | `hole.setDistanceExtent(ValueInput)`; `hole.setAllExtent(ExtentDirections)`; `hole.isDefaultDirection` (settable); `hole.tipAngle`; `adsk.fusion.ExtentDirections.{Positive,Negative,Symmetric}ExtentDirection` (0, 1, 2) | `HoleFeatureInput_setDistanceExtent.htm`, `HoleFeatureInput_setAllExtent.htm`, `HoleFeatureInput.htm`, `ExtentDirections.htm` | **`setDistanceExtent` is NOT retired for holes** (August 2014, still current — the extrude retirement of row 8 does not carry over); through-all takes a direction "relative to the normal of the sketch plane"; the tip angle defaults to 118 deg | ○ |
+| 34 | `HoleFeature.holeDiameter` (Parameter), `.position` (Point3D), `.holeType`, `.direction` (Vector3D), `.counterboreDiameter` / `.counterboreDepth` / `.countersinkDiameter` / `.countersinkAngle` (Parameters) | `HoleFeature.htm` | a `set` of `diameter` on a hole edits `holeDiameter.expression` | ○ |
+| 35 | `_root.features.chamferFeatures.createInput2()`; `inp.chamferEdgeSets.addEqualDistanceChamferEdgeSet(ObjectCollection, ValueInput, isTangentChain)`; `chamferFeatures.add(inp)`; `ChamferFeature.edgeSets`, `.faces` | `ChamferFeatures.htm`, `ChamferFeatures_createInput2.htm`, `ChamferEdgeSets_addEqualDistanceChamferEdgeSet.htm`, `ChamferFeatureInput.htm`, `ChamferFeature.htm` | **`ChamferFeatures.createInput` is RETIRED** (`createInput2`, December 2020), as are `ChamferFeatureInput.edges` / `.isTangentChain` / `.setToEqualDistance` and `ChamferFeature.edges` / `.chamferType` / `.setEqualDistance`; the edge collection may hold BRepEdge, BRepFace or Feature objects | ○ |
+| 36 | `_root.features.revolveFeatures.createInput(profile, axis, operation)`; `inp.setAngleExtent(isSymmetric, ValueInput)`; `revolveFeatures.add(inp)`; `RevolveFeature.axis` / `.profile` / `.extentDefinition` | `RevolveFeatures_createInput.htm`, `RevolveFeatureInput_setAngleExtent.htm`, `RevolveFeatureInput.htm`, `RevolveFeatures.htm`, `RevolveFeature.htm` | the axis "can be a sketch line, construction axis, linear edge or a face that defines an axis"; the profile a Profile, a planar face or an ObjectCollection; `setAngleExtent` carries no retirement note ("A 360-degree or 2π radian angle produces a complete revolution"; symmetric applies the angle to each side) | ○ |
+| 37 | `_root.xConstructionAxis` / `.yConstructionAxis` / `.zConstructionAxis`, `_root.originConstructionPoint`, `_root.joints`, `_root.jointOrigins`, `_root.constructionAxes`, `_root.constructionPoints` | `Component.htm` | | ○ |
+| 38 | `sketch.sketchCurves.sketchLines.addByTwoPoints(start, end) -> SketchLine`; `addTwoPointRectangle(p1, p2) -> SketchLineList` (`.count` / `.item(i)`); `sketch.sketchPoints.add(Point3D) -> SketchPoint`; `sketch.originPoint`; `sketch.geometricConstraints`; `sketch.sketchDimensions`; `sketch.isFullyConstrained` | `SketchLines_addByTwoPoints.htm`, `SketchLines_addTwoPointRectangle.htm`, `SketchLineList.htm`, `SketchPoints_add.htm`, `Sketch.htm` | end points may be SketchPoints or Point3Ds (a line on a SketchPoint follows it); **the order of a rectangle's four lines is NOT stated**, so the codegen names the sides by where their midpoints lie, never by index | ○ |
+| 39 | `SketchLine.startSketchPoint` / `.endSketchPoint` / `.length` (cm) / `.isConstruction` / `.isFullyConstrained` / `.entityToken` / `.deleteMe()`; `SketchCircle.centerSketchPoint` / `.radius` (settable, cm) / `.isFullyConstrained`; `SketchPoint.geometry` (Point3D "always in sketch space") / `.worldGeometry` / `.isFullyConstrained` / `.entityToken` | `SketchLine.htm`, `SketchCircle.htm`, `SketchPoint.htm` | | ○ |
+| 40 | `sketch.geometricConstraints.addHorizontal(line)`, `addVertical(line)`, `addParallel(l1, l2)`, `addPerpendicular(l1, l2)`, `addCollinear(l1, l2)`, `addEqual(c1, c2)`, `addTangent(c1, c2)`, `addConcentric(e1, e2)`, `addCoincident(point, entity)`, `addMidPoint(point, curve)`, `addSymmetry(e1, e2, line)` | the eleven `GeometricConstraints_add*.htm` pages, `GeometricConstraints.htm` | each "returns the newly created … object or null if the creation failed"; coincident's first argument is a SketchPoint and its second "a sketch curve or point"; equal takes two lines or arcs/circles; concentric circles, arcs, ellipses; `addOffset` is RETIRED | ○ |
+| 41 | `sketch.sketchDimensions.addDistanceDimension(p1, p2, DimensionOrientations, textPoint, isDriving=True) -> SketchLinearDimension`; `addDiameterDimension(circle, textPoint, isDriving=True)`; `addRadialDimension(circle, textPoint, isDriving=True)`; `addAngularDimension(l1, l2, textPoint, isDriving=True)`; `adsk.fusion.DimensionOrientations.{Aligned,Horizontal,Vertical}DimensionOrientation` (0, 1, 2) | `SketchDimensions_addDistanceDimension.htm`, `SketchDimensions_addDiameterDimension.htm`, `SketchDimensions_addRadialDimension.htm`, `SketchDimensions_addAngularDimension.htm`, `DimensionOrientations.htm` | the points are SketchPoints, the text point a Point3D in sketch space; for an angle "the position of the text also defines which quadrant will be dimensioned" | ○ |
+| 42 | `SketchDimension.parameter` (Parameter, or null), `.value` (cm / rad, settable), `.isDriving`, `.textPosition`, `.isDeletable`, `.deleteMe()`, `.entityToken` | `SketchDimension.htm` | a driving dimension's `parameter.expression` is where a user parameter binds (`"width"`) — the parametric truth v1 left to feature expressions | ○ |
+| 43 | `_root.joints.createInput(geometryOrOriginOne, geometryOrOriginTwo) -> JointInput`; `_root.joints.add(JointInput) -> Joint` | `Joints_createInput.htm`, `Joints_add.htm`, `Joints.htm` | either argument "a JointGeometry or JointOrigin object"; `add` returns null on failure | ○ |
+| 44 | `adsk.fusion.JointGeometry.createByPlanarFace(face, edge, JointKeyPointTypes)`; `adsk.fusion.JointGeometry.createByPoint(ConstructionPoint \| SketchPoint \| BRepVertex)`; `adsk.fusion.JointKeyPointTypes.{Start,Middle,End,Center}KeyPoint` (0–3) | `JointGeometry_createByPlanarFace.htm`, `JointGeometry_createByPoint.htm`, `JointKeyPointTypes.htm`, `JointGeometry.htm` | the edge "can be null in the case where the keyPointType is CenterKeypoint indicating the center of the face is to be used" | ○ |
+| 45 | `JointInput.setAsRigidJointMotion()`, `.setAsRevoluteJointMotion(JointDirections, customAxis=None)`, `.setAsSliderJointMotion(JointDirections, customDir=None)`, `.setAsCylindricalJointMotion(JointDirections, customAxis=None)`, `.setAsPinSlotJointMotion(rotationAxis, slideDirection, …)`, `.setAsPlanarJointMotion(normalDirection, …)`, `.setAsBallJointMotion(pitchDirection, yawDirection, …)`; `JointInput.angle` / `.offset` (ValueInput: a real is radians / centimetres, a string takes the document's unit) ; `.isFlipped`; `adsk.fusion.JointDirections.{X,Y,Z}AxisJointDirection` (0, 1, 2), `CustomJointDirection` (3) | `JointInput.htm`, the seven `JointInput_setAs*JointMotion.htm` pages, `JointInput_angle.htm`, `JointInput_offset.htm`, `JointDirections.htm` | ball's pitch is Z-or-custom and yaw X-or-custom; the codegen writes `deg` and `mm` into the angle and offset strings | ○ |
+| 46 | `Joint.jointMotion`, `.occurrenceOne` / `.occurrenceTwo`, `.name`, `.isSuppressed`, `.isFlipped`, `.isLocked`, `.angle` / `.offset` (Parameters), `.healthState`, `.entityToken`, `.deleteMe()`, `.timelineObject`; `RevoluteJointMotion.rotationValue` (radians, settable — "the same as using the Drive Joints command"), `.rotationAxis`; `SliderJointMotion.slideValue` (cm, settable), `.slideDirection` | `Joint.htm`, `RevoluteJointMotion.htm`, `SliderJointMotion.htm` | | ○ |
+| 47 | `BRepFace.geometry` (a Surface: `.surfaceType` against `adsk.core.SurfaceTypes.PlaneSurfaceType` = 0; a Plane's `.normal` / `.origin`), `.isParamReversed`, `.centroid`, `.area` (cm²), `.edges`, `.vertices`, `.pointOnFace`, `.boundingBox`, `.createForAssemblyContext(occ)`; `BRepEdge.startVertex` / `.endVertex` / `.length` (cm) / `.faces` / `.pointOnEdge`; `BRepVertex.geometry`; `ConstructionPoint.geometry` / `.createForAssemblyContext(occ)` | `BRepFace.htm`, `BRepFace_isParamReversed.htm`, `BRepFace_createForAssemblyContext.htm`, `Surface.htm`, `SurfaceTypes.htm`, `Plane.htm`, `BRepEdge.htm`, `BRepVertex.htm`, `ConstructionPoint.htm` | `isParamReversed`: "the normal of this face is reversed with respect to the surface geometry" — the outward normal is the plane's, flipped when set; a proxy "or null if this isn't the NativeObject" (the bodies under `occ.bRepBodies`, row 12, are already in occurrence context) | ○ |
+| 48 | `exportManager.createIGESExportOptions(filename, geometry=None)`, `createSATExportOptions(filename, geometry=None)`, `createUSDExportOptions(filename, geometry=None)` — geometry "currently a Component object", None exports the root; `createC3MFExportOptions(geometry, filename="")` — geometry "a BRepBody, Occurrence, or Component" | `ExportManager_createIGESExportOptions.htm`, `ExportManager_createSATExportOptions.htm`, `ExportManager_createUSDExportOptions.htm`, `ExportManager_createC3MFExportOptions.htm`, `C3MFExportOptions.htm`, `USDExportOptions.htm` | 3MF is geometry-first like STL/OBJ and REQUIRES a geometry; its options carry mesh refinement and no unit property; USD's carry only filename and geometry — the units are whatever each file declares inside, which the smoke reads | ○ |
+| 49 | **The drawing surface, read for its absence.** `adsk.core.DocumentTypes` has ONE member, `FusionDesignDocumentType` (0), so `Documents.add(documentType, visible=True, options=None)` cannot create a drawing; `adsk.drawing.Drawing` exposes `exportManager`, `namedViews`, `attributes` and no sheets or views collection; `DrawingViews.htm` and `DrawingSheets.htm` do not exist (404); `DrawingDocument.drawing.exportManager.createPDFExportOptions(filename) -> PDFExportOptions` and `.execute(options)` exist for a drawing the owner has OPEN | `DocumentTypes.htm`, `Documents_add.htm`, `Drawing.htm`, `DrawingDocument.htm`, `DrawingExportManager.htm`, `DrawingExportManager_createPDFExportOptions.htm` | the API can export a drawing that already exists; it cannot create one — v2's drawings come from partkiln (§10.7) | ○ |
 
 Two facts the reference does NOT settle and the smoke must: which image
 extensions `saveAsImageFile` writes (row 19), and the add-in folder on this
@@ -287,16 +306,22 @@ shim (tokens per task against the script a model would otherwise write and
 the listing it would read back), the Mac smoke procedure, PROGRESS,
 CHANGELOG.
 
-## 7. Deliberately not built (v1)
+## 7. Deliberately not built
 
-Holes, chamfers, revolves, shells, sweeps, lofts (each is one more §3 row
-and one more emitter; the extrude/fillet path is the proof); sketch
-constraints and dimensions (sketches are placed geometry, as in the FreeCAD
-lane — parametric truth lives in user parameters and feature expressions);
-joints and assemblies beyond empty components; drawings and CAM; document
-management (new/open/save/close/upload — Law 5); direct-modeling rollback;
-a seamkiln handoff target named `fusion`; OBJ/STL import (the ImportManager
-has none, row 18); the manifest change (§4.10).
+*(v1, 2026-09-06 morning)* Holes, chamfers, revolves, shells, sweeps, lofts;
+sketch constraints and dimensions; joints; drawings and CAM; document
+management; direct-modeling rollback; a seamkiln handoff target named
+`fusion`; OBJ/STL import; the manifest change (§4.10).
+
+*(after v2, §10)* Still not built, each for its named reason: shells, sweeps,
+lofts, threads and tapped holes, sketch arcs and splines, joint origins,
+as-built joints and motion links, rigid groups (one more row and one more
+emitter each — the v2 additions are the proof that the shape holds);
+drawings made BY Fusion (the API cannot, row 49) and the PDF export of a
+drawing the owner has open (its rows are verified in 49; the emitter waits
+for a smoke that can open a drawing); CAM; document management (Law 5);
+direct-modeling rollback; OBJ/STL import (row 18); the manifest change
+(§4.10, until the smoke).
 
 ## 8. Measured
 
@@ -347,3 +372,165 @@ nowhere else.
    `fusion_unreachable`'s fix names it.
 3. The add-in folder on the owner's Mac, and whether `runOnStartup` is
    wanted (the manifest ships it `true`, as Autodesk's sample does).
+4. *(v2)* A hole placed on a face with `setPositionByPoint`: is its default
+   direction into the material, and which way does `setAllExtent(Positive…)`
+   run? The codegen assumes "into the material" and exposes `flip`; the
+   smoke's step 8 measures the volume after a through hole.
+5. *(v2)* After `joints.add`, which occurrence Fusion moves, and what
+   `fu_measure` of an occurrence reads afterwards (the shim moves nothing).
+6. *(v2)* The unit each of IGES, SAT, 3MF and USD declares inside the file
+   Fusion writes (the options carry none); `fu_export` declares `units:
+   null` until the smoke has read them.
+7. *(v2)* Whether `addTwoPointRectangle` adds horizontal/vertical
+   constraints of its own (the page does not say); the sketch row's
+   `constraints` count after step 7 answers it.
+
+## 10. v2 (A70, 2026-09-06): the long tail becomes rows and emitters
+
+**Owner directive (verbatim):** *"v2 should add holes, chamfers, revolves,
+sketch constraints, joints, drawings or the iges/sat/3mf/usd exports, each of
+which is one more verified row and one more emitter."*
+
+Rows 31–49 were read before any emitter was written. One premise inverted on
+the way: **the Fusion API cannot create a drawing** (row 49) — §10.7 says what
+v2 does instead. Everything below keeps §4's shape: one batch, one script,
+one diff; millimetres on the wire with the unit written; ids minted over
+entityTokens; the shim executes the real scripts.
+
+### 10.1 Sketch geometry gets addresses; constraints and dimensions become ops
+
+- `create sketch` props grow `lines: [[x1, y1, x2, y2]]`, `points: [[x, y]]`,
+  and optional inline `constraints` / `dims` lists (the shapes of the two ops
+  below, minus `sketch`).
+- Every piece of sketch geometry has a **sketch-local address**, minted in
+  creation order and kept in the bridge's `_tee["subs"][<sketch id>]` map
+  over entityTokens: `r0.bottom | top | left | right` (a rectangle's sides,
+  **named by where their midpoints lie**, because row 38 leaves the line
+  order unspecified — Law 8), `r0.bl | br | tl | tr` (its corners, likewise),
+  `l0…` (explicit lines) with `.start` / `.end`, `c0…` (circles) with
+  `.center`, `p0…` (explicit points), and `origin` (the sketch's projected
+  origin point, row 38). An op names them as `"sk1/r0.bottom"`; inside the
+  sketch op itself they are bare.
+- `create constraint {sketch, type, of: [address…]}` — types and arity:
+  horizontal / vertical (one line); parallel / perpendicular / collinear (two
+  lines); equal / tangent (two curves); concentric (two circles); coincident
+  (a point, then an entity); midpoint (a point, then a curve); symmetry (two
+  entities, then the line). Row 40. A constraint is **not an entity**: no id,
+  never `set`; the sketch row reports `constraints` (a count) and
+  `constrained` (`isFullyConstrained`), and a rollback removes them with the
+  sketch's later history.
+- `create dimension {sketch, type, of, orientation?, expression?, text?,
+  driving?}` — distance (two points; orientation aligned | horizontal |
+  vertical), diameter / radius (one circle), angle (two lines). Rows 41–42. A
+  dimension IS an entity, `dim1` (kind `dimension`, parent the sketch),
+  reporting `expression`, `value` (mm or deg) and `driving`;
+  `set dim1 {expression: "width"}` writes `parameter.expression` — the
+  binding to a user parameter that makes a sketch parametric; `delete dim1`
+  is `deleteMe()`. `text` is the label position in mm (default: beside the
+  geometry); `driving` defaults to true.
+
+### 10.2 Faces by direction; holes
+
+- There are no face ids. A face is addressed by its **outward normal** on a
+  body: `"+z"`, `"-z"`, `"+x"`, `"-x"`, `"+y"`, `"-y"`. The prelude's
+  `_face(body, sel, at)` walks `body.faces`, keeps the planar ones
+  (`geometry.surfaceType == PlaneSurfaceType`), takes each plane's normal
+  flipped by `isParamReversed` (row 47), keeps the faces within a degree of
+  the axis and picks the outermost along it — or, when `at` has three
+  coordinates, the one whose plane passes nearest `at`. None →
+  `fusion_no_face`, naming the directions the body does have.
+- `create hole {body, face, at | point, diameter, depth | through, type?,
+  cbore_diameter?, cbore_depth?, csink_diameter?, csink_angle?, flip?}` — `at`
+  is `[u, v]` (the two world axes other than the normal's, in x-y-z order)
+  or `[x, y, z]`, in mm; Fusion projects the point onto the face (row 32);
+  `point: "sk2/p0"` places by a sketch point instead (row 32). `type` is
+  simple (default), counterbore or countersink (row 31); `depth` →
+  `setDistanceExtent`, `through: true` → `setAllExtent(Positive…)`; `flip`
+  clears `isDefaultDirection` (row 33). The hole is a feature (`f{n}`, type
+  HoleFeature) reporting `diameter_mm`, `position_mm` and `hole_type`; the
+  body's row is marked modified with its new volume. What the reference does
+  not settle is §9 item 4.
+
+### 10.3 Chamfers, and an edge selector shared with fillets
+
+- `create chamfer {body, distance, edges?}` — `createInput2()` and one
+  `addEqualDistanceChamferEdgeSet(edges, "d mm", True)` (row 35; the retired
+  `createInput` never appears and the shim raises on it). `edges` is `"all"`
+  (default) or `{"face": "+z"}` — that face's edges (row 47). The same
+  selector lands on `create fillet`, whose default stays "every edge".
+
+### 10.4 Revolves
+
+- `create revolve {sketch, axis, angle?, symmetric?, operation?, profile?}` —
+  `axis` is `"x" | "y" | "z"` (the root's construction axes, row 37) or a
+  sketch line address (`"sk1/l0"`, row 36); `angle` defaults to 360 and is
+  written as `"<a> deg"`; `setAngleExtent(symmetric, angle)`. A profile that
+  crosses its axis is Fusion's failure and comes back as one refusal.
+
+### 10.5 Joints
+
+- `create joint {one, two, motion, axis?, slide?, angle?, offset?, flip?}` —
+  each side is `{component: "c1", face: "+z", body?: "b3"}` (the centre of a
+  planar face of that occurrence's body, in occurrence context: the bodies
+  under `occ.bRepBodies` are proxies already (row 12), and the geometry is
+  `createByPlanarFace(face, None, CenterKeyPoint)` (row 44)), or
+  `{component: "c1"}` (the occurrence's origin construction point through
+  `createForAssemblyContext(occ)`, rows 37 and 47), or `{body: "b1", face:
+  "+z"}` on the root. `motion` is rigid | revolute | slider | cylindrical |
+  pin_slot | planar | ball (row 45); `axis` (x | y | z, default z) is the
+  rotation axis, slide direction or plane normal as the motion needs, and
+  pin_slot takes `slide` as well; ball uses pitch z and yaw x. `angle` (deg)
+  and `offset` (mm) are written with their units; `flip` sets `isFlipped`.
+- A joint is an entity `j{n}` (kind `joint`) reporting `motion`, `between`
+  (the two occurrences' ids), `angle_deg`, `offset_mm`, `flipped` and
+  `health`. `set j1 {angle, offset, suppressed, flipped, rotation (deg, a
+  revolute or cylindrical joint), slide (mm, a slider)}` (row 46).
+- Fusion moves an occurrence to satisfy a joint; the shim records the joint
+  and moves nothing (§9 item 5).
+
+### 10.6 Exports
+
+`fu_export format=iges | sat | usd | 3mf` (row 48). iges/sat/usd export a
+component or the root, so a body id is refused with the fix; 3mf takes a
+body, an occurrence or a component. All four declare their units inside the
+file, so `fu_export` answers `declares_units: true` and `units: null` with a
+note — the receiver reads the file's own unit; `into=` still refuses when no
+served lane imports the suffix.
+
+### 10.7 Drawings: the API cannot make one; partkiln can
+
+Row 49 is the finding. `fu_drawing {out, of?, name?, sheet?, standard?,
+angle?, scale?, views?, dims?, hole_table?, formats?}` exports STEP from
+Fusion into the lane's workdir, imports it into the served partkiln lane
+(`pk_import`: fingerprint-named faces, the file's declared unit reported)
+and writes the sheet with `pk_drawing` — every dimension READ from the model
+(partkiln's Law 15), SVG / DXF / PDF. No partkiln lane served →
+`partkiln_not_served`, fix `tee serve --adapter fusion --adapter partkiln`.
+The import into partkiln's document is a scene write on that lane, decided
+as one through `registry.require` (the A68 precedent for `land()`), so a
+tainted task cannot reach it through a write-artifacts tool.
+
+### 10.8 What the shim models, and what only the smoke can tell
+
+The shim gains: sketch lines with shared endpoints, circles with centres,
+points, constraints (counted; horizontal / vertical / coincident checked
+against the geometry they name), dimensions whose parameter drives the
+geometry **for rectangles and circles only** (Law 10); a box body's six
+faces with normals, centroids, areas and edges; holes that subtract a
+cylinder (plus the counterbore ring or the countersink frustum); chamfers
+that touch nothing but the timeline; revolves by Pappus (the volume of a
+profile of area A revolved through θ about an axis at distance d from its
+centroid is θ·A·d); joints with motions, angle and offset parameters, rotation
+and slide values; the four export constructors with their argument orders.
+It does not solve a general sketch, move an occurrence for a joint, or know a
+hole's live direction — §9 items 4–7 are the smoke's.
+
+### 10.9 Laws added
+
+8. A sub-entity is addressed by where it is (a rectangle's `bottom`), never
+   by the order Fusion returned it.
+9. A behaviour the reference does not settle (a hole's direction, which
+   occurrence a joint moves) is an open question in §9 and a smoke step,
+   never a guess written into the codegen as fact.
+10. The shim solves rectangles and circles only; a dimension it cannot solve
+    is recorded, not faked, and the test says which.

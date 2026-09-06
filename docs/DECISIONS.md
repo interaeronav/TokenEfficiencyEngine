@@ -1905,6 +1905,57 @@ gains one refinement: when several lanes take a batch and at least one is
 connected, the disconnected ones drop out before the tie is judged. Both
 live is genuinely ambiguous and still refuses naming both.
 
+## The Fusion lane v2: every feature is a row and an emitter, and drawings are partkiln's (2026-09-06, A70)
+
+**Owner directive:** *"v2 should add holes, chamfers, revolves, sketch
+constraints, joints, drawings or the iges/sat/3mf/usd exports, each of which
+is one more verified row and one more emitter."*
+
+**The rows came first, and one premise inverted.** Nineteen more reference
+rows (doc 71 §3, 31–49) were read before a line of codegen: holes,
+chamfers, revolves, sketch geometry and its constraints and dimensions,
+joints, faces, the four exporters — and the drawing surface, read for its
+absence. `DocumentTypes` has one member (the design), `Drawing` has no
+sheets or views, and the two pages a view API would need do not exist. So
+**the Fusion API cannot create a drawing.** v2 does not pretend otherwise:
+`fu_drawing` exports STEP from Fusion and hands it to the served partkiln
+lane, whose drawings read every dimension from the model. The PDF export of
+a drawing the owner already has open is verified in row 49 and waits for a
+smoke that can open one. Three retirements shape the emitters:
+`ChamferFeatures.createInput` (use `createInput2`), `GeometricConstraints.
+addOffset`, and — the other way — `HoleFeatureInput.setDistanceExtent`,
+which is NOT retired although the extrude call of the same name is.
+
+**Sketch geometry is addressed by where it is.** `addTwoPointRectangle`
+returns four lines in an order the reference does not state, so a
+rectangle's sides are `r0.bottom / top / left / right` and its corners
+`r0.bl / br / tl / tr`, classified from their geometry after creation;
+explicit lines, circles and points are numbered in creation order. A
+dimension is an entity (`dim1`) because a model will `set` its expression
+to a user parameter — that binding is the parametric truth v1 left to
+feature expressions; a constraint is not an entity because nothing is ever
+set on it, and the sketch row reports the count and `isFullyConstrained`.
+
+**Faces have no ids; they have directions.** A hole, a chamfer's edge set
+or a joint's geometry names a planar face by its outward normal (`+z`), the
+plane's normal flipped by `isParamReversed`, outermost along the axis —
+the same lookup a person makes when they say "the top face". Holes place a
+point on that face (projected by Fusion) or a sketch point.
+
+**What the reference does not settle is a smoke step, not a guess.** A
+face-placed hole's default direction, which occurrence a joint moves, the
+unit each of IGES / SAT / 3MF / USD declares inside the file, and whether
+the rectangle call adds constraints of its own are §9 items 4–7 with a smoke
+step each; the codegen exposes `flip` rather than asserting a direction, and
+`fu_export` declares `units: null` for the four rather than a number nobody
+read.
+
+**The shim stays honest about what it solves.** It drives rectangles and
+circles from their dimensions (a `param_set` on `width` re-sizes the body),
+subtracts holes, revolves by Pappus, records joints — and moves no
+occurrence, solves no general sketch, and says so in the test that would
+otherwise have to fake it.
+
 **The Desktop manifest does not change yet.** It lists what the owner's
 machine is known to serve; the lane joins it after the Mac smoke, not
 before.
