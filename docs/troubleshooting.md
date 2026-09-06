@@ -134,4 +134,13 @@ of hanging.
 | `fusion_unknown_entity` | An id this bridge session does not know (a bridge restart renumbers) — `tee_scene_summary(adapter=fusion, refresh=true)` |
 | `capture_needs_pillow` | Fusion wrote a PNG and Pillow is missing — `uv pip install pillow` |
 | `adapter_required` naming fusion and partkiln | Both applications are live and both take the batch — pass `adapter=`; a closed Fusion never competes |
+| `bad_op` naming a sketch address (v2) | An address is `r0.bottom\|top\|left\|right`, `r0.bl\|br\|tl\|tr`, `l0`, `l0.start\|end`, `c0`, `c0.center`, `p0` or `origin` — bare inside the sketch op, prefixed `sk1/` (or with `sketch` given) outside it |
+| `fusion_unknown_entity` naming a sketch and what it has | The address is well-formed but that sketch has no such piece; the message lists the ones it has |
+| `fusion_op_failed` "refused the … constraint" | Fusion could not create it: the geometry contradicts it or the sketch is over-constrained — place the geometry where the constraint puts it, or drop one |
+| `fusion_no_face` | The body has no planar face facing the direction named; the message lists the ones it has (a cylinder: `+z`, `-z`). Directions are `+x -x +y -y +z -z` |
+| `fusion_op_failed` "hole failed" | Fusion returned null: is the point on the face, and does the extent reach a body? Try `flip: true` (doc 71 §9 item 4) |
+| `fusion_op_failed` "revolve failed" | The profile crosses its axis, or the axis is not in the sketch plane (an XY sketch revolves about `x` or `y`, never `z`) |
+| `fusion_op_failed` "joint failed … different components" | Both sides resolved to the same component; a joint is between two — a `new_component` extrude makes one |
+| `bad_op` "not a body" on `fu_export` | iges, sat and usd export a component or the whole design — pass a component id or omit `of`; 3mf, stl and obj take a body |
+| `partkiln_not_served` on `fu_drawing` | The Fusion API cannot create a drawing; the sheet comes from partkiln — `tee serve --adapter fusion --adapter partkiln` |
 

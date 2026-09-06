@@ -356,17 +356,40 @@ and one `fu_measure`.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (write the script, run it, read the design back) | 1,776 | 2 |
-| tee (batch + diff + fu_measure) | 254 | 2 |
-| **saved** | **85.7%** | |
+| naive (write the script, run it, read the design back) | 8,833 | 2 |
+| tee (batch + diff + fu_measure) | 270 | 2 |
+| **saved** | **96.9%** | |
 
-The batch script the lane sends is 140 tokens the model never
-reads; the diff it reads instead is 131 tokens. Read back:
+The batch script the lane sends is 4,282 tokens the model never
+reads; the diff it reads instead is 147 tokens. Read back:
 96,000 mm3, bbox [120.0, 80.0, 10.0] mm.
 
 The always-loaded surface is unchanged at 17 tools - Fusion joins through the
 Adapter protocol and six `fu_*` virtual tools. Live numbers wait for the smoke in
 docs/fusion-lane.md.
+
+## Fusion lane v2: a dimensioned bracket with holes, a chamfer, a revolve and a joint (A70)
+
+A bracket the way a person asks for it: a rectangle constrained and dimensioned to
+`width` / `height` user parameters and extruded into its own component, two
+through holes on the top face, a chamfer on that face's edges, a post extruded
+into a second component, a pin revolved about x, and a revolute joint between the
+two components - one batch. Measured on the suite's fake adsk, as above: the
+scripts are the ones a live Fusion receives, only the geometry is arithmetic. The
+naive arm writes the script itself, runs it, and reads the design back.
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (write the script, run it, read the design back) | 12,168 | 2 |
+| tee (batch + diff + fu_measure) | 1,144 | 2 |
+| **saved** | **90.6%** | |
+
+12 ops made 19 entities. The batch script the lane sends is
+6,582 tokens the model never reads; the diff it reads instead is
+629 tokens. The plate reads back 95,315.8 mm3 (two
+holes bored) in a [120.0, 80.0, 10.0] mm box - the dimensions drove the 100 x 50
+rectangle to 120 x 80 before the extrude. The always-loaded surface is unchanged at
+17 tools. Live numbers wait for the smoke in docs/fusion-lane.md (steps 7-11).
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 

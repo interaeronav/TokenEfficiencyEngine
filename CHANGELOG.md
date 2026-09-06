@@ -85,6 +85,23 @@ with Fusion. The router gained one refinement: a lane whose application is
 not running is not a candidate, so a closed Fusion never competes with
 partkiln for a sketch. The Desktop manifest is unchanged until then.
 
+**v2 (A70, the same day).** Sketch geometry has addresses (`sk1/r0.bottom`,
+`r0.bl`, `l0.start`, `c0.center`, `p0`, `origin` — a rectangle's sides named
+by position, because the API leaves their order unstated); `create
+constraint` (eleven kinds) and `create dimension` (distance / diameter /
+radius / angle — an entity `dim1` whose `expression` binds a user parameter,
+so a `param_set` re-sizes the part); faces named by outward normal (`+z`);
+`create hole` (simple / counterbore / countersink, by face and point or by
+sketch point, depth or through, `flip`), `create chamfer` and an `edges`
+selector on fillets, `create revolve` (a construction axis or a sketch line);
+`create joint` (seven motions, geometry at a face centre or an origin,
+angle / offset / flip, `set` rotation and slide); `fu_export` iges / sat /
+3mf / usd, self-describing on units and declared so; `fu_drawing` — the
+Fusion API cannot create a drawing (doc 71 row 49), so the sheet is
+partkiln's from a STEP handoff, decided as the scene write it is. Twenty
+more reference-verified rows (doc 71 §3, 31–50) and one inverted premise;
+everything still on the shim until the Mac smoke, which gained five steps.
+
 ## 0.21.1 — 2026-09-04
 
 One change, and it is the one that lets Claude Desktop reach the two lanes

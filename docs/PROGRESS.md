@@ -12538,7 +12538,10 @@ bbox, on the shim — TEE 254 tokens in 2 calls against 1,776 in 2 for a model
 that writes the API script itself and reads the design back as a listing,
 **85.7% saved**; the compiled batch script is 140 tokens the model never
 reads, the diff it reads instead is 131; read-back 96,000 mm³, bbox
-[120, 80, 10] mm. The always-loaded surface is unchanged at 17 tools. Full
+[120, 80, 10] mm. *(Corrected in A70 P5: the runner had measured the
+checkpoint's snapshot program as the batch script; with the real script the
+row is TEE 270 vs 8,833 tokens, 96.9% saved, script 4,282, diff 147 —
+doc 71 §8.1.)* The always-loaded surface is unchanged at 17 tools. Full
 suite on the P3 tree: 1,579 passed, 66 skipped, 115 deselected; `make lint`
 clean. CHANGELOG Unreleased carries "The Fusion lane (A69)"; doc 71 §8 the
 numbers and what they do not measure. CI's server job, whose venv has no
@@ -12675,3 +12678,22 @@ partkiln's document is decided as the scene write it is through
 content is refused with nothing on disk. Tabled `write-artifacts`, in the
 `fu_` lane family. 201 tests across the Fusion, trust, server-lint and
 search suites green; lint clean.
+
+**P5 — measured, recorded, pushed.** `run_fusion_v2_scenario` joins the
+battery (`benchmarks/RESULTS.md`, "Fusion lane v2: a dimensioned bracket
+with holes, a chamfer, a revolve and a joint"): twelve ops in one batch —
+the rectangle dimensioned to `width` / `height` user parameters and
+extruded into its own component, two Ø6.6 through holes on `+z`, a chamfer
+on that face's edges, a post extruded into a second component, a pin
+revolved about x, a revolute joint — TEE 1,144 tokens in 2 calls against
+12,168 in 2 for a model that writes the script itself and reads the design
+back, **90.6% saved**; nineteen entities made; the script is 6,582 tokens
+the model never reads, the diff it reads instead 629; the plate reads back
+95,315.8 mm³ (96,000 less two holes) in a [120, 80, 10] box. Writing the
+scenario found a defect in A69's runner — it had counted the checkpoint's
+snapshot program as the batch script — so that row was re-measured with the
+real script: TEE 270 vs 8,833 tokens, 96.9% saved (doc 71 §8.1 carries the
+correction). The always-loaded surface is unchanged at 17 tools. Docs:
+`docs/fusion-lane.md` (the v2 ops, addresses and faces, the eight exports,
+`fu_drawing`, smoke steps 7–11, "Not yet"), troubleshooting rows for the
+v2 refusals, README and quickstart, CHANGELOG Unreleased, doc 71 §8.3.

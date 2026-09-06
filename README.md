@@ -91,7 +91,7 @@ itself with the savings meter (`report_savings`) and a portable
 | partkiln | mechanical CAD, headless: sketch → features → assembly → drawing → STEP | OCCT through the OCP wheel, in-process or a sidecar interpreter |
 | seamkiln | garment CAD + drape, headless: pattern → sew → body → drape → handoff | its own XPBD solver; renders through a headless Blender when asked for pixels |
 | FreeCAD, Godot | fabrication sheets; a headless game scene with `run_scene` evidence | neka-nat's RPC bridge; the Godot socket bridge |
-| Fusion | parametric CAD in the owner's open design, live: sketch → extrude → fillet, parameters, STEP/STL/OBJ/f3d exports | the TEE bridge add-in on 127.0.0.1:9881, every request run on Fusion's primary thread |
+| Fusion | parametric CAD in the owner's open design, live: constrained and dimensioned sketches → extrude / revolve / holes / fillets / chamfers → joints, parameters, eight export formats, drawings through partkiln | the TEE bridge add-in on 127.0.0.1:9881, every request run on Fusion's primary thread |
 | headless kernel lanes | point clouds (`pc_*`), PDFs (`pdf_*`), extraction (`ex_*`), senses, the fleet | no DCC, ever |
 
 No lane is the default. A batch with no `adapter=` goes where its content
@@ -154,7 +154,7 @@ extension zip. Skills for Claude live under `skills/` (`tee-usage`,
 | kb | `kb_*` | read-only, budgeted queries over the Expert Knowledge Base mirror; every answer carries the corpus's own confidence/jurisdiction flags and its Sources block |
 | partkiln | `pk_*` + batch verbs | mechanical CAD on OCCT: measure, check, dimensioned drawings, STEP/GLB export with a handoff manifest, sheet-metal flats, BOM |
 | seamkiln | `sk_*` + batch verbs | garment CAD + drape: blocks, sewing, bodies and gait, fit reports, AAMA/ASTM DXF, tech packs, handoff in the target's units |
-| fusion | `fu_*` + batch verbs | Autodesk Fusion, live: probe, measurements in mm, parameters, the timeline, exports with `into=`, the exec-code escape hatch; checkpoints are the timeline plus every parameter expression |
+| fusion | `fu_*` + batch verbs | Autodesk Fusion, live: probe, measurements in mm, parameters, the timeline, exports with `into=`, `fu_drawing` through partkiln, the exec-code escape hatch; batch kinds sketch / constraint / dimension / extrude / revolve / hole / fillet / chamfer / joint / component / param; checkpoints are the timeline plus every parameter expression |
 | pointcloud | `pc_*` | scan prep: open/level/scale-verify a raw scan, slice DXF/SVG templates, rectified orthos — the model never sees a point |
 | capture | `capture_*` | reality capture: photogrammetry ingest, reconstruct, ICP register, deviate, apply |
 | pdf, senses | `pdf_*`, `sense_*` | write and page-edit PDFs; vision and hearing for a host model that has none, via local models |

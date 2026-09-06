@@ -1610,6 +1610,15 @@ def run_routing_scenario() -> dict | None:
 
 
 FUSION_HEADER = "## Fusion lane: sketch, extrude, fillet, measure (A69)"
+FUSION_V2_HEADER = (
+    "## Fusion lane v2: a dimensioned bracket with holes, a chamfer, a revolve and a joint (A70)"
+)
+
+
+def _batch_script(executed: list[str]) -> str:
+    """The batch script the lane sent - not the checkpoint's snapshot program
+    that `run_batch` runs first (A70 P5 found A69's row measuring that one)."""
+    return next(s for s in executed if "# op 0:" in s)
 
 
 def run_fusion_scenario() -> dict | None:
@@ -1656,7 +1665,7 @@ def run_fusion_scenario() -> dict | None:
         tee.call({"tool": "tee_batch", "ops": ops}, diff)
         measured = app.registry.call("fu_measure", {"of": "b1"})
         tee.call({"tool": "fu_measure", "of": "b1"}, measured)
-        script = adapter.wire.executed[0]  # the batch script the lane sent
+        script = _batch_script(adapter.wire.executed)
     finally:
         app.shutdown()
 
@@ -1683,6 +1692,114 @@ def run_fusion_scenario() -> dict | None:
         f"fusion: tee {tee.tokens} tok / {tee.round_trips} calls vs naive {naive.tokens} tok / "
         f"{naive.round_trips} calls ({row['saving']}% saved); the batch script alone is "
         f"{row['script_tokens']} tok, the diff {row['diff_tokens']} tok"
+    )
+    return row
+
+
+def run_fusion_v2_scenario() -> dict | None:
+    """A70 P5: the v2 vocabulary in one batch, on the shim.
+
+    A bracket the way a person would ask for it: a rectangle constrained and
+    dimensioned to `width` / `height` user parameters, extruded into its own
+    component; two through holes on the top face; a chamfer on that face's
+    edges; a post extruded into a second component; a pin revolved about x;
+    a revolute joint between the two components. The naive arm is the same
+    as A69's: the script TEE compiles (the minimum a correct one contains),
+    run through an execute door, and the listing read back. The TEE arm is
+    one batch, its diff, and one fu_measure of the plate."""
+    try:
+        from tee.adapters.fusion import codegen
+        from tee.adapters.fusion.adapter import FusionAdapter
+        from tee.adapters.fusion.tools import register_fusion_tools
+        from tee.app import TeeApp
+    except ImportError as exc:
+        print(f"fusion v2 scenario skipped ({exc})")
+        return None
+    tests_dir = REPO / "server" / "tests"
+    if str(tests_dir) not in sys.path:
+        sys.path.insert(0, str(tests_dir))
+    from importlib import import_module
+
+    fake_wire = import_module("fixtures_fusion").FakeFusionWire
+
+    ops = [
+        {"op": "create", "kind": "param", "name": "width", "props": {"value": "120 mm"}},
+        {"op": "create", "kind": "param", "name": "height", "props": {"value": "80 mm"}},
+        {"op": "create", "kind": "sketch", "name": "base", "props": {
+            "rects": [[0, 0, 100, 50]],
+            "constraints": [
+                {"type": "coincident", "of": ["r0.bl", "origin"]},
+                {"type": "horizontal", "of": ["r0.bottom"]},
+                {"type": "horizontal", "of": ["r0.top"]},
+                {"type": "vertical", "of": ["r0.left"]},
+                {"type": "vertical", "of": ["r0.right"]},
+            ],
+            "dims": [
+                {"type": "distance", "of": ["r0.bl", "r0.br"], "orientation": "horizontal",
+                 "expression": "width"},
+                {"type": "distance", "of": ["r0.bl", "r0.tl"], "orientation": "vertical",
+                 "expression": "height"},
+            ],
+        }},
+        {"op": "create", "kind": "extrude", "name": "plate",
+         "props": {"sketch": "sk1", "distance": 10, "operation": "new_component"}},
+        {"op": "create", "kind": "hole", "name": "m6a",
+         "props": {"body": "b1", "face": "+z", "at": [20, 20], "diameter": 6.6, "through": True}},
+        {"op": "create", "kind": "hole", "name": "m6b",
+         "props": {"body": "b1", "face": "+z", "at": [100, 60], "diameter": 6.6, "through": True}},
+        {"op": "create", "kind": "chamfer", "name": "break",
+         "props": {"body": "b1", "distance": 1, "edges": {"face": "+z"}}},
+        {"op": "create", "kind": "sketch", "name": "boss", "props": {"circles": [[110, 40, 5]]}},
+        {"op": "create", "kind": "extrude", "name": "post",
+         "props": {"sketch": "sk2", "distance": 20, "operation": "new_component"}},
+        {"op": "create", "kind": "sketch", "name": "pin_profile",
+         "props": {"rects": [[0, 20, 10, 30]]}},
+        {"op": "create", "kind": "revolve", "name": "pin", "props": {"sketch": "sk3", "axis": "x"}},
+        {"op": "create", "kind": "joint", "name": "hinge", "props": {
+            "one": {"component": "c1", "face": "+z"}, "two": {"component": "c2", "face": "-z"},
+            "motion": "revolute", "axis": "z"}},
+    ]
+
+    root = tempfile.mkdtemp(prefix="tee-bench-fusion-v2-")
+    adapter = FusionAdapter(fake_wire(), workdir=root)
+    app = TeeApp({"fusion": adapter}, project_root=root)
+    register_fusion_tools(app, adapter)
+    tee = Meter()
+    try:
+        diff = app.run_batch("fusion", ops)
+        tee.call({"tool": "tee_batch", "ops": ops}, diff)
+        measured = app.registry.call("fu_measure", {"of": "b1"})
+        tee.call({"tool": "fu_measure", "of": "b1"}, measured)
+        script = _batch_script(adapter.wire.executed)
+        created = list(diff.get("created", [])) if isinstance(diff, dict) else []
+    finally:
+        app.shutdown()
+
+    naive = Meter()
+    wire = fake_wire()
+    reply = wire.execute(script)
+    naive.call({"tool": "execute_script", "code": script}, reply)
+    listing = wire.execute(codegen.LIST_PROGRAM)
+    naive.call({"tool": "execute_script", "code": codegen.LIST_PROGRAM}, listing)
+
+    row = {
+        "tee_tokens": tee.tokens,
+        "tee_calls": tee.round_trips,
+        "naive_tokens": naive.tokens,
+        "naive_calls": naive.round_trips,
+        "saving": round(100.0 * (1 - tee.tokens / naive.tokens), 1),
+        "script_tokens": estimate_tokens(script),
+        "diff_tokens": estimate_tokens(diff),
+        "ops": len(ops),
+        "entities": len(created),
+        "volume_mm3": measured["volume_mm3"],
+        "bbox_mm": measured["bbox_mm"],
+    }
+    print(
+        f"fusion v2: tee {tee.tokens} tok / {tee.round_trips} calls vs naive {naive.tokens} tok / "
+        f"{naive.round_trips} calls ({row['saving']}% saved); {row['ops']} ops made "
+        f"{row['entities']} entities; the batch script is {row['script_tokens']} tok, the diff "
+        f"{row['diff_tokens']} tok"
     )
     return row
 
@@ -2491,12 +2608,14 @@ def main() -> None:
     pointcloud_row = _safe(run_pointcloud_scenario)
     routing_row = _safe(run_routing_scenario)
     fusion_row = _safe(run_fusion_scenario)
+    fusion_v2_row = _safe(run_fusion_v2_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
                   fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row,
                   pointcloud_row, partkiln_row=partkiln_row,
                   partkiln_followup_row=partkiln_followup_row,
-                  routing_row=routing_row, fusion_row=fusion_row)
+                  routing_row=routing_row, fusion_row=fusion_row,
+                  fusion_v2_row=fusion_v2_row)
     _stage("total", t0)
 
 
@@ -2566,7 +2685,7 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   fabrication_row=None, senses_row=None, seamkiln_row=None,
                   seamkiln_followup_row=None, pointcloud_row=None,
                   partkiln_row=None, partkiln_followup_row=None,
-                  routing_row=None, fusion_row=None) -> None:
+                  routing_row=None, fusion_row=None, fusion_v2_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -2845,6 +2964,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _fusion_section(fusion_row)
     else:
         lines += _carry_forward(FUSION_HEADER)
+    if fusion_v2_row is not None:
+        lines += _fusion_v2_section(fusion_v2_row)
+    else:
+        lines += _carry_forward(FUSION_V2_HEADER)
     # Sections owned by the SIBLING runners (run_k4_mixed.py wrote the A42
     # scheduler row; run_p6_pipeline.py the A43 lane row). This file rewrites
     # RESULTS.md wholesale, so anything it does not carry forward is deleted
@@ -2977,6 +3100,36 @@ _ROUTING_BEFORE = (
     "partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / "
     "2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33."
 )
+
+
+def _fusion_v2_section(row: dict) -> list[str]:
+    """A70 P5: the v2 vocabulary in one batch, on the shim."""
+    return [
+        "",
+        FUSION_V2_HEADER,
+        "",
+        "A bracket the way a person asks for it: a rectangle constrained and dimensioned to",
+        "`width` / `height` user parameters and extruded into its own component, two",
+        "through holes on the top face, a chamfer on that face's edges, a post extruded",
+        "into a second component, a pin revolved about x, and a revolute joint between the",
+        "two components - one batch. Measured on the suite's fake adsk, as above: the",
+        "scripts are the ones a live Fusion receives, only the geometry is arithmetic. The",
+        "naive arm writes the script itself, runs it, and reads the design back.",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (write the script, run it, read the design back) | "
+        f"{row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| tee (batch + diff + fu_measure) | {row['tee_tokens']:,} | {row['tee_calls']} |",
+        f"| **saved** | **{row['saving']}%** | |",
+        "",
+        f"{row['ops']} ops made {row['entities']} entities. The batch script the lane sends is",
+        f"{row['script_tokens']:,} tokens the model never reads; the diff it reads instead is",
+        f"{row['diff_tokens']} tokens. The plate reads back {row['volume_mm3']:,.1f} mm3 (two",
+        f"holes bored) in a {row['bbox_mm']} mm box - the dimensions drove the 100 x 50",
+        "rectangle to 120 x 80 before the extrude. The always-loaded surface is unchanged at",
+        "17 tools. Live numbers wait for the smoke in docs/fusion-lane.md (steps 7-11).",
+    ]
 
 
 def _fusion_section(row: dict) -> list[str]:

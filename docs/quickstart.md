@@ -118,7 +118,9 @@ and an honest refusal naming its install. **No lane is the default** (A68):
 - Fusion is a live lane: run the TEE bridge add-in inside Fusion, then
   `tee serve --adapter fusion` — [fusion-lane.md](fusion-lane.md). Beside
   partkiln, a batch both could take goes to the one whose application is
-  running; both live is refused naming both.
+  running; both live is refused naming both. Sketch geometry is addressed
+  (`sk1/r0.bottom`), faces by direction (`+z`), and a drawing of a Fusion
+  part is partkiln's (`fu_drawing`, with both lanes served).
 - A headless lane never touches a DCC. An export lands in a scene lane only
   when told (`pk_export ... into=blender`), and pixels only come from a lane
   that renders.

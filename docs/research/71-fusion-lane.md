@@ -337,12 +337,17 @@ is arithmetic.
 
 | arm | tokens | calls |
 |---|---:|---:|
-| naive — the model writes the Fusion API script, runs it through an execute door, reads the design back as a listing | 1,776 | 2 |
-| TEE — one `tee_batch`, its diff, one `fu_measure` | 254 | 2 |
-| **saved** | **85.7%** | |
+| naive — the model writes the Fusion API script, runs it through an execute door, reads the design back as a listing | 8,833 | 2 |
+| TEE — one `tee_batch`, its diff, one `fu_measure` | 270 | 2 |
+| **saved** | **96.9%** | |
 
-The compiled batch script is 140 tokens the model never reads; the diff it
-reads instead is 131. Read-back: 96,000 mm³, bbox [120, 80, 10] mm — the
+*(Re-measured in A70 P5. The A69 run reported 1,776 vs 254 tokens and
+85.7%, with "a 140-token script": the runner had taken the first script the
+wire saw — the checkpoint's snapshot program that `run_batch` runs before
+the batch — for the batch script. The real script is what is counted now.)*
+
+The compiled batch script is 4,282 tokens the model never reads; the diff
+it reads instead is 147. Read-back: 96,000 mm³, bbox [120, 80, 10] mm — the
 number the smoke must answer before the fillet (`docs/fusion-lane.md`,
 step 3). The always-loaded surface stayed at 17 tools
 (`tests/test_server_lint.py`); the lane adds zero wire tokens, joining
@@ -355,6 +360,30 @@ spends more tokens and, on the retired `setDistanceExtent`, sometimes gets it
 wrong, so the saving is a floor on that side. It measures nothing about
 Fusion itself — latency, the event hop under load, which extensions
 `saveAsImageFile` writes, the OBJ's actual unit — those are the smoke's.
+
+### 8.3 v2 on the shim (A70 P5, 2026-09-06)
+
+`run_fusion_v2_scenario` (RESULTS: "Fusion lane v2: a dimensioned bracket
+with holes, a chamfer, a revolve and a joint"): a rectangle constrained and
+dimensioned to `width` / `height` user parameters and extruded into its own
+component, two Ø6.6 through holes on `+z`, a chamfer on that face's edges,
+a post extruded into a second component, a pin revolved about x, and a
+revolute joint between the two components — twelve ops in one batch.
+
+| arm | tokens | calls |
+|---|---:|---:|
+| naive — the script, the execute door, the listing | 12,168 | 2 |
+| TEE — one `tee_batch`, its diff, one `fu_measure` | 1,144 | 2 |
+| **saved** | **90.6%** | |
+
+Twelve ops made nineteen entities; the script is 6,582 tokens the model
+never reads, the diff 629. The plate reads back 95,315.8 mm³ (96,000 less
+two holes) in a [120, 80, 10] box — the dimensions drove the 100×50
+rectangle to 120×80 before the extrude. The saving is lower than v1's
+because the diff now carries nineteen rows a model would want (the joint's
+motion, each hole's diameter and position, the sketch's constraint count);
+it is still one round trip against a listing the naive arm must read in
+full.
 
 ### 8.2 Live — the Mac smoke has not run
 
