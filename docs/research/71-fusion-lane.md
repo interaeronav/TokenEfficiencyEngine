@@ -94,6 +94,11 @@ Base URL: `https://autodeskfusion360.github.io/FusionAPIReference/Fusion_API_Doc
 | 18 | `app.importManager.createSTEPImportOptions(path)`, `createFusionArchiveImportOptions`, `createIGESImportOptions`, `createSATImportOptions`; `importManager.importToTarget2(options, component) -> ObjectCollection` | `ImportManager.htm`, `ImportManager_importToTarget2.htm` | no OBJ/STL import in the manager; importToTarget2 "cannot be used within any of the Command related events" (the bridge is not a command event) | ○ |
 | 19 | `app.activeViewport.fit()`; `viewport.saveAsImageFile(filename, width, height) -> bool` | `Viewport.htm`, `Viewport_saveAsImageFile.htm` | format inferred from the extension (which extensions is NOT stated — the smoke tries `.jpg`, then `.png`); re-rendered at the requested size | ○ |
 | 20 | add-in manifest keys `autodeskProduct`, `type: "addin"`, `author`, `description`, `version`, `runOnStartup`, `supportedOS`, `editEnabled`, `iconFilename` | FusionMCPSample `Fusion MCP Addin.manifest` (verbatim) | | ○ |
+| 21 | `adsk.fusion.DesignTypes.DirectDesignType` (0), `.ParametricDesignType` (1) | `DesignTypes.htm` | | ○ |
+| 22 | `adsk.core.Point3D.create(x, y, z)` (defaults 0.0) | `Point3D_create.htm` | | ○ |
+| 23 | `adsk.core.ObjectCollection.create()`; `.add(entity)` | `ObjectCollection_create.htm` (add: the class page) | | ○ |
+| 24 | `adsk.core.Matrix3D.create()` — an identity matrix | `Matrix3D_create.htm` | | ○ |
+| 25 | `doc.name`, `doc.isSaved`, `doc.isModified` — read only by the lane (Law 5: `close`/`save`/`saveAs` are never called) | `Document.htm` | | ○ |
 
 Two facts the reference does NOT settle and the smoke must: which image
 extensions `saveAsImageFile` writes (row 19), and the add-in folder on this
