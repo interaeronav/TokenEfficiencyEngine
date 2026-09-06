@@ -110,8 +110,13 @@ _ADDRESS_HELP = (
 )
 # Rows 17 and 48: the option constructors differ in argument order by
 # format. STEP, the archive, IGES, SAT and USD take (filename, geometry=None);
-# STL, OBJ and 3MF take (geometry, filename). IGES/SAT/USD take a component
-# only; 3MF a body, an occurrence or a component.
+# STL, OBJ and 3MF take (geometry, filename). Every filename-first format takes
+# "currently a Component object" or, with no geometry, the whole design - a
+# body is refused by Fusion itself ("3 : invlid argument geometry", measured on
+# 2704.1.53 for STEP and the archive, A71); 3MF, STL and OBJ take a body, an
+# occurrence or a component. USD is written as a USDZ package: Fusion appends
+# ".usdz" to the filename it is given (measured), so the program reports the
+# file that exists.
 EXPORT_FORMATS: dict[str, tuple[str, str, str]] = {
     "step": ("createSTEPExportOptions", "filename_first", "step"),
     "f3d": ("createFusionArchiveExportOptions", "filename_first", "f3d"),
@@ -122,7 +127,7 @@ EXPORT_FORMATS: dict[str, tuple[str, str, str]] = {
     "usd": ("createUSDExportOptions", "filename_first", "usd"),
     "3mf": ("createC3MFExportOptions", "geometry_first", "3mf"),
 }
-COMPONENT_ONLY_EXPORTS = ("iges", "sat", "usd")
+COMPONENT_ONLY_EXPORTS = ("step", "f3d", "iges", "sat", "usd")
 OPERATIONS = {
     "join": "JoinFeatureOperation",
     "cut": "CutFeatureOperation",
@@ -1569,7 +1574,12 @@ def export_program(fmt: str, path: str, of: str | None) -> str:
 {make}
     if not _mgr.execute(_opts):
         raise _OpError(-1, "ExportManager.execute returned false", "fusion_export_failed")
-    result = {{"path": {_lit(path)}, "bytes": os.path.getsize({_lit(path)}), "format": {_lit(fmt)}}}
+    _real = next((c for c in ({_lit(path)}, {_lit(path)} + ".usdz") if os.path.exists(c)), None)
+    if _real is None:
+        raise _OpError(-1, "Fusion reported success but wrote nothing at %r" % {_lit(path)},
+                       "fusion_export_failed")
+    result = {{"path": _real, "bytes": os.path.getsize(_real), "format": {_lit(fmt)},
+              "design_unit": str(_design.unitsManager.defaultLengthUnits)}}
 """
         + _EPILOGUE
     )

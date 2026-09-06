@@ -1804,10 +1804,16 @@ class ExportManager:
         self._design = design
         self.exports: list[_ExportOptions] = []
 
+    # Rows 17 and 48: "valid geometry for this is currently a Component object";
+    # Fusion refuses a body with this exact message (measured, A71).
     def createSTEPExportOptions(self, filename: str, geometry=None):
+        if isinstance(geometry, BRepBody):
+            raise RuntimeError("3 : invlid argument geometry")
         return _ExportOptions("step", filename, geometry, 2)
 
     def createFusionArchiveExportOptions(self, filename: str, geometry=None):
+        if isinstance(geometry, BRepBody):
+            raise RuntimeError("3 : invlid argument geometry")
         return _ExportOptions("f3d", filename, geometry, 2)
 
     def createSTLExportOptions(self, geometry, filename: str = ""):
@@ -1858,7 +1864,9 @@ class ExportManager:
             "3mf": "PK 3MF",
         }
         os.makedirs(os.path.dirname(options.filename) or ".", exist_ok=True)
-        with open(options.filename, "w", encoding="utf-8") as fh:
+        # USD is written as a USDZ package: Fusion appends ".usdz" (measured, A71)
+        target = options.filename + ".usdz" if options.format == "usd" else options.filename
+        with open(target, "w", encoding="utf-8") as fh:
             fh.write(
                 header[options.format] + "\n# tee-shim " + json.dumps({"dims_cm": dims}) + "\n"
             )
@@ -1929,8 +1937,16 @@ class Viewport:
 # -- the design and the application ---------------------------------------------
 
 
+class UnitsManager:
+    """Row 53 (A71): UnitsManager.defaultLengthUnits - the design's default length
+    unit as a string ("mm" here, as on the owner's designs)."""
+
+    defaultLengthUnits = "mm"
+
+
 class Design:
     objectType = "adsk::fusion::Design"
+    unitsManager = UnitsManager()
 
     def __init__(self, *, parametric: bool = True):
         self._entities: dict[str, Any] = {}

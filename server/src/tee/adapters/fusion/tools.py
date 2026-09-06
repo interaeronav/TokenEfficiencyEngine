@@ -22,30 +22,34 @@ from tee.adapters.fusion.wire import START_FIX
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
-# What each export declares about its units (doc 71 rows 17, 30 and 48): STEP
-# and the archive carry their own; OBJ defaults to centimetres; STL takes the
-# design's default units, which this lane cannot know without reading them
-# back - so it declares nothing rather than guessing. IGES, SAT, 3MF and USD
-# declare a unit inside the file and their option objects carry none, so the
-# lane answers `units: null, declares_units: true` until the smoke has read
-# what Fusion writes (doc 71 section 9, item 6).
+# What each export declares about its units - measured on Fusion 2704.1.53
+# (A71, 2026-09-06, docs/research/71-fusion-live-facts.json): STEP and the
+# archive carry their own; OBJ is written in centimetres (a 120 mm plate spans
+# 12 units); STL carries no unit and follows the design's default length unit,
+# which the export program reads from the design (UnitsManager.defaultLengthUnits,
+# row 53) rather than guessing; IGES declares MM in its global section, SAT one
+# millimetre per unit in its header, 3MF unit="millimeter" on the model element;
+# USD is a USDZ package whose binary usdc declares metersPerUnit - a value the
+# lane cannot read without the USD library, so it stays declared and unread.
 _EXPORT_UNITS: dict[str, str | None] = {
     "step": "mm",
     "f3d": "mm",
     "obj": "cm",
-    "stl": None,
-    "iges": None,
-    "sat": None,
+    "stl": None,  # the design's unit, read at export time
+    "iges": "mm",
+    "sat": "mm",
     "usd": None,
-    "3mf": None,
+    "3mf": "mm",
 }
 _EXPORT_NOTES = {
-    "obj": "OBJ is written in Fusion's default of centimetres (unitType unset)",
-    "stl": "STL takes the design's default units; read them back before trusting a scale",
-    "iges": "IGES declares its unit in its global section; read it before scaling",
-    "sat": "SAT declares its unit inside the file; read it before scaling",
-    "usd": "USD carries metersPerUnit; read it before scaling",
-    "3mf": "3MF names its unit on the model element (millimetre by default); read it",
+    "obj": "OBJ is written in Fusion's centimetres (measured: a 120 mm plate spans 12 units)",
+    "stl": "STL carries no unit; `units` is the design's default length unit, read from the "
+    "design at export time",
+    "iges": "IGES global section declares MM (measured: unit flag 2, name MM)",
+    "sat": "SAT header declares 1 mm per unit (measured: line 3 begins '1 ')",
+    "usd": "Fusion writes a USDZ package (the path reported ends in .usdz): one binary usdc "
+    "declaring metersPerUnit and upAxis Z; read the value with the USD library before scaling",
+    "3mf": '3MF model element declares unit="millimeter" (measured)',
 }
 _DRAWING_KEYS = (
     "sheet",
@@ -103,7 +107,8 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
         if fmt in codegen.COMPONENT_ONLY_EXPORTS and of and str(of).startswith("b"):
             raise TeeError(
                 "bad_op",
-                f"{fmt} exports a component or the whole design, not a body (doc 71 row 48).",
+                f"{fmt} exports a component or the whole design, never a body (doc 71 rows 17 "
+                "and 48; Fusion itself answers '3 : invlid argument geometry').",
                 fix="Pass a component id (c1) or omit of; 3mf, stl and obj take a body.",
             )
         path = str(Path(str(out)).expanduser())
@@ -112,9 +117,13 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
             path += "." + suffix
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         result = adapter.run(codegen.export_program(fmt, path, str(of) if of else None))
+        design_unit = result.pop("design_unit", None)
         units = _EXPORT_UNITS[fmt]
+        if fmt == "stl":  # measured from the design, never declared by the file
+            units = design_unit
         result["units"] = units
         result["declares_units"] = fmt not in ("stl", "obj")
+        path = str(result.get("path") or path)  # USD: Fusion appended .usdz
         if fmt in _EXPORT_NOTES:
             result["note"] = _EXPORT_NOTES[fmt]
         into = args.get("into")

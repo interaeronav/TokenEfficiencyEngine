@@ -306,7 +306,7 @@ def test_a_step_file_lands_as_a_body_with_its_own_units(tmp_path):
     adapter = _adapter()
     _plate(adapter)
     path = tmp_path / "plate.step"
-    adapter.run(codegen.export_program("step", str(path), "b1"))
+    adapter.run(codegen.export_program("step", str(path), None))  # STEP takes a component
     diff = adapter.execute([{"op": "import_file", "path": str(path), "name": "imported"}])
     assert diff.created == ["b2"] and diff.details["b2"]["name"] == "imported"
     assert diff.details["b2"]["bbox_mm"] == pytest.approx([120.0, 80.0, 10.0])

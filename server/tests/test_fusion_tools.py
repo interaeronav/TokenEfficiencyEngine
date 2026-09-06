@@ -133,34 +133,62 @@ def test_export_writes_the_format_declares_units_and_can_land(served, tmp_path):
         app.registry.call("fu_export", {"format": "dwg", "out": str(tmp_path / "x")})
     assert err.value.code == "bad_op" and "Formats:" in err.value.fix
     stl = app.registry.call("fu_export", {"format": "stl", "out": str(tmp_path / "plate.stl")})
-    assert stl["units"] is None and "default units" in stl["note"]
-    with pytest.raises(TeeError) as err:
-        app.registry.call(
+    # A71: STL carries no unit; `units` is the design's default length unit read
+    # from the design at export time (row 53), a measurement rather than a guess
+    assert stl["units"] == "mm" and stl["declares_units"] is False
+    assert "design's default length unit" in stl["note"]
+    lane = app.adapters["scene"]
+    imports = tuple(lane.vocab().imports) if hasattr(lane, "vocab") else ()
+    if "stl" in imports:
+        landed = app.registry.call(
             "fu_export", {"format": "stl", "out": str(tmp_path / "p2.stl"), "into": "scene"}
         )
-    assert err.value.code in ("handoff_import_unsupported", "handoff_units_unknown")
+        assert landed["landed"]["scale"] == 0.001, "millimetres land at 0.001"
+    else:
+        with pytest.raises(TeeError) as err:
+            app.registry.call(
+                "fu_export", {"format": "stl", "out": str(tmp_path / "p2.stl"), "into": "scene"}
+            )
+        assert err.value.code == "handoff_import_unsupported"
+    # A71 (rows 17, 48): STEP and the archive take a component or the whole design,
+    # never a body - refused before the wire with Fusion's own words
+    for fmt in ("step", "f3d"):
+        with pytest.raises(TeeError) as err:
+            app.registry.call(
+                "fu_export", {"format": fmt, "out": str(tmp_path / f"body.{fmt}"), "of": "b1"}
+            )
+        assert err.value.code == "bad_op" and "invlid argument geometry" in err.value.message
+        assert not (tmp_path / f"body.{fmt}").exists(), "refused before the wire"
 
 
 def test_the_four_more_exports_use_their_verified_constructors(served, tmp_path):
     """A70 P4 (doc 71 row 48): iges/sat/usd filename-first and component-only,
-    3mf geometry-first; all four self-describing on units, so the lane
-    declares none until the smoke has read them."""
+    3mf geometry-first. A71 read what Fusion 2704.1.53 writes: IGES declares MM,
+    SAT one millimetre per unit, 3MF unit="millimeter" - so those three declare
+    mm now; USD is a USDZ package (Fusion appends .usdz) whose binary usdc
+    carries metersPerUnit, a value the lane cannot read, so it stays null."""
     app, adapter = served
     app.run_batch("fusion", PLATE)
-    for fmt, header in (("iges", "S      1"), ("sat", "700 0 1 0"), ("usd", "#usda 1.0")):
+    for fmt, header, units in (
+        ("iges", "S      1", "mm"),
+        ("sat", "700 0 1 0", "mm"),
+        ("usd", "#usda 1.0", None),
+    ):
         out = app.registry.call("fu_export", {"format": fmt, "out": str(tmp_path / f"p.{fmt}")})
-        assert out["units"] is None and out["declares_units"] is True and "read it" in out["note"]
+        assert out["units"] == units and out["declares_units"] is True
+        assert "measured" in out["note"] or "USDZ" in out["note"]
         assert header in Path(out["path"]).read_text()
         script = adapter.wire.executed[-1]
         assert f"{codegen.EXPORT_FORMATS[fmt][0]}('" in script, "filename first"
+    assert out["path"].endswith("p.usd.usdz"), "the file Fusion actually writes"
     three = app.registry.call(
         "fu_export", {"format": "3mf", "out": str(tmp_path / "p.3mf"), "of": "b1"}
     )
-    assert three["declares_units"] is True and three["units"] is None
+    assert three["declares_units"] is True and three["units"] == "mm"
     assert "createC3MFExportOptions(_geom" in adapter.wire.executed[-1], "geometry first"
     with pytest.raises(TeeError) as err:
         app.registry.call("fu_export", {"format": "iges", "out": str(tmp_path / "x"), "of": "b1"})
-    assert err.value.code == "bad_op" and "not a body" in err.value.message
+    assert err.value.code == "bad_op" and "never a body" in err.value.message
     assert not (tmp_path / "x.iges").exists(), "refused before the wire"
     with pytest.raises(TeeError) as err:
         app.registry.call(
