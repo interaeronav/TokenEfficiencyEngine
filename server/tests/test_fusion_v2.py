@@ -787,6 +787,11 @@ def test_two_new_component_extrudes_report_their_occurrences():
     assert "_pc = _f.parentComponent" in adapter.wire.executed[-1]
     listed = {e.id: e for e in adapter.list_entities()}
     assert listed["b1"].parent == "c1" and listed["b2"].parent == "c2"
+    # an occurrence is measured where it sits, through its proxy bodies (rows 12, 47)
+    placed = adapter.run(codegen.measure_program("c1"))
+    assert placed["volume_mm3"] == pytest.approx(16_000.0) and placed["bodies"] == 1
+    assert placed["bbox_mm"] == pytest.approx([40.0, 40.0, 10.0]) and placed["of"] == "c1"
+    assert "_ent.bRepBodies.item(_i)" in adapter.wire.executed[-1]
 
 
 def test_a_revolute_joint_between_two_components_drives_and_reads_back():

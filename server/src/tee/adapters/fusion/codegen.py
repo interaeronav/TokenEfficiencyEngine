@@ -1469,12 +1469,35 @@ def measure_program(of: str | None) -> str:
         _PRELUDE
         + f"""\
     _ent = {target}
-    if _ent.objectType.endswith("Occurrence"): _ent = _ent.component
-    _pp = _ent.physicalProperties; _bb = _ent.boundingBox
-    result = {{"volume_mm3": round(float(_pp.volume) * 1000.0, 3),
-              "area_mm2": round(float(_pp.area) * 100.0, 3),
-              "mass_kg": round(float(_pp.mass), 6), "centre_of_mass_mm": _pt(_pp.centerOfMass),
-              "bbox_mm": _bbox_mm(_bb), "of": {_lit(of or "root")}}}
+    if _ent.objectType.endswith("Occurrence"):
+        # an occurrence is measured where it SITS: its bodies under occ.bRepBodies
+        # are proxies in assembly context (rows 12, 47), so a joint that moved it
+        # shows here - Component.physicalProperties would not move
+        _bodies = [_ent.bRepBodies.item(_i) for _i in range(_ent.bRepBodies.count)]
+        if not _bodies: raise _OpError(-1, "component %r has no bodies to measure" % {_lit(of)})
+        _vol = sum(float(b.physicalProperties.volume) for b in _bodies)
+        _area = sum(float(b.physicalProperties.area) for b in _bodies)
+        _mass = sum(float(b.physicalProperties.mass) for b in _bodies)
+        _cx = sum(float(b.physicalProperties.centerOfMass.x) * float(b.physicalProperties.mass)
+                  for b in _bodies)
+        _cy = sum(float(b.physicalProperties.centerOfMass.y) * float(b.physicalProperties.mass)
+                  for b in _bodies)
+        _cz = sum(float(b.physicalProperties.centerOfMass.z) * float(b.physicalProperties.mass)
+                  for b in _bodies)
+        _m = _mass or 1.0
+        _lo = [min(float(getattr(b.boundingBox.minPoint, k)) for b in _bodies) for k in "xyz"]
+        _hi = [max(float(getattr(b.boundingBox.maxPoint, k)) for b in _bodies) for k in "xyz"]
+        result = {{"volume_mm3": round(_vol * 1000.0, 3), "area_mm2": round(_area * 100.0, 3),
+                  "mass_kg": round(_mass, 6),
+                  "centre_of_mass_mm": [_mm(_cx / _m), _mm(_cy / _m), _mm(_cz / _m)],
+                  "bbox_mm": [_mm(_hi[i] - _lo[i]) for i in range(3)],
+                  "bodies": len(_bodies), "of": {_lit(of or "root")}}}
+    else:
+        _pp = _ent.physicalProperties; _bb = _ent.boundingBox
+        result = {{"volume_mm3": round(float(_pp.volume) * 1000.0, 3),
+                  "area_mm2": round(float(_pp.area) * 100.0, 3),
+                  "mass_kg": round(float(_pp.mass), 6), "centre_of_mass_mm": _pt(_pp.centerOfMass),
+                  "bbox_mm": _bbox_mm(_bb), "of": {_lit(of or "root")}}}
 """
         + _EPILOGUE
     )
