@@ -9,11 +9,27 @@ added sketch constraints and dimensions, holes, chamfers, revolves, joints,
 four more exports and the drawings route; its design is doc 71 §10.
 
 Fusion has no headless mode and no Linux build. The lane is a **bridge
-add-in** running inside Fusion plus an adapter in the server, and it was
-built and tested on a hermetic shim — the live half is the smoke at the end
-of this page, run on the machine that has Fusion.
+add-in** running inside Fusion plus an adapter in the server. It was built on
+a hermetic shim and **verified live on Fusion 2704.1.53 (A71, 2026-09-06)**:
+the smoke at the end of this page passed end to end over the FusionMcpBridge,
+and every fact it measured is in `docs/research/71-fusion-live-facts.json`
+(doc 71 §8.2 reads them out, §9 answers the questions the shim could not).
 
-## Install the add-in (once)
+## Install an add-in (once) — either of two
+
+The lane speaks to **whichever bridge add-in answers**: the TEE add-in
+(`adapters/fusion/tee_bridge/TEE/`, TCP 127.0.0.1:9881) or the
+**FusionMcpBridge** (`adapters/fusion/tee_bridge/FusionMcpBridge/`, HTTP
+127.0.0.1:8766 — the add-in the owner's Mac already runs, auto-starting with
+Fusion, and the one every live fact below was measured over). Install one:
+
+```bash
+cp -R adapters/fusion/tee_bridge/FusionMcpBridge \
+  "$HOME/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/"
+# restart Fusion; `tee doctor` reports "fusion-bridge: ... via the FusionMcpBridge on :8766"
+```
+
+or the TEE add-in:
 
 1. `adapters/fusion/tee_bridge/TEE/` is the add-in: `TEE.py` and
    `TEE.manifest`. Copy the folder into Fusion's add-ins folder
@@ -33,12 +49,13 @@ of this page, run on the machine that has Fusion.
 ## Serve
 
 ```bash
-tee serve --adapter fusion --project ~/work            # [--fusion-port 9881]
+tee serve --adapter fusion --project ~/work            # [--fusion-port 9881] [--fusion-http-port 8766]
 tee serve --adapter fusion --adapter blender --project ~/work
-tee doctor                                              # reports the bridge
+tee doctor                                              # reports the bridge and which add-in answered
 ```
 
-`.tee/config.toml` may carry `[fusion] port = 9881`. Open (or create) a
+`.tee/config.toml` may carry `[fusion] port = 9881` and `http_port = 8766`.
+`fu_probe` reports the port in use. Open (or create) a
 design in Fusion first: the lane works in the **active design** and never
 creates, saves, closes or uploads a document. `fu_probe` answers whether the
 bridge is up, which document is active and whether the design is
@@ -73,10 +90,13 @@ kilograms.
 | `param_set` | `{"name": "width", "expression": "120 mm"}` | partkiln's verb, the same shape |
 | `import_file` | `{"path": "part.step", "name": "insert"}` | STEP, IGES, SAT or f3d into the root component; meshes are not Fusion imports |
 
-Ids are short and stable for the bridge's life — `sk1`, `f1`, `b1`, `c1`,
-`dim1`, `j1`, `param:width` — minted over Fusion's `entityToken`. A bridge
-restart renumbers; `tee_scene_summary(adapter=fusion, refresh=true)` is the
-recovery, as for every lane.
+Ids are short and stable for the life of the **document** — `sk1`, `f1`,
+`b1`, `c1`, `dim1`, `j1`, `param:width` — minted over Fusion's `entityToken`
+and keyed by the document's `creationId`. A bridge restart or a switch to
+another document renumbers; `tee_scene_summary(adapter=fusion, refresh=true)`
+is the recovery, as for every lane. The key is a measured law, not a
+preference: resolving a token minted in a design you have since closed
+crashes Fusion (doc 71 row 54), so the lane never does.
 
 ## Addresses and faces (v2)
 
@@ -95,12 +115,21 @@ face of a plate — the outermost planar face facing that way (or, with a
 `fusion_no_face` naming the ones it has: a cylinder has only `+z` and `-z`.
 Holes, chamfer and fillet edge sets and joint geometry all use it.
 
-What is measured on the shim and what only Fusion can say: the shim solves
-rectangles and circles (a dimension bound to `width` really re-sizes the
-plate and everything extruded from it), subtracts what a hole bores,
-revolves by Pappus and records joints — it does not move an occurrence for a
-joint, and a face-placed hole's default direction is an open question the
-smoke answers (`flip` is the knob).
+What the shim models and what Fusion said: the shim solves rectangles and
+circles (a dimension bound to `width` really re-sizes the plate and
+everything extruded from it — Fusion agrees, and recomputes on `param_set`),
+subtracts what a hole bores (Fusion agrees, and a face-placed hole bores
+**into the material by default**; `flip` stays for the other way), revolves
+by Pappus (Fusion agrees to the millimetre cubed) and records joints without
+moving anything — **Fusion moves the second component, `two`**, onto the
+first. A bare rectangle carries no constraints of its own; a dimensioned one
+reads `constrained: true`. Two things the shim cannot show and the smoke did:
+a rollback really restores a joined body's volume, and a join of material
+already inside a body adds nothing.
+
+One diff-reading rule the joint step taught: the kernel drops detail fields
+that merely echo the op (hard rule 2), so a lone `create joint` returns its
+row without `kind`, `name` or `motion` — take the id from `created`.
 
 A malformed op is refused before anything crosses the wire (`bad_op`,
 `bad_kind`, naming the shape); Fusion's own failure comes back as one
@@ -121,9 +150,9 @@ History).
 ## Pixels
 
 `tee_capture adapter=fusion` fits the live viewport and saves it at the
-Blender rungs, at most two renders per capture, under `max_kb`. Fusion writes
-the format its build supports — the add-in tries `.jpg` and falls back to
-`.png`, which the server re-encodes — and the reply is a bare JPEG as on
+Blender rungs, at most two renders per capture, under `max_kb`. Fusion
+2704.1.53 writes `.jpg` directly (measured); the `.png` fallback and its
+re-encode stay for a build that refuses JPEG. The reply is a bare JPEG as on
 every lane. Text first: `fu_measure` and the diffs are the evidence; pixels
 are for when you need to see it.
 
@@ -135,16 +164,23 @@ are for when you need to see it.
 | `fu_measure {of?}` | volume mm³, area mm², mass kg, centre of mass and bbox in mm of a body, a component or the root |
 | `fu_params` | every parameter: name, expression, unit, value; user or model |
 | `fu_timeline` | the history with suppressed / rolled-back flags and health, and the marker |
-| `fu_export {format, out, of?, into?}` | step, stl, obj, f3d, iges, sat, 3mf or usd; `into=<lane\|auto>` lands the file in a served scene lane as one checkpointed batch with a read-back verdict (an OBJ into Blender scales from Fusion's centimetres); iges / sat / usd export a component or the whole design, never a body |
+| `fu_export {format, out, of?, into?}` | step, stl, obj, f3d, iges, sat, 3mf or usd; `into=<lane\|auto>` lands the file in a served scene lane as one checkpointed batch with a read-back verdict (an OBJ into Blender scales from Fusion's centimetres — measured live: 0.11 s, then a Blender capture in 0.05 s); step / f3d / iges / sat / usd export a component or the whole design, never a body; usd lands at `<out>.usdz` |
 | `fu_drawing {out, of?, name?, sheet?, standard?, angle?, scale?, views?, dims?, hole_table?, formats?}` | a dimensioned sheet **through partkiln**: the Fusion API cannot create a drawing (doc 71 row 49), so the lane exports STEP, imports it into the served partkiln lane and writes the sheet with `pk_drawing`, every dimension read from the model; needs `--adapter partkiln`, and the import is decided as the scene write it is |
 | `fu_execute_python {code}` | the escape hatch — registers only with `--allow-code-exec`, and the trust kernel decides it per call |
 
-STEP and f3d declare their units; OBJ is written in Fusion's default of
-centimetres; STL takes the design's default units, so `fu_export` declares
-none for it rather than guess. IGES, SAT, 3MF and USD declare their unit
-inside the file and their option objects carry none, so `fu_export` answers
-`units: null, declares_units: true` for them with a note saying where to
-read it — until the smoke has read what Fusion writes.
+What each export declares, **measured on Fusion 2704.1.53** (A71): STEP
+and f3d carry their own units (mm) and take a **component or the whole
+design, never a body** — Fusion refuses one with `3 : invlid argument
+geometry`, so `fu_export of=b1` on them is refused before the wire; OBJ is
+written in centimetres (a 120 mm plate spans 12 units); STL carries no unit
+and follows the design's default length unit, which `fu_export` **reads from
+the design** at export time and declares (`mm` on this design) rather than
+guesses; IGES declares MM in its global section, SAT one millimetre per unit
+in its header, 3MF `unit="millimeter"` — all three declare `mm`; USD is a
+**USDZ package** written at `<out>.usdz` (Fusion appends the suffix; the path
+`fu_export` returns is the file that exists), one binary usdc declaring
+`metersPerUnit` — a value the lane cannot read without the USD library, so
+USD alone keeps `units: null`.
 
 ## Beside partkiln
 
@@ -156,15 +192,29 @@ headless and deterministic and owned by TEE; Fusion is your open document.
 
 ## The smoke (run where Fusion is)
 
-1. Run the add-in; confirm the listening line in the Text Commands palette.
+`tests/test_fusion_live.py` drives every step below in one sitting and
+writes `fusion-live-facts.json`; it skips unless a bridge answers and an
+**empty** parametric design is active, so it can never touch your work:
+
+```bash
+cd server
+# Fusion open, nothing open in it: let the harness open and close a scratch design
+TEE_FUSION_SCRATCH_DESIGN=1 UV_FROZEN=1 uv run pytest -q -s -m dcc tests/test_fusion_live.py
+```
+
+A71 ran it on Fusion 2704.1.53: **2 passed in 7.8 s**, 30 facts
+(`docs/research/71-fusion-live-facts.json`). By hand, the steps are:
+
+1. Run an add-in; confirm it in the Text Commands palette (TEE add-in) or
+   with `tee doctor` (FusionMcpBridge).
 2. Open a parametric design. `tee serve --adapter fusion`; `fu_probe`.
 3. One `tee_batch`: a 120×80 mm rectangle sketch, a 10 mm extrude, a 2 mm
    fillet. `fu_measure` should answer 96,000 mm³ before the fillet.
 4. `tee_checkpoint`, a second extrude, `tee_rollback`, `tee_capture`.
-5. `fu_export format=step`, and `format=obj into=blender` with a Blender
-   lane served.
+5. `fu_export format=step` (the whole design or a component), and
+   `format=obj into=blender` with a Blender lane served.
 6. Record which image extension the capture used and the OBJ's actual unit
-   in doc 71 section 3's live column.
+   in doc 71 section 3's live column *(done: `.jpg`, centimetres)*.
 7. *(v2)* A rectangle with inline constraints and two distance dimensions
    bound to `width` / `height` user parameters; `param_set width`;
    `fu_measure` should follow. Note the sketch row's `constraints` count
@@ -189,4 +239,6 @@ verified row and one more emitter — v2's additions are the proof the shape
 holds); drawings made by Fusion itself (its API cannot: doc 71 row 49) and
 the PDF export of a drawing you have open (verified, waiting for a smoke
 that can open one); CAM; document management; direct-modeling rollback;
-OBJ/STL import (Fusion's ImportManager has none).
+OBJ/STL import (Fusion's ImportManager has none). Not yet seen live: a
+fillet (row 11), an import into Fusion (row 18), and the TEE add-in's own
+primary-thread hop — every live fact so far came through the FusionMcpBridge.

@@ -115,7 +115,7 @@ and an honest refusal naming its install. **No lane is the default** (A68):
   need no lane.
 - An operator who wants a tie-breaker declares one:
   `--default-adapter NAME`; `tee_status` reports it.
-- Fusion is a live lane: run the TEE bridge add-in inside Fusion, then
+- Fusion is a live lane: run a bridge add-in inside Fusion (the TEE add-in or the FusionMcpBridge), then
   `tee serve --adapter fusion` — [fusion-lane.md](fusion-lane.md). Beside
   partkiln, a batch both could take goes to the one whose application is
   running; both live is refused naming both. Sketch geometry is addressed

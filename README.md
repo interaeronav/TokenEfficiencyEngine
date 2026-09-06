@@ -91,7 +91,7 @@ itself with the savings meter (`report_savings`) and a portable
 | partkiln | mechanical CAD, headless: sketch → features → assembly → drawing → STEP | OCCT through the OCP wheel, in-process or a sidecar interpreter |
 | seamkiln | garment CAD + drape, headless: pattern → sew → body → drape → handoff | its own XPBD solver; renders through a headless Blender when asked for pixels |
 | FreeCAD, Godot | fabrication sheets; a headless game scene with `run_scene` evidence | neka-nat's RPC bridge; the Godot socket bridge |
-| Fusion | parametric CAD in the owner's open design, live: constrained and dimensioned sketches → extrude / revolve / holes / fillets / chamfers → joints, parameters, eight export formats, drawings through partkiln | the TEE bridge add-in on 127.0.0.1:9881, every request run on Fusion's primary thread |
+| Fusion | parametric CAD in the owner's open design, live: constrained and dimensioned sketches → extrude / revolve / holes / fillets / chamfers → joints, parameters, eight export formats, drawings through partkiln | a bridge add-in inside Fusion — the TEE add-in (127.0.0.1:9881) or the FusionMcpBridge (:8766), whichever answers — every request run on Fusion's primary thread; verified live on 2704.1.53 (A71) |
 | headless kernel lanes | point clouds (`pc_*`), PDFs (`pdf_*`), extraction (`ex_*`), senses, the fleet | no DCC, ever |
 
 No lane is the default. A batch with no `adapter=` goes where its content

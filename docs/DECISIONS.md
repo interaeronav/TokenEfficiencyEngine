@@ -1959,3 +1959,70 @@ otherwise have to fake it.
 **The Desktop manifest does not change yet.** It lists what the owner's
 machine is known to serve; the lane joins it after the Mac smoke, not
 before.
+
+## The Fusion lane goes live: what the machine decided when the owner was not in the room (2026-09-06, A71)
+
+**Owner directive:** *"Write a claude code script to execute everything on a
+session local to my Mac."* The script assumed an owner at the keyboard; the
+session that ran it was autonomous. Every place the two met, the machine's
+measured fact decided, and the script's Amendments block says so.
+
+**A bridge that is already running is a transport, not a shortcut.** The Mac
+runs the FusionMcpBridge (HTTP :8766, auto-starting) and no TEE add-in. The
+script's first step — the owner installing a second add-in through the GUI —
+had nobody to do it. The lane gained `FusionHttpWire` (that bridge's
+protocol, with the codegen's persistent `_tee` kept in a process-lifetime
+module because that bridge execs each job in a fresh namespace) and
+`FusionAutoWire` (whichever add-in answers). Neither add-in is preferred by
+policy; the TEE add-in's own primary-thread hop stays proven hermetically
+only, and doc 71 says which rows were measured over which bridge.
+
+**The lane never opens a document; the smoke's harness may, when told to.**
+Law 5 binds the lane. With `TEE_FUSION_SCRATCH_DESIGN=1` and nothing open,
+the test fixture opens one untitled design and closes exactly that document
+unsaved — the calls the default branch's A68 had verified live. An owner's
+open design is never used or closed; without the flag the smoke skips as
+before. The lane's code gained no such call.
+
+**The id map is per document, and the key is measured.** Resolving a token
+minted in a design that has since been closed segfaults Fusion 2704.1.53 in
+`findEntityByToken` and leaves it in its crash reporter with the primary
+thread — and the bridge — held; the process `sample` is in PROGRESS. The
+first fix keyed the map on the root component's `entityToken` and crashed
+Fusion the same way: two untitled designs share that 24-character token.
+`Document.creationId` differs per document (reference: "unique... constant
+for the life of the document"; a copied document may share it, accepted). A
+token from another document is never resolved; a switch renumbers as a
+bridge restart does.
+
+**A measurement outranks the smoke's own expectation.** Three times the
+smoke, not Fusion, was wrong: a join inside the plate adds nothing; the
+revolve profile it drew was 10 × 10, not the documented 10 × 20; a lone joint
+op's diff row has no `kind` because the kernel trims echoes of the op. Each
+time the test moved to Fusion's answer, and the shim — right in all three —
+was left alone. Where Fusion corrected the CODE (a body on STEP/archive;
+USD's `.usdz`; the units IGES/SAT/3MF/OBJ/STL really carry), the reference
+row was amended first, then the codegen, then the shim, then the test — and
+STL's unit is now READ from the design at export time rather than hardcoded
+to the millimetres one design measured.
+
+**Granting inside a test project is not granting to TEE.** The two
+`bl_execute_python` live tests answered `trust_denied` on this branch and on
+the default branch alike; the fixture now writes `[trust] grants =
+["exec-code"]` into its own tmp project, the documented owner path. No kernel
+rule moved.
+
+**What was NOT decided.** The Desktop manifest, the version cut and PR #1's
+readiness are the owner's (the script's P4) and were left open with their
+consequences written out — including that 0.22.0 is already claimed by the
+default branch's A68 Fusion lane and by PR #2's wind tunnel. So is the
+collision the run exposed: two live-verified Fusion lanes at the same paths
+on two branches. The session changed nothing on the default branch and did
+not install anything into Claude Desktop.
+
+**Force-quitting a crashed application is cleanup, not driving its GUI.**
+Twice Fusion sat in its crash reporter after the segfault above; each time
+0 documents had been open before the run and only the harness's unsaved
+scratch design during it; each time it was killed and relaunched with
+`open -a`, and the bridge answered within 20 s. Stated here and in PROGRESS
+so the owner knows their application was restarted.

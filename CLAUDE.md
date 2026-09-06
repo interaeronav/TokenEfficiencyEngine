@@ -140,14 +140,14 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
 
 - The A69 build (the Fusion lane: Autodesk Fusion as a live GUI lane on the
   owner's own document, through a bridge add-in that marshals every request
-  onto Fusion's primary thread) is **built through P4 on the shim**
-  (2026-09-06), driven by `CLAUDE_A69_SCRIPT.md`; research doc 71 is its
+  onto Fusion's primary thread) is **built through P4 on the shim and
+  verified live by A71** (2026-09-06), driven by `CLAUDE_A69_SCRIPT.md`; research doc 71 is its
   design of record and `docs/fusion-lane.md` the user guide. Its law: nothing
   goes into the codegen that is not a reference-verified row in doc 71 §3 -
   Fusion has no Linux build, so the lane is built on a hermetic shim and
-  **nothing is claimed live until the Mac smoke in `docs/fusion-lane.md` has
-  run** (it fills §3's live column and decides the Desktop manifest, which is
-  unchanged until then). Millimetres on the wire with the unit always
+  **nothing was claimed live until the Mac smoke in `docs/fusion-lane.md`
+  had run** — it ran (A71), filled §3's live column and left the Desktop
+  manifest to the owner. Millimetres on the wire with the unit always
   written, centimetres inside; the timeline plus every parameter expression
   is the checkpoint, and it says what it cannot restore. **v2 (A70) is built
   through P5 on the shim (2026-09-06)**, driven by `CLAUDE_A70_SCRIPT.md` —
@@ -157,13 +157,32 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   outranks memory: **the Fusion API cannot create a drawing** (row 49), so
   `fu_drawing` is the partkiln route, and a rectangle's sides are named by
   position because the API does not state their order. Both campaigns stay
-  unverified live until the Mac smoke (`docs/fusion-lane.md`, steps 1–11).
+  verified live by A71 (`docs/fusion-lane.md`, steps 1–11, on Fusion 2704.1.53).
   **`CLAUDE_A71_SCRIPT.md` is that smoke as a plan for a session local to
   the owner's Mac** — the live test, the other live suites A68 touched,
   the fact-driven fixes (a measurement outranks a declaration), and the
   three decisions that are the owner's: the manifest, the version cut,
   and marking PR #1 ready.
 
+- The A71 session (the Fusion lane goes live, 2026-09-06, on the owner's Mac)
+  ran `CLAUDE_A71_SCRIPT.md` with amendments the machine dictated, recorded in
+  the script's Amendments block, DECISIONS and PROGRESS: the Mac runs the
+  **FusionMcpBridge** (HTTP :8766, auto-starting) and no TEE add-in, so the
+  lane gained a second transport and an auto wire rather than waiting for a
+  GUI install; the smoke's scratch design is the HARNESS's (opt-in,
+  `TEE_FUSION_SCRATCH_DESIGN=1`), never the lane's. Five live runs on Fusion
+  2704.1.53 ended **2 passed, 7.8 s**; `docs/research/71-fusion-live-facts.json`
+  is the evidence and doc 71 §8.2/§9 read it out. Four laws it taught outrank
+  memory: **resolving a token minted in another document crashes Fusion**
+  (segfault in `findEntityByToken`; the id map is per document, keyed by
+  `Document.creationId` — the root component's token is identical across
+  untitled designs); **STEP and the archive take a component or the whole
+  design, never a body**; **USD is written as `<name>.usdz`**; and the kernel
+  trims diff fields that echo the op, so a lone joint's row has no `kind` —
+  `created` is the address. The three P4 decisions (manifest, version cut,
+  PR #1 ready) were NOT taken by the session and are the owner's, together
+  with a fourth the run exposed: the default branch's own A68 Fusion lane
+  (0.22.0) and this branch's A69/A70 lane occupy the same paths.
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured

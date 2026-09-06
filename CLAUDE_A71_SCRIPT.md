@@ -9,6 +9,49 @@ are the owner's in front of the owner. Written for a cold local session
 with the owner present. Research doc 71 is the design of record for the
 lane; `docs/fusion-lane.md` is the user guide.
 
+## Amendments (2026-09-06, the local session that ran this script)
+
+The session was autonomous — no owner at the keyboard — and the machine
+differed from the script's assumptions in ways that were measured before
+anything was changed. Each amendment is a commit on this branch and a
+DECISIONS entry; PROGRESS carries the numbers.
+
+1. **P1 step 1 (install the TEE add-in) was replaced, not skipped.** The Mac
+   runs the FusionMcpBridge (HTTP 127.0.0.1:8766, auto-starting, the add-in
+   behind the CERES 50 baseline) and has no TEE add-in. The lane gained
+   `FusionHttpWire` and `FusionAutoWire` (whichever add-in answers); `tee
+   serve --fusion-http-port`, `[fusion] http_port`, `tee doctor` and the smoke
+   follow. Every live fact was measured over the FusionMcpBridge; the TEE
+   add-in's own hop remains hermetically proven only.
+2. **P1 step 1 (the owner opens an empty design) is the harness's, opt-in.**
+   `TEE_FUSION_SCRATCH_DESIGN=1` lets `tests/test_fusion_live.py` open one
+   untitled design when nothing is open and close exactly that document
+   unsaved (doc 71 row 51). Law 1 still binds the lane; without the flag the
+   smoke skips as written.
+3. **Law 3 was followed and found a crash.** Resolving a token from a closed
+   design segfaults Fusion (`findEntityByToken`; doc 71 row 54). The id map is
+   per document, keyed by `Document.creationId` (row 52) — the root
+   component's token, the first key tried, is identical across untitled
+   designs. Fusion was force-quit and relaunched twice for it, with only the
+   harness's scratch design ever open.
+4. **The P2 table's `export_stl_unit_measured` row was not followed
+   literally.** Hardcoding the `mm` one design measured would have been a
+   declaration; STL's `units` is read from `UnitsManager.defaultLengthUnits`
+   (row 53) at export time instead.
+5. **P4 was not executed.** The three `AskUserQuestion`s need the owner; each
+   decision is prepared in PROGRESS with its consequences and left open,
+   plus a fourth the run exposed: the default branch's own A68 Fusion lane
+   (shipped as 0.22.0 over the same FusionMcpBridge, at the same paths) and
+   this branch's lane must be reconciled before PR #1 can merge; 0.22.0 is
+   also claimed by PR #2.
+6. **Law 6 (no model identifiers in commits)** was already contradicted by
+   every commit on this branch, which carry the harness's co-author trailer;
+   this session's commits carry it too.
+7. **P0's `uv sync --extra extract` is not enough on a fresh venv:** seven
+   fleet extras (pointcloud, pdf, quant, solve, medimg, assets, physical)
+   plus OCP and an editable partkiln were needed for a green suite and the
+   partkiln smoke; `tee doctor`'s fleet-extras line names most of them.
+
 ## Orientation
 
 - Repo root `TokenEfficiencyEngine/`, code in `server/`. Work on branch

@@ -74,61 +74,67 @@ Base URL: `https://autodeskfusion360.github.io/FusionAPIReference/Fusion_API_Doc
 
 | # | Call (as the codegen emits it) | Verified from | What the reference says | Live |
 |---|---|---|---|---|
-| 1 | `app.registerCustomEvent(id) -> CustomEvent` | `Application_registerCustomEvent.htm` | "intended to be primarily used to send an event from a worker thread you've created back to your add-in running in the primary thread"; null if the id is not unique | ○ |
-| 2 | `app.fireCustomEvent(id, additionalInfo)` | `Application_fireCustomEvent.htm` | queues; "does not immediately result in the event handler being called" — runs when the application is idle, in the primary thread | ○ |
-| 3 | `class H(adsk.core.CustomEventHandler): notify(self, args)`; `args.additionalInfo` | `CustomEventArgs.htm` + FusionMCPSample `server/task_manager.py` (read in full) | the sample subclasses `CustomEventHandler`, reads `json.loads(args.additionalInfo)`, and fires with `app.fireCustomEvent(event.eventId, json.dumps(...))` | ○ |
-| 4 | `adsk.core.Application.get()`; `app.activeProduct`, `app.activeDocument`, `app.activeViewport`, `app.importManager`, `app.version`, `app.log` | `Application.htm` | activeProduct/Document/Viewport are null with no document open | ○ |
-| 5 | `design = adsk.fusion.Design.cast(app.activeProduct)`; `design.rootComponent`, `.timeline`, `.userParameters`, `.allParameters`, `.exportManager`, `.designType`, `.findEntityByToken(token) -> Base[]` | `Design.htm`, `Design_findEntityByToken.htm` | designType is Direct or Parametric; findEntityByToken returns an array (a split face yields several) | ○ |
-| 6 | `comp.sketches.add(comp.xYConstructionPlane)`; `comp.xZConstructionPlane`, `comp.yZConstructionPlane`, `comp.features`, `comp.bRepBodies`, `comp.occurrences`, `comp.allOccurrences`, `comp.name`, `comp.entityToken`, `comp.physicalProperties`, `comp.boundingBox` | `Component.htm` | | ○ |
-| 7 | `sketch.sketchCurves.sketchLines.addTwoPointRectangle(Point3D, Point3D)`; `sketch.sketchCurves.sketchCircles.addByCenterRadius(Point3D, r_cm)`; `sketch.profiles`, `sketch.name`, `sketch.isVisible`, `sketch.entityToken`, `sketch.deleteMe()`, `sketch.timelineObject` | `SketchLines_addTwoPointRectangle.htm`, `SketchCircles_addByCenterRadius.htm`, `Sketch.htm` | radius "in centimeters"; points are Point3D in sketch space | ○ |
-| 8 | `ext = comp.features.extrudeFeatures.createInput(profile, op)`; `ext.setOneSideExtent(adsk.fusion.DistanceExtentDefinition.create(ValueInput), adsk.fusion.ExtentDirections.PositiveExtentDirection)`; `comp.features.extrudeFeatures.add(ext)` | `ExtrudeFeatures_createInput.htm`, `ExtrudeFeatureInput_setOneSideExtent.htm`, `DistanceExtentDefinition_create.htm` | **`setDistanceExtent` is retired (Sept 2022)**; profile may be a Profile or an ObjectCollection of profiles | ○ |
-| 9 | `adsk.fusion.FeatureOperations.{Join,Cut,Intersect,NewBody,NewComponent}FeatureOperation` | `FeatureOperations.htm` | values 0,1,2,3,4 | ○ |
-| 10 | `adsk.core.ValueInput.createByString("120 mm")` | `ValueInput_createByString.htm` | units in the string are respected; a unitless string takes the document's active unit — so the codegen ALWAYS writes the unit | ○ |
-| 11 | `fi = comp.features.filletFeatures.createInput()`; `fi.edgeSetInputs.addConstantRadiusEdgeSet(ObjectCollection, ValueInput, isTangentChain)`; `filletFeatures.add(fi)` | `FilletFeatures_createInput.htm`, `FilletEdgeSetInputs_addConstantRadiusEdgeSet.htm` | edges may be BRepEdge/BRepFace/Feature objects; real radius values default to cm, strings carry units | ○ |
-| 12 | `occ = comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())`; `occ.component.name = ...`; `occ.entityToken`, `occ.deleteMe()`, `occ.timelineObject`, `occ.bRepBodies` | `Occurrences_addNewComponent.htm`, `Occurrence.htm` | the new Component is reached through `occurrence.component` | ○ |
-| 13 | `design.userParameters.add(name, ValueInput, "mm", comment) -> UserParameter`; `param.expression` (settable), `param.value` (internal cm/rad), `param.unit`, `param.name`, `param.isDeletable`, `param.deleteMe()` | `UserParameters_add.htm`, `Parameter.htm` | boolean ValueInputs unsupported; empty units = unitless | ○ |
-| 14 | `body.name`, `body.volume` (cm³), `body.area` (cm²), `body.boundingBox` (min/maxPoint, cm), `body.physicalProperties` (mass kg, centerOfMass cm), `body.faces`, `body.edges`, `body.isSolid`, `body.isVisible`, `body.entityToken`, `body.deleteMe()` | `BRepBody.htm`, `PhysicalProperties.htm` | | ○ |
-| 15 | `feature.name`, `feature.entityToken`, `feature.deleteMe()`, `feature.timelineObject`, `feature.isSuppressed`, `feature.bodies`, `feature.healthState`, `feature.errorOrWarningMessage`; `extrude.extentOne` distance is a ModelParameter with a settable `expression` | `Feature.htm`, `Parameter.htm` | deleteMe "works for both parametric and non-parametric features" | ○ |
-| 16 | `timeline.markerPosition` (settable, 0..count), `timeline.count`, `timeline.item(i)`, `timeline.deleteAllAfterMarker()`, `timeline.moveToEnd()`; `TimelineObject.entity/name/index/isSuppressed/isRolledBack/isGroup/healthState` | `Timeline.htm`, `TimelineObject.htm` | | ○ |
-| 17 | `design.exportManager.createSTEPExportOptions(filename, geometry=None)`, `createSTLExportOptions(geometry, filename)`, `createOBJExportOptions(geometry, filename)` (Oct 2022), `createFusionArchiveExportOptions(filename, geometry=None)`, `createC3MFExportOptions`, `createIGESExportOptions`, `createSATExportOptions`, `createUSDExportOptions`; `exportManager.execute(options)` | `ExportManager.htm` + the four member pages | **parameter order differs by method** (STEP/archive: filename first; STL/OBJ: geometry first) — the codegen keeps a per-format table | ○ |
-| 18 | `app.importManager.createSTEPImportOptions(path)`, `createFusionArchiveImportOptions`, `createIGESImportOptions`, `createSATImportOptions`; `importManager.importToTarget2(options, component) -> ObjectCollection` | `ImportManager.htm`, `ImportManager_importToTarget2.htm` | no OBJ/STL import in the manager; importToTarget2 "cannot be used within any of the Command related events" (the bridge is not a command event) | ○ |
-| 19 | `app.activeViewport.fit()`; `viewport.saveAsImageFile(filename, width, height) -> bool` | `Viewport.htm`, `Viewport_saveAsImageFile.htm` | format inferred from the extension (which extensions is NOT stated — the smoke tries `.jpg`, then `.png`); re-rendered at the requested size | ○ |
-| 20 | add-in manifest keys `autodeskProduct`, `type: "addin"`, `author`, `description`, `version`, `runOnStartup`, `supportedOS`, `editEnabled`, `iconFilename` | FusionMCPSample `Fusion MCP Addin.manifest` (verbatim) | | ○ |
-| 21 | `adsk.fusion.DesignTypes.DirectDesignType` (0), `.ParametricDesignType` (1) | `DesignTypes.htm` | | ○ |
-| 22 | `adsk.core.Point3D.create(x, y, z)` (defaults 0.0) | `Point3D_create.htm` | | ○ |
-| 23 | `adsk.core.ObjectCollection.create()`; `.add(entity)` | `ObjectCollection_create.htm` (add: the class page) | | ○ |
-| 24 | `adsk.core.Matrix3D.create()` — an identity matrix | `Matrix3D_create.htm` | | ○ |
-| 25 | `doc.name`, `doc.isSaved`, `doc.isModified` — read only by the lane (Law 5: `close`/`save`/`saveAs` are never called) | `Document.htm` | | ○ |
-| 26 | the collection convention `.count` / `.item(i)` on Sketches, Features, BRepBodies, Occurrences, Profiles, BRepEdges, UserParameters, ParameterList | `BRepEdges.htm`, `UserParameters.htm` (read); the others are the same class family | `UserParameters.itemByName(name)` too | ○ |
-| 27 | `extrude.extentOne` (gets/sets the extent) → `DistanceExtentDefinition.distance` — "the parameter controlling the distance. You can edit the distance by editing the value of the parameter object" | `ExtrudeFeature.htm`, `DistanceExtentDefinition.htm` | a `set` of `expression` on an extrude edits that parameter | ○ |
-| 28 | `body.isVisible`, `sketch.isVisible` — read/write | `BRepBody_isVisible.htm`, `Sketch_isVisible.htm` | | ○ |
-| 29 | `UserParameter.deleteMe()` ("only if it is a UserParameter and it is not referenced by other parameters"); `UserParameter.name` settable, must be unique | `UserParameter.htm` | | ○ |
-| 30 | `STLExportOptions.unitType` (default: the design's default units), `OBJExportOptions.unitType` (default: centimetres) | `STLExportOptions.htm`, `OBJExportOptions.htm` | the enum's name was not in the page read, so v1 never SETS it: `fu_export` declares `units: cm` for obj and reads `unitType` back raw for the record | ○ |
-| 31 | `_root.features.holeFeatures.createSimpleInput(ValueInput)`, `.createCounterboreInput(d, cbDiameter, cbDepth)`, `.createCountersinkInput(d, csDiameter, csAngle)`; `holeFeatures.add(input) -> HoleFeature` | `HoleFeatures.htm`, `HoleFeatures_createSimpleInput.htm`, `HoleFeatures_createCounterboreInput.htm`, `HoleFeatures_createCountersinkInput.htm` | reals are centimetres (the countersink angle: radians), strings carry their units — the codegen writes `mm` and `deg`; `add` returns null on failure | ○ |
-| 32 | `hole.setPositionByPoint(planarEntity, point)`; `hole.setPositionBySketchPoint(sketchPoint)` | `HoleFeatureInput_setPositionByPoint.htm`, `HoleFeatureInput_setPositionBySketchPoint.htm` | planarEntity is a planar BRepFace or a ConstructionPlane, point a Point3D or a vertex; a Point3D "will be projected onto the plane along the planes normal" (non-associative); a sketch point orients the hole by its sketch's normal and "the natural direction will be opposite the normal of the sketch" | ○ |
-| 33 | `hole.setDistanceExtent(ValueInput)`; `hole.setAllExtent(ExtentDirections)`; `hole.isDefaultDirection` (settable); `hole.tipAngle`; `adsk.fusion.ExtentDirections.{Positive,Negative,Symmetric}ExtentDirection` (0, 1, 2) | `HoleFeatureInput_setDistanceExtent.htm`, `HoleFeatureInput_setAllExtent.htm`, `HoleFeatureInput.htm`, `ExtentDirections.htm` | **`setDistanceExtent` is NOT retired for holes** (August 2014, still current — the extrude retirement of row 8 does not carry over); through-all takes a direction "relative to the normal of the sketch plane"; the tip angle defaults to 118 deg | ○ |
-| 34 | `HoleFeature.holeDiameter` (Parameter), `.position` (Point3D), `.holeType`, `.direction` (Vector3D), `.counterboreDiameter` / `.counterboreDepth` / `.countersinkDiameter` / `.countersinkAngle` (Parameters) | `HoleFeature.htm` | a `set` of `diameter` on a hole edits `holeDiameter.expression` | ○ |
-| 35 | `_root.features.chamferFeatures.createInput2()`; `inp.chamferEdgeSets.addEqualDistanceChamferEdgeSet(ObjectCollection, ValueInput, isTangentChain)`; `chamferFeatures.add(inp)`; `ChamferFeature.edgeSets`, `.faces` | `ChamferFeatures.htm`, `ChamferFeatures_createInput2.htm`, `ChamferEdgeSets_addEqualDistanceChamferEdgeSet.htm`, `ChamferFeatureInput.htm`, `ChamferFeature.htm` | **`ChamferFeatures.createInput` is RETIRED** (`createInput2`, December 2020), as are `ChamferFeatureInput.edges` / `.isTangentChain` / `.setToEqualDistance` and `ChamferFeature.edges` / `.chamferType` / `.setEqualDistance`; the edge collection may hold BRepEdge, BRepFace or Feature objects | ○ |
-| 36 | `_root.features.revolveFeatures.createInput(profile, axis, operation)`; `inp.setAngleExtent(isSymmetric, ValueInput)`; `revolveFeatures.add(inp)`; `RevolveFeature.axis` / `.profile` / `.extentDefinition` | `RevolveFeatures_createInput.htm`, `RevolveFeatureInput_setAngleExtent.htm`, `RevolveFeatureInput.htm`, `RevolveFeatures.htm`, `RevolveFeature.htm` | the axis "can be a sketch line, construction axis, linear edge or a face that defines an axis"; the profile a Profile, a planar face or an ObjectCollection; `setAngleExtent` carries no retirement note ("A 360-degree or 2π radian angle produces a complete revolution"; symmetric applies the angle to each side) | ○ |
-| 37 | `_root.xConstructionAxis` / `.yConstructionAxis` / `.zConstructionAxis`, `_root.originConstructionPoint`, `_root.joints`, `_root.jointOrigins`, `_root.constructionAxes`, `_root.constructionPoints` | `Component.htm` | | ○ |
-| 38 | `sketch.sketchCurves.sketchLines.addByTwoPoints(start, end) -> SketchLine`; `addTwoPointRectangle(p1, p2) -> SketchLineList` (`.count` / `.item(i)`); `sketch.sketchPoints.add(Point3D) -> SketchPoint`; `sketch.originPoint`; `sketch.geometricConstraints`; `sketch.sketchDimensions`; `sketch.isFullyConstrained` | `SketchLines_addByTwoPoints.htm`, `SketchLines_addTwoPointRectangle.htm`, `SketchLineList.htm`, `SketchPoints_add.htm`, `Sketch.htm` | end points may be SketchPoints or Point3Ds (a line on a SketchPoint follows it); **the order of a rectangle's four lines is NOT stated**, so the codegen names the sides by where their midpoints lie, never by index | ○ |
-| 39 | `SketchLine.startSketchPoint` / `.endSketchPoint` / `.length` (cm) / `.isConstruction` / `.isFullyConstrained` / `.entityToken` / `.deleteMe()`; `SketchCircle.centerSketchPoint` / `.radius` (settable, cm) / `.isFullyConstrained`; `SketchPoint.geometry` (Point3D "always in sketch space") / `.worldGeometry` / `.isFullyConstrained` / `.entityToken` | `SketchLine.htm`, `SketchCircle.htm`, `SketchPoint.htm` | | ○ |
-| 40 | `sketch.geometricConstraints.addHorizontal(line)`, `addVertical(line)`, `addParallel(l1, l2)`, `addPerpendicular(l1, l2)`, `addCollinear(l1, l2)`, `addEqual(c1, c2)`, `addTangent(c1, c2)`, `addConcentric(e1, e2)`, `addCoincident(point, entity)`, `addMidPoint(point, curve)`, `addSymmetry(e1, e2, line)` | the eleven `GeometricConstraints_add*.htm` pages, `GeometricConstraints.htm` | each "returns the newly created … object or null if the creation failed"; coincident's first argument is a SketchPoint and its second "a sketch curve or point"; equal takes two lines or arcs/circles; concentric circles, arcs, ellipses; `addOffset` is RETIRED | ○ |
-| 41 | `sketch.sketchDimensions.addDistanceDimension(p1, p2, DimensionOrientations, textPoint, isDriving=True) -> SketchLinearDimension`; `addDiameterDimension(circle, textPoint, isDriving=True)`; `addRadialDimension(circle, textPoint, isDriving=True)`; `addAngularDimension(l1, l2, textPoint, isDriving=True)`; `adsk.fusion.DimensionOrientations.{Aligned,Horizontal,Vertical}DimensionOrientation` (0, 1, 2) | `SketchDimensions_addDistanceDimension.htm`, `SketchDimensions_addDiameterDimension.htm`, `SketchDimensions_addRadialDimension.htm`, `SketchDimensions_addAngularDimension.htm`, `DimensionOrientations.htm` | the points are SketchPoints, the text point a Point3D in sketch space; for an angle "the position of the text also defines which quadrant will be dimensioned" | ○ |
-| 42 | `SketchDimension.parameter` (Parameter, or null), `.value` (cm / rad, settable), `.isDriving`, `.textPosition`, `.isDeletable`, `.deleteMe()`, `.entityToken` | `SketchDimension.htm` | a driving dimension's `parameter.expression` is where a user parameter binds (`"width"`) — the parametric truth v1 left to feature expressions | ○ |
-| 43 | `_root.joints.createInput(geometryOrOriginOne, geometryOrOriginTwo) -> JointInput`; `_root.joints.add(JointInput) -> Joint` | `Joints_createInput.htm`, `Joints_add.htm`, `Joints.htm` | either argument "a JointGeometry or JointOrigin object"; `add` returns null on failure | ○ |
-| 44 | `adsk.fusion.JointGeometry.createByPlanarFace(face, edge, JointKeyPointTypes)`; `adsk.fusion.JointGeometry.createByPoint(ConstructionPoint \| SketchPoint \| BRepVertex)`; `adsk.fusion.JointKeyPointTypes.{Start,Middle,End,Center}KeyPoint` (0–3) | `JointGeometry_createByPlanarFace.htm`, `JointGeometry_createByPoint.htm`, `JointKeyPointTypes.htm`, `JointGeometry.htm` | the edge "can be null in the case where the keyPointType is CenterKeypoint indicating the center of the face is to be used" | ○ |
-| 45 | `JointInput.setAsRigidJointMotion()`, `.setAsRevoluteJointMotion(JointDirections, customAxis=None)`, `.setAsSliderJointMotion(JointDirections, customDir=None)`, `.setAsCylindricalJointMotion(JointDirections, customAxis=None)`, `.setAsPinSlotJointMotion(rotationAxis, slideDirection, …)`, `.setAsPlanarJointMotion(normalDirection, …)`, `.setAsBallJointMotion(pitchDirection, yawDirection, …)`; `JointInput.angle` / `.offset` (ValueInput: a real is radians / centimetres, a string takes the document's unit) ; `.isFlipped`; `adsk.fusion.JointDirections.{X,Y,Z}AxisJointDirection` (0, 1, 2), `CustomJointDirection` (3) | `JointInput.htm`, the seven `JointInput_setAs*JointMotion.htm` pages, `JointInput_angle.htm`, `JointInput_offset.htm`, `JointDirections.htm` | ball's pitch is Z-or-custom and yaw X-or-custom; the codegen writes `deg` and `mm` into the angle and offset strings | ○ |
-| 46 | `Joint.jointMotion`, `.occurrenceOne` / `.occurrenceTwo`, `.name`, `.isSuppressed`, `.isFlipped`, `.isLocked`, `.angle` / `.offset` (Parameters), `.healthState`, `.entityToken`, `.deleteMe()`, `.timelineObject`; `RevoluteJointMotion.rotationValue` (radians, settable — "the same as using the Drive Joints command"), `.rotationAxis`; `SliderJointMotion.slideValue` (cm, settable), `.slideDirection` | `Joint.htm`, `RevoluteJointMotion.htm`, `SliderJointMotion.htm` | | ○ |
-| 47 | `BRepFace.geometry` (a Surface: `.surfaceType` against `adsk.core.SurfaceTypes.PlaneSurfaceType` = 0; a Plane's `.normal` / `.origin`), `.isParamReversed`, `.centroid`, `.area` (cm²), `.edges`, `.vertices`, `.pointOnFace`, `.boundingBox`, `.createForAssemblyContext(occ)`; `BRepEdge.startVertex` / `.endVertex` / `.length` (cm) / `.faces` / `.pointOnEdge`; `BRepVertex.geometry`; `ConstructionPoint.geometry` / `.createForAssemblyContext(occ)` | `BRepFace.htm`, `BRepFace_isParamReversed.htm`, `BRepFace_createForAssemblyContext.htm`, `Surface.htm`, `SurfaceTypes.htm`, `Plane.htm`, `BRepEdge.htm`, `BRepVertex.htm`, `ConstructionPoint.htm` | `isParamReversed`: "the normal of this face is reversed with respect to the surface geometry" — the outward normal is the plane's, flipped when set; a proxy "or null if this isn't the NativeObject" (the bodies under `occ.bRepBodies`, row 12, are already in occurrence context) | ○ |
-| 48 | `exportManager.createIGESExportOptions(filename, geometry=None)`, `createSATExportOptions(filename, geometry=None)`, `createUSDExportOptions(filename, geometry=None)` — geometry "currently a Component object", None exports the root; `createC3MFExportOptions(geometry, filename="")` — geometry "a BRepBody, Occurrence, or Component" | `ExportManager_createIGESExportOptions.htm`, `ExportManager_createSATExportOptions.htm`, `ExportManager_createUSDExportOptions.htm`, `ExportManager_createC3MFExportOptions.htm`, `C3MFExportOptions.htm`, `USDExportOptions.htm` | 3MF is geometry-first like STL/OBJ and REQUIRES a geometry; its options carry mesh refinement and no unit property; USD's carry only filename and geometry — the units are whatever each file declares inside, which the smoke reads | ○ |
-| 49 | **The drawing surface, read for its absence.** `adsk.core.DocumentTypes` has ONE member, `FusionDesignDocumentType` (0), so `Documents.add(documentType, visible=True, options=None)` cannot create a drawing; `adsk.drawing.Drawing` exposes `exportManager`, `namedViews`, `attributes` and no sheets or views collection; `DrawingViews.htm` and `DrawingSheets.htm` do not exist (404); `DrawingDocument.drawing.exportManager.createPDFExportOptions(filename) -> PDFExportOptions` and `.execute(options)` exist for a drawing the owner has OPEN | `DocumentTypes.htm`, `Documents_add.htm`, `Drawing.htm`, `DrawingDocument.htm`, `DrawingExportManager.htm`, `DrawingExportManager_createPDFExportOptions.htm` | the API can export a drawing that already exists; it cannot create one — v2's drawings come from partkiln (§10.7) | ○ |
-| 50 | `feature.parentComponent` — "the owning component of this feature"; for an extrude with `NewComponentFeatureOperation` the codegen finds the occurrence Fusion made as the one under the root whose `occurrence.component.entityToken` equals the feature's parent's | `ChamferFeature.htm` (the base Feature property, listed on every feature page read) | how a new-component extrude reports the `c{n}` it created | ○ |
+| 1 | `app.registerCustomEvent(id) -> CustomEvent` | `Application_registerCustomEvent.htm` | "intended to be primarily used to send an event from a worker thread you've created back to your add-in running in the primary thread"; null if the id is not unique | ● 2704.1.53 — the FusionMcpBridge's own CustomEvent hop carried every call; the TEE add-in's hop is proven hermetically only (A71) |
+| 2 | `app.fireCustomEvent(id, additionalInfo)` | `Application_fireCustomEvent.htm` | queues; "does not immediately result in the event handler being called" — runs when the application is idle, in the primary thread | ● 2704.1.53 — the FusionMcpBridge's own CustomEvent hop carried every call; the TEE add-in's hop is proven hermetically only (A71) |
+| 3 | `class H(adsk.core.CustomEventHandler): notify(self, args)`; `args.additionalInfo` | `CustomEventArgs.htm` + FusionMCPSample `server/task_manager.py` (read in full) | the sample subclasses `CustomEventHandler`, reads `json.loads(args.additionalInfo)`, and fires with `app.fireCustomEvent(event.eventId, json.dumps(...))` | ● 2704.1.53 — the FusionMcpBridge's own CustomEvent hop carried every call; the TEE add-in's hop is proven hermetically only (A71) |
+| 4 | `adsk.core.Application.get()`; `app.activeProduct`, `app.activeDocument`, `app.activeViewport`, `app.importManager`, `app.version`, `app.log` | `Application.htm` | activeProduct/Document/Viewport are null with no document open | ● 2704.1.53 |
+| 5 | `design = adsk.fusion.Design.cast(app.activeProduct)`; `design.rootComponent`, `.timeline`, `.userParameters`, `.allParameters`, `.exportManager`, `.designType`, `.findEntityByToken(token) -> Base[]` | `Design.htm`, `Design_findEntityByToken.htm` | designType is Direct or Parametric; findEntityByToken returns an array (a split face yields several) | ● 2704.1.53 |
+| 6 | `comp.sketches.add(comp.xYConstructionPlane)`; `comp.xZConstructionPlane`, `comp.yZConstructionPlane`, `comp.features`, `comp.bRepBodies`, `comp.occurrences`, `comp.allOccurrences`, `comp.name`, `comp.entityToken`, `comp.physicalProperties`, `comp.boundingBox` | `Component.htm` | | ● 2704.1.53 |
+| 7 | `sketch.sketchCurves.sketchLines.addTwoPointRectangle(Point3D, Point3D)`; `sketch.sketchCurves.sketchCircles.addByCenterRadius(Point3D, r_cm)`; `sketch.profiles`, `sketch.name`, `sketch.isVisible`, `sketch.entityToken`, `sketch.deleteMe()`, `sketch.timelineObject` | `SketchLines_addTwoPointRectangle.htm`, `SketchCircles_addByCenterRadius.htm`, `Sketch.htm` | radius "in centimeters"; points are Point3D in sketch space | ● 2704.1.53 |
+| 8 | `ext = comp.features.extrudeFeatures.createInput(profile, op)`; `ext.setOneSideExtent(adsk.fusion.DistanceExtentDefinition.create(ValueInput), adsk.fusion.ExtentDirections.PositiveExtentDirection)`; `comp.features.extrudeFeatures.add(ext)` | `ExtrudeFeatures_createInput.htm`, `ExtrudeFeatureInput_setOneSideExtent.htm`, `DistanceExtentDefinition_create.htm` | **`setDistanceExtent` is retired (Sept 2022)**; profile may be a Profile or an ObjectCollection of profiles | ● 2704.1.53 |
+| 9 | `adsk.fusion.FeatureOperations.{Join,Cut,Intersect,NewBody,NewComponent}FeatureOperation` | `FeatureOperations.htm` | values 0,1,2,3,4 | ● 2704.1.53 |
+| 10 | `adsk.core.ValueInput.createByString("120 mm")` | `ValueInput_createByString.htm` | units in the string are respected; a unitless string takes the document's active unit — so the codegen ALWAYS writes the unit | ● 2704.1.53 |
+| 11 | `fi = comp.features.filletFeatures.createInput()`; `fi.edgeSetInputs.addConstantRadiusEdgeSet(ObjectCollection, ValueInput, isTangentChain)`; `filletFeatures.add(fi)` | `FilletFeatures_createInput.htm`, `FilletEdgeSetInputs_addConstantRadiusEdgeSet.htm` | edges may be BRepEdge/BRepFace/Feature objects; real radius values default to cm, strings carry units | ○ no fillet in the smoke |
+| 12 | `occ = comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())`; `occ.component.name = ...`; `occ.entityToken`, `occ.deleteMe()`, `occ.timelineObject`, `occ.bRepBodies` | `Occurrences_addNewComponent.htm`, `Occurrence.htm` | the new Component is reached through `occurrence.component` | ● 2704.1.53 |
+| 13 | `design.userParameters.add(name, ValueInput, "mm", comment) -> UserParameter`; `param.expression` (settable), `param.value` (internal cm/rad), `param.unit`, `param.name`, `param.isDeletable`, `param.deleteMe()` | `UserParameters_add.htm`, `Parameter.htm` | boolean ValueInputs unsupported; empty units = unitless | ● 2704.1.53 |
+| 14 | `body.name`, `body.volume` (cm³), `body.area` (cm²), `body.boundingBox` (min/maxPoint, cm), `body.physicalProperties` (mass kg, centerOfMass cm), `body.faces`, `body.edges`, `body.isSolid`, `body.isVisible`, `body.entityToken`, `body.deleteMe()` | `BRepBody.htm`, `PhysicalProperties.htm` | | ● 2704.1.53 |
+| 15 | `feature.name`, `feature.entityToken`, `feature.deleteMe()`, `feature.timelineObject`, `feature.isSuppressed`, `feature.bodies`, `feature.healthState`, `feature.errorOrWarningMessage`; `extrude.extentOne` distance is a ModelParameter with a settable `expression` | `Feature.htm`, `Parameter.htm` | deleteMe "works for both parametric and non-parametric features" | ● 2704.1.53 |
+| 16 | `timeline.markerPosition` (settable, 0..count), `timeline.count`, `timeline.item(i)`, `timeline.deleteAllAfterMarker()`, `timeline.moveToEnd()`; `TimelineObject.entity/name/index/isSuppressed/isRolledBack/isGroup/healthState` | `Timeline.htm`, `TimelineObject.htm` | | ● 2704.1.53 |
+| 17 | `design.exportManager.createSTEPExportOptions(filename, geometry=None)`, `createSTLExportOptions(geometry, filename)`, `createOBJExportOptions(geometry, filename)` (Oct 2022), `createFusionArchiveExportOptions(filename, geometry=None)`, `createC3MFExportOptions`, `createIGESExportOptions`, `createSATExportOptions`, `createUSDExportOptions`; `exportManager.execute(options)` | `ExportManager.htm` + the four member pages | **parameter order differs by method** (STEP/archive: filename first; STL/OBJ: geometry first) — the codegen keeps a per-format table | ● 2704.1.53 — STEP, the archive, STL and OBJ written; a BODY on STEP/archive is refused by Fusion: `3 : invlid argument geometry` (A71) |
+| 18 | `app.importManager.createSTEPImportOptions(path)`, `createFusionArchiveImportOptions`, `createIGESImportOptions`, `createSATImportOptions`; `importManager.importToTarget2(options, component) -> ObjectCollection` | `ImportManager.htm`, `ImportManager_importToTarget2.htm` | no OBJ/STL import in the manager; importToTarget2 "cannot be used within any of the Command related events" (the bridge is not a command event) | ○ the smoke imports nothing into Fusion; fu_drawing imports into partkiln |
+| 19 | `app.activeViewport.fit()`; `viewport.saveAsImageFile(filename, width, height) -> bool` | `Viewport.htm`, `Viewport_saveAsImageFile.htm` | format inferred from the extension (which extensions is NOT stated — the smoke tries `.jpg`, then `.png`); re-rendered at the requested size | ● 2704.1.53 |
+| 20 | add-in manifest keys `autodeskProduct`, `type: "addin"`, `author`, `description`, `version`, `runOnStartup`, `supportedOS`, `editEnabled`, `iconFilename` | FusionMCPSample `Fusion MCP Addin.manifest` (verbatim) | | ○ the TEE add-in was not installed on this machine; the FusionMcpBridge's manifest served |
+| 21 | `adsk.fusion.DesignTypes.DirectDesignType` (0), `.ParametricDesignType` (1) | `DesignTypes.htm` | | ● 2704.1.53 |
+| 22 | `adsk.core.Point3D.create(x, y, z)` (defaults 0.0) | `Point3D_create.htm` | | ● 2704.1.53 |
+| 23 | `adsk.core.ObjectCollection.create()`; `.add(entity)` | `ObjectCollection_create.htm` (add: the class page) | | ● 2704.1.53 |
+| 24 | `adsk.core.Matrix3D.create()` — an identity matrix | `Matrix3D_create.htm` | | ● 2704.1.53 — the identity matrix of `addNewComponent` through the new_component extrude's occurrence (row 50) |
+| 25 | `doc.name`, `doc.isSaved`, `doc.isModified` — read only by the lane (Law 5: `close`/`save`/`saveAs` are never called) | `Document.htm` | | ● 2704.1.53 |
+| 26 | the collection convention `.count` / `.item(i)` on Sketches, Features, BRepBodies, Occurrences, Profiles, BRepEdges, UserParameters, ParameterList | `BRepEdges.htm`, `UserParameters.htm` (read); the others are the same class family | `UserParameters.itemByName(name)` too | ● 2704.1.53 |
+| 27 | `extrude.extentOne` (gets/sets the extent) → `DistanceExtentDefinition.distance` — "the parameter controlling the distance. You can edit the distance by editing the value of the parameter object" | `ExtrudeFeature.htm`, `DistanceExtentDefinition.htm` | a `set` of `expression` on an extrude edits that parameter | ● 2704.1.53 |
+| 28 | `body.isVisible`, `sketch.isVisible` — read/write | `BRepBody_isVisible.htm`, `Sketch_isVisible.htm` | | ○ not exercised |
+| 29 | `UserParameter.deleteMe()` ("only if it is a UserParameter and it is not referenced by other parameters"); `UserParameter.name` settable, must be unique | `UserParameter.htm` | | ○ not exercised |
+| 30 | `STLExportOptions.unitType` (default: the design's default units), `OBJExportOptions.unitType` (default: centimetres) | `STLExportOptions.htm`, `OBJExportOptions.htm` | the enum's name was not in the page read, so v1 never SETS it: `fu_export` declares `units: cm` for obj and reads `unitType` back raw for the record | ● 2704.1.53 — defaults confirmed from the files: OBJ in centimetres (a 120 mm plate spans 12 units), STL in the design's default unit (mm here); `unitType` never set |
+| 31 | `_root.features.holeFeatures.createSimpleInput(ValueInput)`, `.createCounterboreInput(d, cbDiameter, cbDepth)`, `.createCountersinkInput(d, csDiameter, csAngle)`; `holeFeatures.add(input) -> HoleFeature` | `HoleFeatures.htm`, `HoleFeatures_createSimpleInput.htm`, `HoleFeatures_createCounterboreInput.htm`, `HoleFeatures_createCountersinkInput.htm` | reals are centimetres (the countersink angle: radians), strings carry their units — the codegen writes `mm` and `deg`; `add` returns null on failure | ● 2704.1.53 |
+| 32 | `hole.setPositionByPoint(planarEntity, point)`; `hole.setPositionBySketchPoint(sketchPoint)` | `HoleFeatureInput_setPositionByPoint.htm`, `HoleFeatureInput_setPositionBySketchPoint.htm` | planarEntity is a planar BRepFace or a ConstructionPlane, point a Point3D or a vertex; a Point3D "will be projected onto the plane along the planes normal" (non-associative); a sketch point orients the hole by its sketch's normal and "the natural direction will be opposite the normal of the sketch" | ● 2704.1.53 |
+| 33 | `hole.setDistanceExtent(ValueInput)`; `hole.setAllExtent(ExtentDirections)`; `hole.isDefaultDirection` (settable); `hole.tipAngle`; `adsk.fusion.ExtentDirections.{Positive,Negative,Symmetric}ExtentDirection` (0, 1, 2) | `HoleFeatureInput_setDistanceExtent.htm`, `HoleFeatureInput_setAllExtent.htm`, `HoleFeatureInput.htm`, `ExtentDirections.htm` | **`setDistanceExtent` is NOT retired for holes** (August 2014, still current — the extrude retirement of row 8 does not carry over); through-all takes a direction "relative to the normal of the sketch plane"; the tip angle defaults to 118 deg | ● 2704.1.53 |
+| 34 | `HoleFeature.holeDiameter` (Parameter), `.position` (Point3D), `.holeType`, `.direction` (Vector3D), `.counterboreDiameter` / `.counterboreDepth` / `.countersinkDiameter` / `.countersinkAngle` (Parameters) | `HoleFeature.htm` | a `set` of `diameter` on a hole edits `holeDiameter.expression` | ● 2704.1.53 |
+| 35 | `_root.features.chamferFeatures.createInput2()`; `inp.chamferEdgeSets.addEqualDistanceChamferEdgeSet(ObjectCollection, ValueInput, isTangentChain)`; `chamferFeatures.add(inp)`; `ChamferFeature.edgeSets`, `.faces` | `ChamferFeatures.htm`, `ChamferFeatures_createInput2.htm`, `ChamferEdgeSets_addEqualDistanceChamferEdgeSet.htm`, `ChamferFeatureInput.htm`, `ChamferFeature.htm` | **`ChamferFeatures.createInput` is RETIRED** (`createInput2`, December 2020), as are `ChamferFeatureInput.edges` / `.isTangentChain` / `.setToEqualDistance` and `ChamferFeature.edges` / `.chamferType` / `.setEqualDistance`; the edge collection may hold BRepEdge, BRepFace or Feature objects | ● 2704.1.53 |
+| 36 | `_root.features.revolveFeatures.createInput(profile, axis, operation)`; `inp.setAngleExtent(isSymmetric, ValueInput)`; `revolveFeatures.add(inp)`; `RevolveFeature.axis` / `.profile` / `.extentDefinition` | `RevolveFeatures_createInput.htm`, `RevolveFeatureInput_setAngleExtent.htm`, `RevolveFeatureInput.htm`, `RevolveFeatures.htm`, `RevolveFeature.htm` | the axis "can be a sketch line, construction axis, linear edge or a face that defines an axis"; the profile a Profile, a planar face or an ObjectCollection; `setAngleExtent` carries no retirement note ("A 360-degree or 2π radian angle produces a complete revolution"; symmetric applies the angle to each side) | ● 2704.1.53 |
+| 37 | `_root.xConstructionAxis` / `.yConstructionAxis` / `.zConstructionAxis`, `_root.originConstructionPoint`, `_root.joints`, `_root.jointOrigins`, `_root.constructionAxes`, `_root.constructionPoints` | `Component.htm` | | ● 2704.1.53 — x axis and the joints collection; `originConstructionPoint` not exercised (the joint used faces) |
+| 38 | `sketch.sketchCurves.sketchLines.addByTwoPoints(start, end) -> SketchLine`; `addTwoPointRectangle(p1, p2) -> SketchLineList` (`.count` / `.item(i)`); `sketch.sketchPoints.add(Point3D) -> SketchPoint`; `sketch.originPoint`; `sketch.geometricConstraints`; `sketch.sketchDimensions`; `sketch.isFullyConstrained` | `SketchLines_addByTwoPoints.htm`, `SketchLines_addTwoPointRectangle.htm`, `SketchLineList.htm`, `SketchPoints_add.htm`, `Sketch.htm` | end points may be SketchPoints or Point3Ds (a line on a SketchPoint follows it); **the order of a rectangle's four lines is NOT stated**, so the codegen names the sides by where their midpoints lie, never by index | ● 2704.1.53 |
+| 39 | `SketchLine.startSketchPoint` / `.endSketchPoint` / `.length` (cm) / `.isConstruction` / `.isFullyConstrained` / `.entityToken` / `.deleteMe()`; `SketchCircle.centerSketchPoint` / `.radius` (settable, cm) / `.isFullyConstrained`; `SketchPoint.geometry` (Point3D "always in sketch space") / `.worldGeometry` / `.isFullyConstrained` / `.entityToken` | `SketchLine.htm`, `SketchCircle.htm`, `SketchPoint.htm` | | ● 2704.1.53 |
+| 40 | `sketch.geometricConstraints.addHorizontal(line)`, `addVertical(line)`, `addParallel(l1, l2)`, `addPerpendicular(l1, l2)`, `addCollinear(l1, l2)`, `addEqual(c1, c2)`, `addTangent(c1, c2)`, `addConcentric(e1, e2)`, `addCoincident(point, entity)`, `addMidPoint(point, curve)`, `addSymmetry(e1, e2, line)` | the eleven `GeometricConstraints_add*.htm` pages, `GeometricConstraints.htm` | each "returns the newly created … object or null if the creation failed"; coincident's first argument is a SketchPoint and its second "a sketch curve or point"; equal takes two lines or arcs/circles; concentric circles, arcs, ellipses; `addOffset` is RETIRED | ● 2704.1.53 |
+| 41 | `sketch.sketchDimensions.addDistanceDimension(p1, p2, DimensionOrientations, textPoint, isDriving=True) -> SketchLinearDimension`; `addDiameterDimension(circle, textPoint, isDriving=True)`; `addRadialDimension(circle, textPoint, isDriving=True)`; `addAngularDimension(l1, l2, textPoint, isDriving=True)`; `adsk.fusion.DimensionOrientations.{Aligned,Horizontal,Vertical}DimensionOrientation` (0, 1, 2) | `SketchDimensions_addDistanceDimension.htm`, `SketchDimensions_addDiameterDimension.htm`, `SketchDimensions_addRadialDimension.htm`, `SketchDimensions_addAngularDimension.htm`, `DimensionOrientations.htm` | the points are SketchPoints, the text point a Point3D in sketch space; for an angle "the position of the text also defines which quadrant will be dimensioned" | ● 2704.1.53 |
+| 42 | `SketchDimension.parameter` (Parameter, or null), `.value` (cm / rad, settable), `.isDriving`, `.textPosition`, `.isDeletable`, `.deleteMe()`, `.entityToken` | `SketchDimension.htm` | a driving dimension's `parameter.expression` is where a user parameter binds (`"width"`) — the parametric truth v1 left to feature expressions | ● 2704.1.53 |
+| 43 | `_root.joints.createInput(geometryOrOriginOne, geometryOrOriginTwo) -> JointInput`; `_root.joints.add(JointInput) -> Joint` | `Joints_createInput.htm`, `Joints_add.htm`, `Joints.htm` | either argument "a JointGeometry or JointOrigin object"; `add` returns null on failure | ● 2704.1.53 |
+| 44 | `adsk.fusion.JointGeometry.createByPlanarFace(face, edge, JointKeyPointTypes)`; `adsk.fusion.JointGeometry.createByPoint(ConstructionPoint \| SketchPoint \| BRepVertex)`; `adsk.fusion.JointKeyPointTypes.{Start,Middle,End,Center}KeyPoint` (0–3) | `JointGeometry_createByPlanarFace.htm`, `JointGeometry_createByPoint.htm`, `JointKeyPointTypes.htm`, `JointGeometry.htm` | the edge "can be null in the case where the keyPointType is CenterKeypoint indicating the center of the face is to be used" | ● 2704.1.53 |
+| 45 | `JointInput.setAsRigidJointMotion()`, `.setAsRevoluteJointMotion(JointDirections, customAxis=None)`, `.setAsSliderJointMotion(JointDirections, customDir=None)`, `.setAsCylindricalJointMotion(JointDirections, customAxis=None)`, `.setAsPinSlotJointMotion(rotationAxis, slideDirection, …)`, `.setAsPlanarJointMotion(normalDirection, …)`, `.setAsBallJointMotion(pitchDirection, yawDirection, …)`; `JointInput.angle` / `.offset` (ValueInput: a real is radians / centimetres, a string takes the document's unit) ; `.isFlipped`; `adsk.fusion.JointDirections.{X,Y,Z}AxisJointDirection` (0, 1, 2), `CustomJointDirection` (3) | `JointInput.htm`, the seven `JointInput_setAs*JointMotion.htm` pages, `JointInput_angle.htm`, `JointInput_offset.htm`, `JointDirections.htm` | ball's pitch is Z-or-custom and yaw X-or-custom; the codegen writes `deg` and `mm` into the angle and offset strings | ● 2704.1.53 |
+| 46 | `Joint.jointMotion`, `.occurrenceOne` / `.occurrenceTwo`, `.name`, `.isSuppressed`, `.isFlipped`, `.isLocked`, `.angle` / `.offset` (Parameters), `.healthState`, `.entityToken`, `.deleteMe()`, `.timelineObject`; `RevoluteJointMotion.rotationValue` (radians, settable — "the same as using the Drive Joints command"), `.rotationAxis`; `SliderJointMotion.slideValue` (cm, settable), `.slideDirection` | `Joint.htm`, `RevoluteJointMotion.htm`, `SliderJointMotion.htm` | | ● 2704.1.53 |
+| 47 | `BRepFace.geometry` (a Surface: `.surfaceType` against `adsk.core.SurfaceTypes.PlaneSurfaceType` = 0; a Plane's `.normal` / `.origin`), `.isParamReversed`, `.centroid`, `.area` (cm²), `.edges`, `.vertices`, `.pointOnFace`, `.boundingBox`, `.createForAssemblyContext(occ)`; `BRepEdge.startVertex` / `.endVertex` / `.length` (cm) / `.faces` / `.pointOnEdge`; `BRepVertex.geometry`; `ConstructionPoint.geometry` / `.createForAssemblyContext(occ)` | `BRepFace.htm`, `BRepFace_isParamReversed.htm`, `BRepFace_createForAssemblyContext.htm`, `Surface.htm`, `SurfaceTypes.htm`, `Plane.htm`, `BRepEdge.htm`, `BRepVertex.htm`, `ConstructionPoint.htm` | `isParamReversed`: "the normal of this face is reversed with respect to the surface geometry" — the outward normal is the plane's, flipped when set; a proxy "or null if this isn't the NativeObject" (the bodies under `occ.bRepBodies`, row 12, are already in occurrence context) | ● 2704.1.53 |
+| 48 | `exportManager.createIGESExportOptions(filename, geometry=None)`, `createSATExportOptions(filename, geometry=None)`, `createUSDExportOptions(filename, geometry=None)` — geometry "currently a Component object", None exports the root; `createC3MFExportOptions(geometry, filename="")` — geometry "a BRepBody, Occurrence, or Component" | `ExportManager_createIGESExportOptions.htm`, `ExportManager_createSATExportOptions.htm`, `ExportManager_createUSDExportOptions.htm`, `ExportManager_createC3MFExportOptions.htm`, `C3MFExportOptions.htm`, `USDExportOptions.htm` | 3MF is geometry-first like STL/OBJ and REQUIRES a geometry; its options carry mesh refinement and no unit property; USD's carry only filename and geometry — the units are whatever each file declares inside, which the smoke reads | ● 2704.1.53 — IGES declares MM (flag 2), SAT 1 mm/unit, 3MF unit="millimeter"; USD writes a USDZ package at `<filename>.usdz` (one binary usdc declaring metersPerUnit, value unread) |
+| 49 | **The drawing surface, read for its absence.** `adsk.core.DocumentTypes` has ONE member, `FusionDesignDocumentType` (0), so `Documents.add(documentType, visible=True, options=None)` cannot create a drawing; `adsk.drawing.Drawing` exposes `exportManager`, `namedViews`, `attributes` and no sheets or views collection; `DrawingViews.htm` and `DrawingSheets.htm` do not exist (404); `DrawingDocument.drawing.exportManager.createPDFExportOptions(filename) -> PDFExportOptions` and `.execute(options)` exist for a drawing the owner has OPEN | `DocumentTypes.htm`, `Documents_add.htm`, `Drawing.htm`, `DrawingDocument.htm`, `DrawingExportManager.htm`, `DrawingExportManager_createPDFExportOptions.htm` | the API can export a drawing that already exists; it cannot create one — v2's drawings come from partkiln (§10.7) | ● 2704.1.53 — `fu_drawing` ran the partkiln route on the live design (a sheet with one top view); the API's absence stands |
+| 50 | `feature.parentComponent` — "the owning component of this feature"; for an extrude with `NewComponentFeatureOperation` the codegen finds the occurrence Fusion made as the one under the root whose `occurrence.component.entityToken` equals the feature's parent's | `ChamferFeature.htm` (the base Feature property, listed on every feature page read) | how a new-component extrude reports the `c{n}` it created | ● 2704.1.53 |
 
-Two facts the reference does NOT settle and the smoke must: which image
-extensions `saveAsImageFile` writes (row 19), and the add-in folder on this
-machine (`~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/`
-per the KB, or any folder registered through Scripts and Add-Ins).
+| 51 | `app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType) -> Document`; `document.close(saveChanges=False) -> bool` — **harness only, never emitted by the lane** (Law 5): the smoke's scratch design with `TEE_FUSION_SCRATCH_DESIGN=1` | `Documents_add.htm`, `Document_close.htm`; measured on the default branch's A68 (2026-09-06) and in every A71 run | a fresh untitled parametric design in ~300 ms; `close(False)` closes without saving and without a dialog | ● 2704.1.53 |
+| 52 | `document.creationId` (str) — the key of the lane's id map | `Document_creationId.htm` | "Fusion assigns it a creation ID that will remain constant for the life of the document. The ID that is assigned is unique. However, it's possible that more than one document can have the same ID... where a document is copied" | ● 2704.1.53 — two untitled designs: two GUIDs; their root components' `entityToken` was the SAME 24 characters (`/v4BAAEAAwAAAAAAAAAAAAAA`), so the root token can never key the map |
+| 53 | `design.unitsManager.defaultLengthUnits` (str) — the unit `fu_export` declares for STL, read from the design | `UnitsManager_defaultLengthUnits.htm` | "the unit strings for the current default length unit as specified in preferences - e.g. \"cm\" or \"in\"" | ● 2704.1.53 — `mm`, and the STL's extents measured mm |
+| 54 | **`design.findEntityByToken(token)` with a token minted in ANOTHER document crashes Fusion** — the measured law behind row 52 | a `sample` of the hung process, twice (A71 runs 2 and 3): `_wrap_Design_findEntityByToken → Xl::Fusion::DesignImp::findEntityByToken_raw → __dynamic_cast → _sigtramp → libcer.dylib → read` | a segfault in a dynamic cast on freed memory, then the crash reporter holding the primary thread — and, with the GIL, every bridge thread. Only a kill and relaunch recovers | ● 2704.1.53 — never resolve a remembered token whose document is not the active one (§4.4) |
+
+The two facts the reference did not settle are settled: `saveAsImageFile`
+writes `.jpg` on this build (row 19, the smoke's `capture-1024.jpg`), and the
+add-in folder is `~/Library/Application Support/Autodesk/Autodesk Fusion
+360/API/AddIns/` — where this machine already held the FusionMcpBridge and no
+TEE add-in (§4.1).
 
 ## 4. Design
 
@@ -157,6 +163,20 @@ per the KB, or any folder registered through Scripts and Add-Ins).
   gated by `exec-code`.
 - Not copied: the Blender bridge's `_IOLoop` is GPL-3.0-or-later (a Blender
   add-on must be); the Fusion add-in is a fresh, smaller MIT file.
+- **A71 — the second transport.** The owner's Mac runs a different add-in:
+  `FusionMcpBridge` (`adapters/fusion/tee_bridge/FusionMcpBridge/`, vendored
+  byte-identical to the installed copy; HTTP on 127.0.0.1:8766; `GET /status`,
+  `POST /run {code, timeout}` → `{ok, result|error}`; 504 = the job is STILL
+  RUNNING; every job in a FRESH namespace `{adsk, result}`; the same
+  CustomEvent hop onto the primary thread). It auto-starts with Fusion and
+  drove the CERES 50 baseline and the default branch's A68. The lane speaks it
+  through `FusionHttpWire`, whose prelude keeps the codegen's `_tee` dict in a
+  process-lifetime module so the id map survives between jobs exactly as it
+  does behind the TEE add-in. Neither add-in is preferred by policy:
+  `FusionAutoWire` pings the TEE add-in (9881) then the FusionMcpBridge (8766)
+  and keeps whichever answered until it stops answering. Every live fact in §3
+  was measured over the FusionMcpBridge; the TEE add-in's own hop is proven by
+  `tests/test_fusion_bridge.py` and has not been run inside Fusion.
 
 ### 4.2 The wire (`adapters/fusion/wire.py`)
 
@@ -165,6 +185,11 @@ per the KB, or any folder registered through Scripts and Add-Ins).
 and framing, its own codes: `fusion_unreachable` (fix: the add-in install
 and start steps), `fusion_bridge_error` (the primary-thread traceback,
 compacted), `fusion_bad_readback`. Per-call connections, fail fast.
+A71 adds `FusionHttpWire` (the FusionMcpBridge protocol above; `fusion_wire_failed`
+on a 504 says the job is still running) and `FusionAutoWire` (whichever add-in
+answers; `port` and `transport` report the one in use; both ports in the
+`fusion_unreachable` fix). `tee serve --adapter fusion [--fusion-port 9881]
+[--fusion-http-port 8766]`, `[fusion] port` / `http_port`.
 
 ### 4.3 Codegen (`adapters/fusion/codegen.py`) — one batch, one script, one JSON line
 
@@ -203,6 +228,16 @@ token gets the next id; a token that no longer resolves is dropped), so ids
 are stable for the bridge's life and survive a rollback (the document is
 the same document). A bridge restart renumbers; `tee_scene_summary
 refresh=true` is the recovery, as for every lane.
+
+**A71: the map is per DOCUMENT.** The prelude keys `_tee` by
+`Document.creationId` (row 52) and empties it when the active document's key
+differs, so a token minted in another document is never passed to
+`findEntityByToken` — measured, that call segfaults Fusion (row 54). A document
+switch therefore renumbers exactly as a bridge restart does;
+`tee_scene_summary(adapter=fusion, refresh=true)` re-lists. The first fix keyed
+on the root component's token and crashed Fusion the same way: that token is
+identical across untitled designs. A copied document may share a creationId
+(the reference says so); two such documents open at once would share a map.
 
 ### 4.5 Checkpoints: the timeline marker plus every parameter expression
 
@@ -276,9 +311,11 @@ nothing. Tested in `test_lane_routing.py`.
 
 `tee serve --adapter fusion [--fusion-port 9881]`; `.tee/config.toml`
 `[fusion] port = 9881`; `ADAPTER_NAMES` gains `fusion`; `tee doctor` reports
-the bridge. **The Desktop manifest is unchanged** until the lane has been
-seen live (a decision, not an oversight: the manifest lists what the owner's
-machine is known to serve).
+the bridge. **The Desktop manifest is unchanged**: the lane has now been
+seen live (§8.2, A71) and the manifest decision is the owner's (the A71
+script's P4, put to the owner rather than taken by the session) — the default
+branch's own 0.22.0 manifest already lists a `fusion` lane built on the
+FusionMcpBridge, which is the collision §8.2 names.
 
 ## 5. Laws for this lane
 
@@ -294,7 +331,14 @@ machine is known to serve).
    caller names or the workdir.
 6. Zero new always-loaded tools; every `fu_*` tool is tabled individually.
 7. Nothing is claimed live until the Mac smoke ran; the shim proves the
-   protocol and the codegen, not Fusion.
+   protocol and the codegen, not Fusion. *(It ran: §8.2.)*
+8. *(A71, measured)* The id map is per document, keyed by `creationId`; a
+   token remembered from another document is never resolved. Resolving one
+   crashes Fusion (row 54).
+9. *(A71)* Law 5 binds the lane, not the smoke's harness: with
+   `TEE_FUSION_SCRATCH_DESIGN=1` and NOTHING open, the harness opens one
+   untitled design (row 51) and closes exactly that document unsaved; a design
+   the owner has open is never used, and the lane's code never gains the call.
 
 ## 6. Phases (the script carries the acceptance)
 
@@ -385,35 +429,77 @@ motion, each hole's diameter and position, the sketch's constraint count);
 it is still one round trip against a listing the naive arm must read in
 full.
 
-### 8.2 Live — the Mac smoke has not run
+### 8.2 Live — the Mac smoke ran (A71, 2026-09-06, Fusion 2704.1.53)
 
-Every §3 row is ○ in its live column until the procedure in
-`docs/fusion-lane.md` has run on the machine that has Fusion. The smoke fills
-the column, answers §9, and decides the manifest (§4.10). Until then this
-lane is verified against the reference and proven on the shim, and claimed
-nowhere else.
+`tests/test_fusion_live.py` ran five times on the owner's Mac over the
+FusionMcpBridge (`docs/research/71-fusion-live-facts.json` is the evidence,
+30 facts). Runs 1–3 corrected the smoke and the lane; runs 4 and 5 passed
+end to end — steps 1–11 plus `fu_drawing` through partkiln, **2 passed in
+7.8 s**, in a scratch design the harness opened and closed unsaved:
+
+- **What Fusion confirmed:** a bare rectangle carries 0 constraints and the
+  dimensioned one is fully constrained (§9.7); `param_set width=150 mm`
+  recomputes the plate; the rollback restores it to 96,000 mm³ (what the shim
+  cannot show — its timeline delete never un-joins a body); `saveAsImageFile`
+  writes `.jpg` (§9.1); a face hole bores into the material by default and the
+  counterbore subtracts its ring (§9.4); the `+z` face of a plate with two
+  holes has 6 edges (row 35); the 10 × 20 revolve reads exactly
+  2π·200·30 = 37,699.11 mm³ in a [10, 80, 80] box (row 36); a `new_component`
+  extrude reports its occurrence (row 50); a revolute joint moves the SECOND
+  occurrence (`two`, §9.5) and `set rotation=45` reads back 45.0 (row 46).
+- **What Fusion corrected:** a 5 mm join extrude of a circle sketched on the
+  XY plane lies INSIDE the 10 mm plate and adds nothing (the smoke's boss now
+  rises 15 mm); the smoke's revolve profile was 10 × 10 at centroid 25 and
+  Fusion answered its true 2π·100·25 = 15,708 mm³ (the shim's Pappus was right
+  all along, the profile was wrong); a lone joint op's diff row arrives without
+  `kind` / `name` / `motion` because the kernel trims fields that echo the op
+  when every creator op yielded one entity (`created` is the address); STEP
+  and the archive refuse a body (`3 : invlid argument geometry`; rows 17, 48);
+  USD is a USDZ package written at `<filename>.usdz`; IGES declares MM, SAT
+  1 mm per unit, 3MF `unit="millimeter"`, OBJ centimetres, STL the design's
+  default unit — now read from the design (row 53) instead of guessed (§9.6).
+- **What Fusion crashed on:** resolving a token minted in a closed design
+  (row 54) — twice, once under the first fix. The map is per document (§4.4).
+- `tee doctor`: `OK fusion-bridge: Fusion 2704.1.53 via the FusionMcpBridge on
+  :8766`. With a headless Blender bridge up beside Fusion: `fu_export
+  format=obj of=b1 into=blender` landed the plate (scale 0.01, a read-back
+  verdict, 0.11 s) and `tee_capture adapter=blender` answered a 4,415-byte
+  JPEG in 0.05 s — three calls, ~109 tokens for the export reply.
+
+Not live: the TEE add-in's own hop (rows 1–3 via the FusionMcpBridge only),
+fillets (row 11), an import into Fusion (row 18), the TEE add-in's manifest
+(row 20). **The collision this run exposed:** the repository's default branch
+shipped its own Fusion lane the same day (A68 there: five `fu_*` tools over
+the FusionMcpBridge, 0.22.0), at the same paths as this lane. Both are
+live-verified now; which survives, or how they merge, is the owner's call.
 
 ## 9. Open questions for the smoke
 
-1. Which extensions `saveAsImageFile` writes on the owner's build (jpg?
-   png?) — the capture script reports which succeeded.
-2. Whether `fireCustomEvent` is serviced while a modal dialog is up (the
-   FreeCAD SI-B12 lesson) — the wire's call timeout is the guard, and
-   `fusion_unreachable`'s fix names it.
-3. The add-in folder on the owner's Mac, and whether `runOnStartup` is
-   wanted (the manifest ships it `true`, as Autodesk's sample does).
-4. *(v2)* A hole placed on a face with `setPositionByPoint`: is its default
-   direction into the material, and which way does `setAllExtent(Positive…)`
-   run? The codegen assumes "into the material" and exposes `flip`; the
-   smoke's step 8 measures the volume after a through hole.
-5. *(v2)* After `joints.add`, which occurrence Fusion moves, and what
-   `fu_measure` of an occurrence reads afterwards (the shim moves nothing).
-6. *(v2)* The unit each of IGES, SAT, 3MF and USD declares inside the file
-   Fusion writes (the options carry none); `fu_export` declares `units:
-   null` until the smoke has read them.
-7. *(v2)* Whether `addTwoPointRectangle` adds horizontal/vertical
-   constraints of its own (the page does not say); the sketch row's
-   `constraints` count after step 7 answers it.
+*(All answered by the A71 smoke on Fusion 2704.1.53 — §8.2.)*
+
+1. **`.jpg`.** `saveAsImageFile` wrote `capture-1024.jpg` first time; the
+   `.png` fallback and its re-encode were never needed on this build.
+2. **Measured differently than asked.** No modal dialog appeared; what held
+   the primary thread was Fusion's crash reporter after row 54's segfault,
+   and then NOTHING answered — not the ping, not even the FusionMcpBridge's
+   HTTP `/status` (the GIL is held). The wire's timeout named it; a process
+   `sample` diagnosed it; only a kill and relaunch recovered it.
+3. `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/`,
+   holding the FusionMcpBridge (`runOnStartup: true`, wanted — it was up on
+   every relaunch within 15–20 s) and no TEE add-in.
+4. **Into the material**, by default: a Ø6.6 through hole dropped exactly
+   π·3.3²·10 mm³; `flip` was never needed; the counterbore matched.
+5. **The second occurrence (`two`) moves.** `fu_measure` of `c2` read its
+   centre of mass moved from [260, 40, 5] to [200, 40, 15] mm; `c1` stayed.
+6. IGES: global section flag 2, name MM. SAT: header line 3 `1 …` = one
+   millimetre per unit. 3MF: `unit="millimeter"`. USD: a USDZ package
+   (`<filename>.usdz`, one binary usdc declaring `metersPerUnit` and `upAxis`
+   Z — the value is not readable without the USD library, so `fu_export`
+   still declares `units: null` for USD, with the package named in its note).
+   OBJ: centimetres, as declared. STL: the design's default unit, now READ
+   from `unitsManager.defaultLengthUnits` (row 53) at export time.
+7. **No.** A bare 40 × 20 rectangle reports 0 constraints and
+   `constrained: false`; the shim's counts stand.
 
 ## 10. v2 (A70, 2026-09-06): the long tail becomes rows and emitters
 
@@ -515,17 +601,23 @@ entityTokens; the shim executes the real scripts.
   (the two occurrences' ids), `angle_deg`, `offset_mm`, `flipped` and
   `health`. `set j1 {angle, offset, suppressed, flipped, rotation (deg, a
   revolute or cylindrical joint), slide (mm, a slider)}` (row 46).
-- Fusion moves an occurrence to satisfy a joint; the shim records the joint
-  and moves nothing (§9 item 5).
+- Fusion moves an occurrence to satisfy a joint — **the second one, `two`**
+  (measured, §9 item 5: `c2` went to `c1`'s face); the shim records the joint
+  and moves nothing. A lone joint op's diff row carries `between`,
+  `angle_deg`, `offset_mm` and `rotation_deg` only: `kind`, `name` and
+  `motion` echo the op and the kernel trims echoes (hard rule 2) — read the id
+  from `created`.
 
 ### 10.6 Exports
 
 `fu_export format=iges | sat | usd | 3mf` (row 48). iges/sat/usd export a
 component or the root, so a body id is refused with the fix; 3mf takes a
 body, an occurrence or a component. All four declare their units inside the
-file, so `fu_export` answers `declares_units: true` and `units: null` with a
-note — the receiver reads the file's own unit; `into=` still refuses when no
-served lane imports the suffix.
+file. A71 read them (§9 item 6): IGES, SAT and 3MF declare millimetres and
+`fu_export` says `mm`; USD is a USDZ package at `<filename>.usdz` whose value
+the lane cannot read, so USD alone keeps `units: null`; STEP and the archive
+join the component-only formats (a body is Fusion's own refusal, rows 17/48).
+`into=` still refuses when no served lane imports the suffix.
 
 ### 10.7 Drawings: the API cannot make one; partkiln can
 
@@ -553,7 +645,13 @@ profile of area A revolved through θ about an axis at distance d from its
 centroid is θ·A·d); joints with motions, angle and offset parameters, rotation
 and slide values; the four export constructors with their argument orders.
 It does not solve a general sketch, move an occurrence for a joint, or know a
-hole's live direction — §9 items 4–7 are the smoke's.
+hole's live direction — §9 items 4–7 were the smoke's, and are answered. Two
+more limits the smoke exposed (§8.2): the shim sums volumes, so a join of
+material already inside a body adds volume Fusion does not add; and its
+timeline delete removes a feature without un-joining the body, so a rollback's
+restored volume is a live fact only. It also refuses a body on STEP and the
+archive with Fusion's own message, and writes USD at `<filename>.usdz`, as
+Fusion does.
 
 ### 10.9 Laws added
 

@@ -102,6 +102,34 @@ partkiln's from a STEP handoff, decided as the scene write it is. Twenty
 more reference-verified rows (doc 71 §3, 31–50) and one inverted premise;
 everything still on the shim until the Mac smoke, which gained five steps.
 
+### The Fusion lane goes live (A71, 2026-09-06)
+
+The Mac smoke ran on Fusion 2704.1.53: `tests/test_fusion_live.py` passed
+end to end (steps 1–11 and `fu_drawing` through partkiln, 2 passed in 7.8 s)
+and `docs/research/71-fusion-live-facts.json` holds its 30 facts. The lane
+speaks to **either bridge add-in** — the TEE add-in (TCP 9881) or the
+FusionMcpBridge the owner's Mac already runs (HTTP 8766, vendored
+byte-identical), whichever answers (`FusionAutoWire`; `--fusion-http-port`,
+`[fusion] http_port`; `tee doctor` names the one in use). What the live
+build corrected: the id map is **per document** (resolving a token from a
+closed design crashed Fusion twice — a segfault in `findEntityByToken`; the
+key is `Document.creationId`, since the root component's token is identical
+across untitled designs); STEP and the Fusion archive take a component or
+the whole design and refuse a body before the wire with Fusion's own words;
+USD is a USDZ package at `<out>.usdz` and `fu_export` returns the file that
+exists; IGES, SAT and 3MF declare millimetres, OBJ centimetres, and STL the
+design's default length unit, read from the design at export time; a ping
+counts only the active document's ids. The smoke itself learned three
+things from Fusion (a join inside the plate adds nothing; the revolve
+profile it drew; a lone joint's diff row carries no `kind`, so `created` is
+the address). Live beside a headless Blender: `fu_export format=obj
+into=blender` landed the plate (scale 0.01, 0.11 s) and `tee_capture
+adapter=blender` returned a JPEG in 0.05 s. The Blender live suite is green
+again (26 passed): one assertion followed A68's better import refusal, and
+the two `bl_execute_python` tests grant the escape hatch in their own test
+project, as an owner does. Desktop manifest and version: unchanged, the
+owner's decisions.
+
 ## 0.21.1 — 2026-09-04
 
 One change, and it is the one that lets Claude Desktop reach the two lanes

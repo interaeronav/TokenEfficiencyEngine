@@ -12722,20 +12722,153 @@ export of an open drawing (row 49, verified, no emitter); shells / sweeps /
 lofts / threads / arcs / joint origins / motion links; the version cut
 (owner's call).
 
-## A71 — the Fusion lane goes live (planned 2026-09-06; runs on the Mac)
+## A71 — the Fusion lane goes live (2026-09-06, on the owner's Mac)
 
 Owner directive: *"Write a claude code script to execute everything on a
-session local to my Mac."* `CLAUDE_A71_SCRIPT.md` is the plan of record for
-a session with Fusion, Blender and the OCP wheel present and the owner in
-the room: P0 preconditions (branch, `uv sync --extra extract`, the hermetic
-suite green, `tee doctor`); P1 the smoke (`tests/test_fusion_live.py`, the
-add-in run and an empty design opened by the owner, the facts file
-committed as `docs/research/71-fusion-live-facts.json`); P2 acting on each
-fact by the table in the script — a measurement outranks a declaration, and
-a live refusal is fixed with a reference row first; P3 the other live
-suites A68 touched (`test_blender_live.py`, `test_partkiln_live.py`, the
-acceptance session's two-call route, `fu_export … into=blender` with both
-bridges up); P4 the three decisions that are the owner's (the Desktop
-manifest, the 0.22.0 cut with its re-lock, PR #1 ready for review); P5 the
-record and the push. Nothing in this section is done until that session
-writes its numbers here.
+session local to my Mac."* `CLAUDE_A71_SCRIPT.md` is the plan of record; this
+session ran it in a dedicated worktree of this branch
+(`/Users/john/TokenEfficiencyEngine-a71`) with Fusion 2704.1.53, Blender 5.2.0
+LTS and the OCP wheel present and **no owner at the keyboard** — so where the
+script assumed one, the machine's facts decided and the script's Amendments
+block records each change. Evidence: `docs/research/71-fusion-live-facts.json`
+(30 facts), the run logs quoted below, and doc 71 §8.2 / §9.
+
+**P0 — preconditions.** Hermetic suite in a fresh worktree venv after the
+script's `uv sync --extra extract`: **22 failed / 33 errors** — all
+environmental (`pointcloud`, `pdf`, `quant`, `solve`, `medimg`, `assets`,
+`physical` extras absent; `tee doctor`'s fleet-extras line named five of
+them). With the seven extras synced: **1,661 passed / 32 skipped / 115
+deselected**, `make lint` clean. `tee doctor`: `WARN fusion-bridge: nothing
+listening on 127.0.0.1:9881` — the machine runs the **FusionMcpBridge** (HTTP
+:8766, auto-starting, `~/Library/Application Support/Autodesk/Autodesk Fusion
+360/API/AddIns/FusionMcpBridge`, the add-in that drove the CERES 50 baseline)
+and has no TEE add-in installed. Desktop still serves 0.21.1 (three lanes).
+
+**Amendment 1 — the second transport** (`4edec3e`). Rather than wait for a
+GUI install nobody was present to click, the lane speaks the bridge already
+running: `FusionHttpWire` (the FusionMcpBridge protocol; a fresh namespace per
+job, so `_tee` lives in a process-lifetime module the prelude installs; 504 =
+the job is STILL RUNNING) and `FusionAutoWire` (TEE add-in :9881 first, then
+FusionMcpBridge :8766, whichever answers, kept until it stops answering;
+`port`/`transport` report it) — plumbed through `tee serve --fusion-http-port`,
+`[fusion] http_port` and `tee doctor`. The FusionMcpBridge is vendored
+byte-identical (`diff -rq`) beside the TEE add-in. Ten hermetic tests stand
+the protocol up over real HTTP. **Amendment 2 — the harness's scratch design**
+(`910b2d0`): with `TEE_FUSION_SCRATCH_DESIGN=1` and NOTHING open, the smoke's
+fixture opens one untitled design over the bridge (doc 71 row 51) and closes
+exactly that document unsaved afterwards; the lane's code never gains the
+call and an owner's open design is never used (Law 5 binds the lane; the
+harness is the owner's stand-in). Fusion held 0 documents before, between and
+after every run.
+
+**P1 — the smoke, five runs** (`TEE_FUSION_SCRATCH_DESIGN=1 UV_FROZEN=1 uv run
+pytest -q -s -m dcc tests/test_fusion_live.py`, all over the FusionMcpBridge):
+
+1. Run 1 (2.3 s): seven facts, then `assert 96000.0 > 96000.0` at step 4 —
+   the boss circle sketched on the XY plane at z=0 and joined 5 mm lies INSIDE
+   the 10 mm plate; Fusion rightly added nothing (the shim sums volumes). The
+   boss now rises 15 mm.
+2. Run 2: the first listing hung; pytest-timeout fired at 60 s, the harness
+   could not close its design ("did not answer within 40 s"), and even the
+   bridge's HTTP `/status` fell silent. `sample 7357` on the hung process:
+   `_wrap_Design_findEntityByToken → Xl::Fusion::DesignImp::findEntityByToken_raw
+   → __dynamic_cast → _sigtramp → libcer.dylib → read` — **resolving a token
+   minted in the design run 1 had closed segfaulted Fusion**, and its crash
+   reporter held the primary thread and, with the GIL, every Python thread.
+   State S, 0 % CPU, unrecoverable. Fusion was force-quit (only the harness's
+   unsaved scratch design had ever been open) and relaunched; the bridge was
+   back in 20 s. Fix `66fe3d8`: the id map is per document.
+3. Run 3 (with the fix keyed on the ROOT COMPONENT's token): 17 facts — the
+   rollback restores 96,000 mm³, `.jpg` written, the hole bores into the
+   material, the counterbore matches, six edges on `+z`, `['c1','c2']` — then
+   `StopIteration` looking for a `kind == "joint"` row, and the second test
+   **crashed Fusion the same way**. Measured after the relaunch (15 s): two
+   untitled designs' root components carry the SAME 24-character token
+   (`/v4BAAEAAwAAAAAAAAAAAAAA`) while `Document.creationId` differs
+   (`27ee725b…` vs `c4b5dc4d…`). The key is `creationId` (row 52); the shim's
+   `Document` carries one; the test's shim asserts no foreign token ever
+   reaches Fusion. A probe then re-ran the joint: Fusion moves `c2` (`two`);
+   the joint row arrives without `kind`/`name`/`motion` because
+   `_trim_batch_echoes` drops fields that echo the op when every creator op
+   yielded one entity — `created` is the address. The revolve's 15,707.96 mm³
+   was Fusion being right about a 10 × 10 profile the smoke had drawn (the v2
+   test and the shim draw 10 × 20 — the shim's Pappus was never wrong).
+4. Run 4 (8.9 s): **2 passed** — every step; two exports told the truth
+   against the code: `fu_export step of=b1` → `RuntimeError: 3 : invlid
+   argument geometry` (the reference: "valid geometry for this is currently a
+   Component object" — STEP, the archive and USD alike), and `format=usd`
+   wrote nothing at the path given: Fusion appends `.usdz` and writes a USDZ
+   package (one binary usdc declaring `metersPerUnit`, `upAxis` Z).
+5. Run 5 (7.8 s): **2 passed, 30 facts** — the committed evidence. STEP of
+   the whole design 31,368 B; OBJ centimetres (as declared); STL `mm`
+   declared from the design and `mm` measured from the file; IGES `flag=2
+   name=MM`; SAT header `1 …` (1 mm/unit); 3MF `unit="millimeter"`; USD
+   `.usd.usdz`; the revolve 37,699.112 mm³ in [10, 80, 80]; rotation 45.0;
+   `fu_drawing` → `dwg:plate`, A4L, ISO, first angle, one top view (4 visible
+   / 4 hidden edges), SVG written.
+
+`tee doctor` after: `OK fusion-bridge: Fusion 2704.1.53 via the FusionMcpBridge
+on :8766, no document open (no design)`.
+
+**P2 — acting on the facts** (`e3446c4`, `52f34da`): `COMPONENT_ONLY_EXPORTS`
+gains step and f3d (refused before the wire with Fusion's words; the shim
+raises them); the export program reports the file that exists (`<out>.usdz`
+for USD) and refuses honestly when nothing was written; `_EXPORT_UNITS`: iges
+/ sat / 3mf → `mm`, obj `cm` confirmed, stl → the design's
+`unitsManager.defaultLengthUnits` read at export time (row 53), usd stays
+`null` with the package named; every `_EXPORT_NOTES` entry is now a
+measurement; both bridges' ping counts ids only for the active document
+(`fu_probe` had reported 12 ids in an empty design). Doc 71: 49 live cells,
+rows 51–54 added (the harness calls, `creationId`, `defaultLengthUnits`, the
+crash), §4.1/4.2/4.4/4.10 and Laws 8–9 amended, §8.2 rewritten from the
+facts, §9 answered in place, §10.5/10.6/10.8 corrected. `docs/fusion-lane.md`,
+troubleshooting, README, quickstart, the research index and the CLAUDE.md
+bullets follow. Not changed on purpose: the shim's Pappus (right), the v1
+benchmark's 10 × 10 revolve profile (its row measures tokens, not volume).
+
+**P3 — the other live suites** (`d06bb06`): `test_partkiln_live.py` **2
+passed** (3.6 s; OCP and partkiln installed into the worktree venv).
+`test_blender_live.py` **6 failed / 20 passed** → **26 passed** (1.8 s):
+`test_import_file_bad_format_is_one_line` expected "unsupported import format"
+and A68's kernel pre-validation now says `batch[0]: Blender cannot import
+'xyz'.` (the assertion follows the better message); the two
+`bl_execute_python` tests answered `trust_denied` — **also on the default
+branch's checkout**, so pre-existing: `allow_code_exec` registers the tool and
+the trust kernel decides from the project's grants, which a tmp project lacks;
+the fixture now grants `exec-code` in its own `.tee/config.toml`, as an owner
+does. `partkiln/examples/acceptance/run_tee.py`: **10 steps run, 0 skipped,
+6.89 s, 6,962 tokens**; step 7 "land the GLB in a served Blender lane" →
+`landed in: blender`. With a headless Blender bridge (`boot_background.py
+--port 9876`, up in 2–3 s) beside Fusion: `fu_export format=obj of=b1
+into=blender` → 2,168 B, `landed: {lane: blender, scale: 0.01, checkpoint:
+cp2, created: [b146]}` with the read-back note, 0.11 s; `tee_capture
+adapter=blender` → 4,415 B JPEG, 0.05 s; **3 calls**, ~109 tokens for the
+export reply. (First attempt failed on the harness: a Blender workdir that did
+not exist — the adapter does not create it; the CLI does.)
+
+**P4 — the owner's decisions: NOT taken.** The session was autonomous, so the
+three `AskUserQuestion`s were not asked; each is prepared and left open: (1)
+the Desktop manifest (`--adapter fusion` after seamkiln; the manifest test's
+exact list, the description/keywords, `test_instructions.py`'s 2,048 B cap);
+(2) the version cut with its re-lock (`uv 0.12.5` here, CI's major) — note
+that **0.22.0 is already claimed twice**: the default branch shipped
+`tee-engine-0.22.0.mcpb` (A68 there: a Fusion lane over the FusionMcpBridge,
+five `fu_*` tools) and PR #2 (A72, wind tunnel) says 0.22.0 too, so whatever
+lands next wants 0.23.0; (3) PR #1 ready for review. **A fourth decision the
+run exposed:** two Fusion lanes now exist at the same paths —
+`server/src/tee/adapters/fusion/`, `adapters/fusion/tee_bridge/`,
+`tests/test_fusion_*` — the default branch's A68 (thin, live-proven, shipped)
+and this branch's A69/A70/A71 (rich, now live-proven). Merging PR #1 will
+conflict there; which lane survives, or how they merge, is the owner's call.
+This session also left the default branch and the Desktop install untouched.
+
+**P5 — record and push.** Full suite in the worktree: **1,696 passed / 28
+skipped / 118 deselected in 73.6 s**; `make lint` clean. Nine commits on this
+branch, each fix quoting its measurement; pushed to
+`claude/tee-component-integration-iflsyq`.
+
+**Two interventions on the owner's machine, stated plainly:** Fusion was
+force-quit and relaunched twice (PIDs 7357 and 9419), each time after the
+segfault above, each time with only the harness's unsaved scratch design
+having been open (0 documents verified before every run); and OCP, partkiln
+and the seven fleet extras were installed into the worktree's own venv.

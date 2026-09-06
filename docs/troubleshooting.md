@@ -126,13 +126,16 @@ of hanging.
 
 | Symptom | Cause / fix |
 |---|---|
-| `fusion_unreachable` | Nothing listening on :9881 — run the TEE add-in inside Fusion (Utilities → Add-Ins → Scripts and Add-Ins → TEE → Run); `tee doctor` shows `fusion-bridge`; `--fusion-port` / `[fusion] port` if it moved |
-| `fusion_wire_failed` "did not answer within N s" | The port is open but Fusion's primary thread is not servicing events — a modal dialog holds it (the FreeCAD lesson above). Bring the Fusion window forward and dismiss it |
+| `fusion_unreachable` | No bridge add-in answered — the TEE add-in on :9881 (Utilities → Add-Ins → Scripts and Add-Ins → TEE → Run) or the FusionMcpBridge on :8766 (auto-starts with Fusion once copied into the AddIns folder); `tee doctor` shows `fusion-bridge` and which one answered; `--fusion-port` / `--fusion-http-port`, `[fusion] port` / `http_port` if one moved |
+| `fusion_wire_failed` "did not answer within N s" / "STILL RUNNING" | The port is open but Fusion's primary thread is not servicing events. A modal dialog holds it (the FreeCAD lesson above) — bring the Fusion window forward and dismiss it. Over the FusionMcpBridge a 504 means the job is **still running** inside Fusion: read the design back before resending anything |
+| Fusion stops answering everything — ping, `/status`, the window — right after a design was closed or switched | Before A71 the lane resolved ids remembered from the previous document, and `findEntityByToken` on such a token **crashes Fusion** (segfault, then its crash reporter holds the primary thread; doc 71 row 54). Upgrade: the map is per document now. Recovery is a force-quit and relaunch of Fusion; the bridge is back within ~20 s |
+| `fusion_bad_reply` | The bridge answered something that is not a JSON object with a dict `result` — the FusionMcpBridge reprs a non-JSON result. A typed batch never produces this; `fu_execute_python` code that assigns a non-dict to `result` does |
+| `bad_op` "never a body" on `fu_export` step / f3d / iges / sat / usd | Those formats take a component or the whole design (Fusion's own words: `3 : invlid argument geometry`) — pass a component id or omit `of`; 3mf, stl and obj take a body |
 | `fusion_no_design` | No design is open — File → New Design, then retry; `fu_probe` says which document is active |
 | `fusion_direct_design` on `tee_checkpoint` | The design captures no history, so there is no timeline to roll back — Design Settings → Capture Design History, or work without rollback |
 | `fusion_bridge_error` | Fusion's own exception; the message is the traceback's last lines. Fix what it names and resend; nothing after the failing op ran |
 | `fusion_unknown_entity` | An id this bridge session does not know (a bridge restart renumbers) — `tee_scene_summary(adapter=fusion, refresh=true)` |
-| `capture_needs_pillow` | Fusion wrote a PNG and Pillow is missing — `uv pip install pillow` |
+| `capture_needs_pillow` | Fusion wrote a PNG and Pillow is missing — `uv pip install pillow` (Fusion 2704.1.53 writes JPEG directly; the fallback is for a build that refuses it) |
 | `adapter_required` naming fusion and partkiln | Both applications are live and both take the batch — pass `adapter=`; a closed Fusion never competes |
 | `bad_op` naming a sketch address (v2) | An address is `r0.bottom\|top\|left\|right`, `r0.bl\|br\|tl\|tr`, `l0`, `l0.start\|end`, `c0`, `c0.center`, `p0` or `origin` — bare inside the sketch op, prefixed `sk1/` (or with `sketch` given) outside it |
 | `fusion_unknown_entity` naming a sketch and what it has | The address is well-formed but that sketch has no such piece; the message lists the ones it has |
