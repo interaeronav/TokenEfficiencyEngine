@@ -240,6 +240,11 @@ def kill_process_group(pid: int, grace_s: float = TERMINATE_GRACE_S) -> bool:
         os.killpg(pid, signal.SIGKILL)
     except ProcessLookupError:
         return True
+    except PermissionError:
+        # macOS answers EPERM (not ESRCH) when every member of the group is
+        # already a zombie - measured 2026-09-06 on Darwin 25.6; treat it as
+        # the aliveness check's problem, not a crash.
+        return not pid_alive(pid)
     deadline = time.time() + 2.0
     while time.time() < deadline:
         if not pid_alive(pid):
@@ -261,6 +266,15 @@ def pid_alive(pid: int) -> bool:
             state = fh.read().rsplit(")", 1)[1].split()[0]
             return state != "Z"
     except OSError:
+        pass
+    # no /proc (macOS): ps prints a stat starting with Z for a zombie
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, timeout=5
+        )
+        state = out.stdout.strip()
+        return bool(state) and not state.startswith("Z")
+    except (OSError, subprocess.SubprocessError):
         return True
 
 
