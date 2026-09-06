@@ -138,6 +138,16 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   declare its vocabulary with ONE optional `vocab()`; a `write-scene` virtual
   tool must name its lane in `kernel/lanes.py` or the server refuses to boot.
 
+- The A69 build (the Fusion lane: Autodesk Fusion as a live GUI lane on the
+  owner's own document, through a bridge add-in that marshals every request
+  onto Fusion's primary thread) is driven by `CLAUDE_A69_SCRIPT.md`; research
+  doc 71 is its design of record. Its law: nothing goes into the codegen that
+  is not a reference-verified row in doc 71 §3 - Fusion has no Linux build, so
+  the lane is built on a hermetic shim and nothing is claimed live until the
+  Mac smoke in the script's P4 has run. Millimetres on the wire with the unit
+  always written, centimetres inside; the timeline plus every parameter
+  expression is the checkpoint, and it says what it cannot restore.
+
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured

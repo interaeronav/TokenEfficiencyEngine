@@ -12461,3 +12461,27 @@ as a gap; the owner declined wiring it this campaign); `tee_script`'s
 tool names none — the tool itself refuses, so no `script_adapter_required`
 code was added; the acceptance example's step 7 is rewritten to the two-call
 route but this machine has no Blender to run it on.
+
+## A69 — the Fusion lane (2026-09-06)
+
+Owner directive: *"Create a lane dedicated to autodesk fusion."* Research doc
+71 is the design of record, `CLAUDE_A69_SCRIPT.md` the plan; the decision is
+in DECISIONS ("A live GUI lane on the owner's own document").
+
+**P0 — the facts before the code.** Fusion has no Linux build and none is on
+this machine, so the campaign is built on a hermetic shim and the live half
+waits for the owner's Mac. Twenty API rows were read from Autodesk's Fusion
+API reference and from Autodesk's own `FusionMCPSample` add-in (its
+custom-event marshalling code in full) before a line of codegen was written —
+doc 71 §3 carries each with its page. Two of them changed the design:
+`ExtrudeFeatureInput.setDistanceExtent` is retired (September 2022; the
+current call is `setOneSideExtent` with a `DistanceExtentDefinition`), and the
+ExportManager's option constructors take `(filename, geometry)` for STEP and
+the Fusion archive but `(geometry, filename)` for STL and OBJ. Also confirmed:
+internal units are centimetres and radians and a unitless expression takes
+the document's active unit; the timeline (`markerPosition`,
+`deleteAllAfterMarker`) plus `Parameter.expression` is the only rollback
+mechanism there is; `entityToken` + `findEntityByToken` is the stable
+identity; the ImportManager reads STEP/IGES/SAT/f3d and no mesh format. Not
+settled by the reference and left to the smoke: which image extensions
+`Viewport.saveAsImageFile` writes.

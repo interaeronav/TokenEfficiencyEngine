@@ -1858,3 +1858,53 @@ over the Desktop composition, never edited to fit). Declined by the owner:
 `adapter=` on `bl_build_from_plan` / `bl_check_against_plan` / `capture_apply`
 (they stay Blender-bound, resolved by capability rather than position) and
 wiring the `drafting/` package.
+
+## A live GUI lane on the owner's own document: the Fusion lane (2026-09-06, A69)
+
+**Owner directive:** *"Create a lane dedicated to autodesk fusion."*
+
+**Fusion is the Blender shape, not the partkiln shape.** There is no headless
+Fusion and no official local HTTP surface; code runs inside the application,
+in its embedded Python, and the API may be touched only from the primary
+thread. So the lane is a bridge add-in (`adapters/fusion/tee_bridge/TEE/`,
+MIT, 127.0.0.1:9881, one NUL-framed JSON request per connection) that
+marshals each request onto the primary thread through Fusion's custom-event
+queue — the mechanism Autodesk's own `FusionMCPSample` add-in uses — and an
+adapter that compiles one batch to one script and reads one JSON diff back,
+the FreeCAD precedent. Zero new always-loaded tools.
+
+**Every API call is verified in the reference before it is emitted.** Research
+doc 71 §3 is the table: twenty rows, each with the reference page it was read
+from on 2026-09-06, and a live column that only the owner's Mac can fill.
+Two findings changed the design on the way: `ExtrudeFeatureInput.
+setDistanceExtent` is retired (the current call is `setOneSideExtent`), and
+the export-option constructors take their arguments in different orders by
+format. The knowledge-base's Fusion prose was orientation only, per the
+`CLAUDE.md` rule.
+
+**Millimetres on the wire, centimetres inside, the unit always written.**
+Fusion's internal units are centimetres; a unitless expression takes the
+document's active unit, which the lane cannot know. Every length the codegen
+emits is a string with `mm`; every read-back converts once at the boundary.
+
+**A checkpoint is the timeline marker plus every parameter expression, and
+it says what it restores.** Fusion has no scriptable undo. Rolling back
+deletes what was created after the marker and restores the expressions
+recorded; it cannot bring back what was deleted or un-edit sketch geometry,
+and the payload says so. A direct-modeling design has no timeline and
+refuses honestly.
+
+**The owner's document is the owner's.** The lane creates, saves, closes and
+uploads nothing; it works in the active design and writes exports and
+captures where the caller says. The escape hatch, `fu_execute_python`, is
+`exec-code` and denied unless granted.
+
+**A lane whose application is not running is not a candidate.** Fusion's
+vocabulary overlaps partkiln's on the words that matter, so A68's router
+gains one refinement: when several lanes take a batch and at least one is
+connected, the disconnected ones drop out before the tie is judged. Both
+live is genuinely ambiguous and still refuses naming both.
+
+**The Desktop manifest does not change yet.** It lists what the owner's
+machine is known to serve; the lane joins it after the Mac smoke, not
+before.
