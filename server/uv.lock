@@ -4838,7 +4838,7 @@ wheels = [
 
 [[package]]
 name = "tee-engine"
-version = "0.20.0"
+version = "0.21.1"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
