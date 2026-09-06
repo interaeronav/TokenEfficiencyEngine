@@ -622,7 +622,10 @@ def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
         call(app, "wt_verify", case="nonsense")
     assert err.value.code == "wt_bad_action"
     out = call(app, "wt_verify", case="all", confirm_cost=True)
-    assert set(out["skipped_unverified"]) == {"cylinder_re40", "flatplate"}
+    # flatplate's reference was verified at source 2026-09-06 (owner session,
+    # §M row R4); its runner is still unbuilt, so it moves buckets
+    assert set(out["skipped_unverified"]) == {"cylinder_re40"}
+    assert set(out["skipped_unimplemented"]) == {"flatplate"}
     by_name = {r["case"]: r for r in out["results"]}
     assert (
         by_name["wing_liftslope"]["pass"] is True
