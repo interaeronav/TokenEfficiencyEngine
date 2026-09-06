@@ -170,7 +170,8 @@ result = {
     "version": str(_app.version),
     "document": _doc.name if _doc is not None else None,
     "design": _kind,
-    "ids": len(_tee.get("ids", {})),
+    "ids": (len(_tee.get("ids", {})) if _doc is not None
+            and _tee.get("design") == str(getattr(_doc, "creationId", None) or "") else 0),
 }
 """
 
