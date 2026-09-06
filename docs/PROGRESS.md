@@ -12329,9 +12329,15 @@ from **1 failed / 14 passed / 8 skipped** to **15 passed / 8 skipped**;
 ruff check and format clean. `cad_scad_build` in `fleet/tools.py` is the
 only other caller and only forwards.
 
-**A machine fact found on the way:** this Mac no longer has OpenSCAD —
-`/opt/homebrew/bin/openscad` is a dangling symlink into an
-`OpenSCAD-2021.01.app` that is gone, and `brew list --cask` no longer
-lists it — so the eight `needs_openscad` tests have been skipping locally
-and the OpenSCAD build path is currently unexercised anywhere.
-`brew install --cask openscad` restores it.
+**A machine fact found on the way, and its correction:** mid-session this
+Mac lost OpenSCAD — the 2021.01 app went to the Trash, leaving
+`/opt/homebrew/bin/openscad` dangling — so the `needs_openscad` tests were
+skipping locally and the OpenSCAD build path was unexercised anywhere.
+`brew install --cask openscad` does NOT bring it back: Homebrew disabled
+that cask on 2026-09-01 (2021.01 fails Gatekeeper), and its stale
+registration blocks the replacement ("conflicts with 'openscad'"). What
+worked: `brew uninstall --cask --force openscad`, then
+`brew install --cask openscad@snapshot` (2026.09.05), which links
+`/opt/homebrew/bin/openscad`. With it present the same file runs
+**21 passed / 2 skipped** (cadquery only), so the reorder is verified on
+both sides of the binary.
