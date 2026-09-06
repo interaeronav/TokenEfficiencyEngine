@@ -15,4 +15,5 @@ directory for OpenFOAM / SU2 / gmsh file banners.
 | `L11-cancel-L13-adopt-first-pass.log` | the first pass: parallel dying under Open MPI's root refusal, a real cancel in 0.05 s, the tutorial refused on "upper triangular order" |
 | `L13-adopt-with-measured-chord.log` | the apt airFoil2D tutorial adopted and run with `forces=` once the chord is measured from the wall patch (Cl 0.970 at 8°) |
 | `smoke_registry.py` | the first end-to-end loop through the registry on the real engines |
+| `p0-measure.sh` | the P0b Mac measurement script (script §M): probes every engine where the Mac installs put it, runs the L2/L4/L5/L7/L13 rows on the Mac engines with `RUN_SOLVES=1`, and writes a banner-filtered `p0b-mac-<date>.log` here for the commit; prints, never asserts |
 | `l2_tunnel.py`, `l5_su2_omesh.py`, `l4_only.py`, `l13_forces.py` | the P0 drivers (run from `server/` with `uv run --no-sync python`) |
