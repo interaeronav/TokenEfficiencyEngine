@@ -99,15 +99,17 @@ def _godot_lane(project: str, port: int) -> Lane:
     return Lane("godot", adapter)
 
 
-def _fusion_lane(port: int) -> Lane:
-    """A69: Autodesk Fusion, live. The bridge add-in runs inside Fusion and
-    listens on 127.0.0.1; TEE never starts Fusion. The fu_* tools register on
+def _fusion_lane(port: int, http_port: int = 8766) -> Lane:
+    """A69: Autodesk Fusion, live. A bridge add-in runs inside Fusion and
+    listens on 127.0.0.1; TEE never starts Fusion. A71: whichever add-in
+    answers is used - the TEE add-in (TCP, `port`) or the FusionMcpBridge the
+    owner's Mac already runs (HTTP, `http_port`). The fu_* tools register on
     the shared app; the escape hatch only when code exec was allowed."""
     from tee.adapters.fusion.adapter import FusionAdapter
     from tee.adapters.fusion.tools import register_fusion_tools
-    from tee.adapters.fusion.wire import FusionWire
+    from tee.adapters.fusion.wire import FusionAutoWire
 
-    adapter = FusionAdapter(FusionWire(port=port))
+    adapter = FusionAdapter(FusionAutoWire(port=port, http_port=http_port))
     return Lane("fusion", adapter, lambda app: register_fusion_tools(app, adapter))
 
 
@@ -329,7 +331,7 @@ def _lane(name: str, args: argparse.Namespace, blender_port: int) -> Lane:
     if name == "partkiln":
         return _partkiln_lane(args.project)
     if name == "fusion":
-        return _fusion_lane(args.fusion_port)
+        return _fusion_lane(args.fusion_port, args.fusion_http_port)
     raise ValueError(name)  # unreachable: cmd_serve checks every name first
 
 
@@ -369,6 +371,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
         blender_port = config.blender_port
     if args.fusion_port == 9881 and config.fusion_port:
         args.fusion_port = config.fusion_port
+    if args.fusion_http_port == 8766 and config.fusion_http_port:
+        args.fusion_http_port = config.fusion_http_port
 
     lanes = [_lane(name, args, blender_port) for name in names]
     app = build_app(
@@ -481,7 +485,13 @@ def main(argv: list[str] | None = None) -> int:
         "--fusion-port",
         type=int,
         default=9881,
-        help="Fusion bridge add-in port (9875 FreeCAD, 9876/9877 Blender, 9879 Godot)",
+        help="Fusion TEE add-in port (9875 FreeCAD, 9876/9877 Blender, 9879 Godot)",
+    )
+    serve.add_argument(
+        "--fusion-http-port",
+        type=int,
+        default=8766,
+        help="Fusion FusionMcpBridge add-in port (HTTP); whichever add-in answers is used",
     )
     serve.add_argument("--project", default=".", help="project root for .tee/ memory")
     serve.add_argument("--blender-host", default="127.0.0.1", help="Blender bridge host")

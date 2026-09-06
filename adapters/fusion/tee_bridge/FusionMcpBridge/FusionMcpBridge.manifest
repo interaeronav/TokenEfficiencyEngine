@@ -1,0 +1,13 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "addin",
+    "id": "a4ec849d-3b38-4f7d-b685-8d6738fdfee4",
+    "author": "opencode",
+    "description": {
+        "": "Local HTTP bridge (127.0.0.1:8766) for the Fusion MCP server"
+    },
+    "version": "1.0",
+    "runOnStartup": true,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

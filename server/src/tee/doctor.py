@@ -165,35 +165,42 @@ def check_blender_bridge(port: int = BRIDGE_PORT) -> Check:
     return Check("blender-bridge", "ok", f"Blender {result.get('v')} ({mode}) on :{port}")
 
 
-def check_fusion_bridge(port: int = 9881) -> Check:
-    """A69: the TEE bridge add-in inside Fusion. A port that answers a ping
-    is up; a port that is open but silent is Fusion's primary thread held by
-    a modal dialog (the FreeCAD lesson), reported as such."""
-    if not _port_open("127.0.0.1", port):
+def check_fusion_bridge(port: int = 9881, http_port: int = 8766) -> Check:
+    """A69/A71: a TEE bridge add-in inside Fusion - the TEE add-in (TCP) or the
+    FusionMcpBridge (HTTP), whichever answers a ping. A port that answers a
+    ping is up; a port that is open but silent is Fusion's primary thread held
+    by a modal dialog (the FreeCAD lesson), reported as such."""
+    from tee.adapters.fusion.wire import START_FIX_ANY, FusionAutoWire
+    from tee.kernel.errors import TeeError
+
+    open_ports = [p for p in (port, http_port) if _port_open("127.0.0.1", p)]
+    if not open_ports:
         return Check(
             "fusion-bridge",
             "warn",
-            f"nothing listening on 127.0.0.1:{port}",
-            fix="In Fusion: Utilities > Add-Ins > Scripts and Add-Ins, add "
-            "adapters/fusion/tee_bridge/TEE and Run it (docs/fusion-lane.md).",
+            f"nothing listening on 127.0.0.1:{port} (TEE add-in) or :{http_port} (FusionMcpBridge)",
+            fix=START_FIX_ANY,
         )
-    from tee.adapters.fusion.wire import FusionWire
-    from tee.kernel.errors import TeeError
-
+    wire = FusionAutoWire(port=port, http_port=http_port, connect_timeout=1.0)
     try:
-        ping = FusionWire(port=port, connect_timeout=1.0).ping()
+        ping = wire.ping()
     except TeeError as exc:
         return Check(
             "fusion-bridge",
             "warn",
-            f"port {port} is open but the bridge did not answer a ping ({exc.code})",
+            f"port {', '.join(str(p) for p in open_ports)} open but no bridge answered a ping "
+            f"({exc.code})",
             fix="A modal dialog may be holding Fusion's primary thread - check the "
-            "Fusion window; or another program holds the port (set TEE_FUSION_PORT).",
+            "Fusion window; or another program holds the port (set TEE_FUSION_PORT / "
+            "--fusion-http-port).",
         )
     document = ping.get("document") or "no document open"
     design = ping.get("design") or "no design"
     return Check(
-        "fusion-bridge", "ok", f"Fusion {ping.get('version')} on :{port}, {document} ({design})"
+        "fusion-bridge",
+        "ok",
+        f"Fusion {ping.get('version')} via the {wire.transport} on :{wire.port}, "
+        f"{document} ({design})",
     )
 
 

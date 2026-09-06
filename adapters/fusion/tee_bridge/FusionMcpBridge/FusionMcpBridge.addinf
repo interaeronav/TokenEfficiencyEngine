@@ -1,0 +1,12 @@
+[AddIn]
+Name=Fusion MCP Bridge
+Description=Local HTTP bridge for the Fusion MCP server
+Version=1.0
+Author=opencode
+
+[Commands]
+Command1.Name=Start MCP Bridge
+Command1.Description=Start the local MCP bridge (127.0.0.1:8766)
+Command1.Type=4
+Command1.Group=
+Command1.ButtonText=Start Bridge
