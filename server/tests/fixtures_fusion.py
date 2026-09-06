@@ -187,10 +187,60 @@ class PhysicalProperties:
         self.centerOfMass = centre
 
 
+class Vector3D:
+    def __init__(self, x=0.0, y=0.0, z=0.0):
+        self.x, self.y, self.z = float(x), float(y), float(z)
+
+
+class SurfaceTypes:
+    PlaneSurfaceType = 0
+    CylinderSurfaceType = 1
+
+
+class Plane:
+    surfaceType = SurfaceTypes.PlaneSurfaceType
+
+    def __init__(self, origin: Point3D, normal: Vector3D):
+        self.origin, self.normal = origin, normal
+
+
+class _Cylinder:
+    surfaceType = SurfaceTypes.CylinderSurfaceType
+
+
 class _Edge:
-    def __init__(self, body: BRepBody):
-        self.body = body
-        self.objectType = "adsk::fusion::BRepEdge"
+    objectType = "adsk::fusion::BRepEdge"
+
+    def __init__(self, body: BRepBody, index: int, length: float):
+        self.body, self.index, self.length = body, index, length
+
+
+class _Face:
+    """A planar (or cylindrical) face: the surface, the outward normal, the
+    centroid and the edges - what the codegen's `_face` and `_edges_of` read
+    (doc 71 row 47)."""
+
+    objectType = "adsk::fusion::BRepFace"
+
+    def __init__(self, body, geometry, centroid: Point3D, area: float, edges: list):
+        self.body, self.geometry, self.centroid, self.area = body, geometry, centroid, area
+        self.edges = _Collection(edges)
+        self.isParamReversed = False
+
+    def createForAssemblyContext(self, occurrence):
+        return self
+
+
+# normal -> the four of a box's twelve edges bounding that face (0-3 the
+# bottom ring, 4-7 the top ring, 8-11 the verticals)
+_BOX_FACES = {
+    (0, 0, -1): (0, 1, 2, 3),
+    (0, 0, 1): (4, 5, 6, 7),
+    (0, -1, 0): (0, 4, 8, 9),
+    (0, 1, 0): (2, 6, 10, 11),
+    (-1, 0, 0): (3, 7, 8, 11),
+    (1, 0, 0): (1, 5, 9, 10),
+}
 
 
 class BRepBody(_Entity):
@@ -201,12 +251,53 @@ class BRepBody(_Entity):
         self.parentComponent = component
         self.dims = list(dims_cm)
         self.shape = shape
+        self.axis = 2  # a cylinder's or revolve's axis of symmetry (x/y/z index)
         self.volume = self.profile_area * dims_cm[2]
         self.isVisible = True
         self.isSolid = True
-        n_edges = 12 if shape == "box" else 2
-        self.edges = _Collection([_Edge(self) for _ in range(n_edges)])
-        self.faces = _Collection([object()] * (6 if shape == "box" else 3))
+
+    def _edges(self) -> list[_Edge]:
+        w, h, d = self.dims
+        if self.shape == "box":
+            lengths = [w, h, w, h, w, h, w, h, d, d, d, d]
+            return [_Edge(self, i, ln) for i, ln in enumerate(lengths)]
+        return [_Edge(self, i, math.pi * w) for i in range(2)]
+
+    @property
+    def edges(self):
+        return _Collection(self._edges())
+
+    @property
+    def faces(self):
+        """A box's six planar faces from its extent (its min corner at the
+        origin, as the shim's bodies are); a cylinder's or revolve's two
+        planar ends about its axis and its one side."""
+        edges = self._edges()
+        w, h, d = self.dims
+        if self.shape == "box":
+            faces = []
+            for normal, idx in _BOX_FACES.items():
+                k = [abs(n) for n in normal].index(1)
+                c = [self.dims[i] / 2.0 for i in range(3)]
+                c[k] = self.dims[k] if normal[k] > 0 else 0.0
+                area = (h * d, w * d, w * h)[k]
+                plane = Plane(Point3D(*c), Vector3D(*normal))
+                faces.append(_Face(self, plane, Point3D(*c), area, [edges[i] for i in idx]))
+            return _Collection(faces)
+        ends = []
+        across = [self.dims[i] for i in range(3) if i != self.axis]
+        for sign in (-1.0, 1.0):
+            normal = [0.0, 0.0, 0.0]
+            normal[self.axis] = sign
+            c = [v / 2.0 for v in self.dims]
+            c[self.axis] = self.dims[self.axis] if sign > 0 else 0.0
+            area = math.pi * (across[0] / 2.0) ** 2
+            end_edges = edges[:1] if sign < 0 else edges[1:]
+            ends.append(
+                _Face(self, Plane(Point3D(*c), Vector3D(*normal)), Point3D(*c), area, end_edges)
+            )
+        side = _Face(self, _Cylinder(), Point3D(*(v / 2.0 for v in self.dims)), 0.0, edges)
+        return _Collection([*ends, side])
 
     @property
     def profile_area(self) -> float:
@@ -239,8 +330,9 @@ class Profile:
 
     objectType = "adsk::fusion::Profile"
 
-    def __init__(self, shape: str, *, corners=None, circle=None):
+    def __init__(self, shape: str, sketch, *, corners=None, circle=None):
         self.shape = shape
+        self.sketch = sketch
         self._corners = corners  # bl, br, tr, tl SketchPoints
         self._circle = circle
 
@@ -350,7 +442,7 @@ class _SketchLines(_Collection):
             sk._line(tr, tl),
             sk._line(tl, bl),
         )
-        sk._profiles.append(Profile("box", corners=(bl, br, tr, tl)))
+        sk._profiles.append(Profile("box", sk, corners=(bl, br, tr, tl)))
         # row 38 leaves the order unstated; the shim scrambles it so a codegen
         # that trusted an index would be caught (Law 8)
         return _Collection([right, top, left, bottom])
@@ -373,7 +465,7 @@ class _SketchCircles(_Collection):
         circle = SketchCircle(sk._design, sk, c, radius)
         sk._circles.append(circle)
         sk._curves += 1
-        sk._profiles.append(Profile("cylinder", circle=circle))
+        sk._profiles.append(Profile("cylinder", sk, circle=circle))
         return circle
 
 
@@ -754,6 +846,26 @@ class ConstructionPlane:
         self.name = name
 
 
+class ConstructionAxis:
+    objectType = "adsk::fusion::ConstructionAxis"
+
+    def __init__(self, name: str, index: int):
+        self.name, self.index = name, index
+
+
+class ConstructionPoint:
+    objectType = "adsk::fusion::ConstructionPoint"
+
+    def __init__(self, name: str, occurrence=None):
+        self.name = name
+        self.geometry = Point3D(0.0, 0.0, 0.0)
+        self.assemblyContext = occurrence
+        self.entityToken = _token()
+
+    def createForAssemblyContext(self, occurrence):
+        return ConstructionPoint(self.name, occurrence)
+
+
 class FeatureOperations:
     JoinFeatureOperation = 0
     CutFeatureOperation = 1
@@ -1033,11 +1145,276 @@ class _FilletFeatures(_Collection):
         return feature
 
 
+class HoleFeatureInput:
+    """Rows 31-33: the diameters, the placement, the extent, the direction."""
+
+    def __init__(self, kind: str, diameter: ValueInput, second=None, third=None):
+        self.kind, self.diameter, self.second, self.third = kind, diameter, second, third
+        self.face = None
+        self.point = None
+        self.sketch_point = None
+        self.extent: tuple = ("distance", None)
+        self.isDefaultDirection = True
+        self.tipAngle = ValueInput.createByString("118 deg")
+
+    def setPositionByPoint(self, planar_entity, point) -> bool:
+        if not isinstance(planar_entity, _Face) or not isinstance(point, Point3D):
+            return False
+        self.face, self.point = planar_entity, point
+        return True
+
+    def setPositionBySketchPoint(self, sketch_point) -> bool:
+        if not isinstance(sketch_point, SketchPoint):
+            return False
+        self.sketch_point = sketch_point
+        return True
+
+    def setDistanceExtent(self, distance: ValueInput) -> bool:
+        self.extent = ("distance", distance)
+        return True
+
+    def setAllExtent(self, direction) -> bool:
+        self.extent = ("all", direction)
+        return True
+
+
+class HoleFeature(_Feature):
+    """A hole subtracts a cylinder from its body, plus the counterbore's ring
+    or the countersink's cone frustum; its diameter is a model parameter that
+    re-bores when set (row 34)."""
+
+    objectType = "adsk::fusion::HoleFeature"
+
+    def __init__(self, design, component, inp: HoleFeatureInput):
+        super().__init__(design, component, f"Hole{design._next('hole')}")
+        self._inp = inp
+        if inp.face is not None:
+            body = inp.face.body
+            n = inp.face.geometry.normal
+            self.position = inp.point  # Fusion projects it along the normal; the shim keeps it
+            self.direction = Vector3D(-n.x, -n.y, -n.z)  # into the material by default
+            through = body.dims[[abs(n.x), abs(n.y), abs(n.z)].index(1.0)]
+        else:
+            body = component._bodies[-1] if component._bodies else None
+            g = inp.sketch_point.geometry
+            self.position = Point3D(g.x, g.y, 0.0)
+            self.direction = Vector3D(0.0, 0.0, -1.0)  # opposite the sketch normal (row 32)
+            through = body.dims[2] if body is not None else 0.0
+        if not inp.isDefaultDirection:
+            self.direction = Vector3D(-self.direction.x, -self.direction.y, -self.direction.z)
+        if body is None:
+            raise ValueError("no body for the hole to cut")
+        self._body = body
+        self._depth = inp.extent[1].value if inp.extent[0] == "distance" else through
+        self._removed = 0.0
+        self._bodies = [body]
+        n = design._next("param")
+        expression = inp.diameter.expression or f"{inp.diameter.value:g} cm"
+        self.holeDiameter = ModelParameter(design, f"d{n}", expression, "mm", self._rebore)
+        design._model_params.append(self.holeDiameter)
+
+    def _cut_volume(self, d: float) -> float:
+        r = d / 2.0
+        v = math.pi * r * r * self._depth
+        inp = self._inp
+        if inp.kind == "counterbore":
+            cb_r, cb_depth = inp.second.value / 2.0, inp.third.value
+            v += math.pi * (cb_r * cb_r - r * r) * cb_depth
+        elif inp.kind == "countersink":
+            cs_r, angle = inp.second.value / 2.0, inp.third.value
+            h = (cs_r - r) / math.tan(angle / 2.0)
+            v += math.pi * h / 3.0 * (cs_r * cs_r + cs_r * r + r * r) - math.pi * r * r * h
+        return v
+
+    def _rebore(self, d: float) -> None:
+        self._body.volume += self._removed
+        self._removed = self._cut_volume(d)
+        self._body.volume = max(self._body.volume - self._removed, 0.0)
+
+    def deleteMe(self) -> bool:
+        self._body.volume += self._removed
+        self._removed = 0.0
+        return super().deleteMe()
+
+
+class _HoleFeatures(_Collection):
+    def __init__(self, component: Component):
+        super().__init__(component._features)
+        self._component = component
+
+    def createSimpleInput(self, diameter):
+        return HoleFeatureInput("simple", diameter)
+
+    def createCounterboreInput(self, diameter, cb_diameter, cb_depth):
+        return HoleFeatureInput("counterbore", diameter, cb_diameter, cb_depth)
+
+    def createCountersinkInput(self, diameter, cs_diameter, cs_angle):
+        return HoleFeatureInput("countersink", diameter, cs_diameter, cs_angle)
+
+    def add(self, inp: HoleFeatureInput):
+        if (inp.face is None and inp.sketch_point is None) or inp.extent[1] is None:
+            return None
+        try:
+            feature = HoleFeature(self._component._design, self._component, inp)
+        except ValueError:
+            return None
+        self._items.append(feature)
+        return feature
+
+
+class _ChamferEdgeSets:
+    def __init__(self):
+        self.sets: list[tuple] = []
+
+    def addEqualDistanceChamferEdgeSet(self, edges, distance, is_tangent_chain) -> bool:
+        self.sets.append((edges, distance, bool(is_tangent_chain)))
+        return True
+
+
+class ChamferFeatureInput:
+    def __init__(self):
+        self.chamferEdgeSets = _ChamferEdgeSets()
+
+
+class ChamferFeature(_Feature):
+    """A chamfer touches nothing but the timeline (the fillet law)."""
+
+    objectType = "adsk::fusion::ChamferFeature"
+
+    def __init__(self, design, component, inp: ChamferFeatureInput):
+        super().__init__(design, component, f"Chamfer{design._next('chamfer')}")
+        edges, distance, _tangent = inp.chamferEdgeSets.sets[0]
+        self.distance_cm = distance.value
+        self.edgeSets = _Collection(list(inp.chamferEdgeSets.sets))
+        bodies: list[BRepBody] = []
+        for edge in edges:
+            if edge.body not in bodies:
+                bodies.append(edge.body)
+        self._bodies = bodies
+
+
+class _ChamferFeatures(_Collection):
+    def __init__(self, component: Component):
+        super().__init__(component._features)
+        self._component = component
+
+    def createInput(self, *args):  # retired (row 35): a script must never call it
+        raise RuntimeError("ChamferFeatures.createInput is retired; use createInput2")
+
+    def createInput2(self) -> ChamferFeatureInput:
+        return ChamferFeatureInput()
+
+    def add(self, inp: ChamferFeatureInput):
+        if not inp.chamferEdgeSets.sets or inp.chamferEdgeSets.sets[0][0].count == 0:
+            return None
+        feature = ChamferFeature(self._component._design, self._component, inp)
+        self._items.append(feature)
+        return feature
+
+
+class RevolveFeatureInput:
+    def __init__(self, profile, axis, operation: int):
+        self.profile, self.axis, self.operation = profile, axis, operation
+        self.angle: ValueInput | None = None
+        self.isSymmetric = False
+        self.isSolid = True
+
+    def setAngleExtent(self, is_symmetric: bool, angle: ValueInput) -> bool:
+        self.isSymmetric, self.angle = bool(is_symmetric), angle
+        return True
+
+
+_PLANE_AXES = {"XY": (0, 1), "XZ": (0, 2), "YZ": (1, 2)}  # a sketch plane's (u, v) world axes
+
+
+class RevolveFeature(_Feature):
+    """Pappus: a profile of area A revolved through theta about an axis at
+    distance d from its centroid sweeps theta * A * d (doc 71 section 10.8).
+    The axis must lie in the sketch plane and the profile must not cross it;
+    a sketch-line axis is horizontal or vertical in the shim (Law 10)."""
+
+    objectType = "adsk::fusion::RevolveFeature"
+
+    def __init__(self, design, component, inp: RevolveFeatureInput):
+        super().__init__(design, component, f"Revolve{design._next('revolve')}")
+        self.axis, self.operation, self.profile = inp.axis, inp.operation, inp.profile
+        profiles = list(inp.profile) if isinstance(inp.profile, ObjectCollection) else [inp.profile]
+        theta = inp.angle.value * (2.0 if inp.isSymmetric else 1.0)
+        for profile in profiles:
+            u_axis, v_axis = _PLANE_AXES[profile.sketch.referencePlane.name]
+            cu, cv = profile.centroid
+            w, h = profile.dims
+            axis = inp.axis
+            if isinstance(axis, ConstructionAxis):
+                if axis.index not in (u_axis, v_axis):
+                    raise ValueError("the axis of revolution must lie in the sketch plane")
+                along_u = axis.index == u_axis
+                d, half = (abs(cv), h / 2.0) if along_u else (abs(cu), w / 2.0)
+                body_axis = axis.index
+            else:
+                a, b = axis.startSketchPoint.geometry, axis.endSketchPoint.geometry
+                if abs(a.y - b.y) < 1e-9:
+                    along_u, d, half, body_axis = True, abs(cv - a.y), h / 2.0, u_axis
+                elif abs(a.x - b.x) < 1e-9:
+                    along_u, d, half, body_axis = False, abs(cu - a.x), w / 2.0, v_axis
+                else:
+                    raise ValueError("the shim revolves about horizontal or vertical lines only")
+            if d < half - 1e-9:
+                raise ValueError("the profile crosses the axis of revolution")
+            outer = d + half
+            dims = [2.0 * outer] * 3
+            dims[body_axis] = w if along_u else h
+            volume = theta * profile.area * d
+            if (
+                self.operation
+                in (
+                    FeatureOperations.CutFeatureOperation,
+                    FeatureOperations.JoinFeatureOperation,
+                )
+                and component._bodies
+            ):
+                target = component._bodies[-1]
+                if self.operation == FeatureOperations.CutFeatureOperation:
+                    target.volume = max(target.volume - volume, 0.0)
+                else:
+                    target.volume += volume
+                self._bodies = [target]
+                continue
+            body = BRepBody(design, component, f"Body{design._next('body')}", dims, "revolve")
+            body.axis = body_axis
+            body.volume = volume
+            component._bodies.append(body)
+            self._bodies.append(body)
+            self._created.append(body)
+
+
+class _RevolveFeatures(_Collection):
+    def __init__(self, component: Component):
+        super().__init__(component._features)
+        self._component = component
+
+    def createInput(self, profile, axis, operation: int) -> RevolveFeatureInput:
+        return RevolveFeatureInput(profile, axis, operation)
+
+    def add(self, inp: RevolveFeatureInput):
+        if inp.angle is None:
+            return None
+        try:
+            feature = RevolveFeature(self._component._design, self._component, inp)
+        except ValueError:
+            return None  # Fusion answers null when the input cannot be built
+        self._items.append(feature)
+        return feature
+
+
 class _Features(_Collection):
     def __init__(self, component: Component):
         super().__init__(component._features)
         self.extrudeFeatures = _ExtrudeFeatures(component)
         self.filletFeatures = _FilletFeatures(component)
+        self.holeFeatures = _HoleFeatures(component)
+        self.chamferFeatures = _ChamferFeatures(component)
+        self.revolveFeatures = _RevolveFeatures(component)
 
 
 class Occurrence(_Entity):
@@ -1097,6 +1474,10 @@ class Component:
         self.xYConstructionPlane = ConstructionPlane("XY")
         self.xZConstructionPlane = ConstructionPlane("XZ")
         self.yZConstructionPlane = ConstructionPlane("YZ")
+        self.xConstructionAxis = ConstructionAxis("X", 0)
+        self.yConstructionAxis = ConstructionAxis("Y", 1)
+        self.zConstructionAxis = ConstructionAxis("Z", 2)
+        self.originConstructionPoint = ConstructionPoint("Origin")
 
     @property
     def sketches(self):
@@ -1399,10 +1780,13 @@ def _modules(app: Application) -> dict[str, types.ModuleType]:
     for name in (
         "Application",
         "Point3D",
+        "Vector3D",
         "Matrix3D",
         "ObjectCollection",
         "ValueInput",
         "Document",
+        "SurfaceTypes",
+        "Plane",
     ):
         setattr(core, name, globals()[name])
     core.CustomEventHandler = CustomEventHandler
@@ -1424,6 +1808,11 @@ def _modules(app: Application) -> dict[str, types.ModuleType]:
         "Occurrence",
         "ExtrudeFeature",
         "FilletFeature",
+        "HoleFeature",
+        "ChamferFeature",
+        "RevolveFeature",
+        "ConstructionAxis",
+        "ConstructionPoint",
         "UserParameter",
         "ModelParameter",
         "Timeline",

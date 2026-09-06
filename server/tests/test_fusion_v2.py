@@ -3,10 +3,13 @@
 P1: sketch geometry has addresses, constraints and dimensions are ops, a
 dimension is an entity whose expression binds a user parameter - and the
 shim solves rectangles and circles only, saying so (doc 71 section 10.1,
-Laws 8 and 10).
+Laws 8 and 10). P2: faces by outward normal, holes that subtract what they
+bore, chamfers on named edges, revolves by Pappus (sections 10.2-10.4).
 """
 
 from __future__ import annotations
+
+import math
 
 import pytest
 from fixtures_fusion import FakeFusionWire
@@ -425,5 +428,328 @@ def test_a_malformed_dimension_or_sketch_is_refused_before_the_wire(op, needle):
 
 def test_the_vocabulary_grew_with_the_kinds():
     vocab = _adapter().vocab()
-    assert {"constraint", "dimension"} <= set(codegen.KINDS) and vocab.kinds == codegen.KINDS
+    grown = {"constraint", "dimension", "hole", "chamfer", "revolve"}
+    assert grown <= set(codegen.KINDS) and vocab.kinds == codegen.KINDS
     assert vocab.accepts({"op": "create", "kind": "dimension"})
+    assert vocab.accepts({"op": "create", "kind": "hole"})
+
+
+# -- P2: faces by direction, holes, chamfers, revolves ------------------------------------
+
+PLATE = [
+    {"op": "create", "kind": "sketch", "name": "base", "props": {"rects": [[0, 0, 120, 80]]}},
+    EXTRUDE,
+]
+
+
+def _hole(**props):
+    return {"op": "create", "kind": "hole", "props": props}
+
+
+def test_two_through_holes_on_the_top_face_subtract_their_cylinders():
+    adapter = _adapter()
+    adapter.execute(PLATE)
+    diff = adapter.execute(
+        [
+            _hole(body="b1", face="+z", at=[20, 20], diameter=6.6, through=True),
+            _hole(body="b1", face="+z", at=[100, 60, 10], diameter=6.6, through=True),
+        ]
+    )
+    assert diff.created == ["f2", "f3"] and diff.modified == ["b1"]
+    r = 3.3
+    assert diff.details["b1"]["volume_mm3"] == pytest.approx(96_000.0 - 2 * math.pi * r * r * 10)
+    hole = diff.details["f2"]
+    assert hole["type"] == "HoleFeature" and hole["diameter_mm"] == pytest.approx(6.6)
+    assert hole["position_mm"] == pytest.approx([20.0, 20.0, 10.0]), "a 2-vector lands on the face"
+    assert diff.details["f3"]["position_mm"] == pytest.approx([100.0, 60.0, 10.0])
+    script = adapter.wire.executed[-1]
+    assert "createSimpleInput(adsk.core.ValueInput.createByString('6.6 mm'))" in script
+    assert "_inp.setPositionByPoint(_fc, _at_point(_fc, '+z', [2.0, 2.0]))" in script
+    assert "setAllExtent(adsk.fusion.ExtentDirections.PositiveExtentDirection)" in script
+    assert "isDefaultDirection" not in script
+
+
+def test_a_counterbore_and_a_countersink_subtract_their_extra():
+    adapter = _adapter()
+    adapter.execute(PLATE)
+    diff = adapter.execute(
+        [
+            _hole(
+                body="b1",
+                face="+z",
+                at=[30, 40],
+                diameter=6.6,
+                depth=10,
+                type="counterbore",
+                cbore_diameter=11,
+                cbore_depth=6,
+            )
+        ]
+    )
+    r, cb_r = 3.3, 5.5
+    bore = math.pi * r * r * 10 + math.pi * (cb_r * cb_r - r * r) * 6
+    assert diff.details["b1"]["volume_mm3"] == pytest.approx(96_000.0 - bore)
+    script = adapter.wire.executed[-1]
+    assert (
+        "createCounterboreInput(adsk.core.ValueInput.createByString('6.6 mm'), "
+        "adsk.core.ValueInput.createByString('11 mm'), adsk.core.ValueInput.createByString('6 mm'))"
+        in script
+    )
+    assert "setDistanceExtent(adsk.core.ValueInput.createByString('10 mm'))" in script
+    diff = adapter.execute(
+        [
+            _hole(
+                body="b1",
+                face="+z",
+                at=[90, 40],
+                diameter=6.6,
+                depth=10,
+                type="countersink",
+                csink_diameter=12,
+                csink_angle=90,
+            )
+        ]
+    )
+    cs_r = 6.0
+    h = (cs_r - r) / math.tan(math.pi / 4)
+    frustum = math.pi * h / 3 * (cs_r * cs_r + cs_r * r + r * r) - math.pi * r * r * h
+    sink = math.pi * r * r * 10 + frustum
+    assert diff.details["b1"]["volume_mm3"] == pytest.approx(96_000.0 - bore - sink)
+    assert "adsk.core.ValueInput.createByString('90 deg')" in adapter.wire.executed[-1]
+
+
+def test_a_hole_by_sketch_point_and_a_flipped_direction():
+    adapter = _adapter()
+    adapter.execute(PLATE)
+    diff = adapter.execute(
+        [
+            {"op": "create", "kind": "sketch", "name": "pts", "props": {"points": [[30, 30]]}},
+            _hole(point="sk2/p0", diameter=5, depth=10, flip=True),
+        ]
+    )
+    assert diff.created == ["sk2", "f2"] and diff.modified == ["b1"]
+    assert diff.details["b1"]["volume_mm3"] == pytest.approx(96_000.0 - math.pi * 6.25 * 10)
+    script = adapter.wire.executed[-1]
+    assert "_spt = _sub('sk2', 'p0', 1)" in script and "setPositionBySketchPoint(_spt)" in script
+    assert "_inp.isDefaultDirection = False" in script
+    # the diameter is a parameter: set it and the body follows (row 34)
+    diff = adapter.execute([{"op": "set", "id": "f2", "props": {"expression": "8 mm"}}])
+    assert diff.details["f2"]["diameter_mm"] == pytest.approx(8.0)
+    body = next(e for e in adapter.list_entities() if e.id == "b1")
+    assert body.summary["volume_mm3"] == pytest.approx(96_000.0 - math.pi * 16 * 10)
+
+
+def test_a_face_the_body_lacks_refuses_naming_the_ones_it_has():
+    adapter = _adapter()
+    adapter.execute(
+        [
+            {"op": "create", "kind": "sketch", "props": {"circles": [[0, 0, 20]]}},
+            {"op": "create", "kind": "extrude", "props": {"sketch": "sk1", "distance": 30}},
+        ]
+    )
+    with pytest.raises(TeeError) as err:
+        adapter.execute([_hole(body="b1", face="+x", at=[5, 5], diameter=4, depth=5)])
+    assert err.value.code == "fusion_no_face"
+    assert "facing +x" in err.value.message and "+z, -z" in err.value.message
+    assert "+x, -x, +y, -y, +z, -z" in err.value.fix
+
+
+def test_a_chamfer_on_the_top_faces_edges_takes_four_edges_and_never_the_retired_call():
+    adapter = _adapter()
+    adapter.execute(PLATE)
+    diff = adapter.execute(
+        [
+            {
+                "op": "create",
+                "kind": "chamfer",
+                "name": "break",
+                "props": {"body": "b1", "distance": 1, "edges": {"face": "+z"}},
+            },
+            {
+                "op": "create",
+                "kind": "fillet",
+                "props": {"body": "b1", "radius": 2, "edges": {"face": "-z"}},
+            },
+            {"op": "create", "kind": "fillet", "props": {"body": "b1", "radius": 1}},
+        ]
+    )
+    assert diff.created == ["f2", "f3", "f4"] and diff.modified == ["b1"]
+    assert diff.details["f2"]["type"] == "ChamferFeature" and diff.details["f2"]["edges"] == 4
+    assert diff.details["f3"]["edges"] == 4 and diff.details["f4"]["edges"] == 12
+    assert diff.details["b1"]["volume_mm3"] == pytest.approx(96_000.0), "the timeline only"
+    script = adapter.wire.executed[-1]
+    assert "chamferFeatures.createInput2()" in script
+    assert "chamferFeatures.createInput()" not in script, "retired December 2020 (row 35)"
+    assert (
+        "addEqualDistanceChamferEdgeSet(_edges, adsk.core.ValueInput.createByString('1 mm'), True)"
+        in script
+    )
+    assert "_edges_of(_b, {'face': '+z'}, 0)" in script and "_edges_of(_b, 'all', 2)" in script
+
+
+def test_a_revolve_reads_back_pappus_about_an_axis_or_a_sketch_line():
+    adapter = _adapter()
+    # a 10 x 20 mm rectangle whose centroid sits 30 mm above the x axis
+    diff = adapter.execute(
+        [
+            {
+                "op": "create",
+                "kind": "sketch",
+                "name": "profile",
+                "props": {"rects": [[0, 20, 10, 40]]},
+            },
+            {
+                "op": "create",
+                "kind": "revolve",
+                "name": "ring",
+                "props": {"sketch": "sk1", "axis": "x"},
+            },
+        ]
+    )
+    assert diff.created == ["sk1", "f1", "b1"]
+    assert diff.details["b1"]["volume_mm3"] == pytest.approx(2 * math.pi * 200 * 30)
+    assert diff.details["b1"]["bbox_mm"] == pytest.approx([10.0, 80.0, 80.0])
+    assert diff.details["f1"]["type"] == "RevolveFeature"
+    script = adapter.wire.executed[-1]
+    assert "_ax = _root.xConstructionAxis" in script
+    assert (
+        "revolveFeatures.createInput(_prof, _ax, "
+        "adsk.fusion.FeatureOperations.NewBodyFeatureOperation)" in script
+    )
+    assert "setAngleExtent(False, adsk.core.ValueInput.createByString('360 deg'))" in script
+    # a quarter turn each side about the rectangle's own bottom line (30 -> 10 mm)
+    diff = adapter.execute(
+        [
+            {
+                "op": "create",
+                "kind": "revolve",
+                "props": {"sketch": "sk1", "axis": "sk1/r0.bottom", "angle": 90, "symmetric": True},
+            }
+        ]
+    )
+    assert diff.details["b2"]["volume_mm3"] == pytest.approx(math.pi * 200 * 10)
+    script = adapter.wire.executed[-1]
+    assert "_ax = _sub('sk1', 'r0.bottom', 0)" in script
+    assert "setAngleExtent(True, adsk.core.ValueInput.createByString('90 deg'))" in script
+
+
+def test_a_profile_crossing_its_axis_is_fusions_own_failure():
+    adapter = _adapter()
+    with pytest.raises(TeeError) as err:
+        adapter.execute(
+            [
+                {"op": "create", "kind": "sketch", "props": {"rects": [[0, -10, 10, 10]]}},
+                {"op": "create", "kind": "revolve", "props": {"sketch": "sk1", "axis": "x"}},
+            ]
+        )
+    assert err.value.code == "fusion_op_failed" and "revolve failed" in err.value.message
+    with pytest.raises(TeeError) as err:
+        adapter.execute(
+            [
+                {"op": "create", "kind": "sketch", "props": {"rects": [[0, 20, 10, 40]]}},
+                {"op": "create", "kind": "revolve", "props": {"sketch": "sk2", "axis": "z"}},
+            ]
+        )
+    assert "leave the sketch plane" in err.value.message
+
+
+@pytest.mark.parametrize(
+    ("props", "needle"),
+    [
+        ({"body": "b1", "face": "+z", "at": [1, 1]}, "needs diameter"),
+        ({"body": "b1", "face": "+z", "at": [1, 1], "diameter": 5, "type": "square"}, "Types:"),
+        ({"body": "b1", "face": "+w", "at": [1, 1], "diameter": 5, "depth": 1}, "one of +x"),
+        ({"body": "b1", "face": "+z", "diameter": 5, "depth": 1}, "needs at"),
+        ({"body": "b1", "face": "+z", "at": [1, 1], "diameter": 5}, "through: true OR depth"),
+        (
+            {"body": "b1", "face": "+z", "at": [1, 1], "diameter": 5, "depth": 1, "through": True},
+            "not both",
+        ),
+        ({"point": "p0", "diameter": 5, "depth": 1}, "with its sketch"),
+        ({"point": "sk1/r0.top", "diameter": 5, "depth": 1}, "not a point address"),
+        (
+            {
+                "body": "b1",
+                "face": "+z",
+                "at": [1, 1],
+                "diameter": 5,
+                "depth": 1,
+                "type": "counterbore",
+            },
+            "cbore_diameter",
+        ),
+        (
+            {
+                "body": "b1",
+                "face": "+z",
+                "at": [1, 1],
+                "diameter": 5,
+                "depth": 1,
+                "type": "countersink",
+                "csink_diameter": 4,
+            },
+            "csink_diameter",
+        ),
+    ],
+)
+def test_a_malformed_hole_is_refused_before_the_wire(props, needle):
+    adapter = _adapter()
+    with pytest.raises(TeeError) as err:
+        adapter.execute([_hole(**props)])
+    assert err.value.code == "bad_op" and needle in (err.value.message + err.value.fix)
+    assert adapter.wire.executed == []
+
+
+@pytest.mark.parametrize(
+    ("op", "needle"),
+    [
+        ({"op": "create", "kind": "chamfer", "props": {"body": "b1"}}, "distance (mm > 0)"),
+        (
+            {
+                "op": "create",
+                "kind": "chamfer",
+                "props": {"body": "b1", "distance": 1, "edges": "top"},
+            },
+            "edges is 'all' or",
+        ),
+        (
+            {
+                "op": "create",
+                "kind": "fillet",
+                "props": {"body": "b1", "radius": 1, "edges": {"face": "up"}},
+            },
+            "directions:",
+        ),
+        ({"op": "create", "kind": "revolve", "props": {"axis": "x"}}, "needs sketch"),
+        (
+            {"op": "create", "kind": "revolve", "props": {"sketch": "sk1", "axis": "w"}},
+            "with its sketch",
+        ),
+        (
+            {"op": "create", "kind": "revolve", "props": {"sketch": "sk1", "axis": "sk2/l0"}},
+            "another sketch",
+        ),
+        (
+            {
+                "op": "create",
+                "kind": "revolve",
+                "props": {"sketch": "sk1", "axis": "x", "angle": 0},
+            },
+            "degrees in (0, 360]",
+        ),
+        (
+            {
+                "op": "create",
+                "kind": "revolve",
+                "props": {"sketch": "sk1", "axis": "x", "operation": "melt"},
+            },
+            "Use:",
+        ),
+    ],
+)
+def test_a_malformed_chamfer_fillet_or_revolve_is_refused_before_the_wire(op, needle):
+    adapter = _adapter()
+    with pytest.raises(TeeError) as err:
+        adapter.execute([op])
+    assert err.value.code == "bad_op" and needle in (err.value.message + err.value.fix)
+    assert adapter.wire.executed == []

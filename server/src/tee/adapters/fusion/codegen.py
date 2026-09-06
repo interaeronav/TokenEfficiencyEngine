@@ -35,7 +35,22 @@ from typing import Any
 from tee.kernel.errors import TeeError
 
 OPS = ("create", "set", "delete", "param_set", "import_file")
-KINDS = ("sketch", "extrude", "fillet", "component", "param", "constraint", "dimension")
+KINDS = (
+    "sketch",
+    "extrude",
+    "fillet",
+    "component",
+    "param",
+    "constraint",
+    "dimension",
+    "hole",
+    "chamfer",
+    "revolve",
+)
+# A70 P2 (doc 71 section 10.2): a face is named by its outward normal.
+FACES = ("+x", "-x", "+y", "-y", "+z", "-z")
+HOLE_TYPES = ("simple", "counterbore", "countersink")
+AXES = {"x": "xConstructionAxis", "y": "yConstructionAxis", "z": "zConstructionAxis"}
 IMPORT_SUFFIXES = ("step", "stp", "f3d", "igs", "iges", "sat")
 # A70 (doc 71 row 40): constraint type -> (arity, the GeometricConstraints call).
 # coincident is (point, entity), midpoint (point, curve), symmetry (a, b, line).
@@ -161,6 +176,46 @@ try:
         pts = [_mid(e) for e in ents]
         return adsk.core.Point3D.create(sum(p[0] for p in pts) / len(pts) + 0.5,
                                         sum(p[1] for p in pts) / len(pts) + 0.5, 0.0)
+    _AXIS = {"+x": (1, 0, 0), "-x": (-1, 0, 0), "+y": (0, 1, 0), "-y": (0, -1, 0),
+             "+z": (0, 0, 1), "-z": (0, 0, -1)}
+    def _normal(face):
+        # row 47: a planar face's outward normal is the plane's, flipped when reversed
+        g = face.geometry
+        if g.surfaceType != adsk.core.SurfaceTypes.PlaneSurfaceType: return None
+        n = g.normal; s = -1.0 if face.isParamReversed else 1.0
+        return (n.x * s, n.y * s, n.z * s)
+    def _dot(a, b): return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    def _face(body, sel, at=None, index=-1):
+        # doc 71 section 10.2: the planar face facing `sel`, outermost along that
+        # axis - or, with a 3-vector `at` (cm), the one whose plane passes nearest it
+        axis = _AXIS[sel]; hits = []; have = set()
+        for _i in range(body.faces.count):
+            f = body.faces.item(_i); n = _normal(f)
+            if n is None: continue
+            for k, v in _AXIS.items():
+                if _dot(n, v) > 0.9998: have.add(k)
+            if _dot(n, axis) > 0.9998:
+                c = f.centroid; hits.append((_dot((c.x, c.y, c.z), axis), f))
+        if not hits:
+            raise _OpError(index, "body has no planar face facing %s (it has: %s)"
+                           % (sel, ", ".join(sorted(have)) or "none"), "fusion_no_face")
+        if at is not None and len(at) == 3:
+            want = _dot(at, axis); hits.sort(key=lambda t: abs(t[0] - want))
+        else:
+            hits.sort(key=lambda t: -t[0])
+        return hits[0][1]
+    def _at_point(face, sel, at):
+        # `at` in cm: three coordinates as given (Fusion projects them onto the
+        # face, row 32); two fill the normal's axis from the face's centroid
+        if len(at) == 3: return adsk.core.Point3D.create(at[0], at[1], at[2])
+        axis = _AXIS[sel]; c = [face.centroid.x, face.centroid.y, face.centroid.z]
+        vals = list(at); out = [c[k] if axis[k] else vals.pop(0) for k in range(3)]
+        return adsk.core.Point3D.create(out[0], out[1], out[2])
+    def _edges_of(body, sel, index=-1):
+        col = adsk.core.ObjectCollection.create()
+        src = body if sel in (None, "all") else _face(body, sel["face"], None, index)
+        for _i in range(src.edges.count): col.add(src.edges.item(_i))
+        return col
     def _find(sid, index=-1):
         if sid.startswith("param:"):
             p = _design.userParameters.itemByName(sid[6:])
@@ -211,6 +266,8 @@ try:
             s["driving"] = bool(ent.isDriving)
         elif kind == "feature":
             s["type"] = ent.objectType.split("::")[-1]; s["bodies"] = ent.bodies.count
+            if s["type"] == "HoleFeature":  # row 34
+                s["diameter_mm"] = _mm(ent.holeDiameter.value); s["position_mm"] = _pt(ent.position)
             if ent.isSuppressed: s["suppressed"] = True
             msg = ent.errorOrWarningMessage
             if msg: s["health"] = str(msg)[:120]
@@ -430,6 +487,106 @@ def _check_dimension(index: int, props: dict[str, Any], *, inline: bool) -> None
         raise _bad(index, "driving is true or false", "omit it for a driving dimension")
 
 
+_POINT_ADDRESS = re.compile(r"^(p\d+|r\d+\.(bl|br|tl|tr)|l\d+\.(start|end)|c\d+\.center|origin)$")
+_LINE_ADDRESS = re.compile(r"^(r\d+\.(bottom|top|left|right)|l\d+)$")
+
+
+def _split_address(index: int, text: Any, pattern: re.Pattern[str], what: str) -> tuple[str, str]:
+    """'sk2/p0' -> ('sk2', 'p0'), the sketch prefix required outside a sketch op."""
+    if not isinstance(text, str) or "/" not in text:
+        raise _bad(index, f"{what} is a sketch address with its sketch, e.g. sk2/p0", _ADDRESS_HELP)
+    skid, ref = text.split("/", 1)
+    if not skid or not pattern.match(ref):
+        raise _bad(index, f"{what} '{text}' is not a {what.split()[-1]} address", _ADDRESS_HELP)
+    return skid, ref
+
+
+def _check_edges(index: int, props: dict[str, Any]) -> None:
+    edges = props.get("edges", "all")
+    if edges == "all":
+        return
+    if not (isinstance(edges, dict) and str(edges.get("face")) in FACES):
+        raise _bad(
+            index,
+            "edges is 'all' or {face: <direction>}",
+            f'e.g. "edges": {{"face": "+z"}} - directions: {", ".join(FACES)}',
+        )
+
+
+def _check_hole(index: int, props: dict[str, Any]) -> None:
+    example = (
+        '{"op":"create","kind":"hole","props":{"body":"b1","face":"+z","at":[20,20],'
+        '"diameter":6.6,"through":true}}'
+    )
+    diameter = props.get("diameter")
+    if not _number(diameter) or float(diameter) <= 0:
+        raise _bad(index, "A hole needs diameter (mm > 0)", example)
+    htype = str(props.get("type") or "simple")
+    if htype not in HOLE_TYPES:
+        raise _bad(index, f"Unknown hole type '{htype}'", f"Types: {', '.join(HOLE_TYPES)}.")
+    if htype == "counterbore":
+        cb_d, cb_depth = props.get("cbore_diameter"), props.get("cbore_depth")
+        if not (_number(cb_d) and cb_d > diameter and _number(cb_depth) and cb_depth > 0):
+            raise _bad(
+                index,
+                "A counterbore needs cbore_diameter (mm > diameter) and cbore_depth (mm > 0)",
+                '"type":"counterbore","cbore_diameter":11,"cbore_depth":6',
+            )
+    elif htype == "countersink":
+        cs_d, cs_angle = props.get("csink_diameter"), props.get("csink_angle", 90)
+        if not (_number(cs_d) and cs_d > diameter and _number(cs_angle) and 0 < cs_angle < 180):
+            raise _bad(
+                index,
+                "A countersink needs csink_diameter (mm > diameter) and csink_angle (deg, "
+                "default 90)",
+                '"type":"countersink","csink_diameter":12,"csink_angle":90',
+            )
+    if "point" in props:
+        _split_address(index, props["point"], _POINT_ADDRESS, "A hole point")
+    else:
+        face, at = props.get("face"), props.get("at")
+        if not props.get("body") or str(face) not in FACES:
+            raise _bad(
+                index,
+                f"A hole needs body (id) and face (one of {', '.join(FACES)}), or point (a "
+                "sketch point address)",
+                example,
+            )
+        if not (_nums(at, 2) or _nums(at, 3)):
+            raise _bad(index, "A hole needs at: [u, v] on the face or [x, y, z], in mm", example)
+    through, depth = bool(props.get("through", False)), props.get("depth")
+    if through == (depth is not None):
+        raise _bad(index, "A hole is through: true OR depth (mm > 0), not both", example)
+    if depth is not None and (not _number(depth) or float(depth) <= 0):
+        raise _bad(index, "depth is mm > 0", example)
+    if "flip" in props and not isinstance(props["flip"], bool):
+        raise _bad(index, "flip is true or false", "omit it for the default direction")
+
+
+def _check_revolve(index: int, props: dict[str, Any]) -> None:
+    example = '{"op":"create","kind":"revolve","props":{"sketch":"sk1","axis":"x","angle":360}}'
+    if not props.get("sketch"):
+        raise _bad(index, "A revolve needs sketch (id) and axis", example)
+    axis = props.get("axis")
+    if axis not in AXES:
+        skid, _ = _split_address(index, axis, _LINE_ADDRESS, "A revolve axis")
+        if skid != props["sketch"]:
+            raise _bad(
+                index, f"axis '{axis}' is a line of another sketch than {props['sketch']}", example
+            )
+    angle = props.get("angle", 360)
+    if not _number(angle) or not 0 < float(angle) <= 360:
+        raise _bad(index, "angle is degrees in (0, 360]", example)
+    if "symmetric" in props and not isinstance(props["symmetric"], bool):
+        raise _bad(index, "symmetric is true or false", example)
+    op = str(props.get("operation") or "new_body")
+    if op not in OPERATIONS:
+        raise _bad(index, f"Unknown operation '{op}'", f"Use: {', '.join(OPERATIONS)}.")
+    profile = props.get("profile", "all")
+    if not (profile == "all" or (isinstance(profile, int) and profile >= 0)):
+        raise _bad(index, "profile is 'all' or a profile index", 'e.g. "profile": 0')
+
+
 def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
     if kind == "sketch":
         plane = str(props.get("plane") or "XY").upper()
@@ -470,6 +627,19 @@ def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
         _check_constraint(index, props, inline=False)
     elif kind == "dimension":
         _check_dimension(index, props, inline=False)
+    elif kind == "hole":
+        _check_hole(index, props)
+    elif kind == "chamfer":
+        distance = props.get("distance")
+        if not props.get("body") or not _number(distance) or float(distance) <= 0:
+            raise _bad(
+                index,
+                "A chamfer needs body (id) and distance (mm > 0)",
+                '{"op":"create","kind":"chamfer","props":{"body":"b1","distance":1}}',
+            )
+        _check_edges(index, props)
+    elif kind == "revolve":
+        _check_revolve(index, props)
     elif kind == "extrude":
         if not props.get("sketch") or not _number(props.get("distance")):
             raise _bad(
@@ -493,6 +663,7 @@ def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
                 "A fillet needs body (id) and radius (mm > 0)",
                 '{"op":"create","kind":"fillet","props":{"body":"b1","radius":2}}',
             )
+        _check_edges(index, props)
     elif kind == "param":
         value = props.get("value")
         if not (isinstance(value, str) or _number(value)):
@@ -676,22 +847,161 @@ def _emit_extrude(index: int, name: str, props: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _emit_fillet(index: int, name: str, props: dict[str, Any]) -> list[str]:
+def _edge_feature(index: int, name: str, props: dict[str, Any], *, chamfer: bool) -> list[str]:
+    """A fillet (row 11) or a chamfer (row 35) on a body's edges - all of
+    them, or the edges of one face named by direction (section 10.3)."""
     body = str(props["body"])
-    return [
+    lines = [
         f"    _b = _find({_lit(body)}, {index})",
-        "    _edges = adsk.core.ObjectCollection.create()",
-        "    for _i in range(_b.edges.count): _edges.add(_b.edges.item(_i))",
-        "    _inp = _root.features.filletFeatures.createInput()",
-        "    _inp.edgeSetInputs.addConstantRadiusEdgeSet(_edges, "
-        f"adsk.core.ValueInput.createByString({_lit(_mm_expr(float(props['radius'])))}), True)",
-        "    _f = _root.features.filletFeatures.add(_inp)",
-        f"    if _f is None: raise _OpError({index}, 'fillet failed: Fusion returned null')",
+        f"    _edges = _edges_of(_b, {_lit(props.get('edges', 'all'))}, {index})",
+    ]
+    if chamfer:
+        value = _mm_expr(float(props["distance"]))
+        lines += [
+            "    _inp = _root.features.chamferFeatures.createInput2()",
+            "    _inp.chamferEdgeSets.addEqualDistanceChamferEdgeSet(_edges, "
+            f"adsk.core.ValueInput.createByString({_lit(value)}), True)",
+            "    _f = _root.features.chamferFeatures.add(_inp)",
+            f"    if _f is None: raise _OpError({index}, 'chamfer failed: Fusion returned null')",
+        ]
+    else:
+        value = _mm_expr(float(props["radius"]))
+        lines += [
+            "    _inp = _root.features.filletFeatures.createInput()",
+            "    _inp.edgeSetInputs.addConstantRadiusEdgeSet(_edges, "
+            f"adsk.core.ValueInput.createByString({_lit(value)}), True)",
+            "    _f = _root.features.filletFeatures.add(_inp)",
+            f"    if _f is None: raise _OpError({index}, 'fillet failed: Fusion returned null')",
+        ]
+    lines += [
         f"    _f.name = {_lit(name)}",
         '    _fid = _mint("f", _f.entityToken); _mark(_fid, True); _note(_fid, "feature", _f)',
+        '    details[_fid]["edges"] = _edges.count',
         '    _bid = _mint("b", _b.entityToken); _mark(_bid, False); _note(_bid, "body", _b)',
         "    _mark_bodies(_f)",
     ]
+    return lines
+
+
+def _emit_fillet(index: int, name: str, props: dict[str, Any]) -> list[str]:
+    return _edge_feature(index, name, props, chamfer=False)
+
+
+def _emit_chamfer(index: int, name: str, props: dict[str, Any]) -> list[str]:
+    return _edge_feature(index, name, props, chamfer=True)
+
+
+def _emit_hole(index: int, name: str, props: dict[str, Any]) -> list[str]:
+    """Rows 31-34: the input for the hole type, its placement (a face and a
+    point Fusion projects, or a sketch point), its extent and direction."""
+    htype = str(props.get("type") or "simple")
+    d = _lit(_mm_expr(float(props["diameter"])))
+    if htype == "counterbore":
+        cb_d = _lit(_mm_expr(float(props["cbore_diameter"])))
+        cb_depth = _lit(_mm_expr(float(props["cbore_depth"])))
+        made = (
+            "_root.features.holeFeatures.createCounterboreInput("
+            f"adsk.core.ValueInput.createByString({d}), "
+            f"adsk.core.ValueInput.createByString({cb_d}), "
+            f"adsk.core.ValueInput.createByString({cb_depth}))"
+        )
+    elif htype == "countersink":
+        cs_d = _lit(_mm_expr(float(props["csink_diameter"])))
+        cs_angle = _lit(f"{float(props.get('csink_angle', 90)):g} deg")
+        made = (
+            "_root.features.holeFeatures.createCountersinkInput("
+            f"adsk.core.ValueInput.createByString({d}), "
+            f"adsk.core.ValueInput.createByString({cs_d}), "
+            f"adsk.core.ValueInput.createByString({cs_angle}))"
+        )
+    else:
+        made = (
+            "_root.features.holeFeatures.createSimpleInput("
+            f"adsk.core.ValueInput.createByString({d}))"
+        )
+    lines = [f"    _inp = {made}"]
+    if "point" in props:
+        skid, ref = _split_address(index, props["point"], _POINT_ADDRESS, "A hole point")
+        lines += [
+            f"    _spt = _sub({_lit(skid)}, {_lit(ref)}, {index})",
+            "    _inp.setPositionBySketchPoint(_spt)",
+        ]
+    else:
+        face = str(props["face"])
+        at = [_cm(v) for v in props["at"]]
+        lines += [
+            f"    _b = _find({_lit(str(props['body']))}, {index})",
+            f"    _fc = _face(_b, {_lit(face)}, {_lit(at if len(at) == 3 else None)}, {index})",
+            f"    _inp.setPositionByPoint(_fc, _at_point(_fc, {_lit(face)}, {_lit(at)}))",
+        ]
+    if props.get("through"):
+        lines.append("    _inp.setAllExtent(adsk.fusion.ExtentDirections.PositiveExtentDirection)")
+    else:
+        depth = _lit(_mm_expr(float(props["depth"])))
+        lines.append(f"    _inp.setDistanceExtent(adsk.core.ValueInput.createByString({depth}))")
+    if props.get("flip"):
+        lines.append("    _inp.isDefaultDirection = False")
+    lines += [
+        "    _f = _root.features.holeFeatures.add(_inp)",
+        f"    if _f is None: raise _OpError({index}, 'hole failed: Fusion returned null (is the "
+        "point on the face, and the extent inside a body?)')",
+        f"    _f.name = {_lit(name)}",
+        '    _fid = _mint("f", _f.entityToken); _mark(_fid, True); _note(_fid, "feature", _f)',
+        "    _mark_bodies(_f)",
+    ]
+    return lines
+
+
+def _profile_lines(index: int, sketch: str, profile: Any) -> list[str]:
+    """`_sk` bound to the sketch and `_prof` to its profile(s) - shared by
+    extrude and revolve."""
+    lines = [
+        f"    _sk = _find({_lit(sketch)}, {index})",
+        "    if _sk.profiles.count == 0:",
+        f"        raise _OpError({index}, 'sketch %r has no closed profile' % {_lit(sketch)})",
+    ]
+    if profile == "all":
+        lines += [
+            "    _prof = adsk.core.ObjectCollection.create()",
+            "    for _i in range(_sk.profiles.count): _prof.add(_sk.profiles.item(_i))",
+        ]
+    else:
+        lines += [
+            f"    if _sk.profiles.count <= {int(profile)}:",
+            f"        raise _OpError({index}, 'sketch %r has %d profiles, none at index "
+            f"{int(profile)}' "
+            f"% ({_lit(sketch)}, _sk.profiles.count))",
+            f"    _prof = _sk.profiles.item({int(profile)})",
+        ]
+    return lines
+
+
+def _emit_revolve(index: int, name: str, props: dict[str, Any]) -> list[str]:
+    """Row 36: a revolve about a root construction axis (row 37) or a sketch
+    line, through an angle written in degrees."""
+    sketch = str(props["sketch"])
+    operation = OPERATIONS[str(props.get("operation") or "new_body")]
+    angle = _lit(f"{float(props.get('angle', 360)):g} deg")
+    lines = _profile_lines(index, sketch, props.get("profile", "all"))
+    axis = props["axis"]
+    if axis in AXES:
+        lines.append(f"    _ax = _root.{AXES[axis]}")
+    else:
+        skid, ref = _split_address(index, axis, _LINE_ADDRESS, "A revolve axis")
+        lines.append(f"    _ax = _sub({_lit(skid)}, {_lit(ref)}, {index})")
+    lines += [
+        "    _inp = _root.features.revolveFeatures.createInput("
+        f"_prof, _ax, adsk.fusion.FeatureOperations.{operation})",
+        f"    _inp.setAngleExtent({bool(props.get('symmetric', False))!r}, "
+        f"adsk.core.ValueInput.createByString({angle}))",
+        "    _f = _root.features.revolveFeatures.add(_inp)",
+        f"    if _f is None: raise _OpError({index}, 'revolve failed: Fusion returned null (does "
+        "the profile cross its axis, or the axis leave the sketch plane?)')",
+        f"    _f.name = {_lit(name)}",
+        '    _fid = _mint("f", _f.entityToken); _mark(_fid, True); _note(_fid, "feature", _f)',
+        "    _mark_bodies(_f)",
+    ]
+    return lines
 
 
 def _emit_component(index: int, name: str, kind: str) -> list[str]:
@@ -734,6 +1044,12 @@ def _emit_create(index: int, op: dict[str, Any]) -> list[str]:
         return _emit_extrude(index, name, props)
     if kind == "fillet":
         return _emit_fillet(index, name, props)
+    if kind == "hole":
+        return _emit_hole(index, name, props)
+    if kind == "chamfer":
+        return _emit_chamfer(index, name, props)
+    if kind == "revolve":
+        return _emit_revolve(index, name, props)
     if kind == "param":
         return _emit_param(index, name, props)
     # `component`, and the kit contract's generic kind: a named empty
@@ -762,8 +1078,10 @@ def _emit_set(index: int, op: dict[str, Any]) -> list[str]:
                 f"        _e.parameter.expression = {_lit(str(value))}",
                 f'    elif _k == "feature" and hasattr(_e, "extentOne"): '
                 f"_e.extentOne.distance.expression = {_lit(str(value))}",
-                f"    else: raise _OpError({index}, 'only user parameters, dimensions and extrudes "
-                "take an expression')",
+                f'    elif _k == "feature" and hasattr(_e, "holeDiameter"): '
+                f"_e.holeDiameter.expression = {_lit(str(value))}",
+                f"    else: raise _OpError({index}, 'only user parameters, dimensions, extrudes "
+                "and holes take an expression')",
             ]
         elif key == "suppressed":
             lines += [

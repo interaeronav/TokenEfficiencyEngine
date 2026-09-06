@@ -12615,3 +12615,25 @@ dimension, and a constraint the geometry contradicts is Fusion's own
 creation failure, one refusal naming the op. Sketch rows carry
 `constraints`, `dims` and `constrained`. Twenty-two tests in
 `test_fusion_v2.py`; 110 Fusion-touching tests green; lint clean.
+
+**P2 — holes, chamfers, revolves, faces by direction.** A face has no id;
+it is named by its outward normal (`+z`) — the plane's normal flipped by
+`isParamReversed`, outermost along the axis or nearest a 3-vector `at` (doc
+71 §10.2) — and a body without one refuses `fusion_no_face` listing the
+directions it has. `create hole`: simple, counterbore or countersink (row
+31), placed on a face at `[u, v]` or `[x, y, z]` mm (Fusion projects the
+point, row 32) or by a sketch point address, `depth` or `through`, `flip`
+clearing `isDefaultDirection` (row 33); the feature reports `diameter_mm`
+and `position_mm`, and its diameter is a parameter a `set` re-bores (row
+34). `create chamfer` through `createInput2` and an equal-distance edge set
+— the retired `createInput` is never emitted and the shim raises on it;
+`edges` is `all` or `{face: "+z"}` on chamfers and fillets alike, and the
+diff says how many edges were taken. `create revolve` about a root
+construction axis or a sketch-line address, angle in degrees, symmetric or
+not (rows 36–37). The shim grew six-face boxes with normals, centroids and
+edges; holes that subtract their cylinder plus the counterbore ring or the
+countersink frustum; chamfers that touch only the timeline; revolves by
+Pappus, the axis required in the sketch plane and the profile off it. Two
+Ø6.6 through holes read 96,000 − 2·π·3.3²·10 mm³; a 10×20 rectangle 30 mm
+off the x axis revolves to 2π·200·30 mm³ with a [10, 80, 80] bbox. 135
+Fusion-touching tests green; lint clean.

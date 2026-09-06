@@ -45,6 +45,8 @@ _FIXES = {
     "fusion_capture_failed": "Fusion's viewport declined to write an image; check that a "
     "document is open and visible.",
     "fusion_export_failed": "Check the path is writable and the format matches the geometry.",
+    "fusion_no_face": "Name a planar face by its outward normal (+x, -x, +y, -y, +z, -z); the "
+    "refusal lists the ones this body has.",
 }
 
 
