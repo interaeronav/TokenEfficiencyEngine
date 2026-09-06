@@ -107,12 +107,21 @@ def test_adapter_repeats_in_order_and_no_lane_is_the_hub(serve):
     # content still routes: a verb only seamkiln speaks goes there, a bare
     # create to the lane that takes one - no default needed for either. A
     # kind the reference fake ALSO claims (it takes any kind) is honestly
-    # ambiguous, and the refusal names both.
+    # ambiguous when both lanes can run, and the refusal names both. A69: when
+    # only one of them can (seamkiln's engine missing here, a closed Fusion
+    # there), the batch routes where the work can run, by kind. Connectivity
+    # is pinned explicitly so the assertion does not depend on whether
+    # seamkiln is installed on the machine running the suite (CI's is not).
     assert app.route_batch([{"op": "drape", "props": {}}], None).adapter == "seamkiln"
     assert app.route_batch([{"op": "create", "name": "x"}], None).adapter == "fake"
+    garment = app.adapters["seamkiln"]
+    garment.probe = lambda: True
     with pytest.raises(TeeError) as err:
         app.route_batch([{"op": "create", "kind": "panel"}], None)
     assert err.value.code == "adapter_required" and "fake, seamkiln" in err.value.message
+    garment.probe = lambda: False
+    route = app.route_batch([{"op": "create", "kind": "panel"}], None)
+    assert (route.adapter, route.how) == ("fake", "kind"), "route where the work can run"
 
     # the same order, reversed, still declares nothing
     assert serve("--adapter", "seamkiln", "--adapter", "fake") == 0

@@ -12541,7 +12541,13 @@ reads, the diff it reads instead is 131; read-back 96,000 mm³, bbox
 [120, 80, 10] mm. The always-loaded surface is unchanged at 17 tools. Full
 suite on the P3 tree: 1,579 passed, 66 skipped, 115 deselected; `make lint`
 clean. CHANGELOG Unreleased carries "The Fusion lane (A69)"; doc 71 §8 the
-numbers and what they do not measure.
+numbers and what they do not measure. CI's server job, whose venv has no
+seamkiln, then caught one environment-dependent assertion: the multi-adapter
+test expected `create kind=panel` to be ambiguous between fake and seamkiln,
+which under the A69 refinement holds only while both can run — with seamkiln
+unimportable its `probe()` is false and the batch routes to the fake by kind.
+The test now pins connectivity explicitly and asserts both truths; reproduced
+locally with `seamkiln` blocked on the import path before and after.
 
 Open at the tail of A69:
 
