@@ -1304,7 +1304,7 @@ def run_pointcloud_scenario() -> dict | None:
 
 
 def run_windtunnel_scenario() -> dict | None:
-    """A68: what a wind-tunnel loop costs a model - the W1 batch of the script.
+    """A72: what a wind-tunnel loop costs a model - the W1 batch of the script.
 
     The naive arm is not a straw man. It is what a model must read to drive
     CFD through tools that have no compact state: the dictionaries it wrote
@@ -1317,7 +1317,7 @@ def run_windtunnel_scenario() -> dict | None:
     Runs on the FAKE engines (fixtures_windtunnel) so CI can measure it; the
     fakes write the same files the real engines were measured to write, with
     logs of the same size per iteration (736 B measured on simpleFoam v2606).
-    The real-engine token costs per call are recorded in research doc 70 3.5.
+    The real-engine token costs per call are recorded in research doc 72 3.5.
     """
     try:
         from tee.kernel.adapter import FakeAdapter
@@ -2576,7 +2576,7 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
     if windtunnel_row is not None:
         lines += _windtunnel_section(windtunnel_row)
     else:
-        lines += _carry_forward("## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A68)")
+        lines += _carry_forward("## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A72)")
     # Sections owned by the SIBLING runners (run_k4_mixed.py wrote the A42
     # scheduler row; run_p6_pipeline.py the A43 lane row). This file rewrites
     # RESULTS.md wholesale, so anything it does not carry forward is deleted
@@ -2669,10 +2669,10 @@ def _pointcloud_section(row: dict) -> list[str]:
 
 
 def _windtunnel_section(row: dict) -> list[str]:
-    """A68: the wind-tunnel lane's tokens-per-task row."""
+    """A72: the wind-tunnel lane's tokens-per-task row."""
     return [
         "",
-        "## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A68)",
+        "## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A72)",
         "",
         f"The script's W1 batch: a tapered wing built and swept through six angles by VSPAERO, "
         f"then a NACA 2412 section meshed ({row['cells']:,} cells), solved by simpleFoam "
@@ -2692,7 +2692,7 @@ def _windtunnel_section(row: dict) -> list[str]:
         "point in the polar; the TEE arm is flat: no array over 64 elements, no string over "
         "2 KB, a verdict and an uncertainty label on every number. On the real engines the "
         "same calls measured 55 / 181 / 162 / 97 / 21-87 / 163 / 88 / 33 tokens "
-        "(probe, case, mesh, run, status, result, view, export; research doc 70 3.5).",
+        "(probe, case, mesh, run, status, result, view, export; research doc 72 3.5).",
         "",
     ]
 

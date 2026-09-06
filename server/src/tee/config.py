@@ -78,7 +78,7 @@ class ProjectConfig:
     # `batch_timeout_s`; ProjectConfig drops unknown tables silently, so the
     # lane needs its own field to be configurable at all.
     partkiln: dict[str, Any] = field(default_factory=dict)
-    # A68: the wind-tunnel lane - `openfoam` (a project dir, its etc/bashrc
+    # A72: the wind-tunnel lane - `openfoam` (a project dir, its etc/bashrc
     # or the Mac app's etc/openfoam), `su2`, `openvsp`, `pvpython` (a dir or
     # binary each), `cores`, `max_wall_s`, `confirm_above_s`.
     windtunnel: dict[str, Any] = field(default_factory=dict)

@@ -1,6 +1,6 @@
 # 70 — The wind-tunnel lane: OpenFOAM, SU2, OpenVSP/VSPAERO and ParaView at arm's length (2026-09-06)
 
-Research of record for **A68** (`wt_*`). Every licence claim below was checked at its source on
+Research of record for **A72** (`wt_*`). Every licence claim below was checked at its source on
 2026-09-06 (URLs inline); everything tagged `measured 2026-09-06` was executed in the Linux
 build container (Ubuntu 24.04.4 x86_64, 4 cores, 15 GB, no display, Python 3.11.15) through
 TEE's own registry — the numbers are what `wt_*` tools returned, not what a shell script

@@ -12305,15 +12305,23 @@ seamkiln install; both go back with two commands, then the server needs a
 restart for the `.pth` to be read. The partkiln sidecar is untouched by any
 of it — that is what the sidecar route is for.
 
-## A68 — the wind-tunnel lane: OpenFOAM, SU2, OpenVSP/VSPAERO and ParaView, headless (2026-09-06)
+## A72 — the wind-tunnel lane: OpenFOAM, SU2, OpenVSP/VSPAERO and ParaView, headless (2026-09-06)
 
 Owner: *"Integrate and consolidate wind tunnel and aerodynamic platforms
 directly into TEE, headless and with GUI"* — OpenFOAM, SU2, the GUI wrappers
 (SimFlow, FreeCAD CfdOF, OpenVSP/VSPAERO) and ParaView. Doc 52 had parked
 OpenFOAM with *"Revisit only for a real airflow-engineering task"*; this is
 that task and `docs/DECISIONS.md` reverses the ruling on its own terms.
-`CLAUDE_A68_SCRIPT.md` is the plan of record, research doc 70 the design of
+`CLAUDE_A72_SCRIPT.md` is the plan of record, research doc 72 the design of
 record, `docs/windtunnel-lane.md` and `docs/setup-windtunnel.md` the guides.
+(Numbered A68 / research doc 70 while it was built — the two shipping commits
+and the pull request's opening say so; renumbered to A72 / doc 72 on
+2026-09-06 before merge, because the Fusion-lane branch
+`claude/tee-component-integration-iflsyq`, opened 2026-09-05 as PR #1, already
+holds `CLAUDE_A68_SCRIPT.md`–`CLAUDE_A71_SCRIPT.md` and research docs 70–71.
+Both branches start from `a985f08`; both add a `CLAUDE.md` bullet after A67's,
+a `00-index.md` row, a CHANGELOG head and PROGRESS/DECISIONS entries, so the
+second to merge resolves line conflicts in those five files and nothing else.)
 
 **Owner decisions (2026-09-06):** headless only for now — no `wt_open`, no
 ParaView state files, no Qt panel (the GUI handoff is a later campaign built as
@@ -12323,11 +12331,11 @@ checklist (§M of the script) — a Mac number is never invented from the Linux
 container this was built in (Ubuntu 24.04, 4 cores, 15 GB, root, no display).
 
 **Tree at the start:** clean at `HEAD` on the campaign branch; every path staged
-is A68's own (`server/src/tee/windtunnel/`, its tests and goldens, the kernel
+is A72's own (`server/src/tee/windtunnel/`, its tests and goldens, the kernel
 hook, the config/doctor/extras/cli/trust/machine edits, the docs); never
 `git add -A`.
 
-### A68 P0a — the measurement table (2026-09-06, this container; evidence in `docs/research/70-evidence/`)
+### A72 P0a — the measurement table (2026-09-06, this container; evidence in `docs/research/72-evidence/`)
 
 ```
 L1   apt openfoam 1912: binaries need their environment (bashrc route); every FUNCTION OBJECT
@@ -12367,7 +12375,7 @@ ledger the 15 GB container refuses every job engine under the 16 GB reserve; TEE
        declares capacity the way the kernel's own tests do (the setup doc says so)
 ```
 
-### A68 P0c — the licence gate and the ruling (2026-09-06)
+### A72 P0c — the licence gate and the ruling (2026-09-06)
 
 `server/tests/test_windtunnel_licences.py` (7 tests): a fresh-interpreter import
 of every lane module loads none of `foamlib PyFoam fluidfoam ofpp vtk vtkmodules
@@ -12375,13 +12383,13 @@ pyvista openvsp vsp pysu2 SU2 gmsh classy_blocks paraview`; an AST scan over
 every import site confines numpy/meshio to `report._export_vtu`; a deliberate
 intruder is caught; the goldens under `tests/data/windtunnel/` carry a
 `transcribed` line (CSVs are listed in the README) and no OpenFOAM / SU2 / gmsh
-file banner, nor does `70-evidence/`; the extra is pinned to `{meshio, numpy}`
+file banner, nor does `72-evidence/`; the extra is pinned to `{meshio, numpy}`
 with `WITNESS["windtunnel"] = "meshio"`; the installed licences are MIT / BSD.
 The DECISIONS entry records the reversal of doc 52, arm's length for every
 engine, the case directory as the interface, cancel that kills, the fidelity
 ladder, references verified at source, headless by decision, and the ledger law.
 
-### A68 P1 — the core without binaries, the tools, the kernel hook (2026-09-06)
+### A72 P1 — the core without binaries, the tools, the kernel hook (2026-09-06)
 
 Fourteen modules under `server/src/tee/windtunnel/` (stdlib at import;
 `atmosphere physics airfoil mesh2d foam su2 vsp paraview cfdof verdict fidelity
@@ -12417,7 +12425,7 @@ in `omesh_for` (a 1 m chord never shows it); a 2 M-cell background box at L/8
 tokens at 64 samples (magnitude by default; `null` inside the body via
 `vtkValidPointMask`); `checkMesh` in a directory without `system/`.
 
-### A68 P2–P5 — the real engines, the router, adoption, the battery, the benchmark (2026-09-06)
+### A72 P2–P5 — the real engines, the router, adoption, the battery, the benchmark (2026-09-06)
 
 ```
 SU2_RUN=... TEE_WT_TUTORIAL=... uv run pytest -q -m cfd tests/test_windtunnel_live.py -o addopts=""
@@ -12456,12 +12464,12 @@ The full `run_benchmarks.py` stops in this container at "No Blender binary
 found", so the section was recorded into `RESULTS.md` from the scenario run
 directly, in the form `write_results` emits.
 
-### A68 P6 — shipped 0.22.0, verified from a clean unzip (2026-09-06)
+### A72 P6 — shipped 0.22.0, verified from a clean unzip (2026-09-06)
 
-Docs: research doc 70 (§1–§9 with the P0 answers and the sixteen defects),
+Docs: research doc 72 (§1–§9 with the P0 answers and the sixteen defects),
 `00-index.md` row, `docs/windtunnel-lane.md`, `docs/setup-windtunnel.md`, the
 `CLAUDE.md` bullet after A67's, CHANGELOG 0.22.0, the DECISIONS ruling, the
-script's amendments section, `70-evidence/` with a README map. Version ×3
+script's amendments section, `72-evidence/` with a README map. Version ×3
 (`server/pyproject.toml`, `server/Makefile`, `packaging/mcpb_manifest.json`;
 `tools[]` untouched; `uv lock` refreshed).
 
@@ -12486,7 +12494,7 @@ tee-engine-0.22.0.mcpb  1,144,629 B
 failed` in 98 s — the one failure is the pre-existing
 `test_fleet_cad::test_a_build_with_no_input_refuses` (OpenSCAD absent in this
 container; it failed identically at the campaign's baseline of 1,418 passed,
-before a single A68 line existed); the `cfd` tier **9 passed in 3:46** on the
+before a single A72 line existed); the `cfd` tier **9 passed in 3:46** on the
 real engines; `ruff check src tests ../benchmarks` and `ruff format --check`
 clean; surface **17 tools / 2,033 tok**; the search recall table 40/42 at 3,
 42/42 at 5.

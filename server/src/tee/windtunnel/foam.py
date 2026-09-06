@@ -4,7 +4,7 @@ the one invocation form that works on both platforms.
 OpenFOAM is GPL-3 and stays a separate process; nothing here imports it and
 no tutorial file is copied. The dictionaries below are written from scratch
 in the openfoam.com dialect that was MEASURED (v1912 in the Linux container,
-v2606 in the Mac app - research doc 70 §3); the Foundation dialect (OpenFOAM
+v2606 in the Mac app - research doc 72 §3); the Foundation dialect (OpenFOAM
 11+ renamed the solvers and the property files) is refused by name until it
 is measured too.
 

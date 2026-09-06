@@ -226,7 +226,7 @@ ENGINES: dict[str, dict[str, Any]] = {
         "qos_default": "batch",
         "cost": {"wall_s": [210, 310], "measured": "T0/T2 live runs 2026-08-29"},
     },
-    # -- A68: the wind-tunnel lane. The rows are floors; wt_run registers a
+    # -- A72: the wind-tunnel lane. The rows are floors; wt_run registers a
     # per-run override computed from the mesh (cells x 3 KB, measured RSS 80 MB
     # for 12,800 cells). wall_s measured 2026-09-06 on one core.
     "cfd-mesh": {

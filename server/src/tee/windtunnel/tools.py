@@ -1,4 +1,4 @@
-"""The wt_* virtual tools (A68).
+"""The wt_* virtual tools (A72).
 
 Registered into the progressive-disclosure registry, so this lane adds ZERO
 tools to the always-loaded surface. Every response is a digest - no array

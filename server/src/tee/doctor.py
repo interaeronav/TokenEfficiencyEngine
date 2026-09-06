@@ -642,7 +642,7 @@ def check_llm() -> Check:
 
 
 def check_windtunnel(project_root: Any = None) -> Check:
-    """A68: which of the four engines (OpenFOAM, SU2, OpenVSP/VSPAERO,
+    """A72: which of the four engines (OpenFOAM, SU2, OpenVSP/VSPAERO,
     ParaView's pvpython) this machine has, by version probe only - never a
     solve. Absent engines are named with their install line."""
     from tee.windtunnel import engines

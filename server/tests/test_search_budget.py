@@ -34,7 +34,7 @@ them. The table is unmoved - 3 still misses exactly one, 5 still finds all 33
 the case for progressive disclosure is that the corpus can grow without the
 reach getting worse, and this is the file that would catch it if it did.
 
-RE-MEASURED 2026-09-06 (A68) at 98 tools, after the thirteen `wt_*` wind-tunnel
+RE-MEASURED 2026-09-06 (A72) at 98 tools, after the thirteen `wt_*` wind-tunnel
 tools registered and nine cases were added for them:
 
     limit 3   40/42      limit 5   42/42
@@ -108,7 +108,7 @@ CASES = [
     # or an image, so a default of 3 would lose it.
     ("size from an image", "ex_estimate"),
     ("find the best allocation", "quant_optimize"),
-    # A68: the wt_* lane, thirteen tools, must be findable without displacing
+    # A72: the wt_* lane, thirteen tools, must be findable without displacing
     # the rest; the last one is the new rank-4 witness
     ("wind tunnel test of a wing", "wt_case"),
     ("lift and drag coefficients", "wt_result"),
@@ -153,7 +153,7 @@ def test_three_would_not_have_been_enough(registry):
 
     A66: the witness is now "size from an image" -> ex_estimate at rank 4.
     Recall over CASES is 28/29 at limit 3 and 29/29 at 5, 8 and 10.
-    A68: 40/42 at 3 (two witnesses at rank 4 and 5), 42/42 at 5."""
+    A72: 40/42 at 3 (two witnesses at rank 4 and 5), 42/42 at 5."""
     beyond_three = [
         query
         for query, want in CASES

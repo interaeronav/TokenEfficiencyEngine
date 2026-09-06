@@ -230,7 +230,7 @@ def test_partkiln_check_is_not_fooled_by_the_source_directory(tmp_path, monkeypa
 
 
 def test_windtunnel_check_names_versions_or_the_install_lines(tmp_path, monkeypatch):
-    """A68: the doctor row names every engine it found with its version and
+    """A72: the doctor row names every engine it found with its version and
     every absent one with its install line - version probes only."""
     from fixtures_windtunnel import install_fakes
 

@@ -126,11 +126,11 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   slice. Every `pc_*` tool is tabled individually in the trust table - there is
   deliberately no `pc_` family row.
 
-- The A68 build (`wt_*`: a headless wind-tunnel lane that drives OpenFOAM, SU2
+- The A72 build (`wt_*`: a headless wind-tunnel lane that drives OpenFOAM, SU2
   and OpenVSP/VSPAERO from one budgeted loop and reads the answer back through
   ParaView's `pvpython`, while the model never sees a cell) is **COMPLETE**,
-  P0–P6, shipped as 0.22.0; `CLAUDE_A68_SCRIPT.md` is the plan of record,
-  research doc 70 the design of record, `docs/windtunnel-lane.md` the user guide
+  P0–P6, shipped as 0.22.0; `CLAUDE_A72_SCRIPT.md` is the plan of record,
+  research doc 72 the design of record, `docs/windtunnel-lane.md` the user guide
   and `docs/setup-windtunnel.md` the install. Its laws outrank memory: every
   engine is a SEPARATE PROCESS (OpenFOAM GPL-3, SU2 LGPL-2.1, OpenVSP NOSA-1.3;
   `foamlib` is GPL-3.0-only and BANNED with `PyFoam`, `fluidfoam`, `vtk`,

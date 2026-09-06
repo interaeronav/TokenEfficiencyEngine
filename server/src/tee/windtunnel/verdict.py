@@ -16,7 +16,7 @@ on attached cruise flow is a COMPARATIVE tool trustworthy to a few counts
 between similar cases and an ABSOLUTE tool of limited value; separated
 flow, buffet and CLmax are not predicted. The label travels with every
 number; the exact drag-count figures are quoted from those sources and are
-re-verified in doc 70 §8 before any tolerance is built on them.
+re-verified in doc 72 §8 before any tolerance is built on them.
 """
 
 from __future__ import annotations

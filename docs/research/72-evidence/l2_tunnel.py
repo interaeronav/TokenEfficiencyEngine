@@ -1,4 +1,4 @@
-"""A68 P0 row L2: TEE-written NACA 0012 O-mesh case, kOmegaSST, on apt OpenFOAM v1912.
+"""A72 P0 row L2: TEE-written NACA 0012 O-mesh case, kOmegaSST, on apt OpenFOAM v1912.
 
 Runs: checkMesh, simpleFoam (timed), then reads the coefficient file and the log
 through the lane's own readers. Every number printed goes into PROGRESS.

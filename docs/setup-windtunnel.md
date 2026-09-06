@@ -1,4 +1,4 @@
-# Wind-tunnel setup — the `wt_*` lane (A68)
+# Wind-tunnel setup — the `wt_*` lane (A72)
 
 Four engines, four separate installs, all found by `wt_probe` and `tee doctor`.
 TEE runs each as a separate process and downloads none of them: every refusal
@@ -55,7 +55,7 @@ brew install gerlero/openfoam/openfoam          # OpenFOAM-v2606.app; the entry 
 #   set [windtunnel] pvpython = "/Applications/ParaView-6.1.1.app/Contents/bin/pvpython"
 ```
 
-The Mac rows M1–M7 of `CLAUDE_A68_SCRIPT.md` §M are the measurements still
+The Mac rows M1–M7 of `CLAUDE_A72_SCRIPT.md` §M are the measurements still
 owed there (invocation form, goldens on v2606, SU2 arm64 vs Rosetta, ParaView
 offscreen, the OpenVSP bundle paths).
 

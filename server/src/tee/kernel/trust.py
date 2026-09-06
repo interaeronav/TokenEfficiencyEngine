@@ -227,7 +227,7 @@ _EXPLICIT: dict[str, str] = {
     "pc_clean": "write-artifacts",
     "pc_ortho": "write-artifacts",
     "pc_merge": "write-artifacts",  # shells out to CloudCompare via capture_*
-    # --- A68: the wind-tunnel lane ---
+    # --- A72: the wind-tunnel lane ---
     # DELIBERATELY NO ("wt_", ...) FAMILY ROW (the cad_/trade_/pc_ lesson).
     # Probes, calculators and readers sit in the open tier; anything that
     # writes a case, a mesh, a PNG or an export is write-artifacts; the

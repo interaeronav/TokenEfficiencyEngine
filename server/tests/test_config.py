@@ -114,7 +114,7 @@ def test_cli_flag_wins_over_absent_config(tmp_path):
 
 
 def test_windtunnel_table_is_passed_through_and_a_non_table_is_named(tmp_path):
-    """A68: `[windtunnel]` carries engine paths and the cost gate; the lane
+    """A72: `[windtunnel]` carries engine paths and the cost gate; the lane
     validates each path itself (a wrong path refuses loudly at use)."""
     write_config(
         tmp_path,

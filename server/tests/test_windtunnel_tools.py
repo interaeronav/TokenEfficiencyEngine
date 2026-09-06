@@ -1,4 +1,4 @@
-"""A68 P1-P4 acceptance: the whole wt_* lane through the real registry on
+"""A72 P1-P4 acceptance: the whole wt_* lane through the real registry on
 fake engines - every tool, every refusal the fakes can provoke, the digest
 law on every response, the cost gate, cancel, orphans, adoption, and the
 two pins the lane rests on: thirteen tools tabled individually in the trust

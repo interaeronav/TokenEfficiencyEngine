@@ -1,4 +1,4 @@
-"""A68 P0 row L5b: the QuickStart NACA 0012 Euler case (M 0.8, alpha 1.25) on TEE's own O-mesh."""
+"""A72 P0 row L5b: the QuickStart NACA 0012 Euler case (M 0.8, alpha 1.25) on TEE's own O-mesh."""
 
 import json
 import re

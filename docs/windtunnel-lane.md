@@ -3,8 +3,8 @@
 Runs OpenFOAM, SU2 and OpenVSP/VSPAERO from one budgeted loop, reads the
 answer back through ParaView's `pvpython` — and the model never sees a cell.
 
-Design of record: `docs/research/70-wind-tunnel-lane.md`. Plan of record:
-`CLAUDE_A68_SCRIPT.md`. Install: `docs/setup-windtunnel.md`.
+Design of record: `docs/research/72-wind-tunnel-lane.md`. Plan of record:
+`CLAUDE_A72_SCRIPT.md`. Install: `docs/setup-windtunnel.md`.
 
 ## What it is for
 

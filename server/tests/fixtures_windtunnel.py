@@ -1,4 +1,4 @@
-"""Fake engines for the wt_* lane (A68).
+"""Fake engines for the wt_* lane (A72).
 
 Shell-outs that behave like OpenFOAM, SU2, vspscript/vspaero and pvpython
 well enough for every parser, refusal and job path to run in CI with no
@@ -21,7 +21,7 @@ Modes come from the environment so a test can pick the story it needs:
     TEE_FAKE_PV_MODE     ok | crash
 
 Every header the fakes write was transcribed from a run TEE made on the
-real engine on 2026-09-06 (research doc 70 §3): `coefficient.dat` from
+real engine on 2026-09-06 (research doc 72 §3): `coefficient.dat` from
 OpenFOAM v2606, `history.csv` from SU2 8.4.0 with
 HISTORY_OUTPUT=(ITER, WALL_TIME, RMS_RES, AERO_COEFF), the `.polar` from
 VSPAERO 7.2.2, the PlotOverLine CSV from ParaView 5.11.2. No upstream file

@@ -1,8 +1,8 @@
-"""The wind-tunnel lane (A68): OpenFOAM, SU2, OpenVSP/VSPAERO and ParaView at
+"""The wind-tunnel lane (A72): OpenFOAM, SU2, OpenVSP/VSPAERO and ParaView at
 arm's length, driven through thirteen `wt_*` virtual tools.
 
-Design of record: docs/research/70-wind-tunnel-lane.md. Plan of record:
-CLAUDE_A68_SCRIPT.md. User guide: docs/windtunnel-lane.md.
+Design of record: docs/research/72-wind-tunnel-lane.md. Plan of record:
+CLAUDE_A72_SCRIPT.md. User guide: docs/windtunnel-lane.md.
 
 The boundary: the model never sees a cell. Points, fields, meshes and solver
 logs stay on disk; every answer is a digest (no array over 64 elements, no

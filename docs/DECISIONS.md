@@ -1786,8 +1786,12 @@ GUI wrappers (SimFlow, FreeCAD CfdOF, OpenVSP/VSPAERO) and ParaView. Doc 52
 no current need named; TEE's sim_fluid already covers visual fluids. Revisit
 only for a real airflow-engineering task."* This is that task, so the ruling
 is reversed on its own terms, and doc 54's OpenVSP disposition (an asset
-source for the board lane) is widened to a solver. Research doc 70 is the
-design of record; `CLAUDE_A68_SCRIPT.md` the plan.
+source for the board lane) is widened to a solver. Research doc 72 is the
+design of record; `CLAUDE_A72_SCRIPT.md` the plan. (Built as A68 / doc 70,
+renumbered before merge on 2026-09-06: the Fusion-lane branch opened a day
+earlier as PR #1 already holds A68–A71 and research docs 70–71. A campaign
+number is a label; the first free one in both trees wins, and the older
+branch keeps its numbers.)
 
 **Every engine is a separate process; nothing is imported, nothing is
 vendored, nothing is downloaded.** OpenFOAM is GPL-3, SU2 LGPL-2.1, OpenVSP

@@ -1,7 +1,7 @@
 # Wind-tunnel reader goldens
 
 Every file here was TRANSCRIBED from a run TEE made on the real engine on
-2026-09-06 (research doc 70 §3): the header row is verbatim, the data rows are
+2026-09-06 (research doc 72 §3): the header row is verbatim, the data rows are
 shortened or rounded. No tutorial, example or upstream file is copied into
 this directory - OpenFOAM's tutorials are GPL-3 and SU2's are LGPL-2.1, and
 `test_windtunnel_licences.py` scans this directory for their banners.

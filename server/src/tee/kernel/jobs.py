@@ -59,7 +59,7 @@ class JobManager:
     def __init__(self, workers: int = 2, keep_finished: int = 50):
         self._pending: list[_Job] = []
         self._fns: dict[str, Callable[[], dict[str, Any]]] = {}
-        # A68: a submitter that owns a child process (a CFD solver) hands over
+        # A72: a submitter that owns a child process (a CFD solver) hands over
         # the way to stop it; cancel() calls it ONCE, outside the lock, for a
         # job that was running. Without it cancel stays cooperative.
         self._on_cancel: dict[str, Callable[[], None]] = {}
@@ -268,7 +268,7 @@ class JobManager:
                 raise TeeError("unknown_job", f"No job '{job_id}'.")
             if job.state in ("queued", "running"):
                 # Queued: the worker will skip it. Running: cooperative unless
-                # the submitter gave an on_cancel hook (A68: a solver process
+                # the submitter gave an on_cancel hook (A72: a solver process
                 # is killed by it) - otherwise the DCC-side operation finishes
                 # but its result is dropped.
                 if job.state == "running":

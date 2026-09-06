@@ -1,4 +1,4 @@
-"""A68 P0c: the licence gate, load-bearing like seamkiln's and partkiln's.
+"""A72 P0c: the licence gate, load-bearing like seamkiln's and partkiln's.
 
 Every wind-tunnel engine is copyleft or NOSA and stays a separate process:
 OpenFOAM GPL-3, SU2 LGPL-2.1, OpenVSP NOSA-1.3, gmsh GPL-2+. The Python
@@ -25,7 +25,7 @@ import pytest
 SERVER = Path(__file__).resolve().parents[1]
 LANE = SERVER / "src" / "tee" / "windtunnel"
 DATA = SERVER / "tests" / "data" / "windtunnel"
-EVIDENCE = SERVER.parent / "docs" / "research" / "70-evidence"
+EVIDENCE = SERVER.parent / "docs" / "research" / "72-evidence"
 
 BANNED = (
     "foamlib",

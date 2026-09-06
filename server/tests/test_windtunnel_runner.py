@@ -1,4 +1,4 @@
-"""A68 P1: one solver process, owned end to end.
+"""A72 P1: one solver process, owned end to end.
 
 `tee_job cancel` used to be cooperative only; a cancelled two-hour
 simpleFoam would have kept four cores busy. The runner kills the process

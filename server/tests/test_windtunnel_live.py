@@ -1,4 +1,4 @@
-"""A68 P2-P5, the `cfd` tier: the same loop on the REAL engines.
+"""A72 P2-P5, the `cfd` tier: the same loop on the REAL engines.
 
 Deselected by default (`addopts = -m "not cfd"`); `uv run pytest -m cfd
 tests/test_windtunnel_live.py` runs whatever this machine has and skips the

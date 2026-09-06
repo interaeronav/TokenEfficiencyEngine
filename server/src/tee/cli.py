@@ -178,7 +178,7 @@ def _attach_pointcloud(app, project: str) -> None:
 
 
 def _attach_windtunnel(app, project: str) -> None:
-    """Register wt_* (A68). Stdlib core; every engine (OpenFOAM, SU2,
+    """Register wt_* (A72). Stdlib core; every engine (OpenFOAM, SU2,
     OpenVSP, pvpython) is a separate process found at call time and refused
     with its install line when absent, so registration is unconditional -
     a tool that vanishes when its engine is missing is indistinguishable

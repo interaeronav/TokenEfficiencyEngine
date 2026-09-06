@@ -5,7 +5,9 @@ Blender `tee_bridge` extension carry their own versions where noted.
 
 ## 0.22.0 — 2026-09-06
 
-The wind-tunnel lane (A68): OpenFOAM, SU2 and OpenVSP/VSPAERO driven from one
+The wind-tunnel lane (A72; numbered A68 while it was built, renumbered before
+merge because the Fusion-lane branch already holds A68–A71): OpenFOAM, SU2 and
+OpenVSP/VSPAERO driven from one
 budgeted loop, the answer read back through ParaView's `pvpython`, and the
 model never sees a cell. Thirteen `wt_*` virtual tools, zero always-loaded
 growth (17 tools / 2,033 tok), every one tabled individually in the trust

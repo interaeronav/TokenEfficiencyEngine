@@ -130,7 +130,7 @@ pointcloud = [
     "ezdxf>=1.4.4",
     "trimesh>=5.0.0",
 ]
-# A68 wind-tunnel lane: the engines are SEPARATE PROCESSES (OpenFOAM GPL-3,
+# A72 wind-tunnel lane: the engines are SEPARATE PROCESSES (OpenFOAM GPL-3,
 # SU2 LGPL-2.1, OpenVSP NOSA-1.3, ParaView BSD-3 via pvpython) and the lane's
 # core is stdlib; this extra serves exactly two paths - `wt_export format=vtu`
 # and wt_probe_field's fallback when pvpython is absent. Kept out on purpose
