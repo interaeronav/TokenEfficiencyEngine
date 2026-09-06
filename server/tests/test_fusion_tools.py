@@ -9,10 +9,11 @@ import pytest
 from fixtures_fusion import FakeFusionWire
 from test_handoff_import import Scene
 
+from tee.adapters.fusion import codegen
 from tee.adapters.fusion.adapter import FusionAdapter
 from tee.adapters.fusion.tools import register_fusion_tools
 from tee.app import TeeApp
-from tee.kernel import lanes, trust
+from tee.kernel import lanes, trust, trustctx
 from tee.kernel.errors import TeeError
 
 PLATE = [
@@ -40,7 +41,7 @@ def served(tmp_path):
 
 def test_every_tool_is_tabled_individually_and_lands_in_the_fusion_lane(served):
     app, _ = served
-    for name in ("fu_probe", "fu_export", "fu_measure", "fu_params", "fu_timeline"):
+    for name in ("fu_probe", "fu_export", "fu_drawing", "fu_measure", "fu_params", "fu_timeline"):
         assert trust.capability_for(name), name
         assert lanes.lane_for(name) == "fusion"
         assert app.registry.describe(name)["lane"] == "fusion"
@@ -129,8 +130,8 @@ def test_export_writes_the_format_declares_units_and_can_land(served, tmp_path):
     assert obj["landed"]["lane"] == "scene" and obj["landed"]["scale"] == 0.01
     assert "createOBJExportOptions(_geom" in adapter.wire.executed[-1]
     with pytest.raises(TeeError) as err:
-        app.registry.call("fu_export", {"format": "iges", "out": "x"})
-    assert err.value.code == "bad_op" and "doc 71" in err.value.fix
+        app.registry.call("fu_export", {"format": "dwg", "out": str(tmp_path / "x")})
+    assert err.value.code == "bad_op" and "Formats:" in err.value.fix
     stl = app.registry.call("fu_export", {"format": "stl", "out": str(tmp_path / "plate.stl")})
     assert stl["units"] is None and "default units" in stl["note"]
     with pytest.raises(TeeError) as err:
@@ -138,6 +139,96 @@ def test_export_writes_the_format_declares_units_and_can_land(served, tmp_path):
             "fu_export", {"format": "stl", "out": str(tmp_path / "p2.stl"), "into": "scene"}
         )
     assert err.value.code in ("handoff_import_unsupported", "handoff_units_unknown")
+
+
+def test_the_four_more_exports_use_their_verified_constructors(served, tmp_path):
+    """A70 P4 (doc 71 row 48): iges/sat/usd filename-first and component-only,
+    3mf geometry-first; all four self-describing on units, so the lane
+    declares none until the smoke has read them."""
+    app, adapter = served
+    app.run_batch("fusion", PLATE)
+    for fmt, header in (("iges", "S      1"), ("sat", "700 0 1 0"), ("usd", "#usda 1.0")):
+        out = app.registry.call("fu_export", {"format": fmt, "out": str(tmp_path / f"p.{fmt}")})
+        assert out["units"] is None and out["declares_units"] is True and "read it" in out["note"]
+        assert header in Path(out["path"]).read_text()
+        script = adapter.wire.executed[-1]
+        assert f"{codegen.EXPORT_FORMATS[fmt][0]}('" in script, "filename first"
+    three = app.registry.call(
+        "fu_export", {"format": "3mf", "out": str(tmp_path / "p.3mf"), "of": "b1"}
+    )
+    assert three["declares_units"] is True and three["units"] is None
+    assert "createC3MFExportOptions(_geom" in adapter.wire.executed[-1], "geometry first"
+    with pytest.raises(TeeError) as err:
+        app.registry.call("fu_export", {"format": "iges", "out": str(tmp_path / "x"), "of": "b1"})
+    assert err.value.code == "bad_op" and "not a body" in err.value.message
+    assert not (tmp_path / "x.iges").exists(), "refused before the wire"
+    with pytest.raises(TeeError) as err:
+        app.registry.call(
+            "fu_export", {"format": "usd", "out": str(tmp_path / "p2.usd"), "into": "scene"}
+        )
+    assert err.value.code == "handoff_import_unsupported"
+
+
+def test_fu_drawing_is_the_partkiln_route_and_refuses_without_partkiln(tmp_path):
+    """A70 P4 (doc 71 section 10.7): the Fusion API cannot create a drawing,
+    so the sheet is partkiln's - STEP out, pk_import, pk_drawing - and the
+    import is decided as the scene write it is."""
+    from fixtures_partkiln import FakeKernel
+
+    from tee.adapters.partkiln.adapter import PartkilnAdapter
+
+    adapter = FusionAdapter(FakeFusionWire(), workdir=str(tmp_path / "work"))
+    kernel = FakeKernel()
+    kiln = PartkilnAdapter(tmp_path / "pk", kernel=kernel)
+    app = TeeApp({"fusion": adapter, "partkiln": kiln}, project_root=tmp_path)
+    register_fusion_tools(app, adapter)
+    try:
+        assert trust.capability_for("fu_drawing") == "write-artifacts"
+        assert lanes.lane_for("fu_drawing") == "fusion"
+        app.run_batch("fusion", PLATE)
+        out = app.registry.call(
+            "fu_drawing",
+            {
+                "out": str(tmp_path / "sheets"),
+                "name": "plate",
+                "views": [{"name": "top", "dir": "top"}],
+            },
+        )
+        assert out["step"].endswith("plate.step") and Path(out["step"]).is_file()
+        assert out["part"] == "part:plate" and out["drawing"]["id"] == "dwg:plate"
+        assert out["drawing"]["views"] == ["top"] and out["drawing"]["files"]
+        assert "cannot create a drawing" in out["note"]
+        seen = {c[0]: c[1] for c in kernel.calls if c[0] in ("import", "drawing")}
+        assert seen["import"]["path"] == out["step"] and seen["import"]["name"] == "plate"
+        assert seen["drawing"]["of"] == "part:plate" and seen["drawing"]["views"] == [
+            {"name": "top", "dir": "top"}
+        ]
+        # a task carrying untrusted content may not write partkiln's document
+        # through a write-artifacts tool: refused before the STEP is written
+        before = trustctx.snapshot()
+        try:
+            app.registry.grants = dataclasses.replace(
+                app.registry.grants, enforce_quality_band=True
+            )
+            trustctx.install("job", ("fetch-web:evil.example/page",))
+            with pytest.raises(TeeError) as err:
+                app.registry.call("fu_drawing", {"out": str(tmp_path / "sheets2"), "name": "p2"})
+            assert err.value.code == "trust_denied" and "fu_drawing" in err.value.message
+            assert not (tmp_path / "work" / "drawings" / "p2.step").exists()
+        finally:
+            trustctx.install(*before)
+            trustctx.clear_for_tests()
+    finally:
+        app.shutdown()
+    alone = FusionAdapter(FakeFusionWire())
+    app = TeeApp({"fusion": alone}, project_root=tmp_path / "alone")
+    register_fusion_tools(app, alone)
+    try:
+        with pytest.raises(TeeError) as err:
+            app.registry.call("fu_drawing", {"out": "sheets"})
+        assert err.value.code == "partkiln_not_served" and "--adapter partkiln" in err.value.fix
+    finally:
+        app.shutdown()
 
 
 def test_the_escape_hatch_registers_only_with_code_exec_and_the_kernel_decides(tmp_path):

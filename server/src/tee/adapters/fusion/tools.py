@@ -22,11 +22,43 @@ from tee.adapters.fusion.wire import START_FIX
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
 
-# What each export declares about its units (doc 71 rows 17 and 30): STEP and
-# the archive carry their own; OBJ defaults to centimetres; STL takes the
+# What each export declares about its units (doc 71 rows 17, 30 and 48): STEP
+# and the archive carry their own; OBJ defaults to centimetres; STL takes the
 # design's default units, which this lane cannot know without reading them
-# back - so it declares nothing rather than guessing.
-_EXPORT_UNITS: dict[str, str | None] = {"step": "mm", "f3d": "mm", "obj": "cm", "stl": None}
+# back - so it declares nothing rather than guessing. IGES, SAT, 3MF and USD
+# declare a unit inside the file and their option objects carry none, so the
+# lane answers `units: null, declares_units: true` until the smoke has read
+# what Fusion writes (doc 71 section 9, item 6).
+_EXPORT_UNITS: dict[str, str | None] = {
+    "step": "mm",
+    "f3d": "mm",
+    "obj": "cm",
+    "stl": None,
+    "iges": None,
+    "sat": None,
+    "usd": None,
+    "3mf": None,
+}
+_EXPORT_NOTES = {
+    "obj": "OBJ is written in Fusion's default of centimetres (unitType unset)",
+    "stl": "STL takes the design's default units; read them back before trusting a scale",
+    "iges": "IGES declares its unit in its global section; read it before scaling",
+    "sat": "SAT declares its unit inside the file; read it before scaling",
+    "usd": "USD carries metersPerUnit; read it before scaling",
+    "3mf": "3MF names its unit on the model element (millimetre by default); read it",
+}
+_DRAWING_KEYS = (
+    "sheet",
+    "standard",
+    "angle",
+    "scale",
+    "views",
+    "dims",
+    "hole_table",
+    "parts_list",
+    "title",
+    "formats",
+)
 
 
 def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
@@ -62,28 +94,29 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
             raise TeeError(
                 "bad_op",
                 f"Unknown export format '{fmt}'.",
-                fix=f"Formats: {', '.join(codegen.EXPORT_FORMATS)} (iges/sat/3mf/usd exist in "
-                "Fusion and wait for their doc 71 rows).",
+                fix=f"Formats: {', '.join(codegen.EXPORT_FORMATS)}.",
             )
         out = args.get("out")
         if not out:
             raise TeeError("bad_op", "fu_export needs out: a path.", fix='out="parts/bracket.step"')
+        of = args.get("of")
+        if fmt in codegen.COMPONENT_ONLY_EXPORTS and of and str(of).startswith("b"):
+            raise TeeError(
+                "bad_op",
+                f"{fmt} exports a component or the whole design, not a body (doc 71 row 48).",
+                fix="Pass a component id (c1) or omit of; 3mf, stl and obj take a body.",
+            )
         path = str(Path(str(out)).expanduser())
         suffix = codegen.EXPORT_FORMATS[fmt][2]
         if not path.lower().endswith("." + suffix):
             path += "." + suffix
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-        of = args.get("of")
         result = adapter.run(codegen.export_program(fmt, path, str(of) if of else None))
         units = _EXPORT_UNITS[fmt]
         result["units"] = units
-        result["declares_units"] = fmt in ("step", "f3d")
-        if fmt == "obj":
-            result["note"] = "OBJ is written in Fusion's default of centimetres (unitType unset)"
-        elif fmt == "stl":
-            result["note"] = (
-                "STL takes the design's default units; read them back before trusting a scale"
-            )
+        result["declares_units"] = fmt not in ("stl", "obj")
+        if fmt in _EXPORT_NOTES:
+            result["note"] = _EXPORT_NOTES[fmt]
         into = args.get("into")
         if into:
             from tee.kernel.handoff_import import land
@@ -96,6 +129,44 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
                 caller="fu_export",
             )
         return result
+
+    def drawing(args: dict[str, Any]) -> dict[str, Any]:
+        """The Fusion API cannot create a drawing (doc 71 row 49): STEP out of
+        Fusion, into the served partkiln lane, then its `pk_drawing` - every
+        dimension read from the model (partkiln's Law 15). The import into
+        partkiln's document is a scene write on that lane and is decided as
+        one before anything is written (the A68 `land()` precedent)."""
+        if not any(type(a).__name__ == "PartkilnAdapter" for a in app.adapters.values()):
+            raise TeeError(
+                "partkiln_not_served",
+                "fu_drawing draws through partkiln, and no partkiln lane is served.",
+                fix="tee serve --adapter fusion --adapter partkiln; the Fusion API itself "
+                "cannot create a drawing (doc 71 row 49).",
+            )
+        out = args.get("out")
+        if not out:
+            raise TeeError("bad_op", "fu_drawing needs out: a directory.", fix='out="sheets"')
+        name = str(args.get("name") or "sheet")
+        app.registry.require("write-scene", name="fu_drawing")
+        step = str(Path(adapter.workdir) / "drawings" / f"{name}.step")
+        Path(step).parent.mkdir(parents=True, exist_ok=True)
+        of = args.get("of")
+        exported = adapter.run(codegen.export_program("step", step, str(of) if of else None))
+        imported = app.registry.call("pk_import", {"path": step, "name": name})
+        part = str(imported.get("id") or f"part:{name}")
+        passthrough = {k: args[k] for k in _DRAWING_KEYS if k in args}
+        drawn = app.registry.call(
+            "pk_drawing", {"of": part, "out": str(out), "name": name, **passthrough}
+        )
+        return {
+            "step": step,
+            "bytes": exported.get("bytes"),
+            "part": part,
+            "imported": imported,
+            "drawing": drawn,
+            "note": "dimensions are read from the STEP by partkiln (its Law 15); the Fusion API "
+            "cannot create a drawing (doc 71 row 49)",
+        }
 
     def measure(args: dict[str, Any]) -> dict[str, Any]:
         of = args.get("of")
@@ -132,15 +203,20 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
         VirtualTool(
             name="fu_export",
             description=(
-                "Export the design, a body or a component from Fusion: step, stl, obj or f3d "
-                "(the Fusion archive). into=<lane|auto> lands the file in a served scene lane "
-                "as one checkpointed batch with a read-back verdict. STEP and f3d carry their "
-                "units; OBJ is centimetres; STL takes the design's default units."
+                "Export the design, a body or a component from Fusion: step, stl, obj, f3d "
+                "(the Fusion archive), iges, sat, 3mf or usd. into=<lane|auto> lands the "
+                "file in a served scene lane as one checkpointed batch with a read-back "
+                "verdict. STEP, f3d, iges, sat, 3mf and usd carry their units inside; OBJ is "
+                "centimetres; STL takes the design's default units. iges/sat/usd export a "
+                "component or the whole design, not a body."
             ),
             schema={
                 "type": "object",
                 "properties": {
-                    "format": {"type": "string", "description": "step|stl|obj|f3d (default step)"},
+                    "format": {
+                        "type": "string",
+                        "description": "step|stl|obj|f3d|iges|sat|3mf|usd (default step)",
+                    },
                     "out": {"type": "string", "description": "output path"},
                     "of": {"type": "string", "description": "body or component id; omit = root"},
                     "into": {
@@ -159,6 +235,10 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
                 "stl",
                 "obj",
                 "f3d",
+                "iges",
+                "sat",
+                "3mf",
+                "usd",
                 "archive",
                 "handoff",
                 "land",
@@ -168,6 +248,52 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
             examples=[
                 {"format": "step", "out": "parts/bracket.step"},
                 {"format": "obj", "out": "parts/bracket.obj", "of": "b1", "into": "auto"},
+            ],
+        ),
+        VirtualTool(
+            name="fu_drawing",
+            description=(
+                "A dimensioned sheet of the Fusion design, a body or a component, through "
+                "partkiln: STEP out of Fusion, into the served partkiln lane, then pk_drawing "
+                "- views, dimensions read from the model, hole table, parts list, SVG/DXF/PDF. "
+                "The Fusion API cannot create a drawing (doc 71 row 49); this is the route "
+                "that can. Needs a partkiln lane served."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "out": {"type": "string", "description": "output directory"},
+                    "of": {"type": "string", "description": "body or component id; omit = design"},
+                    "name": {"type": "string", "description": "sheet and part name"},
+                    "sheet": {"type": "string", "description": "A4L..A0L|ANSI_B"},
+                    "standard": {"type": "string", "description": "ISO|ANSI|DIN"},
+                    "angle": {"type": "string", "description": "first|third"},
+                    "scale": {"type": "string", "description": "e.g. 1:2"},
+                    "views": {"type": "array", "description": "[{name, dir}] front|top|right|iso"},
+                    "dims": {"type": "array", "description": "[{name, view, kind, of|a, b}]"},
+                    "hole_table": {"type": "boolean"},
+                    "formats": {"type": "array", "description": "svg|dxf|pdf (default svg)"},
+                },
+                "required": ["out"],
+            },
+            handler=drawing,
+            tags=[
+                "fusion",
+                "autodesk",
+                "drawing",
+                "drawings",
+                "sheet",
+                "views",
+                "dimensioned",
+                "blueprint",
+                "partkiln",
+                "svg",
+                "dxf",
+                "pdf",
+                "cad",
+            ],
+            examples=[
+                {"out": "sheets", "name": "bracket", "views": [{"name": "top", "dir": "top"}]}
             ],
         ),
         VirtualTool(

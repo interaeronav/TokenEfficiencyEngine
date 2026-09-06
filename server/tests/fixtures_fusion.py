@@ -1812,7 +1812,30 @@ class ExportManager:
     def createOBJExportOptions(self, geometry, filename: str = ""):
         return _ExportOptions("obj", filename, geometry, 2)  # 2 = centimeters, the OBJ default
 
-    def execute(self, options: _ExportOptions) -> bool:
+    # row 48: filename-first and "currently a Component object"
+    def createIGESExportOptions(self, filename: str, geometry=None):
+        return (
+            None
+            if isinstance(geometry, BRepBody)
+            else _ExportOptions("iges", filename, geometry, 0)
+        )
+
+    def createSATExportOptions(self, filename: str, geometry=None):
+        return (
+            None if isinstance(geometry, BRepBody) else _ExportOptions("sat", filename, geometry, 0)
+        )
+
+    def createUSDExportOptions(self, filename: str, geometry=None):
+        return (
+            None if isinstance(geometry, BRepBody) else _ExportOptions("usd", filename, geometry, 0)
+        )
+
+    def createC3MFExportOptions(self, geometry, filename: str = ""):
+        return None if geometry is None else _ExportOptions("3mf", filename, geometry, 0)
+
+    def execute(self, options: _ExportOptions | None) -> bool:
+        if options is None:
+            return False
         geometry = options.geometry or self._design.rootComponent
         bodies = (
             [geometry]
@@ -1825,6 +1848,10 @@ class ExportManager:
             "f3d": "FUSION-ARCHIVE",
             "stl": "solid tee",
             "obj": "# obj",
+            "iges": " " * 72 + "S      1",
+            "sat": "700 0 1 0",
+            "usd": "#usda 1.0",
+            "3mf": "PK 3MF",
         }
         os.makedirs(os.path.dirname(options.filename) or ".", exist_ok=True)
         with open(options.filename, "w", encoding="utf-8") as fh:

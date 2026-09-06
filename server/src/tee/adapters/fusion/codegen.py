@@ -108,15 +108,21 @@ _ADDRESS_HELP = (
     "an address is r0.bottom|top|left|right, r0.bl|br|tl|tr, l0, l0.start|end, c0, "
     "c0.center, p0 or origin - prefixed sk1/ outside the sketch op"
 )
-# Row 17: the option constructors differ in argument order by format. Only
-# the four whose pages were read ship; iges/sat/3mf/usd exist and wait for
-# their rows.
+# Rows 17 and 48: the option constructors differ in argument order by
+# format. STEP, the archive, IGES, SAT and USD take (filename, geometry=None);
+# STL, OBJ and 3MF take (geometry, filename). IGES/SAT/USD take a component
+# only; 3MF a body, an occurrence or a component.
 EXPORT_FORMATS: dict[str, tuple[str, str, str]] = {
     "step": ("createSTEPExportOptions", "filename_first", "step"),
     "f3d": ("createFusionArchiveExportOptions", "filename_first", "f3d"),
     "stl": ("createSTLExportOptions", "geometry_first", "stl"),
     "obj": ("createOBJExportOptions", "geometry_first", "obj"),
+    "iges": ("createIGESExportOptions", "filename_first", "iges"),
+    "sat": ("createSATExportOptions", "filename_first", "sat"),
+    "usd": ("createUSDExportOptions", "filename_first", "usd"),
+    "3mf": ("createC3MFExportOptions", "geometry_first", "3mf"),
 }
+COMPONENT_ONLY_EXPORTS = ("iges", "sat", "usd")
 OPERATIONS = {
     "join": "JoinFeatureOperation",
     "cut": "CutFeatureOperation",

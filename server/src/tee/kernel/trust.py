@@ -358,6 +358,7 @@ _EXPLICIT: dict[str, str] = {
     "fu_params": "read-scene",
     "fu_timeline": "read-scene",
     "fu_export": "write-artifacts",
+    "fu_drawing": "write-artifacts",
     "fu_execute_python": "exec-code",  # arbitrary Python on Fusion's primary thread
     "pk_script": "write-scene",  # its replay action mutates the live document
     # --- gateway control. Accepting a drifted backend fingerprint is a

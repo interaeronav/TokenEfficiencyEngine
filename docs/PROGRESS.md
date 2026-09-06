@@ -12657,3 +12657,21 @@ so a joint has something to join. The shim records joints with their
 motions and parameters and moves no occurrence (§9 item 5), and refuses a
 joint whose two sides are the same component as Fusion's own null. 153
 Fusion-touching tests green; lint clean.
+
+**P4 — the four exports, and drawings through partkiln.** `fu_export`
+takes iges, sat, usd (filename-first, "currently a Component object", so a
+body id is refused before the wire with the fix) and 3mf (geometry-first
+like stl/obj: a body, an occurrence or a component) — row 48's argument
+orders, each answered `units: null, declares_units: true` with a note
+naming where the file declares its unit, because none of the four option
+objects carries one and nobody has read what Fusion writes (§9 item 6).
+`fu_drawing {out, of, name, sheet, standard, angle, scale, views, dims,
+hole_table, formats}` is the drawings route the API cannot provide (row
+49): STEP into the lane's workdir, `pk_import` into the served partkiln
+lane, `pk_drawing` with every dimension read from the model; it refuses
+`partkiln_not_served` naming `--adapter partkiln`, and the import into
+partkiln's document is decided as the scene write it is through
+`registry.require` before the STEP is written — a task carrying untrusted
+content is refused with nothing on disk. Tabled `write-artifacts`, in the
+`fu_` lane family. 201 tests across the Fusion, trust, server-lint and
+search suites green; lint clean.
