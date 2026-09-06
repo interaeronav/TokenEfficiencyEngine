@@ -131,10 +131,14 @@ class CustomEventHandler:
 
 
 class Document:
+    """Row 52 (A71): every document carries a creationId GUID of its own - two
+    untitled designs share a root-component token but never a creationId."""
+
     def __init__(self, name: str):
         self.name = name
         self.isSaved = False
         self.isModified = True
+        self.creationId = str(uuid.uuid4())
 
 
 class _Collection:

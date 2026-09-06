@@ -155,6 +155,17 @@ try:
         raise _OpError(-1, "no active Fusion design (open or create one: File > New Design)",
                        "fusion_no_design")
     _root = _design.rootComponent
+    # A71, measured on Fusion 2704.1.53: the id map is PER DOCUMENT. Resolving a
+    # token minted in a design that has since been closed crashed Fusion (segfault
+    # in DesignImp::findEntityByToken_raw -> __dynamic_cast, then the crash reporter
+    # holding the primary thread and the bridge with it). So a token from another
+    # document is never resolved: a document switch empties the map and renumbers,
+    # exactly as a bridge restart does (tee_scene_summary refresh=true re-lists).
+    # The key is Document.creationId (row 52): the root component's entityToken is
+    # the SAME 24 characters in every untitled design, measured, and cannot key it.
+    _dkey = str(getattr(_app.activeDocument, "creationId", None) or _root.entityToken)
+    if _tee.get("design") != _dkey:
+        _tee.clear(); _tee["design"] = _dkey
     _ids = _tee.setdefault("ids", {}); _toks = _tee.setdefault("toks", {})
     _counts = _tee.setdefault("counts", {}); _kinds = _tee.setdefault("kinds", {})
     _subs = _tee.setdefault("subs", {}); _names = _tee.setdefault("names", {})

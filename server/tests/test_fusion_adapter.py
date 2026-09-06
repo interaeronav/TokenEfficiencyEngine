@@ -357,3 +357,58 @@ def test_the_vocab_is_the_codegens_and_never_touches_the_wire():
     assert vocab.accepts({"op": "create", "kind": "extrude"})
     assert not vocab.accepts({"op": "create", "kind": "cube"})
     assert vocab.accepts({"op": "param_set", "name": "w", "expression": "1 mm"})
+
+
+# -- A71: the id map is per design ----------------------------------------------------
+
+
+def test_a_design_switch_empties_the_id_map_and_no_foreign_token_is_ever_resolved(tmp_path):
+    """Measured live on Fusion 2704.1.53 (A71, 2026-09-06): the listing's prune
+    called findEntityByToken on ids minted in a design that had since been
+    closed, and Fusion segfaulted inside DesignImp::findEntityByToken_raw, then
+    sat in its crash reporter with the primary thread - and the bridge - held.
+    The map is per DOCUMENT, keyed by Document.creationId (row 52) - the root
+    component's entityToken is the same 24 characters in every untitled design
+    (measured) and the first fix keyed on it crashed Fusion the same way. A
+    switch empties the map and renumbers, as a bridge restart does, and a token
+    from another document never reaches Fusion."""
+    from fixtures_fusion import Design, Document
+
+    wire = FakeFusionWire()
+    adapter = FusionAdapter(wire, workdir=str(tmp_path))
+    adapter.execute(
+        [
+            {"op": "create", "kind": "sketch", "props": {"rects": [[0, 0, 120, 80]]}},
+            {"op": "create", "kind": "extrude", "props": {"sketch": "sk1", "distance": 10}},
+        ]
+    )
+    first = wire.namespace["_tee"]  # the persistent dict itself; copy what the switch clears
+    first_design = str(first["design"])
+    assert set(first["ids"]) == {"sk1", "f1", "b1"} and first_design
+    foreign_tokens = set(first["ids"].values())
+
+    # a new design becomes active (File > New Design, or the previous one closed)
+    old_design = wire.app.activeProduct
+    new_design = Design(parametric=True)
+    wire.app.activeProduct = new_design
+    wire.app.activeDocument = Document("Untitled(1)")
+    real_find = new_design.findEntityByToken
+
+    def guarded(token):
+        assert token not in foreign_tokens, f"a token from another design reached Fusion: {token}"
+        return real_find(token)
+
+    new_design.findEntityByToken = guarded
+    assert adapter.list_entities() == []
+    state = wire.namespace["_tee"]
+    assert state["ids"] == {} and state["design"] != first_design
+    adapter.execute(
+        [
+            {"op": "create", "kind": "sketch", "props": {"rects": [[0, 0, 10, 10]]}},
+            {"op": "create", "kind": "extrude", "props": {"sketch": "sk1", "distance": 1}},
+        ]
+    )
+    assert set(wire.namespace["_tee"]["ids"]) == {"sk1", "f1", "b1"}, "renumbered from 1"
+    assert adapter.info().extra["ids"] == 3
+    # the old design is untouched and still holds its own entities
+    assert old_design.findEntityByToken(next(iter(foreign_tokens)))
