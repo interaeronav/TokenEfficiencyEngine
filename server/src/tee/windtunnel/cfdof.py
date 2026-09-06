@@ -139,8 +139,39 @@ def copy_case(src: Path, dst: Path) -> dict[str, Any]:
         return {n for n in names if n.startswith("processor") or n in ("VTK", "postProcessing.old")}
 
     shutil.copytree(src, dst, ignore=ignore, symlinks=True)
+    # openfoam.com's shipped tutorials keep the mesh and fields as
+    # constant/polyMesh.orig and 0.orig and let Allrun materialize them
+    # (restore0Dir); the v2606 Mac app ships airFoil2D this way where the
+    # apt copy ships them live (measured 2026-09-06). Materialize inside
+    # TEE's copy only - the source stays untouched.
+    materialized = []
+    for live, orig in (
+        (dst / "constant" / "polyMesh", dst / "constant" / "polyMesh.orig"),
+        (dst / "0", dst / "0.orig"),
+    ):
+        if not live.exists() and orig.is_dir():
+            shutil.copytree(orig, live, symlinks=True)
+            materialized.append(orig.name)
+    # the same tutorials gzip the mesh (boundary.gz ...): OpenFOAM reads
+    # that natively but TEE's mesh check, patch reader and mesh hash do
+    # not - decompress in the copy so every downstream reader sees one form
+    pm = dst / "constant" / "polyMesh"
+    if pm.is_dir():
+        import gzip
+
+        for packed in sorted(pm.glob("*.gz")):
+            plain = packed.with_suffix("")
+            if not plain.exists():
+                with gzip.open(packed, "rb") as fh:
+                    plain.write_bytes(fh.read())
+            packed.unlink()
+            if "gunzipped" not in materialized:
+                materialized.append("gunzipped")
     size = sum(p.stat().st_size for p in dst.rglob("*") if p.is_file())
-    return {"copied_from": str(src), "bytes": size}
+    out = {"copied_from": str(src), "bytes": size}
+    if materialized:
+        out["materialized"] = materialized
+    return out
 
 
 def rpc_case_path(document: str) -> str:
