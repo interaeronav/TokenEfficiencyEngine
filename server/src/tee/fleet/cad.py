@@ -100,8 +100,12 @@ def _params_file(params: dict[str, Any], tmp: Path) -> Path | None:
 
 
 def scad_build(spec: dict[str, Any]) -> dict[str, Any]:
-    """Build a solid from OpenSCAD source and export it."""
-    exe = _require_openscad()
+    """Build a solid from OpenSCAD source and export it.
+
+    The request is checked before the environment is: a spec with no source
+    or an unknown format is refused as such on every machine, and only a
+    request that could run asks for the binary (Rule 6, fail loud and cheap -
+    and the no-input test runs where OpenSCAD is absent, as CI's runner is)."""
     source = spec.get("source")
     src_path = spec.get("path")
     if not source and not src_path:
@@ -123,6 +127,7 @@ def scad_build(spec: dict[str, Any]) -> dict[str, Any]:
             f"'{fmt}' is not an export format.",
             fix=f"Use one of: {', '.join(FORMATS)}.",
         )
+    exe = _require_openscad()
     out = spec.get("out")
     started = time.monotonic()
 
