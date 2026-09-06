@@ -69,14 +69,20 @@ REFERENCES: dict[str, dict[str, Any]] = {
         "engine": "openfoam",
         "what": "NASA TMR 2-D zero-pressure-gradient flat plate, Re_L 5e6, kOmegaSST",
         "reference": (
-            "Cf at x = 0.97 m from the TMR SST results and the Coles/Schlichting correlation"
+            "Cf 2.690853551e-03 at x = 0.9700840712 m (CFL3D, 545x385 grid; FUN3D reads "
+            "2.690546447e-03 at the same x), SST-Vm, M 0.2, Re 5e6"
         ),
         "source": (
-            "turbmodels.larc.nasa.gov flat-plate validation page (URL moved 2026; to be "
-            "re-found - script §M row R4)"
+            "tmbwg.github.io/turbmodels flatplate_sst.html + FlatPlate/SST/cf_plate_sstv.dat "
+            "(the live successor of turbmodels.larc.nasa.gov, which now 301s to a nasa.gov "
+            "landing page pointing there)"
         ),
-        "verified": None,
+        "verified": (
+            "2026-09-06 at https://tmbwg.github.io/turbmodels/flatplate_sst.html "
+            "(values pasted from FlatPlate/SST/cf_plate_sstv.dat, owner session)"
+        ),
         "tolerance": {"cf_pct": 5.0},
+        "cf": 2.690853551e-03,
     },
 }
 
