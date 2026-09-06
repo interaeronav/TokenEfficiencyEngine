@@ -256,4 +256,5 @@ def test_wt_verify_all_passes_on_the_real_engines(app):
     _need("vspaero")
     out = call(app, "wt_verify", case="all", confirm_cost=True)
     assert out["all_pass"] is True, out
-    assert set(out["skipped_unverified"]) == {"cylinder_re40", "flatplate"}
+    assert set(out["skipped_unverified"]) == {"cylinder_re40"}
+    assert set(out["skipped_unimplemented"]) == {"flatplate"}

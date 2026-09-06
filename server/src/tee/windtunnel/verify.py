@@ -87,6 +87,11 @@ REFERENCES: dict[str, dict[str, Any]] = {
 }
 
 
+# the two cases whose runners exist; a verified reference without a runner is
+# reported as skipped_unimplemented by `all` and refuses when named directly
+_RUNNABLE = ("wing_liftslope", "naca0012_euler")
+
+
 def run(lane: Any, which: str, *, confirm_cost: bool) -> dict[str, Any]:
     names = list(REFERENCES) if which == "all" else [which]
     unknown = [n for n in names if n not in REFERENCES]
@@ -105,12 +110,20 @@ def run(lane: Any, which: str, *, confirm_cost: bool) -> dict[str, Any]:
                 fix=f"Verify {REFERENCES[n]['source']} and record the date in "
                 "verify.REFERENCES; until then the case is not a test.",
             )
-    runnable = [n for n in names if REFERENCES[n]["verified"] is not None]
+        if n not in _RUNNABLE and which != "all":
+            raise TeeError(
+                "wt_reference_unverified",
+                f"{n} is not runnable yet: its reference is verified but its runner is not built.",
+                fix="See verify.REFERENCES and verify._RUNNABLE.",
+            )
+    runnable = [n for n in names if REFERENCES[n]["verified"] is not None and n in _RUNNABLE]
     skipped = [n for n in names if REFERENCES[n]["verified"] is None]
+    unbuilt = [n for n in names if REFERENCES[n]["verified"] is not None and n not in _RUNNABLE]
     results = [_run_one(lane, n, confirm_cost=confirm_cost) for n in runnable]
     return {
         "results": results,
         "skipped_unverified": skipped,
+        "skipped_unimplemented": unbuilt,
         "all_pass": all(r["pass"] for r in results) if results else False,
     }
 
