@@ -99,6 +99,11 @@ Base URL: `https://autodeskfusion360.github.io/FusionAPIReference/Fusion_API_Doc
 | 23 | `adsk.core.ObjectCollection.create()`; `.add(entity)` | `ObjectCollection_create.htm` (add: the class page) | | ○ |
 | 24 | `adsk.core.Matrix3D.create()` — an identity matrix | `Matrix3D_create.htm` | | ○ |
 | 25 | `doc.name`, `doc.isSaved`, `doc.isModified` — read only by the lane (Law 5: `close`/`save`/`saveAs` are never called) | `Document.htm` | | ○ |
+| 26 | the collection convention `.count` / `.item(i)` on Sketches, Features, BRepBodies, Occurrences, Profiles, BRepEdges, UserParameters, ParameterList | `BRepEdges.htm`, `UserParameters.htm` (read); the others are the same class family | `UserParameters.itemByName(name)` too | ○ |
+| 27 | `extrude.extentOne` (gets/sets the extent) → `DistanceExtentDefinition.distance` — "the parameter controlling the distance. You can edit the distance by editing the value of the parameter object" | `ExtrudeFeature.htm`, `DistanceExtentDefinition.htm` | a `set` of `expression` on an extrude edits that parameter | ○ |
+| 28 | `body.isVisible`, `sketch.isVisible` — read/write | `BRepBody_isVisible.htm`, `Sketch_isVisible.htm` | | ○ |
+| 29 | `UserParameter.deleteMe()` ("only if it is a UserParameter and it is not referenced by other parameters"); `UserParameter.name` settable, must be unique | `UserParameter.htm` | | ○ |
+| 30 | `STLExportOptions.unitType` (default: the design's default units), `OBJExportOptions.unitType` (default: centimetres) | `STLExportOptions.htm`, `OBJExportOptions.htm` | the enum's name was not in the page read, so v1 never SETS it: `fu_export` declares `units: cm` for obj and reads `unitType` back raw for the record | ○ |
 
 Two facts the reference does NOT settle and the smoke must: which image
 extensions `saveAsImageFile` writes (row 19), and the add-in folder on this

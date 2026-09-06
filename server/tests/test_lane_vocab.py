@@ -20,6 +20,8 @@ from tee.adapters.blender import codegen
 from tee.adapters.blender.adapter import BlenderAdapter
 from tee.adapters.freecad import codegen as freecad_codegen
 from tee.adapters.freecad.adapter import FreeCADAdapter
+from tee.adapters.fusion import codegen as fusion_codegen
+from tee.adapters.fusion.adapter import FusionAdapter
 from tee.adapters.godot.adapter import BRIDGE_OPS, GodotAdapter
 from tee.adapters.partkiln import adapter as partkiln_adapter
 from tee.adapters.seamkiln import adapter as seamkiln_adapter
@@ -127,6 +129,19 @@ def test_freecad_ops_are_its_batch_actions():
     assert tuple(arms) == FreeCADAdapter(wire=_Silent()).vocab().ops
 
 
+def test_fusion_vocab_is_the_codegens_dispatch():
+    """A69: the kinds the codegen dispatches, the ops compile_batch arms, the
+    suffixes the ImportManager reads - and never the wire."""
+    src = inspect.getsource(fusion_codegen.compile_batch)
+    arms = re.findall(r'action == "(\w+)"', src)
+    vocab = FusionAdapter(wire=_Silent()).vocab()
+    assert tuple(arms) == vocab.ops == fusion_codegen.OPS
+    kinds = re.findall(r'if kind == "(\w+)":', inspect.getsource(fusion_codegen._emit_create))
+    assert vocab.kinds == fusion_codegen.KINDS
+    assert set(kinds) | {"component"} == set(vocab.kinds), "component is the fallthrough arm"
+    assert vocab.imports == tuple(fusion_codegen._IMPORT_OPTIONS) == fusion_codegen.IMPORT_SUFFIXES
+
+
 def test_every_shipped_lane_says_what_it_is_for():
     for vocab in (
         FakeAdapter().vocab(),
@@ -135,6 +150,7 @@ def test_every_shipped_lane_says_what_it_is_for():
         seamkiln_adapter.SeamkilnAdapter(".").vocab(),
         UnrealAdapter(wire=_Silent()).vocab(),
         FreeCADAdapter(wire=_Silent()).vocab(),
+        FusionAdapter(wire=_Silent()).vocab(),
     ):
         assert isinstance(vocab, LaneVocab) and vocab.purpose
 
