@@ -40,8 +40,13 @@ def _dims(path: Path) -> list[float]:
         from tee.assets import gltf
 
         return [float(v) for v in gltf.probe(path)["extents_m"]]
-    first = path.read_text().splitlines()[0]
-    return [float(v) for v in first.split()[2:5]]
+    lines = path.read_text().splitlines()
+    for line in lines:  # the Fusion shim's exports carry their dims on a comment line
+        if line.startswith("# tee-shim "):
+            import json
+
+            return [float(v) for v in json.loads(line[len("# tee-shim ") :])["dims_cm"]]
+    return [float(v) for v in lines[0].split()[2:5]]
 
 
 class Scene(Lane):

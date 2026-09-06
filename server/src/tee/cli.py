@@ -99,6 +99,18 @@ def _godot_lane(project: str, port: int) -> Lane:
     return Lane("godot", adapter)
 
 
+def _fusion_lane(port: int) -> Lane:
+    """A69: Autodesk Fusion, live. The bridge add-in runs inside Fusion and
+    listens on 127.0.0.1; TEE never starts Fusion. The fu_* tools register on
+    the shared app; the escape hatch only when code exec was allowed."""
+    from tee.adapters.fusion.adapter import FusionAdapter
+    from tee.adapters.fusion.tools import register_fusion_tools
+    from tee.adapters.fusion.wire import FusionWire
+
+    adapter = FusionAdapter(FusionWire(port=port))
+    return Lane("fusion", adapter, lambda app: register_fusion_tools(app, adapter))
+
+
 def build_app(
     lanes: list[Lane],
     project: str,
@@ -298,7 +310,7 @@ def _attach_gateway(app, project: str) -> None:
     register_gateway(app, Path(project))
 
 
-ADAPTER_NAMES = ("fake", "blender", "unreal", "freecad", "godot", "seamkiln", "partkiln")
+ADAPTER_NAMES = ("fake", "blender", "unreal", "freecad", "godot", "seamkiln", "partkiln", "fusion")
 
 
 def _lane(name: str, args: argparse.Namespace, blender_port: int) -> Lane:
@@ -316,6 +328,8 @@ def _lane(name: str, args: argparse.Namespace, blender_port: int) -> Lane:
         return _godot_lane(args.project, args.godot_port)
     if name == "partkiln":
         return _partkiln_lane(args.project)
+    if name == "fusion":
+        return _fusion_lane(args.fusion_port)
     raise ValueError(name)  # unreachable: cmd_serve checks every name first
 
 
@@ -353,6 +367,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
     blender_port = args.blender_port
     if blender_port == 9876 and config.blender_port:
         blender_port = config.blender_port
+    if args.fusion_port == 9881 and config.fusion_port:
+        args.fusion_port = config.fusion_port
 
     lanes = [_lane(name, args, blender_port) for name in names]
     app = build_app(
@@ -444,7 +460,7 @@ def main(argv: list[str] | None = None) -> int:
         action="append",
         metavar="NAME",
         help=(
-            "adapter to serve (fake|blender|unreal|freecad|godot|seamkiln|partkiln); "
+            "adapter to serve (fake|blender|unreal|freecad|godot|seamkiln|partkiln|fusion); "
             "repeatable - all named adapters share one server and none is the hub: an "
             "omitted adapter= routes by the batch's content (default: fake)"
         ),
@@ -460,6 +476,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     serve.add_argument(
         "--godot-port", type=int, default=9879, help="Godot bridge port (9876/9877 are Blender's)"
+    )
+    serve.add_argument(
+        "--fusion-port",
+        type=int,
+        default=9881,
+        help="Fusion bridge add-in port (9875 FreeCAD, 9876/9877 Blender, 9879 Godot)",
     )
     serve.add_argument("--project", default=".", help="project root for .tee/ memory")
     serve.add_argument("--blender-host", default="127.0.0.1", help="Blender bridge host")

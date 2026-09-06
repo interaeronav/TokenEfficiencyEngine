@@ -248,3 +248,84 @@ def test_tee_batch_routes_on_the_wire(desk):
     assert routed["ok"] and routed["adapter"] == "partkiln"
     assert routed["routed"] == "by kind; pass adapter= to pin"
     assert refused["ok"] is False and refused["error"]["code"] == "adapter_required"
+
+
+# -- A69: a lane whose application is not running is not a candidate ----------
+
+
+class Closed(Lane):
+    """A lane whose application is down - the bridge answers nothing."""
+
+    def probe(self):
+        return False
+
+
+def _cad_pair(tmp_path, *, fusion_live: bool, partkiln_live: bool = True):
+    kinds = ("sketch", "extrude", "fillet")
+    make = {True: Lane, False: Closed}
+    return TeeApp(
+        {
+            "partkiln": make[partkiln_live](
+                "partkiln", ops=("create", "set", "delete", "export"), kinds=kinds
+            ),
+            "fusion": make[fusion_live](
+                "fusion", ops=("create", "set", "delete", "param_set"), kinds=kinds
+            ),
+        },
+        project_root=tmp_path,
+    )
+
+
+def test_a_closed_lane_drops_out_when_a_live_one_takes_the_batch(tmp_path):
+    app = _cad_pair(tmp_path, fusion_live=False)
+    try:
+        sketch = [{"op": "create", "kind": "sketch", "props": {"rects": [[0, 0, 1, 1]]}}]
+        assert app.route_batch(sketch, None) == Route("partkiln", "kind")
+        out = app.run_batch("partkiln", sketch)
+        assert out["adapter"] == "partkiln"
+    finally:
+        app.shutdown()
+
+
+def test_two_live_lanes_that_both_take_it_are_still_ambiguous(tmp_path):
+    app = _cad_pair(tmp_path, fusion_live=True)
+    try:
+        with pytest.raises(TeeError) as err:
+            app.route_batch([{"op": "create", "kind": "sketch"}], None)
+        assert err.value.code == "adapter_required"
+        assert "fusion" in err.value.message and "partkiln" in err.value.message
+    finally:
+        app.shutdown()
+
+
+def test_two_closed_lanes_get_no_preference(tmp_path):
+    app = _cad_pair(tmp_path, fusion_live=False, partkiln_live=False)
+    try:
+        with pytest.raises(TeeError) as err:
+            app.route_batch([{"op": "create", "kind": "sketch"}], None)
+        assert err.value.code == "adapter_required"
+    finally:
+        app.shutdown()
+
+
+def test_a_single_taker_never_probes(tmp_path):
+    """The refinement costs nothing on the common path: only a tie asks."""
+    probes = []
+
+    class Counting(Lane):
+        def probe(self):
+            probes.append(self._name)
+            return True
+
+    app = TeeApp(
+        {
+            "partkiln": Counting("partkiln", kinds=("sketch",)),
+            "fusion": Counting("fusion", ops=("create", "param_set"), kinds=("param",)),
+        },
+        project_root=tmp_path,
+    )
+    try:
+        assert app.route_batch([{"op": "create", "kind": "sketch"}], None).adapter == "partkiln"
+        assert probes == []
+    finally:
+        app.shutdown()

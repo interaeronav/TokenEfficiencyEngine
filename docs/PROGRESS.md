@@ -12485,3 +12485,48 @@ mechanism there is; `entityToken` + `findEntityByToken` is the stable
 identity; the ImportManager reads STEP/IGES/SAT/f3d and no mesh format. Not
 settled by the reference and left to the smoke: which image extensions
 `Viewport.saveAsImageFile` writes.
+
+**P1 — the bridge and the wire** (`4e23341`). `adapters/fusion/tee_bridge/TEE/`
+(MIT): one daemon I/O thread, NUL-framed JSON, one request per connection;
+each request parked in a task table and announced with
+`Application.fireCustomEvent`; the `CustomEventHandler` Fusion services when
+idle executes the frame on the primary thread and releases the waiting
+socket thread — Autodesk's own MCP sample's mechanism, read in full. A ping
+takes the same hop, so a bridge whose primary thread is held by a modal
+dialog looks down (the FreeCAD SI-B12 lesson). `FusionWire` is the Blender
+wire's shape with Fusion's refusals and the install fix. Twenty-three tests
+drive the add-in's own code without Fusion: a real listener on an ephemeral
+port, a stub primary thread, the wire on the other end, the run/stop glue
+against a fake `adsk.core` speaking the verified names.
+
+**P2 — codegen, adapter, shim** (`98df3a0`). One batch → one script → one
+JSON-shaped result; every emitted call a row in doc 71 §3 (thirty rows now
+— the collection convention, `extentOne.distance`, the visibility setters,
+`UserParameter.deleteMe`/`itemByName` and the mesh exporters' `unitType`
+found while writing it). Millimetres on the wire with the unit in every
+`ValueInput` string, centimetres inside, one conversion per read-back;
+`setDistanceExtent` never emitted and the shim raises if it is. Short ids
+minted over `entityToken` and kept both ways. `FusionAdapter`: the seven kit
+methods + `vocab()`, batches pre-validated so a malformed op never crosses
+the wire, checkpoints = timeline marker + every parameter expression with
+the payload saying what is not restored, the direct-design refusal, capture
+at the Blender rungs with jpg-then-png left to the smoke.
+`tests/fixtures_fusion.py` is a fake `adsk` the generated scripts execute
+against, in Fusion's units; the kit contract passes on it and a 120×80×10 mm
+plate reads back 96,000 mm³.
+
+**P3 — tools, tables, CLI, routing, docs.** `fu_probe`, `fu_export` (step /
+stl / obj / f3d with `into=` through `handoff_import.land`; OBJ declared as
+Fusion's default centimetres, STL declared as unknown rather than guessed),
+`fu_measure`, `fu_params`, `fu_timeline`, and `fu_execute_python` — tabled
+individually (one `exec-code`, one writer, four reads), the escape hatch
+registering only with `--allow-code-exec` and the kernel deciding it per
+call. `("fu_", "fusion")` in the lane table; `tee serve --adapter fusion
+[--fusion-port]`, `[fusion] port`, `tee doctor`'s `fusion-bridge` check.
+The A68 router gained one refinement: when several lanes take a batch and at
+least one is connected, the disconnected ones drop out — Fusion's vocabulary
+overlaps partkiln's on `sketch`/`extrude`/`fillet`, and a closed Fusion must
+not make every adapter-less sketch ambiguous; both live still refuses naming
+both, and a single taker never probes. `docs/fusion-lane.md`, README,
+quickstart and troubleshooting rows. The Desktop manifest is unchanged by
+decision. Fusion-touching test files: 217 passed.

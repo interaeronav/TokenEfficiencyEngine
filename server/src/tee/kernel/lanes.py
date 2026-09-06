@@ -36,6 +36,7 @@ _FAMILY: tuple[tuple[str, str], ...] = (
     ("fc_", "freecad"),
     ("pk_", "partkiln"),
     ("sk_", "seamkiln"),
+    ("fu_", "fusion"),  # A69
 )
 
 # Explicit rows win over families: tools whose name says nothing about
@@ -70,7 +71,7 @@ _EXPLICIT: dict[str, str] = {
 
 # What the model is told, once, in the instructions (P2).
 LEGEND = (
-    "bl_/hb_ Blender, pk_ partkiln, sk_ seamkiln, ue_/pin_ Unreal, fc_ FreeCAD; "
+    "bl_/hb_ Blender, pk_ partkiln, sk_ seamkiln, ue_/pin_ Unreal, fc_ FreeCAD, fu_ Fusion; "
     "pc_/pdf_/ex_/sense_/kb_/solve_/quant_/med_ and the rest are headless and need no lane"
 )
 

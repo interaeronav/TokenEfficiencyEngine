@@ -121,3 +121,17 @@ rm -rf ~/Library/Caches/FreeCAD/v1-1/Cache/FreeCAD_Doc_* ~/Library/Caches/FreeCA
 FreeCAD's user cache directory.) The benchmark battery probes for this
 state and skips the fabrication scenario with this page's fix instead
 of hanging.
+
+## Fusion bridge (A69)
+
+| Symptom | Cause / fix |
+|---|---|
+| `fusion_unreachable` | Nothing listening on :9881 — run the TEE add-in inside Fusion (Utilities → Add-Ins → Scripts and Add-Ins → TEE → Run); `tee doctor` shows `fusion-bridge`; `--fusion-port` / `[fusion] port` if it moved |
+| `fusion_wire_failed` "did not answer within N s" | The port is open but Fusion's primary thread is not servicing events — a modal dialog holds it (the FreeCAD lesson above). Bring the Fusion window forward and dismiss it |
+| `fusion_no_design` | No design is open — File → New Design, then retry; `fu_probe` says which document is active |
+| `fusion_direct_design` on `tee_checkpoint` | The design captures no history, so there is no timeline to roll back — Design Settings → Capture Design History, or work without rollback |
+| `fusion_bridge_error` | Fusion's own exception; the message is the traceback's last lines. Fix what it names and resend; nothing after the failing op ran |
+| `fusion_unknown_entity` | An id this bridge session does not know (a bridge restart renumbers) — `tee_scene_summary(adapter=fusion, refresh=true)` |
+| `capture_needs_pillow` | Fusion wrote a PNG and Pillow is missing — `uv pip install pillow` |
+| `adapter_required` naming fusion and partkiln | Both applications are live and both take the batch — pass `adapter=`; a closed Fusion never competes |
+

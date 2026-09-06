@@ -351,6 +351,14 @@ _EXPLICIT: dict[str, str] = {
     "pk_export": "write-artifacts",
     "pk_flat": "write-artifacts",
     "pk_import": "write-scene",
+    # --- A69: the Fusion lane. One escape hatch, one writer, four reads;
+    # tabled individually like pk_* (no fu_ family row). ---
+    "fu_probe": "read-compute",
+    "fu_measure": "read-compute",
+    "fu_params": "read-scene",
+    "fu_timeline": "read-scene",
+    "fu_export": "write-artifacts",
+    "fu_execute_python": "exec-code",  # arbitrary Python on Fusion's primary thread
     "pk_script": "write-scene",  # its replay action mutates the live document
     # --- gateway control. Accepting a drifted backend fingerprint is a
     # TRUST decision about a third party, not a read - so it is policy

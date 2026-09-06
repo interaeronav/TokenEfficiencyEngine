@@ -401,6 +401,13 @@ class TeeApp:
         candidates = set(served)
         for _, takers in per_op:
             candidates &= takers
+        if len(candidates) > 1:
+            # A69: route where the work can run. Fusion's vocabulary overlaps
+            # partkiln's on sketch/extrude/fillet, so a closed Fusion must not
+            # make every adapter-less sketch ambiguous; both live IS ambiguous.
+            live = {name for name in candidates if self._connected(name)}
+            if live and len(live) < len(candidates):
+                candidates = live
         if len(candidates) == 1:
             lane = next(iter(candidates))
             how = next(k for k in ("id", "kind", "op") if any(kk == k for kk, _ in per_op))

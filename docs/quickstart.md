@@ -2,7 +2,8 @@
 
 TEE is an MCP server. Install it, point your MCP client at it, and drive
 your lanes through compact, diff-based tools: Blender or Unreal for scenes
-and pixels, partkiln for mechanical CAD, seamkiln for garments, and the
+and pixels, partkiln for mechanical CAD, seamkiln for garments, Fusion for the
+parametric design you have open, and the
 headless kernel lanes (point clouds, PDFs, extraction, senses, the fleet)
 that never need a DCC at all. One server holds several lanes and none is
 the hub (see *Lanes* below).
@@ -110,10 +111,14 @@ and an honest refusal naming its install. **No lane is the default** (A68):
   can render.
 - `tee_status` names each lane's purpose, ops, kinds and tool families.
   Prefixes: `bl_`/`hb_` Blender, `pk_` partkiln, `sk_` seamkiln, `ue_`/`pin_`
-  Unreal, `fc_` FreeCAD; `pc_`, `pdf_`, `ex_`, `sense_`, `kb_` and the fleet
+  Unreal, `fc_` FreeCAD, `fu_` Fusion; `pc_`, `pdf_`, `ex_`, `sense_`, `kb_` and the fleet
   need no lane.
 - An operator who wants a tie-breaker declares one:
   `--default-adapter NAME`; `tee_status` reports it.
+- Fusion is a live lane: run the TEE bridge add-in inside Fusion, then
+  `tee serve --adapter fusion` — [fusion-lane.md](fusion-lane.md). Beside
+  partkiln, a batch both could take goes to the one whose application is
+  running; both live is refused naming both.
 - A headless lane never touches a DCC. An export lands in a scene lane only
   when told (`pk_export ... into=blender`), and pixels only come from a lane
   that renders.

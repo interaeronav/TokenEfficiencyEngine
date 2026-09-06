@@ -165,6 +165,38 @@ def check_blender_bridge(port: int = BRIDGE_PORT) -> Check:
     return Check("blender-bridge", "ok", f"Blender {result.get('v')} ({mode}) on :{port}")
 
 
+def check_fusion_bridge(port: int = 9881) -> Check:
+    """A69: the TEE bridge add-in inside Fusion. A port that answers a ping
+    is up; a port that is open but silent is Fusion's primary thread held by
+    a modal dialog (the FreeCAD lesson), reported as such."""
+    if not _port_open("127.0.0.1", port):
+        return Check(
+            "fusion-bridge",
+            "warn",
+            f"nothing listening on 127.0.0.1:{port}",
+            fix="In Fusion: Utilities > Add-Ins > Scripts and Add-Ins, add "
+            "adapters/fusion/tee_bridge/TEE and Run it (docs/fusion-lane.md).",
+        )
+    from tee.adapters.fusion.wire import FusionWire
+    from tee.kernel.errors import TeeError
+
+    try:
+        ping = FusionWire(port=port, connect_timeout=1.0).ping()
+    except TeeError as exc:
+        return Check(
+            "fusion-bridge",
+            "warn",
+            f"port {port} is open but the bridge did not answer a ping ({exc.code})",
+            fix="A modal dialog may be holding Fusion's primary thread - check the "
+            "Fusion window; or another program holds the port (set TEE_FUSION_PORT).",
+        )
+    document = ping.get("document") or "no document open"
+    design = ping.get("design") or "no design"
+    return Check(
+        "fusion-bridge", "ok", f"Fusion {ping.get('version')} on :{port}, {document} ({design})"
+    )
+
+
 def check_bpy_wheel_abi() -> Check:
     minor = sys.version_info.minor
     if minor == 11:
@@ -651,6 +683,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_unreal(),
         check_voxkiln(),
         check_partkiln(),
+        check_fusion_bridge(),
         check_kb(),
         check_web(),
         check_state(),

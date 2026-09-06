@@ -32,6 +32,7 @@ def test_families_and_explicit_rows_resolve():
     assert lanes.lane_for("fc_drawing") == "freecad"
     assert lanes.lane_for("pk_export") == "partkiln"
     assert lanes.lane_for("sk_fit") == "seamkiln"
+    assert lanes.lane_for("fu_export") == "fusion"
     assert lanes.lane_for("wall_with_openings") == "blender"
     assert lanes.lane_for("as_import") == lanes.ADAPTER_ARG
     assert lanes.lane_for("uefn_place_device") == "uefn"
