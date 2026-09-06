@@ -12703,6 +12703,20 @@ known environmental failure (`test_fleet_solve::test_bad_specs…` needs the
 clean. Pushed as five commits on top of A69; PR #1 carries all three
 campaigns.
 
+**The smoke as one test** (`031b394`). `tests/test_fusion_live.py` (`-m
+dcc`) drives `docs/fusion-lane.md` steps 1–11 against the real add-in in
+one sitting: it skips when no add-in answers, when no design is open, when
+the design is direct-modeling, and — so it can never touch the owner's work
+— when the active design is not empty; it saves nothing. It prints and
+writes every fact §9 leaves to the smoke (the capture extension, a bare
+rectangle's own constraints, a face hole's default direction, which
+occurrence a joint moved, the unit each of the eight exports declares —
+measured from the file's extents against the 120 mm plate for OBJ and STL,
+read from the global section, header, model element or `metersPerUnit`
+for the rest) to `fusion-live-facts.json`. `fu_measure` of a component now
+measures the occurrence where it sits, through its proxy bodies (rows 12,
+47), so a joint's move is visible to it.
+
 Open at the tail of A70: the Mac smoke, steps 7–11 (§9 items 4–7); the PDF
 export of an open drawing (row 49, verified, no emitter); shells / sweeps /
 lofts / threads / arcs / joint origins / motion links; the version cut
