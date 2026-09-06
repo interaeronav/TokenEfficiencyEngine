@@ -3,10 +3,17 @@ against the real TEE add-in, in one sitting.
 
     cd server && UV_FROZEN=1 uv run pytest -q -s -m dcc tests/test_fusion_live.py
 
-Skips cleanly when no add-in answers on 127.0.0.1:9881, when no design is
-open, when the design is direct-modeling, and - so it can never touch your
-work - when the active design is not EMPTY: open File > New Design first.
-Everything it makes stays in that unsaved design; close it without saving.
+Skips cleanly when no bridge add-in answers - the TEE add-in on 127.0.0.1:9881
+or the FusionMcpBridge on :8766, whichever the machine runs (A71) - when no
+design is open, when the design is direct-modeling, and - so it can never
+touch your work - when the active design is not EMPTY: open File > New Design
+first. Everything it makes stays in that unsaved design; close it without
+saving.
+
+A71: with TEE_FUSION_SCRATCH_DESIGN=1 and NO document open, the harness (not
+the lane) opens a fresh untitled design over the bridge before the smoke and
+closes that one document without saving afterwards - the calls doc 71 row 51
+records, verified live. A design the owner has open is never used or closed.
 
 Every fact doc 71 section 9 leaves to the smoke is measured here and
 printed (run with -s), then written to fusion-live-facts.json in the test's
@@ -31,11 +38,35 @@ import pytest
 
 from tee.adapters.fusion.adapter import FusionAdapter
 from tee.adapters.fusion.tools import register_fusion_tools
-from tee.adapters.fusion.wire import FusionWire
+from tee.adapters.fusion.wire import FusionAutoWire, FusionWire
 from tee.app import TeeApp
 from tee.kernel.errors import TeeError
 
 pytestmark = pytest.mark.dcc
+
+# Doc 71 row 51 (harness only, never emitted by the lane): a fresh untitled
+# parametric design, and the close of exactly that document without saving.
+OPEN_DESIGN = """\
+import adsk.core
+_app = adsk.core.Application.get()
+_doc = _app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+result = {"document": str(_doc.name), "documents": _app.documents.count}
+"""
+CLOSE_DESIGN = """\
+import adsk.core
+_app = adsk.core.Application.get()
+_closed = False
+for _i in range(_app.documents.count):
+    _d = _app.documents.item(_i)
+    if str(_d.name) == %r:
+        _closed = bool(_d.close(False)); break
+result = {"closed": _closed, "documents": _app.documents.count}
+"""
+
+
+def _scratch_wanted() -> bool:
+    return os.environ.get("TEE_FUSION_SCRATCH_DESIGN") == "1"
+
 
 PLATE_MM3 = 120.0 * 80.0 * 10.0
 HOLE_R = 3.3
@@ -43,24 +74,56 @@ HOLE_MM3 = math.pi * HOLE_R * HOLE_R * 10.0
 
 
 def _live_wire() -> FusionWire:
-    wire = FusionWire(port=int(os.environ.get("TEE_FUSION_PORT", "9881")))
+    wire = FusionAutoWire(
+        port=int(os.environ.get("TEE_FUSION_PORT", "9881")),
+        http_port=int(os.environ.get("TEE_FUSION_HTTP_PORT", "8766")),
+    )
     if not wire.probe():
         pytest.skip(
-            "no TEE add-in answering on 127.0.0.1:9881 - in Fusion: Utilities > Add-Ins > "
-            "Scripts and Add-Ins, add adapters/fusion/tee_bridge/TEE and Run it"
+            "no Fusion bridge answering - the TEE add-in on 127.0.0.1:9881 (Utilities > "
+            "Add-Ins > Scripts and Add-Ins, add adapters/fusion/tee_bridge/TEE and Run it) or "
+            "the FusionMcpBridge on :8766 (auto-starts with Fusion once installed)"
         )
+    print(f"\n  [wire] {wire.transport} on :{wire.port}")
     return wire
+
+
+def _open_scratch(wire: FusionWire, app: TeeApp) -> tuple[dict, str | None]:
+    """The active design, opening a scratch one only when nothing is open and
+    the owner asked for it (TEE_FUSION_SCRATCH_DESIGN=1)."""
+    probe = app.registry.call("fu_probe", {})
+    if probe.get("design") is None and _scratch_wanted():
+        opened = str(wire.execute(OPEN_DESIGN, timeout=30.0)["document"])
+        print(f"  [harness] opened scratch design {opened!r}")
+        return app.registry.call("fu_probe", {}), opened
+    return probe, None
+
+
+def _close_scratch(wire: FusionWire, opened: str | None) -> None:
+    if opened is None:
+        return
+    try:
+        out = wire.execute(CLOSE_DESIGN % opened, timeout=30.0)
+    except TeeError as exc:
+        print(f"  [harness] could not close {opened!r}: {exc.code} {exc.message}")
+        return
+    print(f"  [harness] closed scratch design {opened!r} without saving: {out}")
 
 
 @pytest.fixture()
 def served(tmp_path):
-    adapter = FusionAdapter(_live_wire(), workdir=str(tmp_path / "work"))
+    wire = _live_wire()
+    adapter = FusionAdapter(wire, workdir=str(tmp_path / "work"))
     app = TeeApp({"fusion": adapter}, project_root=tmp_path)
     register_fusion_tools(app, adapter)
+    opened = None
     try:
-        probe = app.registry.call("fu_probe", {})
+        probe, opened = _open_scratch(wire, app)
         if probe.get("design") is None:
-            pytest.skip("no design is open: File > New Design, then re-run")
+            pytest.skip(
+                "no design is open: File > New Design, then re-run (or set "
+                "TEE_FUSION_SCRATCH_DESIGN=1 to let the harness open and close one)"
+            )
         if probe.get("design") != "parametric":
             pytest.skip("the design is direct-modeling: Design Settings > Capture Design History")
         if probe.get("bodies") or probe.get("timeline"):
@@ -70,6 +133,7 @@ def served(tmp_path):
             )
         yield app, adapter, probe
     finally:
+        _close_scratch(wire, opened)
         app.shutdown()
 
 
@@ -177,6 +241,7 @@ def _hole(**props):
 def test_the_smoke(served, tmp_path):
     app, adapter, probe = served
     facts = _Facts(tmp_path / "fusion-live-facts.json")
+    facts.note("bridge", f"{adapter.wire.transport} on :{adapter.wire.port}")
     facts.note("fusion_version", probe.get("version"))
     facts.note("document", probe.get("document"))
 
@@ -247,6 +312,10 @@ def test_the_smoke(served, tmp_path):
     assert _near(app.registry.call("fu_measure", {"of": "b1"})["volume_mm3"], PLATE_MM3)
 
     # -- step 4: checkpoint, a boss, rollback, capture -------------------------
+    # The boss sketch lies on the XY plane at z=0, INSIDE the 10 mm plate; a
+    # 5 mm join extrude there adds nothing (the first live run measured exactly
+    # 96,000 -> 96,000 on Fusion 2704.1.53 - the shim sums volumes and cannot
+    # know). 15 mm reaches 5 mm above the plate, so the join adds pi*10^2*5.
     boss = app.run_batch(
         "fusion",
         [
@@ -259,7 +328,7 @@ def test_the_smoke(served, tmp_path):
             {
                 "op": "create",
                 "kind": "extrude",
-                "props": {"sketch": "sk3", "distance": 5, "operation": "join"},
+                "props": {"sketch": "sk3", "distance": 15, "operation": "join"},
             },
         ],
     )
@@ -319,6 +388,11 @@ def test_the_smoke(served, tmp_path):
     )
     chamfer = next(v for k, v in diff["details"].items() if v.get("type") == "ChamferFeature")
     facts.note("top_face_edges_chamfered", chamfer["edges"])
+    # A 10 x 20 mm rectangle spanning y 20..40 - its centroid sits 30 mm off the
+    # x axis, so Pappus gives 2*pi*200*30 = 37,699 mm^3, the tube r 20..40 of
+    # length 10. (The first live run drew y 20..30 - a 10 x 10 profile at
+    # centroid 25 - and Fusion answered its true 2*pi*100*25 = 15,708 mm^3; the
+    # expectation, and the shim that agreed with it, were the ones in error.)
     diff = app.run_batch(
         "fusion",
         [
@@ -326,7 +400,7 @@ def test_the_smoke(served, tmp_path):
                 "op": "create",
                 "kind": "sketch",
                 "name": "pin_profile",
-                "props": {"rects": [[0, 20, 10, 30]]},
+                "props": {"rects": [[0, 20, 10, 40]]},
             },
             {
                 "op": "create",
@@ -337,6 +411,8 @@ def test_the_smoke(served, tmp_path):
         ],
     )
     pin = next(v for k, v in diff["details"].items() if v.get("kind") == "body" and k != "b1")
+    facts.note("revolve_volume_mm3", pin["volume_mm3"])
+    facts.note("revolve_bbox_mm", pin["bbox_mm"])
     facts.note(
         "revolve_pappus_matches", _near(pin["volume_mm3"], 2 * math.pi * 200.0 * 30.0, rel=0.01)
     )
@@ -391,7 +467,12 @@ def test_the_smoke(served, tmp_path):
             }
         ],
     )
-    joint_id = next(k for k, v in diff["details"].items() if v.get("kind") == "joint")
+    # The kernel trims detail fields that echo the op (hard rule 2): a lone
+    # joint op maps to its one created id, so `kind`, `name` and `motion` are
+    # dropped from the row - `created` is the address (measured live: the row
+    # arrived as between/angle_deg/offset_mm/rotation_deg only).
+    joint_id = next(k for k in diff["created"] if k.startswith("j"))
+    facts.note("joint_row_keys", sorted(diff["details"][joint_id]))
     after = {c: app.registry.call("fu_measure", {"of": c})["centre_of_mass_mm"] for c in comps}
     moved = [
         c
@@ -445,12 +526,14 @@ def test_drawing_through_partkiln(tmp_path):
     pytest.importorskip("partkiln")
     from tee.adapters.partkiln.adapter import PartkilnAdapter
 
-    adapter = FusionAdapter(_live_wire(), workdir=str(tmp_path / "work"))
+    wire = _live_wire()
+    adapter = FusionAdapter(wire, workdir=str(tmp_path / "work"))
     kiln = PartkilnAdapter(tmp_path / "pk")
     app = TeeApp({"fusion": adapter, "partkiln": kiln}, project_root=tmp_path)
     register_fusion_tools(app, adapter)
+    opened = None
     try:
-        probe = app.registry.call("fu_probe", {})
+        probe, opened = _open_scratch(wire, app)
         if probe.get("design") is None:
             pytest.skip("no design is open")
         if not probe.get("bodies"):
@@ -474,4 +557,5 @@ def test_drawing_through_partkiln(tmp_path):
         )
         assert Path(out["step"]).is_file()
     finally:
+        _close_scratch(wire, opened)
         app.shutdown()
