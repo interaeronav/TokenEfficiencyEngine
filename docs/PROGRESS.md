@@ -12696,4 +12696,14 @@ real script: TEE 270 vs 8,833 tokens, 96.9% saved (doc 71 §8.1 carries the
 correction). The always-loaded surface is unchanged at 17 tools. Docs:
 `docs/fusion-lane.md` (the v2 ops, addresses and faces, the eight exports,
 `fu_drawing`, smoke steps 7–11, "Not yet"), troubleshooting rows for the
-v2 refusals, README and quickstart, CHANGELOG Unreleased, doc 71 §8.3.
+v2 refusals, README and quickstart, CHANGELOG Unreleased, doc 71 §8.3. Full
+suite on the P5 tree: 1,647 passed, 66 skipped, 113 deselected, and the one
+known environmental failure (`test_fleet_solve::test_bad_specs…` needs the
+`[solve]` extra this machine lacks — CI carries it and passes); `make lint`
+clean. Pushed as five commits on top of A69; PR #1 carries all three
+campaigns.
+
+Open at the tail of A70: the Mac smoke, steps 7–11 (§9 items 4–7); the PDF
+export of an open drawing (row 49, verified, no emitter); shells / sweeps /
+lofts / threads / arcs / joint origins / motion links; the version cut
+(owner's call).
