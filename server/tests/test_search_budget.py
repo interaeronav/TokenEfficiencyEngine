@@ -33,6 +33,20 @@ them. The table is unmoved - 3 still misses exactly one, 5 still finds all 33
 - so four more tools cost the search nothing. That is the result worth having:
 the case for progressive disclosure is that the corpus can grow without the
 reach getting worse, and this is the file that would catch it if it did.
+
+RE-MEASURED 2026-09-06 (A68) at 98 tools, after the thirteen `wt_*` wind-tunnel
+tools registered and nine cases were added for them:
+
+    limit 3   40/42      limit 5   42/42
+    limit 8   42/42      limit 10  42/42
+
+Five still finds everything. Three now misses TWO: the A66 witness "size from
+an image" -> `ex_estimate` slid from rank 4 to rank 5 (`sk_body` and
+`cad_scad_build` mention a size), and "which cfd solver is running" ->
+`wt_status` sits at rank 4 behind `wt_probe`, `solve_backends` and `wt_run`,
+which all own one of its words honestly. The vocabulary law held: no `wt_*`
+name or tag carries check / drawing / image / size / document, so the two
+older witnesses were not displaced by name.
 """
 
 from __future__ import annotations
@@ -48,6 +62,7 @@ from tee.kernel.adapter import FakeAdapter
 from tee.pdf import register_pdf_tools
 from tee.pointcloud.tools import register_pointcloud_tools
 from tee.senses import register_sense_tools
+from tee.windtunnel.tools import register_windtunnel_tools
 
 CASES = [
     ("write a pdf report", "pdf_compose"),
@@ -93,6 +108,17 @@ CASES = [
     # or an image, so a default of 3 would lose it.
     ("size from an image", "ex_estimate"),
     ("find the best allocation", "quant_optimize"),
+    # A68: the wt_* lane, thirteen tools, must be findable without displacing
+    # the rest; the last one is the new rank-4 witness
+    ("wind tunnel test of a wing", "wt_case"),
+    ("lift and drag coefficients", "wt_result"),
+    ("angle of attack sweep polar", "wt_sweep"),
+    ("mesh an airfoil for cfd", "wt_mesh"),
+    ("reynolds number at altitude", "wt_conditions"),
+    ("is openfoam installed", "wt_probe"),
+    ("render the pressure field", "wt_view"),
+    ("sample velocity along a line", "wt_probe_field"),
+    ("which cfd solver is running", "wt_status"),
 ]
 
 
@@ -104,6 +130,7 @@ def registry():
     register_sense_tools(app, root)
     register_pdf_tools(app, root)
     register_pointcloud_tools(app, root)
+    register_windtunnel_tools(app, root)
     return app.registry
 
 
@@ -125,7 +152,8 @@ def test_three_would_not_have_been_enough(registry):
     smallest defensible-looking number.
 
     A66: the witness is now "size from an image" -> ex_estimate at rank 4.
-    Recall over CASES is 28/29 at limit 3 and 29/29 at 5, 8 and 10."""
+    Recall over CASES is 28/29 at limit 3 and 29/29 at 5, 8 and 10.
+    A68: 40/42 at 3 (two witnesses at rank 4 and 5), 42/42 at 5."""
     beyond_three = [
         query
         for query, want in CASES
@@ -147,8 +175,8 @@ def test_the_rebaselined_recall_table_holds(registry):
         )
         for limit in (3, 5, 8, 10)
     }
-    assert recall == {3: len(CASES) - 1, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
-    assert len(CASES) == 33  # 2026-09-04, an 85-tool registry (67 before pk_*)
+    assert recall == {3: len(CASES) - 2, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
+    assert len(CASES) == 42  # 2026-09-06, a 98-tool registry (85 before wt_*, 67 before pk_*)
 
 
 def test_the_reply_stays_small(registry):

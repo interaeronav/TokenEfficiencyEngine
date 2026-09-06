@@ -227,3 +227,28 @@ def test_partkiln_check_is_not_fooled_by_the_source_directory(tmp_path, monkeypa
     check = doctor.check_partkiln()
     assert check.status == "warn"
     assert "kernel absent" in check.detail
+
+
+def test_windtunnel_check_names_versions_or_the_install_lines(tmp_path, monkeypatch):
+    """A68: the doctor row names every engine it found with its version and
+    every absent one with its install line - version probes only."""
+    from fixtures_windtunnel import install_fakes
+
+    cfg = install_fakes(tmp_path / "engines")
+    (tmp_path / ".tee").mkdir()
+    (tmp_path / ".tee" / "config.toml").write_text(
+        "[windtunnel]\n" + "\n".join(f'{k} = "{v}"' for k, v in cfg.items()) + "\n"
+    )
+    check = doctor.check_windtunnel(tmp_path)
+    assert check.status == "ok"
+    assert "su2 8.4.0" in check.detail and "vspaero 3.51.3" in check.detail
+    assert "pvpython 5.11.2" in check.detail and "openfoam" in check.detail
+    monkeypatch.setattr("shutil.which", lambda name: None)
+    monkeypatch.setattr("tee.windtunnel.engines.glob.glob", lambda pattern, **kw: [])
+    monkeypatch.setattr("tee.windtunnel.engines._foam_candidates", lambda: [])
+    monkeypatch.setattr("pathlib.Path.home", classmethod(lambda cls: tmp_path / "nohome"))
+    monkeypatch.delenv("SU2_RUN", raising=False)
+    absent = doctor.check_windtunnel(tmp_path / "elsewhere")
+    assert absent.status == "warn" and absent.detail == "no engine found"
+    assert "openfoam" in absent.fix.lower() or "apt-get" in absent.fix or "brew" in absent.fix
+    assert any(c.name == "windtunnel" for c in doctor.run_checks())

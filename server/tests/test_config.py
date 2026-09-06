@@ -111,3 +111,24 @@ def test_cli_flag_wins_over_absent_config(tmp_path):
         assert app.allow_code_exec is True
     finally:
         app.shutdown()
+
+
+def test_windtunnel_table_is_passed_through_and_a_non_table_is_named(tmp_path):
+    """A68: `[windtunnel]` carries engine paths and the cost gate; the lane
+    validates each path itself (a wrong path refuses loudly at use)."""
+    write_config(
+        tmp_path,
+        '[windtunnel]\nopenfoam = "/opt/openfoam2606"\ncores = 4\nconfirm_above_s = 120\n',
+    )
+    config = ProjectConfig.load(tmp_path)
+    assert config.windtunnel == {
+        "openfoam": "/opt/openfoam2606",
+        "cores": 4,
+        "confirm_above_s": 120,
+    }
+    assert config.warning is None
+    write_config(tmp_path, 'windtunnel = "openfoam"\n')
+    config = ProjectConfig.load(tmp_path)
+    assert config.windtunnel == {}
+    assert "[windtunnel] must be a table" in config.warning
+    assert ProjectConfig.load(tmp_path / "nowhere").windtunnel == {}

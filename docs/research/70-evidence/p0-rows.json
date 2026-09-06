@@ -1,0 +1,328 @@
+{
+ "measured_on": "2026-09-06, Linux container Ubuntu 24.04.4 x86_64, 4 cores, 15 GB, no display, Python 3.11.15",
+ "L1_openfoam_apt": {
+  "packages": {
+   "openfoam": "1912.200626-2build3 (128,576 KB)",
+   "libopenfoam": "167,363 KB",
+   "openfoam-examples": "123,890 KB (its files are stripped by the container's dpkg doc exclusion: 9,905 paths listed, 2 on disk)"
+  },
+  "binaries": "/usr/bin/{blockMesh,snappyHexMesh,simpleFoam,pisoFoam,pimpleFoam,rhoSimpleFoam,postProcess,foamToVTK,checkMesh,surfaceFeatureExtract,decomposePar,reconstructPar,foamDictionary}; no surfaceFeatures (that is the Foundation's name)",
+  "direct_invocation": "FAILS: 'Could not find mandatory etc entry controlDict' - the binaries need the environment",
+  "entry_script": "/usr/share/openfoam/etc/openfoam <app> args works (exit 0) but prints 'missing META-INFO' and foamEtcFile/foamCleanPath warnings (Debian ships no bin/ scripts)",
+  "bashrc": "bash -c 'source /usr/share/openfoam/etc/bashrc; exec <app> args' is clean; WM_PROJECT_VERSION=v1912, WM_PROJECT=OpenFOAM, WM_PROJECT_DIR=/usr/share/openfoam",
+  "mpirun": "/usr/bin/mpirun (Open MPI 4.1.6)",
+  "function_objects": "BROKEN in this build: every function object (forceCoeffs with either libs spelling, the tutorial's own block, residuals, simpleFoam -postProcess) dies at 'Starting time loop' with: FOAM FATAL IO ERROR: error in IOstream \"sha1\" for operation Foam::Ostream& Foam::operator<<(Ostream&, const word&). A case with no functions entry runs. runTimeModifiable false does not help.",
+  "decides": "the invocation route table in engines.py (bashrc on Linux apt, entry script on the Mac app); apt 1912 cannot produce coefficient files, so the container P0 measurements of forceCoeffs move to an openfoam.com package if reachable, else to TEE's own force integrator"
+ },
+ "L2_tunnel_case": {
+  "case": "TEE-written NACA 0012 O-mesh (ni 160 x nj 80 = 12,800 cells, growth 1.1734, farfield 50 c, first cell 2.39e-5 m for y+ 1 at Re 2.05e6, V 30 m/s, alpha 4 deg), kOmegaSST low-Re, written as polyMesh directly (no blockMesh)",
+  "mesh_write_s": 0.33,
+  "checkMesh": "runs on the TEE polyMesh: 12,800 cells; Max skewness 14.98 (8 highly skewed faces at the trailing edge) -> 1 failed check; max aspect ratio 728 (the y+ 1 first cells)",
+  "simpleFoam_without_functions": "runs (Time = 1, 2 ...) - the mesh and the dictionaries are accepted",
+  "simpleFoam_with_forceCoeffs": "refused by the apt build's function-object defect (L1)",
+  "v2606_run": "TEE-written NACA 0012 O-mesh, ni 160 x nj 80 = 12,800 cells (arc-length farfield mapping), kOmegaSST low-Re, V 30 m/s alpha 4 deg, Re 2.05e6: residualControl stop at 189 iterations, wall 5.73 s, RSS 80 MB, 1 core; residuals Ux 8.5e-7, Uy 9.8e-6, p 2.6e-6, k 5.0e-8, omega 1.0e-8 (no bounding)",
+  "coefficients": "Cl 0.4361 (window mean 0.4358, spread 0.001), Cd 0.01107, CmPitch 0.0005 with Aref = chord x slab thickness (0.1 m) - thin-airfoil Cl 2*pi*alpha = 0.4386 (-0.6 %); Abbott & von Doenhoff Cd ~0.0095-0.0100 at Re 2-3e6 (+11 %, coarse mesh)",
+  "first_measurement_defect": "with Aref = 1 the coefficients were 10x small: a 2-D slab's reference area is chord x thickness (now returned by write_polymesh and used by the writer)",
+  "k_openfoam_us_per_cell_iteration": 2.364,
+  "log_bytes_per_iteration": 736,
+  "checkMesh_v2606": "12,800 cells, max skewness 14.98 with 8 skewed faces (the skewFaces set), max aspect ratio 727 (the y+ 1 first cells); the run converged regardless"
+ },
+ "L5_su2": {
+  "binary": "SU2-v8.4.0-linux64.zip, 30.9 MB, static executables SU2_CFD/SU2_DEF/SU2_DOT/SU2_GEO/SU2_SOL + Python driver scripts; no pysu2",
+  "quickstart_official_mesh": "NDIME 2, NELEM 10,216, NPOIN 5,233; inv_NACA0012.cfg M 0.8 alpha 1.25: converged in 147 iterations (Cauchy on RMS_DENSITY), wall 9.85 s, RSS 41 MB (1 core)",
+  "result": "CL 0.328486, CD 0.021481 (screen table columns CL, CD)",
+  "history_csv": "only residual columns by default: \"Time_Iter\",\"Outer_Iter\",\"Inner_Iter\",\"rms[Rho]\",\"rms[RhoU]\",\"rms[RhoV]\",\"rms[RhoE]\" - the writer must set HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)",
+  "outputs": "flow.vtu 489 KB, surface_flow.csv 28.5 KB (header PointID,x,y,Density,Momentum_x,Momentum_y,Energy), restart_flow.dat 251 KB with OUTPUT_FILES= (RESTART, PARAVIEW, SURFACE_CSV)",
+  "log": "189 bytes per iteration row; screen header '|  Inner_Iter|   Time(sec)|    rms[Rho]|   rms[RhoU]|   rms[RhoV]|   rms[RhoE]|          CL|          CD|'",
+  "k_su2_s_per_node_iter": 1.28e-05
+ },
+ "L6_pvpython": {
+  "version": "paraview 5.11.2 (apt) + python3-paraview",
+  "offscreen_no_display": "SEGFAULT (vtkXRenderWindowInteractor) with --force-offscreen-rendering and no DISPLAY",
+  "xvfb_run": "xvfb-run -a pvpython renders: 400x300 PNG, 18,093 bytes",
+  "render_free_sampling": "PlotOverLine -> CSV works with no display and no xvfb (header Normals:0.., r, vtkValidPointMask, arc_length, Points:0..)"
+ },
+ "L7_openvsp": {
+  "package": "OpenVSP-3.51.3-Ubuntu-24.04_amd64.deb 63,608,996 B; dpkg post-install script exits 127 (package left 'half-configured') but /opt/OpenVSP/{vsp,vspscript,vspaero,vspslicer,vspviewer} and /usr/local/bin symlinks are installed and link cleanly (ldd: 0 missing)",
+  "vspaero": "VSPAERO v.7.2.2 (compiled Aug 17 2026); needs a .vspgeom, which VSPAEROComputeGeometry writes only when GeomSet=SET_NONE and ThinGeomSet=SET_ALL (the VLM path); the enum VSPAERO_ANALYSIS_METHOD::VORTEX_LATTICE no longer exists in 3.51.3 scripts (VLM is the default)",
+  "probe": "TEE-written vspscript: rectangular NACA 0012 wing, span 10 chord 1 (AR 10), VSPAEROSweep alpha 0/2/4/6 M 0.1, NCPU 4: wall 5.28 s, RSS 118 MB; vspscript exits with status 144 after printing DONE",
+  "polar": "wing_ar10.polar columns: Beta Mach AoA Re/1e6 CLo CLi CLtot CDo CDi CDtot CSo CSi CStot L/D ...; rows alpha 0: CLtot 0.0000 CDtot 0.005178; 2: 0.171104 / 0.006331; 4: 0.341900 / 0.009781; 6: 0.513630 / 0.015659 (CDi 0.008822, E 0.9545)",
+  "lift_slope": "CL_alpha 4.905 per rad from 0..6 deg vs lifting line 5.19 (AR 10, e 0.95): -5.5 %; CDi at 6 deg 0.008822 vs CL^2/(pi e AR) 0.008797: +0.3 %",
+  "files": "wing_ar10.vsp3 86,830 B; wing_ar10.stl 785,599 B; wing_ar10_DegenGeom.csv 629,500 B; wing_ar10.vspgeom 280,614 B; .vspaero setup 858 B; .history 21,404 B; .lod 115,776 B; .polar 5,472 B; .adb 905,636 B",
+  "vspscript_exit_code": "2 after a COMPLETE sweep (DONE printed, .polar/.lod/.history written) - the exit code is a claim; vsp_result treats the DONE line + the polar as the evidence (measured 2026-09-06 through the registry)"
+ },
+ "L8_openvsp_python_api": {
+  "location": "/opt/OpenVSP/python/openvsp/openvsp/{vsp.py,_vsp.so,_vsp_g.so}; the deb depends on libpython3.12t64",
+  "import_under_3_11": "FAILS: ImportError numpy._core.multiarray failed to import (built for Python 3.12) - the script route stays primary"
+ },
+ "L9_gmsh": "not installed (apt 4.12 available); not measured - out of scope v1",
+ "L10_log_growth": {
+  "su2_bytes_per_iteration": 189
+ },
+ "M_rows": "owner session (Mac) - not measured here",
+ "L1b_openfoam_com": {
+  "package": "openfoam2606-default 2606.0~rc2-1 from dl.openfoam.com (reachable through the proxy); openfoam2606 340,188 KB installed under /usr/lib/openfoam/openfoam2606 (etc/bashrc route); WM_PROJECT_VERSION v2606 - the same version the owner's OpenFOAM.app carries",
+  "function_objects": "WORK: forceCoeffs writes postProcessing/forceCoeffs1/0/coefficient.dat with the header '# Time Cd Cd(f) Cd(r) Cl Cl(f) Cl(r) CmPitch CmRoll CmYaw Cs Cs(f) Cs(r)' and eleven '# key : value' lines above it (dragDir, liftDir, magUInf, lRef, Aref, CofR ...)",
+  "decides": "engines.py prefers /usr/lib/openfoam/openfoam* over /usr/share/openfoam; the setup doc's Linux install line is openfoam.com's repo, not Ubuntu's apt package"
+ },
+ "L5b_su2_on_tee_omesh": {
+  "mesh": "TEE O-mesh ni 200 x nj 60 = 12,000 quads / 12,200 nodes, first cell 2e-3 c, growth 1.146, farfield 50 c, written as .su2 (NDIME 2, NELEM 12000, NPOIN 12200, NMARK 2)",
+  "run": "EULER M 0.8 alpha 1.25, TEE .cfg with HISTORY_OUTPUT=(ITER, WALL_TIME, RMS_RES, AERO_COEFF): converged (rms[Rho] -8.0) at 1,329 iterations, wall 97.8 s, RSS 67 MB - the official 10k-cell unstructured mesh converges in 147 iterations because its near-wall cells are coarser; an Euler O-mesh wants ~5e-3 c first cells and fewer radial layers",
+  "result_vs_official": "CL 0.336037 vs 0.328486 (+2.3 %), CD 0.021234 vs 0.021481 (-1.2 %) - inside the D7 tolerances (CL +-5 %, CD +-15 %)",
+  "history_csv_with_AERO_COEFF": "Time_Iter, Outer_Iter, Inner_Iter, Time(sec), rms[Rho..RhoE], RefForce, CD, CL, CSF, CMx, CMy, CMz, CFx, CFy, CFz, CEff",
+  "k_su2_s_per_node_iteration": 6.1e-06,
+  "log_bytes_per_row": 119
+ },
+ "L6b_pvpython_on_the_case": "paraview.py on the converged L2 case: PlotOverLine (32 points, x 0.5 c above the airfoil) in 2.41 s with no display - U 34.9 -> 33.6 m/s, physically sensible acceleration; the 'velocity' preset rendered under xvfb-run in 3.27 s (1200x800 PNG, 19,603 bytes; RANGE -3.6 .. 41.8 printed)",
+ "L11_cancel_and_verdict_smoke": {
+  "registry_loop_openfoam_v2606": "wt_probe 55 tok, wt_conditions 58, wt_case create 181, wt_mesh 162 (16,000 cells, checkMesh 1 failed check = the 6 TE-seam skew faces), wt_run 97, wt_status 21/72/87 while running, job 17.2 s for 197 iterations (residualControl 1e-5), wt_result 163 (Cl 0.4356 Cd 0.01091 Cm 0.00056, verdict converged after the Cm scale floor), wt_probe_field 83 (16 samples, 3 inside the body -> null), wt_view 88 (1200x800 PNG, colour range), wt_export csv/md 33 each",
+  "verdict_defect_found": "the first verdict said insufficient (stationarity 8.97 %) because Cm ~ 0.0005 made the relative test meaningless; fixed with SCALE_FLOOR cl 0.1 / cd 0.01 / cm 0.01 (relative above, absolute below) -> converged 0.53 % / 0.36 %",
+  "registry_loop_su2": "wt_case 179 tok (euler chosen, transonic), wt_mesh 99 (10,000 quads, 0.03 s), wt_run 97, result: CL 0.334478 CD 0.019922, 1279 iterations, 6.82 orders, 80.0 s, converged, label indicative (vs the QuickStart official-mesh CL 0.328486 / CD 0.021481: +1.8 % / -7.3 %)",
+  "registry_loop_vspaero": "wt_case wing 214 tok (vspscript builds the wing in-line), wt_sweep 96, sweep result 293 (4 alphas, cl_alpha 4.9037/rad, e 0.95-0.96, cdo 0.0063-0.0079), wall ~5 s",
+  "ledger_law": "with the QoS law on (default) a 15 GB container refuses every job engine: 'cfd-solve needs 4 GB and the machine can never place it (-1 GB after the 16 GB reserve)'; TEE_MACHINE_TOTAL_GB=32 declares capacity the way the kernel's own tests do - the setup doc must say so"
+ },
+ "L4_parallel": {
+  "case": "16,000-cell NACA 0012 O-mesh, 400 iterations cap (residualControl stops earlier)",
+  "timings": {
+   "1": {
+    "state": "done",
+    "wall_s": 7.8,
+    "iters": 197,
+    "cl": 0.435564,
+    "cd": 0.010913,
+    "verdict": "converged",
+    "error": ""
+   },
+   "2": {
+    "state": "done",
+    "wall_s": 6.8,
+    "iters": 197,
+    "cl": 0.435549,
+    "cd": 0.010914,
+    "verdict": "converged",
+    "error": ""
+   },
+   "4": {
+    "state": "done",
+    "wall_s": 4.8,
+    "iters": 197,
+    "cl": 0.435549,
+    "cd": 0.010914,
+    "verdict": "converged",
+    "error": ""
+   }
+  },
+  "mpi_root_override": true,
+  "route": "decomposePar -force -> mpirun -np N simpleFoam -parallel inside the bashrc environment -> reconstructPar -latestTime",
+  "first_attempt": "died in 1.1 s: Open MPI refuses to run as root ('We strongly suggest that you run mpirun as a non-root user'); runs.mpi_env sets OMPI_ALLOW_RUN_AS_ROOT(_CONFIRM)=1 for root only, and the run record says mpi_root_override"
+ },
+ "L11_cancel_real": {
+  "status_mid_run": {
+   "case_id": "wt_e807dae06a",
+   "run_id": "run_004",
+   "state": "running",
+   "iter": 42,
+   "elapsed_s": 2.0,
+   "residuals": {
+    "Ux": 9.7383965e-05,
+    "Uy": 0.00099488558,
+    "p": 0.00060313398,
+    "omega": 2.358287e-06,
+    "k": 7.8310754e-05
+   },
+   "coeffs": {
+    "cl": 0.40663,
+    "cd": 0.01088,
+    "cm": 0.00294
+   },
+   "eta_s": 93.2
+  },
+  "pid_alive_before": true,
+  "pid_gone_after_s": 0.05,
+  "pid_alive_after": false,
+  "job_state": "cancelled",
+  "run_state": "cancelled",
+  "time_dirs_left": [
+   "0"
+  ],
+  "partial_verdict": {
+   "iters_used": 101,
+   "notes": [],
+   "residual_drop_orders": 3.91,
+   "state": "cancelled"
+  },
+  "partial_iters": 100
+ },
+ "L13_adopt_tutorial": {
+  "adopt": {
+   "solver": "simpleFoam",
+   "turbulence": "SpalartAllmaras",
+   "dialect": "com",
+   "patches": [
+    [
+     "inlet",
+     "patch"
+    ],
+    [
+     "outlet",
+     "patch"
+    ],
+    [
+     "walls",
+     "wall"
+    ],
+    [
+     "frontAndBack",
+     "empty"
+    ]
+   ],
+   "inlet_U": [
+    25.75,
+    3.62,
+    0.0
+   ],
+   "has_forceCoeffs": false,
+   "sequence": [],
+   "warnings": [
+    "no forceCoeffs function object: wt_result will have nothing to read unless you add one",
+    "Allrun names binaries TEE will not run: ['(getApplication)']"
+   ],
+   "next": "wt_run"
+  },
+  "adopt_tokens": 183,
+  "mesh": {
+   "kind": "adopted",
+   "has_mesh": true,
+   "cells": 10720,
+   "ok": true,
+   "checkMesh_failed": [
+    "Faces not in upper triangular order."
+   ]
+  },
+  "run_est": {
+   "wall_s": 50.6,
+   "footprint_gb": 0.132,
+   "measured_on": "2026-09-06 Linux x86_64 container, 1 core"
+  },
+  "run": {
+   "state": "error",
+   "error": "wt_no_results: No coefficient file under /tmp/wt_l13_aqi5pda6/.tee/windtunnel/cases/wt_29d2ba5e28/runs/run_001/postProcessing yet. Fix: The run has not written a step, or the case has no forceCoeffs function object (an adopted case may need one).",
+   "wall_s": 5.2
+  },
+  "result": {
+   "refusal": "wt_unconverged",
+   "message": "wt_29d2ba5e28/run_001 is done: no final result yet.",
+   "fix": "Poll wt_status, or allow_partial=true for the current numbers, labelled."
+  },
+  "run_dir_has": [
+   "0",
+   "100",
+   "150",
+   "200",
+   "250",
+   "300",
+   "313",
+   "50",
+   "constant",
+   "log.simpleFoam",
+   "progress.json",
+   "run.json",
+   "system"
+  ],
+  "application": "simpleFoam",
+  "log_tail": [
+   "SIMPLE solution converged in 313 iterations",
+   "",
+   "End",
+   ""
+  ],
+  "source_untouched": [
+   "0",
+   "Allclean",
+   "Allrun",
+   "constant",
+   "system"
+  ],
+  "with_and_without_forces": {
+   "without_forces": {
+    "job": "done",
+    "cl": null,
+    "verdict": {
+     "iters_used": 313,
+     "notes": [
+      "residuals only: the case wrote no force coefficients"
+     ],
+     "residual_drop_orders": 5.01,
+     "stationarity_pct": 0.0,
+     "scatter_pct": 0.0,
+     "state": "converged"
+    },
+    "note": "no forceCoeffs function object in this case; on an adopted case wt_run forces={\"patches\": [...], \"lRef\": ...} adds one to the run copy",
+    "iters": 313
+   },
+   "with_forces": {
+    "job": "done",
+    "wall_s": 4.8,
+    "cl": 0.970359,
+    "cd": 0.029414,
+    "cm": -0.014378,
+    "verdict": {
+     "iters_used": 313,
+     "notes": [],
+     "residual_drop_orders": 5.01,
+     "stationarity_pct": 0.208,
+     "scatter_pct": 0.124,
+     "state": "converged"
+    },
+    "iters": 313,
+    "uncertainty": "comparative",
+    "forces": {
+     "patches": [
+      "walls"
+     ],
+     "magUInf": 26.003209,
+     "lRef": 35.0492,
+     "lRef_source": "measured: x extent of the wall patches",
+     "Aref": 1.75246,
+     "slab_depth_m": 0.05,
+     "wall_bbox": [
+      [
+       -17.5492,
+       -2.61298,
+       0.0
+      ],
+      [
+       17.5,
+       3.69778,
+       0.05
+      ]
+     ],
+     "CofR": [
+      -8.7869,
+      0.5424,
+      0.025
+     ],
+     "liftDir": [
+      -0.139214,
+      0.990262,
+      0.0
+     ],
+     "dragDir": [
+      0.990262,
+      0.139214,
+      0.0
+     ]
+    },
+    "error": null
+   },
+   "source_untouched": [
+    "0",
+    "Allclean",
+    "Allrun",
+    "constant",
+    "system"
+   ],
+   "note": "the tutorial's controlDict has no functions entry; the run copy got forceCoeffs1 with U from 0/U (25.75, 3.62), lRef 1, Aref = lRef x slab depth read from points; the adopted copy and the source are untouched"
+  }
+ }
+}

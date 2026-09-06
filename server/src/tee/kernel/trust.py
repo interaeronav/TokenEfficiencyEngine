@@ -227,6 +227,26 @@ _EXPLICIT: dict[str, str] = {
     "pc_clean": "write-artifacts",
     "pc_ortho": "write-artifacts",
     "pc_merge": "write-artifacts",  # shells out to CloudCompare via capture_*
+    # --- A68: the wind-tunnel lane ---
+    # DELIBERATELY NO ("wt_", ...) FAMILY ROW (the cad_/trade_/pc_ lesson).
+    # Probes, calculators and readers sit in the open tier; anything that
+    # writes a case, a mesh, a PNG or an export is write-artifacts; the
+    # three ledger-registered solver jobs are call-engine, tabled one line
+    # at a time. Every engine is a separate process (OpenFOAM GPL-3, SU2
+    # LGPL-2.1, OpenVSP NOSA-1.3, ParaView BSD-3 via pvpython).
+    "wt_probe": "read-compute",  # version probes only; caches probe.json
+    "wt_conditions": "read-compute",
+    "wt_case": "write-artifacts",  # create/adopt write case.json; stop signals a pid
+    "wt_geom": "write-artifacts",  # vspscript, seconds, leaves .vsp3/.stl
+    "wt_mesh": "call-engine",  # snappyHexMesh is a registered job
+    "wt_run": "call-engine",
+    "wt_status": "read-compute",
+    "wt_result": "read-compute",
+    "wt_sweep": "call-engine",
+    "wt_probe_field": "read-compute",  # pvpython into a temp dir, render-free
+    "wt_view": "write-artifacts",  # a PNG on disk, never pixels on the wire
+    "wt_export": "write-artifacts",
+    "wt_verify": "call-engine",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",

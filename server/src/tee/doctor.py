@@ -641,6 +641,40 @@ def check_llm() -> Check:
     )
 
 
+def check_windtunnel(project_root: Any = None) -> Check:
+    """A68: which of the four engines (OpenFOAM, SU2, OpenVSP/VSPAERO,
+    ParaView's pvpython) this machine has, by version probe only - never a
+    solve. Absent engines are named with their install line."""
+    from tee.windtunnel import engines
+
+    cfg: dict[str, Any] = {}
+    if project_root is not None:
+        try:
+            from tee.config import ProjectConfig
+
+            cfg = dict(ProjectConfig.load(project_root).windtunnel or {})
+        except Exception:
+            cfg = {}
+    report = engines.probe(cfg)
+    found = {k: v for k, v in report["engines"].items() if v.get("found")}
+    absent = {k: v for k, v in report["engines"].items() if not v.get("found")}
+    detail = (
+        ", ".join(f"{k} {v.get('version', '?')}" for k, v in found.items()) or "no engine found"
+    )
+    if not found:
+        fix = "; ".join(v.get("fix", "") for v in absent.values() if v.get("fix"))[:400]
+        return Check("windtunnel", "warn", detail, fix=fix)
+    if absent:
+        missing = ", ".join(absent)
+        return Check(
+            "windtunnel",
+            "ok",
+            f"{detail} (absent: {missing})",
+            fix=absent[next(iter(absent))].get("fix"),
+        )
+    return Check("windtunnel", "ok", detail)
+
+
 def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
     return [
         check_python(),
@@ -651,6 +685,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_unreal(),
         check_voxkiln(),
         check_partkiln(),
+        check_windtunnel(),
         check_kb(),
         check_web(),
         check_state(),

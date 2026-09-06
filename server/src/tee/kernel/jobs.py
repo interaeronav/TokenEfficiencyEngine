@@ -11,6 +11,7 @@ and joined at shutdown.
 
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
 import traceback
@@ -58,6 +59,10 @@ class JobManager:
     def __init__(self, workers: int = 2, keep_finished: int = 50):
         self._pending: list[_Job] = []
         self._fns: dict[str, Callable[[], dict[str, Any]]] = {}
+        # A68: a submitter that owns a child process (a CFD solver) hands over
+        # the way to stop it; cancel() calls it ONCE, outside the lock, for a
+        # job that was running. Without it cancel stays cooperative.
+        self._on_cancel: dict[str, Callable[[], None]] = {}
         self._jobs: dict[str, _Job] = {}
         self._lock = threading.Lock()
         self._cv = threading.Condition(self._lock)
@@ -111,6 +116,7 @@ class JobManager:
         *,
         qos: str = "standard",
         engine: str | None = None,
+        on_cancel: Callable[[], None] | None = None,
     ) -> str:
         with self._lock:
             if self._stopping:
@@ -160,6 +166,8 @@ class JobManager:
                 return inner()
 
             self._fns[job.id] = _carried
+            if on_cancel is not None:
+                self._on_cancel[job.id] = on_cancel
             self._pending.append(job)
             self._prune_locked()
             self._cv.notify()
@@ -231,6 +239,7 @@ class JobManager:
             finally:
                 with self._cv:
                     job.finished_at = time.time()
+                    self._on_cancel.pop(job.id, None)
                     self._cv.notify_all()  # a completion frees a reserved slot
                 from tee.kernel import shadow
 
@@ -252,16 +261,27 @@ class JobManager:
             return job.to_payload()
 
     def cancel(self, job_id: str) -> dict[str, Any]:
+        hook: Callable[[], None] | None = None
         with self._lock:
             job = self._jobs.get(job_id)
             if job is None:
                 raise TeeError("unknown_job", f"No job '{job_id}'.")
             if job.state in ("queued", "running"):
-                # Queued: the worker will skip it. Running: cooperative only -
-                # the DCC-side operation finishes but its result is dropped.
+                # Queued: the worker will skip it. Running: cooperative unless
+                # the submitter gave an on_cancel hook (A68: a solver process
+                # is killed by it) - otherwise the DCC-side operation finishes
+                # but its result is dropped.
+                if job.state == "running":
+                    hook = self._on_cancel.pop(job_id, None)
+                else:
+                    self._on_cancel.pop(job_id, None)
                 job.state = "cancelled"
                 self._fns.pop(job_id, None)
-            return job.to_payload()
+            payload = job.to_payload()
+        if hook is not None:
+            with contextlib.suppress(Exception):  # a failing hook never breaks cancel
+                hook()
+        return payload
 
     def list(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -280,6 +300,7 @@ class JobManager:
             for job in finished[:excess]:
                 del self._jobs[job.id]
                 self._fns.pop(job.id, None)
+                self._on_cancel.pop(job.id, None)
 
 
 def _summarize_exception(exc: Exception, limit: int = 300) -> str:

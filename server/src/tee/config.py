@@ -78,6 +78,10 @@ class ProjectConfig:
     # `batch_timeout_s`; ProjectConfig drops unknown tables silently, so the
     # lane needs its own field to be configurable at all.
     partkiln: dict[str, Any] = field(default_factory=dict)
+    # A68: the wind-tunnel lane - `openfoam` (a project dir, its etc/bashrc
+    # or the Mac app's etc/openfoam), `su2`, `openvsp`, `pvpython` (a dir or
+    # binary each), `cores`, `max_wall_s`, `confirm_above_s`.
+    windtunnel: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -178,6 +182,12 @@ class ProjectConfig:
             config.partkiln = partkiln_section
         elif partkiln_section:
             problems.append("[partkiln] must be a table")
+
+        windtunnel_section = data.get("windtunnel", {})
+        if isinstance(windtunnel_section, dict):
+            config.windtunnel = windtunnel_section
+        elif windtunnel_section:
+            problems.append("[windtunnel] must be a table")
 
         trust_section = data.get("trust", {})
         if isinstance(trust_section, dict):
