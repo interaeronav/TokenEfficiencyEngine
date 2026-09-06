@@ -228,6 +228,16 @@ def _3mf_unit(path: Path) -> str:
 
 def _usd_unit(path: Path) -> str:
     data = path.read_bytes()
+    if data[:2] == b"PK":  # a USDZ package - what Fusion writes (measured, A71)
+        with zipfile.ZipFile(path) as zf:
+            members = zf.namelist()
+            inner = b"".join(zf.read(m) for m in members)
+        declares = b"metersPerUnit" in inner
+        return f"usdz package {members}: binary usdc " + (
+            "declares metersPerUnit (value unread without the USD library)"
+            if declares
+            else "carries no metersPerUnit token"
+        )
     if data.startswith(b"PXR-USDC"):
         return "binary usdc - read metersPerUnit with usdcat/usdview"
     found = re.search(rb"metersPerUnit\s*=\s*([0-9.eE+-]+)", data)
@@ -485,8 +495,11 @@ def test_the_smoke(served, tmp_path):
 
     # -- step 11: the eight exports and the unit each file declares ----------
     out = tmp_path / "exports"
+    # STEP, the archive, IGES, SAT and USD take a component or the whole design
+    # (rows 17, 48 - the first live run met Fusion's "3 : invlid argument
+    # geometry" on a body); 3MF, STL and OBJ take the body.
     for fmt, of in (
-        ("step", "b1"),
+        ("step", None),
         ("obj", "b1"),
         ("stl", "b1"),
         ("3mf", "b1"),
@@ -504,6 +517,10 @@ def test_the_smoke(served, tmp_path):
             facts.note(f"export_{fmt}", f"refused {exc.code}: {exc.message}")
             continue
         path = Path(res["path"])
+        if fmt == "stl":
+            facts.note("export_stl_units_declared", res["units"])
+        if fmt == "usd":
+            facts.note("export_usd_path_suffix", "".join(path.suffixes))
         if fmt == "obj":
             facts.note("export_obj_unit_measured", _unit_from_extent(_extent_mm(_obj_points(path))))
         elif fmt == "stl":
