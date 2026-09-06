@@ -428,7 +428,7 @@ def test_a_malformed_dimension_or_sketch_is_refused_before_the_wire(op, needle):
 
 def test_the_vocabulary_grew_with_the_kinds():
     vocab = _adapter().vocab()
-    grown = {"constraint", "dimension", "hole", "chamfer", "revolve"}
+    grown = {"constraint", "dimension", "hole", "chamfer", "revolve", "joint"}
     assert grown <= set(codegen.KINDS) and vocab.kinds == codegen.KINDS
     assert vocab.accepts({"op": "create", "kind": "dimension"})
     assert vocab.accepts({"op": "create", "kind": "hole"})
@@ -752,4 +752,221 @@ def test_a_malformed_chamfer_fillet_or_revolve_is_refused_before_the_wire(op, ne
     with pytest.raises(TeeError) as err:
         adapter.execute([op])
     assert err.value.code == "bad_op" and needle in (err.value.message + err.value.fix)
+    assert adapter.wire.executed == []
+
+
+# -- P3: joints -----------------------------------------------------------------------------
+
+TWO_PARTS = [
+    {"op": "create", "kind": "sketch", "name": "s1", "props": {"rects": [[0, 0, 40, 40]]}},
+    {
+        "op": "create",
+        "kind": "extrude",
+        "name": "base",
+        "props": {"sketch": "sk1", "distance": 10, "operation": "new_component"},
+    },
+    {"op": "create", "kind": "sketch", "name": "s2", "props": {"rects": [[0, 0, 20, 20]]}},
+    {
+        "op": "create",
+        "kind": "extrude",
+        "name": "arm",
+        "props": {"sketch": "sk2", "distance": 5, "operation": "new_component"},
+    },
+]
+
+
+def _joint(**props):
+    return {"op": "create", "kind": "joint", "name": "j", "props": props}
+
+
+def test_two_new_component_extrudes_report_their_occurrences():
+    adapter = _adapter()
+    diff = adapter.execute(TWO_PARTS)
+    assert diff.created == ["sk1", "f1", "c1", "b1", "sk2", "f2", "c2", "b2"]
+    assert diff.details["c1"]["kind"] == "component" and diff.details["c1"]["bodies"] == 1
+    assert "_pc = _f.parentComponent" in adapter.wire.executed[-1]
+    listed = {e.id: e for e in adapter.list_entities()}
+    assert listed["b1"].parent == "c1" and listed["b2"].parent == "c2"
+
+
+def test_a_revolute_joint_between_two_components_drives_and_reads_back():
+    adapter = _adapter()
+    adapter.execute(TWO_PARTS)
+    diff = adapter.execute(
+        [
+            _joint(
+                one={"component": "c1", "face": "+z"},
+                two={"component": "c2", "face": "-z"},
+                motion="revolute",
+                axis="z",
+                angle=15,
+                offset=2,
+            )
+        ]
+    )
+    assert diff.created == ["j1"]
+    assert diff.details["j1"] == {
+        "name": "j",
+        "kind": "joint",
+        "motion": "revolute",
+        "between": ["c1", "c2"],
+        "angle_deg": 15.0,
+        "offset_mm": 2.0,
+        "rotation_deg": 0.0,
+    }
+    script = adapter.wire.executed[-1]
+    assert (
+        "_inp.setAsRevoluteJointMotion(adsk.fusion.JointDirections.ZAxisJointDirection)" in script
+    )
+    assert "createByPlanarFace(" in script and "JointKeyPointTypes.CenterKeyPoint" in script
+    assert "_inp.angle = adsk.core.ValueInput.createByString('15 deg')" in script
+    assert "_inp.offset = adsk.core.ValueInput.createByString('2 mm')" in script
+    assert "_root.joints.createInput(_g1, _g2)" in script and "_root.joints.add(_inp)" in script
+    # drive it, re-angle it, flip it, suppress it - each a set on the joint entity
+    diff = adapter.execute(
+        [
+            {"op": "set", "id": "j1", "props": {"rotation": 45, "angle": 30, "flipped": True}},
+        ]
+    )
+    joint = diff.details["j1"]
+    assert joint["rotation_deg"] == 45.0 and joint["angle_deg"] == 30.0 and joint["flipped"] is True
+    assert "_e.jointMotion.rotationValue = 0.7853981633974483" in adapter.wire.executed[-1]
+    diff = adapter.execute([{"op": "set", "id": "j1", "props": {"suppressed": True}}])
+    assert diff.details["j1"]["suppressed"] is True
+    listed = {e.id: e for e in adapter.list_entities()}
+    assert listed["j1"].kind == "joint" and listed["j1"].summary["between"] == ["c1", "c2"]
+    with pytest.raises(TeeError) as err:
+        adapter.execute([{"op": "set", "id": "j1", "props": {"slide": 3}}])
+    assert err.value.code == "fusion_op_failed" and "slide drives" in err.value.message
+
+
+def test_a_slider_joint_by_origins_slides_in_millimetres():
+    adapter = _adapter()
+    adapter.execute(
+        [
+            {"op": "create", "kind": "component", "name": "rail"},
+            {"op": "create", "kind": "component", "name": "carriage"},
+            _joint(one={"component": "c1"}, two={"component": "c2"}, motion="slider", axis="x"),
+        ]
+    )
+    script = adapter.wire.executed[-1]
+    assert "originConstructionPoint.createForAssemblyContext(occ)" in script
+    assert "_inp.setAsSliderJointMotion(adsk.fusion.JointDirections.XAxisJointDirection)" in script
+    diff = adapter.execute([{"op": "set", "id": "j1", "props": {"slide": 12.5}}])
+    assert diff.details["j1"]["slide_mm"] == 12.5 and diff.details["j1"]["motion"] == "slider"
+    assert "_e.jointMotion.slideValue = 1.25" in adapter.wire.executed[-1]
+    with pytest.raises(TeeError) as err:
+        adapter.execute([{"op": "set", "id": "j1", "props": {"rotation": 10}}])
+    assert "rotation drives" in err.value.message
+
+
+@pytest.mark.parametrize(
+    ("motion", "extra", "call"),
+    [
+        ("rigid", {}, "setAsRigidJointMotion()"),
+        (
+            "cylindrical",
+            {"axis": "y"},
+            "setAsCylindricalJointMotion(adsk.fusion.JointDirections.YAxisJointDirection)",
+        ),
+        (
+            "pin_slot",
+            {"axis": "z", "slide": "x"},
+            "setAsPinSlotJointMotion(adsk.fusion.JointDirections.ZAxisJointDirection, "
+            "adsk.fusion.JointDirections.XAxisJointDirection)",
+        ),
+        (
+            "planar",
+            {"axis": "z"},
+            "setAsPlanarJointMotion(adsk.fusion.JointDirections.ZAxisJointDirection)",
+        ),
+        (
+            "ball",
+            {},
+            "setAsBallJointMotion(adsk.fusion.JointDirections.ZAxisJointDirection, "
+            "adsk.fusion.JointDirections.XAxisJointDirection)",
+        ),
+    ],
+)
+def test_every_motion_emits_its_verified_setter(motion, extra, call):
+    adapter = _adapter()
+    adapter.execute(TWO_PARTS)
+    diff = adapter.execute(
+        [
+            _joint(
+                one={"component": "c1"},
+                two={"component": "c2", "face": "-z"},
+                motion=motion,
+                **extra,
+            )
+        ]
+    )
+    assert diff.details["j1"]["motion"] == motion
+    assert f"_inp.{call}" in adapter.wire.executed[-1]
+
+
+def test_a_joint_side_without_a_body_or_face_refuses_and_rollback_takes_the_joint():
+    adapter = _adapter()
+    adapter.execute([{"op": "create", "kind": "component", "name": "empty"}, *TWO_PARTS])
+    with pytest.raises(TeeError) as err:
+        adapter.execute([_joint(one={"component": "c1", "face": "+z"}, two={"component": "c2"})])
+    assert (
+        err.value.code == "fusion_op_failed" and "no body to joint by a face" in err.value.message
+    )
+    with pytest.raises(TeeError) as err:
+        adapter.execute([_joint(one={"component": "c9", "face": "+x"}, two={"component": "c3"})])
+    assert err.value.code == "fusion_unknown_entity"
+    payload = adapter.snapshot("before")
+    adapter.execute(
+        [_joint(one={"component": "c2", "face": "+z"}, two={"component": "c3", "face": "-z"})]
+    )
+    assert "j1" in {e.id for e in adapter.list_entities()}
+    adapter.restore(payload)
+    assert "j1" not in {e.id for e in adapter.list_entities()}
+    # the same component on both sides is not a joint - Fusion's own null
+    with pytest.raises(TeeError) as err:
+        adapter.execute([_joint(one={"component": "c2", "face": "+z"}, two={"component": "c2"})])
+    assert "different components" in err.value.message
+
+
+@pytest.mark.parametrize(
+    ("props", "needle"),
+    [
+        ({"one": {"component": "c1"}}, "needs two"),
+        ({"one": {"component": "c1"}, "two": {}}, "names a component"),
+        ({"one": {"component": "c1"}, "two": {"body": "b1"}}, "root body needs a face"),
+        ({"one": {"component": "c1", "face": "up"}, "two": {"component": "c2"}}, "face is one of"),
+        ({"one": {"component": "c1"}, "two": {"component": "c2"}, "motion": "glue"}, "Motions:"),
+        (
+            {"one": {"component": "c1"}, "two": {"component": "c2"}, "axis": "w"},
+            "axis is x, y or z",
+        ),
+        (
+            {"one": {"component": "c1"}, "two": {"component": "c2"}, "angle": [1]},
+            "angle is a number",
+        ),
+        (
+            {"one": {"component": "c1"}, "two": {"component": "c2"}, "flip": 1},
+            "flip is true or false",
+        ),
+    ],
+)
+def test_a_malformed_joint_is_refused_before_the_wire(props, needle):
+    adapter = _adapter()
+    with pytest.raises(TeeError) as err:
+        adapter.execute([_joint(**props)])
+    assert err.value.code == "bad_op" and needle in (err.value.message + err.value.fix)
+    assert adapter.wire.executed == []
+
+
+def test_joint_set_values_are_checked_before_the_wire():
+    adapter = _adapter()
+    for props, needle in (
+        ({"rotation": "lots"}, "rotation is a number"),
+        ({"flipped": "yes"}, "flipped is true or false"),
+        ({"torque": 1}, "not settable"),
+    ):
+        with pytest.raises(TeeError) as err:
+            adapter.execute([{"op": "set", "id": "j1", "props": props}])
+        assert err.value.code == "bad_op" and needle in (err.value.message + err.value.fix)
     assert adapter.wire.executed == []

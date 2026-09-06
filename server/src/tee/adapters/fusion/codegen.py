@@ -46,11 +46,36 @@ KINDS = (
     "hole",
     "chamfer",
     "revolve",
+    "joint",
 )
 # A70 P2 (doc 71 section 10.2): a face is named by its outward normal.
 FACES = ("+x", "-x", "+y", "-y", "+z", "-z")
 HOLE_TYPES = ("simple", "counterbore", "countersink")
 AXES = {"x": "xConstructionAxis", "y": "yConstructionAxis", "z": "zConstructionAxis"}
+# A70 P3 (doc 71 row 45): motion -> the JointInput setter and which of
+# `axis` / `slide` it takes. Ball uses pitch Z and yaw X, the enum's own
+# defaults; no custom-direction entities in v2.
+MOTIONS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "rigid": ("setAsRigidJointMotion", ()),
+    "revolute": ("setAsRevoluteJointMotion", ("axis",)),
+    "slider": ("setAsSliderJointMotion", ("axis",)),
+    "cylindrical": ("setAsCylindricalJointMotion", ("axis",)),
+    "pin_slot": ("setAsPinSlotJointMotion", ("axis", "slide")),
+    "planar": ("setAsPlanarJointMotion", ("axis",)),
+    "ball": ("setAsBallJointMotion", ("pitch", "yaw")),
+}
+DIRECTIONS = {"x": "XAxisJointDirection", "y": "YAxisJointDirection", "z": "ZAxisJointDirection"}
+_SET_KEYS = (
+    "name",
+    "expression",
+    "suppressed",
+    "visible",
+    "angle",
+    "offset",
+    "flipped",
+    "rotation",
+    "slide",
+)
 IMPORT_SUFFIXES = ("step", "stp", "f3d", "igs", "iges", "sat")
 # A70 (doc 71 row 40): constraint type -> (arity, the GeometricConstraints call).
 # coincident is (point, entity), midpoint (point, curve), symmetry (a, b, line).
@@ -216,6 +241,30 @@ try:
         src = body if sel in (None, "all") else _face(body, sel["face"], None, index)
         for _i in range(src.edges.count): col.add(src.edges.item(_i))
         return col
+    def _joint_geom(side, index=-1):
+        # doc 71 section 10.5: the centre of a planar face of an occurrence's body
+        # (rows 44, 47; the bodies under occ.bRepBodies are proxies already, row 12),
+        # the occurrence's origin point in its context (rows 37, 44, 47), or a
+        # face of a root body
+        comp, face, body = side.get("component"), side.get("face"), side.get("body")
+        if comp:
+            occ = _find(comp, index)
+            if _kind_of(occ) != "component":
+                raise _OpError(index, "%r is not a component" % comp)
+            if face is None:
+                pt = occ.component.originConstructionPoint.createForAssemblyContext(occ)
+                return adsk.fusion.JointGeometry.createByPoint(pt)
+            if body:
+                b = _find(body, index)
+            elif occ.bRepBodies.count:
+                b = occ.bRepBodies.item(0)
+            else:
+                raise _OpError(index, "component %r has no body to joint by a face - give it "
+                               "one, or joint by its origin (omit face)" % comp)
+        else:
+            b = _find(body, index)
+        return adsk.fusion.JointGeometry.createByPlanarFace(
+            _face(b, face, None, index), None, adsk.fusion.JointKeyPointTypes.CenterKeyPoint)
     def _find(sid, index=-1):
         if sid.startswith("param:"):
             p = _design.userParameters.itemByName(sid[6:])
@@ -237,9 +286,15 @@ try:
         t = ent.objectType.split("::")[-1]
         if t.endswith("Feature"): return "feature"
         if t.endswith("Dimension"): return "dimension"
-        return {"BRepBody": "body", "Sketch": "sketch", "Occurrence": "component",
+        return {"BRepBody": "body", "Sketch": "sketch", "Occurrence": "component", "Joint": "joint",
                 "UserParameter": "param", "ModelParameter": "param"}.get(t, t.lower())
-    _PREFIX = {"body": "b", "sketch": "sk", "component": "c", "feature": "f", "dimension": "dim"}
+    _PREFIX = {"body": "b", "sketch": "sk", "component": "c", "feature": "f", "dimension": "dim",
+               "joint": "j"}
+    _MOTION_WORDS = {"RigidJointMotion": "rigid", "RevoluteJointMotion": "revolute",
+                     "SliderJointMotion": "slider", "CylindricalJointMotion": "cylindrical",
+                     "PinSlotJointMotion": "pin_slot", "PlanarJointMotion": "planar",
+                     "BallJointMotion": "ball"}
+    def _occ_id(occ): return "root" if occ is None else _mint("c", occ.entityToken)
     def _prefix_for(kind): return _PREFIX.get(kind, "e")
     def _param_value(p):
         u = str(p.unit)
@@ -258,6 +313,18 @@ try:
             s["constraints"] = ent.geometricConstraints.count
             s["dims"] = ent.sketchDimensions.count
             s["constrained"] = bool(ent.isFullyConstrained)
+        elif kind == "joint":  # row 46
+            m = ent.jointMotion; t = m.objectType.split("::")[-1]
+            s["motion"] = _MOTION_WORDS.get(t, t)
+            s["between"] = [_occ_id(ent.occurrenceOne), _occ_id(ent.occurrenceTwo)]
+            s["angle_deg"] = _param_value(ent.angle); s["offset_mm"] = _param_value(ent.offset)
+            rv = getattr(m, "rotationValue", None)
+            if rv is not None: s["rotation_deg"] = round(float(rv) * 57.29577951308232, 4)
+            sv = getattr(m, "slideValue", None)
+            if sv is not None: s["slide_mm"] = _mm(sv)
+            if ent.isFlipped: s["flipped"] = True
+            if ent.isSuppressed: s["suppressed"] = True
+            if ent.isLocked: s["locked"] = True
         elif kind == "dimension":
             t = ent.objectType.split("::")[-1]; s["type"] = t; p = ent.parameter
             s["expression"] = str(p.expression) if p is not None else None
@@ -371,14 +438,24 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
             if not op.get("id"):
                 raise _bad(index, f"{action} needs id", "tee_scene_summary lists ids")
             if action == "set":
-                for key in props:
-                    if key not in ("name", "expression", "suppressed", "visible"):
+                for key, value in props.items():
+                    if key not in _SET_KEYS:
                         raise _bad(
                             index,
                             f"Property {key!r} is not settable",
-                            "set takes name, expression (parameters, dimensions and extrudes), "
-                            "suppressed (features) and visible (bodies, sketches).",
+                            "set takes name, expression (parameters, dimensions, extrudes, "
+                            "holes), suppressed (features, joints), visible (bodies, sketches), "
+                            "and on a joint angle (deg), offset (mm), flipped, rotation (deg), "
+                            "slide (mm).",
                         )
+                    if key in ("angle", "offset") and not (
+                        _number(value) or isinstance(value, str)
+                    ):
+                        raise _bad(index, f"{key} is a number or an expression", '"30 deg"')
+                    if key in ("rotation", "slide") and not _number(value):
+                        raise _bad(index, f"{key} is a number", "rotation in deg, slide in mm")
+                    if key == "flipped" and not isinstance(value, bool):
+                        raise _bad(index, "flipped is true or false", '"flipped": true')
         elif action == "param_set":
             if not op.get("name") or op.get("expression") is None:
                 raise _bad(
@@ -587,6 +664,38 @@ def _check_revolve(index: int, props: dict[str, Any]) -> None:
         raise _bad(index, "profile is 'all' or a profile index", 'e.g. "profile": 0')
 
 
+def _check_joint(index: int, props: dict[str, Any]) -> None:
+    example = (
+        '{"op":"create","kind":"joint","props":{"one":{"component":"c1","face":"+z"},'
+        '"two":{"component":"c2","face":"-z"},"motion":"revolute","axis":"z"}}'
+    )
+    for which in ("one", "two"):
+        side = props.get(which)
+        if not isinstance(side, dict):
+            raise _bad(index, f"A joint needs {which}: a side", example)
+        if not side.get("component") and not side.get("body"):
+            raise _bad(
+                index,
+                f"Side {which} names a component (with an optional face) or a body with a face",
+                example,
+            )
+        if "face" in side and str(side["face"]) not in FACES:
+            raise _bad(index, f"Side {which}: face is one of {', '.join(FACES)}", example)
+        if side.get("body") and not side.get("component") and "face" not in side:
+            raise _bad(index, f"Side {which}: a root body needs a face", example)
+    motion = str(props.get("motion") or "rigid")
+    if motion not in MOTIONS:
+        raise _bad(index, f"Unknown joint motion '{motion}'", f"Motions: {', '.join(MOTIONS)}.")
+    for key in ("axis", "slide"):
+        if key in props and str(props[key]) not in DIRECTIONS:
+            raise _bad(index, f"{key} is x, y or z", example)
+    for key in ("angle", "offset"):
+        if key in props and not (_number(props[key]) or isinstance(props[key], str)):
+            raise _bad(index, f"{key} is a number or an expression", '"angle": 30')
+    if "flip" in props and not isinstance(props["flip"], bool):
+        raise _bad(index, "flip is true or false", "omit it for the default")
+
+
 def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
     if kind == "sketch":
         plane = str(props.get("plane") or "XY").upper()
@@ -640,6 +749,8 @@ def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
         _check_edges(index, props)
     elif kind == "revolve":
         _check_revolve(index, props)
+    elif kind == "joint":
+        _check_joint(index, props)
     elif kind == "extrude":
         if not props.get("sketch") or not _number(props.get("distance")):
             raise _bad(
@@ -842,8 +953,19 @@ def _emit_extrude(index: int, name: str, props: dict[str, Any]) -> list[str]:
         f"    if _f is None: raise _OpError({index}, 'extrude failed: Fusion returned null')",
         f"    _f.name = {_lit(name)}",
         '    _fid = _mint("f", _f.entityToken); _mark(_fid, True); _note(_fid, "feature", _f)',
-        "    _mark_bodies(_f)",
     ]
+    if operation == "NewComponentFeatureOperation":
+        # the occurrence Fusion made for the new component (rows 12, 50): the
+        # one under the root whose component is the feature's parent
+        lines += [
+            "    _pc = _f.parentComponent",
+            "    for _i in range(_root.occurrences.count):",
+            "        _o = _root.occurrences.item(_i)",
+            "        if _o.component.entityToken == _pc.entityToken:",
+            '            _cid = _mint("c", _o.entityToken); _mark(_cid, True)',
+            '            _note(_cid, "component", _o)',
+        ]
+    lines.append("    _mark_bodies(_f)")
     return lines
 
 
@@ -952,6 +1074,45 @@ def _emit_hole(index: int, name: str, props: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _emit_joint(index: int, name: str, props: dict[str, Any]) -> list[str]:
+    """Rows 43-46: geometry per side, the motion's setter, angle / offset
+    with their units written, the flip, then `joints.add`."""
+    motion = str(props.get("motion") or "rigid")
+    setter, wants = MOTIONS[motion]
+    axis = DIRECTIONS[str(props.get("axis") or "z")]
+    slide = DIRECTIONS[str(props.get("slide") or "x")]
+    picks = {
+        "axis": axis,
+        "slide": slide,
+        "pitch": "ZAxisJointDirection",
+        "yaw": "XAxisJointDirection",
+    }
+    args = ", ".join(f"adsk.fusion.JointDirections.{picks[w]}" for w in wants)
+    lines = [
+        f"    _g1 = _joint_geom({_lit(dict(props['one']))}, {index})",
+        f"    _g2 = _joint_geom({_lit(dict(props['two']))}, {index})",
+        f"    if _g1 is None or _g2 is None: raise _OpError({index}, 'joint geometry could not be "
+        "built: a planar face with a centre, or an origin point')",
+        "    _inp = _root.joints.createInput(_g1, _g2)",
+        f"    _inp.{setter}({args})",
+    ]
+    for key, unit in (("angle", "deg"), ("offset", "mm")):
+        if key in props:
+            value = props[key]
+            expr = value if isinstance(value, str) else f"{float(value):g} {unit}"
+            lines.append(f"    _inp.{key} = adsk.core.ValueInput.createByString({_lit(expr)})")
+    if props.get("flip"):
+        lines.append("    _inp.isFlipped = True")
+    lines += [
+        "    _j = _root.joints.add(_inp)",
+        f"    if _j is None: raise _OpError({index}, 'joint failed: Fusion returned null (are the "
+        "two sides in different components?)')",
+        f"    _j.name = {_lit(name)}",
+        '    _jid = _mint("j", _j.entityToken); _mark(_jid, True); _note(_jid, "joint", _j)',
+    ]
+    return lines
+
+
 def _profile_lines(index: int, sketch: str, profile: Any) -> list[str]:
     """`_sk` bound to the sketch and `_prof` to its profile(s) - shared by
     extrude and revolve."""
@@ -1050,6 +1211,8 @@ def _emit_create(index: int, op: dict[str, Any]) -> list[str]:
         return _emit_chamfer(index, name, props)
     if kind == "revolve":
         return _emit_revolve(index, name, props)
+    if kind == "joint":
+        return _emit_joint(index, name, props)
     if kind == "param":
         return _emit_param(index, name, props)
     # `component`, and the kit contract's generic kind: a named empty
@@ -1085,9 +1248,34 @@ def _emit_set(index: int, op: dict[str, Any]) -> list[str]:
             ]
         elif key == "suppressed":
             lines += [
-                f'    if _k != "feature": raise _OpError({index}, '
-                '"only a feature can be suppressed")',
+                f'    if _k not in ("feature", "joint"): raise _OpError({index}, '
+                '"only a feature or a joint can be suppressed")',
                 f"    _e.isSuppressed = {bool(value)!r}",
+            ]
+        elif key in ("angle", "offset"):  # row 46: the joint's own parameters
+            unit = "deg" if key == "angle" else "mm"
+            expr = value if isinstance(value, str) else f"{float(value):g} {unit}"
+            lines += [
+                f'    if _k != "joint": raise _OpError({index}, "only a joint takes {key}")',
+                f"    _e.{key}.expression = {_lit(expr)}",
+            ]
+        elif key == "flipped":
+            lines += [
+                f'    if _k != "joint": raise _OpError({index}, "only a joint takes flipped")',
+                f"    _e.isFlipped = {bool(value)!r}",
+            ]
+        elif key == "rotation":  # RevoluteJointMotion.rotationValue, radians (row 46)
+            lines += [
+                f'    if _k != "joint" or not hasattr(_e.jointMotion, "rotationValue"): '
+                f'raise _OpError({index}, "rotation drives a revolute, cylindrical or pin-slot '
+                'joint")',
+                f"    _e.jointMotion.rotationValue = {float(value) * 3.141592653589793 / 180.0!r}",
+            ]
+        elif key == "slide":  # SliderJointMotion.slideValue, centimetres (row 46)
+            lines += [
+                f'    if _k != "joint" or not hasattr(_e.jointMotion, "slideValue"): '
+                f'raise _OpError({index}, "slide drives a slider, cylindrical or pin-slot joint")',
+                f"    _e.jointMotion.slideValue = {_cm(float(value))!r}",
             ]
         elif key == "visible":
             lines += [
@@ -1192,6 +1380,7 @@ LIST_PROGRAM = (
         _occ = _root.occurrences.item(_i); _cid = _emit("component", _occ); _comp = _occ.component
         for _j in range(_comp.bRepBodies.count): _emit("body", _comp.bRepBodies.item(_j), _cid)
         for _j in range(_comp.sketches.count): _sketch_rows(_comp.sketches.item(_j), _cid)
+    for _i in range(_root.joints.count): _emit("joint", _root.joints.item(_i))
     for _i in range(_design.userParameters.count): _emit("param", _design.userParameters.item(_i))
     result = {"rows": rows}
 """

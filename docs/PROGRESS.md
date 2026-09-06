@@ -12637,3 +12637,23 @@ Pappus, the axis required in the sketch plane and the profile off it. Two
 Ø6.6 through holes read 96,000 − 2·π·3.3²·10 mm³; a 10×20 rectangle 30 mm
 off the x axis revolves to 2π·200·30 mm³ with a [10, 80, 80] bbox. 135
 Fusion-touching tests green; lint clean.
+
+**P3 — joints.** `create joint {one, two, motion, axis, slide, angle,
+offset, flip}`: each side is an occurrence's planar face centre
+(`createByPlanarFace(face, None, CenterKeyPoint)` on a body under
+`occ.bRepBodies`, rows 44 and 12), the occurrence's origin point in its
+context (`originConstructionPoint.createForAssemblyContext(occ)`, rows 37
+and 47), or a root body's face; the seven motions emit their verified
+setters (row 45) with the axis words mapped to `JointDirections`, ball on
+pitch Z and yaw X; angle and offset are written with their units. A joint
+is an entity `j1` reporting `motion`, `between`, `angle_deg`, `offset_mm`
+and, where the motion has them, `rotation_deg` / `slide_mm`; `set j1
+{angle, offset, flipped, suppressed, rotation (deg), slide (mm)}` writes
+the joint's parameters, `isFlipped`, `isSuppressed`, `rotationValue`
+(radians) and `slideValue` (cm) (row 46), refusing a drive the motion does
+not have. New-component extrudes now report the occurrence Fusion made
+(row 50, `feature.parentComponent` matched against `_root.occurrences`),
+so a joint has something to join. The shim records joints with their
+motions and parameters and moves no occurrence (§9 item 5), and refuses a
+joint whose two sides are the same component as Fusion's own null. 153
+Fusion-touching tests green; lint clean.

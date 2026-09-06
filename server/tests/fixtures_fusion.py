@@ -1015,7 +1015,9 @@ class _Feature(_Entity):
         for body in list(self._created):
             if body.isValid:
                 body.deleteMe()
-        self.parentComponent._features.remove(self)
+        for comp in self._design._all_components():
+            if self in comp._features:
+                comp._features.remove(self)
         self._design.timeline._drop(self)
         self._retire()
         return True
@@ -1057,6 +1059,11 @@ class ExtrudeFeature(_Feature):
                 target.dims[2] += depth
             self._bodies = [target]
             return
+        if op == FeatureOperations.NewComponentFeatureOperation:
+            # Fusion makes a new occurrence under the root and puts the body
+            # and the feature in its component (row 12; row 50 for parentComponent)
+            component = component.occurrences.addNewComponent(Matrix3D.create()).component
+            self.parentComponent = component
         for profile in self._profiles:
             body = BRepBody(
                 self._design,
@@ -1407,6 +1414,191 @@ class _RevolveFeatures(_Collection):
         return feature
 
 
+class JointDirections:
+    XAxisJointDirection = 0
+    YAxisJointDirection = 1
+    ZAxisJointDirection = 2
+    CustomJointDirection = 3
+
+
+class JointKeyPointTypes:
+    StartKeyPoint = 0
+    MiddleKeyPoint = 1
+    EndKeyPoint = 2
+    CenterKeyPoint = 3
+
+
+class JointGeometry:
+    """Row 44: transient geometry from a planar face's centre or a point; the
+    occurrence it belongs to is what the joint records."""
+
+    objectType = "adsk::fusion::JointGeometry"
+
+    def __init__(self, origin: Point3D, entity, occurrence):
+        self.origin, self.entity, self.occurrence = origin, entity, occurrence
+        self.keyPointType = JointKeyPointTypes.CenterKeyPoint
+
+    @staticmethod
+    def createByPlanarFace(face, edge, key_point_type):
+        if not isinstance(face, _Face) or not isinstance(face.geometry, Plane):
+            return None
+        if edge is None and key_point_type != JointKeyPointTypes.CenterKeyPoint:
+            return None
+        return JointGeometry(face.centroid, face, face.body.parentComponent._occurrence)
+
+    @staticmethod
+    def createByPoint(point):
+        if isinstance(point, ConstructionPoint):
+            return JointGeometry(point.geometry, point, point.assemblyContext)
+        if isinstance(point, SketchPoint):
+            return JointGeometry(point.geometry, point, None)
+        return None
+
+
+class _JointMotion:
+    def __init__(self, kind: str):
+        self.objectType = "adsk::fusion::" + kind
+
+
+class RigidJointMotion(_JointMotion):
+    def __init__(self):
+        super().__init__("RigidJointMotion")
+
+
+class RevoluteJointMotion(_JointMotion):
+    def __init__(self, axis: int):
+        super().__init__("RevoluteJointMotion")
+        self.rotationAxis = axis
+        self.rotationValue = 0.0  # radians (row 46)
+
+
+class SliderJointMotion(_JointMotion):
+    def __init__(self, direction: int):
+        super().__init__("SliderJointMotion")
+        self.slideDirection = direction
+        self.slideValue = 0.0  # centimetres (row 46)
+
+
+class CylindricalJointMotion(_JointMotion):
+    def __init__(self, axis: int):
+        super().__init__("CylindricalJointMotion")
+        self.rotationAxis = axis
+        self.rotationValue = 0.0
+        self.slideValue = 0.0
+
+
+class PinSlotJointMotion(_JointMotion):
+    def __init__(self, axis: int, direction: int):
+        super().__init__("PinSlotJointMotion")
+        self.rotationAxis, self.slideDirection = axis, direction
+        self.rotationValue = 0.0
+        self.slideValue = 0.0
+
+
+class PlanarJointMotion(_JointMotion):
+    def __init__(self, normal: int):
+        super().__init__("PlanarJointMotion")
+        self.normalDirection = normal
+
+
+class BallJointMotion(_JointMotion):
+    def __init__(self, pitch: int, yaw: int):
+        super().__init__("BallJointMotion")
+        self.pitchDirection, self.yawDirection = pitch, yaw
+
+
+class JointInput:
+    """Row 45: the seven motion setters, angle and offset as ValueInputs."""
+
+    def __init__(self, one: JointGeometry, two: JointGeometry):
+        self.geometryOrOriginOne, self.geometryOrOriginTwo = one, two
+        self.angle = ValueInput.createByReal(0.0)
+        self.offset = ValueInput.createByReal(0.0)
+        self.isFlipped = False
+        self.motion: _JointMotion = RigidJointMotion()
+
+    def setAsRigidJointMotion(self) -> bool:
+        self.motion = RigidJointMotion()
+        return True
+
+    def setAsRevoluteJointMotion(self, axis, custom=None) -> bool:
+        self.motion = RevoluteJointMotion(axis)
+        return True
+
+    def setAsSliderJointMotion(self, direction, custom=None) -> bool:
+        self.motion = SliderJointMotion(direction)
+        return True
+
+    def setAsCylindricalJointMotion(self, axis, custom=None) -> bool:
+        self.motion = CylindricalJointMotion(axis)
+        return True
+
+    def setAsPinSlotJointMotion(self, axis, direction, custom_axis=None, custom_dir=None) -> bool:
+        self.motion = PinSlotJointMotion(axis, direction)
+        return True
+
+    def setAsPlanarJointMotion(self, normal, custom_normal=None, custom_slide=None) -> bool:
+        self.motion = PlanarJointMotion(normal)
+        return True
+
+    def setAsBallJointMotion(self, pitch, yaw, custom_pitch=None, custom_yaw=None) -> bool:
+        self.motion = BallJointMotion(pitch, yaw)
+        return True
+
+
+class Joint(_Entity):
+    """Row 46. Fusion moves an occurrence to satisfy a joint; the shim records
+    the joint and moves nothing (doc 71 section 9, item 5)."""
+
+    objectType = "adsk::fusion::Joint"
+
+    def __init__(self, design, component: Component, inp: JointInput):
+        super().__init__(design, f"Joint{design._next('joint')}")
+        self.parentComponent = component
+        self.geometryOrOriginOne = inp.geometryOrOriginOne
+        self.geometryOrOriginTwo = inp.geometryOrOriginTwo
+        self.occurrenceOne = inp.geometryOrOriginOne.occurrence
+        self.occurrenceTwo = inp.geometryOrOriginTwo.occurrence
+        self.jointMotion = inp.motion
+        self.isFlipped = inp.isFlipped
+        self.isSuppressed = False
+        self.isLocked = False
+        self.healthState = 0
+        angle = inp.angle.expression or f"{inp.angle.value * 180.0 / math.pi:g} deg"
+        offset = inp.offset.expression or f"{inp.offset.value * 10.0:g} mm"
+        self.angle = ModelParameter(design, f"d{design._next('param')}", angle, "deg", None)
+        self.offset = ModelParameter(design, f"d{design._next('param')}", offset, "mm", None)
+        design._model_params += [self.angle, self.offset]
+        self.timelineObject = design.timeline._append(self)
+
+    def deleteMe(self) -> bool:
+        self.parentComponent._joints.remove(self)
+        for p in (self.angle, self.offset):
+            self._design._model_params.remove(p)
+            p._retire()
+        self._design.timeline._drop(self)
+        self._retire()
+        return True
+
+
+class _Joints(_Collection):
+    def __init__(self, component: Component):
+        super().__init__(component._joints)
+        self._component = component
+
+    def createInput(self, one, two):
+        if not isinstance(one, JointGeometry) or not isinstance(two, JointGeometry):
+            return None
+        return JointInput(one, two)
+
+    def add(self, inp: JointInput):
+        if inp is None or inp.geometryOrOriginOne.occurrence is inp.geometryOrOriginTwo.occurrence:
+            return None  # a joint is between two components
+        joint = Joint(self._component._design, self._component, inp)
+        self._items.append(joint)
+        return joint
+
+
 class _Features(_Collection):
     def __init__(self, component: Component):
         super().__init__(component._features)
@@ -1456,6 +1648,7 @@ class _Occurrences(_Collection):
         design = self._component._design
         component = Component(design, f"Component{design._next('component')}")
         occurrence = Occurrence(design, self._component, component)
+        component._occurrence = occurrence
         self._items.append(occurrence)
         return occurrence
 
@@ -1478,6 +1671,8 @@ class Component:
         self.yConstructionAxis = ConstructionAxis("Y", 1)
         self.zConstructionAxis = ConstructionAxis("Z", 2)
         self.originConstructionPoint = ConstructionPoint("Origin")
+        self._joints: list[Joint] = []
+        self._occurrence: Occurrence | None = None  # the occurrence instancing this component
 
     @property
     def sketches(self):
@@ -1494,6 +1689,10 @@ class Component:
     @property
     def occurrences(self):
         return _Occurrences(self)
+
+    @property
+    def joints(self):
+        return _Joints(self)
 
     @property
     def physicalProperties(self) -> PhysicalProperties:
@@ -1732,15 +1931,20 @@ class Design:
             if other is not param and getattr(other, "_depends_on", None) == param.name:
                 other.expression = other.expression
 
-    def _recompute(self) -> None:
-        stack = [self.rootComponent]
+    def _all_components(self) -> list[Component]:
+        out, stack = [], [self.rootComponent]
         while stack:
             comp = stack.pop()
+            out.append(comp)
+            stack.extend(o.component for o in comp._occurrences)
+        return out
+
+    def _recompute(self) -> None:
+        for comp in self._all_components():
             for feature in comp._features:
                 resize = getattr(feature, "_resize", None)
                 if resize is not None:
                     resize()
-            stack.extend(o.component for o in comp._occurrences)
 
     @property
     def userParameters(self):
@@ -1813,6 +2017,13 @@ def _modules(app: Application) -> dict[str, types.ModuleType]:
         "RevolveFeature",
         "ConstructionAxis",
         "ConstructionPoint",
+        "Joint",
+        "JointGeometry",
+        "JointInput",
+        "JointDirections",
+        "JointKeyPointTypes",
+        "RevoluteJointMotion",
+        "SliderJointMotion",
         "UserParameter",
         "ModelParameter",
         "Timeline",
