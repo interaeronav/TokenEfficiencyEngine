@@ -12530,3 +12530,31 @@ not make every adapter-less sketch ambiguous; both live still refuses naming
 both, and a single taker never probes. `docs/fusion-lane.md`, README,
 quickstart and troubleshooting rows. The Desktop manifest is unchanged by
 decision. Fusion-touching test files: 217 passed.
+
+**P4 — measured, recorded, pushed.** `run_fusion_scenario` joins the benchmark
+battery (`benchmarks/RESULTS.md`, "Fusion lane: sketch, extrude, fillet,
+measure"): the 120×80×10 mm plate with its 2 mm fillet, then volume and
+bbox, on the shim — TEE 254 tokens in 2 calls against 1,776 in 2 for a model
+that writes the API script itself and reads the design back as a listing,
+**85.7% saved**; the compiled batch script is 140 tokens the model never
+reads, the diff it reads instead is 131; read-back 96,000 mm³, bbox
+[120, 80, 10] mm. The always-loaded surface is unchanged at 17 tools. Full
+suite on the P3 tree: 1,579 passed, 66 skipped, 115 deselected; `make lint`
+clean. CHANGELOG Unreleased carries "The Fusion lane (A69)"; doc 71 §8 the
+numbers and what they do not measure.
+
+Open at the tail of A69:
+
+1. **The Mac smoke has not run** (`docs/fusion-lane.md`, "The smoke"). Nothing
+   about this lane is live-verified: doc 71 §3's live column is ○ on every
+   row and §9's questions are open. The Desktop manifest stays unchanged
+   until it has run.
+2. `Viewport.saveAsImageFile`'s extensions are unspecified; the capture
+   tries `.jpg` then `.png` and the smoke records which one wrote.
+3. `fu_export` ships step / stl / obj / f3d; iges, sat, 3mf and usd exist in
+   Fusion but their option constructors were not read, so they are refused
+   naming doc 71 rather than guessed.
+4. Holes, chamfers, revolves, shells, sweeps, lofts, sketch constraints,
+   joints, drawings and CAM: each is one more verified §3 row and one more
+   emitter (doc 71 §7).
+5. The version cut is the owner's call (0.22.0 if taken).

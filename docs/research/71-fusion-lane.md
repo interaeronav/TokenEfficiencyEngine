@@ -300,7 +300,43 @@ has none, row 18); the manifest change (§4.10).
 
 ## 8. Measured
 
-*Filled by P4: the shim numbers, then the Mac smoke table.*
+### 8.1 On the shim (P4, 2026-09-06)
+
+`benchmarks/run_benchmarks.py::run_fusion_scenario`, recorded in
+`benchmarks/RESULTS.md` under "Fusion lane: sketch, extrude, fillet, measure
+(A69)". The task: a 120 × 80 × 10 mm plate with a 2 mm fillet, then its
+volume and bounding box. Both arms run on `tests/fixtures_fusion.py`'s fake
+`adsk`: the scripts are the ones a live Fusion receives; only the geometry
+is arithmetic.
+
+| arm | tokens | calls |
+|---|---:|---:|
+| naive — the model writes the Fusion API script, runs it through an execute door, reads the design back as a listing | 1,776 | 2 |
+| TEE — one `tee_batch`, its diff, one `fu_measure` | 254 | 2 |
+| **saved** | **85.7%** | |
+
+The compiled batch script is 140 tokens the model never reads; the diff it
+reads instead is 131. Read-back: 96,000 mm³, bbox [120, 80, 10] mm — the
+number the smoke must answer before the fillet (`docs/fusion-lane.md`,
+step 3). The always-loaded surface stayed at 17 tools
+(`tests/test_server_lint.py`); the lane adds zero wire tokens, joining
+through the Adapter protocol and six `fu_*` virtual tools. The full suite on
+the P3 tree: 1,579 passed, 66 skipped, 115 deselected.
+
+What this measures and what it does not. The naive arm's script is the one
+TEE compiles, which is the fairest stand-in: a model writing it by hand
+spends more tokens and, on the retired `setDistanceExtent`, sometimes gets it
+wrong, so the saving is a floor on that side. It measures nothing about
+Fusion itself — latency, the event hop under load, which extensions
+`saveAsImageFile` writes, the OBJ's actual unit — those are the smoke's.
+
+### 8.2 Live — the Mac smoke has not run
+
+Every §3 row is ○ in its live column until the procedure in
+`docs/fusion-lane.md` has run on the machine that has Fusion. The smoke fills
+the column, answers §9, and decides the manifest (§4.10). Until then this
+lane is verified against the reference and proven on the shim, and claimed
+nowhere else.
 
 ## 9. Open questions for the smoke
 

@@ -63,6 +63,28 @@ search recall re-baselined on the real 173-tool registry (38 cases, 35 / 38
 / 38 / 38 at limit 3 / 5 / 8 / 10). `benchmarks/RESULTS.md` and doc 70 §7
 carry the before/after table.
 
+### The Fusion lane (A69, 2026-09-06)
+
+Autodesk Fusion is a lane: `tee serve --adapter fusion`, with a bridge
+add-in (`adapters/fusion/tee_bridge/TEE/`, MIT) running inside Fusion that
+runs every request on Fusion's primary thread through its custom-event
+queue — the mechanism Autodesk's own MCP sample uses — and an adapter that
+compiles one batch to one script and reads one diff back, the FreeCAD
+precedent. Zero new always-loaded tools. Sketches (rectangles, circles on
+the origin planes), extrudes (join/cut/intersect/new body/new component),
+fillets, components, user parameters, `set`/`delete`/`param_set`, STEP/IGES/
+SAT/f3d imports; `fu_probe`, `fu_measure`, `fu_params`, `fu_timeline`,
+`fu_export` (step/stl/obj/f3d, `into=` lands the file in a scene lane) and
+the `exec-code` escape hatch `fu_execute_python`. Millimetres on the wire
+with the unit written into every expression, centimetres inside; a
+checkpoint is the timeline marker plus every parameter expression and says
+what it cannot restore; the lane never creates, saves or closes a document.
+Every API call is a reference-verified row in research doc 71; nothing is
+claimed live until the smoke in `docs/fusion-lane.md` has run on a machine
+with Fusion. The router gained one refinement: a lane whose application is
+not running is not a candidate, so a closed Fusion never competes with
+partkiln for a sketch. The Desktop manifest is unchanged until then.
+
 ## 0.21.1 — 2026-09-04
 
 One change, and it is the one that lets Claude Desktop reach the two lanes

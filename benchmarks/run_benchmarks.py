@@ -1609,6 +1609,84 @@ def run_routing_scenario() -> dict | None:
     return facts
 
 
+FUSION_HEADER = "## Fusion lane: sketch, extrude, fillet, measure (A69)"
+
+
+def run_fusion_scenario() -> dict | None:
+    """A69 P4: what a part costs a model through the Fusion lane, on the shim.
+
+    Fusion has no headless build, so this runs on the suite's fake adsk
+    (tests/fixtures_fusion.py), which executes the SAME scripts the adapter
+    sends a live Fusion - the tokens are the wire's, only the geometry is
+    arithmetic. The naive arm is what a model does without the lane: write
+    the Fusion API script itself (the script TEE compiles is the fairest
+    stand-in - it is the minimum a correct one contains), send it through an
+    execute-script door, and read the design back as a listing to learn what
+    it made. The TEE arm is one batch, its diff, and one fu_measure."""
+    try:
+        from tee.adapters.fusion import codegen
+        from tee.adapters.fusion.adapter import FusionAdapter
+        from tee.adapters.fusion.tools import register_fusion_tools
+        from tee.app import TeeApp
+    except ImportError as exc:
+        print(f"fusion scenario skipped ({exc})")
+        return None
+    tests_dir = REPO / "server" / "tests"
+    if str(tests_dir) not in sys.path:
+        sys.path.insert(0, str(tests_dir))
+    from importlib import import_module
+
+    fake_wire = import_module("fixtures_fusion").FakeFusionWire
+
+    ops = [
+        {"op": "create", "kind": "sketch", "name": "base", "props": {"rects": [[0, 0, 120, 80]]}},
+        {"op": "create", "kind": "extrude", "name": "plate",
+         "props": {"sketch": "sk1", "distance": 10}},
+        {"op": "create", "kind": "fillet", "name": "round", "props": {"body": "b1", "radius": 2}},
+    ]
+
+    # -- TEE arm: one batch + its diff, then one measurement --------------
+    root = tempfile.mkdtemp(prefix="tee-bench-fusion-")
+    adapter = FusionAdapter(fake_wire(), workdir=root)
+    app = TeeApp({"fusion": adapter}, project_root=root)
+    register_fusion_tools(app, adapter)
+    tee = Meter()
+    try:
+        diff = app.run_batch("fusion", ops)
+        tee.call({"tool": "tee_batch", "ops": ops}, diff)
+        measured = app.registry.call("fu_measure", {"of": "b1"})
+        tee.call({"tool": "fu_measure", "of": "b1"}, measured)
+        script = adapter.wire.executed[0]  # the batch script the lane sent
+    finally:
+        app.shutdown()
+
+    # -- naive arm: the model writes the script, runs it, reads the design back
+    naive = Meter()
+    wire = fake_wire()
+    reply = wire.execute(script)
+    naive.call({"tool": "execute_script", "code": script}, reply)
+    listing = wire.execute(codegen.LIST_PROGRAM)
+    naive.call({"tool": "execute_script", "code": codegen.LIST_PROGRAM}, listing)
+
+    row = {
+        "tee_tokens": tee.tokens,
+        "tee_calls": tee.round_trips,
+        "naive_tokens": naive.tokens,
+        "naive_calls": naive.round_trips,
+        "saving": round(100.0 * (1 - tee.tokens / naive.tokens), 1),
+        "script_tokens": estimate_tokens(script),
+        "diff_tokens": estimate_tokens(diff),
+        "volume_mm3": measured["volume_mm3"],
+        "bbox_mm": measured["bbox_mm"],
+    }
+    print(
+        f"fusion: tee {tee.tokens} tok / {tee.round_trips} calls vs naive {naive.tokens} tok / "
+        f"{naive.round_trips} calls ({row['saving']}% saved); the batch script alone is "
+        f"{row['script_tokens']} tok, the diff {row['diff_tokens']} tok"
+    )
+    return row
+
+
 def run_seamkiln_scenario() -> dict | None:
     """A53 P4: what drafting, sewing, draping and fitting a tee costs a model.
 
@@ -2412,12 +2490,13 @@ def main() -> None:
     partkiln_followup_row = _safe(run_partkiln_followup_scenario)
     pointcloud_row = _safe(run_pointcloud_scenario)
     routing_row = _safe(run_routing_scenario)
+    fusion_row = _safe(run_fusion_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
                   fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row,
                   pointcloud_row, partkiln_row=partkiln_row,
                   partkiln_followup_row=partkiln_followup_row,
-                  routing_row=routing_row)
+                  routing_row=routing_row, fusion_row=fusion_row)
     _stage("total", t0)
 
 
@@ -2487,7 +2566,7 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   fabrication_row=None, senses_row=None, seamkiln_row=None,
                   seamkiln_followup_row=None, pointcloud_row=None,
                   partkiln_row=None, partkiln_followup_row=None,
-                  routing_row=None) -> None:
+                  routing_row=None, fusion_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -2762,6 +2841,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _routing_section(routing_row)
     else:
         lines += _carry_forward(ROUTING_HEADER)
+    if fusion_row is not None:
+        lines += _fusion_section(fusion_row)
+    else:
+        lines += _carry_forward(FUSION_HEADER)
     # Sections owned by the SIBLING runners (run_k4_mixed.py wrote the A42
     # scheduler row; run_p6_pipeline.py the A43 lane row). This file rewrites
     # RESULTS.md wholesale, so anything it does not carry forward is deleted
@@ -2894,6 +2977,37 @@ _ROUTING_BEFORE = (
     "partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / "
     "2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33."
 )
+
+
+def _fusion_section(row: dict) -> list[str]:
+    """A69 P4: the Fusion lane's tokens-per-task row, on the shim."""
+    return [
+        "",
+        FUSION_HEADER,
+        "",
+        "A 120 x 80 x 10 mm plate with a 2 mm fillet, then its volume and bounding box.",
+        "Measured on the suite's fake adsk (Fusion has no headless build): the scripts are",
+        "the ones a live Fusion receives, only the geometry is arithmetic. The naive arm",
+        "is what a model does without the lane - write the Fusion API script itself (the",
+        "script TEE compiles is the fairest stand-in), run it through an execute-script",
+        "door, and read the design back as a listing. The TEE arm is one batch, its diff,",
+        "and one `fu_measure`.",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (write the script, run it, read the design back) | "
+        f"{row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| tee (batch + diff + fu_measure) | {row['tee_tokens']:,} | {row['tee_calls']} |",
+        f"| **saved** | **{row['saving']}%** | |",
+        "",
+        f"The batch script the lane sends is {row['script_tokens']:,} tokens the model never",
+        f"reads; the diff it reads instead is {row['diff_tokens']} tokens. Read back:",
+        f"{row['volume_mm3']:,.0f} mm3, bbox {row['bbox_mm']} mm.",
+        "",
+        "The always-loaded surface is unchanged at 17 tools - Fusion joins through the",
+        "Adapter protocol and six `fu_*` virtual tools. Live numbers wait for the smoke in",
+        "docs/fusion-lane.md.",
+    ]
 
 
 def _seamkiln_section(row: dict) -> list[str]:

@@ -344,6 +344,30 @@ Always-loaded surface 17 tools / **2,129** wire tokens; instructions **1571 B**;
 
 Before A68 (same scenario, same composition, declared default blender): partkiln batch 3 calls / 731 tok and seamkiln batch 3 / 562 (refused `blender_error`, no lane in the fix, asked tee_status, retried); tee_script calling kb_status 1 / 586 with 1 Blender checkpoint; tee_scene_summary 1 / 26 (one lane's rows, not the server's lanes); render a partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / 2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33.
 
+## Fusion lane: sketch, extrude, fillet, measure (A69)
+
+A 120 x 80 x 10 mm plate with a 2 mm fillet, then its volume and bounding box.
+Measured on the suite's fake adsk (Fusion has no headless build): the scripts are
+the ones a live Fusion receives, only the geometry is arithmetic. The naive arm
+is what a model does without the lane - write the Fusion API script itself (the
+script TEE compiles is the fairest stand-in), run it through an execute-script
+door, and read the design back as a listing. The TEE arm is one batch, its diff,
+and one `fu_measure`.
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (write the script, run it, read the design back) | 1,776 | 2 |
+| tee (batch + diff + fu_measure) | 254 | 2 |
+| **saved** | **85.7%** | |
+
+The batch script the lane sends is 140 tokens the model never
+reads; the diff it reads instead is 131 tokens. Read back:
+96,000 mm3, bbox [120.0, 80.0, 10.0] mm.
+
+The always-loaded surface is unchanged at 17 tools - Fusion joins through the
+Adapter protocol and six `fu_*` virtual tools. Live numbers wait for the smoke in
+docs/fusion-lane.md.
+
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 
 *(not re-run this pass - scenario skipped on this machine; last measured values kept)*
