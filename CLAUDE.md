@@ -158,6 +158,11 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   `fu_drawing` is the partkiln route, and a rectangle's sides are named by
   position because the API does not state their order. Both campaigns stay
   unverified live until the Mac smoke (`docs/fusion-lane.md`, steps 1–11).
+  **`CLAUDE_A71_SCRIPT.md` is that smoke as a plan for a session local to
+  the owner's Mac** — the live test, the other live suites A68 touched,
+  the fact-driven fixes (a measurement outranks a declaration), and the
+  three decisions that are the owner's: the manifest, the version cut,
+  and marking PR #1 ready.
 
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is

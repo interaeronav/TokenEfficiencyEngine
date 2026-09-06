@@ -12721,3 +12721,21 @@ Open at the tail of A70: the Mac smoke, steps 7–11 (§9 items 4–7); the PDF
 export of an open drawing (row 49, verified, no emitter); shells / sweeps /
 lofts / threads / arcs / joint origins / motion links; the version cut
 (owner's call).
+
+## A71 — the Fusion lane goes live (planned 2026-09-06; runs on the Mac)
+
+Owner directive: *"Write a claude code script to execute everything on a
+session local to my Mac."* `CLAUDE_A71_SCRIPT.md` is the plan of record for
+a session with Fusion, Blender and the OCP wheel present and the owner in
+the room: P0 preconditions (branch, `uv sync --extra extract`, the hermetic
+suite green, `tee doctor`); P1 the smoke (`tests/test_fusion_live.py`, the
+add-in run and an empty design opened by the owner, the facts file
+committed as `docs/research/71-fusion-live-facts.json`); P2 acting on each
+fact by the table in the script — a measurement outranks a declaration, and
+a live refusal is fixed with a reference row first; P3 the other live
+suites A68 touched (`test_blender_live.py`, `test_partkiln_live.py`, the
+acceptance session's two-call route, `fu_export … into=blender` with both
+bridges up); P4 the three decisions that are the owner's (the Desktop
+manifest, the 0.22.0 cut with its re-lock, PR #1 ready for review); P5 the
+record and the push. Nothing in this section is done until that session
+writes its numbers here.
