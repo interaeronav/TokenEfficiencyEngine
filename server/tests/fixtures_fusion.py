@@ -10,6 +10,16 @@ distance is a box or a cylinder whose volume is area x depth; a cut takes
 volume from the last body, a join adds to it; a fillet touches nothing but
 the timeline. The live `-m dcc` smoke runs the same contract against the
 real add-in on the owner's Mac.
+
+A70 (v2): sketch geometry is real objects - lines with shared end points,
+circles with centres, points, the projected origin - and the constraints and
+dimensions of doc 71 rows 40-42 act on them. The shim SOLVES RECTANGLES AND
+CIRCLES ONLY (Law 10): a driving distance dimension moves a rectangle's far
+side and re-sizes what was extruded from it, a diameter sets a radius, an
+expression naming a user parameter follows it; a constraint the geometry
+contradicts is refused (null) rather than solved, and the rectangle call
+returns its four lines scrambled so a codegen that trusted their order is
+caught (Law 8).
 """
 
 from __future__ import annotations
@@ -223,32 +233,157 @@ class BRepBody(_Entity):
 
 
 class Profile:
+    """A closed region of a sketch, LIVE over its geometry: a rectangle's
+    corners or a circle's radius are read when the profile is asked, so a
+    dimension that moves them re-sizes what was extruded from it (Law 10)."""
+
     objectType = "adsk::fusion::Profile"
 
-    def __init__(self, area: float, dims: tuple[float, float], shape: str):
-        self.area, self.dims, self.shape = area, dims, shape
+    def __init__(self, shape: str, *, corners=None, circle=None):
+        self.shape = shape
+        self._corners = corners  # bl, br, tr, tl SketchPoints
+        self._circle = circle
+
+    @property
+    def dims(self) -> tuple[float, float]:
+        if self.shape == "box":
+            bl, br, _tr, tl = self._corners
+            return (abs(br.geometry.x - bl.geometry.x), abs(tl.geometry.y - bl.geometry.y))
+        d = 2.0 * self._circle.radius
+        return (d, d)
+
+    @property
+    def area(self) -> float:
+        w, h = self.dims
+        return w * h if self.shape == "box" else math.pi * (w / 2.0) ** 2
+
+    @property
+    def centroid(self) -> tuple[float, float]:
+        if self.shape == "box":
+            bl, _br, tr, _tl = self._corners
+            return ((bl.geometry.x + tr.geometry.x) / 2.0, (bl.geometry.y + tr.geometry.y) / 2.0)
+        c = self._circle.centerSketchPoint.geometry
+        return (c.x, c.y)
 
 
-class _SketchLines:
+class SketchPoint(_Entity):
+    objectType = "adsk::fusion::SketchPoint"
+
+    def __init__(self, design, sketch: Sketch, x: float, y: float):
+        super().__init__(design, "")
+        self.sketch = sketch
+        self.geometry = Point3D(x, y, 0.0)
+        self.isFixed = False
+        self.isReference = False
+
+    @property
+    def worldGeometry(self) -> Point3D:
+        return self.geometry
+
+    @property
+    def isFullyConstrained(self) -> bool:
+        return self.sketch._fixed().get(id(self), (False, False)) == (True, True)
+
+    def deleteMe(self) -> None:
+        self.sketch._points.remove(self)
+        self._retire()
+
+
+class SketchLine(_Entity):
+    objectType = "adsk::fusion::SketchLine"
+
+    def __init__(self, design, sketch: Sketch, a: SketchPoint, b: SketchPoint):
+        super().__init__(design, "")
+        self.sketch = sketch
+        self.startSketchPoint, self.endSketchPoint = a, b
+        self.isConstruction = False
+        self.isFixed = False
+
+    @property
+    def length(self) -> float:
+        a, b = self.startSketchPoint.geometry, self.endSketchPoint.geometry
+        return math.hypot(b.x - a.x, b.y - a.y)
+
+    @property
+    def isFullyConstrained(self) -> bool:
+        return self.startSketchPoint.isFullyConstrained and self.endSketchPoint.isFullyConstrained
+
+    def deleteMe(self) -> None:
+        self.sketch._lines.remove(self)
+        self.sketch._curves -= 1
+        self._retire()
+
+
+class SketchCircle(_Entity):
+    objectType = "adsk::fusion::SketchCircle"
+
+    def __init__(self, design, sketch: Sketch, centre: SketchPoint, radius: float):
+        super().__init__(design, "")
+        self.sketch = sketch
+        self.centerSketchPoint = centre
+        self.radius = float(radius)
+        self.isConstruction = False
+
+    @property
+    def isFullyConstrained(self) -> bool:
+        return self.centerSketchPoint.isFullyConstrained and self.sketch._radius_fixed(self)
+
+    def deleteMe(self) -> None:
+        self.sketch._circles.remove(self)
+        self.sketch._curves -= 1
+        self._retire()
+
+
+class _SketchLines(_Collection):
     def __init__(self, sketch: Sketch):
+        super().__init__(sketch._lines)
         self._sketch = sketch
 
-    def addTwoPointRectangle(self, p1: Point3D, p2: Point3D):
-        w, h = abs(p2.x - p1.x), abs(p2.y - p1.y)
-        self._sketch._profiles.append(Profile(w * h, (w, h), "box"))
-        self._sketch._curves += 4
-        return [object()] * 4
+    def addTwoPointRectangle(self, p1, p2):
+        sk = self._sketch
+        x1, x2 = sorted((p1.x, p2.x))
+        y1, y2 = sorted((p1.y, p2.y))
+        bl, br, tr, tl = sk._point(x1, y1), sk._point(x2, y1), sk._point(x2, y2), sk._point(x1, y2)
+        bottom, right, top, left = (
+            sk._line(bl, br),
+            sk._line(br, tr),
+            sk._line(tr, tl),
+            sk._line(tl, bl),
+        )
+        sk._profiles.append(Profile("box", corners=(bl, br, tr, tl)))
+        # row 38 leaves the order unstated; the shim scrambles it so a codegen
+        # that trusted an index would be caught (Law 8)
+        return _Collection([right, top, left, bottom])
+
+    def addByTwoPoints(self, start, end):
+        sk = self._sketch
+        a = start if isinstance(start, SketchPoint) else sk._point(start.x, start.y)
+        b = end if isinstance(end, SketchPoint) else sk._point(end.x, end.y)
+        return sk._line(a, b)
 
 
-class _SketchCircles:
+class _SketchCircles(_Collection):
     def __init__(self, sketch: Sketch):
+        super().__init__(sketch._circles)
         self._sketch = sketch
 
-    def addByCenterRadius(self, centre: Point3D, radius: float):
-        r = float(radius)
-        self._sketch._profiles.append(Profile(math.pi * r * r, (2 * r, 2 * r), "cylinder"))
-        self._sketch._curves += 1
-        return object()
+    def addByCenterRadius(self, centre, radius: float):
+        sk = self._sketch
+        c = centre if isinstance(centre, SketchPoint) else sk._point(centre.x, centre.y)
+        circle = SketchCircle(sk._design, sk, c, radius)
+        sk._circles.append(circle)
+        sk._curves += 1
+        sk._profiles.append(Profile("cylinder", circle=circle))
+        return circle
+
+
+class _SketchPoints(_Collection):
+    def __init__(self, sketch: Sketch):
+        super().__init__(sketch._points)
+        self._sketch = sketch
+
+    def add(self, point: Point3D) -> SketchPoint:
+        return self._sketch._point(point.x, point.y)
 
 
 class _SketchCurves:
@@ -262,6 +397,227 @@ class _SketchCurves:
         return self._sketch._curves
 
 
+class _Constraint:
+    def __init__(self, kind: str, args: tuple):
+        self.objectType = "adsk::fusion::" + kind.capitalize() + "Constraint"
+        self.kind, self.args = kind, args
+
+
+def _is_horizontal(line) -> bool:
+    return abs(line.startSketchPoint.geometry.y - line.endSketchPoint.geometry.y) < 1e-9
+
+
+def _is_vertical(line) -> bool:
+    return abs(line.startSketchPoint.geometry.x - line.endSketchPoint.geometry.x) < 1e-9
+
+
+class _GeometricConstraints(_Collection):
+    """Row 40's eleven calls. The shim does not solve: a constraint the
+    geometry already satisfies is recorded, one it contradicts is refused
+    (returns null, as Fusion does when creation fails) - Law 10."""
+
+    def __init__(self, sketch: Sketch):
+        super().__init__(sketch._constraints)
+        self._sketch = sketch
+
+    def _add(self, kind: str, args: tuple, ok: bool):
+        if not ok:
+            return None
+        c = _Constraint(kind, args)
+        self._items.append(c)
+        return c
+
+    def addHorizontal(self, line):
+        return self._add(
+            "horizontal", (line,), isinstance(line, SketchLine) and _is_horizontal(line)
+        )
+
+    def addVertical(self, line):
+        return self._add("vertical", (line,), isinstance(line, SketchLine) and _is_vertical(line))
+
+    def addParallel(self, l1, l2):
+        ok = isinstance(l1, SketchLine) and isinstance(l2, SketchLine)
+        return self._add("parallel", (l1, l2), ok)
+
+    def addPerpendicular(self, l1, l2):
+        ok = isinstance(l1, SketchLine) and isinstance(l2, SketchLine)
+        return self._add("perpendicular", (l1, l2), ok)
+
+    def addCollinear(self, l1, l2):
+        ok = isinstance(l1, SketchLine) and isinstance(l2, SketchLine)
+        return self._add("collinear", (l1, l2), ok)
+
+    def addEqual(self, c1, c2):
+        ok = type(c1) is type(c2) and isinstance(c1, (SketchLine, SketchCircle))
+        return self._add("equal", (c1, c2), ok)
+
+    def addTangent(self, c1, c2):
+        ok = isinstance(c1, (SketchLine, SketchCircle)) and isinstance(
+            c2, (SketchLine, SketchCircle)
+        )
+        return self._add("tangent", (c1, c2), ok)
+
+    def addConcentric(self, e1, e2):
+        ok = isinstance(e1, SketchCircle) and isinstance(e2, SketchCircle)
+        return self._add("concentric", (e1, e2), ok)
+
+    def addCoincident(self, point, entity):
+        if not isinstance(point, SketchPoint):
+            return None
+        if isinstance(entity, SketchPoint):
+            a, b = point.geometry, entity.geometry
+            same = abs(a.x - b.x) < 1e-9 and abs(a.y - b.y) < 1e-9
+            return self._add("coincident", (point, entity), same)
+        return self._add(
+            "coincident", (point, entity), isinstance(entity, (SketchLine, SketchCircle))
+        )
+
+    def addMidPoint(self, point, curve):
+        ok = isinstance(point, SketchPoint) and isinstance(curve, SketchLine)
+        return self._add("midpoint", (point, curve), ok)
+
+    def addSymmetry(self, e1, e2, line):
+        ok = type(e1) is type(e2) and isinstance(line, SketchLine)
+        return self._add("symmetry", (e1, e2, line), ok)
+
+
+class DimensionOrientations:
+    AlignedDimensionOrientation = 0
+    HorizontalDimensionOrientation = 1
+    VerticalDimensionOrientation = 2
+
+
+_DIMENSION_TYPES = {
+    "distance": "SketchLinearDimension",
+    "diameter": "SketchDiameterDimension",
+    "radius": "SketchRadialDimension",
+    "angle": "SketchAngularDimension",
+}
+
+
+class SketchDimension(_Entity):
+    """Rows 41-42: a dimension whose parameter DRIVES rectangles and circles
+    (Law 10): a horizontal / vertical distance between two points moves every
+    point sharing the second point's coordinate on that axis - a rectangle's
+    far side; a diameter / radius sets the circle's radius; anything else is
+    recorded and its value read back, never faked."""
+
+    def __init__(self, design, sketch, kind, ents, orientation, text, driving):
+        super().__init__(design, "")
+        self.sketch, self.kind, self.ents, self.orientation = sketch, kind, tuple(ents), orientation
+        self.objectType = "adsk::fusion::" + _DIMENSION_TYPES[kind]
+        self.textPosition = text
+        self.isDriving = bool(driving)
+        self.isDeletable = True
+        self._syncing = False
+        self.parameter = None
+        if self.isDriving:
+            n = design._next("param")
+            measured = self._measure()
+            if kind == "angle":
+                expression, unit = f"{measured * 180.0 / math.pi:g} deg", "deg"
+            else:
+                expression, unit = f"{measured * 10.0:g} mm", "mm"
+            self.parameter = ModelParameter(design, f"d{n}", expression, unit, self._drive)
+            design._model_params.append(self.parameter)
+
+    def _measure(self) -> float:
+        """The current value from the geometry, in cm or radians."""
+        if self.kind == "distance":
+            a, b = self.ents[0].geometry, self.ents[1].geometry
+            if self.orientation == DimensionOrientations.HorizontalDimensionOrientation:
+                return abs(b.x - a.x)
+            if self.orientation == DimensionOrientations.VerticalDimensionOrientation:
+                return abs(b.y - a.y)
+            return math.hypot(b.x - a.x, b.y - a.y)
+        if self.kind == "diameter":
+            return 2.0 * self.ents[0].radius
+        if self.kind == "radius":
+            return self.ents[0].radius
+        angles = []
+        for line in self.ents:
+            a, b = line.startSketchPoint.geometry, line.endSketchPoint.geometry
+            angles.append(math.atan2(b.y - a.y, b.x - a.x))
+        return abs(angles[0] - angles[1]) % math.pi
+
+    @property
+    def value(self) -> float:
+        return self._measure()
+
+    @value.setter
+    def value(self, v: float) -> None:
+        self._drive(float(v))
+
+    def _drive(self, v: float) -> None:
+        if self._syncing:
+            return
+        self._syncing = True
+        try:
+            if self.kind == "distance":
+                a, b = self.ents
+                ax, ay = a.geometry.x, a.geometry.y
+                dx, dy = b.geometry.x - ax, b.geometry.y - ay
+                horizontal = (
+                    self.orientation == DimensionOrientations.HorizontalDimensionOrientation
+                )
+                vertical = self.orientation == DimensionOrientations.VerticalDimensionOrientation
+                if horizontal or (not vertical and abs(dy) < 1e-9):
+                    self.sketch._shift(b, axis=0, to=ax + math.copysign(v, dx or 1.0))
+                elif vertical or abs(dx) < 1e-9:
+                    self.sketch._shift(b, axis=1, to=ay + math.copysign(v, dy or 1.0))
+                else:
+                    return  # a diagonal distance: recorded, not solved (Law 10)
+            elif self.kind == "diameter":
+                self.ents[0].radius = v / 2.0
+            elif self.kind == "radius":
+                self.ents[0].radius = v
+            else:
+                return  # an angle: recorded, not solved
+            self._design._recompute()
+        finally:
+            self._syncing = False
+
+    def deleteMe(self) -> None:
+        self.sketch._dims.remove(self)
+        if self.parameter is not None:
+            self._design._model_params.remove(self.parameter)
+            self.parameter._retire()
+        self._retire()
+
+
+class _SketchDimensions(_Collection):
+    def __init__(self, sketch: Sketch):
+        super().__init__(sketch._dims)
+        self._sketch = sketch
+
+    def _add(self, kind, ents, orientation, text, driving):
+        d = SketchDimension(
+            self._sketch._design, self._sketch, kind, ents, orientation, text, driving
+        )
+        self._items.append(d)
+        return d
+
+    def addDistanceDimension(self, p1, p2, orientation, textPoint, isDriving=True):
+        if not (isinstance(p1, SketchPoint) and isinstance(p2, SketchPoint)):
+            return None
+        return self._add("distance", (p1, p2), orientation, textPoint, isDriving)
+
+    def addDiameterDimension(self, entity, textPoint, isDriving=True):
+        if not isinstance(entity, SketchCircle):
+            return None
+        return self._add("diameter", (entity,), 0, textPoint, isDriving)
+
+    def addRadialDimension(self, entity, textPoint, isDriving=True):
+        if not isinstance(entity, SketchCircle):
+            return None
+        return self._add("radius", (entity,), 0, textPoint, isDriving)
+
+    def addAngularDimension(self, l1, l2, textPoint, isDriving=True):
+        if not (isinstance(l1, SketchLine) and isinstance(l2, SketchLine)):
+            return None
+        return self._add("angle", (l1, l2), 0, textPoint, isDriving)
+
+
 class Sketch(_Entity):
     objectType = "adsk::fusion::Sketch"
 
@@ -271,15 +627,109 @@ class Sketch(_Entity):
         self.referencePlane = plane
         self.isVisible = True
         self._profiles: list[Profile] = []
+        self._points: list[SketchPoint] = []
+        self._lines: list[SketchLine] = []
+        self._circles: list[SketchCircle] = []
+        self._constraints: list[_Constraint] = []
+        self._dims: list[SketchDimension] = []
         self._curves = 0
+        # Fusion's projected origin: a sketch point that is not in _points
+        self.originPoint = SketchPoint(design, self, 0.0, 0.0)
         self.sketchCurves = _SketchCurves(self)
         self.timelineObject = design.timeline._append(self)
+
+    # -- geometry the shim owns ----------------------------------------------
+
+    def _point(self, x: float, y: float) -> SketchPoint:
+        p = SketchPoint(self._design, self, x, y)
+        self._points.append(p)
+        return p
+
+    def _line(self, a: SketchPoint, b: SketchPoint) -> SketchLine:
+        line = SketchLine(self._design, self, a, b)
+        self._lines.append(line)
+        self._curves += 1
+        return line
+
+    def _shift(self, point: SketchPoint, *, axis: int, to: float) -> None:
+        """Move `point` along one axis together with every point sharing its
+        coordinate there - a rectangle's far side moves as one (Law 10)."""
+        old = point.geometry.x if axis == 0 else point.geometry.y
+        for p in self._points:
+            here = p.geometry.x if axis == 0 else p.geometry.y
+            if abs(here - old) < 1e-9:
+                if axis == 0:
+                    p.geometry.x = to
+                else:
+                    p.geometry.y = to
+
+    def _fixed(self) -> dict[int, tuple[bool, bool]]:
+        """Which coordinates the constraints and dimensions pin, propagated
+        from the origin - honest for rectangles, silent about the rest."""
+        fixed: dict[int, list[bool]] = {id(self.originPoint): [True, True]}
+        for p in self._points:
+            fixed.setdefault(id(p), [False, False])
+
+        def tie(a, b, axis):
+            if fixed[id(a)][axis] or fixed[id(b)][axis]:
+                fixed[id(a)][axis] = fixed[id(b)][axis] = True
+
+        while True:
+            before = {k: tuple(v) for k, v in fixed.items()}
+            for c in self._constraints:
+                if c.kind == "coincident" and isinstance(c.args[1], SketchPoint):
+                    tie(c.args[0], c.args[1], 0)
+                    tie(c.args[0], c.args[1], 1)
+                elif c.kind == "horizontal":
+                    tie(c.args[0].startSketchPoint, c.args[0].endSketchPoint, 1)
+                elif c.kind == "vertical":
+                    tie(c.args[0].startSketchPoint, c.args[0].endSketchPoint, 0)
+            for d in self._dims:
+                if d.kind == "distance" and d.isDriving:
+                    if d.orientation == DimensionOrientations.HorizontalDimensionOrientation:
+                        tie(d.ents[0], d.ents[1], 0)
+                    elif d.orientation == DimensionOrientations.VerticalDimensionOrientation:
+                        tie(d.ents[0], d.ents[1], 1)
+            if {k: tuple(v) for k, v in fixed.items()} == before:
+                break
+        return {k: tuple(v) for k, v in fixed.items()}
+
+    def _radius_fixed(self, circle: SketchCircle) -> bool:
+        return any(
+            d.kind in ("diameter", "radius") and d.isDriving and d.ents[0] is circle
+            for d in self._dims
+        )
+
+    # -- the API surface ---------------------------------------------------------
 
     @property
     def profiles(self):
         return _Collection(self._profiles)
 
+    @property
+    def sketchPoints(self):
+        return _SketchPoints(self)
+
+    @property
+    def geometricConstraints(self):
+        return _GeometricConstraints(self)
+
+    @property
+    def sketchDimensions(self):
+        return _SketchDimensions(self)
+
+    @property
+    def isFullyConstrained(self) -> bool:
+        fixed = self._fixed()
+        return all(fixed[id(p)] == (True, True) for p in self._points) and all(
+            self._radius_fixed(c) for c in self._circles
+        )
+
     def deleteMe(self) -> bool:
+        for d in list(self._dims):
+            d.deleteMe()
+        for e in (*self._points, *self._lines, *self._circles, self.originPoint):
+            e._retire()
         self.parentComponent._sketches.remove(self)
         self._design.timeline._drop(self)
         self._retire()
@@ -340,12 +790,22 @@ class Parameter(_Entity):
 
     @expression.setter
     def expression(self, text: str) -> None:
-        value, unit = parse_expression(text)
-        if not unit and self.unit in _UNIT_CM:
-            value *= _UNIT_CM[self.unit]  # a unitless expression takes the parameter's unit
-        self._expression = str(text)
+        text = str(text)
+        ref = None
+        if text.strip().isidentifier():  # "width": a reference to a user parameter
+            ref = self._design.userParameters.itemByName(text.strip())
+        if ref is not None and ref is not self:
+            value = ref.value
+            self._depends_on = ref.name
+        else:
+            value, unit = parse_expression(text)
+            if not unit and self.unit in _UNIT_CM:
+                value *= _UNIT_CM[self.unit]  # a unitless expression takes the parameter's unit
+            self._depends_on = None
+        self._expression = text
         self.value = value
         self._changed()
+        self._design._propagate(self)
 
     def _changed(self) -> None:
         return None
@@ -503,6 +963,14 @@ class ExtrudeFeature(_Feature):
                 body.dims[2] = depth_cm
                 body.volume = body.profile_area * depth_cm
         self._depth = depth_cm
+
+    def _resize(self) -> None:
+        """The sketch moved (a dimension drove it): the bodies this extrude
+        created follow their live profiles, as a parametric recompute would."""
+        for body, profile in zip(self._created, self._profiles, strict=False):
+            if body.isValid:
+                body.dims[0], body.dims[1] = profile.dims
+                body.volume = profile.area * body.dims[2]
 
 
 class _ExtrudeFeatures(_Collection):
@@ -876,6 +1344,23 @@ class Design:
         self._counters[what] = self._counters.get(what, 0) + 1
         return self._counters[what]
 
+    def _propagate(self, param: Parameter) -> None:
+        """A parameter changed: every parameter whose expression names it is
+        re-evaluated (and drives its geometry), as Fusion's recompute does."""
+        for other in list(self._model_params) + list(self._user_params):
+            if other is not param and getattr(other, "_depends_on", None) == param.name:
+                other.expression = other.expression
+
+    def _recompute(self) -> None:
+        stack = [self.rootComponent]
+        while stack:
+            comp = stack.pop()
+            for feature in comp._features:
+                resize = getattr(feature, "_resize", None)
+                if resize is not None:
+                    resize()
+            stack.extend(o.component for o in comp._occurrences)
+
     @property
     def userParameters(self):
         return _UserParameters(self)
@@ -927,9 +1412,14 @@ def _modules(app: Application) -> dict[str, types.ModuleType]:
         "DesignTypes",
         "FeatureOperations",
         "ExtentDirections",
+        "DimensionOrientations",
         "DistanceExtentDefinition",
         "BRepBody",
         "Sketch",
+        "SketchPoint",
+        "SketchLine",
+        "SketchCircle",
+        "SketchDimension",
         "Component",
         "Occurrence",
         "ExtrudeFeature",

@@ -28,14 +28,46 @@ keeps the map both ways. A listing prunes ids whose token no longer resolves.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from tee.kernel.errors import TeeError
 
 OPS = ("create", "set", "delete", "param_set", "import_file")
-KINDS = ("sketch", "extrude", "fillet", "component", "param")
+KINDS = ("sketch", "extrude", "fillet", "component", "param", "constraint", "dimension")
 IMPORT_SUFFIXES = ("step", "stp", "f3d", "igs", "iges", "sat")
+# A70 (doc 71 row 40): constraint type -> (arity, the GeometricConstraints call).
+# coincident is (point, entity), midpoint (point, curve), symmetry (a, b, line).
+CONSTRAINTS: dict[str, tuple[int, str]] = {
+    "horizontal": (1, "addHorizontal"),
+    "vertical": (1, "addVertical"),
+    "parallel": (2, "addParallel"),
+    "perpendicular": (2, "addPerpendicular"),
+    "collinear": (2, "addCollinear"),
+    "equal": (2, "addEqual"),
+    "tangent": (2, "addTangent"),
+    "concentric": (2, "addConcentric"),
+    "coincident": (2, "addCoincident"),
+    "midpoint": (2, "addMidPoint"),
+    "symmetry": (3, "addSymmetry"),
+}
+# Row 41: dimension type -> (arity, the SketchDimensions call).
+DIMENSIONS: dict[str, tuple[int, str]] = {
+    "distance": (2, "addDistanceDimension"),
+    "diameter": (1, "addDiameterDimension"),
+    "radius": (1, "addRadialDimension"),
+    "angle": (2, "addAngularDimension"),
+}
+ORIENTATIONS = {
+    "aligned": "AlignedDimensionOrientation",
+    "horizontal": "HorizontalDimensionOrientation",
+    "vertical": "VerticalDimensionOrientation",
+}
+_ADDRESS_HELP = (
+    "an address is r0.bottom|top|left|right, r0.bl|br|tl|tr, l0, l0.start|end, c0, "
+    "c0.center, p0 or origin - prefixed sk1/ outside the sketch op"
+)
 # Row 17: the option constructors differ in argument order by format. Only
 # the four whose pages were read ship; iges/sat/3mf/usd exist and wait for
 # their rows.
@@ -79,6 +111,7 @@ try:
     _root = _design.rootComponent
     _ids = _tee.setdefault("ids", {}); _toks = _tee.setdefault("toks", {})
     _counts = _tee.setdefault("counts", {}); _kinds = _tee.setdefault("kinds", {})
+    _subs = _tee.setdefault("subs", {}); _names = _tee.setdefault("names", {})
     def _mint(prefix, token):
         sid = _toks.get(token)
         if sid is None:
@@ -87,6 +120,47 @@ try:
         return sid
     def _forget(sid):
         token = _ids.pop(sid, None); _toks.pop(token, None); _kinds.pop(sid, None)
+        _subs.pop(sid, None); _names.pop(sid, None)
+    def _sub(skid, ref, index=-1):
+        # a sketch-local address (doc 71 section 10.1): r0.bottom, l1.start, c0.center, p2, origin
+        m = _subs.get(skid, {}); token = m.get(ref)
+        if token is None:
+            raise _OpError(index, "sketch %r has no entity %r (it has: %s)"
+                           % (skid, ref, ", ".join(sorted(m)) or "-"), "fusion_unknown_entity")
+        ents = _design.findEntityByToken(token)
+        if not ents:
+            raise _OpError(index, "sketch entity %s/%s no longer exists" % (skid, ref),
+                           "fusion_unknown_entity")
+        return ents[0]
+    def _rect_subs(m, key, lines):
+        # Law 8: the sides are named by where their midpoints lie, never by the
+        # order Fusion returned them (row 38 leaves it unstated)
+        mids = []
+        for _i in range(lines.count):
+            _l = lines.item(_i); _a = _l.startSketchPoint.geometry; _b = _l.endSketchPoint.geometry
+            mids.append(((_a.x + _b.x) / 2.0, (_a.y + _b.y) / 2.0, _l))
+        by_y = sorted(mids, key=lambda t: t[1]); by_x = sorted(mids, key=lambda t: t[0])
+        sides = {"bottom": by_y[0][2], "top": by_y[-1][2]}
+        sides.update({"left": by_x[0][2], "right": by_x[-1][2]})
+        for _n, _l in sides.items(): m[key + "." + _n] = _l.entityToken
+        def _ends(l):
+            return sorted([l.startSketchPoint, l.endSketchPoint], key=lambda p: p.geometry.x)
+        _bot = _ends(sides["bottom"]); _top = _ends(sides["top"])
+        m[key + ".bl"] = _bot[0].entityToken; m[key + ".br"] = _bot[1].entityToken
+        m[key + ".tl"] = _top[0].entityToken; m[key + ".tr"] = _top[1].entityToken
+    def _mid(e):
+        t = e.objectType.split("::")[-1]
+        if t == "SketchPoint": g = e.geometry; return (g.x, g.y)
+        if t == "SketchLine":
+            a = e.startSketchPoint.geometry; b = e.endSketchPoint.geometry
+            return ((a.x + b.x) / 2.0, (a.y + b.y) / 2.0)
+        if t == "SketchCircle":
+            c = e.centerSketchPoint.geometry; return (c.x + e.radius, c.y + e.radius)
+        return (0.0, 0.0)
+    def _text_for(ents):
+        pts = [_mid(e) for e in ents]
+        return adsk.core.Point3D.create(sum(p[0] for p in pts) / len(pts) + 0.5,
+                                        sum(p[1] for p in pts) / len(pts) + 0.5, 0.0)
     def _find(sid, index=-1):
         if sid.startswith("param:"):
             p = _design.userParameters.itemByName(sid[6:])
@@ -107,9 +181,10 @@ try:
     def _kind_of(ent):
         t = ent.objectType.split("::")[-1]
         if t.endswith("Feature"): return "feature"
+        if t.endswith("Dimension"): return "dimension"
         return {"BRepBody": "body", "Sketch": "sketch", "Occurrence": "component",
                 "UserParameter": "param", "ModelParameter": "param"}.get(t, t.lower())
-    _PREFIX = {"body": "b", "sketch": "sk", "component": "c", "feature": "f"}
+    _PREFIX = {"body": "b", "sketch": "sk", "component": "c", "feature": "f", "dimension": "dim"}
     def _prefix_for(kind): return _PREFIX.get(kind, "e")
     def _param_value(p):
         u = str(p.unit)
@@ -125,6 +200,15 @@ try:
             s["solid"] = bool(ent.isSolid)
         elif kind == "sketch":
             s["profiles"] = ent.profiles.count; s["curves"] = ent.sketchCurves.count
+            s["constraints"] = ent.geometricConstraints.count
+            s["dims"] = ent.sketchDimensions.count
+            s["constrained"] = bool(ent.isFullyConstrained)
+        elif kind == "dimension":
+            t = ent.objectType.split("::")[-1]; s["type"] = t; p = ent.parameter
+            s["expression"] = str(p.expression) if p is not None else None
+            s["value"] = (round(float(ent.value) * 57.29577951308232, 4)
+                          if t == "SketchAngularDimension" else _mm(ent.value))
+            s["driving"] = bool(ent.isDriving)
         elif kind == "feature":
             s["type"] = ent.objectType.split("::")[-1]; s["bodies"] = ent.bodies.count
             if ent.isSuppressed: s["suppressed"] = True
@@ -140,7 +224,10 @@ try:
             s["value"] = _param_value(ent)
         return s
     def _name_of(kind, ent):
-        return str(ent.component.name) if kind == "component" else str(ent.name)
+        if kind == "component": return str(ent.component.name)
+        if kind == "dimension":
+            return str(ent.parameter.name) if ent.parameter is not None else "dim"
+        return str(ent.name)
     def _sid_of(kind, ent):
         if kind == "param": return "param:" + str(ent.name)
         return _mint(_prefix_for(kind), ent.entityToken)
@@ -149,7 +236,7 @@ try:
 _BATCH_HEAD = """\
     created, modified, deleted, details = [], [], [], {}
     def _note(sid, kind, ent, parent=None):
-        row = {"name": _name_of(kind, ent), "kind": _kinds.get(sid, kind)}
+        row = {"name": _names.get(sid) or _name_of(kind, ent), "kind": _kinds.get(sid, kind)}
         if parent: row["parent"] = parent
         row.update(_summary(kind, ent)); details[sid] = row
     def _mark(sid, new):
@@ -232,8 +319,8 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                         raise _bad(
                             index,
                             f"Property {key!r} is not settable",
-                            "set takes name, expression (parameters and extrudes), suppressed "
-                            "(features) and visible (bodies, sketches).",
+                            "set takes name, expression (parameters, dimensions and extrudes), "
+                            "suppressed (features) and visible (bodies, sketches).",
                         )
         elif action == "param_set":
             if not op.get("name") or op.get("expression") is None:
@@ -261,29 +348,128 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                 )
 
 
+def _nums(value: Any, n: int) -> bool:
+    return isinstance(value, (list, tuple)) and len(value) == n and all(_number(v) for v in value)
+
+
+_ADDRESS = re.compile(
+    r"^(r\d+\.(bottom|top|left|right|bl|br|tl|tr)|l\d+(\.(start|end))?|c\d+(\.center)?|p\d+|origin)$"
+)
+
+
+def _refs(
+    index: int, props: dict[str, Any], arity: int, *, inline: bool, what: str
+) -> tuple[str | None, list[str]]:
+    """The addresses a constraint or dimension names, validated: `of` holds
+    exactly `arity` addresses; inside a sketch op they are bare, outside it
+    they are bare with `sketch` given or `sk1/`-prefixed, all on one sketch."""
+    of = props.get("of")
+    if (
+        not isinstance(of, list)
+        or len(of) != arity
+        or not all(isinstance(r, str) and r for r in of)
+    ):
+        plural = "es" if arity != 1 else ""
+        raise _bad(index, f"A {what} takes {arity} address{plural} in `of`", _ADDRESS_HELP)
+    skid = props.get("sketch")
+    bare: list[str] = []
+    for ref in of:
+        if "/" in ref:
+            prefix, ref = ref.split("/", 1)
+            if inline:
+                raise _bad(
+                    index,
+                    f"Inside a sketch op an address is bare: '{ref}', not '{prefix}/{ref}'",
+                    _ADDRESS_HELP,
+                )
+            if skid is None:
+                skid = prefix
+            elif prefix != skid:
+                raise _bad(
+                    index,
+                    f"Address '{prefix}/{ref}' names another sketch than '{skid}'",
+                    "One sketch per constraint or dimension.",
+                )
+        if not _ADDRESS.match(ref):
+            raise _bad(index, f"Bad sketch address '{ref}'", _ADDRESS_HELP)
+        bare.append(ref)
+    if not inline and not skid:
+        raise _bad(
+            index,
+            f"A {what} needs sketch (id) or sk1/-prefixed addresses",
+            '{"op":"create","kind":"constraint","props":{"sketch":"sk1","type":"horizontal",'
+            '"of":["r0.bottom"]}}',
+        )
+    return (None if inline else str(skid)), bare
+
+
+def _check_constraint(index: int, props: dict[str, Any], *, inline: bool) -> None:
+    ctype = str(props.get("type") or "")
+    if ctype not in CONSTRAINTS:
+        raise _bad(index, f"Unknown constraint type '{ctype}'", f"Types: {', '.join(CONSTRAINTS)}.")
+    _refs(index, props, CONSTRAINTS[ctype][0], inline=inline, what=f"{ctype} constraint")
+
+
+def _check_dimension(index: int, props: dict[str, Any], *, inline: bool) -> None:
+    dtype = str(props.get("type") or "")
+    if dtype not in DIMENSIONS:
+        raise _bad(index, f"Unknown dimension type '{dtype}'", f"Types: {', '.join(DIMENSIONS)}.")
+    _refs(index, props, DIMENSIONS[dtype][0], inline=inline, what=f"{dtype} dimension")
+    orientation = props.get("orientation")
+    if orientation is not None and (dtype != "distance" or str(orientation) not in ORIENTATIONS):
+        raise _bad(
+            index,
+            f"orientation '{orientation}' is not one a {dtype} dimension takes",
+            "A distance dimension takes orientation aligned, horizontal or vertical.",
+        )
+    if "expression" in props and not isinstance(props["expression"], str):
+        raise _bad(index, "A dimension expression is a string", '"width" or "120 mm"')
+    if "text" in props and not _nums(props["text"], 2):
+        raise _bad(index, "text is [x, y] in mm", "e.g. [60, -10]")
+    if "driving" in props and not isinstance(props["driving"], bool):
+        raise _bad(index, "driving is true or false", "omit it for a driving dimension")
+
+
 def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
     if kind == "sketch":
         plane = str(props.get("plane") or "XY").upper()
         if plane not in PLANES:
             raise _bad(index, f"Unknown sketch plane '{plane}'", "Use XY, XZ or YZ.")
         rects, circles = props.get("rects") or [], props.get("circles") or []
-        if not rects and not circles:
+        lines, points = props.get("lines") or [], props.get("points") or []
+        if not rects and not circles and not lines and not points:
             raise _bad(
                 index,
                 "A sketch needs geometry",
-                'props: {"plane":"XY","rects":[[x1,y1,x2,y2]],"circles":[[cx,cy,r]]} in mm',
+                'props: {"plane":"XY","rects":[[x1,y1,x2,y2]],"circles":[[cx,cy,r]],'
+                '"lines":[[x1,y1,x2,y2]],"points":[[x,y]]} in mm',
             )
         for r in rects:
-            if not (isinstance(r, (list, tuple)) and len(r) == 4 and all(_number(v) for v in r)):
+            if not _nums(r, 4):
                 raise _bad(index, "A rect is [x1, y1, x2, y2] in mm", "e.g. [0, 0, 120, 80]")
+            if r[0] == r[2] or r[1] == r[3]:
+                raise _bad(index, "A rect needs a nonzero width and height", "e.g. [0, 0, 120, 80]")
         for c in circles:
-            if not (
-                isinstance(c, (list, tuple))
-                and len(c) == 3
-                and all(_number(v) for v in c)
-                and c[2] > 0
-            ):
+            if not (_nums(c, 3) and c[2] > 0):
                 raise _bad(index, "A circle is [cx, cy, r] in mm with r > 0", "e.g. [60, 40, 5]")
+        for ln in lines:
+            if not _nums(ln, 4) or (ln[0] == ln[2] and ln[1] == ln[3]):
+                raise _bad(
+                    index,
+                    "A line is [x1, y1, x2, y2] in mm with two distinct points",
+                    "e.g. [0, 0, 50, 0]",
+                )
+        for p in points:
+            if not _nums(p, 2):
+                raise _bad(index, "A point is [x, y] in mm", "e.g. [20, 20]")
+        for c in props.get("constraints") or []:
+            _check_constraint(index, c if isinstance(c, dict) else {}, inline=True)
+        for d in props.get("dims") or []:
+            _check_dimension(index, d if isinstance(d, dict) else {}, inline=True)
+    elif kind == "constraint":
+        _check_constraint(index, props, inline=False)
+    elif kind == "dimension":
+        _check_dimension(index, props, inline=False)
     elif kind == "extrude":
         if not props.get("sketch") or not _number(props.get("distance")):
             raise _bad(
@@ -320,26 +506,133 @@ def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
 # -- emitters -------------------------------------------------------------------
 
 
+def _p3(x: float, y: float) -> str:
+    return f"adsk.core.Point3D.create({_cm(x)!r}, {_cm(y)!r}, 0.0)"
+
+
 def _emit_sketch(index: int, name: str, props: dict[str, Any]) -> list[str]:
+    """A sketch and its addressable geometry (doc 71 section 10.1): every
+    line, circle and point is registered in the bridge's `_subs` map under a
+    sketch-local address as it is created; inline constraints and dims run
+    against the same map."""
     plane = PLANES[str(props.get("plane") or "XY").upper()]
     lines = [
         f"    _sk = _root.sketches.add(_root.{plane})",
         f"    _sk.name = {_lit(name)}",
+        '    _sid = _mint("sk", _sk.entityToken); _mark(_sid, True)',
+        '    _m = _subs.setdefault(_sid, {}); _m["origin"] = _sk.originPoint.entityToken',
     ]
-    for x1, y1, x2, y2 in props.get("rects") or []:
-        lines.append(
-            "    _sk.sketchCurves.sketchLines.addTwoPointRectangle("
-            f"adsk.core.Point3D.create({_cm(x1)!r}, {_cm(y1)!r}, 0.0), "
-            f"adsk.core.Point3D.create({_cm(x2)!r}, {_cm(y2)!r}, 0.0))"
+    for k, (x1, y1, x2, y2) in enumerate(props.get("rects") or []):
+        lines += [
+            "    _ls = _sk.sketchCurves.sketchLines.addTwoPointRectangle("
+            f"{_p3(x1, y1)}, {_p3(x2, y2)})",
+            f'    _rect_subs(_m, "r{k}", _ls)',
+        ]
+    for n, (x1, y1, x2, y2) in enumerate(props.get("lines") or []):
+        lines += [
+            f"    _l = _sk.sketchCurves.sketchLines.addByTwoPoints({_p3(x1, y1)}, {_p3(x2, y2)})",
+            f'    _m["l{n}"] = _l.entityToken; _m["l{n}.start"] = _l.startSketchPoint.entityToken',
+            f'    _m["l{n}.end"] = _l.endSketchPoint.entityToken',
+        ]
+    for n, (cx, cy, r) in enumerate(props.get("circles") or []):
+        lines += [
+            f"    _c = _sk.sketchCurves.sketchCircles.addByCenterRadius({_p3(cx, cy)}, {_cm(r)!r})",
+            f'    _m["c{n}"] = _c.entityToken',
+            f'    _m["c{n}.center"] = _c.centerSketchPoint.entityToken',
+        ]
+    for n, (x, y) in enumerate(props.get("points") or []):
+        lines += [
+            f"    _p = _sk.sketchPoints.add({_p3(x, y)})",
+            f'    _m["p{n}"] = _p.entityToken',
+        ]
+    for c in props.get("constraints") or []:
+        lines += _constraint_lines(index, c, inline=True)
+    for d in props.get("dims") or []:
+        lines += _dimension_lines(index, d.get("name"), d, inline=True)
+    lines.append('    _note(_sid, "sketch", _sk)')
+    return lines
+
+
+def _constraint_lines(index: int, props: dict[str, Any], *, inline: bool) -> list[str]:
+    """Assumes `_sk` (the Sketch) and `_sid` (its id) are bound. Row 40."""
+    ctype = str(props["type"])
+    arity, call = CONSTRAINTS[ctype]
+    _, refs = _refs(index, props, arity, inline=inline, what=f"{ctype} constraint")
+    args = ", ".join(f"_sub(_sid, {_lit(r)}, {index})" for r in refs)
+    return [
+        f"    _gc = _sk.geometricConstraints.{call}({args})",
+        f"    if _gc is None: raise _OpError({index}, 'Fusion refused the {ctype} constraint on "
+        f"%s (the geometry contradicts it, or it is over-constrained)' % {_lit(' + '.join(refs))})",
+    ]
+
+
+def _dimension_lines(
+    index: int, name: str | None, props: dict[str, Any], *, inline: bool
+) -> list[str]:
+    """Assumes `_sk` and `_sid` are bound. Rows 41-42: the dimension, its
+    text point (given in mm, or beside the geometry), and the expression that
+    binds it to a parameter."""
+    dtype = str(props["type"])
+    arity, call = DIMENSIONS[dtype]
+    _, refs = _refs(index, props, arity, inline=inline, what=f"{dtype} dimension")
+    ents = ", ".join(f"_sub(_sid, {_lit(r)}, {index})" for r in refs)
+    lines = [f"    _ents = [{ents}]"]
+    text = props.get("text")
+    if text:
+        lines.append(f"    _tp = {_p3(text[0], text[1])}")
+    else:
+        lines.append("    _tp = _text_for(_ents)")
+    driving = bool(props.get("driving", True))
+    if dtype == "distance":
+        orient = ORIENTATIONS[str(props.get("orientation") or "aligned")]
+        made = (
+            f"_sk.sketchDimensions.addDistanceDimension(_ents[0], _ents[1], "
+            f"adsk.fusion.DimensionOrientations.{orient}, _tp, {driving!r})"
         )
-    for cx, cy, r in props.get("circles") or []:
-        lines.append(
-            "    _sk.sketchCurves.sketchCircles.addByCenterRadius("
-            f"adsk.core.Point3D.create({_cm(cx)!r}, {_cm(cy)!r}, 0.0), {_cm(r)!r})"
-        )
+    elif dtype == "angle":
+        made = f"_sk.sketchDimensions.addAngularDimension(_ents[0], _ents[1], _tp, {driving!r})"
+    else:
+        made = f"_sk.sketchDimensions.{call}(_ents[0], _tp, {driving!r})"
     lines += [
-        '    _sid = _mint("sk", _sk.entityToken); _mark(_sid, True); _note(_sid, "sketch", _sk)',
+        f"    _d = {made}",
+        f"    if _d is None: raise _OpError({index}, 'Fusion refused the {dtype} dimension on %s' "
+        f"% {_lit(' + '.join(refs))})",
     ]
+    expression = props.get("expression")
+    if expression is not None:
+        lines += [
+            f"    if _d.parameter is None: raise _OpError({index}, 'a driven dimension has no "
+            "parameter to set')",
+            f"    _d.parameter.expression = {_lit(str(expression))}",
+        ]
+    lines.append('    _did = _mint("dim", _d.entityToken); _mark(_did, True)')
+    if name:
+        lines.append(f"    _names[_did] = {_lit(str(name))}")
+    lines.append('    _note(_did, "dimension", _d, parent=_sid)')
+    return lines
+
+
+def _bind_sketch(index: int, props: dict[str, Any], arity: int, what: str) -> list[str]:
+    skid, _ = _refs(index, props, arity, inline=False, what=what)
+    return [
+        f"    _sid = {_lit(skid)}; _sk = _find(_sid, {index})",
+        f'    if _kind_of(_sk) != "sketch": raise _OpError({index}, "%r is not a sketch" % _sid)',
+    ]
+
+
+def _emit_constraint(index: int, props: dict[str, Any]) -> list[str]:
+    ctype = str(props["type"])
+    lines = _bind_sketch(index, props, CONSTRAINTS[ctype][0], f"{ctype} constraint")
+    lines += _constraint_lines(index, props, inline=False)
+    lines.append('    _mark(_sid, False); _note(_sid, "sketch", _sk)')
+    return lines
+
+
+def _emit_dimension(index: int, name: str | None, props: dict[str, Any]) -> list[str]:
+    dtype = str(props["type"])
+    lines = _bind_sketch(index, props, DIMENSIONS[dtype][0], f"{dtype} dimension")
+    lines += _dimension_lines(index, name, props, inline=False)
+    lines.append('    _mark(_sid, False); _note(_sid, "sketch", _sk)')
     return lines
 
 
@@ -433,6 +726,10 @@ def _emit_create(index: int, op: dict[str, Any]) -> list[str]:
     props = dict(op.get("props") or {})
     if kind == "sketch":
         return _emit_sketch(index, name, props)
+    if kind == "constraint":
+        return _emit_constraint(index, props)
+    if kind == "dimension":
+        return _emit_dimension(index, op.get("name"), props)
     if kind == "extrude":
         return _emit_extrude(index, name, props)
     if kind == "fillet":
@@ -459,10 +756,14 @@ def _emit_set(index: int, op: dict[str, Any]) -> list[str]:
         elif key == "expression":
             lines += [
                 f'    if _k == "param": _e.expression = {_lit(str(value))}',
+                '    elif _k == "dimension":',
+                f"        if _e.parameter is None: raise _OpError({index}, 'a driven dimension has "
+                "no parameter to set')",
+                f"        _e.parameter.expression = {_lit(str(value))}",
                 f'    elif _k == "feature" and hasattr(_e, "extentOne"): '
                 f"_e.extentOne.distance.expression = {_lit(str(value))}",
-                f"    else: raise _OpError({index}, 'only user parameters and extrudes take an "
-                "expression')",
+                f"    else: raise _OpError({index}, 'only user parameters, dimensions and extrudes "
+                "take an expression')",
             ]
         elif key == "suppressed":
             lines += [
@@ -558,16 +859,21 @@ LIST_PROGRAM = (
     rows = []
     def _emit(kind, ent, parent=None):
         sid = _sid_of(kind, ent)
-        row = {"id": sid, "name": _name_of(kind, ent), "kind": _kinds.get(sid, kind)}
+        row = {"id": sid, "name": _names.get(sid) or _name_of(kind, ent),
+               "kind": _kinds.get(sid, kind)}
         if parent: row["parent"] = parent
         rows.append([row, _summary(kind, ent)]); return sid
-    for _i in range(_root.sketches.count): _emit("sketch", _root.sketches.item(_i))
+    def _sketch_rows(sk, parent=None):
+        sid = _emit("sketch", sk, parent)
+        for _j in range(sk.sketchDimensions.count):
+            _emit("dimension", sk.sketchDimensions.item(_j), sid)
+    for _i in range(_root.sketches.count): _sketch_rows(_root.sketches.item(_i))
     for _i in range(_root.features.count): _emit("feature", _root.features.item(_i))
     for _i in range(_root.bRepBodies.count): _emit("body", _root.bRepBodies.item(_i))
     for _i in range(_root.occurrences.count):
         _occ = _root.occurrences.item(_i); _cid = _emit("component", _occ); _comp = _occ.component
         for _j in range(_comp.bRepBodies.count): _emit("body", _comp.bRepBodies.item(_j), _cid)
-        for _j in range(_comp.sketches.count): _emit("sketch", _comp.sketches.item(_j), _cid)
+        for _j in range(_comp.sketches.count): _sketch_rows(_comp.sketches.item(_j), _cid)
     for _i in range(_design.userParameters.count): _emit("param", _design.userParameters.item(_i))
     result = {"rows": rows}
 """

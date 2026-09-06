@@ -12595,3 +12595,23 @@ line order (sides are named by position) and a face-placed hole's default
 direction (`flip` is exposed). Design in doc 71 §10: sketch-local addresses
 (`sk1/r0.bottom`, `sk1/c0.center`, `sk1/origin`), dimensions as entities and
 constraints not, faces by outward normal, `fu_drawing` through partkiln.
+
+**P1 — addressable sketch geometry, constraints, dimensions.** `create
+sketch` takes `lines` and `points` beside `rects` and `circles`, and every
+piece is registered under a sketch-local address as it is made
+(`sk1/r0.bottom`, `r0.bl`, `l0.start`, `c0.center`, `p0`, `origin`) in the
+bridge's persistent map; a rectangle's sides and corners are classified from
+their geometry after creation, and the shim returns the four lines scrambled
+so no index is ever trusted (Law 8). `create constraint {sketch, type, of}`
+for the eleven row-40 calls, arity and address syntax refused before the
+wire; `create dimension {sketch, type, of, orientation, expression, text,
+driving}` for distance / diameter / radius / angle — a dimension is an
+entity (`dim1`, parent the sketch) whose `expression` binds a user
+parameter, settable and deletable; both are accepted inline on the sketch
+op. The shim solves rectangles and circles only (Law 10): a 100×50
+rectangle dimensioned to `width` / `height` user parameters extrudes at
+120×80, `param_set width=150` re-sizes the body to 120,000 mm³ through the
+dimension, and a constraint the geometry contradicts is Fusion's own
+creation failure, one refusal naming the op. Sketch rows carry
+`constraints`, `dims` and `constrained`. Twenty-two tests in
+`test_fusion_v2.py`; 110 Fusion-touching tests green; lint clean.
