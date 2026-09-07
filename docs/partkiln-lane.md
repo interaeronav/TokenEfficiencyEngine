@@ -96,7 +96,7 @@ expression (`"W/2 - 5mm"`) is legal wherever a length is.
 | `pk_measure` | mass, clearance, interference, min wall, section area, face inventory — live or from a file |
 | `pk_check` | verify a spec → verdict + violations, each with `got`, `limit` and the fix |
 | `pk_standards` | clearance/tap/drill for a bolt, ISO 4762/4014/4017/4032/7089, with source and licence |
-| `pk_materials` | material cards (density, E, yield) with an honesty tier per value |
+| `pk_materials` | material cards (density, E, yield) with an honesty tier per value; an anisotropic card names directions (`E_0`, `tensile_90`) and refuses the scalars it will not invent |
 | `pk_bom` | bill of materials: structured or parts-only, qty, material, mass |
 | `pk_drawing` | write a dimensioned sheet to SVG/DXF/PDF |
 | `pk_export` | STEP AP242/214/203, IGES, BREP, STL, OBJ, 3MF, GLB, DXF + a handoff manifest |
@@ -218,6 +218,18 @@ both directions (Parasolid, SAT, JT, CATIA, NX, SolidWorks, Creo, Rhino, IFC,
 and `.ipt`/`.iam`/`.idw`).
 
 ## What arrived after the first release
+
+- **CFRP, and a card that will not invent a modulus.** `cfrp_t300_ud` serves
+  a density — the one material fact the kernel uses, direction-free, derived
+  by rule of mixtures at the datasheet's own 60% fibre volume — and the
+  direction-named values the Toray T300 sheet prints: `E_0` 140 000 N/mm²,
+  `tensile_0` 1 820, `tensile_90` **76**. Ask it for a plain `E`, `yield`,
+  `G` or `nu` and it REFUSES with the reason and what to read instead,
+  because a laminate has none of them: the same datasheet gives 1 820 N/mm²
+  along the fibres and 76 across, a factor of 24. A card that merely omitted
+  `E` would read as "not recorded yet" and the next reader would supply one
+  from memory. `cfrp` on its own is refused too — it is a family, and UD is
+  the least representative layup for a real part.
 
 - **ISO 286 fits** (`standards fit`, and `fit:` on a hole). No tolerance
   table was transcribed: the grades are computed from the standard's own

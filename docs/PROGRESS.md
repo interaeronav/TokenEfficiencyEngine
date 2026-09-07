@@ -13783,3 +13783,60 @@ nothing here and should be dropped rather than merged twice. `cad.scad_build`'s 
 LANDED on the base (104f363), so this branch inherits it and does not touch
 `cad.py`; this commit is rebased onto that base, not onto the 0.22.0 tree it
 was written against.
+
+### CFRP, and a material card that refuses to invent a modulus (2026-09-07)
+
+Owner: *"include CFRP for material"*. The interesting part is not the card, it
+is that **CFRP breaks the schema's assumption**: `properties` held scalar `E`,
+`G`, `nu` and `yield`, which presumes isotropy. A composite has none of them.
+
+**The datasheet argues the case better than prose could.** Toray's TORAYCA
+T300 sheet (Rev. 04/22/2025), read from the PDF rather than from memory,
+prints on ONE page, all normalized to 60% fibre volume:
+
+| printed | value | method |
+| --- | --- | --- |
+| fibre density | 1.76 g/cm³ | TY-030B-02 |
+| tensile modulus (0°) | 140 GPa | ASTM D3039 |
+| tensile strength (0°) | 1 820 MPa | ASTM D3039 |
+| **90° tensile strength** | **76 MPa** | ASTM D3039 |
+| in-plane shear strength | 95 MPa | ASTM D3518 |
+| compressive strength | 1 470 MPa | SACMA SRM 1R-94 |
+
+**1 820 along the fibres and 76 across them — a factor of 24, from the same
+vendor, on the same line of the same page.** Any single `yield` would have to
+be one of those two.
+
+**What the card serves.** `cfrp_t300_ud`, with direction in the property
+NAMES (`E_0`, `tensile_0`, `tensile_90`, `compressive_0`, `shear_ip`) so a
+scalar cannot be misread. Density is `derived`, the tier's own definition:
+rule of mixtures at the datasheet's basis, `0.60 × 1760 + 0.40 × ρ_matrix`
+with cured epoxy 1150–1300 kg/m³ the only soft input — **1 546 kg/m³, range
+[1516, 1576]**, the range being that assumption's whole span rather than a
+guess dressed as a measurement. Density is also the one material fact the
+kernel USES, and it is direction-free, so `mass_g` works normally.
+
+**What it refuses, and why omission was not enough.** A card that simply left
+`E` out reads as *"not recorded yet"*, and the next reader supplies one from
+memory — for a laminate, wrong by an order of magnitude. So absence is made
+LOUD: an `anisotropic` card carries a `refuses` entry per scalar with a
+reason and a fix, `_validate_anisotropy` makes a missing one a load-time
+`DataError`, and `property_value()` raises rather than returning nothing:
+
+```
+E     -> pk_needs  "a laminate has no single Young's modulus: this card serves E_0 = 140 000
+                    N/mm2 along the fibres, and across them it is roughly a tenth of that.
+                    Fix: read E_0, or give the layup and ask for the laminate's own modulus"
+yield -> pk_needs  names the 1820/76 contradiction and points at tensile_0 / tensile_90
+cfrp  -> pk_ref_ambiguous  "a family, not a material - its properties depend on the layup"
+```
+
+That last one matters: **UD is the least representative layup for a real
+part**, so resolving a bare `cfrp` to it silently would answer a question
+nobody asked. A family name now refuses and lists its cards.
+
+Six tests, including that the guards themselves fire (a card that is
+anisotropic with no `refuses`, one whose refusal has no `fix`, one that both
+serves and refuses a property) and that **the metals are untouched** —
+`steel_s275` still answers a plain `E` of 210 000. partkiln **882 passed / 2
+skipped**; ruff clean. `data/manifest.json` names Toray as an authority.
