@@ -247,6 +247,14 @@ _EXPLICIT: dict[str, str] = {
     "wt_view": "write-artifacts",  # a PNG on disk, never pixels on the wire
     "wt_export": "write-artifacts",
     "wt_verify": "call-engine",
+    # A73: the GUI handoff. Writing a ParaView state file is the same category
+    # as wt_view's PNG - a file on disk - so the row is write-artifacts. The
+    # window is the escalation, and the tool asks for it BY NAME at call time
+    # (registry.require("call-engine", name="wt_open launch=...")), the way
+    # handoff_import.land() asks before it writes a scene. So a caller who
+    # only prepares the handoff never needs the stronger capability, and one
+    # who opens a window is refused at the tier that governs it.
+    "wt_open": "write-artifacts",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",

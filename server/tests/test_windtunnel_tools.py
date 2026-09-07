@@ -42,6 +42,7 @@ WT_TOOLS = (
     "wt_view",
     "wt_export",
     "wt_verify",
+    "wt_open",  # A73: the GUI handoff
 )
 
 
@@ -721,7 +722,7 @@ def test_every_registered_tool_is_tabled_individually_in_the_trust_kernel(app):
     from tee.kernel import trust
 
     registered = sorted(n for n in app.registry.names() if n.startswith("wt_"))
-    assert registered == sorted(WT_TOOLS) and len(registered) == 13
+    assert registered == sorted(WT_TOOLS) and len(registered) == 14
     for name in registered:
         assert name in trust._EXPLICIT, name
         assert trust.capability_for(name) in ("read-compute", "write-artifacts", "call-engine")

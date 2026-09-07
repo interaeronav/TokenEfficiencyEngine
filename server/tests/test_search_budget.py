@@ -70,6 +70,18 @@ cost the shipped limit nothing, which is the property this file exists to
 defend. A72's vocabulary law held on the bigger corpus too: no `wt_*` name or
 tag carries check / drawing / image / size / document, so A68's witnesses were
 not displaced by name.
+
+RE-MEASURED 2026-09-07 (A73) at 198 tools, when `wt_open` joined and took a
+case with it - 48:
+
+    limit 3   44/48      limit 5   48/48
+    limit 8   48/48      limit 10  48/48
+
+The four misses at 3 are the SAME four, at the same ranks, so a fifteenth
+wind-tunnel tool cost the corpus nothing and "open the case in paraview" finds
+`wt_open` inside the tightest limit. That is twice now that this lane has grown
+without the reach getting worse, which is the property the file exists to
+defend rather than a coincidence worth assuming a third time.
 """
 
 from __future__ import annotations
@@ -142,6 +154,8 @@ CASES = [
     ("render the pressure field", "wt_view"),
     ("sample velocity along a line", "wt_probe_field"),
     ("which cfd solver is running", "wt_status"),
+    # A73: the handoff joins the same corpus, and must be findable in it
+    ("open the case in paraview", "wt_open"),
 ]
 
 
@@ -230,7 +244,7 @@ def test_the_rebaselined_recall_table_holds(registry):
         for limit in (3, 5, 8, 10)
     }
     assert recall == {3: len(CASES) - 4, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
-    assert len(CASES) == 47  # 2026-09-07, the 197-tool registry (173 before wt_* joined it)
+    assert len(CASES) == 48  # 2026-09-07, a 198-tool registry (197 before wt_open)
 
 
 def test_the_reply_stays_small(registry):

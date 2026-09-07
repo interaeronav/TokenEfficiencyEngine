@@ -1,7 +1,7 @@
 [project]
 # distribution name (PyPI-safe); the import package and CLI stay `tee`
 name = "tee-engine"
-version = "0.23.0"
+version = "0.24.0"
 description = "Token Efficiency Engine - helps any AI minimize tokens per completed task; protocol discipline plus cloud/local compute routing; MCP server with Unreal Engine and Blender adapters"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -153,6 +153,15 @@ pointcloud = [
 windtunnel = [
     "meshio>=5.3.5",
     "numpy>=2.4.6",
+]
+# A73: the wind-tunnel PANEL, and nothing else in the server needs Qt. LGPL-3.0,
+# imported inside functions in one module, so `import tee.windtunnel.gui.app`
+# works with it absent and a test asserts exactly that. It adds no tool: the
+# window is launched with `python -m tee.windtunnel.gui.app`, never a console
+# script, because a kernel that installs a window on the PATH is not
+# headless-first (partkiln's law, and its extra is named the same way).
+gui = [
+    "PySide6>=6.7",
 ]
 # assets-embed / assets-gen are declared below but stay loosely pinned on
 # purpose: torch wheels are backend- and machine-specific (CUDA build vs the

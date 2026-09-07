@@ -9,8 +9,8 @@ installs look and returns the `[windtunnel]` config that points at them:
     fake-foam/   blockMesh surfaceFeatureExtract snappyHexMesh checkMesh
                  simpleFoam decomposePar reconstructPar reconstructParMesh
     fake-su2/    SU2_CFD
-    fake-vsp/    vspscript vspaero
-    fake-pv/     pvpython
+    fake-vsp/    vspscript vspaero vsp
+    fake-pv/     pvpython paraview
 
 Modes come from the environment so a test can pick the story it needs:
 
@@ -640,6 +640,29 @@ def pvpython():
                 fh.write(",".join("%.4f" % v for v in vals + [k * 0.01, 0.0, 0.0]) + "\n")
         out("OK")
         sys.exit(0)
+    m = re.search(r"SaveState\('([^']+)'\)", text)
+    if m:
+        # A73: a state file is XML ParaView writes for itself. The fake writes
+        # the two things the lane actually reads back - the size, and the
+        # source path appearing EXACTLY ONCE, which is what relocate() relies
+        # on. A "full" state (one that rendered) is an order of magnitude
+        # bigger than a pipeline-only one, so the fake keeps that proportion.
+        src = re.search(
+            r"(?:OpenFOAMReader|XMLUnstructuredGridReader)\(FileName=\[?'([^']+)'", text
+        )
+        full = "Render(rv)" in text
+        pad = "  <Padding/>\n" * (900 if full else 60)
+        Path(m.group(1)).write_text(
+            '<?xml version="1.0"?>\n<ParaView>\n'
+            '  <ServerManagerState version="5.11.2">\n'
+            '    <Proxy group="sources" type="OpenFOAMReader" '
+            f'filename="{src.group(1) if src else ""}"/>\n'
+            + ('    <Proxy group="views" type="RenderView"/>\n' if full else "")
+            + pad
+            + "  </ServerManagerState>\n</ParaView>\n"
+        )
+        out("OK")
+        sys.exit(0)
     m = re.search(r"SaveScreenshot\('([^']+)'", text)
     if m:
         Path(m.group(1)).write_bytes(PNG_1X1)
@@ -649,6 +672,38 @@ def pvpython():
         sys.exit(0)
     sys.stderr.write("Traceback: unknown script\n")
     sys.exit(1)
+
+
+def paraview_app():
+    """The ParaView APPLICATION, not pvpython: a window, faked.
+
+    It writes a marker beside the state it was handed and exits, so a test can
+    prove WHAT was opened without a display anywhere. The real client would
+    hold the window; nothing in the lane waits for it, which is the point of
+    start_new_session.
+    """
+    state = ""
+    for a in ARGS:
+        if a.startswith("--state="):
+            state = a.split("=", 1)[1]
+        elif a == "--state":
+            state = ARGS[ARGS.index(a) + 1]
+    if not state:
+        sys.stderr.write("no --state given\n")
+        sys.exit(1)
+    Path(state + ".opened").write_text(" ".join(ARGS) + "\n")
+    out("paraview (fake) opened " + state)
+    sys.exit(0)
+
+
+def vsp_gui():
+    """OpenVSP's GUI: `vsp [inputfile.vsp3]`, the model positional."""
+    if not ARGS or not ARGS[0].endswith(".vsp3"):
+        sys.stderr.write("usage: vsp [inputfile.vsp3]\n")
+        sys.exit(1)
+    Path(ARGS[0] + ".opened").write_text(" ".join(ARGS) + "\n")
+    out("vsp (fake) opened " + ARGS[0])
+    sys.exit(0)
 
 
 DISPATCH = {
@@ -664,6 +719,8 @@ DISPATCH = {
     "vspscript": vspscript,
     "vspaero": vspaero,
     "pvpython": pvpython,
+    "paraview": paraview_app,
+    "vsp": vsp_gui,
 }
 
 if __name__ == "__main__":
@@ -685,8 +742,8 @@ def install_fakes(root: Path) -> dict[str, Any]:
     layout = {
         "fake-foam": FOAM_APPS,
         "fake-su2": ("SU2_CFD",),
-        "fake-vsp": ("vspscript", "vspaero"),
-        "fake-pv": ("pvpython",),
+        "fake-vsp": ("vspscript", "vspaero", "vsp"),
+        "fake-pv": ("pvpython", "paraview"),
     }
     for folder, names in layout.items():
         d = root / folder

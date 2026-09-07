@@ -45,9 +45,16 @@ jobs:
       # them - see the CPU-build step below.
       # [cad] stays out for the A66 reason: partkiln reaches OCCT through its
       # own [brep] extra in `kiln`, and the cad_* adapter tests run on fakes.
+      # [gui] stays out for A73's reason, and it is the opposite of the torch
+      # one below: PySide6 is 445.2 MB of Qt (addons 332.0, essentials 110.8)
+      # that no test here uses, AND installing it would make the coverage
+      # WORSE - `test_the_window_names_the_extra_when_qt_is_absent` skips
+      # itself where PySide6 exists, so a runner with Qt would stop checking
+      # that the panel refuses by naming its extra. The window is never
+      # constructed in CI anyway: there is no display.
       # `--locked` fails loudly if pyproject.toml moved without a re-lock.
       - run: >-
-          uv sync --locked --all-extras --no-extra cad
+          uv sync --locked --all-extras --no-extra cad --no-extra gui
           --no-extra assets-embed --no-extra assets-gen --no-extra medimg-monai
       - run: uv run --no-sync ruff check src tests
       - run: uv run --no-sync ruff format --check src tests

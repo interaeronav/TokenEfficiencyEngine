@@ -2193,3 +2193,41 @@ macOS in the wind-tunnel lane. One standalone upstream commit fixed six tests
 and was cherry-picked; the next fixed the seventh and broke another, because it
 depended on two commits not taken - so it was reverted and dropped. The
 remaining failure is flaky, named, and left to PR #4 rather than papered over.
+
+## The GUI handoff, and the first window TEE will open (2026-09-07, A73)
+
+Owner directive: *"now do the GUI handoff"*. This supersedes the A72 ruling
+above, which said in its own words: **"Headless only for now (owner,
+2026-09-06). No `wt_open`, no `.pvsm` state files, no Qt panel … The GUI
+handoff is the next campaign, built as a client of the same case directory."**
+It is that campaign, and the premise held: nothing about the case directory
+had to change for a GUI to read it, which is what making the directory the
+interface was for. Research doc 73 is the design of record;
+`CLAUDE_A73_SCRIPT.md` the plan.
+
+**Prepare always, launch on request (owner's answer, three questions asked).**
+`wt_open` always writes the ParaView state file and the `.foam` stub and
+returns the exact command; it spawns the application only for `launch=true`.
+No code in this repository has ever opened a window - every subprocess in
+`server/src/tee` is a headless child - so the spawn is opt-in, and it is an
+escalation the tool asks for by name through `registry.require`, the way
+`handoff_import.land()` asks before it writes a scene. Writing the state is
+`write-artifacts`, the same category as `wt_view`'s PNG on disk.
+
+**The display is decided before the spawn, because ParaView cannot report.**
+Measured: the client builds its `QApplication` before parsing arguments, so
+with no display even `paraview --help` aborts on signal 6 and exits 1 with a
+Qt plugin error. A tool that spawned first would report that error instead of
+the real one.
+
+**The panel is in scope, and it is a control surface, not a viewer.** A67's
+ruling stands - TEE builds no viewer - and partkiln refused a 3-D pane for the
+same reason. The panel lists cases, starts and cancels runs, shows the verdict
+and hands off; the picture belongs to ParaView. It follows partkiln's split
+(three Qt-free modules, one Qt module, Qt imported inside functions, launched
+by `python -m` with no console script) rather than seamkiln's, on partkiln's
+own evidence that logic living in widgets ships untested.
+
+**ParaView and OpenVSP only.** FreeCAD with CfdOF was offered and declined for
+this campaign; FreeCAD is not on the build machine either, and the C2/C3 rows
+of A72's Mac checklist stay open.

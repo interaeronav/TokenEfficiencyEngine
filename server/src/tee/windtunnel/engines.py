@@ -361,6 +361,72 @@ def find_pvpython(cfg: dict[str, Any], *, probe_version: bool = True) -> Binary:
     return b
 
 
+def find_paraview_app(cfg: dict[str, Any]) -> Binary:
+    """The ParaView APPLICATION, which is a different question from pvpython.
+
+    A73. Never version-probed, and that is the point: measured 2026-09-07, the
+    client builds its Qt application BEFORE parsing arguments, so on a machine
+    with no display `paraview --help` aborts on signal 6 and exits 1. Asking it
+    anything costs a crash, so the lane only ever asks the filesystem.
+
+    Looked for beside the pvpython this lane already resolves - they ship
+    together, and a machine with two ParaViews should hand off to the one it
+    computes with - then on PATH.
+    """
+    configured = str(cfg.get("paraview") or "")
+    if configured:
+        p = Path(configured).expanduser()
+        if p.is_dir():
+            p = p / "paraview"
+        if p.is_file():
+            return Binary("paraview", str(p), via="config")
+        raise TeeError(
+            "wt_bad_config",
+            f"[windtunnel] paraview = {configured} is not the ParaView application.",
+            fix="Point it at the executable, or remove the key to search beside pvpython.",
+        )
+    try:
+        pv = find_pvpython(cfg, probe_version=False)
+    except TeeError:
+        pv = None
+    if pv is not None:
+        here = Path(pv.path).parent
+        # Linux/Windows: bin/paraview beside bin/pvpython. macOS app bundle:
+        # Contents/bin/pvpython, Contents/MacOS/paraview.
+        for cand in (here / "paraview", here.parent / "MacOS" / "paraview"):
+            if cand.is_file():
+                return Binary("paraview", str(cand), via="beside pvpython")
+    found = shutil.which("paraview")
+    if found:
+        return Binary("paraview", found, via="PATH")
+    raise TeeError(
+        "wt_paraview_missing",
+        "The ParaView application was not found (looked beside pvpython and on PATH).",
+        fix=_install_line("pvpython"),
+    )
+
+
+def find_openvsp_gui(cfg: dict[str, Any]) -> Binary:
+    """The OpenVSP GUI, which sits beside the vspscript the lane drives.
+
+    Measured 2026-09-07: `vsp [inputfile.vsp3]` opens the model; `-script` is
+    the headless route. `vspviewer` is a second, read-only binary and is NOT
+    used - a handoff hands over the editable model.
+    """
+    script = find_openvsp(cfg, probe_version=False)
+    gui = Path(script.path).parent / "vsp"
+    if gui.is_file():
+        return Binary("vsp", str(gui), via="beside vspscript")
+    found = shutil.which("vsp")
+    if found:
+        return Binary("vsp", found, via="PATH")
+    raise TeeError(
+        "wt_openvsp_missing",
+        "vspscript is installed but the vsp GUI is not beside it or on PATH.",
+        fix=_install_line("openvsp"),
+    )
+
+
 def _version_of(argv: list[str], pattern: str, timeout: float = 20.0) -> str:
     try:
         out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)

@@ -217,4 +217,4 @@ Python 3.11 or 3.13; ParaView ships an arm64 dmg whose `pvpython` takes
 2. **R3 / R4** need a source visit before `cylinder_re40` and `flatplate` become tests.
 3. **The Foundation dialect.** `wt_fork_unsupported` refuses a TEE-written case on OpenFOAM 11+; adopted Foundation cases run as-is. Measuring the Foundation's `momentumTransport` writer is a later phase.
 4. **3-D SU2** needs gmsh (GPL, out of process) — v1 routes 3-D viscous work to OpenFOAM and lifting surfaces to VSPAERO.
-5. **The GUI handoff** — `wt_open`, `.pvsm` state files, a Qt panel — is the later campaign the owner deferred; the case directory, the `.foam` stub and the `.vsp3` are exactly the files those GUIs open.
+5. ~~**The GUI handoff**~~ — **CLOSED by A73** (2026-09-07), and the premise held: nothing about the case directory had to change for a GUI to read it. `wt_open`, the state files and the panel are in research doc 73; the one thing A72 got wrong is recorded there too, that the `.foam` stub was gated behind having a run.
