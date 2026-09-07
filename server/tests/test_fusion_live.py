@@ -576,3 +576,70 @@ def test_drawing_through_partkiln(tmp_path):
     finally:
         _close_scratch(wire, opened)
         app.shutdown()
+
+
+def test_the_ported_introspection_tools_answer_from_the_live_build(tmp_path):
+    """A71: `fu_design_stats`, `fu_search_docs` and `fu_api_detail`, brought
+    across from the A68 lane the owner's machine carried when they chose this
+    lane over that one. The index is worth having only if it is THIS build's:
+    it is introspected live, so it reports what this Fusion has rather than
+    what a reference page said."""
+    wire = _live_wire()
+    adapter = FusionAdapter(wire, workdir=str(tmp_path / "work"))
+    app = TeeApp({"fusion": adapter}, project_root=tmp_path)
+    register_fusion_tools(app, adapter, docs_cache_dir=tmp_path / "cache")
+    opened = None
+    try:
+        probe, opened = _open_scratch(wire, app)
+        if probe.get("design") is None:
+            pytest.skip("no design is open")
+        app.run_batch(
+            "fusion",
+            [
+                {"op": "create", "kind": "sketch", "props": {"rects": [[0, 0, 120, 80]]}},
+                {"op": "create", "kind": "extrude", "props": {"sketch": "sk1", "distance": 10}},
+                {"op": "create", "kind": "sketch", "props": {"rects": [[10, 10, 60, 50]]}},
+                {
+                    "op": "create",
+                    "kind": "extrude",
+                    "props": {"sketch": "sk2", "distance": 20, "operation": "new_body"},
+                },
+            ],
+        )
+        stats = app.registry.call("fu_design_stats", {})
+        print(f"\n  [fact] fu_design_stats: {json.dumps(stats)}")
+        assert stats["design"] == "parametric" and stats["bodies"] == 2
+        assert stats["units"] == "mm"
+        assert _near(stats["total_volume_mm3"], 96_000.0 + 50.0 * 40.0 * 20.0)
+        assert stats["overlapping_pairs"] == [["Body1", "Body2"]], (
+            "two bodies really do share space; the text says so before any pixel"
+        )
+        assert len(json.dumps(stats)) < 1200, "one compact read"
+
+        docs = app.registry.call("fu_search_docs", {"query": "extrude distance extent"})
+        print(
+            f"  [fact] fu_search_docs indexed {docs['indexed_symbols']} symbols "
+            f"of Fusion {docs['fusion']}"
+        )
+        assert docs["indexed_symbols"] > 5000, "the live adsk namespace, not a stub"
+        assert docs["fusion"] == probe["version"].split()[0]
+        assert any("Extrude" in r["path"] for r in docs["results"])
+        assert any(r.get("sig") for r in docs["results"]), "signatures come back"
+
+        detail = app.registry.call(
+            "fu_api_detail", {"path": "adsk.fusion.ExtrudeFeatures.addSimple"}
+        )
+        assert detail["found"] is True and detail["doc"], "a real docstring from this build"
+        print(f"  [fact] fu_api_detail addSimple: {detail.get('signature') or detail['doc'][:60]}")
+
+        # The index reports what this build HAS, which is not what the reference
+        # says is current: `setDistanceExtent` is retired (doc 71 row 8) and is
+        # still present here. The codegen never emits it; the index never hides it.
+        retired = app.registry.call("fu_search_docs", {"query": "setDistanceExtent"})
+        print(
+            f"  [fact] retired setDistanceExtent still exported by this build: "
+            f"{[r['path'] for r in retired['results'][:2]]}"
+        )
+    finally:
+        _close_scratch(wire, opened)
+        app.shutdown()

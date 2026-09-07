@@ -30,6 +30,7 @@ from tee.kernel.errors import TeeError
 PURPOSE = "Autodesk Fusion, live: parametric CAD in the open design; renders pixels"
 _BATCH_TIMEOUT_S = 120.0
 _CAPTURE_TIMEOUT_S = 60.0
+_DOCS_TIMEOUT_S = 180.0  # thousands of symbols through one round trip; cached after
 # The Blender rungs: full, then the floor; at most two renders per capture.
 _CAPTURE_FULL = (1024, 576, 80)
 _CAPTURE_SMALL = (640, 360, 70)
@@ -161,6 +162,19 @@ class FusionAdapter:
                     )
                 )
         return diff
+
+    # -- introspection (A71, ported from the A68 lane) -----------------------
+
+    def docs_index(self) -> dict[str, Any]:
+        """Every public class, method, property and constant of `adsk.core`
+        and `adsk.fusion`, introspected from the LIVE Fusion - the Blender
+        lane's method. Expensive (thousands of symbols), so `FusionDocs`
+        caches it on disk per Fusion version and searches it server-side."""
+        return self.run(codegen.DOCS_INDEX_PROGRAM, timeout=_DOCS_TIMEOUT_S)
+
+    def api_detail(self, path: str) -> dict[str, Any]:
+        """One symbol's docstring, signature and members, read live."""
+        return self.run(codegen.api_detail_program(path))
 
     # -- checkpoints ---------------------------------------------------------
 

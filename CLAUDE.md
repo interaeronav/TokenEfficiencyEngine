@@ -185,6 +185,16 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   measured against `origin`, no branch but this one carries a Fusion adapter,
   bridge, test or `fu_*` tool, so there is nothing to reconcile. A branch you
   have not fetched is a declaration, not a measurement.
+
+  **And unpushed work on the machine you are working on is still part of the
+  state.** The withdrawal above is right about every remote head and was
+  re-verified; the conclusion that nothing had to be reconciled was not. The
+  second lane was real, in **six unpushed commits on the owner's own machine**
+  - 3,069 lines at these same paths, live-verified, stamped 0.22.0. The owner
+  then chose: keep this lane and port the three tools only the other had
+  (`fu_design_stats`, `fu_search_docs`, `fu_api_detail` - a live API index of
+  the build you are connected to, 13,498 symbols in 0.2 s, cached per
+  version, listing calls the codegen deliberately never emits).
 - The A72 build (`wt_*`: a headless wind-tunnel lane that drives OpenFOAM, SU2
   and OpenVSP/VSPAERO from one budgeted loop and reads the answer back through
   ParaView's `pvpython`, while the model never sees a cell) is **COMPLETE**,

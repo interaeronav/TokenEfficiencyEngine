@@ -166,14 +166,17 @@ def test_partkiln_warm_up_lands_in_the_shared_app(serve):
     assert serve.warm_jobs is serve.app.jobs
 
 
-def test_the_desktop_manifest_serves_three_lanes_and_declares_no_hub(serve):
-    """The manifest serves blender, partkiln and seamkiln and declares NO
-    default (A68): an existing Desktop batch of Blender kinds still lands on
+def test_the_desktop_manifest_serves_four_lanes_and_declares_no_hub(serve):
+    """The manifest serves blender, partkiln, seamkiln and fusion and declares
+    NO default (A68): an existing Desktop batch of Blender kinds still lands on
     Blender - by content, not by position - and a partkiln batch lands on
-    partkiln without naming it."""
+    partkiln without naming it. Fusion joined the manifest by the owner's
+    decision of 2026-09-07, after A71 verified the lane live; it is a bridge
+    lane, so on a machine with no Fusion running it is simply disconnected and
+    the other three route exactly as they did before."""
     args = json.loads(MANIFEST.read_text())["server"]["mcp_config"]["args"]
     names = [args[i + 1] for i, flag in enumerate(args) if flag == "--adapter"]
-    assert names == ["blender", "partkiln", "seamkiln"]
+    assert names == ["blender", "partkiln", "seamkiln", "fusion"]
     assert "--default-adapter" not in args
 
     assert serve(*[word for name in names for word in ("--adapter", name)]) == 0
@@ -186,6 +189,7 @@ def test_the_desktop_manifest_serves_three_lanes_and_declares_no_hub(serve):
     assert app.route_batch(part, None) == Route("partkiln", "kind")
     assert app.route_batch([{"op": "drape", "props": {}}], None).adapter == "seamkiln"
     registered = set(app.registry.names())
+    assert {"fu_probe", "fu_export"} <= registered, "the Fusion lane attached"
     assert any(n.startswith("bl_") for n in registered), "Blender's lane attached"
     assert any(n.startswith("hb_") for n in registered), "and its joinery lane"
     assert {"pk_probe", "sk_avatar"} <= registered

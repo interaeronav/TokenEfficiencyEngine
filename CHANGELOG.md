@@ -3,7 +3,22 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased — one server, N lanes, no hub (A68, 2026-09-05)
+## 0.23.0 — one server, N lanes, no hub, and a Fusion lane (2026-09-07)
+
+Released from `claude/tee-component-integration-iflsyq` after A71 verified the
+Fusion lane live on Fusion 2704.1.53. Three owner decisions were taken on
+2026-09-07 and are recorded in DECISIONS: **the Desktop manifest now serves
+four lanes** (`blender`, `partkiln`, `seamkiln`, `fusion`; still no declared
+default, still 17 always-loaded tools — the instructions grew 1,583 → 1,666
+bytes against a 2,048-byte cap, and six `fu_*` virtual tools joined the long
+tail); **the version is 0.23.0**, because the wind-tunnel lane merged as
+0.22.0 while this was being cut; and PR #1 was marked ready for review. Fusion is a
+bridge lane, so on a machine with no Fusion running it reports itself
+disconnected and the other three lanes route exactly as before.
+
+The rest of this entry is the work as it was written when unreleased.
+
+### A68, A69, A70, A71 (2026-09-05 to 2026-09-07)
 
 0.21.1 put blender, partkiln and seamkiln in one server and made the first
 listed the default. Everything then went through Blender: a partkiln batch
@@ -102,6 +117,23 @@ partkiln's from a STEP handoff, decided as the scene write it is. Twenty
 more reference-verified rows (doc 71 §3, 31–50) and one inverted premise;
 everything still on the shim until the Mac smoke, which gained five steps.
 
+### Three more Fusion tools, and the base merged (A71, 2026-09-07)
+
+The default branch shipped the wind-tunnel lane as 0.22.0 while A71 ran, so
+this release is **0.23.0** and merges that lane beside the Fusion one; every
+conflict was additive and both sides are kept, except the search recall table,
+which is a measurement and was re-measured (197 tools, 47 cases, 43/47 at
+limit 3 and 47/47 at 5).
+
+`fu_design_stats`, `fu_search_docs` and `fu_api_detail` join the lane, ported
+from the second Fusion lane that lived unpushed on the owner's machine when
+they chose this one. The docs index is introspected from the Fusion you are
+connected to and cached per version — 13,498 symbols in 0.2 s on 2704.1.53,
+a cached search in 0.007 s — because a Fusion API answered from memory is the
+friction this project exists to remove. `fu_design_stats` reads the whole
+design in about 80 tokens and names overlapping bodies in text before any
+pixel. Still 17 always-loaded tools.
+
 ### The Fusion lane goes live (A71, 2026-09-06)
 
 The Mac smoke ran on Fusion 2704.1.53: `tests/test_fusion_live.py` passed
@@ -127,8 +159,17 @@ into=blender` landed the plate (scale 0.01, 0.11 s) and `tee_capture
 adapter=blender` returned a JPEG in 0.05 s. The Blender live suite is green
 again (26 passed): one assertion followed A68's better import refusal, and
 the two `bl_execute_python` tests grant the escape hatch in their own test
-project, as an owner does. Desktop manifest and version: unchanged, the
-owner's decisions.
+project, as an owner does.
+
+A71 also left a fourth question — a second Fusion lane said to be on the
+default branch, to be reconciled before this work could merge. Measured
+against `origin` on 2026-09-07 it is not there: no branch but this one
+carries a Fusion adapter, bridge, test or `fu_*` tool. The question is
+withdrawn, and what this branch actually conflicted with was two files
+(`server/src/tee/fleet/cad.py`, where both branches had independently moved
+the OpenSCAD binary check after the spec checks, and `docs/PROGRESS.md`),
+now merged.
+
 ## 0.22.0 — 2026-09-06
 
 The wind-tunnel lane (A72; numbered A68 while it was built, renumbered before

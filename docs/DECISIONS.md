@@ -2113,3 +2113,72 @@ this container.
 capacity the way the kernel's own tests do, and the setup doc says so. Open
 MPI refuses to run as root; the override is set for root and for a parallel
 run only, and the run record says `mpi_root_override`.
+
+
+## The three A71 decisions, taken by the owner (2026-09-07)
+
+A71 measured the Fusion lane live and then stopped, because three questions
+were the owner's and an autonomous session may not answer them. The owner
+answered all three on 2026-09-07.
+
+**1. The Desktop manifest serves Fusion.** `packaging/mcpb_manifest.json`
+gains `--adapter fusion` after seamkiln, so the extension serves four lanes.
+Still no declared default — content routing decides, as A68 ruled. Measured
+cost, on the manifest's own composition: the instructions the server builds
+grow **1,583 → 1,666 bytes** against the 2,048-byte cap a deferring host
+truncates past (382 bytes of headroom left); the always-loaded surface stays
+**17 tools**; the long tail gains **six** `fu_*` tools (67 → 73 virtual
+tools). Fusion is a bridge lane on a document the owner already has open, so
+where neither the TEE add-in nor the FusionMcpBridge answers, the lane reports
+itself disconnected and the other three route exactly as before — which is
+why adding it cannot break an existing Desktop install. The manifest's
+description, long description and keywords name Fusion and its add-in
+requirement; `tools[]` is untouched, because the lane adds no always-loaded
+tool.
+
+**2. The version is 0.23.0.** PR #2's wind-tunnel branch already read 0.22.0
+when the decision was put, so this branch skipped that number rather than race
+for it — and while the cut was being made PR #2 merged and shipped 0.22.0, so
+0.23.0 is now the next free number rather than a courtesy. Cut
+in `server/pyproject.toml`, `server/Makefile`'s `TEE_SERVER_VERSION`, the
+manifest's `version`, and `server/uv.lock` — the re-lock changes exactly the
+one `tee-engine` line, the 204 packages resolving unchanged, which is the
+same shape as the base branch's own 0.21.1 re-lock. The CHANGELOG's
+Unreleased section becomes `## 0.23.0 — 2026-09-07`.
+
+**3. PR #1 is ready for review.** Out of draft. It merges cleanly against the
+base branch as of the merge commit of 2026-09-07, CI is green on the head,
+and the Fusion lane is verified live on Fusion 2704.1.53.
+
+The fourth question A71 raised — which of two Fusion lanes survives — was
+withdrawn rather than answered: there is only one, as the entry above
+records.
+
+## Two Fusion lanes, one kept: the extras come across (2026-09-07, A71)
+
+**Owner decision**, on being shown that the machine held a second,
+live-verified Fusion lane in six unpushed commits: keep this lane, port the
+three tools only the other had, and let those commits be superseded
+deliberately.
+
+**A branch you have not fetched is a declaration; unpushed work on the machine
+you are working on is still part of the state.** The withdrawal recorded above
+is right that no *remote* head carries a Fusion adapter, bridge, test or `fu_*`
+tool - re-verified. The conclusion drawn from it, that nothing had to be
+reconciled, was not: the lane was real, 3,069 lines at these same paths,
+stamped with a version the default branch had meanwhile spent. Dismissing it
+as a phantom would have discarded it silently.
+
+**An introspected API index is a lane's answer to a hallucinated call.**
+`fu_search_docs` indexes the Fusion you are connected to, not a reference page:
+13,498 symbols in 0.2 s on 2704.1.53, cached per version. It lists
+`setDistanceExtent`, which doc 71 row 8 records as retired and the codegen
+never emits - the index reports what the build has, the codegen decides what to
+send. Searching the API is `read-compute`, not `read-scene`: it reads the
+software, not the design.
+
+**Do not import half of another campaign's chain.** The merged base was red on
+macOS in the wind-tunnel lane. One standalone upstream commit fixed six tests
+and was cherry-picked; the next fixed the seventh and broke another, because it
+depended on two commits not taken - so it was reverted and dropped. The
+remaining failure is flaky, named, and left to PR #4 rather than papered over.

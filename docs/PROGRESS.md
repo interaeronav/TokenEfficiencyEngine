@@ -13157,3 +13157,115 @@ clean; surface **17 tools / 2,033 tok**; the search recall table 40/42 at 3,
    mesh falls back to `lRef` given or 1.0, and says so.
 10. **The full benchmark script** stops at "No Blender binary found" here; the
     wind-tunnel section was recorded from the scenario run directly.
+
+## A71 close-out — the owner's three decisions, taken (2026-09-07)
+
+A71 ended with three questions it was not allowed to answer and one it had
+got wrong. The container session merged the base branch, measured the wrong
+one away (the correction above), and put the three real ones to the owner,
+who took all three.
+
+**Before any of it: PR #1 no longer merged.** The base branch had moved twice
+(`104f363`, `021fc15`) while the Mac session ran. A test merge in a scratch
+worktree named the conflict exactly: **two files, neither of them Fusion** —
+`server/src/tee/fleet/cad.py`, where both branches had independently moved
+`_require_openscad()` after the spec checks and only their explanations
+differed (the merge keeps both, this branch's docstring and the base's
+comment at the call site), and `docs/PROGRESS.md`, an append conflict where
+both entries are kept and the base's is promoted from `###` to `##` so it
+does not read as part of A71. `server/uv.lock` merged clean; `uv sync
+--locked` resolves 204 packages. Suite after the merge: **1,658 passed / 66
+skipped / 115 deselected**, plus one pre-existing environmental failure
+(`test_fleet_solve` wants the absent `[solve]` extra — `solve.py` is
+byte-identical on this branch, its pre-merge head and the base, so the merge
+did not cause it; it is the same spec-before-dependency defect the base just
+fixed for OpenSCAD, filed separately rather than widening a 16,000-line PR).
+
+**Decision 1 — the Desktop manifest serves Fusion.** Four lanes now:
+`blender`, `partkiln`, `seamkiln`, `fusion`, no declared default. Measured on
+the manifest's own composition, three lanes against four:
+
+```
+three lanes (0.21.1 manifest)   instructions 1,583 B / cap 2,048 B   virtual tools 67
+four  lanes (0.23.0 manifest)   instructions 1,666 B / cap 2,048 B   virtual tools 73
+```
+
++83 bytes, 382 left under the cap, 17 always-loaded tools unchanged, six
+`fu_*` tools added to the long tail. `test_the_desktop_manifest_serves_four_lanes_and_declares_no_hub`
+follows the manifest and asserts the Fusion lane attached; the instructions
+test's Desktop composition gains the same fourth lane, so the fixture cannot
+drift from what ships.
+
+**Decision 2 — 0.23.0.** `server/pyproject.toml`, `server/Makefile`, the
+manifest `version`, and a re-lock. 0.22.0 was left to PR #2's wind-tunnel
+branch, which already read it — and mid-cut PR #2 merged and shipped 0.22.0,
+so the choice stopped being a courtesy and became the only free number.
+CHANGELOG's Unreleased section becomes `## 0.23.0 — 2026-09-07`, above the
+0.22.0 the wind-tunnel lane brought with it.
+
+**The wind-tunnel merge, taken in the same sitting.** While this was being
+written another session merged PR #2 into the base branch and then into this
+one, so the push was rejected and the work had to be merged rather than
+forced. Seven files conflicted. The version trio (`pyproject.toml`,
+`Makefile`, the manifest) resolved to 0.23.0 over their 0.22.0, but only after
+a first attempt with `git checkout --ours` was caught and undone: taking a
+whole file that way would have silently dropped the `windtunnel` extra
+(`meshio`, `numpy`) that PR #2 had added to `pyproject.toml` — the re-lock
+noticed it, printing `Removed meshio v5.3.5`. Resolving the conflicted hunk
+alone keeps both sides. `uv.lock` was taken from the merge and re-locked to
+0.23.0; CHANGELOG keeps this release above their 0.22.0 and drops only the
+stale sentence saying the manifest and version were still undecided;
+DECISIONS and PROGRESS keep both entries, theirs first.
+
+**Decision 3 — PR #1 out of draft**, ready for review.
+
+### A71 addendum — the three tools the other lane had (2026-09-07)
+
+The close-out above answers the manifest, the version and the draft. This
+answers the fourth question, the one the correction had withdrawn: the owner
+was shown that the second Fusion lane was real after all - not on any remote,
+but in **six unpushed commits on this machine**, 3,069 lines at these same
+paths, a different implementation (`programs.py` 931 lines + `docs.py` 128
+against this branch's `codegen.py` 1,593), live-verified and stamped 0.22.0.
+They chose to keep this lane and have the three tools only that one carried
+ported across, so the six commits are superseded deliberately rather than
+lost quietly.
+
+- **`fu_design_stats`** (read-scene): one health read of the whole design -
+  bodies, total volume and mass, the overall bbox in mm, bodies still called
+  `Body1`, non-solid bodies, overlapping pairs, feature and suppressed counts,
+  and every timeline item Fusion marks warning or error. Measured live on
+  2704.1.53: a two-body design answers in **321 characters (~80 tokens)** and
+  names the real overlapping pair - text evidence before a pixel is spent.
+- **`fu_search_docs` / `fu_api_detail`** (read-compute - introspecting the API
+  reads the software, not the design): the API index of the Fusion you are
+  connected to, introspected live and cached on disk per version. Measured:
+  **13,498 symbols built in 0.2 s**; a second, cached search costs 0.007 s and
+  no round trip beyond the version ping. It lists `setDistanceExtent`, which
+  doc 71 row 8 records as retired and the codegen never emits - the index
+  reports what the build has, the codegen decides what to send, and neither
+  pretends to be the other.
+
+Every adsk name the three programs touch is already a row in doc 71 §3 (4,
+14-16, 21, 53); the rest is Python's own `inspect`, which that table does not
+govern. Each is tabled individually (the `pk_` rule) and the always-loaded
+surface is unchanged at **17**. The shim gained `FeatureHealthStates` and
+`TimelineObject.healthState` to answer the same stats program. Nine hermetic
+tests (`tests/test_fusion_docs.py`) plus one live test; the cache-hit test
+asserts what that path really costs - one version ping, no rebuild - after a
+first draft asserted zero calls and was wrong.
+
+**One upstream fix pulled forward, one refused.** The merged base was red on
+macOS: seven wind-tunnel tests failed with `PermissionError` on process-group
+signals - not from the merge, but a base defect fixed on the A72 branch after
+PR #2 merged and invisible to CI, which is Linux. `killpg` was probed here and
+works, so the cause was read rather than assumed. The standalone upstream fix
+(`84aa5aa`, 14 lines) fixed six. The next upstream commit fixed the seventh
+but broke a different test, because it depends on two commits not taken, so it
+was reverted and dropped rather than importing half of another PR's chain.
+**One test remains failing, and it is flaky rather than constant** (three runs:
+fail, pass, fail): `test_one_live_run_per_case_and_cancel_kills_the_solver_within_two_seconds`,
+a macOS timing race in the base's lane, fixed upstream and waiting on PR #4.
+
+At close: **1,832 passed / 31 skipped / 125 deselected**, `make lint` clean,
+surface 17.

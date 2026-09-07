@@ -18,6 +18,7 @@ from typing import Any
 
 from tee.adapters.fusion import codegen
 from tee.adapters.fusion.adapter import FusionAdapter
+from tee.adapters.fusion.docs import FusionDocs
 from tee.adapters.fusion.wire import START_FIX
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
@@ -65,8 +66,9 @@ _DRAWING_KEYS = (
 )
 
 
-def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
+def register_fusion_tools(app: Any, adapter: FusionAdapter, docs_cache_dir=None) -> None:
     lane = next((name for name, a in app.adapters.items() if a is adapter), "fusion")
+    docs = FusionDocs(adapter, cache_dir=docs_cache_dir)
 
     def probe(args: dict[str, Any]) -> dict[str, Any]:
         """Never spawns anything: the add-in is Fusion's to run."""
@@ -186,6 +188,29 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
 
     def timeline(args: dict[str, Any]) -> dict[str, Any]:
         return adapter.run(codegen.TIMELINE_PROGRAM)
+
+    def design_stats(args: dict[str, Any]) -> dict[str, Any]:
+        return adapter.run(codegen.STATS_PROGRAM)
+
+    def search_docs(args: dict[str, Any]) -> dict[str, Any]:
+        query = args.get("query")
+        if not isinstance(query, str) or not query.strip():
+            raise TeeError(
+                "bad_op",
+                "fu_search_docs needs a query.",
+                fix='query="extrude profile distance"',
+            )
+        return docs.search(query, limit=int(args.get("limit") or 10))
+
+    def api_detail(args: dict[str, Any]) -> dict[str, Any]:
+        path = args.get("path")
+        if not isinstance(path, str) or not path.strip():
+            raise TeeError(
+                "bad_op",
+                "fu_api_detail needs a path.",
+                fix='path="adsk.fusion.ExtrudeFeatures.addSimple"',
+            )
+        return docs.detail(path.strip())
 
     def execute_python(args: dict[str, Any]) -> dict[str, Any]:
         code = args.get("code")
@@ -364,6 +389,77 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter) -> None:
             handler=timeline,
             tags=["fusion", "autodesk", "timeline", "history", "features", "marker", "cad"],
             examples=[{}],
+        ),
+        VirtualTool(
+            name="fu_design_stats",
+            description=(
+                "One health read of the whole design: body count, total volume and mass, the "
+                "overall bounding box in mm, bodies still called Body1, non-solid bodies, "
+                "overlapping body pairs, feature and suppressed counts, and every timeline "
+                "item Fusion marks warning or error. Text evidence before any pixel."
+            ),
+            schema={"type": "object", "properties": {}},
+            handler=design_stats,
+            tags=[
+                "fusion",
+                "autodesk",
+                "stats",
+                "health",
+                "overlap",
+                "problems",
+                "audit",
+                "check",
+                "design",
+                "cad",
+            ],
+            examples=[{}],
+        ),
+        VirtualTool(
+            name="fu_search_docs",
+            description=(
+                "Search the Fusion API of the Fusion you are connected to - introspected "
+                "live from adsk.core and adsk.fusion, cached per version - and get back "
+                "paths, one-line docs and signatures. The cure for a hallucinated call: the "
+                "API drifts between builds, so ask this build rather than remembering."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "keywords, e.g. 'extrude extent'"},
+                    "limit": {"type": "integer", "description": "1-25, default 10"},
+                },
+                "required": ["query"],
+            },
+            handler=search_docs,
+            tags=[
+                "fusion",
+                "autodesk",
+                "docs",
+                "api",
+                "search",
+                "reference",
+                "signature",
+                "adsk",
+                "cad",
+            ],
+            examples=[{"query": "extrude distance extent"}, {"query": "sketch circle", "limit": 5}],
+        ),
+        VirtualTool(
+            name="fu_api_detail",
+            description=(
+                "One Fusion API symbol in full from the live build: its docstring, its "
+                "signature and, for a class, its members. Follows a fu_search_docs hit."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "adsk.fusion.ExtrudeFeatures.add"}
+                },
+                "required": ["path"],
+            },
+            handler=api_detail,
+            tags=["fusion", "autodesk", "api", "detail", "signature", "docstring", "adsk", "cad"],
+            examples=[{"path": "adsk.fusion.ExtrudeFeatures.addSimple"}],
         ),
     ]
     if app.allow_code_exec:

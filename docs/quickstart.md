@@ -92,7 +92,7 @@ The `skills/tee-usage` skill packages this know-how for Claude.
 ## 4b. Lanes: one server, several kernels, no hub
 
 ```bash
-tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/work
+tee serve --adapter blender --adapter partkiln --adapter seamkiln --adapter fusion --project ~/work
 ```
 
 is what the Claude Desktop extension runs. Every lane named is served by the

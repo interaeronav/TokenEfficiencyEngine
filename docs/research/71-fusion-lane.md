@@ -294,6 +294,20 @@ equal to the codegen's dispatcher.
 Families: `("fu_", "fusion")` in `kernel/lanes.py`; no `fu_` family row in
 the trust table (three writers among six — the `pk_` rule).
 
+**A71 — three more, ported from the other lane.** When the owner chose this
+lane over the A68 lane their machine carried (PROGRESS, 2026-09-07), the three
+tools only that lane had came across rather than being lost with it:
+`fu_design_stats` (read-scene), `fu_search_docs` and `fu_api_detail`
+(read-compute — an introspection of the API is not a read of the design), each
+tabled individually as the rest are. They rest on rows already in §3 (4, 14–16,
+21, 53) plus Python's own `inspect`, which this table does not govern. Measured
+live on 2704.1.53: the index is **13,498 symbols built in 0.2 s** and cached per
+version (a cached search costs 0.007 s and no round trip beyond the version
+ping); `fu_design_stats` answers a two-body design in ~80 tokens and names the
+overlapping pair. The index is worth having precisely because it is THIS
+build's: it lists `setDistanceExtent`, which row 8 records as retired and the
+codegen never emits.
+
 ### 4.9 A router refinement: a lane whose application is not running is not a candidate
 
 A68's `route_batch` intersects candidate lanes by vocabulary. Fusion is the
@@ -311,12 +325,17 @@ nothing. Tested in `test_lane_routing.py`.
 
 `tee serve --adapter fusion [--fusion-port 9881]`; `.tee/config.toml`
 `[fusion] port = 9881`; `ADAPTER_NAMES` gains `fusion`; `tee doctor` reports
-the bridge. **The Desktop manifest is unchanged**: the lane has now been
-seen live (§8.2, A71) and the manifest decision is the owner's (the A71
-script's P4, put to the owner rather than taken by the session). The A71 run
-believed the default branch's own manifest already listed a `fusion` lane;
-measured against `origin` on 2026-09-07 it does not, and §8.2 records the
-correction.
+the bridge. **The Desktop manifest serves this lane as of 0.23.0**: it was
+held back until the lane had been seen live (§8.2, A71), and on 2026-09-07,
+with those measurements in hand, the owner decided to add it. The manifest's
+`--adapter` list is `blender, partkiln, seamkiln, fusion` with no declared
+default; the instructions it builds grew 1,583 → 1,666 bytes against the
+2,048-byte cap, the always-loaded surface stays 17 tools, and six `fu_*`
+tools joined the long tail. Fusion is a bridge lane, so where no add-in
+answers it is simply disconnected and the other three route unchanged. The
+A71 run believed the default branch's own manifest already listed a `fusion`
+lane; measured against `origin` on 2026-09-07 it does not, and §8.2 records
+the correction.
 
 ## 5. Laws for this lane
 
