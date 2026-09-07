@@ -254,7 +254,28 @@ def test_vspaero_wing_sweep_sits_inside_the_lifting_line_band(app):
 def test_wt_verify_all_passes_on_the_real_engines(app):
     _need("su2")
     _need("vspaero")
+    _need("openfoam")
     out = call(app, "wt_verify", case="all", confirm_cost=True)
     assert out["all_pass"] is True, out
     assert set(out["skipped_unverified"]) == set()
-    assert set(out["skipped_unimplemented"]) == {"cylinder_re40", "flatplate"}
+    assert set(out["skipped_unimplemented"]) == {"flatplate"}
+
+
+def test_the_re40_cylinder_reproduces_its_reference_on_real_openfoam(app):
+    """The bluff-body benchmark end to end: a laminar O-mesh cylinder run
+    at Re 40 EXACTLY, against the open reference solution of Gautier, Biau
+    & Lamballais (Computers & Fluids 75, 2013). +1.7 % on this machine -
+    the gap a second-order finite-volume mesh with a finite domain should
+    have against a spectral solution with asymptotic far-field conditions.
+    """
+    _need("openfoam")
+    out = call(app, "wt_verify", case="cylinder_re40", confirm_cost=True)
+    r = out["results"][0]
+    assert r["Re"] == 40.0, "a benchmark at the wrong Reynolds number is not a benchmark"
+    assert r["engine"] == "openfoam" and r["verdict"] == "converged"
+    cd = r["checks"]["cd"]
+    assert abs(cd["pct"]) <= cd["tol_pct"] and r["pass"] is True
+    assert 1.4 < cd["measured"] < 1.65  # the literature band the reference paper tabulates
+    # ParaView is optional here: without it the wake reports itself skipped
+    wake = r["checks"]["wake_lw_over_d"]
+    assert wake.get("measured") is not None or wake.get("skipped")

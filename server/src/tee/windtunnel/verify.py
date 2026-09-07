@@ -108,9 +108,11 @@ REFERENCES: dict[str, dict[str, Any]] = {
 }
 
 
-# the two cases whose runners exist; a verified reference without a runner is
+# the cases whose runners exist; a verified reference without a runner is
 # reported as skipped_unimplemented by `all` and refuses when named directly
-_RUNNABLE = ("wing_liftslope", "naca0012_euler")
+# (flatplate is the one left: the NASA TMR plate needs a blockMesh writer
+# this lane does not have yet)
+_RUNNABLE = ("wing_liftslope", "naca0012_euler", "cylinder_re40")
 
 
 def run(lane: Any, which: str, *, confirm_cost: bool) -> dict[str, Any]:
@@ -155,9 +157,190 @@ def _run_one(lane: Any, name: str, *, confirm_cost: bool) -> dict[str, Any]:
         return _wing_liftslope(lane, ref, confirm_cost=confirm_cost)
     if name == "naca0012_euler":
         return _naca0012_euler(lane, ref, confirm_cost=confirm_cost)
+    if name == "cylinder_re40":
+        return _cylinder_re40(lane, ref, confirm_cost=confirm_cost)
     raise TeeError(
         "wt_reference_unverified", f"{name} is not runnable yet.", fix="See verify.REFERENCES."
     )
+
+
+# The Re 40 cylinder's own constants, each one measured rather than chosen.
+#
+# `V` is 0.001 m/s because the case record rounds V to four decimals: asking
+# for D = 1 m instead makes V = 5.842874e-04 round to 0.0006 and the case runs
+# at **Re 41.08**, a 2.7 % error smuggled in by a round(). Fixing V at a value
+# that survives the rounding and solving for the diameter lands Re on exactly
+# 40.0000 (measured 2026-09-07).
+#
+# The grid is where a convergence study on this machine stopped moving, not a
+# guess (CD against the 1.4931 reference):
+#
+#     ni x nj    r_inf     CD        vs ref
+#     128 x 200    60    1.5228     +1.99 %
+#     256 x 200    60    1.5183     +1.69 %     <- adopted
+#     384 x 200    60    1.5181     +1.68 %
+#     256 x 200   100    1.5138     +1.39 %
+#
+# Azimuthally converged by ni 256 and radially by nj 200; what is left drifts
+# with the DOMAIN, which is the very thing the reference paper was written to
+# fix (it reports CD 1.4906 / 1.4931 / 1.4943 at r_inf 30 / 40 / 50, and quotes
+# Posdziec & Grundmann needing 4,000 diameters). A second-order finite-volume
+# O-mesh landing +1.7 % from a spectral solution with asymptotic far-field
+# conditions is the expected size of that gap, not a defect - and it is why the
+# tolerance is 5 % rather than something tighter.
+
+_CYL_V_MPS = 0.001
+_CYL_RE = 40.0
+_CYL_N_SURFACE = 128  # -> ni 256
+_CYL_NJ = 200
+_CYL_RADIUS_D = 60.0
+_CYL_ITERS = 8000
+
+
+def _cylinder_diameter() -> float:
+    """The diameter that puts Re on 40 exactly, given sea-level ISA and a V
+    that survives the case record's rounding."""
+    from tee.windtunnel import atmosphere
+
+    air = atmosphere.isa(0.0)
+    return _CYL_RE * (air.mu / air.rho) / _CYL_V_MPS
+
+
+def _cylinder_wake(lane: Any, case_id: str, diameter: float) -> dict[str, Any]:
+    """Wake length from the centreline: the recirculation closes where the
+    streamwise velocity changes sign. Needs ParaView, so it is OPTIONAL -
+    a missing pvpython makes this check `skipped`, never a failure, because
+    CD is what the tolerance gates.
+    """
+    try:
+        probe = lane.probe_field(
+            {
+                "case_id": case_id,
+                "what": "line",
+                "field": "U",
+                "components": True,
+                "p1": [0.5 * diameter, 0.0, 0.0],
+                "p2": [4.0 * diameter, 0.0, 0.0],
+                "n": 64,
+            }
+        )
+    except TeeError as exc:
+        return {"measured": None, "skipped": f"{exc.code}: {exc.message[:120]}"}
+    xs, us = _centreline_u(probe, diameter)
+    if len(xs) < 4:
+        return {"measured": None, "skipped": "the centreline probe returned too few samples"}
+    for k in range(1, len(xs)):
+        if us[k - 1] < 0.0 <= us[k]:  # the sign change closes the bubble
+            span = us[k] - us[k - 1]
+            frac = 0.0 if span == 0 else (0.0 - us[k - 1]) / span
+            x_re = xs[k - 1] + frac * (xs[k] - xs[k - 1])
+            return {"measured": round((x_re - 0.5 * diameter) / diameter, 4)}
+    return {"measured": None, "skipped": "no reversed flow on the centreline (no closed bubble)"}
+
+
+def _centreline_u(probe: dict[str, Any], diameter: float) -> tuple[list[float], list[float]]:
+    """(x, u_x) pairs out of a probe_field line sample, whatever shape the
+    reader gave the components."""
+    samples = probe.get("samples") or []
+    xs: list[float] = []
+    us: list[float] = []
+    p1 = (probe.get("p1") or [0.0])[0]
+    p2 = (probe.get("p2") or [1.0])[0]
+    n = max(len(samples) - 1, 1)
+    for i, s in enumerate(samples):
+        if isinstance(s, dict):
+            u = s.get("U_x", s.get("Ux", s.get("x")))
+            x = s.get("Points_0", s.get("arc_length"))
+            x = p1 + (p2 - p1) * i / n if x is None else float(x)
+        elif isinstance(s, list | tuple) and s:
+            u, x = s[0], p1 + (p2 - p1) * i / n
+        else:
+            u, x = s, p1 + (p2 - p1) * i / n
+        if u is None:
+            continue
+        xs.append(float(x))
+        us.append(float(u))
+    return xs, us
+
+
+def _cylinder_re40(lane: Any, ref: dict[str, Any], *, confirm_cost: bool) -> dict[str, Any]:
+    diameter = _cylinder_diameter()
+    created = lane._create(
+        {
+            "circle": True,
+            "chord_m": diameter,
+            "V_mps": _CYL_V_MPS,
+            "aoa_deg": 0.0,
+            "n_surface": _CYL_N_SURFACE,
+            "fidelity": "rans",
+            "turbulence": "laminar",
+            "need_viscous": True,
+        }
+    )
+    case_id = created["case_id"]
+    re_actual = float(created.get("conditions", {}).get("Re") or 0.0)
+    if abs(re_actual - _CYL_RE) > 0.05:
+        raise TeeError(
+            "wt_verify_failed",
+            f"the case came out at Re {re_actual:g}, not {_CYL_RE:g}.",
+            fix="A benchmark run at the wrong Reynolds number is not a test; check "
+            "atmosphere.conditions and the rounding of V.",
+        )
+    lane.mesh({"case_id": case_id, "nj": _CYL_NJ, "radius_c": _CYL_RADIUS_D})
+    rec = lane.store.load(case_id)
+    sub = lane._submit_runs(
+        rec,
+        [0.0],
+        # one core on purpose: cores > 1 routes through decomposePar and
+        # mpirun, which buys about a second on a case this size and costs
+        # the battery its portability (the hermetic fakes ship no mpirun)
+        {"confirm_cost": confirm_cost, "iters": _CYL_ITERS, "cores": 1},
+        label="wt_verify",
+    )
+    res = _wait(lane, sub["job"], timeout_s=3600.0)
+    cd = res.get("cd")
+    if cd is None:
+        raise TeeError(
+            "wt_verify_failed",
+            "OpenFOAM returned no drag coefficient.",
+            fix="See the run log in the case directory.",
+        )
+    tol = ref["tolerance"]
+    checks: dict[str, Any] = {
+        "cd": {
+            "measured": cd,
+            "reference": ref["cd"],
+            "pct": round(100 * (cd - ref["cd"]) / ref["cd"], 2),
+            "tol_pct": tol["cd_pct"],
+        }
+    }
+    ok = abs(checks["cd"]["pct"]) <= tol["cd_pct"]
+    wake = _cylinder_wake(lane, case_id, diameter)
+    if wake.get("measured") is not None:
+        lw = float(wake["measured"])
+        ref_lw = float(ref["wake_lw_over_d"])
+        checks["wake_lw_over_d"] = {
+            "measured": lw,
+            "reference": ref_lw,
+            "pct": round(100 * (lw - ref_lw) / ref_lw, 2),
+            "tol_pct": tol["wake_pct"],
+        }
+        ok = ok and abs(checks["wake_lw_over_d"]["pct"]) <= tol["wake_pct"]
+    else:
+        checks["wake_lw_over_d"] = {"measured": None, "skipped": wake.get("skipped")}
+    ok = ok and res.get("verdict", {}).get("state") in ("converged", "stalled")
+    return {
+        "case": "cylinder_re40",
+        "case_id": case_id,
+        "engine": "openfoam",
+        "Re": re_actual,
+        "diameter_m": round(diameter, 6),
+        "checks": checks,
+        "verdict": res.get("verdict", {}).get("state"),
+        "pass": ok,
+        "cite": ref["source"],
+        "verified": ref["verified"],
+    }
 
 
 def _wait(lane: Any, job_id: str, timeout_s: float = 3600.0) -> dict[str, Any]:

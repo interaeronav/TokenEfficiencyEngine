@@ -615,11 +615,11 @@ def test_adopt_an_su2_cfg_needs_its_mesh_beside_it(app, tmp_path):
 
 
 def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
-    # both references are verified at source now (owner session, §M R3/R4),
-    # but neither OpenFOAM runner is built - naming one still refuses, and
-    # the reason it gives is the honest one
+    # every reference is verified at source now (owner session, §M R3/R4);
+    # flatplate is the one whose runner is still unbuilt, and naming it
+    # refuses with that reason rather than pretending
     with pytest.raises(TeeError) as err:
-        call(app, "wt_verify", case="cylinder_re40")
+        call(app, "wt_verify", case="flatplate")
     assert err.value.code == "wt_reference_unverified"
     assert "runner" in err.value.message and "not built" in err.value.message
     with pytest.raises(TeeError) as err:
@@ -627,7 +627,7 @@ def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
     assert err.value.code == "wt_bad_action"
     out = call(app, "wt_verify", case="all", confirm_cost=True)
     assert set(out["skipped_unverified"]) == set()
-    assert set(out["skipped_unimplemented"]) == {"cylinder_re40", "flatplate"}
+    assert set(out["skipped_unimplemented"]) == {"flatplate"}
     by_name = {r["case"]: r for r in out["results"]}
     assert (
         by_name["wing_liftslope"]["pass"] is True
@@ -637,6 +637,14 @@ def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
         by_name["naca0012_euler"]["pass"] is True
         and by_name["naca0012_euler"]["verdict"] == "converged"
     )
+    # the Re 40 cylinder runs on OpenFOAM: the case must land on the
+    # benchmark's Reynolds number exactly, and the wake check reports
+    # itself skipped rather than failing when ParaView is absent
+    cyl = by_name["cylinder_re40"]
+    assert cyl["pass"] is True and cyl["Re"] == 40.0
+    assert abs(cyl["checks"]["cd"]["pct"]) <= cyl["checks"]["cd"]["tol_pct"]
+    wake = cyl["checks"]["wake_lw_over_d"]
+    assert wake.get("measured") is not None or wake.get("skipped")
     assert out["all_pass"] is True
     for r in out["results"]:
         assert r["cite"] and r["verified"]
