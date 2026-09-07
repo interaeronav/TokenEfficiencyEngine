@@ -486,3 +486,27 @@ def test_install_lines_carry_a_size_or_a_date_per_platform():
         for system in ("Darwin", "Linux"):
             line = per_platform[system]
             assert "2026" in line or "download" in line, (engine, system)
+
+
+def test_pvpython_never_writes_bytecode_into_the_app_bundle(tmp_path, monkeypatch):
+    """A signed .app is sealed: adding files to it breaks the signature and
+    macOS then refuses to launch the application. pvpython imports its own
+    modules from inside the bundle, so without PYTHONDONTWRITEBYTECODE it
+    writes ~200 .pyc files there on a first run and bricks ParaView -
+    measured 2026-09-07 on the owner's Mac, which is how the bug was found.
+    """
+    import subprocess as sp
+
+    from tee.windtunnel import paraview as pv
+
+    seen = {}
+
+    def fake_run(argv, **kw):
+        seen.update(kw.get("env") or {})
+        return sp.CompletedProcess(argv, 0, stdout="OK\n", stderr="")
+
+    monkeypatch.setattr(pv.subprocess, "run", fake_run)
+    pv.run_script("/nonexistent/pvpython", "print('OK')", tmp_path, render=False)
+    assert seen.get("PYTHONDONTWRITEBYTECODE") == "1", (
+        "pvpython must not cache bytecode into the signed ParaView bundle"
+    )
