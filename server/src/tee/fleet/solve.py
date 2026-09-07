@@ -33,6 +33,8 @@ from tee.fleet.quiet import muted_stdout
 from tee.kernel.errors import TeeError
 
 BACKENDS = ("highs", "scip", "cbc")
+VAR_KINDS = {"cont": "Continuous", "int": "Integer", "bin": "Binary"}
+CON_OPS = {"<=": "le", ">=": "ge", "==": "eq", "=": "eq"}
 DEFAULT_SHOW = 12
 SHOW_CAP = 200
 _STORE: dict[str, dict[str, Any]] = {}
@@ -53,6 +55,14 @@ def _pulp():
     return need("pulp", "solve", what="the LP/MIP modelling layer")
 
 
+def _bad_backend(backend: str) -> TeeError:
+    return TeeError(
+        "solve_bad_backend",
+        f"'{backend}' is not a solver backend.",
+        fix=f"Use one of: {', '.join(BACKENDS)}.",
+    )
+
+
 def _solver(pulp, backend: str, time_limit: float | None):
     kw: dict[str, Any] = {"msg": False}
     if time_limit:
@@ -65,19 +75,34 @@ def _solver(pulp, backend: str, time_limit: float | None):
     if backend == "highs":
         need("highspy", "solve", what="the HiGHS engine")
         return pulp.HiGHS(**kw)
-    raise TeeError(
-        "solve_bad_backend",
-        f"'{backend}' is not a solver backend.",
-        fix=f"Use one of: {', '.join(BACKENDS)}.",
-    )
+    raise _bad_backend(backend)
 
 
-def _build(pulp, spec: dict[str, Any]):
+def _check_spec(spec: dict[str, Any]) -> dict[str, Any]:
+    """Validate the request without importing the solver, and return its parts.
+
+    Every refusal here names something the caller can fix in their next call,
+    so none of them may sit behind an install: on a machine without the
+    `[solve]` extra a malformed spec would otherwise come back as "pulp is not
+    installed", which hides the real error behind a much more expensive one
+    (Rule 6, fail loud and cheap - and the bad-spec test runs where pulp is
+    absent, as CI's runner is). `fleet/cad.py` orders `scad_build` the same way
+    for the same reason.
+
+    An engine that has to be installed - pyscipopt, highspy - is still checked
+    where it is used, in `_solver`: that one really is an install, not an
+    argument.
+    """
     sense = str(spec.get("sense", "min")).lower()
     if sense not in ("min", "max"):
         raise TeeError(
             "solve_bad_spec", f"sense='{sense}' is not min or max.", fix="Use 'min' or 'max'."
         )
+
+    backend = str(spec.get("backend") or "highs").lower()
+    if backend not in BACKENDS:
+        raise _bad_backend(backend)
+
     variables = dict(spec.get("variables") or {})
     if not variables:
         raise TeeError(
@@ -85,38 +110,30 @@ def _build(pulp, spec: dict[str, Any]):
             "No variables declared.",
             fix='variables: {"x": {"lb": 0, "ub": 10, "type": "cont|int|bin"}}',
         )
-    prob = pulp.LpProblem("tee", pulp.LpMaximize if sense == "max" else pulp.LpMinimize)
-    kinds = {"cont": "Continuous", "int": "Integer", "bin": "Binary"}
-    vs: dict[str, Any] = {}
+    kinds: dict[str, str] = {}
     for name, d in variables.items():
-        d = dict(d or {})
-        kind = str(d.get("type", "cont")).lower()
-        if kind not in kinds:
+        kind = str(dict(d or {}).get("type", "cont")).lower()
+        if kind not in VAR_KINDS:
             raise TeeError(
                 "solve_bad_spec",
                 f"variable '{name}': type '{kind}' is unknown.",
                 fix="Use cont, int or bin.",
             )
-        lb = d.get("lb", 0)
-        ub = d.get("ub")
-        vs[name] = pulp.LpVariable(name, lb, ub, kinds[kind])
+        kinds[name] = kind
 
     obj = dict(spec.get("objective") or {})
-    unknown = set(obj) - set(vs)
+    unknown = set(obj) - set(variables)
     if unknown:
         raise TeeError(
             "solve_bad_spec",
             f"objective names undeclared variables: {sorted(unknown)}",
             fix="Declare every name under `variables` first.",
         )
-    prob += pulp.lpSum(float(c) * vs[n] for n, c in obj.items()) if obj else 0
 
-    ops = {"<=": "le", ">=": "ge", "==": "eq", "=": "eq"}
     cons = list(spec.get("constraints") or [])
     for i, c in enumerate(cons):
         c = dict(c or {})
-        lhs = dict(c.get("lhs") or {})
-        unknown = set(lhs) - set(vs)
+        unknown = set(dict(c.get("lhs") or {})) - set(variables)
         if unknown:
             raise TeeError(
                 "solve_bad_spec",
@@ -124,12 +141,43 @@ def _build(pulp, spec: dict[str, Any]):
                 fix="Declare every name under `variables` first.",
             )
         op = str(c.get("op", "<="))
-        if op not in ops:
+        if op not in CON_OPS:
             raise TeeError(
                 "solve_bad_spec",
                 f"constraint {i}: op '{op}' is unknown.",
                 fix="Use <=, >= or ==.",
             )
+
+    return {
+        "sense": sense,
+        "backend": backend,
+        "variables": variables,
+        "kinds": kinds,
+        "objective": obj,
+        "constraints": cons,
+    }
+
+
+def _build(pulp, checked: dict[str, Any]):
+    """Turn an ALREADY-CHECKED spec into a pulp problem. Raises nothing of its
+    own: every refusal belongs to `_check_spec`, which ran before pulp was
+    imported."""
+    sense = checked["sense"]
+    prob = pulp.LpProblem("tee", pulp.LpMaximize if sense == "max" else pulp.LpMinimize)
+    vs: dict[str, Any] = {}
+    for name, d in checked["variables"].items():
+        d = dict(d or {})
+        kind = VAR_KINDS[checked["kinds"][name]]
+        vs[name] = pulp.LpVariable(name, d.get("lb", 0), d.get("ub"), kind)
+
+    obj = checked["objective"]
+    prob += pulp.lpSum(float(c) * vs[n] for n, c in obj.items()) if obj else 0
+
+    cons = checked["constraints"]
+    for i, c in enumerate(cons):
+        c = dict(c or {})
+        lhs = dict(c.get("lhs") or {})
+        op = str(c.get("op", "<="))
         name = str(c.get("name") or f"c{i}")
         expr = pulp.lpSum(float(k) * vs[n] for n, k in lhs.items())
         rhs = float(c.get("rhs", 0))
@@ -138,11 +186,21 @@ def _build(pulp, spec: dict[str, Any]):
 
 
 def solve(spec: dict[str, Any]) -> dict[str, Any]:
-    """Solve one LP/MIP and answer compactly."""
-    pulp = _pulp()
-    backend = str(spec.get("backend") or "highs").lower()
+    """Solve one LP/MIP and answer compactly.
+
+    The request is checked before the environment is: a spec with no
+    variables, an unknown sense, variable type, constraint op or backend is
+    refused as such on every machine, and only a request that could actually
+    run asks for the `[solve]` extra."""
+    checked = _check_spec(spec)
     show = max(0, min(int(spec.get("show") or DEFAULT_SHOW), SHOW_CAP))
-    prob, vs, cons = _build(pulp, spec)
+
+    # After the spec checks, not before: a bad argument is something the
+    # caller can fix right now, a missing extra is an install. Refusing on
+    # the import first would hide the cheaper fix on a machine without it.
+    pulp = _pulp()
+    backend = checked["backend"]
+    prob, vs, cons = _build(pulp, checked)
     solver = _solver(pulp, backend, spec.get("time_limit"))
 
     started = time.monotonic()

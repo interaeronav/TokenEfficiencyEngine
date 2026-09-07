@@ -174,16 +174,56 @@ def test_a_missing_extra_refuses_with_the_exact_command():
     assert "not installed" in e.value.message
 
 
+BAD_SPECS = (
+    ({"variables": {}}, "No variables"),
+    ({"sense": "sideways", "variables": {"x": {}}}, "not min or max"),
+    ({"variables": {"x": {"type": "complex"}}}, "unknown"),
+    ({"variables": {"x": {}}, "objective": {"ghost": 1}}, "undeclared"),
+    ({"variables": {"x": {}}, "backend": "gurobi"}, "not a solver backend"),
+    (
+        {"variables": {"x": {}}, "constraints": [{"lhs": {"ghost": 1}}]},
+        "constraint 0 names undeclared",
+    ),
+    (
+        {"variables": {"x": {}}, "constraints": [{"lhs": {"x": 1}, "op": "≈"}]},
+        "op '≈' is unknown",
+    ),
+)
+
+
 def test_bad_specs_are_refused_before_any_solver_runs():
-    for spec, expect in (
-        ({"variables": {}}, "No variables"),
-        ({"sense": "sideways", "variables": {"x": {}}}, "not min or max"),
-        ({"variables": {"x": {"type": "complex"}}}, "unknown"),
-        ({"variables": {"x": {}}, "objective": {"ghost": 1}}, "undeclared"),
-    ):
+    for spec, expect in BAD_SPECS:
         with pytest.raises(TeeError) as e:
             solve.solve(spec)
         assert expect in e.value.message, f"{spec} -> {e.value.message}"
+
+
+def test_a_bad_spec_names_the_argument_even_when_the_extra_is_absent(monkeypatch):
+    """The ordering itself, pinned independently of this machine.
+
+    The test above only states the rule where pulp happens to be missing; with
+    the `[solve]` extra installed it passes no matter which check runs first,
+    so it cannot catch a regression on a CI runner that has the extra. Here the
+    modelling layer is made unimportable outright: every refusal must still
+    name the argument the caller can fix, never the install they would have to
+    do. `solve()` must not touch `_pulp` until the spec is known to be good.
+    """
+
+    def no_pulp():
+        raise TeeError(
+            "fleet_missing_extra",
+            "This needs the [solve] extra (the LP/MIP modelling layer): pulp is not installed.",
+            fix="uv pip install 'tee-engine[solve]'",
+        )
+
+    monkeypatch.setattr(solve, "_pulp", no_pulp)
+    for spec, expect in BAD_SPECS:
+        with pytest.raises(TeeError) as e:
+            solve.solve(spec)
+        assert expect in e.value.message, f"{spec} -> {e.value.message}"
+        assert "not installed" not in e.value.message, (
+            f"{spec} asked for the extra before reading the spec"
+        )
 
 
 def test_tools_register_on_the_read_compute_capability():
