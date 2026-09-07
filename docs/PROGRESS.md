@@ -14050,6 +14050,90 @@ lock is part of a version bump, not a consequence of one.
 through? Doc 73's open questions 1 and 2, and the only rows of this campaign
 that need a machine this container is not.
 
+### A73 P2 — the Mac rows (2026-09-07, owner session on the Mac)
+
+The two rows the container could not reach, run on macOS 26.6.2 arm64 with
+ParaView **6.1.1** (the GUI and `pvpython` from one install), OpenFOAM v2606
+and SU2 8.4.0. Evidence: `docs/research/73-evidence/mac-a73-2026-09-07.log`,
+regenerated from a **cleaned bundle** for the reason in the next paragraph.
+
+**Section B — the row nobody had checked — passes, but the script's own test
+of it was vacuous.** The check compares `.pyc` counts before and after a state
+is written, and the bundle already held **211** of them from an earlier
+pre-fix run. A saturated cache cannot grow, so `211 -> 211` reads as a pass
+whatever the guard does. Cleaning the bundle first is what makes the row mean
+anything, and measured that way:
+
+```
+before:  0 .pyc   codesign exit 0   spctl: accepted, Notarized Developer ID
+  (wt_case -> wt_mesh -> wt_run 197 iters -> wt_open pressure + mesh)
+after:   0 .pyc   codesign exit 0
+```
+
+**The state writer is covered by the base's bytecode guard**, as P2 predicted
+it would be: `state.write()` goes through the same `run_script` that carries
+`PYTHONDONTWRITEBYTECODE=1`. Launching the GUI twice did not damage it either.
+The 211 files were not from the handoff — they were written 13:04–13:28 by
+something running pre-`c082dae` code, which is its own lesson: **a shared
+machine can have a second session undo this, and the count is the only way to
+know.**
+
+**Section C is no longer vacuous, and both P2 defects are confirmed fixed on
+6.1.1.** With a real 197-iteration run behind it:
+
+```
+pressure: timesteps [197.0]  scene_time 197.0  view_time 197.0  colour CELLS/p
+mesh:     timesteps [197.0]  scene_time 197.0  view_time 197.0  colour CELLS/""
+```
+
+Defect 1 (a state opening at t=0) and defect 2 (`wt_open view=mesh` raising on
+a case with no array) are both gone here.
+
+**Doc 73 open question 2 — ANSWERED, and the documented idiom is wrong.**
+
+```
+open -a ParaView --args --state=<f>          -> "Unable to find application named 'ParaView'"
+open -a /Applications/ParaView-6.1.1.app ... -> works; --state= reaches the process
+<app>/Contents/MacOS/paraview --state=<f>    -> works   <- what wt_open actually composes
+```
+
+`open -a` matches an application NAME, and the bundle is `ParaView-6.1.1.app`,
+so the bare name never launches anything — the flag never got as far as being
+passed through. **The lane is unaffected: `wt_open` invokes the binary
+directly and never uses `open`.** Confirmed by looking at the window rather
+than by exit codes: pipeline browser holds `OpenFOAMReader1`, the toolbar
+reads `Time: 197`, the legend is titled `p` over −6.3e+02…4.5e+02. Via `open`
+the app runs from `AppTranslocation`, macOS's read-only randomised copy for a
+quarantined bundle — which is also why launching it that way cannot write
+bytecode into itself.
+
+*One usability observation, not a defect:* the camera frames the whole O-mesh
+farfield (50 chords), so the domain renders as a near-uniform disc with the
+aerofoil a speck at the centre. The state is right; the framing is not useful.
+A `wt_open` that fitted the camera to the wall patch would be worth having.
+
+**Doc 73 open question 1 — STILL OPEN, and structurally so.** Does 6.1 accept
+a 5.11-written state? This Mac has exactly one ParaView, so it writes and
+reads with the same install and cannot produce the input. Answering it needs a
+state carried from a 5.11 machine to a 6.1 one — a two-machine test, not a Mac
+row. Recorded open rather than filled in. It stays harmless meanwhile: the
+lane writes with the `pvpython` that came from the install the GUI launches.
+
+**Two more defects in `mac-check.sh` itself** (`875bbd6`), both of which faked
+a pass, and both in rows only a Mac could reach:
+
+1. `RUN_SOLVE=1` **never ran**. The harness registers the `wt_*` lane only, so
+   `registry.call("tee_job", …)` raised `No tool named 'tee_job'` — that tool
+   lives on the MCP server in `server.py`. The solve was skipped and section C
+   printed its "only t=0 exists" line as though nothing were wrong. It polls
+   `app.jobs.status` now.
+2. `codesign --verify … | head -3; echo "rc=$?"` reported **`head`'s** exit
+   status, so section B printed `codesign rc=0` on a bundle codesign was
+   calling invalid in the line directly above. The status is captured before
+   the pipe now. That is four defects this script has had, all of the same
+   family: **a check that cannot fail is not a check.**
+
+
 ### CFRP: a woven card, and a quasi-isotropic one that had to be computed (2026-09-07)
 
 Owner: *"add a woven and quasi-isotropic card"*. Both landed, from the Hexcel
