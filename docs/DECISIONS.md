@@ -2267,3 +2267,49 @@ counts and layer tables do not decide it: P2 solves the same case on both
 meshes and compares Cd. A mesh that covers its boundary layer and changes
 nothing downstream has not earned a `mesher=` argument.
 
+
+## The flight-dynamics lane talks to JSBSim in-process, under LGPL (2026-09-07, A75)
+
+Research doc 75 measured three ways to invoke JSBSim and found they carry
+**three different licences**, which no reading of the repository's `COPYING`
+reveals:
+
+| route | grant | what it costs |
+|---|---|---|
+| `import jsbsim` (the wheel's own binding) | **LGPL-2.0-or-later** | nothing beyond LGPL's dynamic-linking terms |
+| the wheel's `jsbsim` console script (`jsbsim/script.py`, upstream `python/JSBSim.py`) | **GPL-3.0-or-later** | a stronger copyleft than the route it would be retreating from |
+| the C++ `JSBSim` binary (`src/JSBSim.cpp`) | **LGPL-2.0-or-later** | no `FGLinearization`, and nobody's default |
+
+**Ruled: in-process.** It is the only route that reaches `FGLinearization`,
+which doc 76 §2.5 argues is the most valuable thing in the library — A and B at
+a trim point are where stability derivatives and handling qualities start, and
+they are a few hundred tokens where a trajectory is a hundred thousand. The
+wheel is unmodified and dynamically linked, which is the case LGPL §6 is
+written for.
+
+**The other two are refused, with reasons.** The wheel's CLI is **GPL-3**: TEE
+already drives a GPL-3 program at arm's length (OpenFOAM, every `wt_run`), so
+the precedent is clean, but retreating *to* it from LGPL would take on a
+stronger copyleft to avoid a weaker one — the instinct is backwards, and doc 75
+§2.1 records why. The C++ binary is LGPL again but reaches no linearisation and
+is not what a Python process would reach for; it stays available if the ruling
+is ever revisited.
+
+**Two obligations this ruling creates**, both discharged in P1:
+
+1. **The gate reads file headers, not metadata.** PyPI declares `LGPLv2+` for
+   the whole distribution while a GPL-3 file ships inside it, so a gate of the
+   shape TEE already has — `foamlib is GPL-3.0-only on PyPI today` — passes this
+   package. `test_flightdyn_licences.py` asserts on the grant in each installed
+   file's own header, and fails if `script.py`'s licence moves.
+2. **Nothing upstream is vendored**, the 60 bundled aircraft included. The lane
+   uses the installed root or generates its own.
+
+**Note on how this was taken.** The plan approved for A75 assumed in-process and
+left the ruling to the owner; the owner then directed the session to complete
+every phase without prompting. So this is the session's ruling recorded under
+that authority, not the owner's own — it is deliberately reversible, and the
+lane is built so that reversing it changes `probe.py` and the gate rather than
+the design: `fd_run` and `fd_modes` already execute **out-of-process** for an
+unrelated reason (doc 76 §2.2 — `FGLinearization` on an engineless aircraft
+segfaults), so the subprocess boundary a CLI route would need is already there.
