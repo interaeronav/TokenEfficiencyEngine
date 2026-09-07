@@ -41,6 +41,7 @@ WITNESS = {
     "cad": "cadquery",
     "pointcloud": "laspy",
     "windtunnel": "meshio",
+    "flightdyn": "jsbsim",
 }
 
 # `cad` moved to a sidecar in A46 P1b and is NOT expected in TEE's own venv,

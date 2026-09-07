@@ -255,6 +255,19 @@ _EXPLICIT: dict[str, str] = {
     # only prepares the handoff never needs the stronger capability, and one
     # who opens a window is refused at the tier that governs it.
     "wt_open": "write-artifacts",
+    # --- A75: the flight-dynamics lane ---
+    # DELIBERATELY NO ("fd_", ...) FAMILY ROW (the cad_/trade_/pc_/wt_ lesson).
+    # The probe reads; the generator writes an aircraft into .tee/flightdyn;
+    # everything that flies spawns a CHILD PROCESS, because FGLinearization on
+    # an aircraft with no engine SIGSEGVs rather than raising - so those three
+    # are call-engine, tabled one line at a time. JSBSim is LGPL-2.0-or-later
+    # and used in-process in that child; the wheel's own CLI is GPL-3 and is
+    # never invoked (docs/DECISIONS.md, 2026-09-07).
+    "fd_probe": "read-compute",  # version probe only; never loads an aircraft
+    "fd_aircraft": "write-artifacts",  # writes aircraft + engine XML on disk
+    "fd_trim": "call-engine",  # a JSBSim child process
+    "fd_modes": "call-engine",
+    "fd_fly": "call-engine",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",

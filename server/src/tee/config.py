@@ -84,6 +84,7 @@ class ProjectConfig:
     # or the Mac app's etc/openfoam), `su2`, `openvsp`, `pvpython` (a dir or
     # binary each), `cores`, `max_wall_s`, `confirm_above_s`.
     windtunnel: dict[str, Any] = field(default_factory=dict)
+    flightdyn: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -202,6 +203,12 @@ class ProjectConfig:
             config.windtunnel = windtunnel_section
         elif windtunnel_section:
             problems.append("[windtunnel] must be a table")
+
+        flightdyn_section = data.get("flightdyn", {})
+        if isinstance(flightdyn_section, dict):
+            config.flightdyn = flightdyn_section
+        elif flightdyn_section:
+            problems.append("[flightdyn] must be a table")
 
         trust_section = data.get("trust", {})
         if isinstance(trust_section, dict):
