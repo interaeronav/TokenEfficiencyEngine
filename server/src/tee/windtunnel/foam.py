@@ -655,6 +655,169 @@ def _boundary_list(entries: list[dict[str, dict[str, Any]]]) -> str:
     return "\n".join(parts)
 
 
+# ---------------------------------------------------------------------------
+# The 2-D zero-pressure-gradient flat plate (NASA TMR VERIF/2DZP)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FlatPlate2D:
+    """The TMR 2DZP layout, measured from the case's own grid and boundary
+    map on 2026-09-07 (`flatplate_clust2_4levelsdown_35x25.p2dfmt` and its
+    `.nmf`), never assumed:
+
+        x  -0.33333 .. 2.0        y  0 .. 1
+        bottom  symmetry (slip) for x < 0, viscous wall for 0 <= x <= 2
+        inflow at x0, back pressure at x1, farfield along the top
+
+    Two blocks meet at the leading edge because blockMesh cannot split one
+    block's bottom face between a slip patch and a wall.
+    """
+
+    x0: float = -0.33333
+    x_le: float = 0.0
+    x1: float = 2.0
+    y1: float = 1.0
+    thickness: float = 0.1
+    nx_upstream: int = 64
+    nx_plate: int = 320
+    ny: int = 140
+    first_cell: float = 3e-6
+    first_dx: float = 8e-4
+
+    @property
+    def cells(self) -> int:
+        return (self.nx_upstream + self.nx_plate) * self.ny
+
+
+def _expansion(total: float, first: float, n: int) -> float:
+    """blockMesh's `simpleGrading` value is the LAST/FIRST cell ratio. Solve
+    total = first (r^n - 1)/(r - 1) for the per-cell ratio r, then report
+    r^(n-1). Bisection: n and first are given, the sum is monotone in r."""
+    if n < 2 or first <= 0 or total <= first:
+        return 1.0
+    lo, hi = 1.0 + 1e-7, 1.5
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if first * (mid**n - 1) / (mid - 1) < total:
+            lo = mid
+        else:
+            hi = mid
+    return (0.5 * (lo + hi)) ** (n - 1)
+
+
+def flat_plate_block_mesh_dict(p: FlatPlate2D) -> str:
+    gy = _expansion(p.y1, p.first_cell, p.ny)
+    gx_plate = _expansion(p.x1 - p.x_le, p.first_dx, p.nx_plate)
+    # the upstream block is graded the other way: fine AT the leading edge
+    gx_up = 1.0 / _expansion(p.x_le - p.x0, p.first_dx, p.nx_upstream)
+    verts: list[tuple[float, float, float]] = []
+    for z in (0.0, p.thickness):
+        for y in (0.0, p.y1):
+            for x in (p.x0, p.x_le, p.x1):
+                verts.append((x, y, z))
+    boundary = _boundary_list(
+        [
+            {"inlet": {"type": "patch", "faces": [(0, 3, 9, 6)]}},
+            {"outlet": {"type": "patch", "faces": [(2, 8, 11, 5)]}},
+            {"top": {"type": "patch", "faces": [(3, 4, 10, 9), (4, 5, 11, 10)]}},
+            # a generic patch, NOT symmetryPlane: the 0/ writer puts a `slip`
+            # patchField here, and OpenFOAM refuses `slip` on a symmetryPlane
+            # ("inconsistent patch and patchField types" - measured 2026-09-07)
+            {"symm": {"type": "patch", "faces": [(0, 6, 7, 1)]}},
+            {"plate": {"type": "wall", "faces": [(1, 7, 8, 2)]}},
+            {
+                "frontAndBack": {
+                    "type": "empty",
+                    "faces": [(0, 1, 4, 3), (1, 2, 5, 4), (6, 9, 10, 7), (7, 10, 11, 8)],
+                }
+            },
+        ]
+    )
+    body: dict[str, Any] = {
+        "scale": 1,
+        "vertices": verts,
+        "blocks": [
+            f"hex (0 1 4 3 6 7 10 9) ({p.nx_upstream} {p.ny} 1) simpleGrading ({gx_up} {gy} 1)",
+            f"hex (1 2 5 4 7 8 11 10) ({p.nx_plate} {p.ny} 1) simpleGrading ({gx_plate} {gy} 1)",
+        ],
+        "edges": [],
+        "boundary": boundary,
+        "mergePatchPairs": [],
+    }
+    return foam_file("dictionary", "blockMeshDict", body, "system")
+
+
+def wall_shear_functions(patch: str = "plate", name: str = "plateSample") -> str:
+    """`wallShearStress` on the wall plus a raw `surfaces` sample of it.
+
+    Both fire on `onEnd`, not `writeTime`: a run that stops on its residual
+    target never reaches a write time, so a `writeTime` sampler produces
+    nothing at all (measured 2026-09-07 - the first prototype converged and
+    wrote no surface). Raw format keeps ParaView out of the loop; the reader
+    is `read_wall_shear`.
+    """
+    return (
+        "functions\n{\n"
+        "    wallShearStress\n    {\n"
+        "        type            wallShearStress;\n"
+        '        libs            ("libfieldFunctionObjects.so");\n'
+        "        executeControl  onEnd;\n"
+        "        writeControl    onEnd;\n"
+        f"        patches         ({patch});\n"
+        "        log             no;\n    }\n"
+        f"    {name}\n    {{\n"
+        "        type            surfaces;\n"
+        '        libs            ("libsampling.so");\n'
+        "        writeControl    onEnd;\n"
+        "        surfaceFormat   raw;\n"
+        "        fields          (wallShearStress);\n"
+        "        interpolate     false;\n"
+        "        surfaces\n        {\n"
+        f"            {patch} {{ type patch; patches ({patch}); interpolate false; }}\n"
+        "        }\n    }\n}\n"
+    )
+
+
+def read_wall_shear(case_dir: str | Path, u_inf: float, patch: str = "plate") -> list[list[float]]:
+    """[(x, Cf)] along the wall, from the raw `surfaces` output.
+
+    OpenFOAM's incompressible wallShearStress is KINEMATIC (tau/rho), so
+    Cf = 2|tau_x|/U^2 with rho divided out. Columns are x y z tau_x tau_y tau_z.
+    """
+    root = Path(case_dir) / "postProcessing"
+    files = sorted(root.rglob(f"wallShearStress_{patch}.raw")) or sorted(root.rglob("*.raw"))
+    if not files:
+        raise ValueError(f"no raw wall-shear sample under {root}")
+    rows: list[list[float]] = []
+    for line in files[-1].read_text(errors="replace").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) < 4:
+            continue
+        try:
+            rows.append([float(parts[0]), 2.0 * abs(float(parts[3])) / (u_inf * u_inf)])
+        except ValueError:
+            continue
+    rows.sort(key=lambda r: r[0])
+    return rows
+
+
+def cf_at(rows: list[list[float]], x: float) -> float | None:
+    """Cf at a station, linearly interpolated between the two samples that
+    bracket it. None when the station is off the sampled wall."""
+    before = [r for r in rows if r[0] <= x]
+    after = [r for r in rows if r[0] >= x]
+    if not before or not after:
+        return None
+    lo, hi = before[-1], after[0]
+    if hi[0] == lo[0]:
+        return lo[1]
+    t = (x - lo[0]) / (hi[0] - lo[0])
+    return lo[1] + t * (hi[1] - lo[1])
+
+
 def snappy_dict(t: Tunnel3D) -> str:
     (bx0, by0, bz0), (bx1, by1, bz1) = t.body_bbox
     L = max(bx1 - bx0, by1 - by0, bz1 - bz0)

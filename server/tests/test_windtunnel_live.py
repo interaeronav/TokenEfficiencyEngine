@@ -251,6 +251,26 @@ def test_vspaero_wing_sweep_sits_inside_the_lifting_line_band(app):
     assert len(res["polar"]) == 4 and abs(res["polar"][0]["cl"]) < 0.005
 
 
+def test_the_tmr_flat_plate_reproduces_its_reference_on_real_openfoam(app):
+    """The turbulence-model verification case: a kOmegaSST zero-pressure-
+    gradient plate at Re_L 5e6, checked on a LOCAL quantity - Cf at
+    x = 0.9700840712 - read from a wall-shear sample rather than an
+    integrated force. -1.6 % on this machine, and the sign is expected: the
+    TMR states this is a compressible verification case and simpleFoam is
+    incompressible.
+    """
+    _need("openfoam")
+    out = call(app, "wt_verify", case="flatplate", confirm_cost=True)
+    r = out["results"][0]
+    assert abs(r["Re"] - 5.0e6) / 5.0e6 < 1e-4, "the benchmark's Reynolds number, or it is not one"
+    assert r["engine"] == "openfoam" and r["verdict"] in ("converged", "stalled")
+    cf = r["checks"]["cf"]
+    assert cf["at_x"] == 0.9700840712
+    assert abs(cf["pct"]) <= cf["tol_pct"] and r["pass"] is True
+    assert 2.4e-3 < cf["measured"] < 3.0e-3
+    assert r["wall_samples"] > 100  # the sampler wrote the whole wall
+
+
 def test_wt_verify_all_passes_on_the_real_engines(app):
     _need("su2")
     _need("vspaero")
@@ -258,7 +278,7 @@ def test_wt_verify_all_passes_on_the_real_engines(app):
     out = call(app, "wt_verify", case="all", confirm_cost=True)
     assert out["all_pass"] is True, out
     assert set(out["skipped_unverified"]) == set()
-    assert set(out["skipped_unimplemented"]) == {"flatplate"}
+    assert set(out["skipped_unimplemented"]) == set()  # every runner is built now
 
 
 def test_the_re40_cylinder_reproduces_its_reference_on_real_openfoam(app):

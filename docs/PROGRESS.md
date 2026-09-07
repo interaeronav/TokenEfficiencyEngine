@@ -13327,6 +13327,78 @@ exactly as measured**.
 deselected**; `cfd` tier **10 passed, 0 skipped** — the whole live tier, every
 engine present; ruff clean. No tool added — the surface is untouched.
 
+### A72 — the NASA TMR flat-plate verification runner (2026-09-07, owner session)
+
+The last gap in the battery. `wt_verify case=flatplate` runs end to end and
+passes; **every reference now has a runner and both skip buckets are empty.**
+
+```
+wt_verify case=flatplate confirm_cost=true          (live OpenFOAM v2606, arm64)
+  Re            4,999,998        on L = 1, i.e. 5e6 to 4 parts in 1e8
+  Cf            2.646754e-03     reference 2.690854e-03  ->  -1.64 %  (tol 5 %)
+                at x = 0.9700840712, from 320 wall-shear samples
+  verdict       converged        230 s, 1 core, 53,760 cells
+```
+
+**The case was pinned at source, not assumed.** The TMR came back online, so the
+geometry and boundary conditions were read from the case's OWN grid and boundary
+map (`flatplate_clust2_4levelsdown_35x25.p2dfmt` and its `.nmf`) rather than from
+memory: x −0.33333 → 2.0, y 0 → 1, **slip ahead of the leading edge and a viscous
+wall from x 0 to 2**, `subsonic_inflow_pt` / `back_pressure` / `farfield_riem`,
+M 0.2, Re 5e6 on length 1, SST freestream TI 0.039 % and νt/ν 0.009.
+
+**The −1.6 % has a named cause and is not slop.** The TMR page states plainly that
+this is a *compressible* verification case and warns that "if you run this case
+with an incompressible code, your results may be close - but not quite the same".
+`simpleFoam` is incompressible. The grid study converges monotonically toward the
+reference from below, which is what a correct implementation with a known
+modelling offset looks like:
+
+```
+  nx x ny     cells      Cf             vs ref
+  160 x 90     17,280    2.593362e-03   -3.62 %
+  240 x 110    31,680    2.626233e-03   -2.40 %
+  320 x 140    53,760    2.646754e-03   -1.64 %   <- adopted, 230 s
+  480 x 180   103,680    2.664233e-03   -0.99 %   (13 min: too slow for a battery)
+```
+
+**What the lane gained** (all of it reusable, none of it verification-only):
+
+- `foam.FlatPlate2D` + `flat_plate_block_mesh_dict` — a two-block graded
+  blockMeshDict. Two blocks because blockMesh cannot split one block's bottom
+  face between a slip patch and a wall, and `_expansion` solves the per-cell
+  ratio by bisection because blockMesh's `simpleGrading` wants LAST/FIRST.
+- `foam.wall_shear_functions` / `read_wall_shear` / `cf_at` — a `wallShearStress`
+  field plus a raw `surfaces` sample, and a reader that interpolates Cf at a
+  station. **Raw format keeps ParaView out of this path entirely.**
+- `wt_case create plate=true` (kind `flatplate2d`), with `turbulence_intensity`
+  and `viscosity_ratio` now settable per case and carried into the run.
+
+**Three defects it exposed, each one measured rather than reasoned:**
+
+1. **`slip` cannot sit on a `symmetryPlane`.** OpenFOAM refuses with
+   "inconsistent patch and patchField types" — the 0/ writer emits a `slip`
+   patchField, so the upstream patch is declared a generic `patch`.
+2. **A `writeTime` sampler on a converging run writes nothing.** The first
+   prototype converged on its residual target, never reached a write time, and
+   produced no surface at all. Both function objects now fire `onEnd`.
+3. **A low-Re plate is high aspect ratio BY DESIGN** — microns at the wall,
+   millimetres along it, max ratio ~7,800. `checkMesh` fails it; the plate mesh
+   branch tolerates *that* check specifically, because the mesh being right is
+   what makes the check complain.
+
+**Also worth recording, a tooling lesson rather than a product one:** the first
+grid study returned four identical rows. **zsh does not word-split unquoted
+`$var`** the way bash does, so every run received one argument and silently fell
+back to its defaults. The give-away was the identical cell count, not the
+identical Cf — `${=g}` fixed it. A study whose rows are all equal is a bug until
+proven otherwise.
+
+**Suites at close:** hermetic `pytest -q` **1,896 passed / 20 skipped / 129
+deselected**; ruff clean; no tool added. The `cfd` tier now runs the plate twice
+(its own test and `case=all`) and takes about eleven minutes — it is deselected
+by default for exactly this reason.
+
 ### A72 P0c — the licence gate and the ruling (2026-09-06)
 
 `server/tests/test_windtunnel_licences.py` (7 tests): a fresh-interpreter import

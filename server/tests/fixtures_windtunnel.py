@@ -350,7 +350,35 @@ def simple_foam():
         (tdir / name).write_text(
             "FoamFile { object %s; }\ninternalField uniform 0;\n" % name
         )
+    if "wallShearStress" in read(case / "system" / "controlDict"):
+        write_wall_shear(case, last)
     out("End")
+
+
+def write_wall_shear(case, last):
+    """The raw `surfaces` sample the flat-plate benchmark reads.
+
+    Shaped like a real turbulent plate, Cf ~ x^-0.2, and calibrated so the
+    reference station x = 0.9700840712 carries 2.646754e-03 - what live
+    OpenFOAM v2606 actually produced on the adopted grid, 2026-09-07. The
+    fake answers what the engine answered, so verify.py's tolerance is
+    exercised rather than dodged.
+    """
+    u = 1.0
+    m = re.search(r"internalField\s+uniform\s*\(([-0-9.eE+]+)", read(case / "0" / "U"))
+    if m:
+        u = abs(float(m.group(1))) or 1.0
+    x_ref, cf_ref = 0.9700840712, 2.646754e-03
+    c = cf_ref * (x_ref**0.2)
+    out_dir = case / "postProcessing" / "plateSample" / str(last)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    lines = ["# x  y  z  tau_x  tau_y  tau_z"]
+    for i in range(320):
+        x = 2.0 * (i + 0.5) / 320.0
+        cf = c * x ** (-0.2)
+        tau = -0.5 * cf * u * u  # OpenFOAM reports it negative in the flow direction
+        lines.append(f"{x:.8f} 0 0 {tau:.9e} 0 0")
+    (out_dir / "wallShearStress_plate.raw").write_text("\n".join(lines) + "\n")
 
 
 def decompose_par():
