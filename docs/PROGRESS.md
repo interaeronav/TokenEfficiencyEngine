@@ -13270,6 +13270,59 @@ a macOS timing race in the base's lane, fixed upstream and waiting on PR #4.
 At close: **1,832 passed / 31 skipped / 125 deselected**, `make lint` clean,
 surface 17.
 
+### fleet: the solve spec is checked before the pulp import (2026-09-07)
+
+The same defect the cad lane fixed on 2026-09-06, in the same shape, one
+module over. `solve.solve()` opened with `pulp = _pulp()`, so on a machine
+without the `[solve]` extra a malformed request was refused for the wrong
+reason: `solve.solve({"variables": {}})` answered `solve_unavailable` —
+"This needs the [solve] extra … pulp is not installed" — where the caller's
+actual error was "No variables declared." One is an argument they can fix in
+the next call; the other is an install. Rule 6 puts the cheap one first.
+
+`test_bad_specs_are_refused_before_any_solver_runs` states that order and is
+deliberately not gated on `probe.have("pulp")`, so it failed anywhere the
+extra was absent. Found while merging the base branch into
+`claude/tee-component-integration-iflsyq`; pre-existing on that branch and on
+the default branch (`solve.py` was byte-identical on both), and left out of
+PR #1 rather than widening a 16,000-line diff. CI does not catch it — every
+runner that installs the extra hides it.
+
+The fix splits `_build` in two. `_check` holds every refusal and touches no
+solver: validating a spec needs the variable NAMES, never an `LpVariable`, so
+sense, empty variables, unknown variable type, undeclared names in the
+objective and in each constraint's `lhs`, and unknown ops are all decidable
+with no modelling layer in the room. It returns a `Checked` tuple that
+`_build` consumes, so nothing is parsed twice and the two cannot drift.
+`solve()` now reads `_check` → `_pulp()` → `_build` → `_solver`.
+
+The backend NAME moved with them: it is an argument like any other, and its
+refusal used to sit inside `_solver`, downstream of the import. It is checked
+last within `_check`, so a spec wrong in both places still names the model
+error first — the order it refused in before. `_solver` keeps its per-engine
+`need()` calls, which were always correctly placed: HiGHS is only required on
+the branch that builds a HiGHS solver. Dead weight removed on the way past —
+the `ops` mapping's values were never read (the build compares the operator
+directly), so it is a tuple of the four accepted spellings now.
+
+**Measured** with `pulp` hidden behind a meta_path finder that raises
+ImportError, so `probe.have` (find_spec) and `probe.need` (import_module)
+both see it absent: `tests/test_fleet_solve.py` goes from 1 failed / 8 passed
+/ 9 skipped to **9 passed / 9 skipped**, the nine skips all genuinely gated
+on the extra. With pulp present: **18 passed**. Whole server suite on the
+main venv: **1,502 passed, 20 skipped, 0 failed** (95 s). `make lint` clean —
+ruff check and `343 files already formatted`.
+
+**Owed, and PAID in the entry below:** `cpsat()` had the untouched half of
+this shape — it called `need("ortools")` before any spec check, and its
+worker's validation was thinner than `_check` (an undeclared name in a
+constraint arrived as a `KeyError`, not as a named refusal). It now runs
+`_check` in front of the `need()`, the worker's checks are reconciled with
+it, and a test pins the order. The two halves were written in separate
+worktrees and are carried by the same commit series here; the measurements
+above were taken on the 0.22.0 tree this was first written against, before
+the rebase onto 320e78a — the current numbers are below.
+
 ---
 
 **Resolved 2026-09-07 — `solve.cpsat` refused the wrong thing first
@@ -13321,10 +13374,11 @@ larger default?) rather than a correction.
 
 **Note for whoever merges:** `_check`/`Checked`/`_require_backend` were
 written here from the shape in the `claude/unruffled-golick-693bfb`
-worktree, where they are still UNCOMMITTED. Both branches therefore add them
-to `solve.py`. On merge take THIS copy — it is that one plus the
-`integer_only` flag — and keep the other branch's `solve()`/`_build` changes,
-which are identical here. `cad.scad_build`'s matching fix has meanwhile
+worktree, where the same change is STILL UNCOMMITTED. Both halves now ship
+together in this branch, and this copy is a strict superset — that one plus
+the `integer_only` flag (its five other lines are two this supersedes and
+three of docstring prose). If that worktree is ever committed, it adds
+nothing here and should be dropped rather than merged twice. `cad.scad_build`'s matching fix has meanwhile
 LANDED on the base (104f363), so this branch inherits it and does not touch
 `cad.py`; this commit is rebased onto that base, not onto the 0.22.0 tree it
 was written against.
