@@ -12481,12 +12481,9 @@ C3   OPEN: needs a case actually written by the CfdOF workbench in the GUI, then
 S1   SimFlow, from the owner in a browser (2026-09-06): full simulation engine, 200,000 mesh
      nodes, 1 CPU for meshing and computing, no signup, no credit card, no time limit.
      Disposition unchanged and now sourced — see doc 72 §2.
-R3   OPEN by owner decision: Dennis & Chang 1970 (JFM 42, 471-489) and Fornberg 1980
-     (JFM 98, 819-855) are paywalled to everything but a browser (Cambridge Core answers
-     HTTP 500 to a headless fetch; no author copy on colorado.edu). A secondary source
-     found and NOT adopted: Gautier, Biau & Lamballais, arXiv:1310.6641 Table 1 quotes them
-     at 2 d.p. (1.52 / 1.50) with its own reference solution CD 1.49, Lw/D 2.24.
-     `cylinder_re40` keeps verified=None and `wt_verify` still refuses it by name.
+R3   CLOSED 2026-09-07 by changing what the case validates against - see the addendum
+     below. On 2026-09-06 it was open: Dennis & Chang 1970 and Fornberg 1980 are paywalled
+     to everything but a browser and were never read.
 R4   CLOSED: the NASA TMR moved. turbmodels.larc.nasa.gov 301s to a nasa.gov landing page
      that points at https://tmbwg.github.io/turbmodels/. Its flatplate_sst.html and the data
      file FlatPlate/SST/cf_plate_sstv.dat give, at M 0.2 / Re 5e6 on the 545x385 grid:
@@ -12531,8 +12528,8 @@ differently):
 half of step 6):
 
 ```
-cylinder_re40   REFUSED wt_reference_unverified - "its reference (CD 1.522 Dennis & Chang 1970,
-                1.498 Fornberg 1980 ...) has not been verified at its source"
+cylinder_re40   REFUSED wt_reference_unverified - "its reference ... has not been verified
+                at its source"   [2026-09-06 state; see the R3 addendum below]
 flatplate       REFUSED wt_reference_unverified - "its reference is verified but its runner is
                 not built" (the new second bucket: R4 closed the reference, the runner is gap-work)
 wing_liftslope  PASS  cl_alpha 4.9037 vs 5.1905 (-5.52 %), cdi@6deg -0.01 %, cl@0deg 0.0
@@ -12544,6 +12541,72 @@ case=all        all_pass True | skipped_unverified ['cylinder_re40']
 **Suites at close:** server `uv run --no-sync pytest -q` **1,626 passed / 21 skipped / 125
 deselected**; the `cfd` tier **9 passed** on four live engines; `ruff check` clean and 363 files
 formatted. Surface untouched: this session added no tool.
+
+### A72 P0b addendum — R3 closed by re-basing the reference (2026-09-07, owner session)
+
+The owner asked for alternatives after every route to the two JFM originals
+failed in one sitting: Cambridge Core is paywalled to this account **and** was
+running a site-wide *"Temporary Disruption ... we have suspended some of our
+systems and services"* banner with article purchase disabled; NASA ADS answered
+a bot-verification challenge (not solved — that is a rule, not an obstacle);
+DTIC was under scheduled maintenance; and Fornberg's own NASA report
+(NTRS 19840012155, *Steady viscous flow past a circular cylinder*, 1984,
+downloaded and read in full) turns out to be a methods paper with **no drag
+table**. A free Cambridge Core account was created during the session and does
+not help: a personal account never unlocks subscription content.
+
+What the browser DID establish, free, is that both citations are exactly right:
+Dennis & Chang, JFM **42**(3), 9 July 1970, **471–489**, DOI
+`10.1017/S0022112070001428`; Fornberg, JFM **98**(4), 26 June 1980, **819–855**.
+The bibliography was never the doubt — the numbers were.
+
+**The ruling (owner, 2026-09-07): change what the case validates against, not
+what it claims.** `cylinder_re40` now targets a paper that is open, peer
+reviewed, and written to *be* a validation reference:
+
+> Gautier, Biau & Lamballais, "A reference solution of the flow over a circular
+> cylinder at Re = 40", **Computers & Fluids 75 (2013) 103–111**, open at
+> `https://hal.science/hal-00876327` (the authors' own deposit) and
+> arXiv:1310.6641.
+
+Values pasted from its tables, never typed:
+
+```
+reference case (table 2, fine grid Nr 200 x Ntheta 1024, r_inf 40 D):
+    CD 1.4931    Lw/D 2.2360    theta_s 126.3945 deg
+literature spread (table 1), context and NOT the target:
+    1.48 < CD < 1.62   and   2.13 < Lw/D < 2.35   - about 10 % scatter,
+    including Dennis & Chang 1970 at 1.52 and Fornberg 1980 at 1.50
+```
+
+This is a *better* target than the originals, not a consolation prize. The 2013
+paper carries its own grid-and-domain convergence study (CD 1.4906 / 1.4931 /
+1.4943 at r_inf 30 / 40 / 50 on the fine grid), agrees with Posdziec &
+Grundmann's 1.4942 computed on a domain 4,000 diameters wide, and its own
+opening argument is that the ~10 % literature scatter "forbids any accurate
+validation simply based on these values" — which is precisely why a single
+converged reference beats a pair of half-century-old numbers quoted through a
+citation chain. The historical values survive in the `reference` string as
+context, explicitly marked as never being the tolerance.
+
+**`wt_verify` after the change — no case is unverified any more:**
+
+```
+cylinder_re40   REFUSED wt_reference_unverified: "cylinder_re40 is not runnable yet: its
+                reference is verified but its runner is not built."
+flatplate       REFUSED wt_reference_unverified: same reason
+wing_liftslope  PASS
+naca0012_euler  PASS
+case=all        all_pass True | skipped_unverified [] | skipped_unimplemented
+                              ['cylinder_re40', 'flatplate']
+```
+
+**The remaining gap, named rather than forced:** neither OpenFOAM verification
+runner exists — the laminar Re 40 cylinder and the NASA TMR flat plate both
+still need a case writer, and `_RUNNABLE` in `verify.py` is the one place that
+says so. Per the owner's instruction, that is recorded as an open gap, not
+worked around. Both references are now verified at source with a URL and a
+date, so building either runner is ordinary work with a real target waiting.
 
 ### A72 P0c — the licence gate and the ruling (2026-09-06)
 

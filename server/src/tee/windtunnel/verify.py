@@ -3,9 +3,16 @@ tolerance until it has been verified at its source, with a date.
 
 Each case below names its reference, where it comes from, and the date it
 was checked. A case whose `verified` is None refuses with
-`wt_reference_unverified` rather than pretending - the two open rows are
-the owner-session items R3/R4 of the script (Dennis & Chang 1970 for the
-Re 40 cylinder; the NASA TMR flat plate, whose URL moved).
+`wt_reference_unverified` rather than pretending; a case that is verified
+but has no runner yet refuses the same way and is reported separately by
+`case=all`, because a reference nobody can run is still not a test.
+
+Both owner-session rows (R3/R4) closed 2026-09-06/07. R3 changed what it
+validates against rather than what it claims: the two JFM originals it
+first named are paywalled and were never read, so the target is now an
+open, peer-reviewed paper written to BE a reference solution, with its own
+convergence study. An unreadable citation is not a source, and quoting one
+second-hand would have been the thing this module exists to prevent.
 """
 
 from __future__ import annotations
@@ -56,14 +63,28 @@ REFERENCES: dict[str, dict[str, Any]] = {
         "engine": "openfoam",
         "what": "2-D cylinder, Re 40, laminar, O-grid",
         "reference": (
-            "CD 1.522 (Dennis & Chang 1970), 1.498 (Fornberg 1980); wake length L/D ~ 2.35"
+            "CD 1.4931, wake length Lw/D 2.2360, separation angle 126.3945 deg: the reference "
+            "case of Gautier, Biau & Lamballais (pseudo-spectral, fine grid Nr 200 x Ntheta "
+            "1024, r_inf 40 D). Historical context, NOT the target: the same paper's table 1 "
+            "puts the literature at 1.48 < CD < 1.62 and 2.13 < Lw/D < 2.35 - about 10 % "
+            "scatter - including Dennis & Chang 1970 at 1.52 and Fornberg 1980 at 1.50"
         ),
         "source": (
-            "J. Fluid Mech. 42 (1970) 471-489; J. Fluid Mech. 98 (1980) 819-855 - NOT yet "
-            "verified at source (owner session, script §M row R3)"
+            "Computers & Fluids 75 (2013) 103-111, open at https://hal.science/hal-00876327 "
+            "(the authors' own deposit) and arXiv:1310.6641; table 2 for the reference case, "
+            "table 1 for the literature spread. A paper written to BE a validation reference, "
+            "with its own convergence study - which is why it replaced the two paywalled "
+            "originals the script first named (script §M row R3)"
         ),
-        "verified": None,
-        "tolerance": {"cd_pct": 5.0},
+        "verified": (
+            "2026-09-07 at https://hal.science/hal-00876327 (values pasted from the PDF's "
+            "tables 1-2, owner session; the JFM originals are paywalled and were never read, "
+            "so they are context here and never the tolerance)"
+        ),
+        "tolerance": {"cd_pct": 5.0, "wake_pct": 15.0},
+        "cd": 1.4931,
+        "wake_lw_over_d": 2.2360,
+        "separation_deg": 126.3945,
     },
     "flatplate": {
         "engine": "openfoam",
