@@ -226,6 +226,39 @@ ENGINES: dict[str, dict[str, Any]] = {
         "qos_default": "batch",
         "cost": {"wall_s": [210, 310], "measured": "T0/T2 live runs 2026-08-29"},
     },
+    # -- A72: the wind-tunnel lane. The rows are floors; wt_run registers a
+    # per-run override computed from the mesh (cells x 3 KB, measured RSS 80 MB
+    # for 12,800 cells). wall_s measured 2026-09-06 on one core.
+    "cfd-mesh": {
+        "kind": "job",
+        "capability": ["cfd-cases"],
+        "footprint_gb": 2.0,
+        "qos_default": "batch",
+        "cost": {
+            "wall_s": [1, 3600],
+            "measured": "O-mesh 0.33 s; snappyHexMesh is minutes to an hour",
+        },
+    },
+    "cfd-solve": {
+        "kind": "job",
+        "capability": ["cfd-cases"],
+        "footprint_gb": 4.0,
+        "qos_default": "batch",
+        "cost": {
+            "wall_s": [5, 14400],
+            "measured": "simpleFoam 2.36 us/cell-iteration, SU2 6.1 us/node-iteration (2026-09-06)",
+        },
+    },
+    "aero-panel": {
+        "kind": "job",
+        "capability": ["cfd-cases"],
+        "footprint_gb": 0.5,
+        "qos_default": "standard",  # a polar is seconds; never queue it behind a RANS batch
+        "cost": {
+            "wall_s": [3, 60],
+            "measured": "VSPAERO 5.3 s for a four-alpha sweep (2026-09-06)",
+        },
+    },
 }
 
 

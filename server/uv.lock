@@ -2108,6 +2108,20 @@ wheels = [
 ]
 
 [[package]]
+name = "meshio"
+version = "5.3.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/20/1e/caa4f15c020de3e3486b4133ca689236bd3863a3d6dd0f58e97ce86a296a/meshio-5.3.5.tar.gz", hash = "sha256:f21f01abd9f29ba06ea119304b3d39e610421cfe93b9dd23362834919f87586d", size = 490922, upload-time = "2024-01-31T15:09:41.731Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/89/5f/39cbadc320cd78f4834b0a9f7a2fa3c980dca942bf193f315837eacb8870/meshio-5.3.5-py3-none-any.whl", hash = "sha256:0736c6e34ecc768f62f2cde5d8233a3529512a9399b25c68ea2ca0d5900cdc10", size = 166162, upload-time = "2024-01-31T15:09:36.691Z" },
+]
+
+[[package]]
 name = "monai"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4923,6 +4937,11 @@ solve = [
     { name = "pulp" },
     { name = "pyscipopt" },
 ]
+windtunnel = [
+    { name = "meshio" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -4949,11 +4968,13 @@ requires-dist = [
     { name = "imageio-ffmpeg", marker = "extra == 'extract'", specifier = ">=0.6.0" },
     { name = "laspy", extras = ["lazrs"], marker = "extra == 'pointcloud'", specifier = ">=2.7.0" },
     { name = "mcp", specifier = ">=2.0.0,<3" },
+    { name = "meshio", marker = "extra == 'windtunnel'", specifier = ">=5.3.5" },
     { name = "monai", marker = "extra == 'medimg-monai'", specifier = ">=1.6.0" },
     { name = "nibabel", marker = "extra == 'medimg'", specifier = ">=5.3" },
     { name = "numpy", marker = "extra == 'extract'", specifier = ">=2.4.6" },
     { name = "numpy", marker = "extra == 'medimg'", specifier = ">=1.24" },
     { name = "numpy", marker = "extra == 'pointcloud'", specifier = ">=2.4.6" },
+    { name = "numpy", marker = "extra == 'windtunnel'", specifier = ">=2.4.6" },
     { name = "opencv-python-headless", marker = "extra == 'extract'", specifier = ">=5.0.0.93" },
     { name = "ortools", marker = "extra == 'solve'", specifier = ">=9.15,<10" },
     { name = "packaging", marker = "extra == 'quant'" },
@@ -4985,7 +5006,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'assets-gen'", specifier = ">=4.50" },
     { name = "trimesh", marker = "extra == 'pointcloud'", specifier = ">=5.0.0" },
 ]
-provides-extras = ["extract", "assets", "physical", "solve", "quant", "pdf", "medimg", "medimg-monai", "cad", "pointcloud", "assets-embed", "assets-gen"]
+provides-extras = ["extract", "assets", "physical", "solve", "quant", "pdf", "medimg", "medimg-monai", "cad", "pointcloud", "windtunnel", "assets-embed", "assets-gen"]
 
 [package.metadata.requires-dev]
 dev = [

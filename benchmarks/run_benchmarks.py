@@ -23,6 +23,7 @@ from __future__ import annotations
 import copy
 import json as _json
 import math
+import os
 import shutil
 import socket
 import subprocess
@@ -1804,6 +1805,127 @@ def run_fusion_v2_scenario() -> dict | None:
     return row
 
 
+def run_windtunnel_scenario() -> dict | None:
+    """A72: what a wind-tunnel loop costs a model - the W1 batch of the script.
+
+    The naive arm is not a straw man. It is what a model must read to drive
+    CFD through tools that have no compact state: the dictionaries it wrote
+    (to know the case), three tails of the solver log (to know whether it is
+    converging), the whole coefficient file (to know the answer), the
+    checkMesh report, the AngelScript and the polar. The TEE arm is the same
+    work as digests: probe, wing, panel sweep, section case, mesh, run, three
+    status polls, result, one picture, one export.
+
+    Runs on the FAKE engines (fixtures_windtunnel) so CI can measure it; the
+    fakes write the same files the real engines were measured to write, with
+    logs of the same size per iteration (736 B measured on simpleFoam v2606).
+    The real-engine token costs per call are recorded in research doc 72 3.5.
+    """
+    try:
+        from tee.kernel.adapter import FakeAdapter
+        from tee.windtunnel.tools import register_windtunnel_tools
+    except ImportError as exc:
+        print(f"run_windtunnel_scenario: skipped ({exc})")
+        return None
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server" / "tests"))
+    from fixtures_windtunnel import install_fakes, wait_job
+
+    os.environ.setdefault("TEE_MACHINE_TOTAL_GB", "128")  # the ledger law on a small box
+    os.environ["TEE_FAKE_FOAM_MODE"] = "converge"
+    work = Path(tempfile.mkdtemp(prefix="tee-bench-wt-"))
+    app = TeeApp({"fake": FakeAdapter()}, project_root=work)
+    app.config.windtunnel = install_fakes(work / "engines")
+    store = register_windtunnel_tools(app, work)
+    meter = Meter()
+    naive = Meter()
+
+    def call(tool, **args):
+        out = app.registry.call(tool, args)
+        meter.call({"tool": tool, **args}, out)
+        return out
+
+    def job(job_id: str):
+        status = wait_job(app, job_id, timeout_s=120)
+        meter.call({"tool": "tee_job", "job": job_id}, status)
+        return status
+
+    def naive_read(path: Path, label: str, tail_lines: int | None = None) -> None:
+        if not path.is_file():
+            return
+        body = path.read_text(errors="replace")
+        if tail_lines is not None:
+            body = "\n".join(body.splitlines()[-tail_lines:])
+        naive.call({"request": label, "path": str(path.name)}, body)
+
+    try:
+        call("wt_probe")
+        geom = call(
+            "wt_geom",
+            kind="wing",
+            wing={
+                "span": 1.2,
+                "root_chord": 0.25,
+                "tip_chord": 0.15,
+                "sweep_deg": 5,
+                "airfoil": "2412",
+            },
+        )
+        wing = call("wt_case", action="create", geom=geom["geom_id"], V_mps=30, aoa_deg=4)
+        sweep = call("wt_sweep", case_id=wing["case_id"], aoa=[-2, 0, 2, 4, 6, 8])
+        sweep_status = job(sweep["job"])
+        rans = call("wt_case", action="create", naca="2412", V_mps=30, aoa_deg=4)
+        cid = rans["case_id"]
+        mesh = call("wt_mesh", case_id=cid, nj=40)
+        run = call("wt_run", case_id=cid, iters=400)
+        for _ in range(3):
+            call("wt_status", case_id=cid)
+            time.sleep(0.15)
+        run_status = job(run["job"])
+        result = call("wt_result", case_id=cid)
+        call("wt_view", case_id=cid, view="cp")
+        call("wt_export", case_id=cid, format="csv")
+
+        # the naive arm: the files a model would have to read to do the same work
+        rec = store.load(cid)
+        run_dir = Path(rec["runs"][-1]["run_dir"])
+        engine_dir = Path(rec["engine_dir"])
+        for rel in ("system/controlDict", "system/fvSchemes", "system/fvSolution",
+                    "0/U", "0/p", "0/k", "0/omega", "0/nut"):
+            naive_read(run_dir / rel, f"write and re-read {rel}")
+        naive_read(engine_dir / "log.checkMesh", "read the checkMesh report")
+        for k in range(3):
+            naive_read(
+                run_dir / "log.simpleFoam", f"tail the solver log ({k + 1}/3)", tail_lines=200
+            )
+        coeff = next(iter(sorted((run_dir / "postProcessing").rglob("coefficient.dat"))), None)
+        if coeff:
+            naive_read(coeff, "read the whole coefficient file")
+        wrec = store.load(wing["case_id"])
+        wrun = Path(wrec["runs"][-1]["run_dir"])
+        naive_read(wrun / "sweep.vspscript", "write and re-read the sweep script")
+        for polar in wrun.glob("*.polar"):
+            naive_read(polar, "read the polar")
+        for lod in wrun.glob("*.lod"):
+            naive_read(lod, "read the span loads")
+    finally:
+        app.shutdown()
+        shutil.rmtree(work, ignore_errors=True)
+
+    return {
+        "naive_tokens": naive.tokens,
+        "naive_calls": naive.round_trips,
+        "tee_tokens": meter.tokens,
+        "tee_calls": meter.round_trips,
+        "saving": 1 - meter.tokens / max(naive.tokens, 1),
+        "cells": mesh.get("cells"),
+        "iterations": result.get("iters_used")
+        or (run_status.get("result") or {}).get("iters_used"),
+        "polar_points": (sweep_status.get("result") or {}).get("points"),
+        "verdict": (result.get("verdict") or {}).get("state"),
+    }
+
+
 def run_seamkiln_scenario() -> dict | None:
     """A53 P4: what drafting, sewing, draping and fitting a tee costs a model.
 
@@ -2609,13 +2731,15 @@ def main() -> None:
     routing_row = _safe(run_routing_scenario)
     fusion_row = _safe(run_fusion_scenario)
     fusion_v2_row = _safe(run_fusion_v2_scenario)
+    windtunnel_row = _safe(run_windtunnel_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
                   fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row,
                   pointcloud_row, partkiln_row=partkiln_row,
                   partkiln_followup_row=partkiln_followup_row,
                   routing_row=routing_row, fusion_row=fusion_row,
-                  fusion_v2_row=fusion_v2_row)
+                  fusion_v2_row=fusion_v2_row,
+                  windtunnel_row=windtunnel_row)
     _stage("total", t0)
 
 
@@ -2685,7 +2809,8 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   fabrication_row=None, senses_row=None, seamkiln_row=None,
                   seamkiln_followup_row=None, pointcloud_row=None,
                   partkiln_row=None, partkiln_followup_row=None,
-                  routing_row=None, fusion_row=None, fusion_v2_row=None) -> None:
+                  routing_row=None, fusion_row=None, fusion_v2_row=None,
+                  windtunnel_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -2968,6 +3093,10 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _fusion_v2_section(fusion_v2_row)
     else:
         lines += _carry_forward(FUSION_V2_HEADER)
+    if windtunnel_row is not None:
+        lines += _windtunnel_section(windtunnel_row)
+    else:
+        lines += _carry_forward("## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A72)")
     # Sections owned by the SIBLING runners (run_k4_mixed.py wrote the A42
     # scheduler row; run_p6_pipeline.py the A43 lane row). This file rewrites
     # RESULTS.md wholesale, so anything it does not carry forward is deleted
@@ -3160,6 +3289,35 @@ def _fusion_section(row: dict) -> list[str]:
         "The always-loaded surface is unchanged at 17 tools - Fusion joins through the",
         "Adapter protocol and six `fu_*` virtual tools. Live numbers wait for the smoke in",
         "docs/fusion-lane.md.",
+    ]
+
+
+def _windtunnel_section(row: dict) -> list[str]:
+    """A72: the wind-tunnel lane's tokens-per-task row."""
+    return [
+        "",
+        "## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A72)",
+        "",
+        f"The script's W1 batch: a tapered wing built and swept through six angles by VSPAERO, "
+        f"then a NACA 2412 section meshed ({row['cells']:,} cells), solved by simpleFoam "
+        f"({row['iterations']} iterations, verdict {row['verdict']}), polled three times, read, "
+        "pictured and exported - on the fake engines, whose files match the real ones in shape "
+        "and per-iteration size.",
+        "",
+        "| Arm | Tokens | Calls |",
+        "|---|---|---|",
+        f"| naive (dictionaries, three log tails, the coefficient file, checkMesh, the script, "
+        f"the polar and span loads) | {row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| TEE (`wt_probe` to `wt_export`, digests only) | {row['tee_tokens']:,} | "
+        f"{row['tee_calls']} |",
+        "",
+        f"**Saving: {row['saving'] * 100:.1f}%.** The naive arm grows with every iteration the "
+        "solver takes (736 bytes of log per simpleFoam step, measured on v2606) and with every "
+        "point in the polar; the TEE arm is flat: no array over 64 elements, no string over "
+        "2 KB, a verdict and an uncertainty label on every number. On the real engines the "
+        "same calls measured 55 / 181 / 162 / 97 / 21-87 / 163 / 88 / 33 tokens "
+        "(probe, case, mesh, run, status, result, view, export; research doc 72 3.5).",
+        "",
     ]
 
 

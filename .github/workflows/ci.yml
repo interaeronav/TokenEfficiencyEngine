@@ -107,4 +107,10 @@ jobs:
       # `slow` is the rebuild-timing and cross-process determinism battery;
       # everything else, including the three example pipelines in --probe
       # mode, runs here.
+      # A72: the wind-tunnel `cfd` tier (test_windtunnel_live.py) needs real
+      # OpenFOAM / SU2 / OpenVSP / ParaView binaries and takes ~4 min on a
+      # machine that has them; it is deliberately NOT a push job. Selected
+      # here it skips BY NAME with each engine's install line, so the run
+      # stays honest about what it did not test. The hermetic wind-tunnel
+      # suites (fake engines) run in full.
       - run: uv run --no-sync pytest -q -m "not slow"

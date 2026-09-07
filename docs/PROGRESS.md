@@ -12939,6 +12939,225 @@ worked: `brew uninstall --cask --force openscad`, then
 **21 passed / 2 skipped** (cadquery only), so the reorder is verified on
 both sides of the binary.
 
+## A72 — the wind-tunnel lane: OpenFOAM, SU2, OpenVSP/VSPAERO and ParaView, headless (2026-09-06)
+
+Owner: *"Integrate and consolidate wind tunnel and aerodynamic platforms
+directly into TEE, headless and with GUI"* — OpenFOAM, SU2, the GUI wrappers
+(SimFlow, FreeCAD CfdOF, OpenVSP/VSPAERO) and ParaView. Doc 52 had parked
+OpenFOAM with *"Revisit only for a real airflow-engineering task"*; this is
+that task and `docs/DECISIONS.md` reverses the ruling on its own terms.
+`CLAUDE_A72_SCRIPT.md` is the plan of record, research doc 72 the design of
+record, `docs/windtunnel-lane.md` and `docs/setup-windtunnel.md` the guides.
+(Numbered A68 / research doc 70 while it was built — the two shipping commits
+and the pull request's opening say so; renumbered to A72 / doc 72 on
+2026-09-06 before merge, because the Fusion-lane branch
+`claude/tee-component-integration-iflsyq`, opened 2026-09-05 as PR #1, already
+holds `CLAUDE_A68_SCRIPT.md`–`CLAUDE_A71_SCRIPT.md` and research docs 70–71.
+Both branches start from `a985f08`; both add a `CLAUDE.md` bullet after A67's,
+a `00-index.md` row, a CHANGELOG head and PROGRESS/DECISIONS entries, so the
+second to merge resolves line conflicts in those five files and nothing else.)
+
+**Owner decisions (2026-09-06):** headless only for now — no `wt_open`, no
+ParaView state files, no Qt panel (the GUI handoff is a later campaign built as
+a client of the same case directory); OpenFOAM proven end to end first; lane
+`windtunnel`, prefix `wt_`; the Mac measurements are an owner-session
+checklist (§M of the script) — a Mac number is never invented from the Linux
+container this was built in (Ubuntu 24.04, 4 cores, 15 GB, root, no display).
+
+**Tree at the start:** clean at `HEAD` on the campaign branch; every path staged
+is A72's own (`server/src/tee/windtunnel/`, its tests and goldens, the kernel
+hook, the config/doctor/extras/cli/trust/machine edits, the docs); never
+`git add -A`.
+
+### A72 P0a — the measurement table (2026-09-06, this container; evidence in `docs/research/72-evidence/`)
+
+```
+L1   apt openfoam 1912: binaries need their environment (bashrc route); every FUNCTION OBJECT
+     dies at "Starting time loop" with FOAM FATAL IO ERROR: error in IOstream "sha1"
+L1b  openfoam2606-default from dl.openfoam.com (340 MB): forceCoeffs works, header
+     "# Time Cd Cd(f) Cd(r) Cl Cl(f) Cl(r) CmPitch CmRoll CmYaw Cs Cs(f) Cs(r)"
+L2   TEE O-mesh 200x80 = 16,000 cells, kOmegaSST, 30 m/s, 4 deg: 197 iterations, 17.2 s through
+     the registry (7.9 s solver), RSS 80 MB; Cl 0.4356 (2*pi*alpha 0.4386, -0.7 %), Cd 0.01091
+     (+10 % on Abbott & von Doenhoff); k_openfoam 2.36 us per cell-iteration; 736 B log / iteration
+L2   defect: Aref = 1 made the coefficients 10x small - a 2-D slab's Aref is chord x thickness
+L3   coefficient reader keys on the header (reorder + missing-column tests, transcribed golden)
+L4   1 / 2 / 4 cores: 7.8 / 6.8 / 4.8 s; Cl agrees to 1.5e-5. First attempt died in 1.1 s:
+     Open MPI refuses to run as root -> runs.mpi_env, root + parallel only, recorded on the run
+L5   SU2 8.4.0 QuickStart on its official mesh: 147 iterations, 9.85 s, CL 0.328486 CD 0.021481
+L5b  on TEE's 10,000-quad O-mesh through the registry: 1,279 iterations, 80 s, CL +1.8 % CD -7.3 %
+     (an Euler O-mesh with y+-1 spacing converges 10x slower than the coarse official mesh);
+     k_su2 6.1 us per node-iteration; 119 B history row
+L6   apt pvpython SEGFAULTS offscreen with no DISPLAY; xvfb-run renders (1200x800 in 3.3 s);
+     PlotOverLine -> CSV needs neither (2.4 s): wt_probe_field is render-free by design
+L7   OpenVSP 3.51.3 deb (post-install exits 127, binaries fine); VLM needs GeomSet=SET_NONE +
+     ThinGeomSet=SET_ALL; VSPAEROSweep alpha 0/2/4/6 in ~5 s: CL_alpha 4.905/rad (-5.5 % from
+     lifting line), CDi +0.3 %; vspscript EXITS 2 after a complete sweep (the polar is the evidence)
+L8   the OpenVSP Python bundle is built for 3.12: import fails under 3.11 (recorded, banned)
+L9   gmsh: out of scope v1          L10  736 B / 119 B per iteration: a 64 KB tail suffices
+L11  cancel a REAL simpleFoam mid-run: pid gone 0.05 s after tee_job cancel; job + run
+     `cancelled`; 100 partial rows read back labelled
+L12  LLM contention: NOT POSSIBLE HERE (no local LLM) - open for the Mac
+L13  apt airFoil2D tutorial adopted run-only (183 tok): simpleFoam, SA, dialect com, no forceCoeffs,
+     Allrun's $(getApplication) named not run; checkMesh "Faces not in upper triangular order"
+     tolerated; run without forces -> residual-only verdict `converged`, no invented number;
+     run with forces={"patches": ["walls"]}: chord MEASURED from the wall patch 35.05 m
+     (lRef 1 gave Cl 34), Cl 0.970 Cd 0.0294 at 8 deg, 4.8 s; the tutorial untouched
+M1-M7, C1-C3, S1   owner session (the Mac): a checklist in the script, never numbers
+R1-R4  lifting line (formula) and the SU2 QuickStart figure (measured) verified; Dennis & Chang
+       1970 and the NASA TMR flat plate NOT verified at source -> wt_verify refuses them by name
+ledger the 15 GB container refuses every job engine under the 16 GB reserve; TEE_MACHINE_TOTAL_GB
+       declares capacity the way the kernel's own tests do (the setup doc says so)
+```
+
+### A72 P0c — the licence gate and the ruling (2026-09-06)
+
+`server/tests/test_windtunnel_licences.py` (7 tests): a fresh-interpreter import
+of every lane module loads none of `foamlib PyFoam fluidfoam ofpp vtk vtkmodules
+pyvista openvsp vsp pysu2 SU2 gmsh classy_blocks paraview`; an AST scan over
+every import site confines numpy/meshio to `report._export_vtu`; a deliberate
+intruder is caught; the goldens under `tests/data/windtunnel/` carry a
+`transcribed` line (CSVs are listed in the README) and no OpenFOAM / SU2 / gmsh
+file banner, nor does `72-evidence/`; the extra is pinned to `{meshio, numpy}`
+with `WITNESS["windtunnel"] = "meshio"`; the installed licences are MIT / BSD.
+The DECISIONS entry records the reversal of doc 52, arm's length for every
+engine, the case directory as the interface, cancel that kills, the fidelity
+ladder, references verified at source, headless by decision, and the ledger law.
+
+### A72 P1 — the core without binaries, the tools, the kernel hook (2026-09-06)
+
+Fourteen modules under `server/src/tee/windtunnel/` (stdlib at import;
+`atmosphere physics airfoil mesh2d foam su2 vsp paraview cfdof verdict fidelity
+runner case report tools verify engines runs`), thirteen `wt_*` virtual tools
+each an explicit trust row (no `wt_` family row), `[windtunnel]` config, a
+doctor row, three `ENGINES` rows, the `cfd` marker deselected by default, and
+the twelve-line kernel change `JobManager.submit(..., on_cancel=)`.
+
+Fake engines (`tests/fixtures_windtunnel.py`): one Python script dispatching on
+its basename as `blockMesh surfaceFeatureExtract snappyHexMesh checkMesh
+simpleFoam decomposePar reconstructPar reconstructParMesh SU2_CFD vspscript
+vspaero pvpython`, with the headers transcribed from the real runs and modes
+`converge | stall | oscillate | diverge | crash | slow`, `ok | skew | bad`
+checkMesh, crash modes for vspscript and pvpython. Tests: physics 32, writers
+12, readers 33, runner 11, tools 30, licences 7 (+1 skip), config and doctor
+rows, the search-budget re-baseline.
+
+```
+uv run pytest -q tests/test_windtunnel_*.py tests/test_search_budget.py
+   154 passed, 1 skipped in 8.66s        (hermetic: no engine on the machine)
+```
+
+**Defects found by building** (each now a pinned test): a 16-character key
+glued to its value (`writeCompressionoff;`); clockwise O-mesh quads (negative
+Jacobians); the 2-D slab's Aref; `Cm ~ 5e-4` flagging a converged run
+`insufficient` (8.97 % relative) → `SCALE_FLOOR` cl 0.1 / cd 0.01 / cm 0.01;
+`shutil.move` INTO an existing `geometry/` nesting the wing files one level
+too deep; the run registry keyed by `run_001` alone colliding across cases;
+`wt_already_running` blind to a queued job; a refused submission leaving a
+phantom `queued` run; vspscript's exit 2 after success; a double chord division
+in `omesh_for` (a 1 m chord never shows it); a 2 M-cell background box at L/8
+(now L/4, the surface levels refine); `wt_probe_field` on a vector costing 929
+tokens at 64 samples (magnitude by default; `null` inside the body via
+`vtkValidPointMask`); `checkMesh` in a directory without `system/`.
+
+### A72 P2–P5 — the real engines, the router, adoption, the battery, the benchmark (2026-09-06)
+
+```
+SU2_RUN=... TEE_WT_TUTORIAL=... uv run pytest -q -m cfd tests/test_windtunnel_live.py -o addopts=""
+  test_openfoam_two_d_case_converges_to_the_measured_figure              PASSED   (197 it, Cl 0.4356)
+  test_openfoam_cancel_kills_a_real_solver_within_two_seconds            PASSED   (0.05 s)
+  test_openfoam_parallel_run_agrees_with_serial                          PASSED   (2 cores, mpi_root_override)
+  test_openfoam_fields_are_sampled_render_free_and_rendered_offscreen    PASSED   (xvfb)
+  test_openfoam_three_d_prism_meshes_with_snappy_and_runs                PASSED   (20 s)
+  test_adopting_the_apt_tutorial_runs_it_with_measured_forces            PASSED   (lRef 35.05 m measured)
+  test_su2_euler_naca0012_reproduces_the_quickstart_figure               PASSED   (80 s, +1.8 % / -7.3 %)
+  test_vspaero_wing_sweep_sits_inside_the_lifting_line_band              PASSED   (6 s, -5.5 %)
+  test_wt_verify_all_passes_on_the_real_engines                          PASSED   (90 s; 2 refused by name)
+  9 passed in 226.65s (0:03:46)
+```
+
+The router picked openfoam/rans for the section, su2/euler at M 0.8, vspaero/
+panel for the wing, openfoam/rans for the STL body — one assertion per row in
+`test_windtunnel_physics.py`. Adoption of a CfdOF-shaped case, an SU2 `.cfg`
+and a `.vsp3` runs on the fakes; the apt tutorial runs on the real solver. The
+search recall table re-measured at 98 tools and 42 cases: **40/42 at 3, 42/42
+at 5** — the A66 witness slid to rank 5 and "which cfd solver is running" →
+`wt_status` is the new rank-4 witness; the vocabulary law (no `check`,
+`drawing`, `image`, `size`, `document` in a `wt_*` name or tag) held.
+
+Benchmark (`run_windtunnel_scenario`, on the fakes whose files match the real
+ones in shape and per-iteration size):
+
+```
+naive (dictionaries, three log tails, coefficient.dat, checkMesh, the script, polar, span loads)
+      19,145 tok  16 calls
+TEE   (wt_probe -> wt_geom -> wt_case -> wt_sweep -> wt_case -> wt_mesh -> wt_run -> 3x wt_status
+       -> wt_result -> wt_view -> wt_export)     2,796 tok  15 calls      saving 85.4 %
+```
+
+The full `run_benchmarks.py` stops in this container at "No Blender binary
+found", so the section was recorded into `RESULTS.md` from the scenario run
+directly, in the form `write_results` emits.
+
+### A72 P6 — shipped 0.22.0, verified from a clean unzip (2026-09-06)
+
+Docs: research doc 72 (§1–§9 with the P0 answers and the sixteen defects),
+`00-index.md` row, `docs/windtunnel-lane.md`, `docs/setup-windtunnel.md`, the
+`CLAUDE.md` bullet after A67's, CHANGELOG 0.22.0, the DECISIONS ruling, the
+script's amendments section, `72-evidence/` with a README map. Version ×3
+(`server/pyproject.toml`, `server/Makefile`, `packaging/mcpb_manifest.json`;
+`tools[]` untouched; `uv lock` refreshed).
+
+`make mcpb`, unzipped into a fresh directory and driven with the manifest's
+EXACT command through a stdio MCP client (the first attempt failed on TLS
+because the client spawned `uv` with a stripped environment — the proxy's CA
+never reached it; passing the real environment is the fix, not a bundle
+defect):
+
+```
+uv run --directory <bundle> --no-dev tee serve --adapter blender --adapter partkiln --adapter seamkiln --project <p>
+handshake: {'name': 'tee', 'version': '0.22.0'}   boot 1.77 s (a venv already provisioned)
+always-loaded tools: 17
+search 'wind tunnel' reaches wt_*: True   [wt_case, wt_conditions, wt_export, wt_geom, wt_mesh]
+tee_call wt_probe  -> openfoam v2606 | su2 wt_su2_missing (SU2_RUN unset: the install line) | vspaero 3.51.3 | pvpython 5.11.2
+tee_call wt_case   -> wt_3934df964f openfoam rans
+tee_call wt_run    -> {"ok": false, "error": {"code": "wt_no_mesh", "message": "Case ... has no mesh yet.", "fix": "wt_mesh first."}}
+tee-engine-0.22.0.mcpb  1,144,629 B
+```
+
+**Suites at close:** server `1,568 passed / 37 skipped / 122 deselected / 1
+failed` in 98 s — the one failure is the pre-existing
+`test_fleet_cad::test_a_build_with_no_input_refuses` (OpenSCAD absent in this
+container; it failed identically at the campaign's baseline of 1,418 passed,
+before a single A72 line existed); the `cfd` tier **9 passed in 3:46** on the
+real engines; `ruff check src tests ../benchmarks` and `ruff format --check`
+clean; surface **17 tools / 2,033 tok**; the search recall table 40/42 at 3,
+42/42 at 5.
+
+**Gaps at close (numbered, for the next campaign):**
+
+1. **The GUI handoff** — `wt_open`, ParaView `.pvsm` state files, a panel —
+   deferred by owner decision (2026-09-06, "headless only for now"); the case
+   directory, the `.foam` stub and the `.vsp3` are what those GUIs open.
+2. **Adjoint / shape optimisation** (`SU2_DEF`, `SU2_DOT`,
+   `shape_optimization.py`) — v2 on top of a trusted direct loop.
+3. **3-D SU2 meshing** needs gmsh (GPL-2+, out of process); v1 routes 3-D
+   viscous work to OpenFOAM and lifting surfaces to VSPAERO.
+4. **Compressible OpenFOAM** (`rhoSimpleFoam`) — SU2 owns compressible in v1.
+5. **The Mac rows** M1–M7, C1–C3, S1 (script §M) — the entry-script route on
+   OpenFOAM-v2606.app, SU2 arm64, ParaView 6.1.1 offscreen, the OpenVSP bundle,
+   CfdOF's headless writer through the one FreeCAD bridge, SimFlow's terms.
+6. **R3 / R4** — Dennis & Chang 1970 and the NASA TMR flat plate must be
+   verified at source before `cylinder_re40` and `flatplate` become tests.
+7. **L12** — a RANS job beside a local LLM chore could not be measured here;
+   the ledger-coarseness risk (one registered solve defers every swap) stays
+   open for the Mac.
+8. **The Foundation dialect** — `wt_fork_unsupported` refuses TEE-written cases
+   on OpenFOAM 11+; a `momentumTransport` writer is unmeasured.
+9. **`forces=` on a binary polyMesh** — `patch_bbox` reads ASCII only; a binary
+   mesh falls back to `lRef` given or 1.0, and says so.
+10. **The full benchmark script** stops at "No Blender binary found" here; the
+    wind-tunnel section was recorded from the scenario run directly.
+
 ## A71 close-out — the owner's three decisions, taken (2026-09-07)
 
 A71 ended with three questions it was not allowed to answer and one it had
@@ -12978,8 +13197,24 @@ test's Desktop composition gains the same fourth lane, so the fixture cannot
 drift from what ships.
 
 **Decision 2 — 0.23.0.** `server/pyproject.toml`, `server/Makefile`, the
-manifest `version`, and a re-lock that changed exactly the one `tee-engine`
-line. 0.22.0 is left to PR #2's wind-tunnel branch, which already reads it.
-CHANGELOG's Unreleased section becomes `## 0.23.0 — 2026-09-07`.
+manifest `version`, and a re-lock. 0.22.0 was left to PR #2's wind-tunnel
+branch, which already read it — and mid-cut PR #2 merged and shipped 0.22.0,
+so the choice stopped being a courtesy and became the only free number.
+CHANGELOG's Unreleased section becomes `## 0.23.0 — 2026-09-07`, above the
+0.22.0 the wind-tunnel lane brought with it.
+
+**The wind-tunnel merge, taken in the same sitting.** While this was being
+written another session merged PR #2 into the base branch and then into this
+one, so the push was rejected and the work had to be merged rather than
+forced. Seven files conflicted. The version trio (`pyproject.toml`,
+`Makefile`, the manifest) resolved to 0.23.0 over their 0.22.0, but only after
+a first attempt with `git checkout --ours` was caught and undone: taking a
+whole file that way would have silently dropped the `windtunnel` extra
+(`meshio`, `numpy`) that PR #2 had added to `pyproject.toml` — the re-lock
+noticed it, printing `Removed meshio v5.3.5`. Resolving the conflicted hunk
+alone keeps both sides. `uv.lock` was taken from the merge and re-locked to
+0.23.0; CHANGELOG keeps this release above their 0.22.0 and drops only the
+stale sentence saying the manifest and version were still undecided;
+DECISIONS and PROGRESS keep both entries, theirs first.
 
 **Decision 3 — PR #1 out of draft**, ready for review.
