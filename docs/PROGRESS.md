@@ -14236,3 +14236,39 @@ members, while every specific name still resolves.
 
 partkiln **912 passed / 2 skipped**, ruff clean, **23 cards**, six named
 authorities in `data/manifest.json`.
+
+### PLA and ABS rebuilt on printed-specimen datasheets, and both became anisotropic (2026-09-07)
+
+Owner: *"upgrade pla and abs to real datasheets"*. Doing it changed what the
+cards ARE, not just where their numbers came from.
+
+**A printed part is anisotropic, and the manufacturers measure it.** Prusa's
+PLA sheet reports a print-direction table plus, separately, an **interlayer
+adhesion of 17 ± 3 N/mm²** against 51 and 59 for two specimen orientations. A
+part pulled across its layers fails at that bond — **a third of the in-plane
+figure** — so `pla` is now an `anisotropic` card serving
+`tensile_horizontal`, `tensile_vertical`, `interlayer_adhesion` and
+`tensile_filament`, and refusing a bare `yield`. The card it replaced served a
+single handbook yield of 55 N/mm², which hid a factor of three.
+
+**The ABS rebuild exposed a real error in the old card.** It served a handbook
+`E` of 2 200 N/mm². Flashforge, testing *printed* specimens at 100% infill,
+reports a modulus of **1 500–1 650 N/mm² in the X-Y plane** — the bulk figure
+overstated a printed part's stiffness by about a third. Every mechanical row
+on that sheet is labelled `(X-Y)` and none is across the layers, so the card
+serves `E_xy`, `tensile_xy`, `flexural_xy` and refuses the bare `E` naming
+exactly that gap and pointing at the PLA card's interlayer figure for its size.
+
+Density stays honest on both and both keep answering `mass_g`: direction ruins
+strength, not mass. Each note says the solid-infill assumption out loud, since
+a part at 20% infill weighs about a fifth of what the card says.
+
+**A test I wrote over-claimed and was corrected before it landed.** It asserted
+that no handbook-sourced card remained; seven still are — `aluminium_6061`,
+`aluminium_6082`, `brass_cw614n`, `nylon_pa6`, `stainless_1_4301`,
+`steel_100cr6`, `steel_dc01`. The test now pins that exact set, so the frontier
+can shrink deliberately and cannot grow by accident. Every *plastic* has left
+it, which was the actual claim worth making.
+
+partkiln **916 passed / 2 skipped**, ruff clean, 23 cards, eight named
+authorities.

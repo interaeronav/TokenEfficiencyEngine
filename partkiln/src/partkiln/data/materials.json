@@ -8,44 +8,75 @@
  ],
  "cards": {
   "abs": {
-   "family": "thermoplastic (FFF)",
-   "designation": "acrylonitrile butadiene styrene",
+   "family": "thermoplastic (FFF printed)",
+   "designation": "ABS filament, printed at 100% infill",
    "aliases": [
     "abs"
    ],
+   "anisotropic": true,
    "properties": {
     "density": {
-     "value": 1040,
+     "value": 1050,
      "unit": "kg/m3",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; 1.04-1.06 g/cm3, ISO 1183",
+     "honesty": "datasheet",
      "range": [
-      1020,
+      1040,
       1060
-     ],
-     "source": "engineering handbook range",
-     "honesty": "typical_range"
+     ]
     },
-    "E": {
-     "value": 2200,
+    "E_xy": {
+     "value": 1575,
      "unit": "N/mm2",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; modulus of elasticity (X-Y) 1500-1650, ISO 527",
+     "honesty": "datasheet",
      "range": [
-      1900,
-      2500
-     ],
-     "source": "engineering handbook range",
-     "honesty": "typical_range"
+      1500,
+      1650
+     ]
     },
-    "yield": {
-     "value": 40,
+    "tensile_xy": {
+     "value": 38,
      "unit": "N/mm2",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; tensile strength (X-Y) 35-40, ISO 527",
+     "honesty": "datasheet",
      "range": [
-      30,
-      50
-     ],
-     "source": "engineering handbook range, tensile strength",
-     "honesty": "typical_range"
+      35,
+      40
+     ]
+    },
+    "flexural_xy": {
+     "value": 68,
+     "unit": "N/mm2",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; bending strength (X-Y) 65-70, ISO 178",
+     "honesty": "datasheet",
+     "range": [
+      65,
+      70
+     ]
+    },
+    "elongation_xy": {
+     "value": 15,
+     "unit": "%",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; elongation at break (X-Y) 12-17, ISO 527",
+     "honesty": "datasheet",
+     "range": [
+      12,
+      17
+     ]
     }
    },
-   "notes": "Same printing caveat as pla: bulk figures, 100% solid assumed."
+   "refuses": {
+    "E": {
+     "reason": "every mechanical row on this sheet is labelled (X-Y) - in the print plane - and it reports nothing across the layers, which is the direction that governs a printed part",
+     "fix": "read E_xy, and for the across-layer direction use a sheet that measures it; the pla card carries an interlayer_adhesion figure showing the size of that gap"
+    },
+    "yield": {
+     "reason": "same reason: 35-40 N/mm2 is the in-plane strength, not the layer bond",
+     "fix": "read tensile_xy, and measure or source the Z direction separately"
+    }
+   },
+   "notes": "THE PRINTED MODULUS IS WELL BELOW THE BULK FIGURE, and that is why this card was rebuilt: it used to serve a handbook E of 2200 N/mm2, while a manufacturer testing PRINTED specimens reports 1500-1650 in plane - the old number overstated a printed part's stiffness by about a third. Ranges here are the datasheet's own, not a handbook spread. Printed at 100% infill, so mass_g's solid assumption matches these specimens and not a sparse part."
   },
   "aluminium_6061": {
    "family": "aluminium alloy",
@@ -764,44 +795,68 @@
    "notes": "EVERY VALUE HERE IS 23 C, and PEEK is bought for temperature: the same datasheet tabulates strength falling steeply above 125 C, so using these figures for a hot part is the mistake this card cannot stop you making. The density is the sheet's CRYSTALLINE value; a quenched, largely amorphous moulding is slightly lighter, which matters for mass on a thin part. Unfilled 450G - the carbon- and glass-filled grades are stiffer, stronger and anisotropic, and would be different cards with a `refuses` block."
   },
   "pla": {
-   "family": "thermoplastic (FFF)",
-   "designation": "polylactic acid, printed",
+   "family": "thermoplastic (FFF printed)",
+   "designation": "PLA, Prusament PLA, printed at 0.20 mm layers",
    "aliases": [
-    "pla"
+    "pla",
+    "prusament pla"
    ],
+   "anisotropic": true,
    "properties": {
     "density": {
      "value": 1240,
      "unit": "kg/m3",
-     "range": [
-      1210,
-      1250
-     ],
-     "source": "engineering handbook range",
-     "honesty": "typical_range"
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; 1.24 g/cm3, ISO 1183",
+     "honesty": "datasheet"
     },
-    "E": {
-     "value": 3500,
+    "E_horizontal": {
+     "value": 2300,
      "unit": "N/mm2",
-     "range": [
-      3000,
-      4000
-     ],
-     "source": "engineering handbook range, injection-moulded",
-     "honesty": "typical_range"
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile modulus 2.3 GPa, horizontal specimen, ISO 527-1",
+     "honesty": "datasheet"
     },
-    "yield": {
-     "value": 55,
+    "E_vertical": {
+     "value": 2400,
      "unit": "N/mm2",
-     "range": [
-      45,
-      65
-     ],
-     "source": "engineering handbook range, tensile strength",
-     "honesty": "typical_range"
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile modulus 2.4 GPa, vertical xz specimen, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "tensile_horizontal": {
+     "value": 51,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile yield 51 +/- 3, horizontal, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "tensile_vertical": {
+     "value": 59,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile yield 59 +/- 2, vertical xz, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "interlayer_adhesion": {
+     "value": 17,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; interlayer adhesion 17 +/- 3, Prusa Polymers method",
+     "honesty": "datasheet"
+    },
+    "tensile_filament": {
+     "value": 57,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile yield strength for the FILAMENT itself, ISO 527",
+     "honesty": "datasheet"
     }
    },
-   "notes": "A printed part is not solid: infill and layer adhesion scale mass and strength well below these bulk figures. mass_g assumes 100% solid."
+   "refuses": {
+    "yield": {
+     "reason": "a printed part has no single strength: this sheet gives 51 and 59 N/mm2 for two specimen orientations and 17 for the INTERLAYER BOND - a third of the in-plane figure, and that bond is what a part pulled across its layers actually fails at",
+     "fix": "read tensile_horizontal, tensile_vertical or interlayer_adhesion, and say which way the load crosses the layers"
+    },
+    "E": {
+     "reason": "stiffness is the tamer direction (2300 against 2400) but it is still measured per orientation, and this sheet reports no across-layer modulus",
+     "fix": "read E_horizontal or E_vertical"
+    }
+   },
+   "notes": "MASS IS THE HONEST NUMBER HERE AND STRENGTH IS NOT. `density` is the solid polymer, so mass_g assumes 100% infill; a part at 20% infill weighs roughly a fifth of what this card says. The strengths are the manufacturer's own printed specimens at 0.20 mm layers, and the datasheet states plainly that values depend significantly on print settings - a different nozzle, temperature or layer height moves them. The old card here served a single handbook yield of 55 N/mm2, which hid all of this."
   },
   "stainless_1_4301": {
    "family": "austenitic stainless steel",

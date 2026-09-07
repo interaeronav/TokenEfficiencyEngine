@@ -424,10 +424,9 @@ def test_steel_is_a_family_too_and_mass_was_never_the_risk() -> None:
 # ------------------------------------------------------- PEEK and PA66
 
 
-def test_peek_is_a_datasheet_card_where_the_other_plastics_are_handbook() -> None:
-    """The plastics were the weakest-sourced cards in the lane - pla, abs and
-    pa6 are all `typical_range` from an engineering handbook. PEEK arrives from
-    Victrex's own sheet with a test method per row."""
+def test_peek_is_a_datasheet_card_with_a_test_method_per_row() -> None:
+    """The plastics were the weakest-sourced cards in the lane. PEEK arrives
+    from Victrex's own sheet, naming the ISO method for every value."""
     d = materials.describe("peek_450g")
     assert d["values"] == {
         "density": 1300,
@@ -439,7 +438,6 @@ def test_peek_is_a_datasheet_card_where_the_other_plastics_are_handbook() -> Non
     assert set(d["honesty"].values()) == {"datasheet"}
     assert "ISO 527-1" in d["sources"]["E"]
     assert "ISO 1183" in d["sources"]["density"]
-    assert materials.describe("pla")["honesty"]["E"] == "typical_range"
 
 
 def test_peek_says_its_numbers_are_all_room_temperature() -> None:
@@ -482,3 +480,74 @@ def test_no_bare_family_name_resolves_to_a_member_any_more() -> None:
         with pytest.raises(CommandError) as caught:
             materials.resolve(family)
         assert caught.value.code == "pk_ref_ambiguous", family
+
+
+# ------------------------------------------- printed plastics: the layer is the weak axis
+
+
+def test_a_printed_part_is_anisotropic_and_the_layer_bond_is_the_number() -> None:
+    """The last handbook cards, rebuilt on printed-specimen datasheets - and it
+    turned them into anisotropic cards. Prusa measures 51 and 59 N/mm2 for two
+    specimen orientations and 17 for the INTERLAYER BOND: a third of the
+    in-plane figure, and what a part pulled across its layers actually fails
+    at. A single `yield` would have hidden a factor of three."""
+    d = materials.describe("pla")
+    assert d["anisotropic"] is True
+    assert d["values"]["tensile_horizontal"] == 51
+    assert d["values"]["interlayer_adhesion"] == 17
+    assert d["values"]["tensile_horizontal"] / d["values"]["interlayer_adhesion"] > 2.9
+    with pytest.raises(CommandError, match="INTERLAYER BOND"):
+        materials.property_value("pla", "yield")
+
+
+def test_the_printed_modulus_is_well_below_the_bulk_handbook_figure() -> None:
+    """Why rebuilding ABS mattered rather than just re-citing it. The card used
+    to serve a handbook E of 2200 N/mm2; a manufacturer testing PRINTED
+    specimens reports 1500-1650 in plane."""
+    d = materials.describe("abs")
+    assert d["values"]["E_xy"] == 1575
+    assert d["ranges"]["E_xy"] == [1500, 1650]
+    assert d["values"]["E_xy"] < 2200 * 0.8
+    assert d["honesty"]["E_xy"] == "datasheet"  # a datasheet range, not a handbook spread
+    with pytest.raises(CommandError, match=r"\(X-Y\)"):
+        materials.property_value("abs", "E")
+
+
+def test_every_printed_card_still_answers_mass_because_density_is_honest() -> None:
+    """Direction ruins strength, not mass. Both cards keep serving a density,
+    and both say the solid assumption out loud."""
+    for name, rho in (("pla", 1240), ("abs", 1050)):
+        assert materials.property_value(name, "density") == rho
+        assert materials.mass_g(name, 1_000_000) == float(rho)
+        note = " ".join(materials.describe(name)["notes"])
+        assert "infill" in note
+
+
+# The cards still resting on an unnamed engineering handbook rather than a
+# named datasheet or standard. Every plastic has now left this list; what
+# remains is a known frontier, pinned so it cannot grow quietly.
+HANDBOOK_SOURCED = {
+    "aluminium_6061",
+    "aluminium_6082",
+    "brass_cw614n",
+    "nylon_pa6",
+    "stainless_1_4301",
+    "steel_100cr6",
+    "steel_dc01",
+}
+
+
+def test_the_handbook_frontier_is_exactly_what_we_think_it_is() -> None:
+    """Not a claim that every card is datasheet-sourced - seven are not, and
+    pretending otherwise would be the failure this lane exists to prevent.
+    This pins WHICH, so the list can only shrink deliberately and can never
+    grow by accident."""
+    handbook = {
+        name
+        for name in materials.names()
+        for leaf in materials.card(name)["properties"].values()
+        if "engineering handbook" in leaf["source"]
+    }
+    assert handbook == HANDBOOK_SOURCED
+    # ... and no printed plastic is among them any more
+    assert not handbook & {"pla", "abs", "peek_450g", "nylon_pa66"}
