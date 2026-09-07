@@ -877,7 +877,6 @@
    "family": "structural steel",
    "designation": "S275JR (EN 10025-2)",
    "aliases": [
-    "steel",
     "s275",
     "mild steel"
    ],
@@ -913,7 +912,7 @@
      "honesty": "standard_value"
     }
    },
-   "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only."
+   "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only. The bare alias 'steel' was retired on 2026-09-07: with S355, DC01 and 100Cr6 beside it, the word names a family. Mass is barely affected either way (every one of these is 7810-7850 kg/m3) - it is the STRENGTH that differs, and 100Cr6 is a different class of material entirely."
   },
   "steel_s355": {
    "family": "structural steel",

@@ -521,7 +521,7 @@ def test_import_hygiene() -> None:
         "Document().apply({'op': 'create', 'kind': 'sketch', "
         "'props': {'plane': 'XY', 'profile': {'rect': [1, 1]}}})\n"
         "from partkiln import standards, materials\n"
-        "standards.clearance_hole('M6'); materials.mass_g('steel', 1000)\n"
+        "standards.clearance_hole('M6'); materials.mass_g('steel_s275', 1000)\n"
         f"bad = [m for m in sys.modules if m.split('.')[0] in {FORBIDDEN_ON_IMPORT!r}]\n"
         "print(sorted(bad))\n"
     )

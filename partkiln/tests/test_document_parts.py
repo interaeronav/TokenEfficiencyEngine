@@ -420,7 +420,7 @@ def test_dependents_and_delete_through_the_document() -> None:
 def test_multiple_parts_need_naming_and_summary_lists_both() -> None:
     doc = Document()
     doc.apply({"op": "create", "kind": "part", "name": "a"})
-    doc.apply({"op": "create", "kind": "part", "name": "b", "props": {"material": "steel"}})
+    doc.apply({"op": "create", "kind": "part", "name": "b", "props": {"material": "steel_s275"}})
     doc.apply(
         {
             "op": "create",

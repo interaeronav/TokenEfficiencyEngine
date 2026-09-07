@@ -392,3 +392,30 @@ def test_the_metal_families_refuse_now_that_each_has_several_grades() -> None:
     assert materials.resolve("316") == "stainless_1_4404"
     assert materials.resolve("304") == "stainless_1_4301"
     assert materials.resolve("7075") == "aluminium_7075_t6"
+
+
+def test_steel_is_a_family_too_and_mass_was_never_the_risk() -> None:
+    """The fifth and last of these, and the most interesting because the danger
+    is narrower. Every steel card sits at 7810-7850 kg/m3, so the one thing the
+    kernel USES - mass - barely moved whichever the alias picked. It is the
+    STRENGTH that differs (210 to 355 N/mm2 in yield), and 100Cr6 is a hardened
+    bearing steel that does not belong in the same sentence as structural
+    plate. So the word is retired as an alias, not because it was giving wrong
+    masses but because it was giving confident yields."""
+    with pytest.raises(CommandError) as caught:
+        materials.resolve("steel")
+    assert caught.value.code == "pk_ref_ambiguous"
+    for member in ("steel_s275", "steel_s355", "steel_dc01", "steel_100cr6"):
+        assert member in str(caught.value)
+
+    grades = [n for n in materials.names() if n.startswith("steel_")]
+    densities = [materials.describe(n)["values"]["density"] for n in grades]
+    assert max(densities) - min(densities) <= 40  # mass was never the risk
+    yields = [materials.describe(n)["values"].get("yield") for n in grades]
+    yields = [y for y in yields if y is not None]
+    assert max(yields) / min(yields) > 1.6  # strength always was
+
+    # the specific names, and the W1 bracket's mass, are untouched
+    assert materials.resolve("s275") == "steel_s275"
+    assert materials.resolve("mild steel") == "steel_s275"
+    assert materials.mass_g("steel_s275", 91158.6) == 715.595

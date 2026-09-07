@@ -113,7 +113,7 @@ def names() -> list[str]:
 
 
 def resolve(name: str) -> str:
-    """The card key for a name or alias ('steel', 's275', '304' ...); refuses listing names."""
+    """The card key for a name or alias ('s275', '304', '6061'); refuses listing names."""
     wanted = str(name).strip().lower()
     cards = _cards()
     if wanted in cards:
@@ -134,7 +134,7 @@ def resolve(name: str) -> str:
             code="pk_ref_ambiguous",
         )
     raise CommandError(
-        f"no material {name!r}. Cards: {', '.join(names())} (aliases such as 'steel', "
+        f"no material {name!r}. Cards: {', '.join(names())} (aliases such as 's275', "
         "'304' or '6061' are accepted).",
         code="pk_ref_unknown",
     )

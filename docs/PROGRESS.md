@@ -14166,3 +14166,35 @@ had one plausible referent acquires a second, and the alias becomes a silent
 wrong answer unless it is retired.
 
 partkiln **906 passed / 2 skipped**, ruff clean, **21 cards**.
+
+### `steel` retired as an alias, and why it was the least dangerous of the five (2026-09-07)
+
+Owner: *"do the same for steel"*. Done, and it is worth recording that this
+one differs from the other four.
+
+`steel` resolved silently to S275 with S355, DC01 and 100Cr6 beside it. But
+**mass was never the risk**: every steel card sits between 7 810 and 7 850
+kg/m³, so the one quantity the kernel actually USES moved by at most 0.5%
+whichever grade the alias picked. What differed was **strength** — 210 to 355
+N/mm² in yield across the family, and 100Cr6 is a hardened bearing steel that
+does not belong in the same sentence as structural plate. So the word was
+retired not because it was returning wrong masses but because it was returning
+**confident yields**.
+
+Ten call sites passed the bare alias — five test modules plus two examples
+inside `materials.py`'s own docstring and refusal text — and every one now
+names `steel_s275`. **No measured number moved**, because the alias only ever
+resolved there: the W1 bracket is still 715.595 g, asserted in the new test.
+`s275`, `mild steel`, `s355`, `dc01` and `100cr6` all still resolve.
+
+The `pk_materials` tool was checked and left alone: its `"steel"` is a search
+TAG and a category filter, not a card name, so the surface is untouched.
+
+That completes the sweep — `cfrp`, `titanium`, `stainless`, `aluminium`,
+`steel`. **No bare family name in the material lane resolves to a member any
+more.** The rule that emerged from it, worth carrying to any future lookup
+table: a name with one plausible referent is fine until a second arrives, and
+at that moment the alias silently becomes a wrong answer. It has to be retired
+in the same commit that creates the ambiguity, not later.
+
+partkiln **907 passed / 2 skipped**, ruff clean, 21 cards.

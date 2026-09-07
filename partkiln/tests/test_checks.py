@@ -260,7 +260,7 @@ def test_inertia_of_a_plain_box_is_the_textbook_number() -> None:
 def test_mass_in_steel_f6_block_and_pin() -> None:
     block, pin = fixtures.build_F6()
     mb = mass.mass_properties(block, "steel_s275")
-    mp = mass.mass_properties(pin, material="steel")
+    mp = mass.mass_properties(pin, material="steel_s275")
     assert (mb["mass_g"], mp["mass_g"]) == (238.869, 24.662)
     assert mb["material"] == "steel_s275" and mb["honesty"] == "standard_value"
     assert mb["density_kg_m3"] == 7850.0
