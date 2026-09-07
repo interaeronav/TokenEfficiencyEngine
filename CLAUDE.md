@@ -225,17 +225,26 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   with CfdOF declined). Its measured laws: ParaView builds its Qt application
   BEFORE parsing arguments, so with no display even `paraview --help` aborts
   on signal 6 — the lane never asks the binary anything and decides about the
-  display before it spawns; a state file carrying a view is 203,984 bytes and
-  needs a display to WRITE, while a pipeline-only one is 17,132 and writes
+  display before it spawns; a state file carrying a view is ~206 kB and needs
+  a display to WRITE, while a pipeline-only one is ~17 kB and writes
   anywhere, so the tool writes the best the machine can do, says which, and
   REFUSES rather than downgrading an explicit ask; a state names its case
   exactly once, so a moved case is a string swap; `vsp` takes the model
   positionally. The window is an escalation asked for by name through
   `registry.require`, the panel renders nothing (A67 stands), and neither adds
-  a tool: the surface is still 17. **ParaView is under review by the owner as
-  unstable — doc 73 §4b carries the three instabilities measured here and the
-  five-row specification a replacement must meet; the application is an enum
-  and the ParaView-specific code sits in two modules.**
+  a tool: the surface is still 17. **P2 then ran on the real ParaView** — the
+  owner's local session, which had been looking for a replacement, reported it
+  working properly on 2026-09-07 — **and it found three defects a fake pvpython
+  can never find**: `ColorBy(d, None)` RAISES on data with no arrays (the
+  meshed-but-unsolved case the mesh view exists for); a state that sets only
+  `rv.ViewTime` reloads at **t=0**, because `SaveState` carries the ANIMATION
+  SCENE's time — a handoff that opens the initial field while the human
+  believes it is the solution; and `wt_open` on an SU2 case died with
+  `NameError: ts`, the reader block having bound that name for `.foam` and not
+  for `.vtu`. Doc 73 §4b keeps the three instabilities
+  measured here and the five-row specification a replacement would have to
+  meet: the application is an enum and the ParaView-specific code sits in two
+  modules, so the swap stays cheap if the question returns.
 
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is

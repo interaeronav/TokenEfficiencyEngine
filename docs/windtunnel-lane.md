@@ -108,8 +108,15 @@ and writes anywhere. Omit `kind` to take the best the machine can do and read
 back which it wrote; ask for `full` where nothing can render and it refuses
 rather than downgrading you silently.
 
+Either kind opens the case at its **last time step** — the solution, not the
+initial field. That took a second measurement to get right: `SaveState` carries
+the animation scene's time and not the view's, so a state that set only the
+view reloaded at t=0, coloured and framed exactly like the answer (doc 73
+§2.10).
+
 A case with only a mesh can be opened — that is the point of looking before you
-solve. The panel over the same lane is `docs/windtunnel-gui.md`.
+solve — and `view=mesh` is the preset for it. The panel over the same lane is
+`docs/windtunnel-gui.md`.
 
 ## Rules that bite
 

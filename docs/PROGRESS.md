@@ -13926,17 +13926,88 @@ CI does not install Qt: 445.2 MB (addons 332.0, essentials 110.8) that no test
 uses, and installing it would make the coverage worse, because the test
 asserting the panel names its extra skips itself where PySide6 exists.
 
-**ParaView under review.** Mid-campaign the owner's local session began looking
-for a replacement, ParaView having proved unstable in use. Doc 73 §4b records
-the three instabilities measured here as evidence and the five rows a candidate
-must satisfy. The architecture survives a swap: the application is an enum, the
-ParaView-specific code is confined to `state.py` and `paraview.py`, and the
-panel talks to the registry rather than to any application. No ParaView-specific
-capability was deepened after that news.
+### A73 P2 — the handoff, on the real ParaView and OpenVSP (0.24.1)
 
-**Still open:** the live tier for this campaign (the OpenVSP route on a real
-`.vsp3`, a state loaded back in a fresh pvpython) is deliberately narrowed and
-not yet run; the `.mcpb` bundle for 0.24.0 is not built; the Mac has not seen
+Run after the owner's local session reported ParaView working properly again,
+and it found **three defects in shipped code that the hermetic tests could not
+reach**, because a fake `pvpython` accepts whatever script it is handed:
+
+1. **The state opened at t=0.** `SaveState` carries the ANIMATION SCENE's time,
+   not the view's, so `rv.ViewTime = ts[-1]` was lost on reload. ParaView would
+   have opened the initial field — coloured, framed and captioned exactly like
+   the converged one. This is the worse kind of defect: not an error, a wrong
+   answer wearing a right one's clothes. Both state kinds now set the scene.
+2. **`wt_open view=mesh` failed on a case that had not run.**
+   `ColorBy(d, None)`, the documented way to turn colouring off, re-reads the
+   representation's current association — `'NONE'` where the data has no array
+   to colour by — and raises. That is precisely the meshed-but-unsolved case
+   the mesh view exists for, and the one path `wt_view` can never reach
+   (`_volume_source` refuses without a run), which is why A72's live tier
+   never saw it. `ColorBy(d, ('CELLS', None))` works with fields and without;
+   `paraview.render_script` keeps the old form deliberately.
+3. **`wt_open` on an SU2 case died with `NameError: ts`.** The reader block
+   bound that name in its `.foam` branch and not in its `.vtu` one, while the
+   state script reads it in both — so half the lane's engines had never had
+   this tool run against them, and one undefined name is what that handoff was
+   worth. The `.vtu` branch now binds `ts` to an empty list, which is what a
+   single `.vtu` honestly has.
+
+Measured after the fixes (ParaView 5.11.2 + xvfb, OpenVSP 3.51.3, the
+16,000-cell NACA 0012 case at 197 iterations):
+
+| state | bytes | write | read back in a fresh pvpython |
+| --- | ---: | ---: | ---: |
+| `full`, solved run, `view=pressure` | 206,584 | 4.5 s | 3.6 s |
+| `full`, meshed case, no run, `view=mesh` | 179,725 | 3.1 s | 3.5 s |
+| `pipeline`, no display either way | 17,233 | 2.7 s | 2.8 s |
+
+The reload reports `OpenFOAMReader`, the case's own `case.foam`, 16,000 cells,
+**view time 197.0 = scene time = the last time step**, `['CELLS', 'p']`,
+`Surface`, camera framed. `relocate()` replaced exactly **1** occurrence over a
+copied run and the moved state loaded 16,000 cells from the new path — §2.4's
+"the path appears once" law now holds for a state ParaView wrote, not one we
+predicted. The OpenVSP route is verified by asking OpenVSP: `vsp -script`
+reading back the `.vsp3` the command line names reports one geom, `WingGeom`,
+type `Wing`, from an 86,830-byte model. An SU2 `.vtu` writes 198,796 B full
+and 12,089 B pipeline and reloads as `XMLUnstructuredGridReader`. Six live
+tests in `tests/test_windtunnel_live.py` (`cfd`-marked) found them; two
+hermetic tests in `tests/test_windtunnel_open.py` pin all three on the
+generated script text, which is the only guard that runs where ParaView is
+absent — CI included.
+
+**Bundle, from a clean unzip of `tee-engine-0.24.1.mcpb` (1,239,830 B)**, driven
+with the manifest's exact command through a stdio MCP client:
+
+```
+uv run --directory <bundle> --no-dev tee serve --adapter blender --adapter partkiln \
+    --adapter seamkiln --adapter fusion --project <p>
+handshake: {'name': 'tee', 'version': '0.24.1'}   boot 4.83 s
+always-loaded tools: 17
+search 'wind tunnel' reaches wt_*: True   [wt_case, wt_conditions, wt_export, wt_geom, wt_mesh]
+tee_call wt_probe -> openfoam v2606 | su2 wt_su2_missing (the install line) | vspaero 3.51.3 | pvpython 5.11.2
+tee_call wt_run on an unmeshed case -> wt_no_mesh: "Case ... has no mesh yet." fix "wt_mesh first."
+tee_call wt_mesh  -> ok, 16,000 cells, omesh_polymesh
+tee_call wt_open view=pressure -> full, 203,996 B, run_id None, launched False
+tee_call wt_open view=mesh     -> full, 179,508 B, run_id None, launched False
+```
+
+The last line is the one worth having: the shipped bundle writes a mesh-view
+state over a case with no run, which is the call that raised on 5.11.2 before
+this round.
+
+**ParaView: resolved.** Mid-campaign the owner's local session went looking for
+a replacement, ParaView having proved unstable in use; later the same day that
+session reported it working properly, so the search is closed and no swap is
+made. What stays is doc 73 §4b: the three instabilities **measured** here (they
+are still true of the tool, and they are why the lane checks the display, keeps
+two state kinds and reaches for `xvfb-run`) and the five rows a replacement
+would have to satisfy. Nothing was bent toward the search while it was open and
+nothing is unbent now — but the narrowing it caused would have cost this
+campaign both defects above, which is the argument for running the live tier
+rather than reasoning about it.
+
+**Still open:** the `.mcpb` bundle for 0.24.x is not built; the Mac has not seen
 `wt_open` (does ParaView 6.1 accept a 5.11-written state? does `open -a
-ParaView --args --state=` pass the flag through?) — both are doc 73's open
-questions 1 and 2.
+ParaView --args --state=` pass the flag through?) — doc 73's open questions 1
+and 2, and the only rows of this campaign that need a machine this container is
+not.

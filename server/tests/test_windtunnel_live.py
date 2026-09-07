@@ -62,7 +62,8 @@ def app(tmp_path_factory):
         application.shutdown()
 
 
-def call(app, tool, **args):
+def call(app, tool, /, **args):
+    # positional-only, because `wt_open app=openvsp` is an argument named app
     return app.registry.call(tool, args)
 
 
@@ -299,3 +300,236 @@ def test_the_re40_cylinder_reproduces_its_reference_on_real_openfoam(app):
     # ParaView is optional here: without it the wake reports itself skipped
     wake = r["checks"]["wake_lw_over_d"]
     assert wake.get("measured") is not None or wake.get("skipped")
+
+
+# -- A73: the GUI handoff, on the real ParaView and OpenVSP -------------------
+#
+# Measured 2026-09-07 (ParaView 5.11.2 apt + xvfb, OpenVSP 3.51.3, OpenFOAM
+# v2606). Running these found three defects the hermetic tests could not see,
+# because a fake pvpython accepts any script: `ColorBy(d, None)` raises on a
+# case with no field arrays; a state that sets only `rv.ViewTime` reloads at
+# t=0; and `wt_open` on an SU2 case raised NameError, the reader block having
+# bound `ts` for .foam and not for .vtu. All three are fixed and pinned here -
+# a handoff that opens the initial field while the human believes it is the
+# solution is worse than one that refuses.
+
+
+def _loadback(app, pvsm: str, *, render: bool) -> dict:
+    """Open a state in a FRESH pvpython and report what ParaView built.
+
+    The point of the whole campaign in one function: a state file is only a
+    handoff if another process, started from nothing, arrives at the case.
+    """
+    from tee.windtunnel import engines as eng
+    from tee.windtunnel import paraview as pv
+
+    script = """
+from paraview.simple import *
+import json
+LoadState(__PVSM__)
+src = [v for k, v in GetSources().items()][0]
+views = GetViews()
+rv = views[0] if views else None
+if rv is not None:
+    SetActiveView(rv)
+src.UpdatePipeline(rv.ViewTime if rv is not None else 0.0)
+facts = {
+    'reader': src.__class__.__name__,
+    'file': str(getattr(src, 'FileName', '')),
+    'arrays': list(getattr(src, 'CellArrays', []) or []),
+    'views': [v.__class__.__name__ for v in views],
+    'scene_time': float(GetAnimationScene().AnimationTime),
+    'timesteps': [float(t) for t in (src.TimestepValues or [])],
+    'cells': int(src.GetDataInformation().GetNumberOfCells()),
+}
+if rv is not None:
+    d = GetDisplayProperties(src, rv)
+    facts['view_time'] = float(rv.ViewTime)
+    facts['representation'] = str(d.Representation).strip("'")
+    facts['colour'] = [str(x) for x in d.ColorArrayName]
+    facts['camera'] = [float(x) for x in rv.CameraPosition]
+print('FACTS ' + json.dumps(facts))
+print('OK')
+""".replace("__PVSM__", repr(pvsm))
+    out = pv.run_script(
+        eng.find_pvpython({}).path,
+        script,
+        Path(pvsm).parent / "_loadback",
+        render=render,
+        timeout_s=300,
+    )
+    return json.loads(next(ln for ln in out.splitlines() if ln.startswith("FACTS "))[6:])
+
+
+@pytest.fixture(scope="module")
+def meshed_case(app):
+    """A case with a mesh and no run: the handoff before the hour is spent."""
+    _need("openfoam")
+    cid = call(app, "wt_case", action="create", naca="2412", V_mps=25, aoa_deg=2)["case_id"]
+    assert call(app, "wt_mesh", case_id=cid, nj=40)["ok"] is True
+    return cid
+
+
+def test_a_state_over_a_solved_case_loads_back_at_the_converged_time(app, foam_case):
+    """206,584 bytes over 16,000 cells, written in 4.5 s and read back in 3.6 s.
+
+    The time assertion is the one that matters: before the animation scene was
+    written into the state, this came back 0.0 - ParaView would have opened the
+    initial field, coloured and captioned as if it were the answer.
+    """
+    from tee.windtunnel import state as state_mod
+
+    _need("pvpython")
+    t0 = time.time()
+    out = call(app, "wt_open", case_id=foam_case)
+    latest = app._wt_store.load(foam_case)["runs"][-1]
+    assert out["launched"] is False and out["run_id"] == latest["run_id"]
+    assert out["source"].startswith(latest["run_dir"]), "the newest run's fields, not the case's"
+    assert out["kind"] == ("full" if state_mod.can_render() else "pipeline")
+    assert out["state"].endswith("/views/pressure.pvsm")
+    assert Path(out["state"]).parent.parent == Path(out["source"]).parent, "beside what it opens"
+    assert 20_000 < out["bytes"] < 2_000_000, out["bytes"]
+    assert time.time() - t0 < 60
+
+    facts = _loadback(app, out["state"], render=out["kind"] == "full")
+    assert facts["reader"] == "OpenFOAMReader" and facts["file"] == out["source"]
+    assert facts["cells"] == 16000 and facts["timesteps"], facts
+    assert facts["scene_time"] == facts["timesteps"][-1] > 0
+    if out["kind"] == "full":
+        assert facts["view_time"] == facts["timesteps"][-1]
+        assert facts["colour"] == ["CELLS", "p"] and facts["representation"] == "Surface"
+        assert facts["camera"][2] > 1.0, "ResetCamera ran: the case is in frame"
+
+
+def test_a_state_over_a_meshed_case_with_no_run_opens_the_mesh(app, meshed_case):
+    """The regression test for the ColorBy defect.
+
+    `wt_open view=mesh` on a case that has not run is the one path where the
+    data carries no array at all, and it is precisely the path a human wants
+    before spending an hour. It crashed on the real ParaView until 2026-09-07;
+    179,725 bytes now, run_id None, and the source is the case's own stub
+    rather than a run's.
+    """
+    from tee.windtunnel import state as state_mod
+
+    _need("pvpython")
+    out = call(app, "wt_open", case_id=meshed_case, view="mesh")
+    assert out["run_id"] is None and out["view"] == ("mesh" if out["kind"] == "full" else None)
+    assert out["source"].endswith("/openfoam/case.foam"), out["source"]
+    facts = _loadback(app, out["state"], render=out["kind"] == "full")
+    assert facts["cells"] > 0 and facts["file"] == out["source"]
+    if out["kind"] == "full":
+        assert facts["representation"] == "Surface With Edges"
+        assert facts["colour"][1] == "", "a mesh view is not coloured by anything"
+    assert state_mod.can_render() or out["kind"] == "pipeline"
+
+
+def test_a_relocated_state_opens_the_case_it_was_moved_to(app, foam_case, tmp_path):
+    """`relocate` is a string substitution because the path appears once, and
+    this is the test that the once is true of a state ParaView actually wrote."""
+    from tee.windtunnel import state as state_mod
+
+    _need("pvpython")
+    out = call(app, "wt_open", case_id=foam_case, view="velocity")
+    run_dir = Path(out["source"]).parent
+    moved = tmp_path / "moved_run"
+    shutil.copytree(run_dir, moved)
+    pvsm = moved / "views" / Path(out["state"]).name
+    assert state_mod.relocate(pvsm, run_dir, moved) == 1
+    facts = _loadback(app, str(pvsm), render=out["kind"] == "full")
+    assert facts["file"] == str(moved / "case.foam") and facts["cells"] == 16000
+    assert state_mod.relocate(pvsm, run_dir, moved) == 0, "nothing left pointing at the old path"
+
+
+def test_a_pipeline_state_is_written_and_read_with_no_display_at_all(app, foam_case):
+    """17,233 bytes, rc 0, no xvfb in either direction - the kind a machine
+    that cannot render still gets, carrying the same reader, arrays and time."""
+    from tee.windtunnel import engines as eng
+    from tee.windtunnel import state as state_mod
+
+    _need("pvpython")
+    source = Path(call(app, "wt_open", case_id=foam_case)["source"])
+    out = state_mod.write(
+        eng.find_pvpython({}).path,
+        source,
+        source.parent / "views" / "pipeline.pvsm",
+        kind="pipeline",
+    )
+    assert out["kind"] == "pipeline" and out["view"] is None
+    assert out["bytes"] < 50_000, "a pipeline state is a fraction of a full one"
+    facts = _loadback(app, str(out["state"]), render=False)
+    assert facts["views"] == [], "nothing is shown, which is why it needs no display"
+    assert facts["reader"] == "OpenFOAMReader" and facts["cells"] == 16000
+    assert facts["scene_time"] == facts["timesteps"][-1] > 0
+
+
+def test_the_openvsp_route_names_a_model_openvsp_reads_back(app):
+    """The other half of the handoff: no state file, the .vsp3 itself.
+
+    Verified by asking OpenVSP - `vsp -script` on a script that reads the file
+    the command line names - rather than by the file existing: 86,830 bytes,
+    one geom, `WingGeom` of type `Wing`.
+    """
+    import subprocess
+
+    vsp = _need("vspaero")
+    created = call(
+        app,
+        "wt_case",
+        action="create",
+        wing={"span": 10, "root_chord": 1, "airfoil": "0012"},
+        V_mps=34,
+        aoa_deg=4,
+    )
+    out = call(app, "wt_open", case_id=created["case_id"], app="openvsp")
+    target = Path(out["target"])
+    assert out["launched"] is False and target.suffix == ".vsp3" and target.is_file()
+    assert out["command"][-1] == str(target) and "state" not in out
+    assert out["command"][0].endswith(("vsp", "vsp.exe")), out["command"]
+
+    script = Path(out["target"]).with_name("readback.vspscript")
+    script.write_text(
+        "void main()\n{\n"
+        f'    ReadVSPFile( "{target}" );\n'
+        "    array< string > gids = FindGeoms();\n"
+        '    Print( "GEOMS=", false );\n'
+        "    Print( gids.size(), true );\n"
+        "    for ( uint i = 0; i < gids.size(); i++ )\n"
+        '        Print( "GEOM=" + GetGeomName( gids[i] ), true );\n'
+        '    Print( "DONE" );\n}\n'
+    )
+    res = subprocess.run(
+        [vsp["path"], "-script", str(script)],
+        capture_output=True,
+        text=True,
+        timeout=180,
+        cwd=str(script.parent),
+    )
+    text = res.stdout + res.stderr
+    assert "DONE" in text and "ERR" not in text, text[-400:]
+    assert "GEOMS=  1" in text.replace("\t", " ") and "WingGeom" in text, text[-400:]
+
+
+def test_a_state_over_an_su2_volume_file_writes_and_loads(app, tmp_path):
+    """The other engine's source, which never worked: `wt_open` on an SU2 case
+    raised `NameError: ts` on the real pvpython until 2026-09-07, because the
+    `.vtu` reader block bound `src` and not `ts`.
+
+    The file here is the minimal valid `UnstructuredGrid` SU2's writer shape
+    reduces to - the test is of the reader block, not of the data.
+    """
+    from tee.windtunnel import engines as eng
+    from tee.windtunnel import state as state_mod
+
+    _need("pvpython")
+    vtu = tmp_path / "flow.vtu"
+    vtu.write_text(
+        '<?xml version="1.0"?>\n<VTKFile type="UnstructuredGrid" version="0.1">\n'
+        '<UnstructuredGrid><Piece NumberOfPoints="0" NumberOfCells="0"/>'
+        "</UnstructuredGrid></VTKFile>\n"
+    )
+    out = state_mod.write(eng.find_pvpython({}).path, vtu, tmp_path / "views" / "pressure.pvsm")
+    assert out["kind"] == ("full" if state_mod.can_render() else "pipeline")
+    assert out["bytes"] > 1000 and Path(out["state"]).is_file()
+    facts = _loadback(app, str(out["state"]), render=out["kind"] == "full")
+    assert facts["reader"] == "XMLUnstructuredGridReader" and facts["file"].endswith("flow.vtu")

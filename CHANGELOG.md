@@ -3,6 +3,49 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.24.1 — 2026-09-07
+
+A73 P2: the handoff run against the REAL ParaView and OpenVSP for the first
+time, which found three defects in `wt_open` that a fake `pvpython` cannot
+find, because a fake accepts whatever script it is handed.
+
+### Fixed
+
+- **A state file now opens at the solution.** `SaveState` carries the
+  animation scene's time, not the view's, so a state that set only
+  `rv.ViewTime` reloaded at **t=0**: ParaView opened the initial field,
+  coloured and framed exactly as if it were the converged one. The scene is
+  now set in both state kinds, and a live test asserts the reloaded time
+  equals the case's last time step.
+- **`wt_open view=mesh` no longer fails on a case that has not run.**
+  `ColorBy(d, None)` - the documented way to turn colouring off - re-reads the
+  representation's current association, which is `'NONE'` when the data
+  carries no array to colour by, and raises. That is exactly the meshed-but-
+  unsolved case the mesh view exists for. The tuple form
+  `ColorBy(d, ('CELLS', None))` names a valid association and works with
+  fields and without.
+- **`wt_open` works on an SU2 case at all.** It raised `NameError: ts`: the
+  reader block bound that name in its OpenFOAM branch and not in its `.vtu`
+  one, while the state script reads it in both. Half the lane's engines had
+  never had this tool run against them.
+
+### Measured
+
+- The state round trip, on ParaView 5.11.2 + xvfb over a 16,000-cell case:
+  206,584 bytes written in 4.5 s and read back in 3.6 s at t=197 with
+  `['CELLS', 'p']` and the camera framed; a mesh-only state 179,725 bytes; a
+  pipeline state 17,233 bytes, written and read with no display in either
+  direction. `relocate()` replaced exactly 1 occurrence over a copied run and
+  the moved state loaded 16,000 cells from the new path.
+- An SU2 `.vtu` source writes 198,796 bytes full and 12,089 pipeline, and
+  reloads as `XMLUnstructuredGridReader` on the file it was given.
+- The OpenVSP route verified by asking OpenVSP: `vsp -script` reading back the
+  `.vsp3` the command line names reports one geom, `WingGeom`, type `Wing`.
+- ParaView's instability, which the owner's local session had been looking to
+  replace, was reported resolved on 2026-09-07; doc 73 §4b keeps the three
+  instabilities measured here and the five-row specification a replacement
+  would have to satisfy.
+
 ## 0.24.0 — 2026-09-07
 
 The wind-tunnel GUI handoff (A73), closing A72's gap 1. `wt_open` writes a
