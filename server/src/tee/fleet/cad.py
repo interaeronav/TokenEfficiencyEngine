@@ -127,6 +127,9 @@ def scad_build(spec: dict[str, Any]) -> dict[str, Any]:
             f"'{fmt}' is not an export format.",
             fix=f"Use one of: {', '.join(FORMATS)}.",
         )
+    # After the spec checks, not before: a bad argument is something the
+    # caller can fix right now, a missing binary is an install. Refusing on
+    # the binary first would hide the cheaper fix on a machine without it.
     exe = _require_openscad()
     out = spec.get("out")
     started = time.monotonic()
