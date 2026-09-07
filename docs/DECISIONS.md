@@ -2034,3 +2034,41 @@ Twice Fusion sat in its crash reporter after the segfault above; each time
 scratch design during it; each time it was killed and relaunched with
 `open -a`, and the bridge answered within 20 s. Stated here and in PROGRESS
 so the owner knows their application was restarted.
+
+## The three A71 decisions, taken by the owner (2026-09-07)
+
+A71 measured the Fusion lane live and then stopped, because three questions
+were the owner's and an autonomous session may not answer them. The owner
+answered all three on 2026-09-07.
+
+**1. The Desktop manifest serves Fusion.** `packaging/mcpb_manifest.json`
+gains `--adapter fusion` after seamkiln, so the extension serves four lanes.
+Still no declared default — content routing decides, as A68 ruled. Measured
+cost, on the manifest's own composition: the instructions the server builds
+grow **1,583 → 1,666 bytes** against the 2,048-byte cap a deferring host
+truncates past (382 bytes of headroom left); the always-loaded surface stays
+**17 tools**; the long tail gains **six** `fu_*` tools (67 → 73 virtual
+tools). Fusion is a bridge lane on a document the owner already has open, so
+where neither the TEE add-in nor the FusionMcpBridge answers, the lane reports
+itself disconnected and the other three route exactly as before — which is
+why adding it cannot break an existing Desktop install. The manifest's
+description, long description and keywords name Fusion and its add-in
+requirement; `tools[]` is untouched, because the lane adds no always-loaded
+tool.
+
+**2. The version is 0.23.0.** PR #2's wind-tunnel branch already reads 0.22.0
+in its `server/pyproject.toml`, so this branch skips it rather than race for
+it; whichever merges first keeps its number and neither has to renumber. Cut
+in `server/pyproject.toml`, `server/Makefile`'s `TEE_SERVER_VERSION`, the
+manifest's `version`, and `server/uv.lock` — the re-lock changes exactly the
+one `tee-engine` line, the 204 packages resolving unchanged, which is the
+same shape as the base branch's own 0.21.1 re-lock. The CHANGELOG's
+Unreleased section becomes `## 0.23.0 — 2026-09-07`.
+
+**3. PR #1 is ready for review.** Out of draft. It merges cleanly against the
+base branch as of the merge commit of 2026-09-07, CI is green on the head,
+and the Fusion lane is verified live on Fusion 2704.1.53.
+
+The fourth question A71 raised — which of two Fusion lanes survives — was
+withdrawn rather than answered: there is only one, as the entry above
+records.

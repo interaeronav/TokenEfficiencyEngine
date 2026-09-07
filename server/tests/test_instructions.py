@@ -37,6 +37,7 @@ def _serve_desktop(tmp_path):
             cli._blender_lane("127.0.0.1", 1),
             cli.Lane("partkiln", PartkilnAdapter(tmp_path, kernel=fake_kernel())),
             cli._seamkiln_lane(str(tmp_path)),
+            cli._fusion_lane(1, 2),
         ],
         str(tmp_path),
         allow_code_exec=False,
@@ -53,6 +54,7 @@ def test_the_desktop_instructions_name_every_lane_and_its_purpose(tmp_path):
         assert "blender (3D scene: model, materials, physics, render (pixels))" in text
         assert "partkiln (mechanical CAD, headless" in text
         assert "seamkiln (garment CAD + drape, headless" in text
+        assert "fusion (" in text, "the manifest's fourth lane names itself too"
         assert "entity id to the lane that holds it" in text
         assert "never need Blender or Unreal" in text
         assert lanes.LEGEND in text

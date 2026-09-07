@@ -311,12 +311,17 @@ nothing. Tested in `test_lane_routing.py`.
 
 `tee serve --adapter fusion [--fusion-port 9881]`; `.tee/config.toml`
 `[fusion] port = 9881`; `ADAPTER_NAMES` gains `fusion`; `tee doctor` reports
-the bridge. **The Desktop manifest is unchanged**: the lane has now been
-seen live (§8.2, A71) and the manifest decision is the owner's (the A71
-script's P4, put to the owner rather than taken by the session). The A71 run
-believed the default branch's own manifest already listed a `fusion` lane;
-measured against `origin` on 2026-09-07 it does not, and §8.2 records the
-correction.
+the bridge. **The Desktop manifest serves this lane as of 0.23.0**: it was
+held back until the lane had been seen live (§8.2, A71), and on 2026-09-07,
+with those measurements in hand, the owner decided to add it. The manifest's
+`--adapter` list is `blender, partkiln, seamkiln, fusion` with no declared
+default; the instructions it builds grew 1,583 → 1,666 bytes against the
+2,048-byte cap, the always-loaded surface stays 17 tools, and six `fu_*`
+tools joined the long tail. Fusion is a bridge lane, so where no add-in
+answers it is simply disconnected and the other three route unchanged. The
+A71 run believed the default branch's own manifest already listed a `fusion`
+lane; measured against `origin` on 2026-09-07 it does not, and §8.2 records
+the correction.
 
 ## 5. Laws for this lane
 

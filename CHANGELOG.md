@@ -3,7 +3,22 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased — one server, N lanes, no hub (A68, 2026-09-05)
+## 0.23.0 — one server, N lanes, no hub, and a Fusion lane (2026-09-07)
+
+Released from `claude/tee-component-integration-iflsyq` after A71 verified the
+Fusion lane live on Fusion 2704.1.53. Three owner decisions were taken on
+2026-09-07 and are recorded in DECISIONS: **the Desktop manifest now serves
+four lanes** (`blender`, `partkiln`, `seamkiln`, `fusion`; still no declared
+default, still 17 always-loaded tools — the instructions grew 1,583 → 1,666
+bytes against a 2,048-byte cap, and six `fu_*` virtual tools joined the long
+tail); **the version is 0.23.0**, leaving 0.22.0 to the wind-tunnel branch
+that already claims it; and PR #1 was marked ready for review. Fusion is a
+bridge lane, so on a machine with no Fusion running it reports itself
+disconnected and the other three lanes route exactly as before.
+
+The rest of this entry is the work as it was written when unreleased.
+
+### A68, A69, A70, A71 (2026-09-05 to 2026-09-07)
 
 0.21.1 put blender, partkiln and seamkiln in one server and made the first
 listed the default. Everything then went through Blender: a partkiln batch
@@ -127,8 +142,16 @@ into=blender` landed the plate (scale 0.01, 0.11 s) and `tee_capture
 adapter=blender` returned a JPEG in 0.05 s. The Blender live suite is green
 again (26 passed): one assertion followed A68's better import refusal, and
 the two `bl_execute_python` tests grant the escape hatch in their own test
-project, as an owner does. Desktop manifest and version: unchanged, the
-owner's decisions.
+project, as an owner does.
+
+A71 also left a fourth question — a second Fusion lane said to be on the
+default branch, to be reconciled before this work could merge. Measured
+against `origin` on 2026-09-07 it is not there: no branch but this one
+carries a Fusion adapter, bridge, test or `fu_*` tool. The question is
+withdrawn, and what this branch actually conflicted with was two files
+(`server/src/tee/fleet/cad.py`, where both branches had independently moved
+the OpenSCAD binary check after the spec checks, and `docs/PROGRESS.md`),
+now merged.
 
 ## 0.21.1 — 2026-09-04
 

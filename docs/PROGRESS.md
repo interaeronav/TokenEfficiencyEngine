@@ -12938,3 +12938,48 @@ worked: `brew uninstall --cask --force openscad`, then
 `/opt/homebrew/bin/openscad`. With it present the same file runs
 **21 passed / 2 skipped** (cadquery only), so the reorder is verified on
 both sides of the binary.
+
+## A71 close-out — the owner's three decisions, taken (2026-09-07)
+
+A71 ended with three questions it was not allowed to answer and one it had
+got wrong. The container session merged the base branch, measured the wrong
+one away (the correction above), and put the three real ones to the owner,
+who took all three.
+
+**Before any of it: PR #1 no longer merged.** The base branch had moved twice
+(`104f363`, `021fc15`) while the Mac session ran. A test merge in a scratch
+worktree named the conflict exactly: **two files, neither of them Fusion** —
+`server/src/tee/fleet/cad.py`, where both branches had independently moved
+`_require_openscad()` after the spec checks and only their explanations
+differed (the merge keeps both, this branch's docstring and the base's
+comment at the call site), and `docs/PROGRESS.md`, an append conflict where
+both entries are kept and the base's is promoted from `###` to `##` so it
+does not read as part of A71. `server/uv.lock` merged clean; `uv sync
+--locked` resolves 204 packages. Suite after the merge: **1,658 passed / 66
+skipped / 115 deselected**, plus one pre-existing environmental failure
+(`test_fleet_solve` wants the absent `[solve]` extra — `solve.py` is
+byte-identical on this branch, its pre-merge head and the base, so the merge
+did not cause it; it is the same spec-before-dependency defect the base just
+fixed for OpenSCAD, filed separately rather than widening a 16,000-line PR).
+
+**Decision 1 — the Desktop manifest serves Fusion.** Four lanes now:
+`blender`, `partkiln`, `seamkiln`, `fusion`, no declared default. Measured on
+the manifest's own composition, three lanes against four:
+
+```
+three lanes (0.21.1 manifest)   instructions 1,583 B / cap 2,048 B   virtual tools 67
+four  lanes (0.23.0 manifest)   instructions 1,666 B / cap 2,048 B   virtual tools 73
+```
+
++83 bytes, 382 left under the cap, 17 always-loaded tools unchanged, six
+`fu_*` tools added to the long tail. `test_the_desktop_manifest_serves_four_lanes_and_declares_no_hub`
+follows the manifest and asserts the Fusion lane attached; the instructions
+test's Desktop composition gains the same fourth lane, so the fixture cannot
+drift from what ships.
+
+**Decision 2 — 0.23.0.** `server/pyproject.toml`, `server/Makefile`, the
+manifest `version`, and a re-lock that changed exactly the one `tee-engine`
+line. 0.22.0 is left to PR #2's wind-tunnel branch, which already reads it.
+CHANGELOG's Unreleased section becomes `## 0.23.0 — 2026-09-07`.
+
+**Decision 3 — PR #1 out of draft**, ready for review.
