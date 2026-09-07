@@ -126,6 +126,28 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   slice. Every `pc_*` tool is tabled individually in the trust table - there is
   deliberately no `pc_` family row.
 
+- The A72 build (`wt_*`: a headless wind-tunnel lane that drives OpenFOAM, SU2
+  and OpenVSP/VSPAERO from one budgeted loop and reads the answer back through
+  ParaView's `pvpython`, while the model never sees a cell) is **COMPLETE**,
+  P0–P6, shipped as 0.22.0; `CLAUDE_A72_SCRIPT.md` is the plan of record,
+  research doc 72 the design of record, `docs/windtunnel-lane.md` the user guide
+  and `docs/setup-windtunnel.md` the install. Its laws outrank memory: every
+  engine is a SEPARATE PROCESS (OpenFOAM GPL-3, SU2 LGPL-2.1, OpenVSP NOSA-1.3;
+  `foamlib` is GPL-3.0-only and BANNED with `PyFoam`, `fluidfoam`, `vtk`,
+  `pyvista` and the OpenVSP Python bundle, by `test_windtunnel_licences.py`);
+  no tutorial case is ever vendored and the lane downloads nothing; Ubuntu's
+  apt `openfoam` 1912 cannot report a force (its function objects die on an
+  IOstream "sha1" error) so openfoam.com's package is the Linux install; a 2-D
+  slab's Aref is chord × thickness; the verdict's stationarity test has an
+  absolute floor because Cm ≈ 5e-4 makes a relative one meaningless; an
+  adopted case runs as-is, its chord MEASURED from the wall patch (lRef 1 on
+  the apt tutorial's 35 m section gave Cl 34); `vspscript` exits 2 after a
+  complete sweep and Open MPI refuses root — both are claims the outputs
+  overrule; `tee_job cancel` kills the solver process group through the
+  kernel's `on_cancel` hook (a real simpleFoam gone in 0.05 s). The GUI handoff
+  (`wt_open`, state files, a panel) is deferred by owner decision to a later
+  campaign; every `wt_*` tool is tabled individually — no `wt_` family row.
+
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured

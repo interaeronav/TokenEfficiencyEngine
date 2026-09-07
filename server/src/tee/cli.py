@@ -177,6 +177,17 @@ def _attach_pointcloud(app, project: str) -> None:
     register_pointcloud_tools(app, Path(project))
 
 
+def _attach_windtunnel(app, project: str) -> None:
+    """Register wt_* (A72). Stdlib core; every engine (OpenFOAM, SU2,
+    OpenVSP, pvpython) is a separate process found at call time and refused
+    with its install line when absent, so registration is unconditional -
+    a tool that vanishes when its engine is missing is indistinguishable
+    from one that never existed."""
+    from tee.windtunnel.tools import register_windtunnel_tools
+
+    register_windtunnel_tools(app, Path(project))
+
+
 def _attach_assets(app, project: str, extract_store) -> None:
     """Register TEE Assets tools (stdlib core; astral/shapely lanes degrade
     with actionable errors when their extra is missing)."""
@@ -342,6 +353,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_assets(app, args.project, extract_store)
     _attach_capture(app, args.project, extract_store)
     _attach_pointcloud(app, args.project)
+    _attach_windtunnel(app, args.project)
     _attach_pipeline(app, args.project)
     _attach_pins(app, args.project)
     _attach_design(app, args.project)

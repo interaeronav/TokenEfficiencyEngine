@@ -1,7 +1,7 @@
 [project]
 # distribution name (PyPI-safe); the import package and CLI stay `tee`
 name = "tee-engine"
-version = "0.21.1"
+version = "0.22.0"
 description = "Token Efficiency Engine - helps any AI minimize tokens per completed task; protocol discipline plus cloud/local compute routing; MCP server with Unreal Engine and Blender adapters"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -130,6 +130,30 @@ pointcloud = [
     "ezdxf>=1.4.4",
     "trimesh>=5.0.0",
 ]
+# A72 wind-tunnel lane: the engines are SEPARATE PROCESSES (OpenFOAM GPL-3,
+# SU2 LGPL-2.1, OpenVSP NOSA-1.3, ParaView BSD-3 via pvpython) and the lane's
+# core is stdlib; this extra serves exactly two paths - `wt_export format=vtu`
+# and wt_probe_field's fallback when pvpython is absent. Kept out on purpose
+# (all fetched from PyPI's JSON API 2026-09-06):
+#   foamlib   GPL-3.0-only: the modern OpenFOAM case library everyone reaches
+#             for; importing it would make the server GPL. The lane writes
+#             its own dictionaries instead.
+#   PyFoam    GPL; fluidfoam GPL-3.0-or-later: same class, same answer.
+#   ofpp      MIT but unmaintained since 2023 and numpy-only; pvpython reads
+#             the fields at arm's length instead.
+#   pyvista   MIT but drags vtk (BSD-3, hundreds of MB): docs 46/68 already
+#             ruled VTK "heavy; avoid" and this lane needs no in-process VTK.
+#   classy_blocks MIT but drags numba + trimesh for a blockMeshDict the lane
+#             writes in forty lines.
+#   gmsh      GPL-2.0-or-later: a later 3-D SU2 phase may run the BINARY;
+#             the Python module is never imported.
+#   openvsp   the bundle's own package is MIT but compiled against one Python
+#             minor (3.12 in the Ubuntu deb) and wraps NOSA code; vspscript
+#             is the route.
+windtunnel = [
+    "meshio>=5.3.5",
+    "numpy>=2.4.6",
+]
 # assets-embed / assets-gen are declared below but stay loosely pinned on
 # purpose: torch wheels are backend- and machine-specific (CUDA build vs the
 # Apple-Silicon build), so pinning an exact version here would break one of
@@ -183,5 +207,6 @@ markers = [
     "network: requires outbound network access (skips cleanly offline); excluded from the default hermetic suite - run with `-m network`",
     "ml: needs multi-gigabyte model weights ([assets-embed] / [assets-gen])",
     "llm: requires a live local LLM endpoint (TEE_LOCAL_LLM_URL); skips cleanly without one",
+    "cfd: requires a real CFD engine on this machine (OpenFOAM / SU2 / VSPAERO / pvpython); skips by name without one - run with `-m cfd`",
 ]
-addopts = "-m 'not dcc and not ml and not network and not llm'"
+addopts = "-m 'not dcc and not ml and not network and not llm and not cfd'"

@@ -3,6 +3,64 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.22.0 — 2026-09-06
+
+The wind-tunnel lane (A72; numbered A68 while it was built, renumbered before
+merge because the Fusion-lane branch already holds A68–A71): OpenFOAM, SU2 and
+OpenVSP/VSPAERO driven from one
+budgeted loop, the answer read back through ParaView's `pvpython`, and the
+model never sees a cell. Thirteen `wt_*` virtual tools, zero always-loaded
+growth (17 tools / 2,033 tok), every one tabled individually in the trust
+kernel. Headless by owner decision; the GUI handoff is the next campaign.
+
+### The lane
+
+`wt_probe` (engines by version, install lines for the rest) · `wt_conditions`
+(ISA, Reynolds, Mach, dynamic pressure) · `wt_case` (create from a NACA code, a
+Selig file, an STL or an OpenVSP wing; ADOPT a standard OpenFOAM case, an SU2
+`.cfg` or a `.vsp3` — copied, never mutated, its `Allrun` parsed and never
+executed) · `wt_geom` · `wt_mesh` (a stdlib O-mesh in seconds, or blockMesh +
+snappyHexMesh as a job) · `wt_run` / `wt_sweep` (jobs on the machine ledger,
+cost-gated, `cores=` parallel) · `wt_status` (a few dozen tokens; names an
+orphan after a server restart) · `wt_result` (Cl, Cd, Cm with a convergence
+verdict and the Drag-Prediction-Workshop uncertainty label; same-mesh deltas
+in drag counts) · `wt_probe_field` and `wt_view` (numbers and a PNG path
+through `pvpython`, never pixels) · `wt_export` (json, csv, md, pdf through
+the pdf lane, `.foam`, vtu, a pipeline fragment) · `wt_verify` (references
+verified at source run; unverified ones refuse by name).
+
+The fidelity ladder picks the cheapest capable engine and says why: panel
+(VSPAERO, seconds) → Euler (SU2, minutes) → RANS (OpenFOAM below Mach 0.3, SU2
+above). Every number travels with its engine, version, mesh hash, verdict and
+label. Measured through the registry on the real engines: a 16,000-cell NACA
+0012 RANS case in 17 s (Cl 0.4356, Cd 0.0109), 1/2/4 cores 7.8/6.8/4.8 s, SU2
+Euler within 1.8 % of the QuickStart figure, VSPAERO's lift slope 5.5 % from
+lifting line, the apt airFoil2D tutorial adopted and reporting forces once its
+35 m chord is measured from the mesh. The benchmark batch: 2,796 tokens
+against 19,145 (85 % saved).
+
+### The kernel
+
+`JobManager.submit(..., on_cancel=)` — twelve lines: a cancelled running job
+now invokes a hook once, outside the lock, and the lane's hook kills the solver
+process group (a real simpleFoam gone 0.05 s after `tee_job cancel`). Three
+`ENGINES` rows (`cfd-mesh`, `cfd-solve`, `aero-panel`); `[windtunnel]` config;
+a `windtunnel` doctor row; the `[windtunnel]` extra (meshio + numpy, one
+function) and the `cfd` test marker, deselected by default.
+
+### What it refuses, and why
+
+Every engine is a separate process and nothing is downloaded or vendored:
+OpenFOAM GPL-3, SU2 LGPL-2.1, OpenVSP NOSA-1.3; `foamlib` (GPL-3.0-only),
+`PyFoam`, `fluidfoam`, `vtk`, `pyvista` and the OpenVSP Python bundle are
+banned by a load-bearing test that also scans the goldens for upstream
+banners. A TEE-written case on a Foundation OpenFOAM refuses
+(`wt_fork_unsupported`); a run above 300 s / 8 GB / 2 M cells asks once; a
+mesh checkMesh flags needs `force=true` except the two failures a solver
+survives; a diverged run refuses to quote a number; a second run on a live
+case names the job; an adopted case without a `forceCoeffs` entry reports a
+residual-only verdict rather than an invented coefficient.
+
 ## 0.21.1 — 2026-09-04
 
 One change, and it is the one that lets Claude Desktop reach the two lanes
