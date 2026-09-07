@@ -14055,3 +14055,23 @@ names four authorities: Toray, Hexcel, Saint-Gobain Vetrotex and Rolled Alloys
 **Not done, and cheap when wanted:** commercially pure titanium (Grade 2) is a
 different card, and a GFRP card with measured transverse and shear values
 needs a laminate datasheet nobody has reached yet.
+
+### CP titanium Grade 2, and a family name that stopped meaning one grade (2026-09-07)
+
+Owner: *"add commercially pure titanium grade 2"*. `titanium_grade2` from the
+Rolled Alloys Titanium Grade 2/2H data sheet, `Specification: ASTM B265`:
+density 4 512 kg/m³ (0.163 lb/in³), E 105 000 N/mm² (15.2 × 10⁶ psi), **ν 0.32
+printed** — which the Ti-6Al-4V sheet does not give, so that card has no ν and
+this one does — and the B265 minima 276 yield / 345 tensile / 20% elongation.
+
+**Adding it made an existing alias dangerous.** `titanium` resolved silently to
+Ti-6Al-4V. The two grades sit at **3.15× apart in yield** (869 against 276
+N/mm²) at densities 2% apart, so a caller who wrote "titanium" meaning CP sheet
+would have been handed an alloy number three times too high, with nothing
+saying so. That is the `cfrp` ruling in a metal, so `titanium` and `ti` were
+dropped as Grade 5 aliases and the family refusal now fires and names both
+grades. `ti64`, `grade 5 titanium`, `cp titanium` and the rest still resolve.
+The family message was also generalised — it said "properties depend on the
+layup", which is true of CFRP and nonsense for a titanium grade.
+
+partkiln **900 passed / 2 skipped**, ruff clean, 17 cards.

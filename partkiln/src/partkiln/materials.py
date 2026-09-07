@@ -123,13 +123,14 @@ def resolve(name: str) -> str:
             return key
     family = [key for key in cards if key.startswith(f"{wanted}_")]
     if family:
-        # "cfrp" is a family, not a material: its stiffness spans an order of
-        # magnitude across layups, so picking one silently would answer a
-        # question the caller never asked.
+        # A family name is not a material. "cfrp" spans an order of magnitude in
+        # stiffness across layups; "titanium" spans 3.15x in yield between CP
+        # Grade 2 and Ti-6Al-4V. Picking one silently answers a question the
+        # caller never asked, so name them and let the caller choose.
         raise CommandError(
-            f"{name!r} is a family, not a material - its properties depend on the layup. "
-            f"Cards in it: {', '.join(sorted(family))}. Name one, or supply your own "
-            "laminate data.",
+            f"{name!r} names a family, not one material, and the cards in it differ enough "
+            f"that picking one would be a guess: {', '.join(sorted(family))}. Name the one "
+            "you mean.",
             code="pk_ref_ambiguous",
         )
     raise CommandError(

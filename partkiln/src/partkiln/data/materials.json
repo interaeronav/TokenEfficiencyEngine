@@ -719,12 +719,60 @@
    },
    "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only."
   },
+  "titanium_grade2": {
+   "family": "commercially pure titanium",
+   "designation": "Titanium Grade 2 (UNS R50400), annealed, ASTM B265",
+   "aliases": [
+    "cp titanium",
+    "cp ti",
+    "grade 2 titanium",
+    "ti grade 2",
+    "titanium grade 2"
+   ],
+   "properties": {
+    "density": {
+     "value": 4512,
+     "unit": "kg/m3",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); printed 0.163 lb/in3, converted at 27 679.905 kg/m3 per lb/in3",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 105000,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); printed 15.2 x 10^6 psi at 68 F",
+     "honesty": "datasheet"
+    },
+    "nu": {
+     "value": 0.32,
+     "unit": "-",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); Poisson Ratio 0.32, printed",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 276,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); ASTM B265 minimum 0.2% yield 40 ksi",
+     "honesty": "standard_value"
+    },
+    "tensile": {
+     "value": 345,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); ASTM B265 minimum ultimate tensile 50 ksi",
+     "honesty": "standard_value"
+    },
+    "elongation": {
+     "value": 20,
+     "unit": "%",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); ASTM B265 minimum elongation 20%",
+     "honesty": "standard_value"
+    }
+   },
+   "notes": "Unalloyed titanium: about a THIRD the yield of Ti-6Al-4V (276 against 869 N/mm2) at nearly the same density, so it is chosen for corrosion resistance, formability and weldability rather than strength - seawater, heat exchangers, pressure vessels. The same data sheet also covers Grade 2H, which is Grade 2 held to a higher 58 ksi minimum tensile with the same 40 ksi yield; that is a different column and would be a different card. Unlike the Ti-6Al-4V sheet, this one prints a Poisson ratio."
+  },
   "titanium_ti6al4v": {
    "family": "titanium alloy",
    "designation": "Ti-6Al-4V (Grade 5), annealed sheet & plate to AMS 4911",
    "aliases": [
-    "titanium",
-    "ti",
     "ti64",
     "ti-6al-4v",
     "grade 5 titanium",

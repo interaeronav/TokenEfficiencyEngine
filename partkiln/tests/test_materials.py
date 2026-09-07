@@ -198,8 +198,8 @@ def test_titanium_is_an_ordinary_isotropic_card() -> None:
     assert d["refuses"] == {}
     assert materials.property_value("titanium_ti6al4v", "E") == 115000
     assert materials.property_value("titanium_ti6al4v", "yield") == 869
-    assert materials.resolve("titanium") == "titanium_ti6al4v"
     assert materials.resolve("ti64") == "titanium_ti6al4v"
+    assert materials.resolve("grade 5 titanium") == "titanium_ti6al4v"
 
 
 def test_titanium_conversions_are_the_printed_imperial_values() -> None:
@@ -272,3 +272,37 @@ def test_glass_is_lighter_than_carbon_and_much_softer() -> None:
     carbon = materials.describe("cfrp_t300_ud")["values"]
     assert glass["density"] > carbon["density"]  # glass is HEAVIER per volume
     assert glass["E_0"] < carbon["E_0"] / 3  # and far softer along the fibres
+
+
+def test_commercially_pure_titanium_is_a_third_the_strength_at_the_same_weight() -> None:
+    """Why the two grades must not share a name: Grade 2 yields at 276 N/mm2
+    where Ti-6Al-4V yields at 869, a factor of 3.15, at densities 2% apart."""
+    cp = materials.describe("titanium_grade2")["values"]
+    alloy = materials.describe("titanium_ti6al4v")["values"]
+    assert cp["yield"] == 276
+    assert alloy["yield"] / cp["yield"] > 3
+    assert abs(cp["density"] - alloy["density"]) / alloy["density"] < 0.03
+    # printed here and NOT on the Ti-6Al-4V sheet, so it is served here only
+    assert cp["nu"] == 0.32
+    assert "nu" not in alloy
+
+
+def test_grade_2_values_are_the_astm_b265_minima_converted() -> None:
+    ksi, lb_in3 = 6.894757, 0.45359237 / 1.6387064e-5
+    d = materials.describe("titanium_grade2")
+    assert d["values"]["tensile"] == round(50 * ksi)  # B265 minimum 50 ksi
+    assert d["values"]["yield"] == round(40 * ksi)  # B265 minimum 40 ksi
+    assert d["values"]["density"] == round(0.163 * lb_in3)
+    assert d["honesty"]["yield"] == "standard_value"
+    assert d["honesty"]["nu"] == "datasheet"
+
+
+def test_a_bare_titanium_no_longer_silently_means_the_alloy() -> None:
+    """It used to resolve to Ti-6Al-4V. With two grades that differ 3.15x in
+    yield, a family name must refuse and name them - the cfrp ruling applied
+    to a metal."""
+    with pytest.raises(CommandError) as caught:
+        materials.resolve("titanium")
+    assert caught.value.code == "pk_ref_ambiguous"
+    assert "titanium_grade2" in str(caught.value)
+    assert "titanium_ti6al4v" in str(caught.value)
