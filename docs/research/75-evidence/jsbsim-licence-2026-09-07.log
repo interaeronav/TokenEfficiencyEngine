@@ -1,0 +1,44 @@
+=== the grant, from a source-file header (the operative text) ===
+
+ ------------- Copyright (C) 1999  Jon S. Berndt (jon@jsbsim.org) -------------
+
+ This program is free software; you can redistribute it and/or modify it under
+ the terms of the GNU Lesser General Public License as published by the Free
+ Software Foundation; either version 2 of the License, or (at your option) any
+ later version.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+
+=== the SAME repo, the Python CLI that the wheel installs as `jsbsim` ===
+    (packaged into the wheel as jsbsim/script.py -- read its grant, not COPYING)
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+
+=== and the C++ standalone binary, for contrast ===
+ This program is free software; you can redistribute it and/or modify it under
+ the terms of the GNU Lesser General Public License as published by the Free
+ Software Foundation; either version 2 of the License, or (at your option) any
+ later version.
+
+=== the licence file the repo ships ===
+COPYING      HTTP 200   Version 2.1, February 1999  
+LICENSE.txt  HTTP 404  -
+LICENSE      HTTP 404  -
+
+=== what PyPI declares, and the wheel matrix ===
+version            1.3.1
+license field      None
+license_expression None
+requires_python    >=3.10 | ['numpy>=1.20']
+classifier         License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)
+wheel platforms   
+   macosx_10_13_universal2                              x2
+   macosx_10_15_universal2                              x2
+   macosx_10_9_universal2                               x2
+   manylinux2014_x86_64.manylinux_2_17_x86_64           x8
+   sdist                                                x1
+   win_amd64                                            x8
