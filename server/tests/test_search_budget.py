@@ -72,10 +72,10 @@ tag carries check / drawing / image / size / document, so A68's witnesses were
 not displaced by name.
 
 RE-MEASURED 2026-09-07 (A73) at 198 tools, when `wt_open` joined and took a
-case with it - 53:
+case with it - 57:
 
-    limit 3   49/53      limit 5   53/53
-    limit 8   53/53      limit 10  53/53
+    limit 3   53/57      limit 5   57/57
+    limit 8   57/57      limit 10  57/57
 
 The four misses at 3 are the SAME four, at the same ranks, so a fifteenth
 wind-tunnel tool cost the corpus nothing and "open the case in paraview" finds
@@ -164,6 +164,12 @@ CASES = [
     ("flight dynamics from a polar", "fd_aircraft"),
     ("is jsbsim installed", "fd_probe"),
     ("fly the trimmed aeroplane", "fd_fly"),
+    # A76: the eng_* lane. Its words sit next to the llm_* tools', so these
+    # also check the two do not swallow each other.
+    ("which local model is actually running", "eng_scan"),
+    ("reconcile the engine registry against reality", "eng_reconcile"),
+    ("measure how fast this engine really is", "eng_audition"),
+    ("endpoint liveness by completion", "eng_ask"),
 ]
 
 
@@ -192,6 +198,7 @@ def registry():
     cli._attach_capture(app, root, store)
     cli._attach_pointcloud(app, root)
     cli._attach_flightdyn(app, root)
+    cli._attach_engines(app, root)
     cli._attach_windtunnel(app, root)
     cli._attach_pipeline(app, root)
     cli._attach_design(app, root)
@@ -253,7 +260,7 @@ def test_the_rebaselined_recall_table_holds(registry):
         for limit in (3, 5, 8, 10)
     }
     assert recall == {3: len(CASES) - 4, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
-    assert len(CASES) == 53  # 2026-09-07, a 203-tool registry (198 before the fd_ lane)
+    assert len(CASES) == 57  # 2026-09-07, a 209-tool registry (203 before the eng_ lane)
 
 
 def test_the_reply_stays_small(registry):

@@ -89,7 +89,7 @@ class _Lane:
         if not url or not model:
             raise TeeError(
                 "eng_needs_endpoint",
-                "eng_check needs url and model.",
+                "eng_ask needs url and model.",
                 fix="eng_scan lists what answers and what each endpoint serves.",
             )
         if self._is_paid(model):
@@ -172,6 +172,43 @@ class _Lane:
                 return True
         return False
 
+    def audition(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Measure an engine by making it do TEE's own work. A job, because a
+        sweep is minutes and a tool call never waits on one."""
+        from tee.engines import audition as aud
+
+        url = str(args.get("url") or self._llm_cfg().get("url") or "").rstrip("/")
+        model = str(args.get("model") or "")
+        engine = str(args.get("engine") or model or "unnamed")
+        if not url or not model:
+            raise TeeError(
+                "eng_needs_endpoint",
+                "eng_audition needs url and model.",
+                fix="eng_scan lists what answers and what each endpoint serves.",
+            )
+        if self._is_paid(model):
+            raise TeeError(
+                "eng_paid_refused",
+                f"{model!r} resolves to a profile marked paid = true.",
+                fix="Measuring a hosted model bills you to learn a number the "
+                "router is forbidden to use. Audition local engines only.",
+            )
+        cfg = self._llm_cfg()
+        samples = int(args.get("samples", aud.WARM_SAMPLES))
+
+        def work() -> dict[str, Any]:
+            return aud.audition(cfg, engine=engine, url=url, model=model, samples=samples)
+
+        jobs = getattr(self.app, "jobs", None)
+        if jobs is None:  # a test app without a job kernel measures inline
+            return {"row": work(), "note": "measured inline; no job kernel here"}
+        job_id = jobs.submit(f"eng_audition {engine}", work, qos="batch", engine="engine-audition")
+        return {
+            "job": job_id,
+            "engine": engine,
+            "next": "tee_job to collect, then eng_adopt to make it authoritative",
+        }
+
     def reconcile(self, args: dict[str, Any]) -> dict[str, Any]:
         llm_cfg = self._llm_cfg()
         out = table.reconcile(
@@ -245,8 +282,8 @@ def register_engine_tools(app, project_root: Path | str) -> None:
             ],
         ),
         (
-            "eng_check",
-            "Ask one endpoint for eight tokens and READ WHAT COMES BACK. A route can answer "
+            "eng_ask",
+            "Ask one endpoint for eight tokens and read what comes back. A route can answer "
             "HTTP 200 with empty content and a billed usage block; only the content tells "
             "the truth. Refuses a paid engine by name.",
             {
@@ -255,11 +292,35 @@ def register_engine_tools(app, project_root: Path | str) -> None:
                 "required": ["model"],
             },
             lane.check,
-            ["engine", "check", "liveness", "completion", "verify"],
+            ["engine", "endpoint", "liveness", "completion", "produces", "empty"],
             [
                 {
                     "summary": "does this route actually produce text",
                     "arguments": {"model": "claude-qwen-vl"},
+                }
+            ],
+        ),
+        (
+            "eng_audition",
+            "Measure an engine by making it do TEE's own chore, graded by that chore's own "
+            "validator: warm and cold latency, the token floor found by a descending sweep, "
+            "and whether it passes at all. A job. Refuses a paid engine.",
+            {
+                "type": "object",
+                "properties": {
+                    "url": _URL,
+                    "model": {"type": "string"},
+                    "engine": {"type": "string"},
+                    "samples": {"type": "integer"},
+                },
+                "required": ["model"],
+            },
+            lane.audition,
+            ["engine", "audition", "measure", "latency", "floor", "benchmark"],
+            [
+                {
+                    "summary": "measure this engine for real",
+                    "arguments": {"model": "mlx-community/Qwen3.8-27B-bf16", "engine": "q27b-bare"},
                 }
             ],
         ),
