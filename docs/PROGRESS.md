@@ -14003,11 +14003,25 @@ are still true of the tool, and they are why the lane checks the display, keeps
 two state kinds and reaches for `xvfb-run`) and the five rows a replacement
 would have to satisfy. Nothing was bent toward the search while it was open and
 nothing is unbent now — but the narrowing it caused would have cost this
-campaign both defects above, which is the argument for running the live tier
-rather than reasoning about it.
+campaign all three defects above, which is the argument for running the live
+tier rather than reasoning about it.
 
-**Still open:** the `.mcpb` bundle for 0.24.x is not built; the Mac has not seen
-`wt_open` (does ParaView 6.1 accept a 5.11-written state? does `open -a
-ParaView --args --state=` pass the flag through?) — doc 73's open questions 1
-and 2, and the only rows of this campaign that need a machine this container is
-not.
+**Suites at close:** hermetic `pytest -q` **1,869 passed / 38 skipped / 133
+deselected** in 2:39 (1,867 before, plus the two new hermetic tests);
+`make lint` clean over `src tests ../benchmarks`, 394 files formatted; the
+`cfd` tier `pytest -m cfd tests/test_windtunnel_live.py` **13 passed / 3
+skipped** in 13:50 over the file as it stood, and the sixth new test (the SU2
+`.vtu` state, added after that run had collected) passing on its own. The three
+skips are honest and named by the refusal that raises them: SU2 is not
+installed in this container, so its two tests skip with the download line the
+lane would have printed, and the apt `airFoil2D` tutorial is not at the path
+`TEE_WT_TUTORIAL` defaults to.
+CI green on both jobs — and red for twelve seconds first, on `uv sync
+--locked`, because `pyproject.toml`'s version moved to 0.24.1 without a
+re-lock. That is the second round in a row it has caught exactly that; the
+lock is part of a version bump, not a consequence of one.
+
+**Still open:** the Mac has not seen `wt_open` — does ParaView 6.1 accept a
+5.11-written state, and does `open -a ParaView --args --state=` pass the flag
+through? Doc 73's open questions 1 and 2, and the only rows of this campaign
+that need a machine this container is not.
