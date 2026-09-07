@@ -12,9 +12,12 @@ four lanes** (`blender`, `partkiln`, `seamkiln`, `fusion`; still no declared
 default, still 17 always-loaded tools — the instructions grew 1,583 → 1,666
 bytes against a 2,048-byte cap, and six `fu_*` virtual tools joined the long
 tail); **the version is 0.23.0**, because the wind-tunnel lane merged as
-0.22.0 while this was being cut; and PR #1 was marked ready for review. Fusion is a
-bridge lane, so on a machine with no Fusion running it reports itself
-disconnected and the other three lanes route exactly as before.
+0.22.0 while this was being cut; and PR #1 was taken out of draft, which the
+owner went one better on by merging it — 24 seconds before the push carrying
+the manifest change and the version cut, so those two arrive here as the
+follow-up rather than in that merge. Fusion is a bridge lane, so on a machine
+with no Fusion running it reports itself disconnected and the other three
+lanes route exactly as before.
 
 The rest of this entry is the work as it was written when unreleased.
 

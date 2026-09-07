@@ -2017,16 +2017,23 @@ readiness are the owner's (the script's P4) and were left open with their
 consequences written out. The session changed nothing on the default branch
 and did not install anything into Claude Desktop.
 
-**A claim about another branch is a claim, and this one did not survive
-measurement (2026-09-07).** The Mac session also left a fourth decision — two
-live-verified Fusion lanes at the same paths on two branches — and warned that
-0.22.0 was claimed twice. Checked against `origin` rather than against a local
-checkout, neither holds: no branch but this one carries a Fusion adapter, a
-bridge, a `test_fusion_*` file or any `fu_*` tool, and 0.22.0 is claimed once,
-by PR #2's wind tunnel. The fourth decision is **withdrawn**, and the version
-advice reduces to: this branch and PR #2 must not cut the same number. The
-rule this restates is the A65 law applied to repository state — a measurement
-outranks a declaration, and a branch you have not fetched is a declaration.
+**A claim about another branch is a claim — but so is "I fetched everything"
+(2026-09-07).** The Mac session left a fourth decision — two live-verified
+Fusion lanes at the same paths on two branches — and warned that 0.22.0 was
+claimed twice. Checked against `origin` rather than against a local checkout,
+neither claim holds *on any remote head*: no branch but this one carries a
+Fusion adapter, a bridge, a `test_fusion_*` file or any `fu_*` tool, and
+0.22.0 was claimed once, by PR #2's wind tunnel.
+
+On that measurement the fourth decision was **withdrawn — and the withdrawal
+was wrong.** The second lane existed in six unpushed commits on the owner's
+own machine, 3,069 lines at these same paths, so no fetch could ever have
+found it; the entry below records the owner deciding it. The measurement was
+sound and the inference from it was not, which sharpens the A65 law rather
+than repealing it: a branch you have not fetched is a declaration, *and the
+remote is not the whole state* — unpushed work on the machine you are working
+on is part of it too. What survives untouched is the version advice: this
+branch and PR #2 must not cut the same number.
 
 **Force-quitting a crashed application is cleanup, not driving its GUI.**
 Twice Fusion sat in its crash reporter after the segfault above; each time
@@ -2146,13 +2153,17 @@ one `tee-engine` line, the 204 packages resolving unchanged, which is the
 same shape as the base branch's own 0.21.1 re-lock. The CHANGELOG's
 Unreleased section becomes `## 0.23.0 — 2026-09-07`.
 
-**3. PR #1 is ready for review.** Out of draft. It merges cleanly against the
-base branch as of the merge commit of 2026-09-07, CI is green on the head,
-and the Fusion lane is verified live on Fusion 2704.1.53.
+**3. PR #1 is ready for review** — and the owner went further and **merged
+it**, at 2026-09-07T05:27:44Z on head `49a82f0`, both CI jobs green and the
+Fusion lane verified live on Fusion 2704.1.53. That merge beat the push
+carrying decisions 1 and 2 by 24 seconds, so the manifest change and the
+0.23.0 cut were not in it and land as the follow-up recorded in PROGRESS.
 
 The fourth question A71 raised — which of two Fusion lanes survives — was
-withdrawn rather than answered: there is only one, as the entry above
-records.
+withdrawn here on the strength of a remote measurement, and that withdrawal
+was **wrong**: the second lane was real, in six unpushed commits on the
+owner's machine, and the question was theirs to answer after all. They
+answered it in the entry below.
 
 ## Two Fusion lanes, one kept: the extras come across (2026-09-07, A71)
 
