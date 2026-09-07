@@ -12689,11 +12689,30 @@ next probe, with nothing in this session removing it. The lane degraded exactly
 as designed: `wt_probe_field` refused `wt_pvpython_missing` with the install
 line, the wake check reported itself `skipped` rather than failing, and the live
 pvpython test skipped by name. The owner then reinstalled — briefly **6.2.0-RC1
-alongside stable 6.1.1**, which is worth knowing for two reasons: the default
-glob `/Applications/ParaView-*.app` matches BOTH (it takes the first sorted, so
-6.1.1 wins) and the version regex reads `6.2.0` out of `6.2.0-RC1` without
-complaint. The RC was deleted at the owner's request; the lane resolves stable
-**6.1.1**, so **row M5 stands exactly as measured** and needs no revision.
+alongside stable 6.1.1** — and that pairing exposed a real defect in engine
+resolution, since fixed (`_install_rank`, tests in `test_windtunnel_tools.py`):
+
+`_binary` picked `sorted(glob(...), reverse=True)[0]` — the lexicographically
+LAST match. That is not a version comparison, and it failed two ways. It ranked
+**`ParaView-6.2.0-RC1` above stable `6.1.1`**, so during the window when both
+were installed the lane was resolving the *release candidate*; and it ranks
+`ParaView-6.1.1` above `ParaView-10.0.0`, so a major-version bump would have
+been silently ignored. A validation lane must not quietly certify against an RC.
+Resolution now prefers the newest **stable** install, reports the others in
+`extra.alternatives`, flags `extra.prerelease` when only a pre-release exists,
+and reads the version from the last path component that carries one (so
+`/opt/x86_64/paraview5.11` is 5.11, not 64). The `defaults` order stays primary,
+because the OpenFOAM search deliberately reads `/usr/lib/openfoam` first and
+`/usr/share/openfoam` last (row L1). An explicit `[windtunnel] pvpython = …`
+remains the authoritative pin.
+
+**A correction to this record:** an earlier version of this entry, and the PR
+comment that went with it, said the old rule "takes the first sorted, so 6.1.1
+wins". That was inferred, not measured, and it is wrong — `reverse=True` means
+the RC won. The wake numbers above are unaffected: they were re-measured after
+the RC was deleted, with `pvpython 6.1.1` printed beside them. The RC is gone at
+the owner's request, the lane resolves stable **6.1.1**, and **row M5 stands
+exactly as measured**.
 
 **Suites at close:** server `pytest -q` **1,627 passed / 20 skipped / 126
 deselected**; `cfd` tier **10 passed, 0 skipped** — the whole live tier, every

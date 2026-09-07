@@ -230,10 +230,49 @@ class Binary:
         return {"found": True, **asdict(self)}
 
 
+_PRERELEASE = re.compile(r"(?:rc|alpha|beta|dev|nightly|preview|snapshot)[-_.]?\d*$", re.I)
+_VERSION_TOKEN = re.compile(r"\d+(?:\.\d+)+|\d{2,}")
+
+
+def _install_rank(path: str) -> tuple[int, tuple[int, ...]]:
+    """Order two installs found by the SAME glob: stable before pre-release,
+    then highest version.
+
+    Plain reverse-lexicographic ordering (what this used to do) gets both
+    wrong. It ranks `ParaView-6.1.1` above `ParaView-10.0.0`, because "6"
+    sorts after "1" - so a major-version bump would be silently ignored -
+    and it ranks a release candidate above the older stable release beside
+    it, which is how a validation lane ends up quietly certifying against an
+    RC. Measured on this machine 2026-09-07 with 6.1.1 and 6.2.0-RC1 both
+    installed: the old rule chose the RC.
+
+    The version comes from the LAST path component that carries one, so
+    `/opt/x86_64/paraview5.11/bin/pvpython` reads 5.11 and not 64.
+    """
+    parts = [p for p in Path(path).parts if p not in ("/", "")]
+    version: tuple[int, ...] = (0,)
+    stable = 1
+    for part in reversed(parts):
+        found = _VERSION_TOKEN.findall(part)
+        if not found:
+            continue
+        version = max(tuple(int(n) for n in tok.split(".")) for tok in found)
+        stable = 0 if _PRERELEASE.search(part.rsplit(".", 1)[0]) else 1
+        break
+    return (stable, version)
+
+
 def _binary(
     cfg: dict[str, Any], key: str, exe: str, defaults: list[str], install_fix: str
 ) -> Binary:
-    """Explicit config -> known locations -> PATH; a wrong explicit path refuses."""
+    """Explicit config -> known locations -> PATH; a wrong explicit path refuses.
+
+    Within one known location the newest STABLE install wins, and every other
+    match travels back in `extra["alternatives"]` so an ambiguous machine is
+    visible rather than silent. The order of `defaults` is still primary: the
+    OpenFOAM search deliberately reads /usr/lib/openfoam first and
+    /usr/share/openfoam last (P0a row L1), and ranking must not disturb that.
+    """
     configured = str(cfg.get(key) or "")
     if configured:
         p = Path(configured).expanduser()
@@ -247,9 +286,17 @@ def _binary(
             fix="Fix the path or remove the key to use the known locations / PATH.",
         )
     for cand in defaults:
-        for path in sorted(glob.glob(cand), reverse=True):
-            if Path(path).is_file():
-                return Binary(exe, path, via="default")
+        matches = [p for p in glob.glob(cand) if Path(p).is_file()]
+        if not matches:
+            continue
+        ranked = sorted(matches, key=_install_rank, reverse=True)
+        chosen = ranked[0]
+        extra: dict[str, Any] = {}
+        if len(ranked) > 1:
+            extra["alternatives"] = ranked[1:8]
+        if _install_rank(chosen)[0] == 0:
+            extra["prerelease"] = True
+        return Binary(exe, chosen, via="default", extra=extra)
     found = shutil.which(exe)
     if found:
         return Binary(exe, found, via="PATH")

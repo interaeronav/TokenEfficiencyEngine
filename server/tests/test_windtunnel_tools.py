@@ -156,6 +156,54 @@ def test_probe_reports_absent_engines_with_their_install_line(tmp_path, monkeypa
         bare.shutdown()
 
 
+def test_two_installs_of_one_engine_pick_the_newest_stable_and_name_the_rest(tmp_path, monkeypatch):
+    """A machine with several ParaViews must not certify against whichever
+    one sorts last. Reverse-lexicographic ordering ranked 6.2.0-RC1 above
+    6.1.1 (measured 2026-09-07, both installed) and would rank 6.1.1 above
+    10.0.0, so a major-version bump vanished and a release candidate could
+    quietly become the validation engine.
+    """
+    from tee.windtunnel import engines
+
+    apps = tmp_path / "Applications"
+    for name in ("ParaView-6.1.1.app", "ParaView-6.2.0-RC1.app", "ParaView-10.0.0.app"):
+        exe = apps / name / "Contents" / "bin" / "pvpython"
+        exe.parent.mkdir(parents=True)
+        exe.write_text("#!/bin/sh\n")
+    pattern = str(apps / "ParaView-*.app" / "Contents" / "bin" / "pvpython")
+    b = engines._binary({}, "pvpython", "pvpython", [pattern], "install line")
+    assert "ParaView-10.0.0.app" in b.path, (
+        "10.0.0 outranks 6.x: a version compare, not a string one"
+    )
+    assert b.extra.get("prerelease") is None  # the chosen one is stable
+    assert len(b.extra["alternatives"]) == 2  # the ambiguity is reported, not hidden
+
+    # with only a release candidate present it is still used - and says so
+    (apps / "ParaView-10.0.0.app").rename(apps / "keep-10.0.0")
+    (apps / "ParaView-6.1.1.app").rename(apps / "keep-6.1.1")
+    rc = engines._binary({}, "pvpython", "pvpython", [pattern], "install line")
+    assert "RC1" in rc.path and rc.extra["prerelease"] is True
+
+    # an explicit config pin always wins, whatever is installed
+    (apps / "keep-6.1.1").rename(apps / "ParaView-6.1.1.app")
+    (apps / "keep-10.0.0").rename(apps / "ParaView-10.0.0.app")
+    pinned = str(apps / "ParaView-6.1.1.app" / "Contents" / "bin" / "pvpython")
+    got = engines._binary({"pvpython": pinned}, "pvpython", "pvpython", [pattern], "fix")
+    assert got.path == pinned and got.via == "config"
+
+
+def test_the_install_rank_reads_the_version_from_the_right_path_component():
+    from tee.windtunnel.engines import _install_rank
+
+    # not the 64 in x86_64
+    assert _install_rank("/opt/x86_64/paraview5.11/bin/pvpython") == (1, (5, 11))
+    assert _install_rank("/usr/lib/openfoam/openfoam2606/etc/bashrc") == (1, (2606,))
+    assert _install_rank("/usr/bin/pvpython") == (1, (0,))  # unversioned sorts lowest
+    stable = _install_rank("/Applications/ParaView-6.2.0.app/Contents/bin/pvpython")
+    cand = _install_rank("/Applications/ParaView-6.2.0-RC1.app/Contents/bin/pvpython")
+    assert stable > cand, "a release beats its own release candidate"
+
+
 def test_conditions_tool_and_its_refusal(app):
     c = call(app, "wt_conditions", V_mps=45, L_m=1.2, alt_m=1500)
     assert c["regime"] == "incompressible" and 3.2e6 < c["Re"] < 3.4e6

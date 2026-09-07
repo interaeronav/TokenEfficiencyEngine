@@ -108,6 +108,24 @@ max_wall_s = 14400                              # a solver is terminated past th
 An explicit path that is not the engine refuses loudly (`wt_bad_config`); it
 never falls through to whatever PATH holds.
 
+### Pinning a version when several are installed
+
+**A config path is the pin.** Set `[windtunnel] pvpython = "/Applications/ParaView-6.1.1.app/Contents/bin/pvpython"`
+(or the equivalent key for any engine) and that install is used, full stop —
+`via: "config"` in `wt_probe` says so.
+
+Without a pin, TEE ranks the matches of each known location and takes the
+**newest stable** one, reporting the rest in `extra.alternatives` so an
+ambiguous machine is visible rather than silent. If the only install found is a
+pre-release, it is used and flagged `extra.prerelease: true`.
+
+This ranking is a version comparison, not a string one, which matters more than
+it sounds: the previous reverse-lexicographic rule ranked `ParaView-6.1.1` above
+`ParaView-10.0.0` (because "6" sorts after "1", so a major-version bump would
+have been silently ignored) and ranked `ParaView-6.2.0-RC1` above the stable
+`6.1.1` beside it — measured on the owner's Mac, 2026-09-07, with both installed.
+**A validation lane must not quietly certify against a release candidate.**
+
 ## The machine ledger
 
 Every solve and every snappyHexMesh is a job on the machine ledger (`cfd-solve`
