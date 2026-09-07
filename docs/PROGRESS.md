@@ -14133,6 +14133,15 @@ a pass, and both in rows only a Mac could reach:
    the pipe now. That is four defects this script has had, all of the same
    family: **a check that cannot fail is not a check.**
 
+**The `cfd` tier on this Mac: 17 passed, 0 skipped, 15:51** — the whole file,
+against four live engines. The container ran **14 passed / 3 skipped**; the
+three extra passes are exactly the three it skipped and named: SU2 is
+installed here (its two tests run) and OpenFOAM v2606 ships the `airFoil2D`
+tutorial the apt path did not have. **Nothing is skipped on this machine**,
+which is the first time the tier has run whole anywhere — and it is the
+strongest available check on the handoff, because every `wt_open` test ran
+against ParaView 6.1.1 rather than the 5.11.2 the campaign was built on.
+
 
 ### CFRP: a woven card, and a quasi-isotropic one that had to be computed (2026-09-07)
 
