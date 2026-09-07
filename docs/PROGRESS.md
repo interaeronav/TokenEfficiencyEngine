@@ -12412,6 +12412,125 @@ ledger the 15 GB container refuses every job engine under the 16 GB reserve; TEE
        declares capacity the way the kernel's own tests do (the setup doc says so)
 ```
 
+### A72 P0b — the Mac rows (2026-09-06, owner session on the Mac)
+
+Measured on the owner's Mac (Darwin 26.6.2 / build 25G83, Apple silicon, 18 cores,
+128 GB) from the campaign branch at `a05e4d2`, worktree `~/TokenEfficiencyEngine-a72`,
+server venv 3.11.15 through `uv run --no-sync`. Every engine the §M checklist named was
+installed in this session with the exact lines from `docs/setup-windtunnel.md` (owner
+approved each), and the script's own banner-filtered evidence is committed as
+`docs/research/72-evidence/p0b-mac-2026-09-06.log`. **A Mac number never overwrites the
+Linux row** — the container rows above stand as measured there.
+
+```
+M1   ROUTE 'entry': /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam <app> args
+     WM_PROJECT_VERSION=v2606, WM_PROJECT_DIR=/Volumes/OpenFOAM-v2606 (its own read-only APFS
+     volume); simpleFoam is darwin64ClangDPInt32Opt, Mach-O arm64 — NATIVE, no Rosetta.
+     A case dir under $HOME is writable from inside the entry environment (cases never live
+     on the read-only volume). mpirun is the app's own: /Volumes/OpenFOAM-v2606/env/bin/mpirun,
+     Open MPI 5.0.10; `mpirun -np 2` inside the app answers. No root, so no mpi_root_override:
+     that Linux row is a container artefact and stays one.
+M2   L2 on v2606: the same TEE O-mesh 200x80 = 16,000 cells, kOmegaSST, 30 m/s, 4 deg:
+     197 iterations (the same count as Linux), 6.8 s through the registry, verdict converged.
+     Cl 0.435564 / Cd 0.010913 / Cm 0.000558 — Cl agrees with the container's 0.4356 to 5 s.f.
+     on a different compiler, OS and CPU architecture.
+     k_openfoam(Mac, 1 core) = 2.157e-06 s per cell-iteration-core  (Linux row: 2.36e-06)
+M3   L3 on v2606: postProcessing/forceCoeffs1/0/coefficient.dat, and the header carries the
+     REFERENCE VALUES as their own comment lines ("# Aref : 1.00000000e-01",
+     "# CofR : (2.50000000e-01 0 0)") ahead of the column line. The header-driven reader read
+     it unchanged — v1912, v2606-Linux and v2606-macOS all parse through the same code path.
+M4   L4 on v2606: cores > 1 SHIPS on the Mac. The parallel argv is the entry script wrapping
+     the app's own mpirun ([entry, bash, -c, "mpirun -np 4 simpleFoam -parallel -case <dir>"]);
+     decomposePar really decomposes (4 processor* dirs) and reconstructPar puts it back.
+     Back-to-back on the 16,000-cell case: 1 core 5.9 s, 4 cores 4.9 s. In the scripted
+     1/2/4 sweep all three read 6.8 s — at this size decomposePar + reconstructPar eat the
+     gain, so the recorded k rises linearly with cores (2.157/4.315/8.629e-06). The Linux
+     7.8/6.8/4.8 s shape is NOT reproduced here and the cost model's k stays per-platform.
+M4b  SU2 8.4.0 on macOS: the release zip is a NESTED zip (SU2-v8.4.0-macos64.zip contains
+     macos64.zip) and the binary is Mach-O **x86_64 — it runs under Rosetta 2**, recorded,
+     not hidden. There is no arm64 SU2 release asset at 8.4.0. Version line: SU2 v8.4.0
+     "Harrier". L5 through the registry on TEE's 10,000-quad O-mesh: 1,279 iterations, 40.5 s
+     (the container needed 80 s), CL 0.334478 CD 0.019922 — the same iteration count as Linux
+     to the digit, so Rosetta costs time, not answers.
+M5   ParaView 6.1.1 arm64 (/Applications/ParaView-6.1.1.app/Contents/bin/pvpython): offscreen
+     rendering WORKS with no display and no xvfb — rc=0, a 4,608-byte PNG. The apt build's
+     segfault (L6) is an apt-build problem, not a ParaView one; the Mac needs no shim.
+M6   OpenVSP 3.51.3 macOS-14 ARM64 bundle placed at /Applications/OpenVSP-3.51.3:
+     vspscript is Mach-O arm64 (native), `vspaero` beside it is VSPAERO v.7.2.2
+     (compiled 2026-08-17). L7 repeated through the registry: the AR 10 wing sweep
+     alpha 0/2/4/6 gives CL_alpha 4.9037/rad — the container measured 4.905/rad, so the
+     lifting-line delta (-5.5 %) is the method's, not the platform's; e 0.951-0.963.
+M7   the bundle's Python API: `import openvsp` under the Desktop extension's 3.13 fails with
+     AttributeError: module 'openvsp_config' has no attribute 'LOAD_GRAPHICS'. Recorded,
+     never used — `vspscript` stays the route and the hygiene test still bans the import.
+M8   L13 on v2606 — the app's OWN airFoil2D tutorial, adopted and run: simpleFoam,
+     SpalartAllmaras, patches inlet/outlet/walls/frontAndBack, 10,720 cells, checkMesh's
+     single "Faces not in upper triangular order" tolerated as on Linux. With
+     forces={"patches": ["walls"]} the chord is MEASURED from the wall patch (lRef 35.0492 m,
+     Aref 1.75246): Cl 0.970359, Cd 0.029414, Cm -0.014378, converged in 313 iterations, 3.0 s.
+     **Cl 0.970 matches the container's 0.970 on a differently-shipped copy of the same case.**
+     Three defects had to be fixed first — see below; the tutorial itself is never touched.
+C1   FreeCAD 1.1 + CfdOF 1.37.3 (installed this session from github.com/jaheyns/CfdOF into
+     ~/Library/Application Support/FreeCAD/v1-1/Mod). The headless import WORKS from cwd /:
+     `FreeCAD.app/Contents/MacOS/FreeCAD -c 'import CfdOF'` resolves it. Two facts the probe
+     had wrong: FreeCAD 1.1 uses a VERSIONED config dir (v1-1/Mod, not Mod) and the macOS
+     bundle ships NO FreeCADCmd — the console route is the main binary with -c, which
+     re-execs Resources/bin/freecad. p0-measure.sh now knows both.
+C2   OPEN: the RPC route needs the FreeCAD GUI up with TEE's bridge; not run this session.
+C3   OPEN: needs a case actually written by the CfdOF workbench in the GUI, then adopted.
+S1   SimFlow, from the owner in a browser (2026-09-06): full simulation engine, 200,000 mesh
+     nodes, 1 CPU for meshing and computing, no signup, no credit card, no time limit.
+     Disposition unchanged and now sourced — see doc 72 §2.
+R3   OPEN by owner decision: Dennis & Chang 1970 (JFM 42, 471-489) and Fornberg 1980
+     (JFM 98, 819-855) are paywalled to everything but a browser (Cambridge Core answers
+     HTTP 500 to a headless fetch; no author copy on colorado.edu). A secondary source
+     found and NOT adopted: Gautier, Biau & Lamballais, arXiv:1310.6641 Table 1 quotes them
+     at 2 d.p. (1.52 / 1.50) with its own reference solution CD 1.49, Lw/D 2.24.
+     `cylinder_re40` keeps verified=None and `wt_verify` still refuses it by name.
+R4   CLOSED: the NASA TMR moved. turbmodels.larc.nasa.gov 301s to a nasa.gov landing page
+     that points at https://tmbwg.github.io/turbmodels/. Its flatplate_sst.html and the data
+     file FlatPlate/SST/cf_plate_sstv.dat give, at M 0.2 / Re 5e6 on the 545x385 grid:
+     Cf = 2.690853551e-03 at x = 0.9700840712 m (CFL3D); FUN3D reads 2.690546447e-03 at the
+     same x. Pasted from the file, not typed. verify.REFERENCES["flatplate"]["verified"] now
+     carries that URL and date.
+L12  (the container's open row) STILL OPEN: LLM contention was not measured this session.
+cfd  the real-binary tier on four live engines: `pytest -q -m cfd tests/test_windtunnel_live.py`
+     -> 9 passed in 136 s.
+```
+
+**Four defects the Mac found, all fixed on this branch before the rows above were re-measured**
+(the container never saw them because Linux happened to win every race and ships its tutorials
+differently):
+
+1. `pid_alive` read `/proc` to see through a zombie, and macOS has no `/proc`, so a reaped-but-
+   unwaited solver read as alive; `kill_process_group`'s closing `killpg(SIGKILL)` then crashed
+   with **EPERM**, which is what macOS answers for a group whose every member is a zombie
+   (Linux answers ESRCH). `pid_alive` now asks `ps -o stat=` where there is no `/proc`, and the
+   SIGKILL leg treats EPERM as a verdict for the aliveness check. (`255d4e6`)
+2. `JobManager.cancel` drops a running worker's result by design, so the worker finishes its
+   harvest in the background — and a reader right after cancel raced it on three surfaces: the
+   run record still said `running`, the machine ledger still held the job (deferring LLM engine
+   swaps for a solver already dead), and `wt_result allow_partial` labelled a cancelled run
+   `running`. `on_cancel` now writes the cancelled state and releases the ledger row itself
+   (`release_job` is an idempotent pop; the worker's `finally` stays the backstop), and the
+   partial read treats the store's terminal state as authoritative. (`5e4208a`)
+3. The same airFoil2D tutorial ships three ways, and the app's way broke every adoption
+   assumption: mesh and fields as `constant/polyMesh.orig` + `0.orig` (Allrun's `restore0Dir`
+   convention), the polyMesh files **gzipped** (OpenFOAM reads `.gz` natively; TEE's mesh check,
+   patch reader and mesh hash did not), and a `controlDict` that already carries a `functions`
+   block (`momErr`), which the `forces=` injector refused outright. Adoption now materialises
+   the `.orig` pieces and gunzips the mesh **inside TEE's copy only**, and `add_functions`
+   merges the forceCoeffs entry after the existing block's opening brace instead of refusing —
+   dictionary entries are order-insensitive. (`fe34b39`)
+4. `wt_verify` treated every verified reference as runnable, so verifying the flat plate (R4)
+   made `case=all` crash on a case whose runner is not built. `_RUNNABLE` now names the two
+   built runners; `all` reports the third under `skipped_unimplemented` and naming it directly
+   still refuses. An open gap stays a gap. (`a05e4d2`)
+
+**Suites at close:** server `uv run --no-sync pytest -q` **1,626 passed / 21 skipped / 125
+deselected**; the `cfd` tier **9 passed** on four live engines; `ruff check` clean and 363 files
+formatted. Surface untouched: this session added no tool.
+
 ### A72 P0c — the licence gate and the ruling (2026-09-06)
 
 `server/tests/test_windtunnel_licences.py` (7 tests): a fresh-interpreter import

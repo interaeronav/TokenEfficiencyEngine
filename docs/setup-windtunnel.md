@@ -42,22 +42,46 @@ last for that reason.
 `_CONFIRM` twin for that process only, and the run record says
 `mpi_root_override`. A workstation never sees this.
 
-### macOS (Apple silicon) — an owner-session checklist, not measured numbers
+### macOS (Apple silicon; measured 2026-09-06 on Darwin 26.6.2, 18 cores / 128 GB)
+
+Every line below was run in that session; the evidence is
+`docs/research/72-evidence/p0b-mac-2026-09-06.log` and the PROGRESS block
+"A72 P0b". All four engines are found with **no `[windtunnel]` config at all** —
+the default search paths cover each install location.
 
 ```bash
-brew install gerlero/openfoam/openfoam          # OpenFOAM-v2606.app; the entry script is
-#   /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam and TEE composes
-#   `<entry> <app> args` for it; cases live on the normal filesystem
-# SU2: github.com/su2code/SU2/releases -> the macOS zip; set [windtunnel] su2
-# OpenVSP: openvsp.org/download.php -> the macOS-14 ARM64 bundle (pinned to Python 3.11 or 3.13);
-#   set [windtunnel] openvsp = "<its folder>" (TEE uses vspscript, never its Python)
-# ParaView 6.1.1: paraview.org/download -> the arm64 dmg;
-#   set [windtunnel] pvpython = "/Applications/ParaView-6.1.1.app/Contents/bin/pvpython"
+# OpenFOAM v2606 — a cask, ~1 GB, installs /Applications/OpenFOAM-v2606.app
+brew install gerlero/openfoam/openfoam
+
+# SU2 8.4.0 — github.com/su2code/SU2/releases -> SU2-v8.4.0-macos64.zip (21 MB).
+#   It is a NESTED zip: unpack it, then unpack the macos64.zip inside it, so that
+#   ~/SU2/bin/SU2_CFD exists (or export SU2_RUN=<its bin dir>).
+#   chmod +x bin/* and clear the quarantine bit: xattr -dr com.apple.quarantine ~/SU2/bin
+
+# OpenVSP 3.51.3 — openvsp.org/download.php -> the macOS-14 ARM64 bundle (61 MB);
+#   place the unpacked folder as /Applications/OpenVSP-3.51.3 so /Applications/OpenVSP*/
+#   matches, and clear its quarantine bit. TEE uses vspscript, never its Python.
+
+# ParaView 6.1.1 — paraview.org/download -> ParaView-6.1.1-MPI-OSX11.0-Python3.12-arm64.dmg
+#   (489 MB; the dmg carries a click-through licence). Copy ParaView-6.1.1.app into
+#   /Applications and clear its quarantine bit.
 ```
 
-The Mac rows M1–M7 of `CLAUDE_A72_SCRIPT.md` §M are the measurements still
-owed there (invocation form, goldens on v2606, SU2 arm64 vs Rosetta, ParaView
-offscreen, the OpenVSP bundle paths).
+**What the Mac does differently from Linux** (each measured, none inferred):
+
+| | macOS v2606 | Linux (the container rows) |
+| --- | --- | --- |
+| OpenFOAM route | `entry`: `/Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam <app> args`; binaries live on a **read-only** APFS volume `/Volumes/OpenFOAM-v2606`, cases on the normal filesystem | `bashrc`: source `etc/bashrc`, then exec |
+| architecture | OpenFOAM, OpenVSP and ParaView **native arm64**; **SU2 is x86_64 and runs under Rosetta 2** (no arm64 asset at 8.4.0) — it costs time, not answers (same iteration count, 40.5 s vs the container's 80 s) | x86_64 throughout |
+| `cores > 1` | ships: the app's own `mpirun` (Open MPI 5.0.10) inside the entry environment; `decomposePar` writes real `processor*` dirs. **No root, so no `mpi_root_override`** | ships; Open MPI refuses root, hence the override |
+| `k_openfoam` | **2.157e-06** s per cell-iteration-core | 2.36e-06 |
+| pvpython offscreen | **works with no display and no xvfb** | the apt build segfaults; needs `xvfb-run` |
+| tutorials | the app ships `airFoil2D` with `constant/polyMesh.orig` + `0.orig`, the mesh **gzipped**, and a `controlDict` that already has a `functions` block — adoption materialises and gunzips inside TEE's copy and merges `forceCoeffs` into the existing block | the apt copy ships the mesh and `0/` live, with no `functions` entry |
+
+FreeCAD + CfdOF (optional, rows C1–C3): CfdOF **1.37.3** imports headlessly via
+`FreeCAD.app/Contents/MacOS/FreeCAD -c`. Note that FreeCAD 1.1 keeps add-ons in a
+**versioned** config dir (`~/Library/Application Support/FreeCAD/v1-1/Mod`) and its
+macOS bundle ships **no `FreeCADCmd`** — the main binary with `-c` is the console route.
 
 ## Serve
 

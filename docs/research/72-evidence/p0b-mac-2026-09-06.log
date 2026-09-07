@@ -1,0 +1,104 @@
+
+=== SYS  (2026-09-06, Mac.home.local, Darwin arm64)
+ProductName:		macOS ProductVersion:		26.6.2 BuildVersion:		25G83 
+cores: 18  ram_gb: 128
+TEE_MACHINE_TOTAL_GB=128  (the ledger keeps a 16 GB reserve; a solve refused with job_refused_admission needs this set to the real total)
+repo: /Users/john/TokenEfficiencyEngine-a72  branch: claude/wind-tunnel-aerodynamic-integration-hcsa7u  head: a05e4d2
+uv: /opt/homebrew/bin/uv
+server venv python: docs/research/72-evidence/p0-measure.sh: line 50: /Users/john/TokenEfficiencyEngine-a72/server/.venv/bin/python: No such file or directory
+no server/.venv - run uv sync in server/
+desktop extension python: Python 3.13.9
+
+=== M1  OpenFOAM app: the entry-script route, a case on the normal filesystem, mpirun inside the app
+entry script: /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam
+WM_PROJECT_VERSION=v2606
+WM_PROJECT_DIR=/Volumes/OpenFOAM-v2606
+FOAM_TUTORIALS=/Volumes/OpenFOAM-v2606/tutorials
+simpleFoam: /Volumes/OpenFOAM-v2606/platforms/darwin64ClangDPInt32Opt/bin/simpleFoam
+arch: Mach-O 64-bit executable arm64
+mpirun: /Volumes/OpenFOAM-v2606/env/bin/mpirun
+mpirun (Open MPI) 5.0.10
+volume: /dev/disk5s1 on /Volumes/OpenFOAM-v2606 (apfs, local, nodev, nosuid, read-only, journaled, noowners, mounted by john)
+a case dir under $HOME is writable from inside the entry environment
+mpirun -np 2 inside the app -> Mac.home.local 
+M1 = route kind 'entry' (TEE composes: /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam <app> <args>)
+
+=== PROBE  tee doctor + wt_probe through the registry (version probes only)
+OK   partkiln: mode sidecar - /Users/john/TEE/.tee/sidecars/partkiln/bin/python python 3.11.15 with OCCT 7.9.3; server python 3.11.15
+OK   windtunnel: openfoam v2606, su2 8.4.0, vspaero 3.51.3, pvpython 6.1.1
+OK   kb: 402 files / 38 domains at /Users/john/TokenEfficiencyEngine-a72/knowledge-base
+OK   web: tee_web_lookup ready; 0 cached page(s)
+OK   state: 0.5 MB in .tee/ (kb 0.5 MB); web cache capped 50 MB / 14 d
+OK   fleet extras: 7 group(s) installed: assets, extract, medimg, pdf, pointcloud, quant, solve (cad lives in its own sidecar by design)
+WARN senses: vision down (qvl, 17.0 GB, 7.5s measured); audio UP (faster-whisper, 0.5 GB, 0.62s measured)
+     fix: vision: point [senses] vision_url at any OpenAI-style endpoint serving a vision model (or set TEE_LOCAL_VLM_URL). audio: uv pip install 'tee-engine[extract]'.
+WARN project root: /Users/john/TokenEfficiencyEngine-a72/server has no grants (none found); reads work, 1 mutation tier(s) denied: exec-code
+     fix: launch with --project <the granted project>, or add a [trust] grants line to /Users/john/TokenEfficiencyEngine-a72/server/.tee/config.toml
+wt_probe openfoam: found=True version=v2606 via=default /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam 
+wt_probe su2: found=True version=8.4.0 via=default /Users/john/SU2/bin/SU2_CFD 
+wt_probe vspaero: found=True version=3.51.3 via=default /Applications/OpenVSP-3.51.3/vspscript 
+wt_probe pvpython: found=True version=6.1.1 via=default /Applications/ParaView-6.1.1.app/Contents/bin/pvpython 
+wt_probe machine: {'platform': 'Darwin', 'cores': 18, 'extra': {'meshio': False}, 'probed_at': '2026-09-06T22:51:55'}
+
+=== M2-M3  L2 / L3 / L4 on v2606: TEE's NACA 0012 O-mesh, kOmegaSST, 1 / 2 / 4 cores (RUN_SOLVES=1)
+case wt_20899f6e1e openfoam {"chosen": "rans", "reason": "2-D viscous, incompressible: simpleFoam kOmegaSST on the O-mesh, minutes"}
+mesh {'cells': 16000, 'points': 32400, 'kind': 'omesh_polymesh', 'first_cell_m': 2.415e-05, 'wall_s': 0.15} checkMesh ok: False
+L2/L4 cores=1 {"state": "done", "wall_s": 6.8, "iters": 197, "cl": 0.435564, "cd": 0.010913, "cm": 0.000558, "verdict": "converged", "k_openfoam_s_per_cell_iter_core": 2.1574e-06, "error": ""}
+L2/L4 cores=2 {"state": "done", "wall_s": 6.8, "iters": 197, "cl": 0.435549, "cd": 0.010914, "cm": 0.00056, "verdict": "converged", "k_openfoam_s_per_cell_iter_core": 4.3147e-06, "error": ""}
+L2/L4 cores=4 {"state": "done", "wall_s": 6.8, "iters": 197, "cl": 0.43553, "cd": 0.010914, "cm": 0.000563, "verdict": "converged", "k_openfoam_s_per_cell_iter_core": 8.6294e-06, "error": ""}
+run record: engine_version v2606 | argv[:3] ['/Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam', 'bash', '-c'] | mpi_root_override None
+L3 postProcessing/forceCoeffs1/0/coefficient.dat header: ['# Aref          : 1.00000000e-01', '# CofR          : (2.50000000e-01 0.00000000e+00 0.00000000e+00)', '#']
+
+=== M4  SU2: binary architecture (arm64 vs Rosetta) and the L5 Euler case (RUN_SOLVES=1)
+SU2_CFD: /Users/john/SU2/bin/SU2_CFD
+arch: Mach-O 64-bit executable x86_64   (an x86_64 binary on Apple silicon runs under Rosetta - record it, do not hide it)
+version line: SU2 v8.4.0 "Harrier", The Open-Source CFD Code
+wt_case su2: 770 chars ~192 tok :: {"case_id": "wt_f33175565e", "kind": "airfoil2d", "engine": "su2", "fidelity": {"chosen": "euler", "reason": "compressible inviscid: wave drag and lift in minutes, no viscous drag"}, "state": "created", "conditions": {"V": 272.2352, "mach": 0.8, "Re": 18637073.252976637, "q_Pa": 45393.6, "alt_m": 0.0, "aoa_deg": 1.25, "regime": "transonic"}, "refs": {"Sref": 1.0, "cref": 1.0, "bref": 1.0}, "geometry": {"kind": "airfoil2d", "name": "NACA 0012", "properties": {"chord": 1.0, "max_thickness": 0.12000565465164366, "max_thickness_x": 0.3, "max_camber": 0.0, "max_camber_x": 0.0, "points": 200.0}, "da
+wt_mesh su2: 451 chars ~112 tok :: {"case_id": "wt_f33175565e", "kind": "omesh_su2", "cells": 10000, "points": 10200, "ni": 200, "nj": 50, "growth": 1.1586, "first_cell_c": 0.005, "farfield_c": 50.0, "min_jacobian": 7.908405681242471e-06, "su2_file": "/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/wt_smoke_o9w_fesm/.tee/windtunnel/cases/wt_f33175565e/su2/mesh.su2", "bytes": 624588, "wall_s": 0.01, "mesh_hash": "57f05fc35976c7c9", "notes": [], "ok": true, "next": "wt_run"}
+wt_run su2: 390 chars ~97 tok :: {"job": "job1", "case_id": "wt_f33175565e", "run_id": "run_001", "run_ids": ["run_001"], "engine": "cfd-solve", "est": {"wall_s": 91.5, "footprint_gb": 0.13, "measured_on": "2026-09-06 Linux x86_64 container, 1 core"}, "cells": 10000, "iters": 1500, "points": 1, "note": "poll tee_job for the result; wt_status for residuals and coefficients while it runs; tee_job cancel kills the solver"}
+su2 result: 591 chars ~147 tok :: {"cl": 0.334478, "cd": 0.019922, "verdict": {"iters_used": 1279, "notes": [], "residual_drop_orders": 6.82, "stationarity_pct": 0.0, "scatter_pct": 0.0, "state": "converged"}, "uncertainty": {"trust": "indicative", "label": "lift slope, pressure distribution and trends are usable; drag is not absolute (no viscous drag from a panel or Euler method; RANS without a wall-spacing check)", "cite": "AIAA Drag Prediction Workshop summaries (Vassberg et al., AIAA 2010-4547) and the High-Lift Prediction Workshop summaries: RANS is comparative, not absolute"}, "wall_s": 40.5, "iters_used": 1279}
+project /var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/wt_smoke_o9w_fesm
+
+=== M5  ParaView pvpython: version and an offscreen render with no display
+pvpython: /Applications/ParaView-6.1.1.app/Contents/bin/pvpython
+version: paraview version 6.1.1
+
+png bytes 4608
+offscreen render rc=0  png: 4608 bytes
+
+=== M6-M7  OpenVSP: bundle paths, architecture, vspaero, the Python API from the 3.11 and 3.13 venvs (import only, recorded, never used), L7 (RUN_SOLVES=1)
+vspscript: /Applications/OpenVSP-3.51.3/vspscript
+arch: Mach-O 64-bit executable arm64
+version:           Vehicle Sketch Pad 3.51.3
+vspaero: /Applications/OpenVSP-3.51.3/vspaero -> VSPAERO v.7.2.2 --- Compiled on: Aug 17 2026 at 20:49:20 PST 
+python bits in the bundle: /Applications/OpenVSP-3.51.3 /Applications/OpenVSP-3.51.3/python/openvsp /Applications/OpenVSP-3.51.3/python/openvsp/openvsp /Applications/OpenVSP-3.51.3/python/openvsp_config /Applications/OpenVSP-3.51.3/python/openvsp_config/openvsp_config 
+import openvsp under 3.13: AttributeError: module 'openvsp_config' has no attribute 'LOAD_GRAPHICS'
+wt_case wing: 963 chars ~240 tok :: {"case_id": "wt_b22f5d0afa", "kind": "wing3d", "engine": "vspaero", "fidelity": {"chosen": "panel", "reason": "attached lifting surface: VLM lift slope, induced drag, span load in seconds"}, "state": "created", "conditions": {"V": 34.0, "mach": 0.09991, "Re": 2327621.5305654523, "q_Pa": 708.05, "alt_m": 0.0, "aoa_deg": 4.0, "regime": "incompressible"}, "refs": {"Sref": 10.0, "cref": 1.0, "bref": 10.0}, "geometry": {"kind": "wing3d", "name": "wing AR 10.0", "vsp3": "/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/wt_smoke_dktqmyrs/.tee/windtunnel/cases/wt_b22f5d0afa/geometry/wing.vsp3"
+wt_sweep: 385 chars ~96 tok :: {"job": "job1", "case_id": "wt_b22f5d0afa", "run_id": "run_001", "run_ids": ["run_001"], "engine": "aero-panel", "est": {"wall_s": 6.0, "footprint_gb": 0.2, "measured_on": "2026-09-06 Linux x86_64 container, 1 core"}, "cells": 0, "iters": 2000, "points": 4, "note": "poll tee_job for the result; wt_status for residuals and coefficients while it runs; tee_job cancel kills the solver"}
+sweep result: 1171 chars ~292 tok :: {"polar": [{"aoa_deg": 0.0, "mach": 0.09991, "cl": 0.0, "cd": 0.00625, "cdi": 0.0, "cdo": 0.00625, "l_over_d": 0.0, "e": null, "state": "converged"}, {"aoa_deg": 2.0, "mach": 0.09991, "cl": 0.171065, "cd": 0.007403, "cdi": 0.000968, "cdo": 0.006435, "l_over_d": 23.109, "e": 0.9626, "state": "converged"}, {"aoa_deg": 4.0, "mach": 0.09991, "cl": 0.341822, "cd": 0.01085, "cdi": 0.003863, "cdo": 0.006988, "l_over_d": 31.503, "e": 0.9629, "state": "converged"}, {"aoa_deg": 6.0, "mach": 0.09991, "cl": 0.513514, "cd": 0.016725, "cdi": 0.008822, "cdo": 0.007903, "l_over_d": 30.704, "e": 0.9514, "state
+wt_result vsp: 570 chars ~142 tok :: {"cl": 0.513514, "cd": 0.016725, "cl_alpha_per_rad": 4.9037, "verdict": {"state": "converged", "notes": ["vortex lattice: no iteration history; wake relaxed for the configured iterations"]}, "uncertainty": {"trust": "indicative", "label": "lift slope, pressure distribution and trends are usable; drag is not absolute (no viscous drag from a panel or Euler method; RANS without a wall-spacing check)", "cite": "AIAA Drag Prediction Workshop summaries (Vassberg et al., AIAA 2010-4547) and the High-Lift Prediction Workshop summaries: RANS is comparative, not absolute"}}
+project /var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/wt_smoke_dktqmyrs
+
+=== C1-C3  FreeCAD + CfdOF: presence, version, the headless import (recorded only)
+FreeCAD: /Applications/FreeCAD.app -> AI_AGENT=claude-code_2-1-236_agent
+CfdOF: /Users/john/Library/Application Support/FreeCAD/v1-1/Mod/CfdOF -> <version>1.37.3</version>
+C1 headless import (cwd /): CfdOF imports from /Users/john/Library/Application Support/FreeCAD/v1-1/Mod/CfdOF/./CfdOF/__init__.py
+C2 (the RPC route through FreeCADWire.py_json) needs the GUI open with TEE's bridge: run it from a TEE session, not from here
+C3: write one case with the CfdOF workbench, then: tee_call wt_case action=adopt path=<that case dir> - the adoption report (solver, mesher, patches, Allrun sequence, warnings) is the row
+
+=== S1  SimFlow (a browser row, nothing to run)
+record from sim-flow.com in a browser: free-tier limits (cells / cores), platforms, any API, and whether a project saves a standard OpenFOAM case directory; if it does, that directory adopts like any other
+
+=== M8  the app's own airFoil2D tutorial adopted and run with forces= (L13 on v2606; RUN_SOLVES=1)
+tutorial (read-only volume; adoption copies it): /Volumes/OpenFOAM-v2606/tutorials/incompressible/simpleFoam/airFoil2D
+adopt {"case_id": "wt_ae3df4b84c", "solver": "simpleFoam", "mesher": null, "patches": [["inlet", "patch"], ["outlet", "patch"], ["walls", "wall"], ["frontAndBack", "empty"]], "inlet_U": [25.75, 3.62, 0.0], "turbulence": "SpalartAllmaras", "warnings": ["no forceCoeffs function object: wt_result will have nothing to read unless you add one", "Allrun names binaries TEE will not run: ['(getApplication)']"]}
+mesh {"case_id": "wt_ae3df4b84c", "kind": "adopted", "has_mesh": true, "checkMesh": {"ok": false, "cells": 10720, "max_skew": 0.983306, "max_aspect": 98.7681, "failed_checks": 1, "failed": ["Faces not in upper triangular order."]}, "mesh_hash": "770d5952e155d337", "ok": true, "cells": 10720, "note": "the
+M8 {"job": "done", "wall_s": 3.0, "cl": 0.970359, "cd": 0.029414, "cm": -0.014378, "verdict": {"iters_used": 313, "notes": [], "residual_drop_orders": 5.01, "stationarity_pct": 0.208, "scatter_pct": 0.124, "state": "converged"}, "forces": {"patches": ["walls"], "magUInf": 26.003209, "lRef": 35.0492, "lRef_source": "measured: x extent of the wall patches", "Aref": 1.75246, "slab_depth_m": 0.05, "wall_bbox": [[-17.5492, -2.61298, 0.0], [17.5, 3.69778, 0.05]], "CofR": [-8.7869, 0.5424, 0.025], "liftDir": [-0.139214, 0.990262, 0.0], "dragDir": [0.990262, 0.139214, 0.0]}, "error": null}
+
+=== CFD TIER  pytest -m cfd tests/test_windtunnel_live.py (RUN_CFD=1)
+.........                                                                [100%]
+[trust] shadow-band denials across the suite: 0
+
+9 passed in 136.49s (0:02:16)
+
+=== DONE
