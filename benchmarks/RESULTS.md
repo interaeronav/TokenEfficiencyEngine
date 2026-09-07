@@ -448,6 +448,33 @@ _(recorded 2026-09-07 on the owner's Mac against jsbsim 1.3.1, through
 `estimate_tokens`.)_
 
 
+## Engine lane: is the router's table still true? (A76)
+
+`eng_scan` then `eng_reconcile` on the owner's live stack, against what a model
+must otherwise read to answer "which local engines can this machine actually
+use, and are the router's numbers still true".
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (`machine.py`, `profiles.py`, `router.py`, `llm/tools.py`, `local_llm.py`, the head of `chores.py`, `.tee/config.toml`, the shim's `litellm.yaml`) | 21,979 | — |
+| TEE (`eng_scan` 99 + `eng_reconcile` 276) | **375** | 2 |
+
+**Saving: 98.3%** — a factor of 59.
+
+**And the naive arm does not answer the question.** Four of the eight routes the
+shim advertises return HTTP 200 with empty content; that fact is in none of
+those eight files and costs a live probe. Reading everything TEE knows about its
+engines still leaves you unable to say which of them work.
+
+The larger cost is not the digest. A wrong `ENGINES` row is paid on every chore,
+for as long as it stands: the registry declares `q27b-bare` at 3.07–9.69 s and
+an audition measured 44–47 s on the same machine, so the ladder was sorting on a
+number five times off. Every chore routed on that order pays for it.
+
+_(recorded 2026-09-07 on the owner's Mac through `app.registry.call` against the
+live stack; token counts by the repo's own `estimate_tokens`.)_
+
+
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 
 *(not re-run this pass - scenario skipped on this machine; last measured values kept)*

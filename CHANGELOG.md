@@ -3,6 +3,30 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.28.0 — the engine lane (A76)
+
+`eng_*`: truth about the local models TEE routes work to. Six virtual tools,
+**zero** added to the always-loaded surface, each tabled individually with no
+family row. The package is stdlib at import time, so it answers on a machine
+with nothing installed and nothing running.
+
+- `eng_scan`, `eng_ask`, `eng_senses`, `eng_audition`, `eng_reconcile`,
+  `eng_adopt`.
+- **The router's ladder now orders on measured rows**, with the registry's
+  literals as the fallback. Measured on this machine, `q27b-bare` is 44–47 s
+  where the registry declares 3.07–9.69 — adopting the row moves it from third
+  to last.
+- **An unreachable engine is no longer recorded as a failed verification.**
+  `llm_unreachable` and a genuine verifier kill used to increment the same
+  counter, so `escalation_rate` — doc 55's quality alarm — was measuring the
+  network. `meter_block` gains `unreachable_hops`.
+- `doctor.check_llm` no longer reports `ok` with no remedy while chores are dead
+  because vision answered.
+- `eng_ask` reads the **content**, not the status code: four of eight routes on
+  the owner's shim answer HTTP 200 with empty content and billed usage.
+
+0.26.0 remains reserved for the in-flight A74 (cfMesh).
+
 ## 0.27.0 — the flight-dynamics lane (A75)
 
 `fd_*`: a `wt_sweep` polar and a mass become a JSBSim aircraft that trims, and
