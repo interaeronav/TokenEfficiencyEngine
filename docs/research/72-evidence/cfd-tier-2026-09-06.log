@@ -1,0 +1,17 @@
+.........                                                                [100%]
+[trust] shadow-band denials across the suite: 0
+
+============================= slowest 12 durations =============================
+89.69s call     tests/test_windtunnel_live.py::test_wt_verify_all_passes_on_the_real_engines
+80.49s call     tests/test_windtunnel_live.py::test_su2_euler_naca0012_reproduces_the_quickstart_figure
+20.39s call     tests/test_windtunnel_live.py::test_openfoam_three_d_prism_meshes_with_snappy_and_runs
+10.55s setup    tests/test_windtunnel_live.py::test_openfoam_two_d_case_converges_to_the_measured_figure
+6.35s call     tests/test_windtunnel_live.py::test_vspaero_wing_sweep_sits_inside_the_lifting_line_band
+5.97s call     tests/test_windtunnel_live.py::test_openfoam_parallel_run_agrees_with_serial
+5.56s call     tests/test_windtunnel_live.py::test_adopting_the_apt_tutorial_runs_it_with_measured_forces
+4.54s call     tests/test_windtunnel_live.py::test_openfoam_fields_are_sampled_render_free_and_rendered_offscreen
+3.06s call     tests/test_windtunnel_live.py::test_openfoam_cancel_kills_a_real_solver_within_two_seconds
+
+(3 durations < 0.005s hidden.  Use -vv to show these durations.)
+9 passed in 226.65s (0:03:46)
+exit 0
