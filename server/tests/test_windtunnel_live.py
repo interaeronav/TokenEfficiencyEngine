@@ -532,4 +532,5 @@ def test_a_state_over_an_su2_volume_file_writes_and_loads(app, tmp_path):
     assert out["kind"] == ("full" if state_mod.can_render() else "pipeline")
     assert out["bytes"] > 1000 and Path(out["state"]).is_file()
     facts = _loadback(app, str(out["state"]), render=out["kind"] == "full")
-    assert facts["reader"] == "XMLUnstructuredGridReader" and facts["file"].endswith("flow.vtu")
+    # the .vtu reader's FileName is a LIST, unlike the .foam reader's string
+    assert facts["reader"] == "XMLUnstructuredGridReader" and "flow.vtu" in facts["file"]
