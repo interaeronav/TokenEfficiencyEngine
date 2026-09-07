@@ -323,3 +323,72 @@ def test_a_bare_titanium_no_longer_silently_means_the_alloy() -> None:
     assert caught.value.code == "pk_ref_ambiguous"
     assert "titanium_grade2" in str(caught.value)
     assert "titanium_ti6al4v" in str(caught.value)
+
+
+# ------------------------------------------------------- 7075 and 316
+
+
+def test_316_is_typical_values_where_the_steels_are_minima() -> None:
+    """The honesty tier cuts both ways. steel_s275's ReH is a specified
+    MINIMUM; Aperam prints 316L's 300 MPa as a TYPICAL value, and EN 10088-2's
+    minimum is materially lower. A design to the standard must not use this."""
+    d = materials.describe("stainless_1_4404")
+    assert d["values"]["yield"] == 300
+    assert d["values"]["tensile"] == 620
+    assert d["honesty"]["yield"] == "datasheet"  # NOT standard_value
+    assert materials.describe("steel_s275")["honesty"]["yield"] == "standard_value"
+    note = " ".join(d["notes"])
+    assert "TYPICAL values, not specified minima" in note
+    assert "EN 10088-2" in note
+
+
+def test_316_is_stronger_than_304_and_that_is_not_why_you_pick_it() -> None:
+    """The molybdenum is the point: 316 resists chlorides where 304 pits. The
+    card says so, because a strength comparison alone would mislead."""
+    s316 = materials.describe("stainless_1_4404")
+    s304 = materials.describe("stainless_1_4301")
+    assert s316["values"]["yield"] > s304["values"]["yield"]
+    assert "chlorides" in " ".join(s316["notes"])
+    assert s316["values"]["nu"] == 0.30  # printed here, absent on the 304 card
+
+
+def test_7075_follows_the_self_consistent_half_of_a_contradictory_source() -> None:
+    """The datasheet prints 'Yield 24-68 ksi, 455-465 MPa'. 24-68 ksi is
+    165-469 MPa, so the two cannot be the same quantity: the ksi range spans
+    tempers and the MPa figures are the T6 end. Its tensile line IS consistent,
+    which is what makes the T6 reading defensible."""
+    ksi = 6.894757
+    assert 24 * ksi == pytest.approx(165, abs=1)
+    assert 68 * ksi == pytest.approx(469, abs=1)
+    assert 40 * ksi == pytest.approx(276, abs=1)  # tensile low end, consistent
+    assert 78 * ksi == pytest.approx(538, abs=1)  # tensile high end, consistent
+    d = materials.describe("aluminium_7075_t6")
+    assert d["values"]["yield"] == 465  # the T6 end, not the span
+    assert d["values"]["tensile"] == 540
+    assert "CONTRADICTS ITSELF" in " ".join(d["notes"])
+
+
+def test_7075_is_about_twice_the_yield_of_6061_at_the_same_stiffness() -> None:
+    strong = materials.describe("aluminium_7075_t6")["values"]
+    common = materials.describe("aluminium_6061")["values"]
+    assert strong["yield"] / common["yield"] > 1.8
+    assert abs(strong["E"] - common["E"]) / common["E"] < 0.05  # stiffness barely moves
+    assert strong["density"] > common["density"]  # and it is slightly heavier
+
+
+def test_the_metal_families_refuse_now_that_each_has_several_grades() -> None:
+    """aluminium spans 240-465 N/mm2 in yield and stainless changes which
+    corrosion it survives, so neither bare name may pick silently."""
+    for family, members in (
+        ("aluminium", ("aluminium_6061", "aluminium_7075_t6")),
+        ("stainless", ("stainless_1_4301", "stainless_1_4404")),
+    ):
+        with pytest.raises(CommandError) as caught:
+            materials.resolve(family)
+        assert caught.value.code == "pk_ref_ambiguous"
+        for member in members:
+            assert member in str(caught.value)
+    # ... while the specific names still resolve
+    assert materials.resolve("316") == "stainless_1_4404"
+    assert materials.resolve("304") == "stainless_1_4301"
+    assert materials.resolve("7075") == "aluminium_7075_t6"

@@ -131,6 +131,43 @@
    },
    "notes": "Same caveat as aluminium_6061: EN 1999-1-1 design values not fetched, so served as a handbook range. Yield is temper-dependent; the T6 range is served."
   },
+  "aluminium_7075_t6": {
+   "family": "aluminium alloy",
+   "designation": "EN AW-7075 (AlZn5.5MgCu), T6 temper",
+   "aliases": [
+    "7075",
+    "al7075",
+    "aluminum_7075",
+    "7075-t6"
+   ],
+   "properties": {
+    "density": {
+     "value": 2810,
+     "unit": "kg/m3",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; density 2.81 g/cm3",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 72000,
+     "unit": "N/mm2",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; modulus of elasticity 72 GPa",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 465,
+     "unit": "N/mm2",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; 'up to 465 MPa yield strength ... depending on temper', i.e. the T6 peak - the sheet does not tabulate per temper",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 540,
+     "unit": "N/mm2",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; 'up to ... 540 MPa tensile strength', corroborated by its own 78 ksi upper bound (538 MPa)",
+     "honesty": "datasheet"
+    }
+   },
+   "notes": "THE SOURCE CONTRADICTS ITSELF ON YIELD and this card follows the self-consistent half. It prints 'Yield Strength 24-68 ksi, 455-465 MPa'; 24-68 ksi is 165-469 MPa, so the MPa range cannot be the same quantity - the ksi range spans tempers from annealed while the MPa figures are the T6 end. Its tensile line IS consistent (40-78 ksi = 275-540 MPa), and 68 ksi = 469 MPa agrees with the 465 quoted in its own prose, so the T6 values are taken and the annealed end is not served. 7075 is roughly TWICE the yield of 6061 at the same stiffness and 4% more weight, and it is chosen where corrosion resistance is not the concern - the datasheet says so itself."
+  },
   "brass_cw614n": {
    "family": "free-machining brass",
    "designation": "CW614N (CuZn39Pb3, EN 12164)",
@@ -679,7 +716,6 @@
    "family": "austenitic stainless steel",
    "designation": "X5CrNi18-10, 1.4301 (EN 10088), AISI 304",
    "aliases": [
-    "stainless",
     "304",
     "1.4301",
     "a2"
@@ -713,6 +749,57 @@
     }
    },
    "notes": "EN 10088-2 was not fetched this session; only the density is served as a standard value."
+  },
+  "stainless_1_4404": {
+   "family": "austenitic stainless steel",
+   "designation": "X2CrNiMo17-12-2, 1.4404 / 1.4401 (EN 10088), AISI 316L / 316, annealed",
+   "aliases": [
+    "316",
+    "316l",
+    "1.4404",
+    "1.4401",
+    "a4",
+    "marine stainless"
+   ],
+   "properties": {
+    "density": {
+     "value": 7900,
+     "unit": "kg/m3",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; density 7.9 kg/dm3 at 20 C",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 200000,
+     "unit": "N/mm2",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Young's modulus 200 GPa at 20 C",
+     "honesty": "datasheet"
+    },
+    "nu": {
+     "value": 0.3,
+     "unit": "-",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Poisson's coefficient 0.30, printed",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 300,
+     "unit": "N/mm2",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Rp0.2 300 MPa",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 620,
+     "unit": "N/mm2",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Rm 620 MPa",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 52,
+     "unit": "%",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; A 52%",
+     "honesty": "datasheet"
+    }
+   },
+   "notes": "TYPICAL values, not specified minima - the distinction the steel cards carry the other way round, where ReH is a minimum. EN 10088-2 sets materially lower minima for this grade, so a design to the standard must use those and not this 300. The molybdenum is the whole point: 316 resists chlorides where 1.4301 (304) pits, which is why the two must not share a name. Aperam prints 1.4401 and 1.4404 in one row, so this card does not distinguish 316 from low-carbon 316L; if the weld sensitisation matters to you, that difference is real and this card does not carry it."
   },
   "steel_100cr6": {
    "family": "bearing steel",

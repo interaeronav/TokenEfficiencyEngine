@@ -14128,3 +14128,41 @@ them** (10 700 against 8 700), since the transverse direction is the matrix's
 job and glass carries more of it.
 
 partkiln **901 passed / 2 skipped**, ruff clean, 19 cards.
+
+### 7075-T6 and 316L, and a datasheet that contradicts itself (2026-09-07)
+
+Owner: *"add aluminium 7075 and stainless 316"*. Both from primary datasheets
+fetched by `curl` (the pattern that beat Gurit's 403), and one of them turned
+out to be internally inconsistent.
+
+**`stainless_1_4404` from Aperam's 316L sheet** (FT_316L.en, grades table
+citing EN 10088-2 and ASTM A240): density 7 900 kg/m³, E 200 000 N/mm²,
+**ν 0.30 printed**, Rp0.2 300, Rm 620, A 52% — annealed cold rolled to
+ISO 6892-1. The honesty tier matters here and cuts the opposite way from the
+steels: Aperam labels these **TYPICAL values**, where `steel_s275`'s ReH is a
+specified *minimum*. EN 10088-2's minimum for this grade is materially lower,
+so a design to the standard must not use the 300. The card says so, and a test
+asserts the two cards carry different tiers for the same property name.
+
+**`aluminium_7075_t6` from Smith Metals, whose yield line disagrees with
+itself.** It prints `Yield Strength 24-68 ksi, 455-465 MPa`. But 24–68 ksi is
+**165–469 MPa**, so the two cannot be the same quantity: the ksi range spans
+tempers from annealed while the MPa figures are the T6 end. Its *tensile* line
+is self-consistent (40–78 ksi = 275–540 MPa), and 68 ksi = 469 MPa agrees with
+the 465 in its own prose — so the T6 values are taken, the annealed end is not
+served, and the note names the contradiction rather than quietly picking a
+number. A test re-does the ksi arithmetic so the reasoning cannot rot.
+
+**Two more family names stopped meaning one grade.** `stainless` resolved
+silently to 1.4301 (304). Adding 316 makes that a real trap — not because the
+strengths differ but because **the molybdenum is why 316 is specified at all**:
+it resists chlorides where 304 pits. `aluminium` had no bare alias but now
+matches three cards spanning 240–465 N/mm² in yield, so it refuses too. Both
+now name their members; `304`, `316`, `6061` and `7075` still resolve.
+
+That is the fourth application of the same ruling — `cfrp`, `titanium`,
+`stainless`, `aluminium` — and the shape is always identical: a name that once
+had one plausible referent acquires a second, and the alias becomes a silent
+wrong answer unless it is retired.
+
+partkiln **906 passed / 2 skipped**, ruff clean, **21 cards**.
