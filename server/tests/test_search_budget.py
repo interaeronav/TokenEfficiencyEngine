@@ -52,6 +52,24 @@ and two for the routing this campaign is about), and the table re-run over
 Three now misses three (watermark -> pdf_edit at 4, check the drawing ->
 pk_drawing at 5, best allocation -> quant_optimize at 4), five still finds
 everything, so the default stands on the corpus it is actually used on.
+RE-MEASURED 2026-09-07, when the wind-tunnel lane (A72) merged into this
+branch. A72 had measured itself at 98 tools / 42 cases on a lighter fixture;
+that table is superseded here, because the thirteen `wt_*` tools now join the
+Desktop registry described above - 197 tools - and their nine cases join
+these, for 47:
+
+    limit 3   43/47      limit 5   47/47
+    limit 8   47/47      limit 10  47/47
+
+Five still finds everything; three now misses four. A68's three are unmoved
+(watermark -> `pdf_edit` at 4, check the drawing -> `pk_drawing` at 5, best
+allocation -> `quant_optimize` at 4) and the fourth is new: "which cfd solver
+is running" -> `wt_status` at rank 4, behind `wt_probe`, `solve_backends` and
+`wt_run`, each of which owns one of its words honestly. Thirteen more tools
+cost the shipped limit nothing, which is the property this file exists to
+defend. A72's vocabulary law held on the bigger corpus too: no `wt_*` name or
+tag carries check / drawing / image / size / document, so A68's witnesses were
+not displaced by name.
 """
 
 from __future__ import annotations
@@ -113,6 +131,17 @@ CASES = [
     ("plot the pattern at full size", "sk_plot"),
     ("import a glb into the scene", "as_import"),
     ("what ops does the mechanical cad lane take", "pk_verbs"),
+    # A72: the wt_* lane, thirteen tools, must be findable without displacing
+    # the rest; the last one is the new rank-4 witness
+    ("wind tunnel test of a wing", "wt_case"),
+    ("lift and drag coefficients", "wt_result"),
+    ("angle of attack sweep polar", "wt_sweep"),
+    ("mesh an airfoil for cfd", "wt_mesh"),
+    ("reynolds number at altitude", "wt_conditions"),
+    ("is openfoam installed", "wt_probe"),
+    ("render the pressure field", "wt_view"),
+    ("sample velocity along a line", "wt_probe_field"),
+    ("which cfd solver is running", "wt_status"),
 ]
 
 
@@ -140,6 +169,7 @@ def registry():
     cli._attach_assets(app, root, store)
     cli._attach_capture(app, root, store)
     cli._attach_pointcloud(app, root)
+    cli._attach_windtunnel(app, root)
     cli._attach_pipeline(app, root)
     cli._attach_design(app, root)
     cli._attach_senses(app, root)
@@ -173,8 +203,11 @@ def test_three_would_not_have_been_enough(registry):
     A66: the witness was "size from an image" -> ex_estimate at rank 4.
     A68: on the Desktop registry that query ranks first once the tool says
     "image" about itself; three other queries land at rank 4-5 (watermark,
-    check the drawing, best allocation). Recall over CASES is 35/38 at
-    limit 3 and 38/38 at 5, 8 and 10."""
+    check the drawing, best allocation). Recall over CASES was 35/38 at
+    limit 3 and 38/38 at 5, 8 and 10.
+    A72 merged in: the same three, plus "which cfd solver is running" ->
+    wt_status at rank 4. Recall over CASES is 43/47 at limit 3 and 47/47 at
+    5, 8 and 10, on a 197-tool registry."""
     beyond_three = [
         query
         for query, want in CASES
@@ -196,8 +229,8 @@ def test_the_rebaselined_recall_table_holds(registry):
         )
         for limit in (3, 5, 8, 10)
     }
-    assert recall == {3: len(CASES) - 3, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
-    assert len(CASES) == 38  # 2026-09-05, the 173-tool Desktop registry (85 before A68)
+    assert recall == {3: len(CASES) - 4, 5: len(CASES), 8: len(CASES), 10: len(CASES)}
+    assert len(CASES) == 47  # 2026-09-07, the 197-tool registry (173 before wt_* joined it)
 
 
 def test_the_reply_stays_small(registry):

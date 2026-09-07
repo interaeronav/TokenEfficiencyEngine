@@ -2034,3 +2034,82 @@ Twice Fusion sat in its crash reporter after the segfault above; each time
 scratch design during it; each time it was killed and relaunched with
 `open -a`, and the bridge answered within 20 s. Stated here and in PROGRESS
 so the owner knows their application was restarted.
+## The wind-tunnel lane: doc 52's parking reversed, every engine at arm's length (2026-09-06)
+
+Owner directive: *"Integrate and consolidate wind tunnel and aerodynamic
+platforms directly into TEE, headless and with GUI"* — OpenFOAM, SU2, the
+GUI wrappers (SimFlow, FreeCAD CfdOF, OpenVSP/VSPAERO) and ParaView. Doc 52
+(2026-08-28) had ruled *"OpenFOAM — PARK: industrial CFD; heavy, specialist,
+no current need named; TEE's sim_fluid already covers visual fluids. Revisit
+only for a real airflow-engineering task."* This is that task, so the ruling
+is reversed on its own terms, and doc 54's OpenVSP disposition (an asset
+source for the board lane) is widened to a solver. Research doc 72 is the
+design of record; `CLAUDE_A72_SCRIPT.md` the plan. (Built as A68 / doc 70,
+renumbered before merge on 2026-09-06: the Fusion-lane branch opened a day
+earlier as PR #1 already holds A68–A71 and research docs 70–71. A campaign
+number is a label; the first free one in both trees wins, and the older
+branch keeps its numbers.)
+
+**Every engine is a separate process; nothing is imported, nothing is
+vendored, nothing is downloaded.** OpenFOAM is GPL-3, SU2 LGPL-2.1, OpenVSP
+NOSA-1.3, gmsh GPL-2+; the Python wrappers that would put them in-process
+are GPL (`foamlib` is GPL-3.0-only on PyPI today, `PyFoam`, `fluidfoam`) or
+pinned to one Python minor (OpenVSP's bundle failed to import under 3.11,
+measured). So TEE writes its own dictionaries, its own `.cfg`, its own
+AngelScript and its own pvpython scripts, and reads the engines' files by
+their headers. ParaView is BSD-3 and is still driven through `pvpython`
+rather than a `vtk` import, on weight (docs 46/68). The gate is
+`test_windtunnel_licences.py`: a fresh-interpreter import scan, an AST scan
+that confines numpy/meshio to one function, an upstream-banner scan over the
+goldens, and the extra pinned to `{meshio, numpy}`. Tutorial cases are GPL-3
+data and are never copied into the tree — the apt `airFoil2D` case is
+adopted and run in place by the `cfd` tier, and the goldens are transcribed
+from runs TEE made. Installs are owner commands named verbatim in refusals
+with their size and verification date, the A45 way; the lane fetches nothing.
+
+**The case directory is the interface, and adopted cases are copied, never
+mutated.** A CfdOF case, a SimFlow case, a tutorial or a hand-made case
+enters the same run → status → result → view loop as TEE's own. TEE never
+executes a case's `Allrun`: it parses the `runApplication` lines into an
+argv of known binaries and runs those (the pipeline lane's argv-only law).
+Where an adopted case integrates no forces, the run reports a residual-only
+verdict and never an invented number; `forces=` adds a `forceCoeffs` entry to
+TEE's RUN copy with the chord MEASURED from the wall patch — lRef 1 on the
+tutorial's 35 m section returned Cl 34, the mesh returned 0.97 — because a
+declaration is a claim and the mesh is the evidence.
+
+**Cancel means the process is dead, measured.** `JobManager.cancel` was
+cooperative only; a cancelled two-hour simpleFoam would have kept four cores
+busy. The kernel grew `submit(..., on_cancel=)` — twelve lines, invoked once
+outside the lock for a running job — and the runner kills the process GROUP
+(mpirun and the OpenFOAM entry script both fork). A real simpleFoam was gone
+0.05 s after cancel; a server restart leaves `run.json` so an orphan is named
+by pid AND command line before any signal is sent.
+
+**The cheapest capable engine first, and the router says why.** Panel
+(VSPAERO, seconds) → Euler (SU2, minutes) → RANS (OpenFOAM below Mach 0.3,
+SU2 above; tens of minutes to hours). An override the ladder considers wrong
+runs, and the uncertainty label says `not-predictive`. Every number travels
+with its engine, version, mesh hash, convergence verdict and the DPW /
+HiLiftPW label: RANS is comparative before it is absolute.
+
+**A reference is not a tolerance until it has been verified at its source.**
+`wt_verify` refuses `cylinder_re40` and `flatplate` by name until Dennis &
+Chang 1970 and the NASA TMR page have been visited; the SU2 QuickStart figure
+was measured on the official mesh and the lifting-line band is a textbook
+formula, so those two run.
+
+**Headless only for now (owner, 2026-09-06).** No `wt_open`, no `.pvsm` state
+files, no Qt panel. What stays because it is headless evidence: pvpython
+renders and samples, the `.foam` stub, the `.vsp3`, and headless adoption of
+CfdOF-written cases. The GUI handoff is the next campaign, built as a client
+of the same case directory. Also by owner decision: OpenFOAM proven end to
+end first; lane `windtunnel`, prefix `wt_`; the Mac measurements are an
+owner-session checklist in the script — a Mac number is never invented from
+this container.
+
+**The kernel's ledger law is met, not bypassed.** On a 15 GB container the
+16 GB reserve refuses every job engine; `TEE_MACHINE_TOTAL_GB` declares the
+capacity the way the kernel's own tests do, and the setup doc says so. Open
+MPI refuses to run as root; the override is set for root and for a parallel
+run only, and the run record says `mpi_root_override`.

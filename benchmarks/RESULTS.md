@@ -391,6 +391,20 @@ holes bored) in a [120.0, 80.0, 10.0] mm box - the dimensions drove the 100 x 50
 rectangle to 120 x 80 before the extrude. The always-loaded surface is unchanged at
 17 tools. Live numbers wait for the smoke in docs/fusion-lane.md (steps 7-11).
 
+## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A72)
+
+The script's W1 batch: a tapered wing built and swept through six angles by VSPAERO, then a NACA 2412 section meshed (16,000 cells), solved by simpleFoam (143 iterations, verdict converged), polled three times, read, pictured and exported - on the fake engines, whose files match the real ones in shape and per-iteration size.
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (dictionaries, three log tails, the coefficient file, checkMesh, the script, the polar and span loads) | 19,145 | 16 |
+| TEE (`wt_probe` to `wt_export`, digests only) | 2,796 | 15 |
+
+**Saving: 85.4%.** The naive arm grows with every iteration the solver takes (736 bytes of log per simpleFoam step, measured on v2606) and with every point in the polar; the TEE arm is flat: no array over 64 elements, no string over 2 KB, a verdict and an uncertainty label on every number. On the real engines the same calls measured 55 / 181 / 162 / 97 / 21-87 / 163 / 88 / 33 tokens (probe, case, mesh, run, status, result, view, export; research doc 72 3.5).
+
+_(recorded 2026-09-06 by running `run_windtunnel_scenario()` directly in the Linux build container, which has no Blender for the full script; the section is the one `write_results` emits and is carried forward by header on machines that skip it)_
+
+
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 
 *(not re-run this pass - scenario skipped on this machine; last measured values kept)*
