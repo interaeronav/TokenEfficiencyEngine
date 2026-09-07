@@ -14841,3 +14841,95 @@ ruff clean.
 **Open:** P3 (the twelve skew faces, via feature
 edges), P4 (`auto`, benchmark, docs, version). Doc 74 §5 carries four open
 questions, including whether the Mac's v2606 bundle carries cfMesh too.
+
+## A75 — the flight-dynamics lane: a polar becomes an aircraft that flies (2026-09-07)
+
+Owner: *"does TEE include a flight model"* → no; then *"check the JSBSim licence
+and API"* → doc 75; then *"research a lane for an open source model"*, doc plus
+campaign script, flight first; then *"start A75 P1"* and *"complete all phases
+without prompt"*. Numbered A75/75–77 because a parallel session opened A74
+(cfMesh) and pushed first — the check that both series were free was correct
+when made and stale by the time it was committed.
+
+**P0.** The licence ruling in `DECISIONS.md`: **in-process, LGPL-2.0-or-later**,
+because it is the only route that reaches `FGLinearization`. Both refusals are
+stated — the wheel's own CLI is GPL-3 (retreating to it would take on a
+*stronger* copyleft than the route it left), and the C++ binary is LGPL again
+but reaches no linearisation. Taken by the session under the owner's
+"without prompt" direction, recorded as reversible, and built so that reversing
+it changes `probe.py` and the gate rather than the design.
+
+**P1–P3, built together** once the trim proved out. `server/src/tee/flightdyn/`:
+`aircraft.py` (the generator), `probe.py`, `store.py`, `worker.py` (the child
+that may import JSBSim), `tools.py`. Five virtual tools — `fd_probe`,
+`fd_aircraft`, `fd_trim`, `fd_modes`, `fd_fly` — **zero** added to the
+always-loaded surface, each tabled individually in `kernel/trust.py` under a
+`# DELIBERATELY NO ("fd_", ...) FAMILY ROW` comment.
+
+**What the build measured, and what it cost to find.**
+
+1. **`do_trim` names the wrong axis.** It says `qdot doesn't appear to be
+   trimmable`. Bracketing each axis by hand: `qdot` swings cleanly through zero
+   (elevator −1/0/+1 → +6.69 / −0.02 / −6.73 rad/s²), `wdot` likewise, and
+   **`udot` never brackets zero at all** — 1.72 / 1.64 / 1.68 ft/s² across the
+   whole throttle range. The un-trimmable axis was the one it did not name.
+2. **Because the turbine has not spooled when the trim looks at it.**
+   `set-running` leaves N1/N2 near 100 %, and thrust follows the spool rather
+   than the throttle for about a second: 193.6 lb of a 200 lb rating at throttle
+   zero. Settled, it is exactly right — 4.00 / 53.00 / 200.00 lb at 0 / 0.5 /
+   1.0. Spooling *before* `do_trim` does not help; the trim resets what it
+   evaluates.
+3. **`run_ic()` does NOT reset the spool.** That is the fact the lane's own trim
+   rests on: spool once, then re-set the initial condition freely per iteration.
+   A 3×3 Newton over alpha, elevator and throttle converges in **7 iterations**.
+4. **A `<turbine_engine>` without `IdleThrust`/`MilThrust` function tables
+   segfaults at `run_ic()`** rather than reporting. So does an empty
+   `<propulsion>` under `FGLinearization` (doc 75). An `<electric_engine>`
+   behind `<direct>` does load — and made **88,507 lbf** on an 1,874 lb
+   aeroplane. `<direct>` is right for a *turbine*, which is what the bundled 737
+   uses.
+5. **`FGLinearization` leaves the model perturbed and `dt` at 0.** Read L/D
+   afterwards and it comes back 125 where the truth is 30.7; loop on `run()`
+   afterwards and it divides by zero. Both guarded.
+6. **Body axes are not wind axes.** `forces/fbx-aero-lbs` carries lift's
+   component at alpha; `forces/lod-norm` is the ratio, and is what the
+   cross-check uses.
+7. **A bare `python` in a subprocess is not this interpreter.** `fd_probe`
+   reported the wheel absent on a venv that had it — caught by booting the real
+   `.mcpb`, fixed to `sys.executable`, and now asserted by a test.
+
+**P3's acceptance, met on a generated aircraft** (5,000 ft, 90 KCAS):
+
+```
+trim      converged in 7 iterations   alpha 1.408 deg  elevator -0.035  throttle 0.610
+modes     T  2.03 s  zeta 0.699   Alpha 50%, Q 50%      <- short period
+          T 31.53 s  zeta 0.028   Theta 49%, Vt 48%     <- phugoid
+check     Lanchester 22.59 s (+39.6%); zeta 0.0230 theory vs 0.0282 (+23%); L/D 30.7
+hold 60s  altitude drift 1.5 ft   KCAS 89.88   Nz 0.9965
+```
+
+Both longitudinal modes name themselves by modal participation. The lateral
+pair comes back degenerate and is **dropped rather than reported** — a polar
+carries no `Cl_beta` or `Cn_beta`, and a mode with no data behind it is not a
+result. The closed-form checks neglect thrust, so the tests assert the band
+those approximations are worth, not a tolerance they cannot support.
+
+**P4.** `docs/flightdyn-lane.md`, `docs/setup-flightdyn.md`, the `CLAUDE.md`
+bullet, CHANGELOG **0.27.0** (0.26.0 left to the in-flight A74), version ×3, the
+`flightdyn` extra + `extras.WITNESS` + the `fdm` marker, five search-budget
+cases and the **re-measured** recall table (49/53 at limit 3, 53/53 at 5 — it
+was 44/48 and 48/48), and a `benchmarks/RESULTS.md` row: **131,179 → 898 tokens,
+99.3 %**, of which the time history alone is 125,206 and grows with every second
+flown while the digest does not. `make mcpb` + clean-unzip verified: manifest
+0.27.0, `tools[]` still 17, no `fd_` on the surface, search reaches the lane
+from the bundle.
+
+**Open, and honest about it:** whether partkiln's part inertias compose into an
+aircraft's tensor at a useful fidelity (untested); where the ARM-Linux sdist
+build lands (no aarch64 wheel exists); the aero reference point sits on the CG,
+so there is no lift-arm contribution to pitch; and the generated engine is a
+flat-rated thrust source, not a powerplant model.
+
+**Suites at close:** server `uv run --no-sync pytest -q` **1,980 passed / 13
+skipped / 143 deselected**; `-m fdm` **4 passed / 1 skipped**; `make lint` clean.
+Surface unchanged: **17 tools**.

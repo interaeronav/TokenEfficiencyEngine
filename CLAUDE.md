@@ -272,6 +272,29 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   cells, where `localRefinement` on the body is the idiom. The campaign closes
   with a measured **no** if solving on the better mesh does not move Cd.
 
+- The A75 build (`fd_*`: a headless flight-dynamics lane where a `wt_sweep`
+  polar and a mass become a JSBSim aircraft that trims) is **COMPLETE**, P0-P4,
+  shipped as 0.27.0; `CLAUDE_A75_SCRIPT.md` is the plan of record, research doc
+  **76** the design of record, doc **75** the grounding, `docs/flightdyn-lane.md`
+  the user guide and `docs/setup-flightdyn.md` the install. Zero always-loaded
+  tools; five `fd_*` tabled individually with no family row. Its measured laws
+  outrank memory: **JSBSim's licence is not what its metadata says** - the
+  library is LGPL-2.0-or-later but the wheel ships `jsbsim/script.py` under
+  GPL-3.0-or-later while PyPI declares `LGPLv2+`, so the gate reads FILE HEADERS
+  (the ruling is in DECISIONS: in-process, LGPL, because it is the only route
+  that reaches `FGLinearization`); **`FGLinearization` on an aircraft with no
+  engine SIGSEGVs** rather than raising, so the lane refuses that aircraft in
+  its own code and runs every flying call out of process; **`do_trim` names the
+  wrong axis** - it reports `qdot` when `udot` is the one that cannot bracket
+  zero, because a turbine sits near 100 % N2 until it spools and `run_ic` does
+  NOT reset that spool, which is what makes the lane's own Newton trim possible;
+  **a `<turbine_engine>` without `IdleThrust`/`MilThrust` tables segfaults at
+  `run_ic`**; and `FGLinearization` leaves the model perturbed and `dt` at 0, so
+  anything the answer needs is snapshotted before it runs. A polar carries no
+  lateral terms, so the degenerate pair is dropped rather than reported as a
+  mode. SI on the wire with the unit always written; nothing upstream is
+  vendored, the wheel's 60 aircraft included.
+
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured

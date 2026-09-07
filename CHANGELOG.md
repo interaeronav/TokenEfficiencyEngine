@@ -3,6 +3,28 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.27.0 — the flight-dynamics lane (A75)
+
+`fd_*`: a `wt_sweep` polar and a mass become a JSBSim aircraft that trims, and
+the answer is the trim state and the mode table rather than a trajectory. Five
+virtual tools, **zero** added to the always-loaded surface, each tabled
+individually in the trust kernel with no family row.
+
+- `fd_probe`, `fd_aircraft`, `fd_trim`, `fd_modes`, `fd_fly`.
+- JSBSim is LGPL-2.0-or-later and used in-process (ruled in DECISIONS); its
+  wheel also ships one GPL-3.0-or-later file, so the licence gate asserts on
+  **file headers** rather than the `LGPLv2+` the distribution metadata declares.
+- Everything that flies runs **out of process**: `FGLinearization` on an
+  aircraft with no engine SIGSEGVs rather than raising, so the lane refuses that
+  aircraft in its own code and keeps the engine out of the server either way.
+- The lane trims itself. JSBSim's `do_trim` cannot trim a generated aircraft and
+  reports `qdot` when the axis that will not converge is `udot` — the turbine
+  has not spooled when the trim looks at it.
+- Optional extra `flightdyn` (jsbsim, numpy) and a `fdm` test tier.
+
+0.26.0 is deliberately skipped: A74 (cfMesh in the wind-tunnel lane) was in
+flight on this branch when this cut was made and has the prior claim on it.
+
 ## 0.25.1 — 2026-09-07
 
 A73 P2: the handoff run against the REAL ParaView and OpenVSP for the first

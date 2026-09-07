@@ -415,6 +415,39 @@ The script's W1 batch: a tapered wing built and swept through six angles by VSPA
 _(recorded 2026-09-06 by running `run_windtunnel_scenario()` directly in the Linux build container, which has no Blender for the full script; the section is the one `write_results` emits and is carried forward by header on machines that skip it)_
 
 
+## Flight dynamics: a polar becomes an aircraft that flies (A75)
+
+The lane's whole loop on a generated aircraft — probe, generate from an
+eight-point polar, trim, take the modes, then fly the trim for a minute — against
+what a model must otherwise read to reach the same answer.
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (the aircraft XML authored and read back, the property catalogue, 60 s of six states at 120 Hz, the raw A and B) | 131,179 | — |
+| TEE (`fd_probe` to `fd_fly`, digests only) | **898** | 5 |
+
+**Saving: 99.3%** — a factor of 146. Per call: `fd_probe` 136, `fd_aircraft` 93,
+`fd_trim` 138, `fd_modes` 363, `fd_fly` 168.
+
+The naive arm is dominated by one term: the time history is 125,206 of its
+131,179 tokens, and it grows linearly with every second flown and every state
+watched — sixty seconds of *six* states here, where the model has 656 properties
+available and a mission is not a minute. The TEE arm is flat: the reply is the
+trim state, the verdict and the mode table whatever the flight length, capped at
+64 elements per array and 2 KB per string, and a test asserts the whole reply
+stays under 4 KB.
+
+The mode table is why the lane is cheap rather than merely terse. A and B at a
+trim point are 950 tokens raw and 363 as a digest that has already named each
+mode by its modal participation — and they are where stability derivatives and
+handling qualities start, so the expensive part of a flight-dynamics answer is a
+small matrix rather than a trajectory.
+
+_(recorded 2026-09-07 on the owner's Mac against jsbsim 1.3.1, through
+`app.registry.call` with the real engine; token counts by the repo's own
+`estimate_tokens`.)_
+
+
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
 
 *(not re-run this pass - scenario skipped on this machine; last measured values kept)*
