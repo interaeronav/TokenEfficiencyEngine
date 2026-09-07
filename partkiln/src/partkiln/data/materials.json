@@ -369,6 +369,81 @@
    },
    "notes": "UNIDIRECTIONAL, and that is the least representative layup for a real part: a woven or quasi-isotropic laminate of the same fibre is far stiffer across the part and far less stiff along it. Density is what the kernel uses for mass and is direction-free; every stiffness and strength here is the 0 deg value unless its name says otherwise."
   },
+  "gfrp_eglass_ud": {
+   "family": "glass fibre composite (unidirectional laminate)",
+   "designation": "E-glass/epoxy UD, fibre volume fraction 50%",
+   "aliases": [
+    "gfrp ud",
+    "e-glass ud",
+    "glass fibre ud",
+    "fibreglass ud",
+    "grp ud"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1912,
+     "unit": "kg/m3",
+     "source": "rule of mixtures 0.5 x 2600 (E glass fibre density, Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column) + 0.5 x rho_matrix, rho_matrix 1150-1300 kg/m3 for a cured laminating epoxy; the range is that assumption's whole span",
+     "honesty": "derived",
+     "range": [
+      1875,
+      1950
+     ]
+    },
+    "E_0": {
+     "value": 38250,
+     "unit": "N/mm2",
+     "source": "Voigt rule of mixtures E1 = Vf.Ef + Vm.Em at Vf 0.5, Ef 73 000 N/mm2 (Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column), Em 3 000-4 000 N/mm2 for a cured epoxy. Voigt is exact for iso-strain along continuous aligned fibres, and the matrix term is small enough that the whole Em span moves the answer under 1.5%",
+     "honesty": "derived",
+     "range": [
+      38000,
+      38500
+     ]
+    },
+    "fibre_density": {
+     "value": 2600,
+     "unit": "kg/m3",
+     "source": "Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column, density 2.60 g/cm3",
+     "honesty": "datasheet"
+    },
+    "fibre_E": {
+     "value": 73000,
+     "unit": "N/mm2",
+     "source": "Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column, tensile modulus 73 GPa",
+     "honesty": "datasheet"
+    },
+    "fibre_tensile": {
+     "value": 3400,
+     "unit": "N/mm2",
+     "source": "Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column, virgin filament tensile strength 3400 MPa",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "a UD laminate has no single modulus: E_0 is about 38 000 N/mm2 along the fibres and the transverse value is several times smaller",
+     "fix": "read E_0, or give the layup and ask for the laminate's own modulus"
+    },
+    "E_90": {
+     "reason": "the transverse modulus would have to come from the INVERSE rule of mixtures, which is a known poor predictor - it underestimates measured E_90 for glass/epoxy by roughly a third - and no measured value is on the fibre datasheet this card is built from",
+     "fix": "take E_90 from a laminate datasheet for your actual resin and fibre volume"
+    },
+    "yield": {
+     "reason": "GFRP breaks rather than yielding, and the laminate strength is not the fibre strength: 3400 N/mm2 is the VIRGIN FILAMENT value, and the same datasheet prints 2400 for an impregnated strand",
+     "fix": "read fibre_tensile for the fibre, and take a laminate strength from a laminate datasheet"
+    },
+    "G": {
+     "reason": "not derivable from fibre data alone",
+     "fix": "supply G_12 from laminate data"
+    },
+    "nu": {
+     "reason": "not on the fibre datasheet",
+     "fix": "supply nu_12 from laminate data"
+    }
+   },
+   "notes": "Built from a FIBRE datasheet, not a laminate one - which is why only the two properties a rule of mixtures predicts well are served, and everything else refuses. Fibre volume fraction is the biggest lever here and 50% is the card's stated basis: hand layup runs nearer 35-45% and is correspondingly lighter and softer, vacuum infusion and prepreg higher. E-glass is about half the stiffness of carbon at two thirds more weight; it is chosen for cost, toughness and electrical transparency, not for stiffness."
+  },
   "nylon_pa6": {
    "family": "engineering thermoplastic",
    "designation": "polyamide 6",
@@ -643,6 +718,51 @@
     }
    },
    "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only."
+  },
+  "titanium_ti6al4v": {
+   "family": "titanium alloy",
+   "designation": "Ti-6Al-4V (Grade 5), annealed sheet & plate to AMS 4911",
+   "aliases": [
+    "titanium",
+    "ti",
+    "ti64",
+    "ti-6al-4v",
+    "grade 5 titanium",
+    "ti6al4v"
+   ],
+   "properties": {
+    "density": {
+     "value": 4429,
+     "unit": "kg/m3",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); printed 0.160 lb/in3, converted at 27 679.905 kg/m3 per lb/in3",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 115000,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); printed 16.7 x 10^6 psi at 70 F, in the STA row - the alloy's modulus barely moves between annealed and STA, but the sheet prints it for STA and this card does not pretend otherwise",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 869,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); AMS 4911 specified minimum 0.2% yield 126 ksi",
+     "honesty": "standard_value"
+    },
+    "tensile": {
+     "value": 924,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); AMS 4911 specified minimum tensile 134 ksi",
+     "honesty": "standard_value"
+    },
+    "elongation": {
+     "value": 8,
+     "unit": "%",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); AMS 4911 specified minimum in 2 in, thinnest gauge band",
+     "honesty": "standard_value"
+    }
+   },
+   "notes": "Strengths are SPECIFIED MINIMA, not typical values - the same distinction the steel cards carry - and they drop with thickness exactly as steel's ReH does: above 0.1874 in AMS 4911 specifies 130 ksi tensile and 120 ksi yield, so a thick plate is weaker than this card says. Typical annealed bar runs 138-155 ksi tensile. Solution treated and aged material is stronger again (150-172 ksi) and is a different card if you need it."
   }
  }
 }

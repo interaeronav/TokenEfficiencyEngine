@@ -13998,3 +13998,60 @@ gone unchecked. A test covers exactly that.
 
 partkiln **889 passed / 2 skipped**, ruff clean; 14 cards; `data/manifest.json`
 names both Toray and Hexcel as authorities.
+
+### Titanium and glass fibre: an isotropic control, and a card built from the wrong kind of datasheet (2026-09-07)
+
+Owner: *"add glass fibre and titanium cards"*. Two cards, and they are
+interesting for opposite reasons.
+
+**`titanium_ti6al4v` is deliberately boring, and that is the point.** Grade 5,
+annealed sheet and plate to AMS 4911, from the Rolled Alloys data sheet:
+density 4 429 kg/m³ (printed 0.160 lb/in³), E 115 000 N/mm² (16.7 × 10⁶ psi),
+yield 869 and tensile 924 N/mm² (the AMS 4911 minima, 126 and 134 ksi). One
+`E`, one `yield`, **no refusals at all** — which is the contrast that shows
+the composite refusals are a fact about those materials, not a quirk of the
+schema. Two honesty details carried rather than smoothed over: the strengths
+are **specified minima** and drop with thickness (above 0.1874 in AMS 4911
+specifies 130/120 ksi), the same trap `steel_s275` already documents for ReH;
+and the modulus is printed in the sheet's **STA** row while the strengths are
+annealed, so the source string says so instead of implying one condition.
+
+**`gfrp_eglass_ud` is built from a FIBRE datasheet, and that decides what it
+may serve.** No reachable E-glass *laminate* datasheet: Gurit returned 403 on
+both URLs, the Hexcel 8552 sheet mentions glass only in passing, and MatWeb is
+on the banned list. What was reachable is a real fibre sheet — Saint-Gobain
+Vetrotex, *"E, R and D glass properties"* (03/2002) — printing density
+2.60 g/cm³, tensile modulus 73 GPa and virgin filament strength 3 400 MPa.
+
+So the card serves exactly the two laminate properties a rule of mixtures
+predicts **well**, at a stated Vf of 50%:
+
+```
+density  0.50 x 2600 + 0.50 x rho_matrix(1150-1300)  ->  1912 kg/m3  [1875, 1950]
+E_0      0.50 x 73000 + 0.50 x Em(3000-4000)         ->  38 250 N/mm2 [38000, 38500]
+```
+
+Voigt is exact for iso-strain along continuous aligned fibres, and the matrix
+term is small enough that the whole Em span moves E_0 by **under 1.5%** — a
+test asserts that, because it is the reason E_0 is servable at all.
+
+**And it refuses `E_90` by name, which is the entry worth reading.** The
+transverse modulus would have to come from the inverse rule of mixtures, and
+that model is *known* to underestimate measured E_90 for glass/epoxy by
+roughly a third. A number we know to be wrong is worse than no number, so the
+refusal names the model, its error, and says to take E_90 from a laminate
+datasheet instead. `yield` refuses too, distinguishing the **virgin filament**
+3 400 MPa from the 2 400 the same sheet prints for an impregnated strand —
+neither of which is a laminate strength.
+
+A test pins the comparison a reader actually wants, from the cards rather than
+from a sentence: **glass is heavier than carbon per unit volume and less than
+a third as stiff along the fibres.**
+
+partkiln **897 passed / 2 skipped**, ruff clean, 16 cards. The manifest now
+names four authorities: Toray, Hexcel, Saint-Gobain Vetrotex and Rolled Alloys
+(AMS 4911).
+
+**Not done, and cheap when wanted:** commercially pure titanium (Grade 2) is a
+different card, and a GFRP card with measured transverse and shear values
+needs a laminate datasheet nobody has reached yet.

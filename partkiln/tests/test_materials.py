@@ -185,3 +185,90 @@ def test_the_family_now_lists_all_three_layups() -> None:
     message = str(caught.value)
     for key in ("cfrp_t300_ud", "cfrp_as4_8552_woven", "cfrp_as4_8552_qi"):
         assert key in message
+
+
+# --------------------------------------------------- titanium and glass fibre
+
+
+def test_titanium_is_an_ordinary_isotropic_card() -> None:
+    """Ti-6Al-4V is a metal: one E, one yield, no direction. It is the contrast
+    that shows the composite refusals are about the material, not the schema."""
+    d = materials.describe("titanium_ti6al4v")
+    assert d["anisotropic"] is False
+    assert d["refuses"] == {}
+    assert materials.property_value("titanium_ti6al4v", "E") == 115000
+    assert materials.property_value("titanium_ti6al4v", "yield") == 869
+    assert materials.resolve("titanium") == "titanium_ti6al4v"
+    assert materials.resolve("ti64") == "titanium_ti6al4v"
+
+
+def test_titanium_conversions_are_the_printed_imperial_values() -> None:
+    """Every served number is the datasheet's own, converted here and nowhere
+    else: 0.160 lb/in3, 16.7e6 psi, and the AMS 4911 minima 134 and 126 ksi."""
+    d = materials.describe("titanium_ti6al4v")
+    lb_in3 = 0.45359237 / 1.6387064e-5
+    ksi = 6.894757
+    assert d["values"]["density"] == round(0.160 * lb_in3)
+    assert d["values"]["tensile"] == round(134 * ksi)
+    assert d["values"]["yield"] == round(126 * ksi)
+    # and it lands where the alloy actually sits: denser than aluminium, well
+    # under steel, at roughly 4.43 g/cm3
+    assert 4400 < d["values"]["density"] < 4460
+    assert d["honesty"]["yield"] == "standard_value"  # a specified minimum
+    assert d["honesty"]["density"] == "datasheet"
+
+
+def test_titanium_strengths_are_minima_and_the_note_says_they_fall_with_thickness() -> None:
+    """The same trap steel_s275 carries: a specified minimum is not a typical
+    value, and it drops in thicker sections."""
+    note = materials.describe("titanium_ti6al4v")["notes"][-1]
+    assert "SPECIFIED MINIMA" in note
+    assert "0.1874" in note and "130" in note
+
+
+def test_glass_serves_only_what_a_rule_of_mixtures_predicts_well() -> None:
+    """Built from a FIBRE datasheet, so density and E_0 are derived and
+    everything a fibre sheet cannot support is refused."""
+    d = materials.describe("gfrp_eglass_ud")
+    assert d["honesty"]["density"] == "derived"
+    assert d["honesty"]["E_0"] == "derived"
+    assert d["honesty"]["fibre_E"] == "datasheet"  # the fibre value IS printed
+    assert d["values"]["density"] == 1912
+    assert d["ranges"]["density"] == [1875, 1950]
+    assert d["values"]["E_0"] == 38250
+
+
+def test_the_glass_arithmetic_is_the_stated_mixture() -> None:
+    d = materials.describe("gfrp_eglass_ud")
+    vf, rho_f, e_f = 0.50, 2600.0, 73000.0
+    assert vf * rho_f + (1 - vf) * 1150 == pytest.approx(d["ranges"]["density"][0])
+    assert vf * rho_f + (1 - vf) * 1300 == pytest.approx(d["ranges"]["density"][1])
+    assert vf * e_f + (1 - vf) * 3000 == pytest.approx(d["ranges"]["E_0"][0])
+    assert vf * e_f + (1 - vf) * 4000 == pytest.approx(d["ranges"]["E_0"][1])
+    # the matrix modulus barely matters along the fibres: that is why E_0 is servable
+    lo, hi = d["ranges"]["E_0"]
+    assert (hi - lo) / ((hi + lo) / 2) < 0.015
+
+
+def test_glass_refuses_the_transverse_modulus_because_the_model_is_known_bad() -> None:
+    """The inverse rule of mixtures underestimates measured E_90 for glass/epoxy
+    by roughly a third. A number we know to be wrong is worse than no number."""
+    with pytest.raises(CommandError, match="INVERSE rule of mixtures"):
+        materials.property_value("gfrp_eglass_ud", "E_90")
+
+
+def test_glass_refuses_yield_and_distinguishes_filament_from_laminate() -> None:
+    """3400 N/mm2 is the VIRGIN FILAMENT strength; the same Vetrotex sheet
+    prints 2400 for an impregnated strand, and a laminate is lower again."""
+    with pytest.raises(CommandError, match="VIRGIN FILAMENT"):
+        materials.property_value("gfrp_eglass_ud", "yield")
+    assert materials.property_value("gfrp_eglass_ud", "fibre_tensile") == 3400
+
+
+def test_glass_is_lighter_than_carbon_and_much_softer() -> None:
+    """The comparison a reader actually wants, and it must fall out of the
+    cards rather than out of a sentence."""
+    glass = materials.describe("gfrp_eglass_ud")["values"]
+    carbon = materials.describe("cfrp_t300_ud")["values"]
+    assert glass["density"] > carbon["density"]  # glass is HEAVIER per volume
+    assert glass["E_0"] < carbon["E_0"] / 3  # and far softer along the fibres

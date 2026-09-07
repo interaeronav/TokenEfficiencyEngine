@@ -244,6 +244,16 @@ and `.ipt`/`.iam`/`.idw`).
   It still refuses `yield`: stiffness is quasi-isotropic, strength is not, and
   it is NOT isotropic in bending — `[0/45/-45/90]s` and `[90/45/-45/0]s` share
   this E and have different bending stiffness.
+- **Titanium and glass fibre.** `titanium_ti6al4v` (Grade 5, annealed sheet to
+  AMS 4911) is an ordinary isotropic card — one `E`, one `yield`, no
+  refusals — which is the contrast that shows the composite refusals are
+  about the material and not the schema. Its strengths are *specified
+  minima* and fall with thickness, exactly as steel's ReH does.
+  `gfrp_eglass_ud` is built from a **fibre** datasheet, so it serves only
+  what a rule of mixtures predicts well — density, and `E_0` along the
+  fibres — and refuses `E_90` by name because the inverse rule of mixtures
+  underestimates measured transverse stiffness for glass/epoxy by about a
+  third. A number known to be wrong is worse than no number.
 
 - **ISO 286 fits** (`standards fit`, and `fit:` on a hole). No tolerance
   table was transcribed: the grades are computed from the standard's own
