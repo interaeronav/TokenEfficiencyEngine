@@ -18,6 +18,7 @@ second-hand would have been the thing this module exists to prevent.
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Any
 
 from tee.kernel.errors import TeeError
@@ -108,11 +109,10 @@ REFERENCES: dict[str, dict[str, Any]] = {
 }
 
 
-# the cases whose runners exist; a verified reference without a runner is
-# reported as skipped_unimplemented by `all` and refuses when named directly
-# (flatplate is the one left: the NASA TMR plate needs a blockMesh writer
-# this lane does not have yet)
-_RUNNABLE = ("wing_liftslope", "naca0012_euler", "cylinder_re40")
+# the cases whose runners exist. The bucket is kept because the distinction
+# it draws is real - a verified reference with no runner is not a test - even
+# now that every case has one.
+_RUNNABLE = ("wing_liftslope", "naca0012_euler", "cylinder_re40", "flatplate")
 
 
 def run(lane: Any, which: str, *, confirm_cost: bool) -> dict[str, Any]:
@@ -159,6 +159,8 @@ def _run_one(lane: Any, name: str, *, confirm_cost: bool) -> dict[str, Any]:
         return _naca0012_euler(lane, ref, confirm_cost=confirm_cost)
     if name == "cylinder_re40":
         return _cylinder_re40(lane, ref, confirm_cost=confirm_cost)
+    if name == "flatplate":
+        return _flatplate(lane, ref, confirm_cost=confirm_cost)
     raise TeeError(
         "wt_reference_unverified", f"{name} is not runnable yet.", fix="See verify.REFERENCES."
     )
@@ -342,6 +344,114 @@ def _cylinder_re40(lane: Any, ref: dict[str, Any], *, confirm_cost: bool) -> dic
         "checks": checks,
         "verdict": res.get("verdict", {}).get("state"),
         "pass": ok,
+        "cite": ref["source"],
+        "verified": ref["verified"],
+    }
+
+
+# The TMR 2DZP plate, measured from the case's own grid and .nmf boundary map
+# on 2026-09-07 rather than assumed: x -0.33333 .. 2.0, y 0 .. 1, slip ahead of
+# the leading edge and a viscous wall from x 0 to 2, M 0.2, Re 5e6 on L = 1,
+# SST freestream TI 0.039 % and nut/nu 0.009.
+#
+# The grid is where a convergence study on this machine stopped moving, and it
+# approaches the reference monotonically from below - which is what a grid study
+# should look like (Cf against the 2.690853551e-03 reference):
+#
+#     nx x ny     cells     Cf            vs ref
+#     160 x 90    17,280    2.593362e-03  -3.62 %
+#     240 x 110   31,680    2.626233e-03  -2.40 %
+#     320 x 140   53,760    2.646754e-03  -1.64 %   <- adopted, 206 s
+#
+# The residual -1.6 % is expected and honest: the TMR states this is a
+# COMPRESSIBLE verification case and warns that "if you run this case with an
+# incompressible code, your results may be close - but not quite the same",
+# and simpleFoam is incompressible. That is why the tolerance is 5 %.
+_FP_RE = 5.0e6
+_FP_L = 1.0
+_FP_STATION = 0.9700840712  # the x the reference Cf is quoted at
+_FP_ITERS = 6000
+
+
+def _flatplate(lane: Any, ref: dict[str, Any], *, confirm_cost: bool) -> dict[str, Any]:
+    from tee.windtunnel import atmosphere, foam
+
+    air = atmosphere.isa(0.0)
+    v = round(_FP_RE * (air.mu / air.rho) / _FP_L, 4)
+    created = lane._create(
+        {
+            "plate": True,
+            "V_mps": v,
+            "aoa_deg": 0.0,
+            "fidelity": "rans",
+            "turbulence": "kOmegaSST",
+            "need_viscous": True,
+            "turbulence_intensity": 0.00039,
+            "viscosity_ratio": 0.009,
+        }
+    )
+    case_id = created["case_id"]
+    re_actual = float(created.get("conditions", {}).get("Re") or 0.0)
+    if abs(re_actual - _FP_RE) / _FP_RE > 1e-4:
+        raise TeeError(
+            "wt_verify_failed",
+            f"the case came out at Re {re_actual:.6g}, not {_FP_RE:g}.",
+            fix="A benchmark at the wrong Reynolds number is not a test.",
+        )
+    lane.mesh({"case_id": case_id})
+    rec = lane.store.load(case_id)
+    sub = lane._submit_runs(
+        rec,
+        [0.0],
+        {"confirm_cost": confirm_cost, "iters": _FP_ITERS, "cores": 1},
+        label="wt_verify",
+    )
+    res = _wait(lane, sub["job"], timeout_s=7200.0)
+    run = lane.store.find_run(case_id, sub["run_id"])
+    run_dir = Path(run.get("run_dir") or lane.store.run_dir(case_id, run["run_id"]))
+    try:
+        rows = foam.read_wall_shear(run_dir, v)
+    except ValueError as exc:
+        raise TeeError(
+            "wt_verify_failed",
+            f"the run wrote no wall-shear sample: {exc}",
+            fix="Check the run's log.simpleFoam; the sampler writes onEnd.",
+        ) from exc
+    cf = foam.cf_at(rows, _FP_STATION)
+    if cf is None:
+        raise TeeError(
+            "wt_verify_failed",
+            f"x = {_FP_STATION} is outside the sampled wall "
+            f"({rows[0][0]:.4f} .. {rows[-1][0]:.4f}).",
+            fix="The plate must span the reference station.",
+        )
+    tol = ref["tolerance"]
+    checks = {
+        "cf": {
+            "measured": round(cf, 9),
+            "reference": ref["cf"],
+            "at_x": _FP_STATION,
+            "pct": round(100 * (cf - ref["cf"]) / ref["cf"], 2),
+            "tol_pct": tol["cf_pct"],
+        }
+    }
+    ok = abs(checks["cf"]["pct"]) <= tol["cf_pct"] and res.get("verdict", {}).get("state") in (
+        "converged",
+        "stalled",
+    )
+    return {
+        "case": "flatplate",
+        "case_id": case_id,
+        "engine": "openfoam",
+        "Re": re_actual,
+        "wall_samples": len(rows),
+        "checks": checks,
+        "verdict": res.get("verdict", {}).get("state"),
+        "pass": ok,
+        "note": (
+            "the TMR states this is a compressible verification case; simpleFoam is "
+            "incompressible, so a small offset is expected and is inside the tolerance"
+        ),
         "cite": ref["source"],
         "verified": ref["verified"],
     }

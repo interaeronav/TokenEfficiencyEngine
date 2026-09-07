@@ -663,19 +663,14 @@ def test_adopt_an_su2_cfg_needs_its_mesh_beside_it(app, tmp_path):
 
 
 def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
-    # every reference is verified at source now (owner session, §M R3/R4);
-    # flatplate is the one whose runner is still unbuilt, and naming it
-    # refuses with that reason rather than pretending
-    with pytest.raises(TeeError) as err:
-        call(app, "wt_verify", case="flatplate")
-    assert err.value.code == "wt_reference_unverified"
-    assert "runner" in err.value.message and "not built" in err.value.message
     with pytest.raises(TeeError) as err:
         call(app, "wt_verify", case="nonsense")
     assert err.value.code == "wt_bad_action"
     out = call(app, "wt_verify", case="all", confirm_cost=True)
+    # every reference is verified at source AND every runner is built now,
+    # so both skip buckets are empty
     assert set(out["skipped_unverified"]) == set()
-    assert set(out["skipped_unimplemented"]) == {"flatplate"}
+    assert set(out["skipped_unimplemented"]) == set()
     by_name = {r["case"]: r for r in out["results"]}
     assert (
         by_name["wing_liftslope"]["pass"] is True
@@ -693,9 +688,30 @@ def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
     assert abs(cyl["checks"]["cd"]["pct"]) <= cyl["checks"]["cd"]["tol_pct"]
     wake = cyl["checks"]["wake_lw_over_d"]
     assert wake.get("measured") is not None or wake.get("skipped")
+    # the flat plate checks a LOCAL quantity - Cf at a station - read from a
+    # wall-shear sample rather than an integrated force
+    fp = by_name["flatplate"]
+    assert fp["pass"] is True and abs(fp["Re"] - 5.0e6) / 5.0e6 < 1e-4
+    assert fp["checks"]["cf"]["at_x"] == 0.9700840712
+    assert abs(fp["checks"]["cf"]["pct"]) <= fp["checks"]["cf"]["tol_pct"]
     assert out["all_pass"] is True
     for r in out["results"]:
         assert r["cite"] and r["verified"]
+
+
+def test_a_verified_reference_without_a_runner_still_refuses(app, monkeypatch):
+    """Every case has a runner today, so the bucket is exercised by taking
+    one away: the distinction it draws - a reference nobody can run is not
+    a test - outlives any particular case being unbuilt."""
+    from tee.windtunnel import verify
+
+    monkeypatch.setattr(verify, "_RUNNABLE", ("wing_liftslope", "naca0012_euler"))
+    with pytest.raises(TeeError) as err:
+        call(app, "wt_verify", case="flatplate")
+    assert err.value.code == "wt_reference_unverified"
+    assert "runner" in err.value.message and "not built" in err.value.message
+    out = call(app, "wt_verify", case="all", confirm_cost=True)
+    assert set(out["skipped_unimplemented"]) == {"cylinder_re40", "flatplate"}
 
 
 # -- the two pins ------------------------------------------------------------------
