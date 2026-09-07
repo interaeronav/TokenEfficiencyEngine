@@ -27,7 +27,12 @@ def test_route_fills_the_merged_meter(tmp_path):
     # broke the moment A46 P3b registered a third. The invariant is that
     # EVERY rung was tried once and none verified, whatever the ladder holds.
     for engine in LADDER:
-        assert block["engines"][engine] == {"calls": 1, "verified": 0}
+        # A76 P3 split the row: these engines ANSWERED and were killed by the
+        # chore's own verifier, so they are calls that did not verify - not
+        # engines that were never reached. unreachable == 0 is the half of the
+        # invariant that could not be stated before.
+        assert block["engines"][engine] == {"calls": 1, "verified": 0, "unreachable": 0}
+    assert block["unreachable_hops"] == 0, "the fake server answered every rung"
     # One implicit swap per non-resident rung; the resident rung is free.
     assert block["swaps"]["implicit"] == len(LADDER) - 1
     assert block["swaps"]["refused"] == 0
