@@ -226,52 +226,69 @@ def test_titanium_strengths_are_minima_and_the_note_says_they_fall_with_thicknes
     assert "0.1874" in note and "130" in note
 
 
-def test_glass_serves_only_what_a_rule_of_mixtures_predicts_well() -> None:
-    """Built from a FIBRE datasheet, so density and E_0 are derived and
-    everything a fibre sheet cannot support is refused."""
+def test_glass_ud_now_rests_on_a_laminate_datasheet_not_a_fibre_one() -> None:
+    """The card used to be built from a Vetrotex FIBRE sheet, so it derived E_0
+    and REFUSED E_90 because the inverse rule of mixtures is a known-bad model.
+    Gurit's SE 75 laminate sheet measures both, so both are served."""
+    d = materials.describe("gfrp_eglass_ud")
+    assert d["honesty"]["E_0"] == "datasheet"
+    assert d["honesty"]["E_90"] == "datasheet"
+    assert d["values"]["E_0"] == 51000
+    assert d["values"]["E_90"] == 10700  # measured; formerly refused
+    assert "E_90" not in d["refuses"]
+    assert materials.property_value("gfrp_eglass_ud", "E_90") == 10700
+
+
+def test_glass_density_is_derived_from_printed_inputs_only() -> None:
+    """Still `derived`, but nothing in it is assumed any more: fibre density,
+    cured resin density and fibre volume fraction are all printed."""
     d = materials.describe("gfrp_eglass_ud")
     assert d["honesty"]["density"] == "derived"
-    assert d["honesty"]["E_0"] == "derived"
-    assert d["honesty"]["fibre_E"] == "datasheet"  # the fibre value IS printed
-    assert d["values"]["density"] == 1912
-    assert d["ranges"]["density"] == [1875, 1950]
-    assert d["values"]["E_0"] == 38250
+    assert d["values"]["density"] == round(0.473 * 2600 + 0.527 * 1190)
+    assert "range" not in str(d["ranges"].get("density", ""))  # no assumption span left
+    assert d["ranges"].get("density") is None
 
 
-def test_the_glass_arithmetic_is_the_stated_mixture() -> None:
-    d = materials.describe("gfrp_eglass_ud")
-    vf, rho_f, e_f = 0.50, 2600.0, 73000.0
-    assert vf * rho_f + (1 - vf) * 1150 == pytest.approx(d["ranges"]["density"][0])
-    assert vf * rho_f + (1 - vf) * 1300 == pytest.approx(d["ranges"]["density"][1])
-    assert vf * e_f + (1 - vf) * 3000 == pytest.approx(d["ranges"]["E_0"][0])
-    assert vf * e_f + (1 - vf) * 4000 == pytest.approx(d["ranges"]["E_0"][1])
-    # the matrix modulus barely matters along the fibres: that is why E_0 is servable
-    lo, hi = d["ranges"]["E_0"]
-    assert (hi - lo) / ((hi + lo) / 2) < 0.015
+def test_the_two_fibre_volumes_on_the_glass_card_are_declared() -> None:
+    """The starred datasheet values are normalized to 55% Vf while the density
+    and the 90 deg values are as measured at 47.3%. Mixing them silently is how
+    a specific-stiffness number goes wrong, so the note says so."""
+    note = " ".join(materials.describe("gfrp_eglass_ud")["notes"])
+    assert "TWO FIBRE VOLUMES" in note
+    assert "47.3" in note and "55%" in note
 
 
-def test_glass_refuses_the_transverse_modulus_because_the_model_is_known_bad() -> None:
-    """The inverse rule of mixtures underestimates measured E_90 for glass/epoxy
-    by roughly a third. A number we know to be wrong is worse than no number."""
-    with pytest.raises(CommandError, match="INVERSE rule of mixtures"):
-        materials.property_value("gfrp_eglass_ud", "E_90")
+def test_woven_glass_is_the_most_balanced_card_here() -> None:
+    d = materials.describe("gfrp_eglass_woven")
+    assert d["values"]["E_0"] == d["values"]["E_90"] == 32000
+    with pytest.raises(CommandError, match="45"):
+        materials.property_value("gfrp_eglass_woven", "E")
 
 
-def test_glass_refuses_yield_and_distinguishes_filament_from_laminate() -> None:
-    """3400 N/mm2 is the VIRGIN FILAMENT strength; the same Vetrotex sheet
-    prints 2400 for an impregnated strand, and a laminate is lower again."""
-    with pytest.raises(CommandError, match="VIRGIN FILAMENT"):
-        materials.property_value("gfrp_eglass_ud", "yield")
-    assert materials.property_value("gfrp_eglass_ud", "fibre_tensile") == 3400
+def test_a_carbon_ud_card_with_a_measured_transverse_modulus() -> None:
+    """cfrp_t300_ud must refuse E_90 - a fibre datasheet cannot supply it. The
+    SE 75 card measures it, and the two densities agree to 1.3% by independent
+    routes, which is a check on both."""
+    measured = materials.describe("cfrp_hec_se75_ud")
+    assert measured["values"]["E_90"] == 8700
+    assert measured["values"]["E_0"] / measured["values"]["E_90"] > 15
+    toray = materials.describe("cfrp_t300_ud")
+    assert "E_90" not in toray["values"]
+    drift = abs(measured["values"]["density"] - toray["values"]["density"])
+    assert drift / toray["values"]["density"] < 0.02
 
 
-def test_glass_is_lighter_than_carbon_and_much_softer() -> None:
-    """The comparison a reader actually wants, and it must fall out of the
-    cards rather than out of a sentence."""
+def test_glass_against_carbon_is_not_a_single_comparison() -> None:
+    """The comparison a reader wants, from the cards rather than a sentence -
+    and it cuts both ways, which is the point. Compared like for like (both
+    SE 75 UD, both measured), glass is heavier and far softer ALONG the fibres
+    and yet stiffer ACROSS them, because the transverse direction is the
+    matrix's job and glass carries more of it."""
     glass = materials.describe("gfrp_eglass_ud")["values"]
-    carbon = materials.describe("cfrp_t300_ud")["values"]
-    assert glass["density"] > carbon["density"]  # glass is HEAVIER per volume
-    assert glass["E_0"] < carbon["E_0"] / 3  # and far softer along the fibres
+    carbon = materials.describe("cfrp_hec_se75_ud")["values"]
+    assert glass["density"] > carbon["density"]
+    assert glass["E_0"] < carbon["E_0"] / 2
+    assert glass["E_90"] > carbon["E_90"]
 
 
 def test_commercially_pure_titanium_is_a_third_the_strength_at_the_same_weight() -> None:

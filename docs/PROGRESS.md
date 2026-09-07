@@ -14075,3 +14075,56 @@ The family message was also generalised — it said "properties depend on the
 layup", which is true of CFRP and nonsense for a titanium grade.
 
 partkiln **900 passed / 2 skipped**, ruff clean, 17 cards.
+
+### The right datasheets: glass and carbon rebuilt on laminate data (2026-09-07)
+
+Owner: *"get the right data sheet for carbon fiber and glass fiber"* — a fair
+push, because `gfrp_eglass_ud` was built from a **fibre** sheet and it showed.
+
+**Gurit's SE 75 sheet (PDS-SE75-04-0625) is the right one, and WebFetch could
+not have it.** Both Gurit URLs returned 403 to WebFetch; `curl` with an
+ordinary browser user-agent got the current one at 200 and 410 KB. It carries
+full UD *and* woven laminate tables for carbon and glass with test methods
+named per row (ISO 527-4/5, SACMA SRM1-94, ISO 14125, ISO 14130) and fibre
+volume measured to ASTM D3171 Method II.
+
+**What that bought, per card:**
+
+| | before | after |
+| --- | --- | --- |
+| `gfrp_eglass_ud` E_90 | REFUSED (inverse rule of mixtures is a known-bad model) | **10 700 N/mm², measured** |
+| `gfrp_eglass_ud` E_0 | derived, 38 250 | **51 000, printed** |
+| `gfrp_eglass_ud` density | derived, range [1875, 1950] from an ASSUMED resin density | derived **1857, every input printed** |
+| `gfrp_eglass_woven` | — | new: 32 000 both directions |
+| `cfrp_hec_se75_ud` | — | new: carbon UD with **E_90 8 700 measured** |
+
+The density is still `derived` — no sheet prints a laminate density — but it
+is now `0.473 × 2600 + 0.527 × 1190` where **all three numbers are printed**:
+fibre density, cured resin density, and the measured Vf. Nothing is assumed,
+so the assumption range is gone rather than merely narrowed.
+
+**A cross-check fell out of it.** `cfrp_hec_se75_ud` derives 1526 kg/m³ from
+Gurit's fibre and resin densities; `cfrp_t300_ud` derives 1546 from Toray's
+fibre density and an assumed epoxy range. Two independent routes, **1.3%
+apart** — which is a real check on both, and it is asserted by a test.
+
+**One honesty wrinkle the sheet forces, now declared on each card.** The
+starred values (0° tensile and compressive) are *normalized to 55% fibre
+volume*, while the 90° values, ILSS and the derived density are *as measured*
+at 47.3%. Dividing a normalized stiffness by an as-measured density and
+calling it specific stiffness would be wrong, so the note names both bases and
+gives the 55% density (about 1966) for anyone who needs to work there.
+
+`cfrp_t300_ud` is deliberately kept as it stands: it is honestly sourced to
+Toray's fibre sheet and its refusal of E_90 is *correct for that source*. The
+new card's note points at it, and the contrast is the lesson — the same
+material, two datasheets, and only one of them can answer the transverse
+question.
+
+A test that compared glass to carbon had to be rewritten rather than re-pinned,
+because the better data inverted half of it: like for like, glass is heavier
+and less than half as stiff **along** the fibres, and yet **stiffer across
+them** (10 700 against 8 700), since the transverse direction is the matrix's
+job and glass carries more of it.
+
+partkiln **901 passed / 2 skipped**, ruff clean, 19 cards.

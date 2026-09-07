@@ -297,6 +297,80 @@
    },
    "notes": "Balanced 0/90, which is why E_0 and E_90 are within 3% - and exactly why a single E is still wrong: rotate the load 45 deg and a plain weave is far softer. The second fabric style in the same table (5HS) reads 67/66 GPa, so the weave style barely moves the in-plane numbers; the drape and the thickness are what change."
   },
+  "cfrp_hec_se75_ud": {
+   "family": "carbon fibre composite (unidirectional laminate)",
+   "designation": "High-elongation carbon (T700 class) 300 g/m2 / SE 75 epoxy UD, fibre volume 55%",
+   "aliases": [
+    "cfrp ud measured",
+    "hec ud",
+    "t700 ud",
+    "se75 carbon ud"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1526,
+     "unit": "kg/m3",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0.55 x 1800 (printed fibre density) + 0.45 x 1190 (printed cured resin density) at the printed Vf 55% (ASTM D3171 Method II)",
+     "honesty": "derived"
+    },
+    "E_0": {
+     "value": 138000,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg tensile modulus, ISO 527-5, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "E_90": {
+     "value": 8700,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile modulus ET22, ISO 527-5",
+     "honesty": "datasheet"
+    },
+    "tensile_0": {
+     "value": 2775,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-5, normalized",
+     "honesty": "datasheet"
+    },
+    "tensile_90": {
+     "value": 49,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-5",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 1356,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; SACMA SRM1-94",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 86,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg ILSS, ISO 14130",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "138 000 N/mm2 along the fibres and 8 700 across them - a factor of 16, both MEASURED on this sheet rather than argued from theory",
+     "fix": "read E_0 and E_90, or give the layup"
+    },
+    "yield": {
+     "reason": "it breaks rather than yielding: 2775 N/mm2 along the fibres, 49 across",
+     "fix": "read tensile_0, tensile_90 or compressive_0"
+    },
+    "G": {
+     "reason": "only interlaminar shear (ILSS) is printed",
+     "fix": "read ilss; supply G_12"
+    },
+    "nu": {
+     "reason": "not printed",
+     "fix": "supply nu_12 from laminate data"
+    }
+   },
+   "notes": "The carbon UD card whose transverse numbers are MEASURED rather than refused - compare cfrp_t300_ud, built from Toray's fibre sheet, which has to refuse E_90 because a fibre datasheet cannot supply it. The two densities agree to 1.3% (1526 here against 1546 there) by independent routes, which is a useful check on both."
+  },
   "cfrp_t300_ud": {
    "family": "carbon fibre composite (unidirectional laminate)",
    "designation": "T300/epoxy UD, fibre volume fraction 60%",
@@ -371,7 +445,7 @@
   },
   "gfrp_eglass_ud": {
    "family": "glass fibre composite (unidirectional laminate)",
-   "designation": "E-glass/epoxy UD, fibre volume fraction 50%",
+   "designation": "E-glass EGL 300 g/m2 / SE 75 epoxy UD, measured fibre volume 47.3%",
    "aliases": [
     "gfrp ud",
     "e-glass ud",
@@ -382,67 +456,142 @@
    "anisotropic": true,
    "properties": {
     "density": {
-     "value": 1912,
+     "value": 1857,
      "unit": "kg/m3",
-     "source": "rule of mixtures 0.5 x 2600 (E glass fibre density, Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column) + 0.5 x rho_matrix, rho_matrix 1150-1300 kg/m3 for a cured laminating epoxy; the range is that assumption's whole span",
-     "honesty": "derived",
-     "range": [
-      1875,
-      1950
-     ]
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0.473 x 2600 (printed fibre density) + 0.527 x 1190 (printed cured resin density) at the printed Vf 47.3% measured to ASTM D3171 Method II - every input is printed, so nothing here is assumed",
+     "honesty": "derived"
     },
     "E_0": {
-     "value": 38250,
+     "value": 51000,
      "unit": "N/mm2",
-     "source": "Voigt rule of mixtures E1 = Vf.Ef + Vm.Em at Vf 0.5, Ef 73 000 N/mm2 (Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column), Em 3 000-4 000 N/mm2 for a cured epoxy. Voigt is exact for iso-strain along continuous aligned fibres, and the matrix term is small enough that the whole Em span moves the answer under 1.5%",
-     "honesty": "derived",
-     "range": [
-      38000,
-      38500
-     ]
-    },
-    "fibre_density": {
-     "value": 2600,
-     "unit": "kg/m3",
-     "source": "Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column, density 2.60 g/cm3",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg tensile modulus, ISO 527-5, normalized to 55% fibre volume",
      "honesty": "datasheet"
     },
-    "fibre_E": {
-     "value": 73000,
+    "E_90": {
+     "value": 10700,
      "unit": "N/mm2",
-     "source": "Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column, tensile modulus 73 GPa",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile modulus ET22, ISO 527-5, as measured at Vf 47.3%",
      "honesty": "datasheet"
     },
-    "fibre_tensile": {
-     "value": 3400,
+    "tensile_0": {
+     "value": 1499,
      "unit": "N/mm2",
-     "source": "Saint-Gobain Vetrotex technical data sheet 'E, R and D glass properties' (03/2002), E glass column, virgin filament tensile strength 3400 MPa",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-5, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "tensile_90": {
+     "value": 46,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile strength 45.6 MPa, ISO 527-5, as measured",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 1207,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; SACMA SRM1-94, normalized",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 92,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg ILSS 91.5 MPa, ISO 14130",
      "honesty": "datasheet"
     }
    },
    "refuses": {
     "E": {
-     "reason": "a UD laminate has no single modulus: E_0 is about 38 000 N/mm2 along the fibres and the transverse value is several times smaller",
-     "fix": "read E_0, or give the layup and ask for the laminate's own modulus"
-    },
-    "E_90": {
-     "reason": "the transverse modulus would have to come from the INVERSE rule of mixtures, which is a known poor predictor - it underestimates measured E_90 for glass/epoxy by roughly a third - and no measured value is on the fibre datasheet this card is built from",
-     "fix": "take E_90 from a laminate datasheet for your actual resin and fibre volume"
+     "reason": "a UD laminate has no single modulus: 51 000 N/mm2 along the fibres and 10 700 across them, a factor of nearly five, both measured",
+     "fix": "read E_0 and E_90, or give the layup and ask for the laminate's own modulus"
     },
     "yield": {
-     "reason": "GFRP breaks rather than yielding, and the laminate strength is not the fibre strength: 3400 N/mm2 is the VIRGIN FILAMENT value, and the same datasheet prints 2400 for an impregnated strand",
-     "fix": "read fibre_tensile for the fibre, and take a laminate strength from a laminate datasheet"
+     "reason": "GFRP breaks rather than yielding, and the strength depends on direction: 1499 N/mm2 along the fibres against 46 across",
+     "fix": "read tensile_0, tensile_90 or compressive_0"
     },
     "G": {
-     "reason": "not derivable from fibre data alone",
-     "fix": "supply G_12 from laminate data"
+     "reason": "the sheet prints interlaminar shear (ILSS) and no in-plane shear modulus",
+     "fix": "read ilss; supply G_12 from your own laminate data"
     },
     "nu": {
-     "reason": "not on the fibre datasheet",
+     "reason": "not printed on this datasheet",
      "fix": "supply nu_12 from laminate data"
     }
    },
-   "notes": "Built from a FIBRE datasheet, not a laminate one - which is why only the two properties a rule of mixtures predicts well are served, and everything else refuses. Fibre volume fraction is the biggest lever here and 50% is the card's stated basis: hand layup runs nearer 35-45% and is correspondingly lighter and softer, vacuum infusion and prepreg higher. E-glass is about half the stiffness of carbon at two thirds more weight; it is chosen for cost, toughness and electrical transparency, not for stiffness."
+   "notes": "TWO FIBRE VOLUMES ON ONE CARD, and it matters: the starred datasheet values (E_0, tensile_0, compressive_0) are normalized to 55% fibre volume, while E_90, tensile_90, ILSS and the density above are as measured at 47.3%. At 55% the same mixture gives a density of about 1966 kg/m3, so do not divide a normalized stiffness by this density and call it specific stiffness. Cured ply thickness 0.25 mm."
+  },
+  "gfrp_eglass_woven": {
+   "family": "glass fibre composite (woven fabric laminate)",
+   "designation": "E-glass RE295 H4 4-harness satin / SE 75 epoxy, measured fibre volume 51.2%",
+   "aliases": [
+    "gfrp woven",
+    "e-glass woven",
+    "glass woven",
+    "fibreglass woven",
+    "grp woven"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1912,
+     "unit": "kg/m3",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0.512 x 2600 + 0.488 x 1190 at the printed Vf 51.2% (ASTM D3171 Method II)",
+     "honesty": "derived"
+    },
+    "E_0": {
+     "value": 32000,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg tensile modulus, ISO 527-4, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "E_90": {
+     "value": 32000,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile modulus, ISO 527-4, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "tensile_0": {
+     "value": 550,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-4, normalized",
+     "honesty": "datasheet"
+    },
+    "tensile_90": {
+     "value": 526,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-4, normalized",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 643,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; SACMA SRM1-94, normalized",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 66,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg ILSS, ISO 14130",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "a 4-harness satin weave is BALANCED - 32 000 N/mm2 in both fibre directions, the same number to the sheet's own precision - but it is not isotropic: at 45 deg the load goes into shear and the sheet prints no 45 deg value",
+     "fix": "read E_0 and E_90; for a 45 deg load supply a laminate calculation"
+    },
+    "yield": {
+     "reason": "it breaks rather than yielding",
+     "fix": "read tensile_0 or compressive_0"
+    },
+    "G": {
+     "reason": "no in-plane shear modulus is printed",
+     "fix": "read ilss; supply G_12"
+    },
+    "nu": {
+     "reason": "not printed",
+     "fix": "supply nu_12 from laminate data"
+    }
+   },
+   "notes": "The most balanced card here: 32 000 N/mm2 and 550/526 N/mm2 in warp and fill. Compare the UD glass card, which is five times stiffer along the fibres and five times softer across them - the weave trades peak stiffness for evenness. Cured ply 0.225 mm."
   },
   "nylon_pa6": {
    "family": "engineering thermoplastic",

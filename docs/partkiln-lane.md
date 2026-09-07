@@ -249,11 +249,17 @@ and `.ipt`/`.iam`/`.idw`).
   refusals — which is the contrast that shows the composite refusals are
   about the material and not the schema. Its strengths are *specified
   minima* and fall with thickness, exactly as steel's ReH does.
-  `gfrp_eglass_ud` is built from a **fibre** datasheet, so it serves only
-  what a rule of mixtures predicts well — density, and `E_0` along the
-  fibres — and refuses `E_90` by name because the inverse rule of mixtures
-  underestimates measured transverse stiffness for glass/epoxy by about a
-  third. A number known to be wrong is worse than no number.
+  The glass and SE 75 carbon cards come from **Gurit's SE 75 laminate
+  sheet**, which measures what a fibre datasheet cannot: `gfrp_eglass_ud`
+  serves E_0 51 000 and **E_90 10 700 N/mm² measured** (it used to refuse
+  E_90), `gfrp_eglass_woven` is the most balanced card here at 32 000 in both
+  directions, and `cfrp_hec_se75_ud` is the carbon UD whose transverse
+  numbers are measured rather than refused. Their densities are still
+  `derived`, but from printed inputs only — fibre density, cured resin
+  density and a fibre volume fraction measured to ASTM D3171 — so nothing in
+  them is assumed. Watch the two fibre volumes on one card: the starred
+  datasheet values are normalized to 55% while the density and 90° values are
+  as measured, and each card's note says so.
 
 - **ISO 286 fits** (`standards fit`, and `fit:` on a hole). No tolerance
   table was transcribed: the grades are computed from the standard's own
