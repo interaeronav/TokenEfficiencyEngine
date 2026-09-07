@@ -64,8 +64,10 @@ MESHERS_3D = ("snappy", "cfmesh", "auto")
 DEFAULT_MESHER_3D = "auto"
 # Short enough to travel in every mesh row, specific enough to be checkable.
 MESHER_REASON = {
-    "cfmesh": "cfMesh: 3x faster, converged where snappy stalled, 1/1900th the spurious "
-    "lift on the campaign's prism (doc 74 2.7-2.8)",
+    # the two measured numbers rather than their ratio: 0.07458/0.00004 is
+    # ~1865, and quoting "1/1900th" rounds a rounded quantity into a claim
+    "cfmesh": "cfMesh: 3x faster, converged where snappy stalled, and 0.00004 of spurious "
+    "lift against snappy's 0.07458 on the campaign's prism (doc 74 2.7-2.8)",
     "snappy": "snappyHexMesh: this OpenFOAM install carries no cartesianMesh "
     "(openfoam.com's build has it since v1806)",
 }

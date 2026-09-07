@@ -14920,6 +14920,18 @@ on the real binaries (OpenFOAM v2606). Shipped as **0.29.0** — 0.26.0 had been
 A74 took the next free one rather than a number sorting below two shipped
 releases.
 
+**The bundle was built and driven, not just built.** `make mcpb` produced
+`tee-engine-0.29.0.mcpb` (1,284,217 B), and a clean unzip driven as its own
+package meshed a real prism through the real cfMesh: manifest 0.29.0, 14 `wt_*`
+virtual tools, `wt_probe` reporting `cfmesh: True` off the v2606 install, and a
+bare `wt_mesh` running `surfaceFeatureEdges → cartesianMesh → checkMesh` to
+`kind: cfmesh`, `ok: True`, `feature_angle: 30.0`, with `chose` carrying its
+reason. The shipped tree making the call the campaign added.
+
+The `chose` line quotes the two measured numbers rather than their ratio: an
+earlier draft said "1/1900th the spurious lift", which rounds a rounded quantity
+(0.07458 / 0.00004 is ~1865) into a claim of its own.
+
 **Open:** doc 74 §5's remaining questions — whether the Mac's v2606 bundle
 carries cfMesh (now answered by `wt_probe` on any machine that runs it), HiSA's
 licence at its own repository, and the 2-D `cartesian2DMesh` route the lane has
