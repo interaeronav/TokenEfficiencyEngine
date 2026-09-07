@@ -419,3 +419,66 @@ def test_steel_is_a_family_too_and_mass_was_never_the_risk() -> None:
     assert materials.resolve("s275") == "steel_s275"
     assert materials.resolve("mild steel") == "steel_s275"
     assert materials.mass_g("steel_s275", 91158.6) == 715.595
+
+
+# ------------------------------------------------------- PEEK and PA66
+
+
+def test_peek_is_a_datasheet_card_where_the_other_plastics_are_handbook() -> None:
+    """The plastics were the weakest-sourced cards in the lane - pla, abs and
+    pa6 are all `typical_range` from an engineering handbook. PEEK arrives from
+    Victrex's own sheet with a test method per row."""
+    d = materials.describe("peek_450g")
+    assert d["values"] == {
+        "density": 1300,
+        "E": 4000,
+        "yield": 98,
+        "elongation": 25,
+        "E_flexural": 3800,
+    }
+    assert set(d["honesty"].values()) == {"datasheet"}
+    assert "ISO 527-1" in d["sources"]["E"]
+    assert "ISO 1183" in d["sources"]["density"]
+    assert materials.describe("pla")["honesty"]["E"] == "typical_range"
+
+
+def test_peek_says_its_numbers_are_all_room_temperature() -> None:
+    """PEEK is bought for temperature, so a card of 23 C values is exactly the
+    thing a reader could misuse. The note says so rather than leaving it."""
+    note = " ".join(materials.describe("peek_450g")["notes"])
+    assert "EVERY VALUE HERE IS 23 C" in note
+    assert "125 C" in note
+    assert "CRYSTALLINE" in note  # and which density it is
+
+
+def test_pa66_carries_the_moisture_caveat_from_the_datasheet_itself() -> None:
+    """A polyamide's stiffness falls as it takes up water. PA6 already said so
+    from a handbook; PA66 says it from Ensinger's own 'directly after
+    machining' wording."""
+    d = materials.describe("nylon_pa66")
+    assert d["values"]["E"] == 3500
+    assert "after machining" in d["sources"]["E"]
+    assert "DRY AS MACHINED" in " ".join(d["notes"])
+
+
+def test_pa66_is_stiffer_than_pa6_which_is_why_nylon_had_to_go() -> None:
+    """Sixth family name retired. PA66 is about 30% stiffer than PA6, so a bare
+    'nylon' was quietly choosing a stiffness."""
+    pa66 = materials.describe("nylon_pa66")["values"]
+    pa6 = materials.describe("nylon_pa6")["values"]
+    assert pa66["E"] / pa6["E"] > 1.25
+    with pytest.raises(CommandError) as caught:
+        materials.resolve("nylon")
+    assert caught.value.code == "pk_ref_ambiguous"
+    assert "nylon_pa6" in str(caught.value) and "nylon_pa66" in str(caught.value)
+    assert materials.resolve("pa6") == "nylon_pa6"
+    assert materials.resolve("pa66") == "nylon_pa66"
+
+
+def test_no_bare_family_name_resolves_to_a_member_any_more() -> None:
+    """The whole sweep, asserted in one place: every name that once picked a
+    member silently now refuses and lists them."""
+    for family in ("cfrp", "gfrp", "titanium", "stainless", "aluminium", "steel", "nylon"):
+        with pytest.raises(CommandError) as caught:
+            materials.resolve(family)
+        assert caught.value.code == "pk_ref_ambiguous", family

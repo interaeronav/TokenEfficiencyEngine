@@ -14198,3 +14198,41 @@ at that moment the alias silently becomes a wrong answer. It has to be retired
 in the same commit that creates the ambiguity, not later.
 
 partkiln **907 passed / 2 skipped**, ruff clean, 21 cards.
+
+### PEEK and PA66, and the last family name (2026-09-07)
+
+Owner: *"add nylon and PEEK cards"*. `nylon_pa6` already existed, so this
+landed as one genuinely new material and one better-sourced sibling.
+
+**The plastics were the weakest-sourced cards in the lane** — `pla`, `abs` and
+`nylon_pa6` are all `typical_range` from an engineering handbook, with no
+datasheet behind them. Both new cards come from the manufacturer, with a test
+method on every row:
+
+| | `peek_450g` (Victrex TDS) | `nylon_pa66` (Ensinger TECAMID 66, v AD 2023-07-19) |
+| --- | --- | --- |
+| density | 1 300 kg/m³, ISO 1183 | 1 150 kg/m³ |
+| E | 4 000 N/mm², ISO 527-1 | 3 500 N/mm², ISO 527-2 at 1 mm/min |
+| yield | 98 N/mm², ISO 527-2 | 84 N/mm², ISO 527-2 at 50 mm/min |
+| elongation | 25% at break | 70% at break |
+| flexural E | 3 800, ISO 178 | 3 100, ISO 178 |
+
+**Each card names the way its own numbers mislead.** PEEK is bought *for
+temperature*, and every value on its sheet is 23 °C — the same sheet tabulates
+strength falling steeply above 125 °C — so a card of room-temperature figures
+is exactly what a reader could misuse, and the note says so first. It also
+says the density is the sheet's **crystalline** value, since a quenched
+largely-amorphous moulding is lighter and that changes mass on a thin part.
+PA66's sheet states its data were generated *directly after machining*: a
+polyamide takes up water until its stiffness falls well below 3 500, which is
+the caveat PA6 already carried from a handbook and PA66 now carries from the
+manufacturer's own wording.
+
+**`nylon` was the sixth and last family name to go.** PA66 is about 30%
+stiffer than PA6, so the bare word was quietly choosing a stiffness. A single
+test now asserts the whole sweep in one place: `cfrp`, `gfrp`, `titanium`,
+`stainless`, `aluminium`, `steel` and `nylon` all refuse and list their
+members, while every specific name still resolves.
+
+partkiln **912 passed / 2 skipped**, ruff clean, **23 cards**, six named
+authorities in `data/manifest.json`.

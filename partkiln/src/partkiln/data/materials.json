@@ -634,7 +634,6 @@
    "family": "engineering thermoplastic",
    "designation": "polyamide 6",
    "aliases": [
-    "nylon",
     "pa6",
     "nylon6"
    ],
@@ -671,6 +670,98 @@
     }
    },
    "notes": "PA6 absorbs water; conditioned stiffness can be a third of the dry figure. The card serves dry-as-moulded."
+  },
+  "nylon_pa66": {
+   "family": "engineering thermoplastic",
+   "designation": "PA 66 (polyamide 66), Ensinger TECAMID 66 natural, machined stock shape",
+   "aliases": [
+    "pa66",
+    "nylon66",
+    "nylon 66",
+    "tecamid 66"
+   ],
+   "properties": {
+    "density": {
+     "value": 1150,
+     "unit": "kg/m3",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; 1.15 g/cm3",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 3500,
+     "unit": "N/mm2",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; modulus of elasticity, tensile test at 1 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 84,
+     "unit": "N/mm2",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; tensile strength at yield, 50 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 85,
+     "unit": "N/mm2",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; tensile strength, 50 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 70,
+     "unit": "%",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; elongation at break, 50 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "E_flexural": {
+     "value": 3100,
+     "unit": "N/mm2",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; modulus of elasticity, flexural test, DIN EN ISO 178",
+     "honesty": "datasheet"
+    }
+   },
+   "notes": "DRY AS MACHINED, and for a polyamide that is half the story: the sheet says the data were generated directly after machining, and PA66 absorbs water from the air until its stiffness falls well below this 3500. The same caveat the PA6 card carries, from a datasheet rather than a handbook - PA6 beside it is still an engineering-handbook range and is the weaker-sourced of the two."
+  },
+  "peek_450g": {
+   "family": "high-performance thermoplastic (PAEK)",
+   "designation": "PEEK, Victrex 450G unfilled, injection moulding / extrusion grade",
+   "aliases": [
+    "peek",
+    "450g",
+    "polyetheretherketone",
+    "victrex 450g"
+   ],
+   "properties": {
+    "density": {
+     "value": 1300,
+     "unit": "kg/m3",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; 1.30 g/cm3 (crystalline), ISO 1183",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 4000,
+     "unit": "N/mm2",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; tensile modulus at 23 C, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 98,
+     "unit": "N/mm2",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; tensile stress at yield, 23 C, ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 25,
+     "unit": "%",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; tensile strain at break, 23 C, ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "E_flexural": {
+     "value": 3800,
+     "unit": "N/mm2",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; flexural modulus at 23 C, ISO 178",
+     "honesty": "datasheet"
+    }
+   },
+   "notes": "EVERY VALUE HERE IS 23 C, and PEEK is bought for temperature: the same datasheet tabulates strength falling steeply above 125 C, so using these figures for a hot part is the mistake this card cannot stop you making. The density is the sheet's CRYSTALLINE value; a quenched, largely amorphous moulding is slightly lighter, which matters for mass on a thin part. Unfilled 450G - the carbon- and glass-filled grades are stiffer, stronger and anisotropic, and would be different cards with a `refuses` block."
   },
   "pla": {
    "family": "thermoplastic (FFF)",
