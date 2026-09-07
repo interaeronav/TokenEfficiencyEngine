@@ -174,56 +174,162 @@ def test_a_missing_extra_refuses_with_the_exact_command():
     assert "not installed" in e.value.message
 
 
+def test_bad_specs_are_refused_before_any_solver_runs():
+    for spec, expect in (
+        ({"variables": {}}, "No variables"),
+        ({"sense": "sideways", "variables": {"x": {}}}, "not min or max"),
+        ({"variables": {"x": {"type": "complex"}}}, "unknown"),
+        ({"variables": {"x": {}}, "objective": {"ghost": 1}}, "undeclared"),
+    ):
+        with pytest.raises(TeeError) as e:
+            solve.solve(spec)
+        assert expect in e.value.message, f"{spec} -> {e.value.message}"
+
+
 BAD_SPECS = (
     ({"variables": {}}, "No variables"),
     ({"sense": "sideways", "variables": {"x": {}}}, "not min or max"),
     ({"variables": {"x": {"type": "complex"}}}, "unknown"),
     ({"variables": {"x": {}}, "objective": {"ghost": 1}}, "undeclared"),
-    ({"variables": {"x": {}}, "backend": "gurobi"}, "not a solver backend"),
-    (
-        {"variables": {"x": {}}, "constraints": [{"lhs": {"ghost": 1}}]},
-        "constraint 0 names undeclared",
-    ),
-    (
-        {"variables": {"x": {}}, "constraints": [{"lhs": {"x": 1}, "op": "≈"}]},
-        "op '≈' is unknown",
-    ),
 )
 
 
-def test_bad_specs_are_refused_before_any_solver_runs():
-    for spec, expect in BAD_SPECS:
-        with pytest.raises(TeeError) as e:
-            solve.solve(spec)
-        assert expect in e.value.message, f"{spec} -> {e.value.message}"
-
-
-def test_a_bad_spec_names_the_argument_even_when_the_extra_is_absent(monkeypatch):
+def test_a_bad_spec_names_the_argument_even_where_the_extras_are_installed(monkeypatch):
     """The ordering itself, pinned independently of this machine.
 
-    The test above only states the rule where pulp happens to be missing; with
-    the `[solve]` extra installed it passes no matter which check runs first,
-    so it cannot catch a regression on a CI runner that has the extra. Here the
-    modelling layer is made unimportable outright: every refusal must still
-    name the argument the caller can fix, never the install they would have to
-    do. `solve()` must not touch `_pulp` until the spec is known to be good.
+    The two bad-spec tests above state the rule only where the extra happens
+    to be MISSING: on a runner that has pulp or ortools installed they pass
+    whichever check runs first, so neither can catch a regression that puts
+    the dependency back in front of the spec. Here both ways of asking for a
+    dependency are made to fail outright, so what is under test is the order
+    rather than the environment: every refusal must still name the argument
+    the caller can fix, and none may mention an install.
     """
 
-    def no_pulp():
+    def boom(*_a, **_kw):
         raise TeeError(
             "fleet_missing_extra",
-            "This needs the [solve] extra (the LP/MIP modelling layer): pulp is not installed.",
+            "This needs the [solve] extra: not installed.",
             fix="uv pip install 'tee-engine[solve]'",
         )
 
-    monkeypatch.setattr(solve, "_pulp", no_pulp)
-    for spec, expect in BAD_SPECS:
+    monkeypatch.setattr(solve, "_pulp", boom)  # the LP lane's modelling layer
+    monkeypatch.setattr(solve, "need", boom)  # and every engine probe, ortools included
+
+    for lane in (solve.solve, solve.cpsat):
+        for spec, expect in BAD_SPECS:
+            with pytest.raises(TeeError) as e:
+                lane(spec)
+            where = f"{lane.__name__}{spec}"
+            assert e.value.code == "solve_bad_spec", f"{where} -> {e.value.code}"
+            assert expect in e.value.message, f"{where} -> {e.value.message}"
+            assert "not installed" not in e.value.message, (
+                f"{where} asked for the extra before reading the spec"
+            )
+
+
+def test_bad_cpsat_specs_are_refused_before_ortools_is_needed():
+    """Rule 6 for the CP-SAT lane: an argument the caller can fix right now
+    comes before a dependency they would have to install. Deliberately NOT
+    gated on `probe.have("ortools")` - the whole claim is that these refusals
+    land on a machine where the [solve] extra was never installed, so a test
+    that only runs where it IS installed would prove nothing.
+
+    This is also the list that makes `_cpsat_worker`'s own checks redundant:
+    every refusal the worker can make appears here, in the parent."""
+    for spec, expect in (
+        ({"variables": {}}, "No variables declared."),
+        ({"sense": "sideways", "variables": {"x": {}}}, "not min or max"),
+        ({"variables": {"x": {"type": "complex"}}}, "type 'complex' is unknown"),
+        ({"variables": {"x": {}}, "objective": {"ghost": 1}}, "undeclared"),
+        (
+            {"variables": {"x": {}}, "constraints": [{"lhs": {"ghost": 1}, "op": "<="}]},
+            "constraint 0 names undeclared variables: ['ghost']",
+        ),
+        (
+            {"variables": {"x": {}}, "constraints": [{"lhs": {"x": 1}, "op": "!="}]},
+            "op '!=' is unknown",
+        ),
+    ):
         with pytest.raises(TeeError) as e:
-            solve.solve(spec)
+            solve.cpsat(spec)
+        assert e.value.code == "solve_bad_spec", f"{spec} -> {e.value.code}"
         assert expect in e.value.message, f"{spec} -> {e.value.message}"
-        assert "not installed" not in e.value.message, (
-            f"{spec} asked for the extra before reading the spec"
-        )
+
+
+def test_cpsat_refuses_a_continuous_variable_instead_of_integerising_it():
+    """The one rule `_check` cannot share between the lanes. CP-SAT has no
+    continuous domain, so honouring `type: "cont"` is not an option and
+    ignoring it is a different answer, silently - the worse of the two."""
+    with pytest.raises(TeeError) as e:
+        solve.cpsat({"variables": {"x": {"lb": 0, "ub": 10, "type": "cont"}}})
+    assert "continuous" in e.value.message
+    assert "solve_program" in e.value.fix, "must name the lane that CAN do it"
+
+
+def test_cpsat_refuses_a_fractional_bound_instead_of_truncating_it():
+    """Same defect wearing different clothes: the worker's `int(ub)` turns
+    2.5 into 2 and answers as if that was asked for."""
+    with pytest.raises(TeeError) as e:
+        solve.cpsat({"variables": {"x": {"lb": 0, "ub": 2.5}}})
+    assert "whole number" in e.value.message
+
+
+def test_an_omitted_type_is_an_integer_in_the_cpsat_lane_not_a_refusal():
+    """`cont` is the LP default, and inheriting it here would refuse every
+    CP-SAT spec in this file. An omitted field is not a request."""
+    checked = solve._check({"variables": {"x": {"lb": 0, "ub": 1}}}, integer_only=True)
+    assert checked.variables == {"x": {"lb": 0, "ub": 1}}
+    assert checked.sense == "min"
+
+
+def test_the_cpsat_lane_does_not_refuse_the_backend_name_its_probe_advertises():
+    """`solve_backends` reports "cp-sat" as a ready backend, so a model will
+    hand it straight back. `_require_backend` knows only highs/scip/cbc and
+    would refuse it as not a backend - which is why this lane never consults
+    the field. Running the LP check on a CP-SAT spec would be a new bug."""
+    checked = solve._check({"variables": {"x": {}}, "backend": "cp-sat"}, integer_only=True)
+    assert checked.backend == "cp-sat"
+    with pytest.raises(TeeError) as e:
+        solve._check({"variables": {"x": {}}, "backend": "cp-sat"})
+    assert e.value.code == "solve_bad_backend", "the LP lane still refuses it, on purpose"
+
+
+@pytest.mark.skipif(not probe.have("ortools"), reason="ortools not installed")
+def test_a_binary_variable_is_binary_in_the_cpsat_lane():
+    """`type` used to be read by nobody: every variable became IntVar(lb, ub)
+    with ub defaulting to 100, so this exact spec answered x=100."""
+    r = solve.cpsat({"sense": "max", "objective": {"x": 1}, "variables": {"x": {"type": "bin"}}})
+    assert r["status"] == "optimal"
+    assert r["nonzero"] == {"x": 1}
+
+
+@pytest.mark.skipif(not probe.have("ortools"), reason="ortools not installed")
+def test_the_worker_names_an_undeclared_variable_in_the_parents_words():
+    """The parent now refuses this before the worker is spawned, so the only
+    way to reach the worker's copy is by path - which the module supports on
+    purpose. Redundant is fine; contradicting is not, so the two must answer
+    the same. It used to answer {"error": "KeyError", "message": "'ghost'"}."""
+    import json as _json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from tee.fleet import solve as _s
+
+    spec = {"variables": {"x": {"lb": 0, "ub": 5}}, "constraints": [{"lhs": {"ghost": 1}}]}
+    p = subprocess.run(
+        [sys.executable, str(Path(_s.__file__).parent / "_cpsat_worker.py")],
+        input=_json.dumps(spec),
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    from_worker = _json.loads(p.stdout)["message"]
+
+    with pytest.raises(TeeError) as e:
+        solve.cpsat(spec)
+    assert from_worker == e.value.message == "constraint 0 names undeclared variables: ['ghost']"
 
 
 def test_tools_register_on_the_read_compute_capability():

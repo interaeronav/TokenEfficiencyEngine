@@ -1,0 +1,5 @@
+L4 cores 1 {'state': 'done', 'wall_s': 7.8, 'iters': 197, 'cl': 0.435564, 'cd': 0.010913, 'verdict': 'converged', 'error': ''}
+L4 cores 2 {'state': 'done', 'wall_s': 6.8, 'iters': 197, 'cl': 0.435549, 'cd': 0.010914, 'verdict': 'converged', 'error': ''}
+L4 cores 4 {'state': 'done', 'wall_s': 4.8, 'iters': 197, 'cl': 0.435549, 'cd': 0.010914, 'verdict': 'converged', 'error': ''}
+written L4
+exit 0

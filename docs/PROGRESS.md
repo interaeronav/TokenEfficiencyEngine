@@ -13488,3 +13488,116 @@ a macOS timing race in the base's lane, fixed upstream and waiting on PR #4.
 
 At close: **1,832 passed / 31 skipped / 125 deselected**, `make lint` clean,
 surface 17.
+
+### fleet: the solve spec is checked before the pulp import (2026-09-07)
+
+The same defect the cad lane fixed on 2026-09-06, in the same shape, one
+module over. `solve.solve()` opened with `pulp = _pulp()`, so on a machine
+without the `[solve]` extra a malformed request was refused for the wrong
+reason: `solve.solve({"variables": {}})` answered `solve_unavailable` —
+"This needs the [solve] extra … pulp is not installed" — where the caller's
+actual error was "No variables declared." One is an argument they can fix in
+the next call; the other is an install. Rule 6 puts the cheap one first.
+
+`test_bad_specs_are_refused_before_any_solver_runs` states that order and is
+deliberately not gated on `probe.have("pulp")`, so it failed anywhere the
+extra was absent. Found while merging the base branch into
+`claude/tee-component-integration-iflsyq`; pre-existing on that branch and on
+the default branch (`solve.py` was byte-identical on both), and left out of
+PR #1 rather than widening a 16,000-line diff. CI does not catch it — every
+runner that installs the extra hides it.
+
+The fix splits `_build` in two. `_check` holds every refusal and touches no
+solver: validating a spec needs the variable NAMES, never an `LpVariable`, so
+sense, empty variables, unknown variable type, undeclared names in the
+objective and in each constraint's `lhs`, and unknown ops are all decidable
+with no modelling layer in the room. It returns a `Checked` tuple that
+`_build` consumes, so nothing is parsed twice and the two cannot drift.
+`solve()` now reads `_check` → `_pulp()` → `_build` → `_solver`.
+
+The backend NAME moved with them: it is an argument like any other, and its
+refusal used to sit inside `_solver`, downstream of the import. It is checked
+last within `_check`, so a spec wrong in both places still names the model
+error first — the order it refused in before. `_solver` keeps its per-engine
+`need()` calls, which were always correctly placed: HiGHS is only required on
+the branch that builds a HiGHS solver. Dead weight removed on the way past —
+the `ops` mapping's values were never read (the build compares the operator
+directly), so it is a tuple of the four accepted spellings now.
+
+**Measured** with `pulp` hidden behind a meta_path finder that raises
+ImportError, so `probe.have` (find_spec) and `probe.need` (import_module)
+both see it absent: `tests/test_fleet_solve.py` goes from 1 failed / 8 passed
+/ 9 skipped to **9 passed / 9 skipped**, the nine skips all genuinely gated
+on the extra. With pulp present: **18 passed**. Whole server suite on the
+main venv: **1,502 passed, 20 skipped, 0 failed** (95 s). `make lint` clean —
+ruff check and `343 files already formatted`.
+
+**Owed, and PAID in the entry below:** `cpsat()` had the untouched half of
+this shape — it called `need("ortools")` before any spec check, and its
+worker's validation was thinner than `_check` (an undeclared name in a
+constraint arrived as a `KeyError`, not as a named refusal). It now runs
+`_check` in front of the `need()`, the worker's checks are reconciled with
+it, and a test pins the order. The two halves were written in separate
+worktrees and are carried by the same commit series here; the measurements
+above were taken on the 0.22.0 tree this was first written against, before
+the rebase onto 320e78a — the current numbers are below.
+
+---
+
+**Resolved 2026-09-07 — `solve.cpsat` refused the wrong thing first
+(Rule 6).** `cpsat()` opened with `need("ortools", ...)`, so on a machine
+without the `[solve]` extra `cpsat({"variables": {}})` came back "This needs
+the [solve] extra" instead of "No variables declared." — an install line in
+answer to a typo. It now runs `_check(spec, integer_only=True)` first and
+asks for ortools only for a spec that could actually run, the order
+`solve()` takes for pulp.
+
+`_check` grew ONE flag rather than a second validator: five of its six rules
+are word-for-word the same in both lanes, and the CP-SAT lane's two
+differences are facts about the engine, not taste. **CP-SAT has no
+continuous domain** — `_cpsat_worker` builds an IntVar for every variable —
+so an explicit `type: "cont"` is refused rather than silently integerised
+(the owner's own law: a different answer, not a rougher one). An OMITTED
+type is not a request, so it defaults to `int`; inheriting the LP default of
+`cont` would have refused every CP-SAT spec in the suite. Fractional `lb`/`ub`
+are refused for the same reason (`int(2.5)` → 2). **CP-SAT also has no
+backend to choose**, and `_require_backend` knows only highs/scip/cbc while
+`solve_backends` advertises the name "cp-sat" to the model — so running the
+LP check unmodified here would have refused `{"backend": "cp-sat"}` as not a
+backend. This lane does not read the field.
+
+Two silent wrong answers found while measuring, both now fixed and pinned:
+`{"type": "bin"}` with no bounds **answered 100**, because the worker read
+`type` from nobody and defaulted `ub` to 100; and an undeclared name in a
+constraint hit `vs[n]` and came back as `{"error": "KeyError", "message":
+"'ghost'"}` → `solve_bad_spec: 'ghost'` / "Check the spec shape." The
+parent's checks are now a strict superset of the worker's three, so no spec
+the worker would reject can reach it; the worker keeps its copies as a
+backstop for being run by path, answering in the parent's words verbatim
+(`test_the_worker_names_an_undeclared_variable_in_the_parents_words` pins
+that the two agree).
+
+Verified by blocking the module in `sys.meta_path` rather than uninstalling:
+a finder that RAISES ImportError satisfies both entry points (`probe.have`
+via `find_spec`, `probe.need` via `import_module`) — blocking one half makes
+the skip markers lie. Three configurations: all installed 25 passed; ortools
+absent 20 passed / 5 skipped (all five new non-gated tests among the
+passes); whole `[solve]` extra absent 12 passed / 13 skipped. Full server
+suite 1509 passed, 20 skipped; `make lint` clean.
+
+**Not changed, and it is the owner's call:** `_cpsat_worker` still defaults a
+missing `ub` to **100**. That is a silent cap of the same family as the two
+above — a variable the caller never bounded is bounded anyway — but CP-SAT
+needs finite domains, so the fix is a decision (refuse a missing `ub`? a much
+larger default?) rather than a correction.
+
+**Note for whoever merges:** `_check`/`Checked`/`_require_backend` were
+written here from the shape in the `claude/unruffled-golick-693bfb`
+worktree, where the same change is STILL UNCOMMITTED. Both halves now ship
+together in this branch, and this copy is a strict superset — that one plus
+the `integer_only` flag (its five other lines are two this supersedes and
+three of docstring prose). If that worktree is ever committed, it adds
+nothing here and should be dropped rather than merged twice. `cad.scad_build`'s matching fix has meanwhile
+LANDED on the base (104f363), so this branch inherits it and does not touch
+`cad.py`; this commit is rebased onto that base, not onto the 0.22.0 tree it
+was written against.

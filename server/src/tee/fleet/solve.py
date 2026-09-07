@@ -26,15 +26,15 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from tee.fleet.probe import need, probe_rows
 from tee.fleet.quiet import muted_stdout
 from tee.kernel.errors import TeeError
 
 BACKENDS = ("highs", "scip", "cbc")
-VAR_KINDS = {"cont": "Continuous", "int": "Integer", "bin": "Binary"}
-CON_OPS = {"<=": "le", ">=": "ge", "==": "eq", "=": "eq"}
+KINDS = {"cont": "Continuous", "int": "Integer", "bin": "Binary"}
+OPS = ("<=", ">=", "==", "=")
 DEFAULT_SHOW = 12
 SHOW_CAP = 200
 _STORE: dict[str, dict[str, Any]] = {}
@@ -55,12 +55,16 @@ def _pulp():
     return need("pulp", "solve", what="the LP/MIP modelling layer")
 
 
-def _bad_backend(backend: str) -> TeeError:
-    return TeeError(
-        "solve_bad_backend",
-        f"'{backend}' is not a solver backend.",
-        fix=f"Use one of: {', '.join(BACKENDS)}.",
-    )
+def _require_backend(backend: str) -> str:
+    """The engine's NAME is an argument like any other, so it is checked with
+    the rest of the spec - before the modelling layer is imported, not after."""
+    if backend not in BACKENDS:
+        raise TeeError(
+            "solve_bad_backend",
+            f"'{backend}' is not a solver backend.",
+            fix=f"Use one of: {', '.join(BACKENDS)}.",
+        )
+    return backend
 
 
 def _solver(pulp, backend: str, time_limit: float | None):
@@ -72,37 +76,47 @@ def _solver(pulp, backend: str, time_limit: float | None):
     if backend == "scip":
         need("pyscipopt", "solve", what="the SCIP engine")
         return pulp.SCIP_PY(**kw)
-    if backend == "highs":
-        need("highspy", "solve", what="the HiGHS engine")
-        return pulp.HiGHS(**kw)
-    raise _bad_backend(backend)
+    need("highspy", "solve", what="the HiGHS engine")
+    return pulp.HiGHS(**kw)  # `_require_backend` has left no other name
 
 
-def _check_spec(spec: dict[str, Any]) -> dict[str, Any]:
-    """Validate the request without importing the solver, and return its parts.
+class Checked(NamedTuple):
+    """A spec that has passed every test which does not need a solver."""
 
-    Every refusal here names something the caller can fix in their next call,
-    so none of them may sit behind an install: on a machine without the
-    `[solve]` extra a malformed spec would otherwise come back as "pulp is not
-    installed", which hides the real error behind a much more expensive one
-    (Rule 6, fail loud and cheap - and the bad-spec test runs where pulp is
-    absent, as CI's runner is). `fleet/cad.py` orders `scad_build` the same way
-    for the same reason.
+    sense: str
+    variables: dict[str, Any]
+    objective: dict[str, Any]
+    constraints: list[Any]
+    backend: str
 
-    An engine that has to be installed - pyscipopt, highspy - is still checked
-    where it is used, in `_solver`: that one really is an install, not an
-    argument.
+
+def _check(spec: dict[str, Any], *, integer_only: bool = False) -> Checked:
+    """Everything wrong with a spec that can be said without a solver.
+
+    Split out of `_build` so it can run BEFORE `_pulp()`: checking a request
+    needs only the variable NAMES, never an LpVariable, so nothing here
+    touches the modelling layer - which is what lets a malformed spec be
+    refused as malformed on a machine with no [solve] extra at all.
+
+    `integer_only` is the CP-SAT lane, and it is a flag rather than a second
+    validator for two reasons. Five of the six rules below are word-for-word
+    the same in both lanes, and two copies that must agree are the very
+    defect this function exists to delete. The two that differ are not taste:
+
+    * CP-SAT has no continuous domain. `_cpsat_worker` builds an IntVar for
+      every variable, so an explicit `type: "cont"` there is not a coarser
+      answer, it is a different one, arrived at silently. It is refused.
+      An OMITTED type is not a request, so it defaults to `int` here.
+    * CP-SAT has no backend to choose - `cpsat()` IS the engine - and
+      `backends()` advertises the name "cp-sat" to the model, which
+      `_require_backend` would then refuse as not a backend. So this lane
+      does not consult the field at all.
     """
     sense = str(spec.get("sense", "min")).lower()
     if sense not in ("min", "max"):
         raise TeeError(
             "solve_bad_spec", f"sense='{sense}' is not min or max.", fix="Use 'min' or 'max'."
         )
-
-    backend = str(spec.get("backend") or "highs").lower()
-    if backend not in BACKENDS:
-        raise _bad_backend(backend)
-
     variables = dict(spec.get("variables") or {})
     if not variables:
         raise TeeError(
@@ -110,16 +124,18 @@ def _check_spec(spec: dict[str, Any]) -> dict[str, Any]:
             "No variables declared.",
             fix='variables: {"x": {"lb": 0, "ub": 10, "type": "cont|int|bin"}}',
         )
-    kinds: dict[str, str] = {}
+    default_kind = "int" if integer_only else "cont"
     for name, d in variables.items():
-        kind = str(dict(d or {}).get("type", "cont")).lower()
-        if kind not in VAR_KINDS:
+        d = dict(d or {})
+        kind = str(d.get("type", default_kind)).lower()
+        if kind not in KINDS:
             raise TeeError(
                 "solve_bad_spec",
                 f"variable '{name}': type '{kind}' is unknown.",
                 fix="Use cont, int or bin.",
             )
-        kinds[name] = kind
+        if integer_only:
+            _require_integral(name, kind, d)
 
     obj = dict(spec.get("objective") or {})
     unknown = set(obj) - set(variables)
@@ -141,40 +157,54 @@ def _check_spec(spec: dict[str, Any]) -> dict[str, Any]:
                 fix="Declare every name under `variables` first.",
             )
         op = str(c.get("op", "<="))
-        if op not in CON_OPS:
+        if op not in OPS:
             raise TeeError(
                 "solve_bad_spec",
                 f"constraint {i}: op '{op}' is unknown.",
                 fix="Use <=, >= or ==.",
             )
-
-    return {
-        "sense": sense,
-        "backend": backend,
-        "variables": variables,
-        "kinds": kinds,
-        "objective": obj,
-        "constraints": cons,
-    }
+    if integer_only:
+        return Checked(sense, variables, obj, cons, "cp-sat")
+    # last, so a spec that is wrong in both places still names the model
+    # error first - the order this refused in before the checks moved
+    backend = _require_backend(str(spec.get("backend") or "highs").lower())
+    return Checked(sense, variables, obj, cons, backend)
 
 
-def _build(pulp, checked: dict[str, Any]):
-    """Turn an ALREADY-CHECKED spec into a pulp problem. Raises nothing of its
-    own: every refusal belongs to `_check_spec`, which ran before pulp was
-    imported."""
-    sense = checked["sense"]
-    prob = pulp.LpProblem("tee", pulp.LpMaximize if sense == "max" else pulp.LpMinimize)
+def _require_integral(name: str, kind: str, d: dict[str, Any]) -> None:
+    """The CP-SAT lane's two silent-truncation traps, refused out loud."""
+    if kind == "cont":
+        raise TeeError(
+            "solve_bad_spec",
+            f"variable '{name}': CP-SAT has no continuous domain, so "
+            "type 'cont' would become an integer without saying so.",
+            fix="Use 'int' or 'bin' here, or send this model to solve_program.",
+        )
+    for edge in ("lb", "ub"):
+        v = d.get(edge)
+        if isinstance(v, float) and not v.is_integer():
+            raise TeeError(
+                "solve_bad_spec",
+                f"variable '{name}': {edge}={v} is not a whole number, "
+                "and CP-SAT would truncate it without saying so.",
+                fix=f"Round {edge} yourself, or send this model to solve_program.",
+            )
+
+
+def _build(pulp, checked: Checked):
+    """Turn an already-checked spec into a PuLP model. Raises nothing of its
+    own: every refusal `_build` used to make now happens in `_check`."""
+    prob = pulp.LpProblem("tee", pulp.LpMaximize if checked.sense == "max" else pulp.LpMinimize)
     vs: dict[str, Any] = {}
-    for name, d in checked["variables"].items():
+    for name, d in checked.variables.items():
         d = dict(d or {})
-        kind = VAR_KINDS[checked["kinds"][name]]
-        vs[name] = pulp.LpVariable(name, d.get("lb", 0), d.get("ub"), kind)
+        kind = str(d.get("type", "cont")).lower()
+        vs[name] = pulp.LpVariable(name, d.get("lb", 0), d.get("ub"), KINDS[kind])
 
-    obj = checked["objective"]
+    obj = checked.objective
     prob += pulp.lpSum(float(c) * vs[n] for n, c in obj.items()) if obj else 0
 
-    cons = checked["constraints"]
-    for i, c in enumerate(cons):
+    for i, c in enumerate(checked.constraints):
         c = dict(c or {})
         lhs = dict(c.get("lhs") or {})
         op = str(c.get("op", "<="))
@@ -182,25 +212,24 @@ def _build(pulp, checked: dict[str, Any]):
         expr = pulp.lpSum(float(k) * vs[n] for n, k in lhs.items())
         rhs = float(c.get("rhs", 0))
         prob += (expr <= rhs if op == "<=" else expr >= rhs if op == ">=" else expr == rhs), name
-    return prob, vs, cons
+    return prob, vs
 
 
 def solve(spec: dict[str, Any]) -> dict[str, Any]:
     """Solve one LP/MIP and answer compactly.
 
     The request is checked before the environment is: a spec with no
-    variables, an unknown sense, variable type, constraint op or backend is
+    variables, an unknown sense or an undeclared name in the objective is
     refused as such on every machine, and only a request that could actually
-    run asks for the `[solve]` extra."""
-    checked = _check_spec(spec)
+    run asks for pulp and the engine (Rule 6, fail loud and cheap - an
+    argument the caller can fix now beats a dependency they would have to
+    install first).
+    """
+    checked = _check(spec)
+    backend, cons = checked.backend, checked.constraints
     show = max(0, min(int(spec.get("show") or DEFAULT_SHOW), SHOW_CAP))
-
-    # After the spec checks, not before: a bad argument is something the
-    # caller can fix right now, a missing extra is an install. Refusing on
-    # the import first would hide the cheaper fix on a machine without it.
     pulp = _pulp()
-    backend = checked["backend"]
-    prob, vs, cons = _build(pulp, checked)
+    prob, vs = _build(pulp, checked)
     solver = _solver(pulp, backend, spec.get("time_limit"))
 
     started = time.monotonic()
@@ -313,7 +342,17 @@ def cpsat(spec: dict[str, Any]) -> dict[str, Any]:
     in model-chosen order cannot control that, so CP-SAT gets a clean
     interpreter. Cost is one process spawn; the alternative is a solver
     that works or not depending on which tool ran first.
+
+    The spec is checked before ortools is, for the same reason `solve()`
+    checks before pulp: on a machine with no [solve] extra, a malformed
+    model must come back as malformed, not as an install line the caller
+    cannot act on (Rule 6). `_check` is also a strict SUPERSET of the
+    worker's own three refusals - no variables, an unknown op, an
+    undeclared name in a constraint - so no spec the worker would have to
+    reject can now reach it. The worker keeps its copies as a backstop for
+    being run by path; they answer in the same words, never different ones.
     """
+    _check(spec, integer_only=True)  # for its refusals; the worker parses the raw spec
     need("ortools", "solve", what="the CP-SAT engine")
     worker = Path(__file__).parent / "_cpsat_worker.py"
     show = max(0, min(int(spec.get("show") or DEFAULT_SHOW), SHOW_CAP))
@@ -351,6 +390,8 @@ def cpsat(spec: dict[str, Any]) -> dict[str, Any]:
             fix="Something wrote to its stdout; report this - the worker mutes fd 1.",
         ) from exc
     if raw.get("error"):
+        # `_check` has already refused everything the worker checks, so this
+        # is drift-insurance rather than the path a bad spec takes.
         raise TeeError(
             "solve_bad_spec", str(raw.get("message") or raw["error"]), fix="Check the spec shape."
         )
