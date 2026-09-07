@@ -12862,15 +12862,24 @@ The Mac session's P4 recorded two claims about branches other than its own,
 neither of which it had checked against the remote, and both are wrong there.
 Measured on `origin` at `021fc15` (`git ls-tree`, `git grep`, `git show`):
 
-- **There is no second Fusion lane.** The default branch
+- **No second Fusion lane is on any remote head.** The default branch
   (`claude/token-efficiency-engine-5jv1dj`, 0.21.1) has no
   `server/src/tee/adapters/fusion/`, no `adapters/fusion/tee_bridge/`, no
   `tests/test_fusion_*`, no `fu_*` tool named anywhere in the tree, and no
   0.22.0 line in its CHANGELOG. Neither does PR #2's branch nor
   `claude/magical-jennings-5f0bbb`. `git grep -l fu_probe` across all four
-  remote heads matches this branch only. **This branch holds the only Fusion
-  lane in the repository**, so nothing has to be reconciled and no lane has to
-  be chosen; the fourth decision is withdrawn, not answered.
+  remote heads matches this branch only.
+
+  **That measurement holds; the conclusion drawn from it did not.** This entry
+  originally read "this branch holds the only Fusion lane in the repository,
+  so nothing has to be reconciled" and withdrew the fourth decision outright.
+  Wrong: the lane was real, in **six unpushed commits on the owner's own
+  machine** — 3,069 lines at these same paths, live-verified, stamped 0.22.0 —
+  which is exactly why fetching every remote head never revealed it. A fetch
+  measures the remote, and the remote is not the whole state; the session that
+  found it recorded the law in CLAUDE.md and ported the three tools only the
+  other lane had. The fourth decision was therefore the owner's to take after
+  all, and they took it: keep this lane, port those three tools.
 - **0.22.0 is claimed once, not twice** — by PR #2's branch
   (`claude/wind-tunnel-aerodynamic-integration-hcsa7u`, A72 wind tunnel, whose
   `server/pyproject.toml` reads 0.22.0). The default branch reads 0.21.1, as
@@ -12878,12 +12887,15 @@ Measured on `origin` at `021fc15` (`git ls-tree`, `git grep`, `git show`):
   cuts should be 0.23.0** if PR #2 merges first, or 0.22.0 if it merges first
   — one number, one PR, whichever lands ahead of the other.
 
-The likeliest source of the claim is the Mac itself: the run was in a worktree
-(`/Users/john/TokenEfficiencyEngine-a71`) beside the owner's main clone, and a
-locally built `tee-engine-0.22.0.mcpb` or a local unpushed branch there would
-look like "the default branch shipped it" without a remote check. Nothing on
-the remote was touched either way. What PR #1 actually conflicted with was two
-files and no Fusion at all — see the merge commit above this entry.
+The source of the claim was the Mac itself, and the guess made here — "a
+locally built `tee-engine-0.22.0.mcpb` or a local unpushed branch" beside the
+worktree at `/Users/john/TokenEfficiencyEngine-a71` — turned out to be the
+right one, which is why it is left standing above rather than tidied away. The
+Mac session had seen something real and described it as the default branch's;
+this session could not see it and called it absent. Both halves of the record
+are kept because the pair is the lesson. Nothing on the remote was touched
+either way, and what PR #1 actually conflicted with was two files and no
+Fusion at all — see the merge commit above this entry.
 
 **P5 — record and push.** Full suite in the worktree: **1,696 passed / 28
 skipped / 118 deselected in 73.6 s**; `make lint` clean. Nine commits on this
@@ -13217,7 +13229,18 @@ alone keeps both sides. `uv.lock` was taken from the merge and re-locked to
 stale sentence saying the manifest and version were still undecided;
 DECISIONS and PROGRESS keep both entries, theirs first.
 
-**Decision 3 — PR #1 out of draft**, ready for review.
+**Decision 3 — PR #1 out of draft**, and the owner merged it outright at
+**05:27:44Z on head `49a82f0`**, both CI jobs green.
+
+**The 24 seconds that made this a follow-up.** That merge landed 24 seconds
+before the push carrying decisions 1 and 2 (`82cea81`, 05:28:08Z), so the
+manifest change and the version cut were not part of it and belong to a fresh
+pull request off the merged default branch. A first attempt to restart the
+branch for that was refused by `--force-with-lease` (`stale info`) because
+another session had pushed three commits onto it in the meantime — the port
+of the other lane's three tools, a windtunnel zombie-process fix, and the
+correction that the second Fusion lane was real. The lease did its job:
+their work is kept and this change sits on top of it instead of over it.
 
 ### A71 addendum — the three tools the other lane had (2026-09-07)
 
