@@ -12527,6 +12527,20 @@ differently):
    built runners; `all` reports the third under `skipped_unimplemented` and naming it directly
    still refuses. An open gap stays a gap. (`a05e4d2`)
 
+**`wt_verify` on the Mac's real engines, each case named through the registry** (the R3/R4
+half of step 6):
+
+```
+cylinder_re40   REFUSED wt_reference_unverified - "its reference (CD 1.522 Dennis & Chang 1970,
+                1.498 Fornberg 1980 ...) has not been verified at its source"
+flatplate       REFUSED wt_reference_unverified - "its reference is verified but its runner is
+                not built" (the new second bucket: R4 closed the reference, the runner is gap-work)
+wing_liftslope  PASS  cl_alpha 4.9037 vs 5.1905 (-5.52 %), cdi@6deg -0.01 %, cl@0deg 0.0
+naca0012_euler  PASS  cl 0.334478 vs 0.328486 (+1.82 %), cd 0.019922 vs 0.021481 (-7.26 %)
+case=all        all_pass True | skipped_unverified ['cylinder_re40']
+                              | skipped_unimplemented ['flatplate']
+```
+
 **Suites at close:** server `uv run --no-sync pytest -q` **1,626 passed / 21 skipped / 125
 deselected**; the `cfd` tier **9 passed** on four live engines; `ruff check` clean and 363 files
 formatted. Surface untouched: this session added no tool.
