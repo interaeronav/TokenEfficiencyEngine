@@ -14272,3 +14272,49 @@ it, which was the actual claim worth making.
 
 partkiln **916 passed / 2 skipped**, ruff clean, 23 cards, eight named
 authorities.
+
+### Elastomers, and a refusal for things that are not materials (2026-09-07)
+
+Owner: *"include rubber and tire material, specifically formula 1 car tires and
+aircraft tires"*. The rubber is real; the tyres are refusals, and the refusals
+are the substance.
+
+**Two elastomer cards from Trygonal's standard datasheets**, every row naming
+its DIN/ISO method: `rubber_nbr` (85 Shore A, 1 317 kg/m³, tensile 15.2 N/mm²,
+elongation 226%, service −35 to +110 °C) and `rubber_epdm` (87 Shore A,
+1 160 kg/m³, 11.7 N/mm², 263%, −45 to +135 °C).
+
+**They introduce the third distinct kind of refusal in this lane.** After
+composite anisotropy and printed anisotropy comes **hyperelasticity**: rubber's
+stress-strain curve is not a line, so there is no Young's modulus to quote. The
+datasheets hand over the right answer themselves — what they call
+**"100% Modulus"** is the *stress at 100% strain* (8.8 and 10.0 N/mm², DIN
+53504), which is not interchangeable with an E. So `E` refuses and points at
+`modulus_100` or a hyperelastic fit; `nu` refuses because rubber is nearly
+incompressible at about 0.4999 and an E/ν pair is ill-conditioned there — and
+the reason the datasheet prints none is itself the lesson; `yield` refuses
+because an elastomer stretches to several times its length and tears.
+
+**The tyres are not materials, and that is the honest answer rather than a
+shortfall.** A new `_NOT_A_MATERIAL` table in `resolve()` refuses `tyre`,
+`f1 tyre` and `aircraft tyre` (with the American spellings and plurals), each
+for its own reason:
+
+- **a tyre is a STRUCTURE** — several compounds over textile or steel cords,
+  with belts and a bead — so it has a vertical stiffness in N/mm that depends
+  on inflation pressure, not a modulus, and no density meaningful for a part's
+  mass;
+- **F1 compounds are trade secrets.** Checked before claiming it: Pirelli
+  publishes the compound designations C1–C5, their operating temperature
+  windows and the tyre dimensions, and no compound properties at all. Nothing
+  here could serve one without inventing it;
+- **aircraft tyre makers publish load, speed, inflation and dimension tables**
+  — what a landing gear engineer actually needs — and the tyre is largely a
+  pressure vessel, most of its load capacity being the inflation gas rather
+  than the rubber.
+
+Each refusal names where to go instead, and `rubber` on its own hits the family
+refusal automatically, listing NBR and EPDM.
+
+partkiln **921 passed / 2 skipped**, ruff clean, **25 cards**, nine named
+authorities.

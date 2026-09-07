@@ -858,6 +858,178 @@
    },
    "notes": "MASS IS THE HONEST NUMBER HERE AND STRENGTH IS NOT. `density` is the solid polymer, so mass_g assumes 100% infill; a part at 20% infill weighs roughly a fifth of what this card says. The strengths are the manufacturer's own printed specimens at 0.20 mm layers, and the datasheet states plainly that values depend significantly on print settings - a different nozzle, temperature or layer height moves them. The old card here served a single handbook yield of 55 N/mm2, which hid all of this."
   },
+  "rubber_epdm": {
+   "family": "elastomer",
+   "designation": "EPDM (ethylene propylene diene rubber), standard compound, 87 Shore A",
+   "aliases": [
+    "epdm",
+    "epdm rubber"
+   ],
+   "properties": {
+    "density": {
+     "value": 1160,
+     "unit": "kg/m3",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN EN ISO 1183-1",
+     "honesty": "datasheet"
+    },
+    "hardness_shore_a": {
+     "value": 87,
+     "unit": "Shore A",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; 87 +/- 5, DIN ISO 7619-1",
+     "honesty": "datasheet"
+    },
+    "modulus_100": {
+     "value": 10.0,
+     "unit": "N/mm2",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; '100% Modulus' - the STRESS AT 100% STRAIN, DIN 53504, which is what a rubber datasheet means by modulus and is not a Young's modulus",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 11.7,
+     "unit": "N/mm2",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN 53504",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 263,
+     "unit": "%",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; at break, DIN 53504",
+     "honesty": "datasheet"
+    },
+    "tear_resistance": {
+     "value": 9.1,
+     "unit": "N/mm",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 34-1 A",
+     "honesty": "datasheet"
+    },
+    "rebound_resilience": {
+     "value": 43,
+     "unit": "%",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4662",
+     "honesty": "datasheet"
+    },
+    "abrasion_loss": {
+     "value": 167,
+     "unit": "mm3",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4649 B",
+     "honesty": "datasheet"
+    },
+    "service_temp_min": {
+     "value": -45,
+     "unit": "C",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    },
+    "service_temp_max": {
+     "value": 135,
+     "unit": "C",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "rubber is HYPERELASTIC: its stress-strain curve is not a line, so there is no Young's modulus to quote. What a rubber datasheet calls 'modulus' is the stress at a stated strain - here 10.0 N/mm2 at 100% - and that number is not interchangeable with an E",
+     "fix": "read modulus_100 (10.0 N/mm2 at 100% strain), or fit a hyperelastic model (Mooney-Rivlin, Ogden) to your own test data; hardness_shore_a is the usual shorthand when a correlation is good enough"
+    },
+    "yield": {
+     "reason": "an elastomer does not yield: it stretches to several times its length and tears. This one breaks at 263% elongation",
+     "fix": "read tensile (strength at break), elongation, or tear_resistance"
+    },
+    "nu": {
+     "reason": "rubber is very nearly INCOMPRESSIBLE, so nu is about 0.4999 and a small-strain elastic model using it is numerically ill-conditioned - the datasheet prints none, and the reason it prints none matters",
+     "fix": "use a hyperelastic formulation with a separate bulk modulus rather than an E/nu pair"
+    }
+   },
+   "notes": "Service range -45 to 135 C, which for an elastomer is usually the deciding property rather than any strength. Density is the honest number for mass and is filler-dependent: a differently compounded EPDM (ethylene propylene diene rubber) of the same hardness can sit meaningfully away from this. EPDM resists weather, ozone and hot water but is attacked by mineral oils - the opposite trade to NBR, and the usual reason to choose between them."
+  },
+  "rubber_nbr": {
+   "family": "elastomer",
+   "designation": "NBR (nitrile butadiene rubber), standard compound, 85 Shore A",
+   "aliases": [
+    "nbr",
+    "nitrile",
+    "buna-n",
+    "nitrile rubber"
+   ],
+   "properties": {
+    "density": {
+     "value": 1317,
+     "unit": "kg/m3",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN EN ISO 1183-1",
+     "honesty": "datasheet"
+    },
+    "hardness_shore_a": {
+     "value": 85,
+     "unit": "Shore A",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; 85 +/- 5, DIN ISO 7619-1",
+     "honesty": "datasheet"
+    },
+    "modulus_100": {
+     "value": 8.8,
+     "unit": "N/mm2",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; '100% Modulus' - the STRESS AT 100% STRAIN, DIN 53504, which is what a rubber datasheet means by modulus and is not a Young's modulus",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 15.2,
+     "unit": "N/mm2",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN 53504",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 226,
+     "unit": "%",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; at break, DIN 53504",
+     "honesty": "datasheet"
+    },
+    "tear_resistance": {
+     "value": 5.4,
+     "unit": "N/mm",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 34-1 A",
+     "honesty": "datasheet"
+    },
+    "rebound_resilience": {
+     "value": 25,
+     "unit": "%",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4662",
+     "honesty": "datasheet"
+    },
+    "abrasion_loss": {
+     "value": 82,
+     "unit": "mm3",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4649 B",
+     "honesty": "datasheet"
+    },
+    "service_temp_min": {
+     "value": -35,
+     "unit": "C",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    },
+    "service_temp_max": {
+     "value": 110,
+     "unit": "C",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "rubber is HYPERELASTIC: its stress-strain curve is not a line, so there is no Young's modulus to quote. What a rubber datasheet calls 'modulus' is the stress at a stated strain - here 8.8 N/mm2 at 100% - and that number is not interchangeable with an E",
+     "fix": "read modulus_100 (8.8 N/mm2 at 100% strain), or fit a hyperelastic model (Mooney-Rivlin, Ogden) to your own test data; hardness_shore_a is the usual shorthand when a correlation is good enough"
+    },
+    "yield": {
+     "reason": "an elastomer does not yield: it stretches to several times its length and tears. This one breaks at 226% elongation",
+     "fix": "read tensile (strength at break), elongation, or tear_resistance"
+    },
+    "nu": {
+     "reason": "rubber is very nearly INCOMPRESSIBLE, so nu is about 0.4999 and a small-strain elastic model using it is numerically ill-conditioned - the datasheet prints none, and the reason it prints none matters",
+     "fix": "use a hyperelastic formulation with a separate bulk modulus rather than an E/nu pair"
+    }
+   },
+   "notes": "Service range -35 to 110 C, which for an elastomer is usually the deciding property rather than any strength. Density is the honest number for mass and is filler-dependent: a differently compounded NBR (nitrile butadiene rubber) of the same hardness can sit meaningfully away from this. NBR is the oil- and fuel-resistant one, which is why it is the default O-ring material."
+  },
   "stainless_1_4301": {
    "family": "austenitic stainless steel",
    "designation": "X5CrNi18-10, 1.4301 (EN 10088), AISI 304",

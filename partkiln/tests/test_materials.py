@@ -551,3 +551,72 @@ def test_the_handbook_frontier_is_exactly_what_we_think_it_is() -> None:
     assert handbook == HANDBOOK_SOURCED
     # ... and no printed plastic is among them any more
     assert not handbook & {"pla", "abs", "peek_450g", "nylon_pa66"}
+
+
+# ------------------------------------------- elastomers, and things that are not materials
+
+
+def test_a_rubber_datasheet_means_something_else_by_modulus() -> None:
+    """The third distinct kind of refusal in this lane, after composite and
+    printed anisotropy: HYPERELASTICITY. Rubber's stress-strain curve is not a
+    line, so there is no Young's modulus. The datasheet's own '100% Modulus'
+    is the stress at 100% strain, and serving it as E would be flatly wrong."""
+    d = materials.describe("rubber_nbr")
+    assert d["values"]["modulus_100"] == 8.8
+    assert "STRESS AT 100% STRAIN" in d["sources"]["modulus_100"]
+    with pytest.raises(CommandError, match="HYPERELASTIC"):
+        materials.property_value("rubber_nbr", "E")
+    with pytest.raises(CommandError, match="INCOMPRESSIBLE"):
+        materials.property_value("rubber_nbr", "nu")
+
+
+def test_an_elastomer_does_not_yield_it_tears() -> None:
+    d = materials.describe("rubber_epdm")
+    assert d["values"]["elongation"] == 263  # per cent, not per mille
+    assert d["values"]["tear_resistance"] == 9.1
+    with pytest.raises(CommandError, match="does not yield"):
+        materials.property_value("rubber_epdm", "yield")
+
+
+def test_the_two_elastomers_differ_by_the_thing_that_decides_between_them() -> None:
+    """Not strength - service range and chemical resistance. NBR takes oil,
+    EPDM takes weather and hot water, and the cards say so."""
+    nbr = materials.describe("rubber_nbr")
+    epdm = materials.describe("rubber_epdm")
+    assert nbr["values"]["service_temp_max"] == 110
+    assert epdm["values"]["service_temp_max"] == 135
+    assert "oil" in " ".join(nbr["notes"])
+    assert "mineral oils" in " ".join(epdm["notes"])
+
+
+def test_a_tyre_is_a_structure_and_the_lane_says_so() -> None:
+    """A tyre has a vertical stiffness in N/mm that depends on inflation
+    pressure - not a modulus, and not a density that means anything for a
+    part's mass. Answering with a rubber card would be the confident wrong
+    answer this whole lane exists to prevent."""
+    with pytest.raises(CommandError) as caught:
+        materials.resolve("tyre")
+    assert caught.value.code == "pk_needs"
+    message = str(caught.value)
+    assert "structure, not a material" in message
+    assert "rubber_nbr" in message  # and it says where to go instead
+    # the American spelling and the plural refuse identically
+    for spelling in ("tire", "tyres", "tires"):
+        with pytest.raises(CommandError, match="structure, not a material"):
+            materials.resolve(spelling)
+
+
+def test_f1_and_aircraft_tyres_refuse_for_their_own_reasons() -> None:
+    """Two different reasons, and neither is 'we could not find it'. F1
+    compounds are trade secrets - Pirelli publishes designations, temperature
+    windows and dimensions, never properties. Aircraft tyre makers publish
+    load/pressure/dimension books because that is what a landing gear engineer
+    needs; the tyre is mostly a pressure vessel anyway."""
+    with pytest.raises(CommandError, match="trade secrets"):
+        materials.resolve("f1 tyre")
+    with pytest.raises(CommandError, match="C1 hardest to C5 softest"):
+        materials.resolve("formula 1 tire")
+    with pytest.raises(CommandError, match="pressure vessel"):
+        materials.resolve("aircraft tyre")
+    with pytest.raises(CommandError, match="load, speed, inflation"):
+        materials.resolve("aviation tire")
