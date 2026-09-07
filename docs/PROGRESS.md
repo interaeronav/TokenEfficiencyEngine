@@ -14384,3 +14384,59 @@ surface table was re-measured rather than patched — 17 / 2,129 wire / 2,596 by
 **Suites at close:** partkiln **967 passed / 2 skipped**; server **1,932
 passed / 20 skipped / 130 deselected**; lint clean. Surface unchanged by this
 work: 17 tools / 2,129 tok — and now tested.
+
+### 0.25.0 cut and bundled (2026-09-07)
+
+Fifteen commits since 0.24.0: the partkiln material campaign (11 cards to 25,
+every new one from a named datasheet), `pk_tyre`, the test that pins the
+always-loaded surface figure, and the fix for `pvpython` breaking ParaView's
+code signature.
+
+Version bumped in the three places that must move together — `server/Makefile`,
+`server/pyproject.toml`, `packaging/mcpb_manifest.json` — plus `server/uv.lock`,
+which `uv lock` also re-normalised: 32 lines where redundant environment markers
+were dropped from CUDA and numpy entries. No package version changed; checked
+by diffing every non-marker line.
+
+**Cut from a worktree, not this checkout.** Midway through, the parallel
+session switched `/Users/john/TokenEfficiencyEngine` to its own branch
+(`claude/wind-tunnel-aerodynamic-integration-hcsa7u`, 0.24.1), which does not
+contain the partkiln work. Cutting there would have shipped a release missing
+half of what it names, and switching the shared checkout back would have done
+to that session what had just been done to this one. So the cut ran in
+`/Users/john/TEE-release-0.25.0`, a worktree on the default branch. A73 P2's
+0.24.1 is still on its own branch and merges on its own schedule.
+
+**Verified on the release tree**, with the worktree's own sources ahead of the
+main venv on `PYTHONPATH` (asserted by printing `tee.__file__` before trusting
+a single number):
+
+```
+partkiln  967 passed, 2 skipped
+server    1932 passed, 20 skipped, 130 deselected
+ruff      All checks passed! / 394 files already formatted
+```
+
+**Bundle**, built and then verified by unzipping it clean and serving from the
+shipped source rather than from the repo:
+
+```
+built dist/tee-engine-0.25.0.mcpb            1,240,366 bytes
+manifest_version 0.4 | version 0.25.0 | tools 17
+pyproject version = "0.25.0"; default-groups = [] (the dev-group opt-out)
+no __pycache__ and no .pyc in the archive
+always-loaded tools: 17
+  search 'extrude a sketch'        -> ['pk_verbs', 'pk_lint']
+  search 'aircraft tyre deflection'-> ['pk_tyre']
+  search 'carbon fibre modulus'    -> ['pk_materials']
+  pk_probe -> pk_not_served, naming the serve command (no adapter attached)
+```
+
+One honest limit on that check: it runs the bundle's `src` under the dev venv,
+so `tee.__version__` still reads the dev install's metadata. The version chain
+that reaches a user is the manifest and the bundle's own `pyproject.toml`, both
+read at 0.25.0 out of the archive. Running the manifest's literal `uv run`
+command would provision a fresh 1.3 GB venv from the lock and was not done.
+
+The manifest still declares blender, partkiln, seamkiln and fusion, and is
+otherwise untouched: which lanes Desktop serves is the owner's decision (A71).
