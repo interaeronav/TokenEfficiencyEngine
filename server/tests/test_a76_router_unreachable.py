@@ -23,7 +23,7 @@ import socket
 
 import pytest
 from fixtures_llm import fake_llm_server
-from test_llm_router import GOOD, _by_model, _call, _cfg
+from test_llm_router import _by_model, _call, _cfg
 
 from tee.kernel.machine import MachineLedger
 from tee.llm import router
@@ -127,8 +127,9 @@ def test_the_two_causes_are_currently_indistinguishable(tmp_path):
     dead, bad = MachineLedger(total_gb=128), MachineLedger(total_gb=128)
     _route_to_nothing(tmp_path, dead)
     with fake_llm_server(_by_model(set())) as (url, _c):
-        router.route("triage", _call, cfg=_cfg(url, tmp_path), ledger=bad,
-                     input_pointer="job7/traceback")
+        router.route(
+            "triage", _call, cfg=_cfg(url, tmp_path), ledger=bad, input_pointer="job7/traceback"
+        )
     shape = lambda b: {n: dict(r) for n, r in b.meter_block()["engines"].items()}  # noqa: E731
     assert shape(dead) == shape(bad), (
         "if these ever differ, the split has landed and this test should go"
