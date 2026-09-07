@@ -13,7 +13,11 @@ the kernel's on_cancel hook.
 from __future__ import annotations
 
 import math
+import os
+import platform
+import shlex
 import shutil
+import subprocess
 import time
 from pathlib import Path
 from typing import Any
@@ -570,6 +574,59 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                 "paraview",
             ],
             [{"case_id": "wt_1a2b3c4d5e", "view": "pressure"}],
+        ),
+        (
+            "wt_open",
+            "Hand a case to the desktop application that owns the picture: writes a ParaView "
+            "state file over the case (or names the .vsp3 for OpenVSP) and returns the exact "
+            "command. It only opens a window when launch=true, and refuses where there is no "
+            "display rather than reporting a Qt error.",
+            {
+                "type": "object",
+                "properties": {
+                    "case_id": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "app": {
+                        "type": "string",
+                        "enum": ["paraview", "openvsp"],
+                        "description": "paraview: the case and its fields. openvsp: the .vsp3.",
+                    },
+                    "view": {
+                        "type": "string",
+                        "enum": list(_views()),
+                        "description": "Which preset the state opens on, same names as wt_view.",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": ["full", "pipeline"],
+                        "description": "full carries a coloured view and needs a display to "
+                        "write; pipeline is the reader alone and writes anywhere. Omit to take "
+                        "the best this machine can do.",
+                    },
+                    "launch": {
+                        "type": "boolean",
+                        "description": "Open the application here. Off by default.",
+                    },
+                },
+                "required": ["case_id"],
+            },
+            lane.open,
+            [
+                "windtunnel",
+                "handoff",
+                "desktop",
+                "paraview",
+                "openvsp",
+                "state file",
+                "pvsm",
+                "inspect by hand",
+                "launch",
+                "gui",
+            ],
+            [
+                {"case_id": "wt_1a2b3c4d5e"},
+                {"case_id": "wt_1a2b3c4d5e", "app": "openvsp", "launch": True},
+            ],
         ),
         (
             "wt_export",
@@ -2153,11 +2210,147 @@ class _Lane:
     def export(self, args: dict[str, Any]) -> dict[str, Any]:
         case_id = _case_id(args)
         rec = self.store.load(case_id)
-        run = self.store.find_run(case_id, args.get("run_id"))
+        fmt = str(args.get("format", "json"))
+        # A73: the `.foam` stub is a property of the CASE, not of a run - it is
+        # an empty file whose name tells ParaView's reader where to look, and
+        # ParaView opens a meshed case with no solution perfectly well. Until
+        # now `wt_export format=foam` refused with wt_no_results until the case
+        # had been solved, which put the file the GUI needs behind the hour the
+        # GUI was meant to help you avoid spending.
+        run = {} if fmt == "foam" else self.store.find_run(case_id, args.get("run_id"))
         out_dir = Path(
             str(args.get("out_dir") or (self.store.case_dir(case_id) / "exports"))
         ).expanduser()
         return digest(report.export(self.app, str(args.get("format", "json")), rec, run, out_dir))
+
+    # -- the GUI handoff (A73) -----------------------------------------------
+    def _open_source(self, rec: dict[str, Any], run: dict[str, Any] | None) -> Path:
+        """What ParaView should open: a run's fields, or the case's own mesh.
+
+        Unlike `_volume_source` this does not insist on a run. Opening a mesh
+        before spending an hour solving on it is one of the better reasons to
+        open ParaView at all.
+        """
+        from tee.windtunnel import paraview as pv
+
+        engine = rec.get("engine")
+        if engine == "openfoam":
+            return pv.foam_stub(Path(run["run_dir"]) if run else Path(rec["engine_dir"]))
+        if engine == "su2":
+            if run:
+                return self._volume_source(rec, run)
+            raise TeeError(
+                "wt_no_results",
+                "An SU2 case has nothing for ParaView to read until it has run: "
+                "its .su2 mesh is not a format ParaView opens.",
+                fix="wt_run first, then wt_open reads the run's flow.vtu.",
+            )
+        raise TeeError(
+            "wt_field_missing",
+            "A vortex-lattice case has no field for ParaView.",
+            fix="wt_open app=openvsp opens its .vsp3 geometry instead.",
+        )
+
+    def open(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Prepare the handoff, and spawn the application only if asked."""
+        from tee.windtunnel import state as state_mod
+
+        case_id = _case_id(args)
+        rec = self.store.load(case_id)
+        app_name = str(args.get("app") or "paraview").lower()
+        if app_name not in ("paraview", "openvsp"):
+            raise TeeError(
+                "wt_bad_action",
+                f"'{app_name}' is not an application this lane hands off to.",
+                fix="app=paraview (the case and its fields) or app=openvsp (the .vsp3).",
+            )
+        launch = bool(args.get("launch"))
+        out: dict[str, Any] = {"case_id": case_id, "app": app_name}
+
+        if app_name == "openvsp":
+            vsp3 = (rec.get("geometry") or {}).get("vsp3")
+            if not vsp3 or not Path(str(vsp3)).is_file():
+                raise TeeError(
+                    "wt_no_geometry",
+                    f"Case {case_id} has no .vsp3 to open.",
+                    fix="wt_geom writes one for a wing or body case.",
+                )
+            gui = engines.find_openvsp_gui(self.cfg)
+            # Measured 2026-09-07: `vsp [inputfile.vsp3]` - the model is a
+            # positional argument, and -script is the headless route.
+            argv = [gui.path, str(vsp3)]
+            out["target"] = str(vsp3)
+        else:
+            run = None
+            if args.get("run_id") or rec.get("runs"):
+                try:
+                    run = self.store.find_run(case_id, args.get("run_id"))
+                except TeeError:
+                    run = None
+            source = self._open_source(rec, run)
+            view = str(args.get("view") or "pressure")
+            kind = args.get("kind")
+            # Beside what it opens, not beside the case: a run's state belongs
+            # with that run's fields (where wt_view already writes its PNGs),
+            # and a mesh-only state with the case. The two then move together,
+            # and the state names its source exactly once if they do not.
+            work = source.parent / "views"
+            written = state_mod.write(
+                self._pvpython(),
+                source,
+                work / f"{view}.pvsm",
+                view=view,
+                kind=str(kind) if kind else None,
+            )
+            out.update(written)
+            out["run_id"] = (run or {}).get("run_id")
+            try:
+                paraview_bin = engines.find_paraview_app(self.cfg).path
+            except TeeError as exc:
+                # The state file is already written and is the useful half, so
+                # the refusal carries it: a caller on a machine without the
+                # application can still copy it to one that has it.
+                raise TeeError(
+                    exc.code,
+                    f"{exc.message} The state file is written: {written['state']}",
+                    fix=f"{exc.fix} Then: paraview --state={written['state']}",
+                ) from exc
+            # `--state TEXT`, verified 2026-09-07 at docs.paraview.org; it
+            # excludes --script, --data and positional filenames.
+            argv = [paraview_bin, f"--state={written['state']}"]
+
+        out["command"] = argv
+        out["command_line"] = shlex.join(argv)
+        out["launched"] = False
+        if not launch:
+            out["note"] = "Prepared only. Pass launch=true to open it here."
+            return digest(out)
+
+        # Spawning a window is an escalation beyond write-artifacts, so it is
+        # asked for by name rather than taken quietly - handoff_import.land()'s
+        # precedent. The display is decided BEFORE the spawn because ParaView
+        # builds its Qt application before parsing arguments and aborts with a
+        # plugin error rather than anything useful (doc 73 §2.1).
+        self.app.registry.require("call-engine", name=f"wt_open launch={app_name}")
+        if platform.system() != "Darwin" and not os.environ.get("DISPLAY"):
+            raise TeeError(
+                "wt_no_display",
+                f"There is no display here, so {app_name} cannot open a window.",
+                fix="Run it where you are sitting: " + out["command_line"],
+            )
+        # argv is composed here, never a shell string, and start_new_session
+        # detaches the window from the server's process group so a restart
+        # does not take it down.
+        proc = subprocess.Popen(
+            argv,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        out["launched"] = True
+        out["pid"] = proc.pid
+        out["note"] = f"{app_name} started; it owns the window from here."
+        return digest(out)
 
     # -- verification --------------------------------------------------------
     def verify(self, args: dict[str, Any]) -> dict[str, Any]:
