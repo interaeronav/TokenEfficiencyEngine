@@ -107,6 +107,13 @@ def test_running_through_the_shell_records_the_job_and_can_cancel_it(with_case):
     assert shell.job and out.get("job") == shell.job
     tick = shell.poll()
     assert "job" in tick and "status" in tick
+    # The assertion this test was missing. `"job" in tick` was true even when
+    # the tick carried {"error": "unknown_tool"} - which it did on every tick,
+    # because the clock called `tee_job` through the registry that does not
+    # have it. A pane that reports a job must report the job.
+    assert "error" not in tick["job"], tick["job"]
+    assert tick["job"]["job"] == shell.job
+    assert tick["job"]["state"] in ("queued", "running", "done", "error", "cancelled")
     wait_job(shell.app, shell.job, 60)
     done = shell.cancel()  # a finished job cancels to False rather than raising
     assert "error" not in done or done["error"] == "job_cancel_failed"

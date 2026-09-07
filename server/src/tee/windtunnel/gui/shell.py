@@ -113,16 +113,22 @@ class WindTunnelShell:
     def poll(self) -> dict[str, Any]:
         """One tick of the window's clock: the job first, the run second.
 
-        `tee_job` owns whether the work is finished; `wt_status` owns what the
-        solver is doing. Asking the second without the first is how a window
-        ends up reporting `running` for a job that died.
+        The job manager owns whether the work is finished; `wt_status` owns
+        what the solver is doing. Asking the second without the first is how a
+        window ends up reporting `running` for a job that died.
+
+        It asks `app.jobs` directly, for the reason `_service` gives: `tee_job`
+        is an always-loaded MCP tool registered on the server, NOT a virtual
+        tool in this registry. Calling it here returned
+        `{"error": "unknown_tool"}` on every tick and the pane never showed a
+        job at all - measured 2026-09-07, after the same trap was found in the
+        Mac evidence script. Cancel had already been moved off this door; the
+        clock had quietly stayed on it.
         """
         out: dict[str, Any] = {}
         if self.job:
             try:
-                out["job"] = self.app.registry.call(
-                    "tee_job", {"action": "status", "job": self.job}
-                )
+                out["job"] = self.app.jobs.status(self.job)
             except TeeError as exc:
                 out["job"] = {"error": exc.code, "message": exc.message}
         if self.case_id:

@@ -14028,8 +14028,59 @@ returns. The narrowing the scare caused would have cost this campaign all three
 of the defects above, which is the argument for running the live tier rather
 than reasoning about it.
 
+### A73 P2 addendum — the same trap, three times (2026-09-07)
+
+The Mac session found two defects in `mac-check.sh`, **both of which faked a
+pass**, and one of them generalised into shipped code:
+
+1. `RUN_SOLVE=1` never ran: the script polled `registry.call("tee_job", …)`,
+   and `tee_job` is an always-loaded MCP tool registered on the server, not a
+   member of the app's registry. Section C then printed its own "only t=0
+   exists, the check is vacuous" line as though the flag had simply not been
+   passed.
+2. `codesign --verify … | head -3; echo "rc=$?"` reported `head`'s status, so
+   section B — the row this campaign had flagged as *the* unchecked one —
+   printed `rc=0` on a bundle `codesign` had just called invalid. It was
+   structurally incapable of failing. **A72's `p0-measure.sh` had the identical
+   defect and it is written down in this file**; the fix was applied there and
+   the lesson was not carried.
+3. Their third finding needed no code: comparing `.pyc` counts before and after
+   cannot fail on a bundle whose cache is already saturated (211 → 211 reads as
+   a pass). Cleaned first, the row means something — 0 before, 0 after,
+   `codesign` 0, `spctl` accepted.
+
+**And the first one was in the panel.** `WindTunnelShell.poll` called
+`registry.call("tee_job", …)` on every tick of the window's clock, which
+returns `{"error": "unknown_tool", "message": "No tool named 'tee_job'."}` —
+measured here, not deduced. The job pane could never show a job. A73 P3 had
+already met this trap and moved *cancel* onto `app.jobs`, even writing a test
+that keeps cancel "the only such control"; the clock stayed on the wrong door
+and its test asserted only that a `job` key existed, which an error payload
+satisfies. `poll` now asks `app.jobs.status`, and the test asserts the tick
+carries the job's id and a real state.
+
+Three times in one campaign, in three different files, the same sentence would
+have prevented it: **`tee_job` is not in this registry.** The rule that
+generalises is narrower and more useful than "be careful" — *a payload that
+proves a call happened is not evidence the call succeeded*, and every one of
+these tests and scripts was asserting the former.
+
+**The Mac rows, from the owner's session:** both P2 defects confirmed fixed on
+ParaView **6.1.1** (a state opens at t=197 with the solution; the mesh view
+loads on a case with no array); the bytecode guard verified on the handoff path
+(0 `.pyc`, `codesign` 0, `spctl` accepted); open question 2 answered and the
+documented idiom **wrong** — `open -a ParaView` cannot find the bundle at all,
+because it matches an application *name* and the bundle is
+`ParaView-6.1.1.app`, while the full path and `wt_open`'s own direct-binary
+argv both work, so the wrong idiom never reached the product; open question 1
+left open with its reason, being a two-machine test rather than a Mac row. And
+the `cfd` tier ran **whole for the first time on any machine: 17 passed,
+nothing skipped**, every `wt_open` test against 6.1.1 rather than the 5.11.2
+this campaign was written on.
+
 **Suites at close:** hermetic `pytest -q` **1,875 passed / 38 skipped / 133
-deselected** in 2:42 on the tree with both base merges in (1,867 before, plus
+deselected** in 2:40 on the tree with both base merges and the panel-clock fix
+in (1,867 before, plus
 this round's two hermetic tests, the base's bytecode-guard test and 0.25.0's
 five);
 `make lint` clean over `src tests ../benchmarks`, 394 files formatted; the
