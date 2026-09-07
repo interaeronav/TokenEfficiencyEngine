@@ -156,3 +156,24 @@ not yet.
 | --- | --- | --- |
 | hermetic | `test_windtunnel_{physics,writers,readers,runner,tools,licences}.py` | nothing (the fakes in `fixtures_windtunnel.py`) |
 | `cfd` | `test_windtunnel_live.py` | whichever engines are installed; `TEE_WT_TUTORIAL` for the adoption smoke |
+
+## The applications, not just their Python (A73)
+
+`wt_open` hands a case to ParaView or OpenVSP, so it needs the APPLICATIONS -
+the same installs the lines above already fetch, since `pvpython` ships inside
+ParaView and `vsp` beside `vspscript`. Nothing extra to install.
+
+It finds them beside the binaries the lane already resolves (`paraview` next to
+`pvpython`, `vsp` next to `vspscript`), then on PATH; `[windtunnel] paraview =
+<path>` overrides. Neither is ever version-probed: ParaView builds its Qt
+application before parsing arguments, so on a machine with no display even
+`paraview --help` aborts - asking it anything costs a crash.
+
+The panel is separate and optional:
+
+```bash
+uv pip install --python server/.venv/bin/python 'tee-engine[gui]'   # PySide6, LGPL-3.0
+server/.venv/bin/python -m tee.windtunnel.gui.app --project ~/TEE
+```
+
+See `docs/windtunnel-gui.md`. It adds no tool and no console script.

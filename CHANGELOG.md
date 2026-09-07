@@ -3,6 +3,57 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.24.0 — 2026-09-07
+
+The wind-tunnel GUI handoff (A73), closing A72's gap 1. `wt_open` writes a
+ParaView state file over a case and returns the exact command; it opens a
+window only for `launch=true`. A Qt panel drives the same lane and renders
+nothing. Fourteen `wt_*` tools now, and the always-loaded surface is unchanged
+at 17.
+
+### The handoff
+
+- **Two kinds of state, because the difference is measured.** One carrying a
+  view - reader, surface, colouring, scalar bar, camera, last time step - is
+  203,984 bytes and needs a display to write, since a render view without one
+  segfaults. A pipeline-only state is 17,132 bytes and writes anywhere. The
+  tool takes the best the machine can do and says which; an explicit ask for
+  the coloured one where nothing can render is refused, not downgraded.
+- **The display is decided before the spawn.** ParaView builds its Qt
+  application before parsing arguments, so with no display even `--help`
+  aborts on signal 6; a tool that spawned first would report that instead of
+  the real problem.
+- **The window is an escalation asked for by name.** Writing the file is
+  `write-artifacts`; `launch=true` calls `registry.require("call-engine")`
+  before spawning, the way `handoff_import.land()` asks before it writes a
+  scene.
+- **A state names its case exactly once**, so it lands beside what it opens and
+  `relocate()` is a string swap when the pair is separated.
+- `--state TEXT` verified at docs.paraview.org; `vsp [inputfile.vsp3]` measured.
+
+### Fixed
+
+- `wt_export format=foam` no longer demands a run. The stub is an empty file
+  whose NAME tells ParaView's reader where to look, so it belongs to the case -
+  gating it behind a solve put the file the GUI needs behind the hour the GUI
+  was meant to save.
+
+### The panel
+
+`python -m tee.windtunnel.gui.app`, no console script, no tool. partkiln's
+split: `actions` and `shell` Qt-free and where all the logic is tested, `app`
+the only module importing PySide6 (the new `[gui]` extra, LGPL-3.0) and only
+inside its functions. It never opens a window by itself, and a test walks every
+control to keep it so.
+
+### Notes
+
+- CI does not install Qt: 445 MB no test uses, and installing it would make the
+  refusal test skip itself.
+- ParaView is under review by the owner as unstable. Research doc 73 §4b
+  carries the three instabilities measured while building this and the
+  five-row specification a replacement must meet.
+
 ## 0.23.0 — one server, N lanes, no hub, and a Fusion lane (2026-09-07)
 
 Released from `claude/tee-component-integration-iflsyq` after A71 verified the

@@ -213,9 +213,29 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   the apt tutorial's 35 m section gave Cl 34); `vspscript` exits 2 after a
   complete sweep and Open MPI refuses root — both are claims the outputs
   overrule; `tee_job cancel` kills the solver process group through the
-  kernel's `on_cancel` hook (a real simpleFoam gone in 0.05 s). The GUI handoff
-  (`wt_open`, state files, a panel) is deferred by owner decision to a later
-  campaign; every `wt_*` tool is tabled individually — no `wt_` family row.
+  kernel's `on_cancel` hook (a real simpleFoam gone in 0.05 s). Every `wt_*`
+  tool is tabled individually — no `wt_` family row. The GUI handoff it
+  deferred is **A73**, below.
+
+- The A73 build (the wind-tunnel GUI handoff: `wt_open`, ParaView state files
+  and a Qt panel) closes A72's gap 1; `CLAUDE_A73_SCRIPT.md` is the plan of
+  record, research doc 73 the design of record and `docs/windtunnel-gui.md`
+  the panel's guide. Owner decisions (2026-09-07): prepare always and launch
+  only on request, the panel is in scope, ParaView and OpenVSP only (FreeCAD
+  with CfdOF declined). Its measured laws: ParaView builds its Qt application
+  BEFORE parsing arguments, so with no display even `paraview --help` aborts
+  on signal 6 — the lane never asks the binary anything and decides about the
+  display before it spawns; a state file carrying a view is 203,984 bytes and
+  needs a display to WRITE, while a pipeline-only one is 17,132 and writes
+  anywhere, so the tool writes the best the machine can do, says which, and
+  REFUSES rather than downgrading an explicit ask; a state names its case
+  exactly once, so a moved case is a string swap; `vsp` takes the model
+  positionally. The window is an escalation asked for by name through
+  `registry.require`, the panel renders nothing (A67 stands), and neither adds
+  a tool: the surface is still 17. **ParaView is under review by the owner as
+  unstable — doc 73 §4b carries the three instabilities measured here and the
+  five-row specification a replacement must meet; the application is an enum
+  and the ParaView-specific code sits in two modules.**
 
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is

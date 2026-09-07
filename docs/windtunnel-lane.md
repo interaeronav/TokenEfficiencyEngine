@@ -92,6 +92,25 @@ wt_probe → wt_conditions → wt_case (create | adopt) → wt_mesh → wt_run /
     run; `cylinder_re40` and `flatplate` refuse until their references have been
     checked at source.
 
+## Handing a case to a window (A73)
+
+```
+wt_open case_id=wt_1a2b3c4d5e                    # writes the state, prints the command
+wt_open case_id=wt_1a2b3c4d5e launch=true        # ... and opens ParaView here
+wt_open case_id=wt_1a2b3c4d5e app=openvsp        # the .vsp3 instead
+```
+
+It always prepares and only sometimes opens. What it writes is a ParaView state
+file beside what it opens, in one of two kinds: `full` carries a coloured
+surface, a scalar bar and a camera and needs a display to WRITE (a render view
+without one segfaults); `pipeline` is the reader alone, an eighth of the size,
+and writes anywhere. Omit `kind` to take the best the machine can do and read
+back which it wrote; ask for `full` where nothing can render and it refuses
+rather than downgrading you silently.
+
+A case with only a mesh can be opened — that is the point of looking before you
+solve. The panel over the same lane is `docs/windtunnel-gui.md`.
+
 ## Rules that bite
 
 - **A declaration is a claim; a measurement is evidence.** `vspscript` exits 2
@@ -133,6 +152,9 @@ wt_probe → wt_conditions → wt_case (create | adopt) → wt_mesh → wt_run /
 | `wt_reference_unverified` | a verification case whose reference is not yet checked at source | the source to visit |
 | `wt_render_failed` | `pvpython` cannot render here | `xvfb-run`, or ParaView's EGL/OSMesa binary |
 | `wt_extra_missing` | `format=vtu` without the extra | `uv sync --extra windtunnel` |
+| `wt_no_display` | `wt_open launch=true` where no window can open, or a state with a view where nothing can render | the command to run where you are sitting, or `kind=pipeline` |
+| `wt_paraview_missing` | the state is written but the application is absent | the install, and the state's own path |
+| `wt_no_geometry` | `wt_open app=openvsp` on a case with no `.vsp3` | `wt_geom` |
 
 ## Licences
 
@@ -159,8 +181,9 @@ reached by one function. No tutorial case is copied into the tree.
 
 ## What it does not do
 
-No GUI (`wt_open`, ParaView state files, a panel) — deferred by owner decision to
-a later campaign; the case directory, the `.foam` stub and the `.vsp3` are what
-those GUIs open. No adjoint or shape optimisation, no 3-D SU2 meshing (gmsh), no
-transient, multiphase or compressible OpenFOAM, no downloads, no Windows. SimFlow
-is not integrable as software; a case it writes is adoptable.
+No renderer of its own: `wt_open` hands the case to ParaView or OpenVSP and the
+panel shows numbers, because ParaView is the viewer (A67). No FreeCAD/CfdOF
+handoff — declined for A73, so a CfdOF case is still adopted headlessly rather
+than opened. No adjoint or shape optimisation, no 3-D SU2 meshing (gmsh), no
+transient, multiphase or compressible OpenFOAM, no downloads, no Windows.
+SimFlow is not integrable as software; a case it writes is adoptable.

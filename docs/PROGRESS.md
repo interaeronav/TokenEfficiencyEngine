@@ -13783,3 +13783,103 @@ nothing here and should be dropped rather than merged twice. `cad.scad_build`'s 
 LANDED on the base (104f363), so this branch inherits it and does not touch
 `cad.py`; this commit is rebased onto that base, not onto the 0.22.0 tree it
 was written against.
+
+## A73 — the wind-tunnel GUI handoff: `wt_open`, state files, and a panel (2026-09-07)
+
+Owner: *"now do the GUI handoff"* — gap 1 of A72, deferred on 2026-09-06 as
+*"headless only for now"*. `CLAUDE_A73_SCRIPT.md` is the plan of record,
+research doc 73 the design of record, `docs/windtunnel-gui.md` the panel's
+guide, and `docs/DECISIONS.md` carries the superseding ruling quoting the old
+one in its own words. Owner decisions taken at the start: prepare always and
+launch only on request; the panel is in scope; ParaView and OpenVSP only
+(FreeCAD with CfdOF offered and declined).
+
+### A73 P0 — measured before any code (this container, evidence in `docs/research/73-evidence/`)
+
+```
+paraview 5.11.2, pvpython, vsp + vspviewer 3.51.3 present; FreeCAD absent
+--help with no DISPLAY   qt.qpa.xcb: could not connect to display; signal 6; rc 1
+                         -> the client builds QApplication BEFORE parsing argv,
+                            so the lane never asks the binary anything
+--state TEXT             verified at docs.paraview.org (excludes --script/--data/filenames)
+SaveState / LoadState    both present; LoadState takes data_directory=, filenames=
+state, reader only       177,402 B      state, reader+colour+camera   203,042 B
+                         the case path appears EXACTLY ONCE in either
+round trip               fresh pvpython restores reader, file, ViewTime 0.0,
+                         camera [0.5, 0.0, 273.224], coloured by ['POINTS', 'p']
+vsp --help               "Usage: vsp [inputfile.vsp3]" - the model is positional
+DEFECT (A72)             wt_export format=foam refused with wt_no_results until
+                         the case had a run, yet ParaView opens a meshed case
+```
+
+**The one thing assumed and then caught.** The design first said "writing a
+state needs no display". Measured, that is false for a state carrying a view
+and true for one without:
+
+```
+reader + Show + ColorBy + camera + Render, no display          SIGSEGV rc 139
+the same, --force-offscreen-rendering                          SIGSEGV rc 139
+the same, xvfb-run -a                                          203,042 B rc 0
+reader + arrays + time, nothing shown, no display, no xvfb      16,545 B rc 0
+```
+
+So the tool writes two kinds and says which. Both records were corrected in
+place rather than quietly fixed.
+
+### A73 P1 — `wt_open`, and the state writer
+
+Fourteen `wt_*` tools; surface unchanged at 17. Through the lane's own module
+over a really solved case: `pipeline` 17,132 B, `full` 203,984 B, auto → full
+here (xvfb present), `relocate()` replaced exactly 1 occurrence. Every refusal
+exercised on the real engines: `wt_no_display`, `wt_no_geometry`,
+`wt_bad_action`, `wt_bad_view`. Sixteen hermetic tests drive prepare, refuse
+and launch with no display and no real application; a test caught the state
+landing beside the case rather than beside what it opens, which is now fixed.
+
+Trust: `wt_open` is `write-artifacts` (a file on disk, like `wt_view`'s PNG);
+`launch=true` calls `registry.require("call-engine")` by name before spawning.
+Still no `wt_` family row.
+
+### A73 P3 — the panel
+
+`server/src/tee/windtunnel/gui/`, partkiln's split: `actions` and `shell`
+Qt-free and where all fourteen tests drive it, `app` the only Qt module. It
+renders nothing (A67 stands), adds no tool and installs no console script.
+Writing it found that `tee_job` is an always-loaded MCP tool rather than a
+virtual one, so the Cancel control named a tool the registry does not have; a
+control may now name none and the shell services it against the same job
+manager, with a test that keeps cancel the only such control.
+
+### A73 P4 — the record
+
+Search budget re-measured rather than reasoned about, at **198 tools / 48
+cases**:
+
+```
+limit 3   44/48      limit 5   48/48
+limit 8   48/48      limit 10  48/48
+```
+
+The four misses at 3 are the same four at the same ranks, and "open the case in
+paraview" finds `wt_open` inside the tightest limit — a fifteenth tool cost the
+corpus nothing, the second time this lane has grown without the reach getting
+worse.
+
+CI does not install Qt: 445.2 MB (addons 332.0, essentials 110.8) that no test
+uses, and installing it would make the coverage worse, because the test
+asserting the panel names its extra skips itself where PySide6 exists.
+
+**ParaView under review.** Mid-campaign the owner's local session began looking
+for a replacement, ParaView having proved unstable in use. Doc 73 §4b records
+the three instabilities measured here as evidence and the five rows a candidate
+must satisfy. The architecture survives a swap: the application is an enum, the
+ParaView-specific code is confined to `state.py` and `paraview.py`, and the
+panel talks to the registry rather than to any application. No ParaView-specific
+capability was deepened after that news.
+
+**Still open:** the live tier for this campaign (the OpenVSP route on a real
+`.vsp3`, a state loaded back in a fresh pvpython) is deliberately narrowed and
+not yet run; the `.mcpb` bundle for 0.24.0 is not built; the Mac has not seen
+`wt_open` (does ParaView 6.1 accept a 5.11-written state? does `open -a
+ParaView --args --state=` pass the flag through?) — both are doc 73's open
+questions 1 and 2.
