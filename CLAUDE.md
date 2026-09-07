@@ -250,6 +250,28 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   meet: the application is an enum and the ParaView-specific code sits in two
   modules, so the swap stays cheap if the question returns.
 
+- The A74 campaign (**cfMesh** in the wind-tunnel lane) is driven by
+  `CLAUDE_A74_SCRIPT.md`; research doc 74 is the design of record and
+  `docs/research/74-evidence/` holds what produced its numbers. It opened when
+  "can you download and integrate HELYX" turned out to be **no** — ENGYS ships
+  it to paying customers only, with no macOS build — and the owner asked for an
+  analogue: the mesher HELYX sells is already inside the openfoam.com v2606
+  this lane drives. A72 already RUNS `cartesianMesh` for adopted cases; A74
+  writes for it. Its measured facts: `cartesianMesh` needs the `openfoam2606`
+  wrapper (direct, it cannot find `libmeshLibrary.so`); on one prism, snappy
+  took 46,160 cells and 12.0 s and its own log admits **1.32 of 2 boundary
+  layers at 41.6 % of the requested thickness**, while cfMesh took 37,960 cells
+  in 1.6 s and creates layer cells on every boundary face by construction —
+  **but FAILS `checkMesh` on skewness** (5.55, twelve faces at the sharp
+  trailing edge) where snappy passes at 0.70, which is the campaign's blocker
+  and is never to be hidden by widening `TOLERATED_CHECKS`. Two more laws it
+  starts with: cfMesh meshes the volume bounded by a CLOSED surface, so an
+  external-aero case needs the domain box and the body as ONE multi-solid STL
+  (each `solid` becomes a patch); and a dictionary key nearly inverted its own
+  P0 — a global `boundaryCellSize` refines at the farfield and cost 630,980
+  cells, where `localRefinement` on the body is the idiom. The campaign closes
+  with a measured **no** if solving on the better mesh does not move Cd.
+
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured

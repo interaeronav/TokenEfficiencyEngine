@@ -25,7 +25,10 @@ import pytest
 SERVER = Path(__file__).resolve().parents[1]
 LANE = SERVER / "src" / "tee" / "windtunnel"
 DATA = SERVER / "tests" / "data" / "windtunnel"
-EVIDENCE = SERVER.parent / "docs" / "research" / "72-evidence"
+# Every research-evidence directory, not the one this test was born with: A74
+# added `74-evidence` and the scan would have skipped it in silence, which is
+# the "a check that samples is not a check" lesson in its cheapest form.
+EVIDENCE_DIRS = sorted((SERVER.parent / "docs" / "research").glob("*-evidence"))
 
 BANNED = (
     "foamlib",
@@ -139,8 +142,9 @@ def test_goldens_carry_their_provenance_and_no_upstream_banner():
         text = path.read_text()
         for banner in UPSTREAM_BANNERS:
             assert banner not in text, f"{path.name} carries an upstream banner: {banner!r}"
-    if EVIDENCE.is_dir():
-        for path in EVIDENCE.rglob("*"):
+    assert EVIDENCE_DIRS, "no research evidence directories?"
+    for evidence in EVIDENCE_DIRS:
+        for path in evidence.rglob("*"):
             if path.is_file() and path.suffix in (".dat", ".csv", ".polar", ".log", ".txt"):
                 text = path.read_text(errors="replace")
                 for banner in UPSTREAM_BANNERS:

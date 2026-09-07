@@ -1,0 +1,46 @@
+# generated-by: the A74 P0 probe, 2026-09-07, this container (OpenFOAM v2606, cfMesh bundled)
+# The two arms' own output, transcribed from runs TEE made. No upstream file.
+
+--- geometry ---
+prism.stl, 192 triangles, chord 0.3 m, span 0.4 m (airfoil.extrude_stl, NACA 0012, 24 pts)
+domain the lane chose: x -1.5..4.8, y +-2.01799653, z +-2.2, blockage 0.081 %
+
+--- arm 1: snappyHexMesh, through wt_mesh (base_cell_m 0.15, levels [1,2], layers 2) ---
+cells 46160   kind snappy   wall 12.0 s
+checkMesh: Mesh OK.
+  Max aspect ratio = 9.4806878 OK.
+  Mesh non-orthogonality Max: 44.179792 average: 5.1430454
+  Max skewness = 0.70033472 OK.
+log.snappyHexMesh layer table:
+  patch faces        layers        overall thickness
+                target   mesh     [m]       [%]
+  body  160      2        1.32     0.0129    41.6
+
+--- arm 2a: cartesianMesh, global boundaryCellSize (THE WRONG IDIOM) ---
+cells 630980   wall 17.1 s   (refines at the farfield walls too)
+  Max aspect ratio = 4.9999534 OK.
+  Mesh non-orthogonality Max: 53.476768 average: 2.2957342
+  Max skewness = 5.5798269, 12 highly skew faces detected
+
+--- arm 2b: cartesianMesh, localRefinement on "body.*" (the right one) ---
+cells 37960   wall 1.6 s   checkMesh 0.7 s
+  Max cell openness = 2.8341511e-16 OK.
+  Max aspect ratio = 4.932793 OK.
+  Mesh non-orthogonality Max: 52.002236 average: 2.6530935
+  Max skewness = 5.5497086, 12 highly skew faces detected which may impair the quality of the results
+  ***Max skewness ... (checkMesh FAILS on skewness)
+log.cartesianMesh, the layer section:
+  Starting creating layer cells / Adding 99484 cells to the mesh   (2a: every boundary face)
+  Starting refining boundary layers / Number of newly generated cells 300   (the body's 2 layers)
+
+--- the binary ---
+$ cartesianMesh -help
+  error while loading shared libraries: libmeshLibrary.so
+$ /usr/bin/openfoam2606 cartesianMesh -help
+  (cfmesh)
+  Takes a triangulated surface and generates a cartesian mesh
+  Using: OpenFOAM-2606 (2606)          [the banner's URL filtered, as A72's log is]
+  Build: _481094f-20260618
+
+--- the surface ---
+domain.stl 37916 B, solids: ['farfield', 'body']  (multi-solid ASCII STL; each solid becomes a patch)

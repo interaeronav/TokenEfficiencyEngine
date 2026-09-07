@@ -2232,3 +2232,38 @@ own evidence that logic living in widgets ships untested.
 **ParaView and OpenVSP only.** FreeCAD with CfdOF was offered and declined for
 this campaign; FreeCAD is not on the build machine either, and the C2/C3 rows
 of A72's Mac checklist stay open.
+
+## A74 — cfMesh, and the HELYX question that produced it (2026-09-07)
+
+**HELYX is not integrable, and not for a licence-posture reason.** The owner
+asked whether it could be downloaded and integrated. ENGYS' own FAQ answers the
+availability question verbatim - *"No. HELYX and ELEMENTS are only available to
+paying customers"* - the installers are behind a customer portal, and the
+platform list is Linux and Windows, so it could not run on the machine that
+runs this lane's OpenFOAM anyway. HELYX-Core is GPL, but only to customers;
+HELYX-GUI is proprietary. The one freely downloadable thing carrying the name
+is HELYX-OS, a Java GUI for OpenFOAM 4.1/v1606+ that ENGYS marks deprecated on
+its own repository. Dispositioned the way SimFlow was in A72: **not integrable
+as software; a standard OpenFOAM case it writes is adoptable like any other.**
+
+**The analogue was already installed.** Asked for an alternative, the answer is
+cfMesh: GPL, distributed inside OpenFOAM.com since v1806, already in this
+lane's `KNOWN_BINARIES` and already run for adopted cases whose `Allrun` names
+it. So A74 is not "add a mesher" - it is **TEE writing for the mesher it
+already runs**, and it adds no install, no download, no engine row and no
+licence exposure.
+
+**It is opened on a measured shortfall, not on a vendor's claim.** On the
+lane's own prism, snappyHexMesh delivered 1.32 of 2 requested boundary layers
+at 41.6 % of the requested thickness, while cfMesh meshed the same geometry in
+1.6 s against 12.0 s with 18 % fewer cells and creates layer cells on every
+boundary face by construction. It is not a clean win: cfMesh's mesh FAILS
+`checkMesh` on skewness (5.55, twelve faces at the sharp trailing edge) where
+snappy passes at 0.70. That failure is the campaign's blocker and P3's subject;
+**`TOLERATED_CHECKS` is not to be widened to hide it.**
+
+**The campaign closes with a measured no if the forces do not move.** Cell
+counts and layer tables do not decide it: P2 solves the same case on both
+meshes and compares Cd. A mesh that covers its boundary layer and changes
+nothing downstream has not earned a `mesher=` argument.
+

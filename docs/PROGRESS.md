@@ -14693,3 +14693,49 @@ command would provision a fresh 1.3 GB venv from the lock and was not done.
 
 The manifest still declares blender, partkiln, seamkiln and fusion, and is
 otherwise untouched: which lanes Desktop serves is the owner's decision (A71).
+
+## A74 — cfMesh: the mesher HELYX sells, already on the disk (opened 2026-09-07)
+
+Plan of record `CLAUDE_A74_SCRIPT.md`, design of record doc 74, evidence in
+`docs/research/74-evidence/`, ruling in `docs/DECISIONS.md`.
+
+**How it opened.** The owner asked whether HELYX could be downloaded and
+integrated. It cannot — *"No. HELYX and ELEMENTS are only available to paying
+customers"* is ENGYS' own answer, the installers are portal-only, and the
+platform list has no macOS, so it could not run on the machine that runs this
+lane's OpenFOAM. Asked instead to find an analogue, the search ended one
+directory away: **cfMesh is inside the openfoam.com v2606 the lane already
+drives**, and A72 already runs `cartesianMesh` for adopted cases whose `Allrun`
+names it. What is missing is TEE writing a cfMesh case of its own.
+
+**P0, measured the same day** (one prism, one domain, two layers asked):
+
+| | snappyHexMesh (today) | cfMesh `cartesianMesh` |
+| --- | ---: | ---: |
+| cells | 46,160 | **37,960** |
+| mesh wall | 12.0 s | **1.6 s** |
+| `checkMesh` | **Mesh OK** | ✗ skewness (12 faces) |
+| max aspect / non-orth avg / skew | 9.48 / 5.14 / **0.70** | **4.93** / **2.65** / 5.55 |
+| body layers | **1.32 of 2, 41.6 % of thickness** | on every boundary face by construction |
+
+The layer row is snappy's own log table, not an inference, and it is the whole
+of HELYX's meshing claim reproduced against a binary that needs no install. The
+skewness row is why this is a trade and not a rout: twelve faces at the sharp
+trailing edge, and the lane's gate treats skew as one of two tolerated
+`checkMesh` failures — **which P3 must earn its way out of rather than lean
+on.**
+
+**Two facts the probe itself taught.** `cartesianMesh` called directly cannot
+find `libmeshLibrary.so`; through the `openfoam2606` wrapper — the form
+`foam_argv()` already composes — it answers. And the first cfMesh run produced
+**630,980 cells in 17.1 s**, worse than snappy on every count, because a global
+`boundaryCellSize` refines at the farfield walls too; `localRefinement` on the
+body is the idiom, and the wrong number is kept in the evidence because a
+campaign that had stopped there would have concluded the opposite of the truth.
+
+**Open:** P1 (the writer, the multi-solid domain surface, `mesher=` on
+`wt_mesh`, hermetic), P2 (solve on both meshes and compare the forces — the
+acceptance that actually decides this), P3 (the twelve skew faces, via feature
+edges), P4 (`auto`, benchmark, docs, version). Doc 74 §5 carries four open
+questions, including whether the Mac's v2606 bundle carries cfMesh too.
+

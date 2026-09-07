@@ -1,0 +1,50 @@
+# CLAUDE_A74_SCRIPT.md — cfMesh in the wind-tunnel lane
+
+Plan of record for **A74**. Research doc **74** is the design of record; `docs/research/74-evidence/` holds what produced its numbers. Opened 2026-09-07 on the owner's instruction, after the answer to *"can you download and integrate helyx"* turned out to be *"no, and the part of it you want is already installed"*.
+
+## Orientation for a cold session
+
+The wind-tunnel lane (A72, `wt_*`) meshes 3-D bodies with **snappyHexMesh** and 2-D sections with its own structured O-mesh. snappy's weak point is measured, not folklore: on the lane's own prism it delivered **1.32 of 2 requested boundary layers, at 41.6 % of the requested thickness** (doc 74 §2.2, from snappy's own log table). That shortfall is the thing HELYX advertises against — and **cfMesh**, whose `cartesianMesh` creates layer cells on every boundary face by construction, is already inside the openfoam.com v2606 distribution this lane drives. Nothing to install, nothing to download, no new licence.
+
+A72 already RUNS it: `cartesianMesh` is in `cfdof.KNOWN_BINARIES` and in the adopted-case mesh-step allowlist, so a case whose `Allrun` names it is meshed with it today. This campaign writes the other half — TEE composing a cfMesh case of its own.
+
+Read first: doc 74 (all five sections), then `foam.py`'s `write_snappy_dicts`/`default_sequence` and `tools.py`'s `mesh()`. The dictionary keys are in doc 74 §2.5 and were read off a real v2606 file; do not invent one.
+
+## Measured facts (2026-09-07, this container — build ON them)
+
+1. **`cartesianMesh` needs the wrapper.** Direct: `error while loading shared libraries: libmeshLibrary.so`. Through `/usr/bin/openfoam2606 cartesianMesh`: it answers, announcing `(cfmesh)`, `Using: OpenFOAM-2606`, `Build: _481094f-20260618`. `foam.foam_argv()` already composes exactly that form.
+2. **The comparison** (same prism, same domain, 2 layers asked): snappy **46,160 cells / 12.0 s / `Mesh OK` / skew 0.70 / layers 1.32 of 2 at 41.6 %**; cfMesh **37,960 cells / 1.6 s / skew 5.55 with twelve faces flagged (`checkMesh` FAILS) / aspect 4.93 / non-orth avg 2.65**.
+3. **The first cfMesh run measured the wrong thing:** 630,980 cells in 17.1 s, because `boundaryCellSize` refines at the farfield too. `localRefinement { "body.*" { cellSize … } }` is the idiom. A dictionary key nearly inverted the campaign's conclusion.
+4. **cfMesh meshes the volume bounded by a closed surface**, so external aero needs the domain box AND the body as one multi-solid STL (`solids: ['farfield', 'body']`, each solid becoming a patch). snappy's background `blockMesh` has no equivalent step.
+5. **Licence: nothing new.** cfMesh is GPL, distributed inside OpenFOAM.com since v1806 — the same process, install and posture as every binary the lane already drives.
+6. **The lane's gate would refuse it today.** `checkMesh` fails on skewness, and skew is one of the two `TOLERATED_CHECKS`, so a cfMesh mesh would run only under that tolerance. P3 is about earning a clean pass, not widening the tolerance.
+
+## Prior art in this repo (copy these, do not reinvent)
+
+- `foam.py` — the dictionary writers, `foam_argv()`, the header-driven readers, `write_mesh_system()` (the `system/` stubs `checkMesh` insists on).
+- `tools.py::_Lane.mesh` — the snappy path: job submission, `checkMesh` parsing, `wt_mesh_unhealthy`, the `kind` field in the result.
+- `airfoil.extrude_stl` / `physics.write_stl_ascii` — the body STL, and `write_stl_ascii(name=…)` is what makes a multi-solid file possible.
+- `case.py` — the case record already carries `domain: {xmin … zmax}`; the box needs no new arithmetic.
+- `fixtures_windtunnel.py` — `fake-foam/*` dispatches on `argv[0]`; a `cartesianMesh` arm goes there so P1 is hermetic.
+- A72's `p0-measure.sh` and A73's `mac-check.sh` for the shape of an owner-session probe — **and for the trap both of them fell into**: `$?` after a pipe is the pipe's status, and a payload proving a call happened is not evidence it succeeded.
+
+## Design of record (doc 74 carries the reasoning)
+
+`wt_mesh` grows **`mesher="snappy" | "cfmesh" | "auto"`**. A `write_cfmesh_dicts()` sits beside the snappy writer in `foam.py`; a `domain_surface()` helper joins the case's box and body STL into one multi-solid surface; the runner, the job, the ledger row and the `checkMesh` gate are untouched. No new tool, no new engine row, no new capability, no change to the always-loaded surface.
+
+## Phases
+
+- **P0** — the measurements above, doc 74, this script, the DECISIONS ruling, `74-evidence/`. **Done 2026-09-07**; the evidence directory holds both arms' scripts and their output.
+- **P1** — `write_cfmesh_dicts()`, `domain_surface()`, `mesher=` on `wt_mesh`, the fake `cartesianMesh` arm, hermetic tests per refusal. *Acceptance:* the whole path exercised with no real binary; byte-stable dictionaries; the surface's solids named and asserted; surface still 17 tools.
+- **P2** — the `cfd` tier: mesh the prism both ways, then **solve on both and compare the forces**. *Acceptance:* the comparison recorded with its numbers, whichever way it falls. A mesh that covers its layers and does not move Cd has not earned the argument.
+- **P3** — the twelve skew faces at the trailing edge: `surfaceFeatureEdges` → FMS, `edgeMeshRefinement`. *Acceptance:* `checkMesh` passes clean, or `mesher="cfmesh"` ships with a documented refusal for sharp sections — never a widened tolerance.
+- **P4** — `mesher="auto"` (the router's rule, from P2's numbers), the benchmark scenario, `docs/windtunnel-lane.md`, `docs/setup-windtunnel.md`, the CLAUDE.md bullet, CHANGELOG, PROGRESS, version.
+
+## Laws
+
+1. **Nothing is installed and nothing is downloaded.** cfMesh is already here; if it is absent on a machine, `wt_mesh mesher=cfmesh` refuses by name and says the OpenFOAM install is the answer.
+2. **The dictionary is read, never remembered** — doc 74 §2.5 keys came off a real file, and §2.3 is what guessing one costs.
+3. **A better mesh must show up in the answer**, or the campaign closes with a measured "no".
+4. **Never widen `TOLERATED_CHECKS` to make a mesh pass.** Fix the mesh or refuse the geometry.
+5. **The caller's arguments do not change between meshers**, which is what makes `auto` honest.
+6. Zero always-loaded tools; no new `wt_*` name; no family row.
