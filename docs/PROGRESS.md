@@ -14009,9 +14009,9 @@ tier rather than reasoning about it.
 **Suites at close:** hermetic `pytest -q` **1,869 passed / 38 skipped / 133
 deselected** in 2:39 (1,867 before, plus the two new hermetic tests);
 `make lint` clean over `src tests ../benchmarks`, 394 files formatted; the
-`cfd` tier `pytest -m cfd tests/test_windtunnel_live.py` **13 passed / 3
-skipped** in 13:50 over the file as it stood, and the sixth new test (the SU2
-`.vtu` state, added after that run had collected) passing on its own. The three
+`cfd` tier `pytest -m cfd tests/test_windtunnel_live.py` **14 passed / 3
+skipped** in 14:09 — the whole file, A72's eight live tests and this round's
+six, on the real OpenFOAM v2606, ParaView 5.11.2 and OpenVSP 3.51.3. The three
 skips are honest and named by the refusal that raises them: SU2 is not
 installed in this container, so its two tests skip with the download line the
 lane would have printed, and the apt `airFoil2D` tutorial is not at the path
