@@ -39,11 +39,14 @@ DECISIONS entry; PROGRESS carries the numbers.
    declaration; STL's `units` is read from `UnitsManager.defaultLengthUnits`
    (row 53) at export time instead.
 5. **P4 was not executed.** The three `AskUserQuestion`s need the owner; each
-   decision is prepared in PROGRESS with its consequences and left open,
-   plus a fourth the run exposed: the default branch's own A68 Fusion lane
-   (shipped as 0.22.0 over the same FusionMcpBridge, at the same paths) and
-   this branch's lane must be reconciled before PR #1 can merge; 0.22.0 is
-   also claimed by PR #2.
+   decision is prepared in PROGRESS with its consequences and left open.
+   A fourth was named — a second Fusion lane on the default branch, to be
+   reconciled before PR #1 could merge — and **withdrawn on 2026-09-07** when
+   it was measured against `origin` instead of a local checkout: no branch but
+   this one carries a Fusion adapter, bridge, test or `fu_*` tool, and 0.22.0
+   is claimed once (PR #2), not twice. PR #1's real conflict with its base was
+   two files, neither of them Fusion, and is resolved. PROGRESS and DECISIONS
+   carry the measurement.
 6. **Law 6 (no model identifiers in commits)** was already contradicted by
    every commit on this branch, which carry the harness's co-author trailer;
    this session's commits carry it too.

@@ -313,9 +313,10 @@ nothing. Tested in `test_lane_routing.py`.
 `[fusion] port = 9881`; `ADAPTER_NAMES` gains `fusion`; `tee doctor` reports
 the bridge. **The Desktop manifest is unchanged**: the lane has now been
 seen live (§8.2, A71) and the manifest decision is the owner's (the A71
-script's P4, put to the owner rather than taken by the session) — the default
-branch's own 0.22.0 manifest already lists a `fusion` lane built on the
-FusionMcpBridge, which is the collision §8.2 names.
+script's P4, put to the owner rather than taken by the session). The A71 run
+believed the default branch's own manifest already listed a `fusion` lane;
+measured against `origin` on 2026-09-07 it does not, and §8.2 records the
+correction.
 
 ## 5. Laws for this lane
 
@@ -468,10 +469,24 @@ end to end — steps 1–11 plus `fu_drawing` through partkiln, **2 passed in
 
 Not live: the TEE add-in's own hop (rows 1–3 via the FusionMcpBridge only),
 fillets (row 11), an import into Fusion (row 18), the TEE add-in's manifest
-(row 20). **The collision this run exposed:** the repository's default branch
-shipped its own Fusion lane the same day (A68 there: five `fu_*` tools over
-the FusionMcpBridge, 0.22.0), at the same paths as this lane. Both are
-live-verified now; which survives, or how they merge, is the owner's call.
+(row 20).
+
+**The collision this run reported, and its withdrawal (2026-09-07).** The A71
+session recorded that the repository's default branch had shipped its own
+Fusion lane the same day (A68 there: five `fu_*` tools over the
+FusionMcpBridge, 0.22.0) at these same paths, and left "which lane survives"
+as a fourth decision for the owner. Measured against `origin` — `git ls-tree`
+over all four remote heads, `git grep -l fu_probe`, `git show
+<branch>:server/pyproject.toml` — **no such lane exists on the remote**: the
+default branch is 0.21.1 with no `server/src/tee/adapters/fusion/`, no
+`adapters/fusion/tee_bridge/`, no `tests/test_fusion_*` and no `fu_*` tool
+anywhere; neither has PR #2's branch nor `claude/magical-jennings-5f0bbb`.
+This branch holds the only Fusion lane in the repository, and PR #1's actual
+conflict with its base was two files (`server/src/tee/fleet/cad.py`,
+`docs/PROGRESS.md`), neither of them Fusion. The claim was almost certainly
+read from the Mac's local clone beside the A71 worktree rather than from the
+remote — which is the lane's own Law 2 turned on repository state: a branch
+you have not fetched is a declaration.
 
 ## 9. Open questions for the smoke
 

@@ -12850,17 +12850,40 @@ not exist — the adapter does not create it; the CLI does.)
 three `AskUserQuestion`s were not asked; each is prepared and left open: (1)
 the Desktop manifest (`--adapter fusion` after seamkiln; the manifest test's
 exact list, the description/keywords, `test_instructions.py`'s 2,048 B cap);
-(2) the version cut with its re-lock (`uv 0.12.5` here, CI's major) — note
-that **0.22.0 is already claimed twice**: the default branch shipped
-`tee-engine-0.22.0.mcpb` (A68 there: a Fusion lane over the FusionMcpBridge,
-five `fu_*` tools) and PR #2 (A72, wind tunnel) says 0.22.0 too, so whatever
-lands next wants 0.23.0; (3) PR #1 ready for review. **A fourth decision the
-run exposed:** two Fusion lanes now exist at the same paths —
-`server/src/tee/adapters/fusion/`, `adapters/fusion/tee_bridge/`,
-`tests/test_fusion_*` — the default branch's A68 (thin, live-proven, shipped)
-and this branch's A69/A70/A71 (rich, now live-proven). Merging PR #1 will
-conflict there; which lane survives, or how they merge, is the owner's call.
+(2) the version cut with its re-lock (`uv 0.12.5` here, CI's major); (3) PR #1
+ready for review. The session also named a fourth decision — two Fusion lanes
+at the same paths on two branches — which the container session then measured
+and **found not to hold on the remote** (below).
 This session also left the default branch and the Desktop install untouched.
+
+### Correction — the second Fusion lane is not on the remote (2026-09-07)
+
+The Mac session's P4 recorded two claims about branches other than its own,
+neither of which it had checked against the remote, and both are wrong there.
+Measured on `origin` at `021fc15` (`git ls-tree`, `git grep`, `git show`):
+
+- **There is no second Fusion lane.** The default branch
+  (`claude/token-efficiency-engine-5jv1dj`, 0.21.1) has no
+  `server/src/tee/adapters/fusion/`, no `adapters/fusion/tee_bridge/`, no
+  `tests/test_fusion_*`, no `fu_*` tool named anywhere in the tree, and no
+  0.22.0 line in its CHANGELOG. Neither does PR #2's branch nor
+  `claude/magical-jennings-5f0bbb`. `git grep -l fu_probe` across all four
+  remote heads matches this branch only. **This branch holds the only Fusion
+  lane in the repository**, so nothing has to be reconciled and no lane has to
+  be chosen; the fourth decision is withdrawn, not answered.
+- **0.22.0 is claimed once, not twice** — by PR #2's branch
+  (`claude/wind-tunnel-aerodynamic-integration-hcsa7u`, A72 wind tunnel, whose
+  `server/pyproject.toml` reads 0.22.0). The default branch reads 0.21.1, as
+  does this branch. The advice that lands unchanged: **whatever this branch
+  cuts should be 0.23.0** if PR #2 merges first, or 0.22.0 if it merges first
+  — one number, one PR, whichever lands ahead of the other.
+
+The likeliest source of the claim is the Mac itself: the run was in a worktree
+(`/Users/john/TokenEfficiencyEngine-a71`) beside the owner's main clone, and a
+locally built `tee-engine-0.22.0.mcpb` or a local unpushed branch there would
+look like "the default branch shipped it" without a remote check. Nothing on
+the remote was touched either way. What PR #1 actually conflicted with was two
+files and no Fusion at all — see the merge commit above this entry.
 
 **P5 — record and push.** Full suite in the worktree: **1,696 passed / 28
 skipped / 118 deselected in 73.6 s**; `make lint` clean. Nine commits on this

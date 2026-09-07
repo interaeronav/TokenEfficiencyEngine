@@ -180,9 +180,11 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   design, never a body**; **USD is written as `<name>.usdz`**; and the kernel
   trims diff fields that echo the op, so a lone joint's row has no `kind` —
   `created` is the address. The three P4 decisions (manifest, version cut,
-  PR #1 ready) were NOT taken by the session and are the owner's, together
-  with a fourth the run exposed: the default branch's own A68 Fusion lane
-  (0.22.0) and this branch's A69/A70 lane occupy the same paths.
+  PR #1 ready) were NOT taken by the session and are the owner's. A fourth,
+  a second Fusion lane on the default branch, was **withdrawn on 2026-09-07**:
+  measured against `origin`, no branch but this one carries a Fusion adapter,
+  bridge, test or `fu_*` tool, so there is nothing to reconcile. A branch you
+  have not fetched is a declaration, not a measurement.
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured

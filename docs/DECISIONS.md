@@ -2014,11 +2014,19 @@ rule moved.
 
 **What was NOT decided.** The Desktop manifest, the version cut and PR #1's
 readiness are the owner's (the script's P4) and were left open with their
-consequences written out — including that 0.22.0 is already claimed by the
-default branch's A68 Fusion lane and by PR #2's wind tunnel. So is the
-collision the run exposed: two live-verified Fusion lanes at the same paths
-on two branches. The session changed nothing on the default branch and did
-not install anything into Claude Desktop.
+consequences written out. The session changed nothing on the default branch
+and did not install anything into Claude Desktop.
+
+**A claim about another branch is a claim, and this one did not survive
+measurement (2026-09-07).** The Mac session also left a fourth decision — two
+live-verified Fusion lanes at the same paths on two branches — and warned that
+0.22.0 was claimed twice. Checked against `origin` rather than against a local
+checkout, neither holds: no branch but this one carries a Fusion adapter, a
+bridge, a `test_fusion_*` file or any `fu_*` tool, and 0.22.0 is claimed once,
+by PR #2's wind tunnel. The fourth decision is **withdrawn**, and the version
+advice reduces to: this branch and PR #2 must not cut the same number. The
+rule this restates is the A65 law applied to repository state — a measurement
+outranks a declaration, and a branch you have not fetched is a declaration.
 
 **Force-quitting a crashed application is cleanup, not driving its GUI.**
 Twice Fusion sat in its crash reporter after the segfault above; each time
