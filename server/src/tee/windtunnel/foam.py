@@ -317,13 +317,20 @@ def force_coeffs_block(
 
 
 def add_functions(controldict_text: str, block: str) -> str:
-    """Append a functions block to a controlDict that has none; a case
-    that already carries function objects keeps them (refused, not merged)."""
-    if re.search(r"^\s*functions\b", controldict_text, re.M):
-        raise ValueError(
-            "the case already has a functions entry; add forceCoeffs inside it yourself"
-        )
-    return controldict_text.rstrip("\n") + "\n\n" + block
+    """Append a functions block to a controlDict that has none, or merge
+    into an existing one by inserting the new entry right after its opening
+    brace - dictionary entries are order-insensitive, and the case's own
+    function objects are kept untouched. (The v2606 app's airFoil2D ships a
+    `functions { momErr ... }` block where the apt copy shipped none;
+    measured 2026-09-06.)"""
+    m = re.search(r"^\s*functions\b", controldict_text, re.M)
+    if m is None:
+        return controldict_text.rstrip("\n") + "\n\n" + block
+    brace = controldict_text.find("{", m.end())
+    if brace < 0:
+        raise ValueError("the case has a functions entry with no { block")
+    inner = block[block.find("{") + 1 : block.rfind("}")].strip("\n")
+    return controldict_text[: brace + 1] + "\n" + inner + "\n" + controldict_text[brace + 1 :]
 
 
 def control_dict(setup: FoamSetup, *, functions: bool = True) -> str:

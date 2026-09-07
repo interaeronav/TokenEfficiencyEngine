@@ -615,14 +615,19 @@ def test_adopt_an_su2_cfg_needs_its_mesh_beside_it(app, tmp_path):
 
 
 def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
+    # both references are verified at source now (owner session, §M R3/R4),
+    # but neither OpenFOAM runner is built - naming one still refuses, and
+    # the reason it gives is the honest one
     with pytest.raises(TeeError) as err:
         call(app, "wt_verify", case="cylinder_re40")
-    assert err.value.code == "wt_reference_unverified" and "Dennis" in err.value.message
+    assert err.value.code == "wt_reference_unverified"
+    assert "runner" in err.value.message and "not built" in err.value.message
     with pytest.raises(TeeError) as err:
         call(app, "wt_verify", case="nonsense")
     assert err.value.code == "wt_bad_action"
     out = call(app, "wt_verify", case="all", confirm_cost=True)
-    assert set(out["skipped_unverified"]) == {"cylinder_re40", "flatplate"}
+    assert set(out["skipped_unverified"]) == set()
+    assert set(out["skipped_unimplemented"]) == {"cylinder_re40", "flatplate"}
     by_name = {r["case"]: r for r in out["results"]}
     assert (
         by_name["wing_liftslope"]["pass"] is True

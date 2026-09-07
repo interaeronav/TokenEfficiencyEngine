@@ -31,6 +31,9 @@ testbeds/**/*.sln
 
 # Local state
 *.log
+# ... except the campaign evidence logs, which a measure script writes to be
+# committed (p0-measure.sh says so in its closing line)
+!docs/research/*-evidence/*.log
 .env
 .claude/settings.local.json
 

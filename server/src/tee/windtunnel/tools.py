@@ -1575,6 +1575,14 @@ class _Lane:
             r = current["run"]
             if r is not None:
                 r.terminate()
+                # The worker still has a harvest to finish before its own
+                # write and release; a reader right after cancel must not
+                # see `running`, and a dead solver must stop deferring LLM
+                # engine swaps at once - release_job is an idempotent pop,
+                # so the worker's finally stays the backstop. (The Mac loses
+                # both races where Linux happened to win them.)
+                self.store.add_run(case_id, {"run_id": r.spec.run_id, "state": "cancelled"})
+                self.app.machine.release_job(ledger_key)
 
         try:
             job = self.app.jobs.submit(
@@ -1890,13 +1898,17 @@ class _Lane:
                     fix="Poll wt_status, or allow_partial=true for the current numbers, labelled.",
                 )
             partial = True
+            # the store's terminal state is authoritative: right after a
+            # cancel the worker may still be harvesting, and a partial read
+            # must not call a cancelled run `running`
+            was_cancelled = run.get("state") == "cancelled"
             if rec["engine"] == "openfoam":
                 result = runs.openfoam_result(
                     run_dir,
                     iters=run.get("iters", 0),
                     ended=False,
                     fatal=False,
-                    cancelled=False,
+                    cancelled=was_cancelled,
                     window_pct=float(args.get("window_pct", 20.0)),
                 )
             elif rec["engine"] == "su2":
@@ -1904,11 +1916,11 @@ class _Lane:
                     run_dir,
                     ended=False,
                     fatal=False,
-                    cancelled=False,
+                    cancelled=was_cancelled,
                     window_pct=float(args.get("window_pct", 20.0)),
                 )
             else:
-                result = runs.vsp_result(run_dir, ended=False, fatal=False, cancelled=False)
+                result = runs.vsp_result(run_dir, ended=False, fatal=False, cancelled=was_cancelled)
             result["uncertainty"] = self._label(rec, result, float(run.get("aoa_deg", 0.0)))
         out: dict[str, Any] = {
             "case_id": case_id,

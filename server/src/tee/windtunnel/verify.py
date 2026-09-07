@@ -3,9 +3,16 @@ tolerance until it has been verified at its source, with a date.
 
 Each case below names its reference, where it comes from, and the date it
 was checked. A case whose `verified` is None refuses with
-`wt_reference_unverified` rather than pretending - the two open rows are
-the owner-session items R3/R4 of the script (Dennis & Chang 1970 for the
-Re 40 cylinder; the NASA TMR flat plate, whose URL moved).
+`wt_reference_unverified` rather than pretending; a case that is verified
+but has no runner yet refuses the same way and is reported separately by
+`case=all`, because a reference nobody can run is still not a test.
+
+Both owner-session rows (R3/R4) closed 2026-09-06/07. R3 changed what it
+validates against rather than what it claims: the two JFM originals it
+first named are paywalled and were never read, so the target is now an
+open, peer-reviewed paper written to BE a reference solution, with its own
+convergence study. An unreadable citation is not a source, and quoting one
+second-hand would have been the thing this module exists to prevent.
 """
 
 from __future__ import annotations
@@ -56,29 +63,54 @@ REFERENCES: dict[str, dict[str, Any]] = {
         "engine": "openfoam",
         "what": "2-D cylinder, Re 40, laminar, O-grid",
         "reference": (
-            "CD 1.522 (Dennis & Chang 1970), 1.498 (Fornberg 1980); wake length L/D ~ 2.35"
+            "CD 1.4931, wake length Lw/D 2.2360, separation angle 126.3945 deg: the reference "
+            "case of Gautier, Biau & Lamballais (pseudo-spectral, fine grid Nr 200 x Ntheta "
+            "1024, r_inf 40 D). Historical context, NOT the target: the same paper's table 1 "
+            "puts the literature at 1.48 < CD < 1.62 and 2.13 < Lw/D < 2.35 - about 10 % "
+            "scatter - including Dennis & Chang 1970 at 1.52 and Fornberg 1980 at 1.50"
         ),
         "source": (
-            "J. Fluid Mech. 42 (1970) 471-489; J. Fluid Mech. 98 (1980) 819-855 - NOT yet "
-            "verified at source (owner session, script §M row R3)"
+            "Computers & Fluids 75 (2013) 103-111, open at https://hal.science/hal-00876327 "
+            "(the authors' own deposit) and arXiv:1310.6641; table 2 for the reference case, "
+            "table 1 for the literature spread. A paper written to BE a validation reference, "
+            "with its own convergence study - which is why it replaced the two paywalled "
+            "originals the script first named (script §M row R3)"
         ),
-        "verified": None,
-        "tolerance": {"cd_pct": 5.0},
+        "verified": (
+            "2026-09-07 at https://hal.science/hal-00876327 (values pasted from the PDF's "
+            "tables 1-2, owner session; the JFM originals are paywalled and were never read, "
+            "so they are context here and never the tolerance)"
+        ),
+        "tolerance": {"cd_pct": 5.0, "wake_pct": 15.0},
+        "cd": 1.4931,
+        "wake_lw_over_d": 2.2360,
+        "separation_deg": 126.3945,
     },
     "flatplate": {
         "engine": "openfoam",
         "what": "NASA TMR 2-D zero-pressure-gradient flat plate, Re_L 5e6, kOmegaSST",
         "reference": (
-            "Cf at x = 0.97 m from the TMR SST results and the Coles/Schlichting correlation"
+            "Cf 2.690853551e-03 at x = 0.9700840712 m (CFL3D, 545x385 grid; FUN3D reads "
+            "2.690546447e-03 at the same x), SST-Vm, M 0.2, Re 5e6"
         ),
         "source": (
-            "turbmodels.larc.nasa.gov flat-plate validation page (URL moved 2026; to be "
-            "re-found - script §M row R4)"
+            "tmbwg.github.io/turbmodels flatplate_sst.html + FlatPlate/SST/cf_plate_sstv.dat "
+            "(the live successor of turbmodels.larc.nasa.gov, which now 301s to a nasa.gov "
+            "landing page pointing there)"
         ),
-        "verified": None,
+        "verified": (
+            "2026-09-06 at https://tmbwg.github.io/turbmodels/flatplate_sst.html "
+            "(values pasted from FlatPlate/SST/cf_plate_sstv.dat, owner session)"
+        ),
         "tolerance": {"cf_pct": 5.0},
+        "cf": 2.690853551e-03,
     },
 }
+
+
+# the two cases whose runners exist; a verified reference without a runner is
+# reported as skipped_unimplemented by `all` and refuses when named directly
+_RUNNABLE = ("wing_liftslope", "naca0012_euler")
 
 
 def run(lane: Any, which: str, *, confirm_cost: bool) -> dict[str, Any]:
@@ -99,12 +131,20 @@ def run(lane: Any, which: str, *, confirm_cost: bool) -> dict[str, Any]:
                 fix=f"Verify {REFERENCES[n]['source']} and record the date in "
                 "verify.REFERENCES; until then the case is not a test.",
             )
-    runnable = [n for n in names if REFERENCES[n]["verified"] is not None]
+        if n not in _RUNNABLE and which != "all":
+            raise TeeError(
+                "wt_reference_unverified",
+                f"{n} is not runnable yet: its reference is verified but its runner is not built.",
+                fix="See verify.REFERENCES and verify._RUNNABLE.",
+            )
+    runnable = [n for n in names if REFERENCES[n]["verified"] is not None and n in _RUNNABLE]
     skipped = [n for n in names if REFERENCES[n]["verified"] is None]
+    unbuilt = [n for n in names if REFERENCES[n]["verified"] is not None and n not in _RUNNABLE]
     results = [_run_one(lane, n, confirm_cost=confirm_cost) for n in runnable]
     return {
         "results": results,
         "skipped_unverified": skipped,
+        "skipped_unimplemented": unbuilt,
         "all_pass": all(r["pass"] for r in results) if results else False,
     }
 

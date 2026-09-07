@@ -230,13 +230,17 @@ done
 if [ -n "$FC" ]; then
   say "FreeCAD: $FC -> $(t 60 "$FC/Contents/MacOS/FreeCAD" --version 2>&1 | head -1)"
   CFDOF=""
-  for cand in "$HOME/Library/Application Support/FreeCAD/Mod/CfdOF" "$HOME/Library/Preferences/FreeCAD/Mod/CfdOF"; do
+  # FreeCAD 1.1 on macOS uses a VERSIONED config dir (v1-1); measured 2026-09-06
+  for cand in "$HOME/Library/Application Support/FreeCAD"/v*/Mod/CfdOF "$HOME/Library/Application Support/FreeCAD/Mod/CfdOF" "$HOME/Library/Preferences/FreeCAD/Mod/CfdOF"; do
     [ -d "$cand" ] && CFDOF="$cand" && break
   done
   if [ -n "$CFDOF" ]; then
     say "CfdOF: $CFDOF -> $(grep -m1 -o '<version>[^<]*</version>' "$CFDOF/package.xml" 2>/dev/null || echo 'no package.xml')"
     FCCMD="$FC/Contents/MacOS/FreeCADCmd"
+    # the 1.1 macOS bundle ships NO FreeCADCmd; the console route is the main
+    # binary with -c (it re-execs Resources/bin/freecad); measured 2026-09-06
     [ -x "$FCCMD" ] || FCCMD="$(command -v freecadcmd 2>/dev/null)"
+    [ -n "$FCCMD" ] || { [ -x "$FC/Contents/MacOS/FreeCAD" ] && FCCMD="$FC/Contents/MacOS/FreeCAD"; }
     if [ -n "$FCCMD" ]; then
       say "C1 headless import (cwd /): $(cd / && t 120 "$FCCMD" -c 'import CfdOF; print("CfdOF imports from", CfdOF.__file__)' 2>&1 | tail -1)"
     else
