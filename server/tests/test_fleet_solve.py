@@ -186,6 +186,48 @@ def test_bad_specs_are_refused_before_any_solver_runs():
         assert expect in e.value.message, f"{spec} -> {e.value.message}"
 
 
+BAD_SPECS = (
+    ({"variables": {}}, "No variables"),
+    ({"sense": "sideways", "variables": {"x": {}}}, "not min or max"),
+    ({"variables": {"x": {"type": "complex"}}}, "unknown"),
+    ({"variables": {"x": {}}, "objective": {"ghost": 1}}, "undeclared"),
+)
+
+
+def test_a_bad_spec_names_the_argument_even_where_the_extras_are_installed(monkeypatch):
+    """The ordering itself, pinned independently of this machine.
+
+    The two bad-spec tests above state the rule only where the extra happens
+    to be MISSING: on a runner that has pulp or ortools installed they pass
+    whichever check runs first, so neither can catch a regression that puts
+    the dependency back in front of the spec. Here both ways of asking for a
+    dependency are made to fail outright, so what is under test is the order
+    rather than the environment: every refusal must still name the argument
+    the caller can fix, and none may mention an install.
+    """
+
+    def boom(*_a, **_kw):
+        raise TeeError(
+            "fleet_missing_extra",
+            "This needs the [solve] extra: not installed.",
+            fix="uv pip install 'tee-engine[solve]'",
+        )
+
+    monkeypatch.setattr(solve, "_pulp", boom)  # the LP lane's modelling layer
+    monkeypatch.setattr(solve, "need", boom)  # and every engine probe, ortools included
+
+    for lane in (solve.solve, solve.cpsat):
+        for spec, expect in BAD_SPECS:
+            with pytest.raises(TeeError) as e:
+                lane(spec)
+            where = f"{lane.__name__}{spec}"
+            assert e.value.code == "solve_bad_spec", f"{where} -> {e.value.code}"
+            assert expect in e.value.message, f"{where} -> {e.value.message}"
+            assert "not installed" not in e.value.message, (
+                f"{where} asked for the extra before reading the spec"
+            )
+
+
 def test_bad_cpsat_specs_are_refused_before_ortools_is_needed():
     """Rule 6 for the CP-SAT lane: an argument the caller can fix right now
     comes before a dependency they would have to install. Deliberately NOT
