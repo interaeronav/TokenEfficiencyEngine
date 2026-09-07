@@ -13,15 +13,16 @@ router.py:113-119 saying "Registering an engine centrally must not defame it on
 machines that do not serve it." The same sentence applies to an engine whose
 endpoint is dead, and the code does not yet say so.
 
-**These tests FAIL until P3 lands the split.** That is deliberate: P0's
-acceptance is that the defect is reproduced before it is fixed.
+P0 wrote these as two strict xfails plus a test asserting the two causes were
+indistinguishable, so the defect was reproduced before it was fixed. **P3 landed
+the split**: the xfails came off and the bug-assertion test was deleted, which
+is the lifecycle those markers described.
 """
 
 from __future__ import annotations
 
 import socket
 
-import pytest
 from fixtures_llm import fake_llm_server
 from test_llm_router import _by_model, _call, _cfg
 
@@ -56,10 +57,6 @@ def test_every_rung_is_attempted_and_the_task_escalates(tmp_path):
     assert ledger.meter_block()["escalations"] == 1
 
 
-@pytest.mark.xfail(
-    reason="A76 P0: the defect, reproduced. Passes when P3 lands the split.",
-    strict=True,
-)
 def test_an_unreachable_endpoint_is_not_counted_as_a_failed_verification(tmp_path):
     ledger = MachineLedger(total_gb=128)
     _route_to_nothing(tmp_path, ledger)
@@ -77,10 +74,6 @@ def test_an_unreachable_endpoint_is_not_counted_as_a_failed_verification(tmp_pat
         )
 
 
-@pytest.mark.xfail(
-    reason="A76 P0: the defect, reproduced. Passes when P3 lands the split.",
-    strict=True,
-)
 def test_the_meter_can_attribute_an_escalation_to_the_network(tmp_path):
     """doc 55 calls escalation_rate the quality alarm. It cannot be one while a
     dead port and a bad answer are the same number."""
@@ -117,20 +110,3 @@ def test_a_real_verifier_kill_is_still_a_verification_failure(tmp_path):
             f"{name}: the model answered — this is a verification failure, "
             f"not a network failure. Got {row}"
         )
-
-
-def test_the_two_causes_are_currently_indistinguishable(tmp_path):
-    """The defect stated as a passing test, so the record shows what was true.
-
-    Delete this test when P3 lands: it asserts the bug.
-    """
-    dead, bad = MachineLedger(total_gb=128), MachineLedger(total_gb=128)
-    _route_to_nothing(tmp_path, dead)
-    with fake_llm_server(_by_model(set())) as (url, _c):
-        router.route(
-            "triage", _call, cfg=_cfg(url, tmp_path), ledger=bad, input_pointer="job7/traceback"
-        )
-    shape = lambda b: {n: dict(r) for n, r in b.meter_block()["engines"].items()}  # noqa: E731
-    assert shape(dead) == shape(bad), (
-        "if these ever differ, the split has landed and this test should go"
-    )

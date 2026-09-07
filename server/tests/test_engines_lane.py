@@ -17,7 +17,14 @@ from tee.kernel.budget import estimate_tokens
 from tee.kernel.errors import TeeError
 from tee.server import _DESC
 
-ENG_TOOLS = ["eng_adopt", "eng_check", "eng_reconcile", "eng_scan", "eng_senses"]
+ENG_TOOLS = [
+    "eng_adopt",
+    "eng_ask",
+    "eng_audition",
+    "eng_reconcile",
+    "eng_scan",
+    "eng_senses",
+]
 
 
 def _dead_port() -> int:
@@ -66,7 +73,7 @@ def test_an_untabled_eng_tool_is_a_startup_error():
     [
         ("which local model is actually running", "eng_scan"),
         ("reconcile the engine registry", "eng_reconcile"),
-        ("check an endpoint actually produces text", "eng_check"),
+        ("check an endpoint actually produces text", "eng_ask"),
     ],
 )
 def test_search_reaches_the_lane(app, query, want):
@@ -249,7 +256,7 @@ def test_check_refuses_a_paid_engine_by_name(app, tmp_path, monkeypatch):
         lambda self: {"profiles": {"qmax": {"model": "paid-one", "paid": True}}},
     )
     with pytest.raises(TeeError) as e:
-        call(app, "eng_check", url="http://127.0.0.1:1/v1", model="paid-one")
+        call(app, "eng_ask", url="http://127.0.0.1:1/v1", model="paid-one")
     assert e.value.code == "eng_paid_refused"
 
 
@@ -279,3 +286,125 @@ def test_senses_needs_a_model(app):
     with pytest.raises(TeeError) as e2:
         _Lane(app, ".", {}).senses({})
     assert e2.value.code == "eng_needs_model"
+
+
+# --- P3: the router reads what the lane measures --------------------------
+
+
+def test_a_measured_row_reorders_the_ladder(tmp_path):
+    """The acceptance that makes this a lane rather than a report: the number
+    the lane measures is the number the cascade sorts on."""
+    from tee.llm import router
+
+    default = router._ladder()
+    assert default == router.LADDER, "with no rows, the literal still rules"
+
+    slowest = default[0]  # make the cheapest rung the dearest
+    reordered = router._ladder({slowest: {"latency_warm_s": 9_999.0}})
+    assert reordered[-1] == slowest, reordered
+    assert set(reordered) == set(default), "reordering must not add or drop rungs"
+
+
+def test_the_router_survives_a_measured_row_for_an_unknown_engine():
+    """A file may name an engine the registry does not. That is a skipped hop,
+    not a KeyError - the same tolerance may_swap already had."""
+    from tee.llm import router
+
+    out = router._ladder({"an-engine-that-does-not-exist": {"latency_warm_s": 0.1}})
+    assert set(out) == set(router.LADDER)
+
+
+def test_a_measured_token_floor_outranks_the_registrys(tmp_path):
+    from tee.kernel import machine
+
+    profile = next(s["profile"] for s in machine.ENGINES.values() if s.get("min_chore_tokens"))
+    engine = next(n for n, s in machine.ENGINES.items() if s.get("min_chore_tokens"))
+    declared = machine.min_chore_tokens(profile)
+    measured = machine.min_chore_tokens(profile, {engine: {"min_chore_tokens": 77}})
+    assert measured == 77 and measured != declared
+
+
+def test_the_doctor_does_not_call_dead_chores_healthy_because_vision_answers(monkeypatch):
+    """A76 P0 measured this reporting ok with fix=None while chores were dead."""
+    from tee import doctor
+    from tee.kernel import local_llm, local_vlm
+
+    monkeypatch.setattr(local_llm, "available", lambda *a, **k: False)
+    monkeypatch.setattr(local_vlm, "available", lambda *a, **k: True)
+    check = doctor.check_llm()
+    assert check.fix, "a machine whose chores are dead must be told what to do"
+    assert "eng_reconcile" in check.fix
+
+
+# --- P2: the audition, hermetic ------------------------------------------
+
+
+def test_the_token_floor_sweep_descends_and_stops_at_the_first_failure(monkeypatch):
+    """The floor is FOUND, not confirmed: the sweep walks down until the chore's
+    own validator rejects the answer, and stops there."""
+    from tee.engines import audition as aud
+
+    seen: list[int] = []
+
+    def fake(cfg, max_tokens=None):
+        seen.append(max_tokens)
+        return {"diagnosis": "d", "fix": "f"} if max_tokens >= 256 else None
+
+    monkeypatch.setattr(aud, "_chore", fake)
+    out = aud.token_floor({})
+    assert out["min_chore_tokens"] == 256
+    assert out["first_failure"] == 192
+    assert out["bound"] == "exact"
+    assert seen == [1024, 512, 384, 256, 192], "it must stop at the first failure"
+
+
+def test_a_sweep_that_never_fails_reports_a_bound_not_a_floor(monkeypatch):
+    """Passing every rung means the floor is at or BELOW the lowest tried.
+    Reporting the lowest rung as the floor would be a declaration dressed as a
+    measurement - the exact thing this lane exists to stop."""
+    from tee.engines import audition as aud
+
+    monkeypatch.setattr(aud, "_chore", lambda cfg, max_tokens=None: {"diagnosis": "d", "fix": "f"})
+    out = aud.token_floor({})
+    assert out["first_failure"] is None
+    assert out["bound"] == "at-or-below"
+    assert "upper bound" in out["note"]
+
+
+def test_an_engine_that_never_passes_gets_no_floor_and_says_why(monkeypatch):
+    from tee.engines import audition as aud
+
+    monkeypatch.setattr(aud, "_chore", lambda cfg, max_tokens=None: None)
+    row = aud.audition({}, engine="e", url="http://x/v1", model="m", samples=2)
+    assert row["verified_rate"] == 0.0
+    assert "floor" not in row
+    assert "no latency here is a statement about its quality" in row["unmeasured"]
+
+
+def test_an_audition_reports_warm_and_cold_separately(monkeypatch):
+    """A latency without a warm/cold label is a lie: the first call to an mlx
+    endpoint loads the weights and every one after it does not."""
+    from tee.engines import audition as aud
+
+    monkeypatch.setattr(aud, "_chore", lambda cfg, max_tokens=None: {"diagnosis": "d", "fix": "f"})
+    row = aud.audition({}, engine="e", url="http://x/v1", model="m", samples=3)
+    assert "latency_cold_s" in row and "latency_warm_s" in row
+    assert len(row["latency_warm_s"]) == 2, "min and median, so a spike is visible"
+    assert row["samples"] == 3 and row["verified_rate"] == 1.0
+    assert row["url"] == "http://x/v1" and row["model"] == "m", (
+        "a row is about an ENDPOINT serving a MODEL, not about the weights"
+    )
+
+
+def test_audition_refuses_a_paid_engine(app, monkeypatch):
+    from tee.engines import tools as T
+
+    monkeypatch.setattr(
+        T._Lane,
+        "_llm_cfg",
+        lambda self: {"profiles": {"qmax": {"model": "paid-one", "paid": True}}},
+    )
+    with pytest.raises(TeeError) as e:
+        call(app, "eng_audition", url="http://127.0.0.1:1/v1", model="paid-one")
+    assert e.value.code == "eng_paid_refused"
+    assert "bills you" in e.value.fix

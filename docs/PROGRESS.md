@@ -14694,7 +14694,7 @@ command would provision a fresh 1.3 GB venv from the lock and was not done.
 The manifest still declares blender, partkiln, seamkiln and fusion, and is
 otherwise untouched: which lanes Desktop serves is the owner's decision (A71).
 
-## A74 — cfMesh: the mesher HELYX sells, already on the disk (2026-09-07, COMPLETE P0–P4, 0.28.0)
+## A74 — cfMesh: the mesher HELYX sells, already on the disk (2026-09-07, COMPLETE P0–P4, 0.29.0)
 
 Plan of record `CLAUDE_A74_SCRIPT.md`, design of record doc 74, evidence in
 `docs/research/74-evidence/`, ruling in `docs/DECISIONS.md`.
@@ -14912,9 +14912,13 @@ Surface still **17 tools / 2,129 wire tok** (the figure `test_server_lint.py`
 pins, not the 2,033 four campaigns' worth of prose kept reprinting); no new
 `wt_*` name, no family row, no new engine, no new licence.
 
-**Suites at close:** server **1,949 passed / 39 skipped / 2 xfailed** hermetic,
-ruff clean; the `cfd` tier's A74 tests green on the real binaries (OpenFOAM
-v2606). Shipped as **0.28.0**.
+**Suites at close:** server **1,949 passed / 39 skipped / 2 xfailed** hermetic
+on A74's own tree, **1,959 / 39** once A76 was merged in (its P3 landed the fix
+its two xfails were waiting for), ruff clean; the `cfd` tier's A74 tests green
+on the real binaries (OpenFOAM v2606). Shipped as **0.29.0** — 0.26.0 had been reserved for this campaign and
+0.28.0 was cut for it, and A76 reached the branch with that number first, so
+A74 took the next free one rather than a number sorting below two shipped
+releases.
 
 **Open:** doc 74 §5's remaining questions — whether the Mac's v2606 bundle
 carries cfMesh (now answered by `wt_probe` on any machine that runs it), HiSA's
@@ -15012,3 +15016,83 @@ flat-rated thrust source, not a powerplant model.
 **Suites at close:** server `uv run --no-sync pytest -q` **1,980 passed / 13
 skipped / 143 deselected**; `-m fdm` **4 passed / 1 skipped**; `make lint` clean.
 Surface unchanged: **17 tools**.
+
+## A76 — the engine lane: truth about the local models (2026-09-07)
+
+Owner: *"research a lane for an open source model"*, then *"start A76 P0"*, then
+*"complete all phases without my input"*. The script opened by telling a cold
+session the campaign might not be worth running and left the choice to the
+owner; the owner's direction moved it to the session, which took it on evidence.
+
+**P0.** One measurement settled it (`docs/research/77-evidence/shim-truth.py`):
+the owner's shim advertises **8 routes, 2 produce text, 4 answer HTTP 200 with
+empty content and a usage block claiming completion tokens, 1 errors honestly**.
+`local_llm.available()` asks `GET /v1/models`, so it calls all eight healthy;
+a status-code check calls six healthy. Only reading the content is truthful.
+The ruling is in `DECISIONS.md`, with the config fix recorded as still owed and
+not a substitute.
+
+The router defect was reproduced **before** it was fixed: two strict xfails plus
+a test asserting the two causes were indistinguishable. Three more defects P0
+found without looking for them: `doctor.check_llm` reporting `ok` with no remedy
+while chores were dead by name; `save_state` silently persisting nothing without
+`cfg["_state_dir"]` (hit live while switching profile on the owner's
+instruction — `switch()` returned `ok` having changed nothing); and `switch()`'s
+own refusal advertising `TEE/35B` and `TEE/DSFLASH`, profiles that exist in
+neither the builtins nor the config.
+
+**Two of the script's own facts were wrong**, which is the campaign's thesis
+turned on its author: `LADDER` is `('q14b+a2', 'dsflash', 'q27b-bare', 'q35b')`,
+so `q14b+a2` sorts first at 1.74 s and not `dsflash`; and *"nothing is answering
+at all"* was true when written and false by P0. A third followed in P1 — the
+digest budget I wrote as "under 250 tokens" is only reachable by deleting the
+fix lines that give it value, so it is now bounded per row.
+
+**P1.** `server/src/tee/engines/`: `discover.py`, `weights.py`, `table.py`,
+`tools.py`. Running it against the real machine found three things no fixture
+would have. Two were mine — the scan read only config-named endpoints and so
+missed the vision endpoint then declared its engine unserved; and the reconcile
+join fell back to the ACTIVE profile's model for engines declaring none, so
+every unknown engine appeared to serve whatever was pinned. The third is TEE's:
+**every `ENGINES` row carries `model=None`**, the id living in the profile spec
+— the mechanical reason nothing had ever reconciled that table.
+
+`weights.py` automates A49's hand method and reproduces its reading:
+`Qwen3.8-27B` measures **50.956 GB** on disk against **55.0 declared** and
+**43.7** in the row's own comment.
+
+**P2.** `eng_audition` runs TEE's own triage chore against an engine, graded by
+that chore's own validator. Live on `mlx-community/Qwen3.8-27B-bf16` at `:8080`:
+cold **47.1 s**, warm **[44.3, 45.0]**, verified **1.0**, passing at every rung
+down to 64 tokens. The registry declares that engine at **[3.07, 9.69]** — about
+five times faster than it is. A sweep that never fails reports a **bound**, not
+a floor.
+
+`eng_check` became `eng_ask`: the old name outranked `pk_drawing` on "check the
+drawing" because the tool NAME carried the word. A lane must not cost another
+lane its vocabulary.
+
+**P3.** `record_route(..., unreachable=)` splits a dead endpoint from a verifier
+kill and `meter_block` gains `unreachable_hops`, so doc 55's escalation alarm
+can be read. The ladder orders from the measured file at call time, with the
+literals as fallback and `LADDER` surviving as the attribute five test modules
+import. Proven end to end: adopting the measured 45 s row moves `q27b-bare` from
+third to last. `min_chore_tokens` takes the same precedence.
+`doctor.check_llm` reports chores and vision as the two facts they are.
+
+**P4.** `docs/engines-lane.md`; `setup-local-llm.md` amended to mark "any
+OpenAI-compatible endpoint works identically" as an expectation rather than a
+result; the `CLAUDE.md` bullet; CHANGELOG **0.28.0** (0.26.0 still reserved for
+the in-flight A74); version ×3; four search-budget cases and the re-measured
+recall table (**57 cases, 53/57 at limit 3, 57/57 at 5**, over a 209-tool
+registry); and a `benchmarks/RESULTS.md` row: **21,979 → 375 tokens, 98.3%**.
+
+**Owed, and named as owed:** the config fix itself (drop `dsflash`, declare
+`q35b`, correct `[llm] model`) — the lane names it in one line but does not
+apply it, because the lane measures and the owner declares. Non-MLX conformance
+is unmeasured: Ollama, llama.cpp, vLLM and LM Studio are named nowhere in
+`server/src/`. And `eng_audition` has been run against one engine on one
+machine; every other row still reads `unmeasured`, honestly.
+
+**Suites at close:** server `uv run --no-sync pytest -q` **2,008 passed / 21
+skipped / 143 deselected**; `make lint` clean. Surface unchanged: **17 tools**.

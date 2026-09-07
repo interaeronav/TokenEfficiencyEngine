@@ -251,7 +251,7 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   modules, so the swap stays cheap if the question returns.
 
 - The A74 campaign (**cfMesh** in the wind-tunnel lane) is **COMPLETE**, P0–P4,
-  shipped as 0.28.0; `CLAUDE_A74_SCRIPT.md` is the plan of record, research doc
+  shipped as 0.29.0; `CLAUDE_A74_SCRIPT.md` is the plan of record, research doc
   74 the design of record and `docs/research/74-evidence/` holds what produced
   its numbers. It opened when "can you download and integrate HELYX" turned out
   to be **no** — ENGYS ships it to paying customers only, with no macOS build —
@@ -303,6 +303,29 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   lateral terms, so the degenerate pair is dropped rather than reported as a
   mode. SI on the wire with the unit always written; nothing upstream is
   vendored, the wheel's 60 aircraft included.
+
+- The A76 build (`eng_*`: truth about the local models TEE routes work to) is
+  **COMPLETE**, P0-P4, shipped as 0.28.0; `CLAUDE_A76_SCRIPT.md` is the plan of
+  record, research doc **77** the design of record, `docs/engines-lane.md` the
+  user guide. Six tools, zero always-loaded, tabled individually with no family
+  row; the package is stdlib at import time so it answers on a machine with
+  nothing installed. Its measured laws outrank memory: **a listing is not
+  liveness** - four of the eight routes the owner's shim advertises answer HTTP
+  200 with EMPTY CONTENT and a usage block claiming completion tokens, so
+  `local_llm.available()` (a `GET /v1/models`) calls all eight healthy and only
+  reading the CONTENT is truthful; **ENGINES carries `model=None` on every row**
+  (the id lives in the profile spec), which is the mechanical reason nothing had
+  ever reconciled that table; **the registry's latency is five times off** -
+  q27b-bare declares [3.07, 9.69] s and auditioned at 44-47 s on the same
+  machine, so the ladder now orders on measured rows with the literals as
+  fallback; **an unreachable engine is not a failed verification** (both used to
+  increment the same counter, so doc 55's escalation alarm was measuring the
+  network); and a sweep that passes every rung reports a BOUND, not a floor. The
+  lane serves no model, starts nothing, never writes the owner's config and
+  refuses a paid engine by name. `docs/setup-local-llm.md`'s "any
+  OpenAI-compatible endpoint works identically" is now marked as an expectation,
+  not a result: MLX and LiteLLM are measured, Ollama/llama.cpp/vLLM/LM Studio
+  are named nowhere in `server/src/`.
 
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is

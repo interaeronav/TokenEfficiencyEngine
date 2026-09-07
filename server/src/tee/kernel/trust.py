@@ -276,8 +276,11 @@ _EXPLICIT: dict[str, str] = {
     # the router's ladder reads, which is state, not artifacts.
     "eng_scan": "read-compute",  # GET /v1/models only; caches engine-scan.json
     "eng_senses": "read-extract",  # reads config.json beside the weights
-    "eng_check": "call-engine",  # one completion, and it reads the content
+    "eng_ask": "call-engine",  # one completion, and it reads the content
+    # NOT eng_check: the name would outrank pk_drawing on "check the
+    # drawing". A lane must not cost another lane its own words.
     "eng_reconcile": "read-compute",  # cache only; the digest never probes
+    "eng_audition": "call-engine",  # drives a real engine, as a ledger job
     "eng_adopt": "write-state",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
