@@ -286,6 +286,13 @@ def simple_foam():
         fh.write("# Force coefficients\n# dragDir : (1 0 0)\n# liftDir : (0 1 0)\n# Aref : 0.1\n")
         fh.write("# Time Cd Cd(f) Cd(r) Cl Cl(f) Cl(r) CmPitch CmRoll CmYaw Cs Cs(f) Cs(r)\n")
     cl_final, cd_final, cm_final = 0.4356, 0.01091, 0.00056
+    if "laminar" in read(case / "constant" / "turbulenceProperties"):
+        # A laminar case here means the Re 40 cylinder benchmark, whose drag
+        # is two orders larger than the airfoil's. Real numbers from a real
+        # simpleFoam run of TEE's own O-mesh on this machine, 2026-09-07 -
+        # the fake answers what the engine answered, so verify.py's
+        # tolerances are exercised rather than dodged.
+        cl_final, cd_final, cm_final = 0.00003, 1.518301, 0.0
     limit = end if mode != "slow" else 10 ** 9
     for t in range(1, limit + 1):
         if mode == "slow":

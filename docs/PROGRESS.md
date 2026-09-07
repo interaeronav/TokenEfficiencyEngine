@@ -13217,6 +13217,116 @@ says so. Per the owner's instruction, that is recorded as an open gap, not
 worked around. Both references are now verified at source with a URL and a
 date, so building either runner is ordinary work with a real target waiting.
 
+### A72 — the Re 40 cylinder verification runner (2026-09-07, owner session)
+
+The first of the two OpenFOAM runners `wt_verify` was missing. `cylinder_re40`
+now runs end to end and passes against the reference verified the same day.
+
+```
+wt_verify case=cylinder_re40 confirm_cost=true      (live OpenFOAM v2606, arm64)
+  Re            40.0            exact, and the runner refuses any other value
+  diameter      0.584287 m
+  CD            1.518301        reference 1.4931  ->  +1.69 %   (tol 5 %)
+  wake Lw/D     2.2791          reference 2.2360  ->  +1.93 %   (tol 15 %)
+  verdict       converged       18.2 s, 1 core, 51,200 cells
+```
+
+**Two independent quantities — a force and a length — both inside 2 % of a
+spectral reference solution.** The wake check was written blind (ParaView had
+vanished when the runner was built, so it skipped and the guess went untested);
+with pvpython reinstalled it failed twice and both failures were the runner's
+own. `wt_probe_field ... components=true` answers PARALLEL ARRAYS — `s` beside
+`U:0`/`U:1`/`U:2` — not a list of per-point samples; and a sample outside the
+mesh comes back `null` (the lane counts it in `outside_mesh`), which is a hole
+in the line rather than a zero velocity, so `float(None)` crashed. The hermetic
+tier caught the second one. Both fixed in `7c2e852` and measured above.
+
+**Two constants were measured, not chosen.** The case record rounds V to four
+decimals, so the obvious setup — a 1 m cylinder — makes V = 5.842874e-04 round
+to 0.0006 and the case silently runs at **Re 41.08**, a 2.7 % error introduced
+by a `round()`. Fixing V at 0.001 m/s and solving for the diameter lands Re on
+exactly 40.0000. The runner now refuses if the case comes out anywhere else: a
+benchmark at the wrong Reynolds number is not a benchmark.
+
+**The grid is where a convergence study stopped moving** (CD vs the 1.4931
+reference), recorded in `verify.py` so the next reader sees it was measured:
+
+```
+  ni x nj    r_inf     CD        vs ref
+  128 x 200    60    1.5228     +1.99 %
+  256 x 200    60    1.5183     +1.69 %     <- adopted
+  384 x 200    60    1.5181     +1.68 %
+  256 x 200   100    1.5138     +1.39 %
+  200 x 100    40    1.5268     +2.26 %     (radial study, earlier grid)
+  200 x 200    40    1.5254     +2.16 %
+```
+
+Azimuthally converged by ni 256, radially by nj 200; what remains drifts with
+the DOMAIN — which is precisely what the reference paper was written to fix (it
+reports CD 1.4906 / 1.4931 / 1.4943 at r∞ 30 / 40 / 50 and quotes a result
+needing 4,000 diameters). **+1.7 % is the expected gap** between a second-order
+finite-volume O-mesh with a finite domain and a spectral solution with
+asymptotic far-field conditions — which is why the tolerance is 5 %.
+
+**Three lane defects the bluff laminar case exposed, none of which an airfoil
+would ever have shown** (`14cde06`):
+
+1. The OpenFOAM O-mesh sized its first cell from a **y+ target**, and y+ runs
+   on Schlichting's `Cf = (2 log10 Re − 0.65)^−2.3` — a **turbulent**
+   correlation. At Re 40 it asked for a first cell **0.121 m** on a 0.584 m
+   cylinder: a fifth of the body. A laminar case now sizes the wall layer on
+   the boundary layer (δ/L ~ 5/√Re, twelve cells across it), `first_cell_c`
+   overrides on OpenFOAM as it always did on SU2, and every mesh reports the
+   `wall_sizing` it used so the rule is visible rather than inferred.
+2. **`airfoil.circle()` had no caller.** It has existed since P1 — the module
+   docstring advertises it — and nothing could build a cylinder case, because
+   `section_from` only understood `naca=` and `dat=`.
+3. **`n_surface` was honoured by the code and denied by the schema**, so the
+   registry rejected it as an unknown argument and no tool caller could set a
+   generated section's azimuthal resolution.
+
+**Still open, and named rather than forced:** `flatplate` remains the one
+verified reference without a runner. The NASA TMR zero-pressure-gradient plate
+needs a rectangular `blockMesh` writer that this lane does not have (`mesh2d`
+writes O-meshes), plus Cf extraction at a station — a bigger piece of work than
+re-using the O-mesh path, and `_RUNNABLE` in `verify.py` is the single place
+that says so.
+
+**A ParaView detour worth recording:** it **disappeared from `/Applications`
+mid-session** — present and rendering offscreen at 22:51 (row M5), gone by the
+next probe, with nothing in this session removing it. The lane degraded exactly
+as designed: `wt_probe_field` refused `wt_pvpython_missing` with the install
+line, the wake check reported itself `skipped` rather than failing, and the live
+pvpython test skipped by name. The owner then reinstalled — briefly **6.2.0-RC1
+alongside stable 6.1.1** — and that pairing exposed a real defect in engine
+resolution, since fixed (`_install_rank`, tests in `test_windtunnel_tools.py`):
+
+`_binary` picked `sorted(glob(...), reverse=True)[0]` — the lexicographically
+LAST match. That is not a version comparison, and it failed two ways. It ranked
+**`ParaView-6.2.0-RC1` above stable `6.1.1`**, so during the window when both
+were installed the lane was resolving the *release candidate*; and it ranks
+`ParaView-6.1.1` above `ParaView-10.0.0`, so a major-version bump would have
+been silently ignored. A validation lane must not quietly certify against an RC.
+Resolution now prefers the newest **stable** install, reports the others in
+`extra.alternatives`, flags `extra.prerelease` when only a pre-release exists,
+and reads the version from the last path component that carries one (so
+`/opt/x86_64/paraview5.11` is 5.11, not 64). The `defaults` order stays primary,
+because the OpenFOAM search deliberately reads `/usr/lib/openfoam` first and
+`/usr/share/openfoam` last (row L1). An explicit `[windtunnel] pvpython = …`
+remains the authoritative pin.
+
+**A correction to this record:** an earlier version of this entry, and the PR
+comment that went with it, said the old rule "takes the first sorted, so 6.1.1
+wins". That was inferred, not measured, and it is wrong — `reverse=True` means
+the RC won. The wake numbers above are unaffected: they were re-measured after
+the RC was deleted, with `pvpython 6.1.1` printed beside them. The RC is gone at
+the owner's request, the lane resolves stable **6.1.1**, and **row M5 stands
+exactly as measured**.
+
+**Suites at close:** server `pytest -q` **1,627 passed / 20 skipped / 126
+deselected**; `cfd` tier **10 passed, 0 skipped** — the whole live tier, every
+engine present; ruff clean. No tool added — the surface is untouched.
+
 ### A72 P0c — the licence gate and the ruling (2026-09-06)
 
 `server/tests/test_windtunnel_licences.py` (7 tests): a fresh-interpreter import

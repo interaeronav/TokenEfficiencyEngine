@@ -149,6 +149,16 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                         "description": "adopt: the case dir, .cfg or .vsp3.",
                     },
                     "naca": {"type": "string", "description": "Four digits, e.g. '2412'."},
+                    "circle": {
+                        "type": "boolean",
+                        "description": "A circular cylinder section (the bluff-body benchmark).",
+                    },
+                    "n_surface": {
+                        "type": "integer",
+                        "description": "Points per surface on a generated section (default 100); "
+                        "it fixes the O-mesh's azimuthal count, so it is set here, not at mesh "
+                        "time.",
+                    },
                     "dat": {"type": "string", "description": "A Selig airfoil file."},
                     "stl": {
                         "type": "string",
@@ -287,7 +297,9 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                     },
                     "first_cell_c": {
                         "type": "number",
-                        "description": "Euler O-mesh first cell, chords (default 0.005).",
+                        "description": "O-mesh first cell, chords. SU2 default 0.005; on "
+                        "OpenFOAM it overrides the y+ sizing (which a laminar case ignores "
+                        "anyway - y+ is a turbulent idea).",
                     },
                     "base_cell_m": {"type": "number", "description": "3-D background cell, m."},
                     "levels": {
@@ -735,7 +747,7 @@ class _Lane:
         geom_dir = self.store.root / "tmp_geometry" / str(time.time_ns())
         geom_dir.mkdir(parents=True, exist_ok=True)
         # geometry
-        if args.get("naca") or args.get("dat"):
+        if args.get("naca") or args.get("dat") or args.get("circle"):
             geometry = runs.section_from(args, geom_dir)
             chord = float(args.get("chord_m", 1.0))
             L = chord
@@ -1128,6 +1140,9 @@ class _Lane:
                     yplus=float(args.get("y_plus", 1.0)),
                     nj=int(args.get("nj", 80)),
                     radius_c=float(args.get("radius_c", 50.0)),
+                    first_cell_c=(
+                        float(args["first_cell_c"]) if args.get("first_cell_c") else None
+                    ),
                 )
                 check = self._checkmesh(install, edir)
                 mesh["checkMesh"] = check

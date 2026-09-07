@@ -156,6 +156,54 @@ def test_probe_reports_absent_engines_with_their_install_line(tmp_path, monkeypa
         bare.shutdown()
 
 
+def test_two_installs_of_one_engine_pick_the_newest_stable_and_name_the_rest(tmp_path, monkeypatch):
+    """A machine with several ParaViews must not certify against whichever
+    one sorts last. Reverse-lexicographic ordering ranked 6.2.0-RC1 above
+    6.1.1 (measured 2026-09-07, both installed) and would rank 6.1.1 above
+    10.0.0, so a major-version bump vanished and a release candidate could
+    quietly become the validation engine.
+    """
+    from tee.windtunnel import engines
+
+    apps = tmp_path / "Applications"
+    for name in ("ParaView-6.1.1.app", "ParaView-6.2.0-RC1.app", "ParaView-10.0.0.app"):
+        exe = apps / name / "Contents" / "bin" / "pvpython"
+        exe.parent.mkdir(parents=True)
+        exe.write_text("#!/bin/sh\n")
+    pattern = str(apps / "ParaView-*.app" / "Contents" / "bin" / "pvpython")
+    b = engines._binary({}, "pvpython", "pvpython", [pattern], "install line")
+    assert "ParaView-10.0.0.app" in b.path, (
+        "10.0.0 outranks 6.x: a version compare, not a string one"
+    )
+    assert b.extra.get("prerelease") is None  # the chosen one is stable
+    assert len(b.extra["alternatives"]) == 2  # the ambiguity is reported, not hidden
+
+    # with only a release candidate present it is still used - and says so
+    (apps / "ParaView-10.0.0.app").rename(apps / "keep-10.0.0")
+    (apps / "ParaView-6.1.1.app").rename(apps / "keep-6.1.1")
+    rc = engines._binary({}, "pvpython", "pvpython", [pattern], "install line")
+    assert "RC1" in rc.path and rc.extra["prerelease"] is True
+
+    # an explicit config pin always wins, whatever is installed
+    (apps / "keep-6.1.1").rename(apps / "ParaView-6.1.1.app")
+    (apps / "keep-10.0.0").rename(apps / "ParaView-10.0.0.app")
+    pinned = str(apps / "ParaView-6.1.1.app" / "Contents" / "bin" / "pvpython")
+    got = engines._binary({"pvpython": pinned}, "pvpython", "pvpython", [pattern], "fix")
+    assert got.path == pinned and got.via == "config"
+
+
+def test_the_install_rank_reads_the_version_from_the_right_path_component():
+    from tee.windtunnel.engines import _install_rank
+
+    # not the 64 in x86_64
+    assert _install_rank("/opt/x86_64/paraview5.11/bin/pvpython") == (1, (5, 11))
+    assert _install_rank("/usr/lib/openfoam/openfoam2606/etc/bashrc") == (1, (2606,))
+    assert _install_rank("/usr/bin/pvpython") == (1, (0,))  # unversioned sorts lowest
+    stable = _install_rank("/Applications/ParaView-6.2.0.app/Contents/bin/pvpython")
+    cand = _install_rank("/Applications/ParaView-6.2.0-RC1.app/Contents/bin/pvpython")
+    assert stable > cand, "a release beats its own release candidate"
+
+
 def test_conditions_tool_and_its_refusal(app):
     c = call(app, "wt_conditions", V_mps=45, L_m=1.2, alt_m=1500)
     assert c["regime"] == "incompressible" and 3.2e6 < c["Re"] < 3.4e6
@@ -615,11 +663,11 @@ def test_adopt_an_su2_cfg_needs_its_mesh_beside_it(app, tmp_path):
 
 
 def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
-    # both references are verified at source now (owner session, §M R3/R4),
-    # but neither OpenFOAM runner is built - naming one still refuses, and
-    # the reason it gives is the honest one
+    # every reference is verified at source now (owner session, §M R3/R4);
+    # flatplate is the one whose runner is still unbuilt, and naming it
+    # refuses with that reason rather than pretending
     with pytest.raises(TeeError) as err:
-        call(app, "wt_verify", case="cylinder_re40")
+        call(app, "wt_verify", case="flatplate")
     assert err.value.code == "wt_reference_unverified"
     assert "runner" in err.value.message and "not built" in err.value.message
     with pytest.raises(TeeError) as err:
@@ -627,7 +675,7 @@ def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
     assert err.value.code == "wt_bad_action"
     out = call(app, "wt_verify", case="all", confirm_cost=True)
     assert set(out["skipped_unverified"]) == set()
-    assert set(out["skipped_unimplemented"]) == {"cylinder_re40", "flatplate"}
+    assert set(out["skipped_unimplemented"]) == {"flatplate"}
     by_name = {r["case"]: r for r in out["results"]}
     assert (
         by_name["wing_liftslope"]["pass"] is True
@@ -637,6 +685,14 @@ def test_verify_refuses_an_unverified_reference_and_runs_the_verified_ones(app):
         by_name["naca0012_euler"]["pass"] is True
         and by_name["naca0012_euler"]["verdict"] == "converged"
     )
+    # the Re 40 cylinder runs on OpenFOAM: the case must land on the
+    # benchmark's Reynolds number exactly, and the wake check reports
+    # itself skipped rather than failing when ParaView is absent
+    cyl = by_name["cylinder_re40"]
+    assert cyl["pass"] is True and cyl["Re"] == 40.0
+    assert abs(cyl["checks"]["cd"]["pct"]) <= cyl["checks"]["cd"]["tol_pct"]
+    wake = cyl["checks"]["wake_lw_over_d"]
+    assert wake.get("measured") is not None or wake.get("skipped")
     assert out["all_pass"] is True
     for r in out["results"]:
         assert r["cite"] and r["verified"]

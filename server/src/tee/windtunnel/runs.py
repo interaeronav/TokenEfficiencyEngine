@@ -41,15 +41,37 @@ def omesh_for(
 
 
 def mesh_airfoil_openfoam(
-    case: dict[str, Any], engine_dir: Path, *, yplus: float, nj: int, radius_c: float
+    case: dict[str, Any],
+    engine_dir: Path,
+    *,
+    yplus: float,
+    nj: int,
+    radius_c: float,
+    first_cell_c: float | None = None,
 ) -> dict[str, Any]:
     cond = case["conditions"]
     chord = float(case["refs"]["cref"])
-    fc = physics.first_cell_height(
-        y_plus=yplus, rho=cond["rho"], V=cond["V"], L=chord, mu=cond["mu"], cell_centred=True
-    )
+    if first_cell_c is not None:
+        # an explicit spacing, in chords: the caller owns the wall resolution
+        first_cell_m = float(first_cell_c) * chord
+        sizing = f"explicit first_cell_c={first_cell_c}"
+    elif str(case.get("turbulence", "")) == "laminar":
+        # y+ is a TURBULENT idea: first_cell_height uses Schlichting's
+        # Cf = (2 log10 Re - 0.65)^-2.3, a turbulent correlation, and at
+        # Re 40 it asks for a first cell a fifth of the body across.
+        # A laminar layer is delta/L ~ 5/sqrt(Re) (Blasius), so put ~12
+        # cells inside it and let the growth ratio do the rest.
+        re = max(float(cond.get("Re") or 1.0), 1.0)
+        first_cell_m = chord * (5.0 / math.sqrt(re)) / 12.0
+        sizing = f"laminar: delta/L = 5/sqrt(Re {re:g}), 12 cells across it"
+    else:
+        fc = physics.first_cell_height(
+            y_plus=yplus, rho=cond["rho"], V=cond["V"], L=chord, mu=cond["mu"], cell_centred=True
+        )
+        first_cell_m = fc["first_cell_m"]
+        sizing = f"y+ {yplus:g}"
     t0 = time.time()
-    mesh = omesh_for(case, first_cell_m=fc["first_cell_m"], nj=nj, radius_c=radius_c)
+    mesh = omesh_for(case, first_cell_m=first_cell_m, nj=nj, radius_c=radius_c)
     counts = mesh2d.write_polymesh(engine_dir, mesh)
     _lo, hi = mesh.first_layer_heights()
     return {
@@ -61,6 +83,7 @@ def mesh_airfoil_openfoam(
         "growth": round(mesh.growth, 4),
         "first_cell_m": round(hi, 9),
         "y_plus_target": yplus,
+        "wall_sizing": sizing,
         "farfield_c": radius_c,
         "thickness_m": counts["thickness"],
         "min_jacobian": mesh.min_jacobian(),
@@ -792,6 +815,11 @@ def section_from(args: dict[str, Any], geom_dir: Path) -> dict[str, Any]:
         code = str(args["naca"])
         loop = airfoil.naca4(code, int(args.get("n_surface", 100)))
         name = f"NACA {code}"
+    elif args.get("circle"):
+        # A bluff section, centred on the origin so the wake runs along +x
+        # from x = D/2 - the frame the Re 40 cylinder benchmark is stated in.
+        loop = airfoil.circle(int(args.get("n_surface", 100)) * 2)
+        name = "circular cylinder"
     elif args.get("dat"):
         name, loop = airfoil.read_selig(Path(str(args["dat"])).expanduser())
         xs = [p[0] for p in loop]
@@ -801,8 +829,8 @@ def section_from(args: dict[str, Any], geom_dir: Path) -> dict[str, Any]:
     else:
         raise TeeError(
             "wt_geometry_missing",
-            "A 2-D section needs naca= (four digits) or dat= (a Selig file).",
-            fix="e.g. naca='0012' or dat='~/foils/e387.dat'",
+            "A 2-D section needs naca= (four digits), circle=true or dat= (a Selig file).",
+            fix="e.g. naca='0012', circle=true, or dat='~/foils/e387.dat'",
         )
     loop = airfoil.ccw(loop)
     props = airfoil.properties(loop)
