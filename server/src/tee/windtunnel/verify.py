@@ -226,7 +226,7 @@ def _cylinder_wake(lane: Any, case_id: str, diameter: float) -> dict[str, Any]:
         )
     except TeeError as exc:
         return {"measured": None, "skipped": f"{exc.code}: {exc.message[:120]}"}
-    xs, us = _centreline_u(probe, diameter)
+    xs, us = _centreline_u(probe)
     if len(xs) < 4:
         return {"measured": None, "skipped": "the centreline probe returned too few samples"}
     for k in range(1, len(xs)):
@@ -238,28 +238,32 @@ def _cylinder_wake(lane: Any, case_id: str, diameter: float) -> dict[str, Any]:
     return {"measured": None, "skipped": "no reversed flow on the centreline (no closed bubble)"}
 
 
-def _centreline_u(probe: dict[str, Any], diameter: float) -> tuple[list[float], list[float]]:
-    """(x, u_x) pairs out of a probe_field line sample, whatever shape the
-    reader gave the components."""
-    samples = probe.get("samples") or []
+def _centreline_u(probe: dict[str, Any]) -> tuple[list[float], list[float]]:
+    """(x, u_x) along the probed line.
+
+    `wt_probe_field ... components=true` answers PARALLEL ARRAYS - `s` (arc
+    length from p1) beside `U:0` / `U:1` / `U:2` - not a list of samples, so
+    x is p1.x + s for a line laid along +x. Measured against pvpython 6.2.0,
+    2026-09-07.
+    """
+    s = probe.get("s") or []
+    field = str(probe.get("field", "U"))
+    ux = next(
+        (probe[k] for k in (f"{field}:0", "U:0", "U_x", "Ux") if isinstance(probe.get(k), list)),
+        None,
+    )
+    if ux is None:
+        return [], []
+    x0 = float((probe.get("p1") or [0.0])[0])
     xs: list[float] = []
     us: list[float] = []
-    p1 = (probe.get("p1") or [0.0])[0]
-    p2 = (probe.get("p2") or [1.0])[0]
-    n = max(len(samples) - 1, 1)
-    for i, s in enumerate(samples):
-        if isinstance(s, dict):
-            u = s.get("U_x", s.get("Ux", s.get("x")))
-            x = s.get("Points_0", s.get("arc_length"))
-            x = p1 + (p2 - p1) * i / n if x is None else float(x)
-        elif isinstance(s, list | tuple) and s:
-            u, x = s[0], p1 + (p2 - p1) * i / n
-        else:
-            u, x = s, p1 + (p2 - p1) * i / n
-        if u is None:
+    for i in range(min(len(s), len(ux))):
+        # a sample outside the mesh comes back as null (the lane counts them
+        # in `outside_mesh`); it is a hole in the line, not a zero velocity
+        if s[i] is None or ux[i] is None:
             continue
-        xs.append(float(x))
-        us.append(float(u))
+        xs.append(x0 + float(s[i]))
+        us.append(float(ux[i]))
     return xs, us
 
 
