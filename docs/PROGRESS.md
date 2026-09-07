@@ -12618,9 +12618,19 @@ wt_verify case=cylinder_re40 confirm_cost=true      (live OpenFOAM v2606, arm64)
   Re            40.0            exact, and the runner refuses any other value
   diameter      0.584287 m
   CD            1.518301        reference 1.4931  ->  +1.69 %   (tol 5 %)
-  wake Lw/D     skipped         "wt_pvpython_missing" - ParaView is optional
-  verdict       converged       16.6 s, 1 core, 51,200 cells
+  wake Lw/D     2.2791          reference 2.2360  ->  +1.93 %   (tol 15 %)
+  verdict       converged       18.2 s, 1 core, 51,200 cells
 ```
+
+**Two independent quantities — a force and a length — both inside 2 % of a
+spectral reference solution.** The wake check was written blind (ParaView had
+vanished when the runner was built, so it skipped and the guess went untested);
+with pvpython reinstalled it failed twice and both failures were the runner's
+own. `wt_probe_field ... components=true` answers PARALLEL ARRAYS — `s` beside
+`U:0`/`U:1`/`U:2` — not a list of per-point samples; and a sample outside the
+mesh comes back `null` (the lane counts it in `outside_mesh`), which is a hole
+in the line rather than a zero velocity, so `float(None)` crashed. The hermetic
+tier caught the second one. Both fixed in `7c2e852` and measured above.
 
 **Two constants were measured, not chosen.** The case record rounds V to four
 decimals, so the obvious setup — a 1 m cylinder — makes V = 5.842874e-04 round
@@ -12673,17 +12683,21 @@ writes O-meshes), plus Cf extraction at a station — a bigger piece of work tha
 re-using the O-mesh path, and `_RUNNABLE` in `verify.py` is the single place
 that says so.
 
-**Also found:** ParaView **disappeared from `/Applications` during the session**
-— it was present and rendering offscreen at 22:51 (row M5) and was gone by the
-next probe, with nothing in this session removing it. The lane degrades exactly
-as designed: `wt_probe_field` refuses `wt_pvpython_missing` with the install
-line, the cylinder's wake check reports itself `skipped` instead of failing, and
-the live pvpython test skips by name. **Row M5 stands as measured**; the install
-simply needs redoing before the wake half of this benchmark can run.
+**A ParaView detour worth recording:** it **disappeared from `/Applications`
+mid-session** — present and rendering offscreen at 22:51 (row M5), gone by the
+next probe, with nothing in this session removing it. The lane degraded exactly
+as designed: `wt_probe_field` refused `wt_pvpython_missing` with the install
+line, the wake check reported itself `skipped` rather than failing, and the live
+pvpython test skipped by name. The owner then reinstalled — briefly **6.2.0-RC1
+alongside stable 6.1.1**, which is worth knowing for two reasons: the default
+glob `/Applications/ParaView-*.app` matches BOTH (it takes the first sorted, so
+6.1.1 wins) and the version regex reads `6.2.0` out of `6.2.0-RC1` without
+complaint. The RC was deleted at the owner's request; the lane resolves stable
+**6.1.1**, so **row M5 stands exactly as measured** and needs no revision.
 
 **Suites at close:** server `pytest -q` **1,627 passed / 20 skipped / 126
-deselected**; `cfd` tier **9 passed, 1 skipped** (the pvpython test, for the
-reason above); ruff clean. No tool added — the surface is untouched.
+deselected**; `cfd` tier **10 passed, 0 skipped** — the whole live tier, every
+engine present; ruff clean. No tool added — the surface is untouched.
 
 ### A72 P0c — the licence gate and the ruling (2026-09-06)
 
