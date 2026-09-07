@@ -296,6 +296,43 @@ def read_stl(path: str | Path) -> Surface:
     return Surface(tris, path.stem)
 
 
+def box_tris(
+    xmin: float, xmax: float, ymin: float, ymax: float, zmin: float, zmax: float
+) -> list[tuple[Vec, Vec, Vec]]:
+    """A closed box as twelve triangles, normals outward.
+
+    cfMesh meshes the volume BOUNDED by the surface it is given, so an
+    external-aero case hands it the domain box and the body as one surface
+    (doc 74 §2.4). snappyHexMesh needs no such thing - it carves the body out
+    of a background blockMesh - which is why this arrives with cfMesh.
+    """
+    v = [
+        (xmin, ymin, zmin),
+        (xmax, ymin, zmin),
+        (xmax, ymax, zmin),
+        (xmin, ymax, zmin),
+        (xmin, ymin, zmax),
+        (xmax, ymin, zmax),
+        (xmax, ymax, zmax),
+        (xmin, ymax, zmax),
+    ]
+    faces = [
+        (0, 2, 1),
+        (0, 3, 2),
+        (4, 5, 6),
+        (4, 6, 7),
+        (0, 1, 5),
+        (0, 5, 4),
+        (1, 2, 6),
+        (1, 6, 5),
+        (2, 3, 7),
+        (2, 7, 6),
+        (3, 0, 4),
+        (3, 4, 7),
+    ]
+    return [(v[a], v[b], v[c]) for a, b, c in faces]
+
+
 def write_stl_ascii(path: str | Path, tris: list[tuple[Vec, Vec, Vec]], name: str = "tee") -> int:
     """ASCII STL with computed facet normals; returns the byte count."""
     out = [f"solid {name}"]

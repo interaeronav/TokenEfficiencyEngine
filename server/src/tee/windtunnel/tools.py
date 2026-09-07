@@ -55,6 +55,11 @@ PROBE_TTL_S = 3600.0
 # upper-triangular order (the apt airFoil2D tutorial, measured 2026-09-06) is
 # a matrix-ordering remark that `renumberMesh` fixes, not a geometry defect.
 TOLERATED_CHECKS = ("skew", "upper triangular")
+# The 3-D meshers this lane WRITES for. `cartesianMesh` was already run for an
+# adopted case whose Allrun named it (cfdof.KNOWN_BINARIES); A74 writes its
+# dictionary too. "auto" is deliberately absent until A74 P2 measures which
+# one to pick - a router with no measurement behind it is a guess with a name.
+MESHERS_3D = ("snappy", "cfmesh")
 DEFAULT_ITERS = {"openfoam": 2000, "su2": 3000}
 DEFAULT_TIMEOUT_S = 600.0
 MAX_WALL_S = 14_400.0
@@ -293,8 +298,8 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
         (
             "wt_mesh",
             "Mesh the case: a structured O-mesh for a 2-D section (seconds, written as OpenFOAM "
-            "polyMesh or SU2 .su2), or blockMesh + snappyHexMesh around a 3-D body (a job). "
-            "Returns the checkMesh digest, never a cell.",
+            "polyMesh or SU2 .su2), or blockMesh + snappyHexMesh around a 3-D body (a job), or "
+            "cfMesh with mesher=cfmesh. Returns the checkMesh digest, never a cell.",
             {
                 "type": "object",
                 "properties": {
@@ -324,6 +329,16 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                         "description": "3-D surface refinement levels, e.g. [3, 4].",
                     },
                     "layers": {"type": "integer", "description": "3-D prism layers (default 5)."},
+                    "mesher": {
+                        "type": "string",
+                        "description": "3-D mesher: snappy (default) or cfmesh. cfMesh is in the "
+                        "same OpenFOAM install and covers its layers by construction.",
+                    },
+                    "body_cell_m": {
+                        "type": "number",
+                        "description": "cfMesh only: cell size at the body (default: the finest "
+                        "level applied to base_cell_m).",
+                    },
                     "cores": {"type": "integer"},
                 },
                 "required": ["case_id"],
@@ -335,6 +350,7 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                 "grid",
                 "snappyhexmesh",
                 "blockmesh",
+                "cfmesh",
                 "omesh",
                 "cells",
                 "refinement",
@@ -1202,6 +1218,16 @@ class _Lane:
         engine = rec["engine"]
         edir = Path(rec["engine_dir"])
         edir.mkdir(parents=True, exist_ok=True)
+        if args.get("mesher") and rec["kind"] not in ("body3d", "wing3d"):
+            # Refused rather than ignored: a 2-D case is meshed by TEE's own
+            # structured O-mesh and an adopted case runs its own sequence, so
+            # `mesher=` there would be a word with no effect.
+            raise TeeError(
+                "wt_bad_mesher",
+                f"mesher= applies to a 3-D body case; {case_id} is {rec['kind']}.",
+                fix="Drop mesher= (a 2-D case gets the O-mesh, an adopted case its own "
+                "sequence), or make a 3-D case from an STL.",
+            )
         if engine == "vspaero":
             return digest(
                 {
@@ -1298,7 +1324,7 @@ class _Lane:
 
     def _mesh_3d(self, rec: dict[str, Any], args: dict[str, Any]) -> dict[str, Any]:
         case_id = rec["case_id"]
-        install = self._openfoam(for_writer=True)  # snappy dictionaries are TEE's dialect
+        install = self._openfoam(for_writer=True)  # the dictionaries are TEE's dialect
         edir = Path(rec["engine_dir"])
         rec["domain"]
         L = max(rec["geometry"]["length_m"], 1e-6)
@@ -1309,8 +1335,26 @@ class _Lane:
         levels = tuple(int(x) for x in (args.get("levels") or (3, 4)))
         layers = int(args.get("layers", 5))
         cores = int(args.get("cores", 1))
-        prep = runs.write_tunnel_3d(rec, edir, base_cell_m=base, levels=levels, layers=layers)
-        seq = runs.mesh_sequence_3d(install, edir, cores)
+        mesher = str(args.get("mesher") or "snappy").lower()
+        if mesher not in MESHERS_3D:
+            raise TeeError(
+                "wt_bad_mesher",
+                f"'{mesher}' is not a mesher this lane writes for.",
+                fix="mesher=snappy (the default) or mesher=cfmesh. 'auto' arrives with A74 P4, "
+                "which measures which one to pick rather than guessing here.",
+            )
+        if mesher == "cfmesh":
+            # The caller's arguments do not change between meshers (A74 law 5):
+            # `levels` is snappy's vocabulary, so the finest level is mapped to
+            # the body's cell size - level 4 on a base of L/4 is L/64 either way.
+            body_cell = float(args.get("body_cell_m") or base / (2 ** max(levels)))
+            prep = runs.write_tunnel_3d_cfmesh(
+                rec, edir, base_cell_m=base, body_cell_m=body_cell, layers=layers
+            )
+            seq = runs.mesh_sequence_3d_cfmesh(install, edir, cores)
+        else:
+            prep = runs.write_tunnel_3d(rec, edir, base_cell_m=base, levels=levels, layers=layers)
+            seq = runs.mesh_sequence_3d(install, edir, cores)
         est_cells = prep["background_cells"] * 4
         ledger_key = f"{case_id}@mesh"
         self.app.machine.register_job(ledger_key, "cfd-mesh")
@@ -1345,7 +1389,7 @@ class _Lane:
                     (run_dir / "log.checkMesh").read_text(errors="replace")
                 )
                 mesh = {
-                    "kind": "snappy",
+                    "kind": mesher,
                     "body": prep["body"],
                     **check,
                     "levels": list(levels),
@@ -1354,6 +1398,14 @@ class _Lane:
                     "mesh_hash": runs._polymesh_hash(run_dir),
                     "ok": _mesh_ok(check),
                 }
+                if mesher == "cfmesh":
+                    mesh["body_cell_m"] = prep["body_cell_m"]
+                    mesh["surface"] = prep["surface"]
+                    # cfMesh threads itself instead of taking MPI ranks, and
+                    # neither route is measured here, so the run was serial and
+                    # says so rather than implying `cores` was spent.
+                    mesh["cores"] = 1
+                    mesh["cores_note"] = "cfMesh ran serially; its parallel route is unmeasured"
                 self.store.update(case_id, mesh=mesh, state="meshed")
                 return {
                     "case_id": case_id,

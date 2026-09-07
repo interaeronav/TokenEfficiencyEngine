@@ -216,6 +216,96 @@ def write_tunnel_3d(
     }
 
 
+def domain_surface(
+    case: dict[str, Any],
+    engine_dir: Path,
+    *,
+    body_name: str = "body",
+    farfield_name: str = "farfield",
+) -> Path:
+    """The domain box and the body as ONE multi-solid ASCII STL.
+
+    cfMesh meshes the volume bounded by the surface it is handed, so an
+    external-aero case cannot give it the body alone (doc 74 §2.4). Each
+    `solid` becomes a patch, which is how `meshDict`'s `"body.*"` finds its
+    target - and it is why the body is REWRITTEN rather than copied: the solid
+    name inside a user's STL is whatever their exporter wrote, and a binary
+    STL carries no name at all. `physics.read_stl` reads both.
+    """
+    tri = engine_dir / "constant" / "triSurface"
+    tri.mkdir(parents=True, exist_ok=True)
+    body = physics.read_stl(Path(case["geometry"]["stl"]))
+    dom = case["domain"]
+    physics.write_stl_ascii(tri / f"{body_name}.stl", body.tris, name=body_name)
+    physics.write_stl_ascii(
+        tri / f"{farfield_name}.stl",
+        physics.box_tris(
+            dom["xmin"], dom["xmax"], dom["ymin"], dom["ymax"], dom["zmin"], dom["zmax"]
+        ),
+        name=farfield_name,
+    )
+    out = tri / "domain.stl"
+    out.write_text(
+        (tri / f"{farfield_name}.stl").read_text() + (tri / f"{body_name}.stl").read_text()
+    )
+    return out
+
+
+def write_tunnel_3d_cfmesh(
+    case: dict[str, Any],
+    engine_dir: Path,
+    *,
+    base_cell_m: float,
+    body_cell_m: float,
+    layers: int,
+) -> dict[str, Any]:
+    """The multi-solid surface + `meshDict` for `cartesianMesh`.
+
+    The snappy analogue of this writes a background box and lets surface
+    levels refine it; cfMesh has no background mesh, so `maxCellSize` is the
+    far-field cell and `localRefinement` on the body patch is the level.
+    """
+    geom = case["geometry"]
+    body_name = "body"
+    surface = domain_surface(case, engine_dir, body_name=body_name)
+    dom = case["domain"]
+    t = foam.Tunnel3D(
+        xmin=dom["xmin"],
+        xmax=dom["xmax"],
+        ymin=dom["ymin"],
+        ymax=dom["ymax"],
+        zmin=dom["zmin"],
+        zmax=dom["zmax"],
+        base_cell=base_cell_m,
+        body_name=body_name,
+        body_bbox=(tuple(geom["bbox"][0]), tuple(geom["bbox"][1])),
+        layers=layers,
+        ground=bool(dom.get("ground")),
+    )
+    sysd = engine_dir / "system"
+    sysd.mkdir(parents=True, exist_ok=True)
+    foam.write_mesh_system(engine_dir)  # cartesianMesh and checkMesh want controlDict
+    (sysd / "meshDict").write_text(
+        foam.cfmesh_dict(
+            t,
+            surface_file=str(surface.relative_to(engine_dir)),
+            body_cell=body_cell_m,
+            layers=layers,
+        )
+    )
+    nx = max(round((t.xmax - t.xmin) / base_cell_m), 4)
+    ny = max(round((t.ymax - t.ymin) / base_cell_m), 4)
+    nz = max(round((t.zmax - t.zmin) / base_cell_m), 4)
+    return {
+        "body": body_name,
+        "surface": str(surface),
+        "background_cells": nx * ny * nz,
+        "base_cell_m": base_cell_m,
+        "body_cell_m": body_cell_m,
+        "layers": layers,
+    }
+
+
 Step = tuple[str, list[str]]  # (application name, argv)
 
 
@@ -240,6 +330,21 @@ def mesh_sequence_3d(install: Any, engine_dir: Path, cores: int) -> list[Step]:
         seq.append(("snappyHexMesh", install.argv("snappyHexMesh", "-overwrite", "-case", c)))
     seq.append(("checkMesh", install.argv("checkMesh", "-case", c)))
     return seq
+
+
+def mesh_sequence_3d_cfmesh(install: Any, engine_dir: Path, cores: int) -> list[Step]:
+    """`cartesianMesh` then `checkMesh` - two steps where snappy needs four.
+
+    `cores` is deliberately not spent here. cfMesh threads itself rather than
+    taking MPI ranks the way snappyHexMesh does, and TEE has measured neither
+    the threading nor `-parallel` for it, so the sequence stays serial and the
+    reply says so rather than passing a flag whose effect is unknown.
+    """
+    c = str(engine_dir)
+    return [
+        ("cartesianMesh", install.argv("cartesianMesh", "-case", c)),
+        ("checkMesh", install.argv("checkMesh", "-case", c)),
+    ]
 
 
 # ---------------------------------------------------------------------------

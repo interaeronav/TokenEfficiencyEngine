@@ -59,6 +59,7 @@ FOAM_APPS = (
     "blockMesh",
     "surfaceFeatureExtract",
     "snappyHexMesh",
+    "cartesianMesh",
     "checkMesh",
     "simpleFoam",
     "decomposePar",
@@ -224,6 +225,52 @@ def snappy():
     for phase in ("Castellation", "Snapping", "Layer addition"):
         out(phase + " ...")
     out("Layer mesh : cells:%d" % cells_of(case))
+    out("End")
+
+
+def cartesian_mesh():
+    """cfMesh's `cartesianMesh`, faked at the level that matters.
+
+    What a test needs to be able to catch: the dictionary must exist, the
+    surface it names must exist, and the PATCHES COME FROM THE STL's `solid`
+    names - which is the whole reason `runs.domain_surface` rewrites the body
+    rather than copying it. Everything else is log shape.
+    """
+    case = case_dir()
+    need_control_dict(case)
+    foam_banner("cartesianMesh")
+    out("(cfmesh)")
+    mesh_dict = case / "system" / "meshDict"
+    if not mesh_dict.is_file():
+        out("--> FOAM FATAL IO ERROR: cannot find file meshDict")
+        sys.exit(1)
+    text = read(mesh_dict)
+    m = re.search(r'surfaceFile\s+"([^"]+)"', text)
+    surface = case / m.group(1) if m else None
+    if surface is None or not surface.is_file():
+        out("--> FOAM FATAL ERROR: cannot read surface file " + str(surface))
+        sys.exit(1)
+    solids = re.findall(r"^solid\s+(\S+)", read(surface), re.M)
+    if not solids:
+        out("--> FOAM FATAL ERROR: no solids in " + surface.name)
+        sys.exit(1)
+    cell = re.search(r"maxCellSize\s+([0-9.eE+-]+)", text)
+    layers = re.search(r"nLayers\s+(\d+)", text)
+    out("Reading " + surface.name + ": " + str(len(solids)) + " patches")
+    out("Requested cell size " + (cell.group(1) if cell else "?"))
+    # the farfield solids are patches, the body a wall - the same shape snappy
+    # leaves behind, so everything downstream reads one mesh either way
+    body = solids[-1]
+    patches = [(s, "patch") for s in solids[:-1]] + [(body, "wall")]
+    n = int(os.environ.get("TEE_FAKE_CFMESH_CELLS", "40000"))
+    write_polymesh(case, patches, n)
+    out("Starting creating layer cells")
+    out("Adding %d cells to the mesh" % (n // 8))
+    if layers:
+        out("Starting refining boundary layers")
+        out("Number of newly generated cells %d" % (int(layers.group(1)) * 150))
+        out("Finished refining boundary layers")
+    out("Finished generating the mesh")
     out("End")
 
 
@@ -710,6 +757,7 @@ DISPATCH = {
     "blockMesh": block_mesh,
     "surfaceFeatureExtract": surface_feature_extract,
     "snappyHexMesh": snappy,
+    "cartesianMesh": cartesian_mesh,
     "checkMesh": check_mesh,
     "simpleFoam": simple_foam,
     "decomposePar": decompose_par,

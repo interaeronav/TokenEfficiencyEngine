@@ -14733,9 +14733,46 @@ find `libmeshLibrary.so`; through the `openfoam2606` wrapper — the form
 body is the idiom, and the wrong number is kept in the evidence because a
 campaign that had stopped there would have concluded the opposite of the truth.
 
-**Open:** P1 (the writer, the multi-solid domain surface, `mesher=` on
-`wt_mesh`, hermetic), P2 (solve on both meshes and compare the forces — the
+### A74 P1 — the writer, with no cfMesh (2026-09-07)
+
+`foam.cfmesh_dict()` beside `snappy_dict()`, `physics.box_tris()`,
+`runs.domain_surface()` and `runs.write_tunnel_3d_cfmesh()` /
+`mesh_sequence_3d_cfmesh()`, and **`wt_mesh mesher=snappy|cfmesh`**. No new
+tool, no new engine row, no new capability: the surface is still 17.
+
+Three decisions worth their sentences:
+
+- **The caller's arguments do not change between meshers** (law 5). `levels` is
+  snappy's vocabulary, so cfMesh maps the finest level onto the body's cell
+  size — level 4 on a base of L/4 is L/64 either way — and `body_cell_m`
+  overrides it for anyone who wants the cfMesh word.
+- **`mesher=` on a 2-D or adopted case REFUSES rather than being ignored.** A
+  2-D case gets TEE's own O-mesh and an adopted case runs its own sequence, so
+  the argument would be a word with no effect, and a word with no effect is how
+  a caller comes to believe something happened.
+- **`cores` is not spent on cfMesh, and the reply says so.** cfMesh threads
+  itself rather than taking MPI ranks; neither route is measured here, so the
+  run is serial and carries `cores_note: "cfMesh ran serially; its parallel
+  route is unmeasured"` instead of a flag whose effect nobody has checked.
+
+The test that matters most asserts an ABSENCE: `boundaryCellSize` never appears
+in a written `meshDict`. Both keys produce a valid mesh, so nothing downstream
+could catch the wrong one — it shows up only as 630,980 cells instead of
+37,960, which is a bill rather than an error. Both that guard and the
+`mesher=` plumbing were **mutation-tested** before being trusted: emitting the
+banned key fails the guard, and hard-wiring `mesher = "snappy"` fails two tests
+by name.
+
+The fake `cartesianMesh` checks what a real one checks — the dictionary exists,
+the surface it names exists, and **the patches come from the STL's `solid`
+names**, which is why `domain_surface` rewrites the body rather than copying
+it: the name inside a user's STL is whatever their exporter wrote, and a binary
+STL carries none at all.
+
+Nine hermetic tests (`tests/test_windtunnel_cfmesh.py`); server **1,884 passed
+/ 38 skipped**, ruff clean, search budget and surface lint unchanged.
+
+**Open:** P2 (solve on both meshes and compare the forces — the
 acceptance that actually decides this), P3 (the twelve skew faces, via feature
 edges), P4 (`auto`, benchmark, docs, version). Doc 74 §5 carries four open
 questions, including whether the Mac's v2606 bundle carries cfMesh too.
-
