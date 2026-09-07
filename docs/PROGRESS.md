@@ -13269,3 +13269,62 @@ a macOS timing race in the base's lane, fixed upstream and waiting on PR #4.
 
 At close: **1,832 passed / 31 skipped / 125 deselected**, `make lint` clean,
 surface 17.
+
+---
+
+**Resolved 2026-09-07 — `solve.cpsat` refused the wrong thing first
+(Rule 6).** `cpsat()` opened with `need("ortools", ...)`, so on a machine
+without the `[solve]` extra `cpsat({"variables": {}})` came back "This needs
+the [solve] extra" instead of "No variables declared." — an install line in
+answer to a typo. It now runs `_check(spec, integer_only=True)` first and
+asks for ortools only for a spec that could actually run, the order
+`solve()` takes for pulp.
+
+`_check` grew ONE flag rather than a second validator: five of its six rules
+are word-for-word the same in both lanes, and the CP-SAT lane's two
+differences are facts about the engine, not taste. **CP-SAT has no
+continuous domain** — `_cpsat_worker` builds an IntVar for every variable —
+so an explicit `type: "cont"` is refused rather than silently integerised
+(the owner's own law: a different answer, not a rougher one). An OMITTED
+type is not a request, so it defaults to `int`; inheriting the LP default of
+`cont` would have refused every CP-SAT spec in the suite. Fractional `lb`/`ub`
+are refused for the same reason (`int(2.5)` → 2). **CP-SAT also has no
+backend to choose**, and `_require_backend` knows only highs/scip/cbc while
+`solve_backends` advertises the name "cp-sat" to the model — so running the
+LP check unmodified here would have refused `{"backend": "cp-sat"}` as not a
+backend. This lane does not read the field.
+
+Two silent wrong answers found while measuring, both now fixed and pinned:
+`{"type": "bin"}` with no bounds **answered 100**, because the worker read
+`type` from nobody and defaulted `ub` to 100; and an undeclared name in a
+constraint hit `vs[n]` and came back as `{"error": "KeyError", "message":
+"'ghost'"}` → `solve_bad_spec: 'ghost'` / "Check the spec shape." The
+parent's checks are now a strict superset of the worker's three, so no spec
+the worker would reject can reach it; the worker keeps its copies as a
+backstop for being run by path, answering in the parent's words verbatim
+(`test_the_worker_names_an_undeclared_variable_in_the_parents_words` pins
+that the two agree).
+
+Verified by blocking the module in `sys.meta_path` rather than uninstalling:
+a finder that RAISES ImportError satisfies both entry points (`probe.have`
+via `find_spec`, `probe.need` via `import_module`) — blocking one half makes
+the skip markers lie. Three configurations: all installed 25 passed; ortools
+absent 20 passed / 5 skipped (all five new non-gated tests among the
+passes); whole `[solve]` extra absent 12 passed / 13 skipped. Full server
+suite 1509 passed, 20 skipped; `make lint` clean.
+
+**Not changed, and it is the owner's call:** `_cpsat_worker` still defaults a
+missing `ub` to **100**. That is a silent cap of the same family as the two
+above — a variable the caller never bounded is bounded anyway — but CP-SAT
+needs finite domains, so the fix is a decision (refuse a missing `ub`? a much
+larger default?) rather than a correction.
+
+**Note for whoever merges:** `_check`/`Checked`/`_require_backend` were
+written here from the shape in the `claude/unruffled-golick-693bfb`
+worktree, where they are still UNCOMMITTED. Both branches therefore add them
+to `solve.py`. On merge take THIS copy — it is that one plus the
+`integer_only` flag — and keep the other branch's `solve()`/`_build` changes,
+which are identical here. `cad.scad_build`'s matching fix has meanwhile
+LANDED on the base (104f363), so this branch inherits it and does not touch
+`cad.py`; this commit is rebased onto that base, not onto the 0.22.0 tree it
+was written against.

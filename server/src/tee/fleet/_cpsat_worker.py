@@ -19,6 +19,12 @@ venv, an editable install and the .mcpb bundle.
 
 Contract: JSON spec on stdin, one JSON object on stdout, always. Native
 banners are swallowed at the fd level so they can never corrupt that.
+
+`solve._check(integer_only=True)` refuses every spec this file refuses, in
+the parent, before ortools is even imported - so in normal service these
+checks never fire. They stay because this file is invocable by path, and a
+backstop that disagreed with the parent would be worse than no backstop:
+the wording below is the parent's, verbatim.
 """
 
 from __future__ import annotations
@@ -28,6 +34,19 @@ import os
 import sys
 import tempfile
 import time
+
+
+def _undeclared(where: str, names, vs: dict) -> dict | None:
+    """An undeclared name used to reach `vs[n]` and come back as
+    {"error": "KeyError", "message": "'ghost'"} - a bare quoted string the
+    caller could do nothing with. Named, in the parent's own words."""
+    unknown = sorted(set(names) - set(vs))
+    if unknown:
+        return {
+            "error": "undeclared_name",
+            "message": f"{where} names undeclared variables: {unknown}",
+        }
+    return None
 
 
 def _solve(spec: dict) -> dict:
@@ -40,10 +59,21 @@ def _solve(spec: dict) -> dict:
     vs = {}
     for name, d in variables.items():
         d = dict(d or {})
-        vs[name] = m.NewIntVar(int(d.get("lb", 0)), int(d.get("ub", 100)), str(name))
+        # `type` is READ here. It used to be ignored, which made every
+        # variable an IntVar(lb, ub) with ub defaulting to 100 - so
+        # `{"type": "bin"}` with no bounds maximised to 100, not 1.
+        if str(d.get("type", "int")).lower() == "bin":
+            lo, hi = 0, 1
+        else:
+            lo, hi = int(d.get("lb", 0)), int(d.get("ub", 100))
+        vs[name] = m.NewIntVar(lo, hi, str(name))
     for i, c in enumerate(spec.get("constraints") or []):
         c = dict(c or {})
-        expr = sum(int(k) * vs[n] for n, k in dict(c.get("lhs") or {}).items())
+        lhs = dict(c.get("lhs") or {})
+        bad = _undeclared(f"constraint {i}", lhs, vs)
+        if bad:
+            return bad
+        expr = sum(int(k) * vs[n] for n, k in lhs.items())
         rhs = int(c.get("rhs", 0))
         op = str(c.get("op", "<="))
         if op == "<=":
@@ -56,6 +86,9 @@ def _solve(spec: dict) -> dict:
             return {"error": "bad_op", "message": f"constraint {i}: op '{op}' is unknown."}
     obj = dict(spec.get("objective") or {})
     if obj:
+        bad = _undeclared("objective", obj, vs)
+        if bad:
+            return bad
         e = sum(int(k) * vs[n] for n, k in obj.items())
         if str(spec.get("sense", "min")).lower() == "max":
             m.Maximize(e)
