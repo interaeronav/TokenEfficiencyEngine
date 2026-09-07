@@ -68,6 +68,7 @@ METHODS = (
     "query",
     "script",
     "standards",
+    "tyre",
     "verbs",
 )
 
@@ -392,6 +393,33 @@ class FakeKernel:
                 )
             return {"name": name, **card}
         return {"materials": {k: dict(v) for k, v in MATERIALS.items()}}
+
+    def _m_tyre(self, params: dict[str, Any]) -> dict[str, Any]:
+        """The tyre structure backend, in the same arithmetic the real one does
+        - the fixture imports no partkiln, so this reimplements the data book's
+        SLR inversion rather than delegating. Inches in, both systems out."""
+        if params.get("refuses") or params.get("quantity"):
+            name = str(params.get("refuses") or params.get("quantity"))
+            raise KernelRefusal(
+                "pk_not_served",
+                f"{name} is not a property of a tyre this lane can serve.",
+                fix="measure it on your surface and pass the resulting load in.",
+            )
+        if str(params.get("what") or "").lower() == "help" or params.get("list"):
+            return {"what": "help", "ships_no_table": "T&RA licensed", "refuses": ["grip"]}
+        inch = 25.4 if str(params.get("units") or "mm") == "in" else 1.0
+        od = float(params["outside_diameter"]) * inch
+        rim = float(params["rim_diameter"]) * inch
+        flange = rim + 2.0 * float(params.get("flange_height") or 0.0) * inch
+        slr = float(params["static_loaded_radius"]) * inch
+        pct = (od / 2.0 - slr) / ((od - flange) / 2.0)
+        return {
+            "what": "tyre_structure",
+            "deflection": {"mm": round(od / 2.0 - slr, 3)},
+            "percent_deflection": {"percent": round(pct * 100.0, 2)},
+            "static_loaded_radius": {"mm": round(slr, 3)},
+            "contact_patch": {"area_upper_bound_mm2": None, "claim": "UPPER BOUND, not the patch"},
+        }
 
     def _m_bom(self, params: dict[str, Any]) -> dict[str, Any]:
         rows = []

@@ -33,6 +33,7 @@ PK_TOOLS = (
     "pk_check",
     "pk_standards",
     "pk_materials",
+    "pk_tyre",
     "pk_bom",
     "pk_drawing",
     "pk_export",
@@ -278,12 +279,66 @@ def test_a_bad_unit_is_named_with_the_ones_that_work(adapter) -> None:
     assert "inch" in excinfo.value.fix and "mm" in excinfo.value.fix
 
 
+# -- pk_tyre -------------------------------------------------------------------
+
+
+def test_pk_tyre_is_reachable_and_its_schema_actually_validates(app) -> None:
+    """Reachability through the adapter, AND the schema surviving `_validate`.
+
+    Both halves are load-bearing and the second is why this test exists: the
+    registry checks one JSON type per field and `_TYPE_CHECKS.get(expected)`
+    raises TypeError on a union, so a tool declaring `{"type": ["number",
+    "string"]}` registers fine, passes a tool-count test, and only blows up on
+    the first real call. Calling it here is the assertion.
+    """
+    out = app.registry.call(
+        "pk_tyre",
+        {
+            "units": "in",
+            "outside_diameter": 49,
+            "rim_diameter": 20,
+            "flange_height": 1.3,
+            "static_loaded_radius": 20.5,
+        },
+    )
+    assert out["what"] == "tyre_structure"
+    assert out["deflection"]["mm"] == pytest.approx(101.6)
+    assert out["percent_deflection"]["percent"] == pytest.approx(30.3, abs=0.05)
+    # a suffixed string reaches the kernel unmangled too
+    assert app.registry.call("pk_tyre", {"what": "help"})["what"] == "help"
+
+
+def test_pk_tyre_forwards_a_refusal_with_its_code(app) -> None:
+    """Grip is not a property of the tyre alone, and the refusal has to survive
+    the trip: a `pk_not_served` that arrives as a generic error teaches the
+    model nothing it can act on."""
+    with pytest.raises(TeeError) as excinfo:
+        app.registry.call("pk_tyre", {"refuses": "grip"})
+    assert excinfo.value.code == "pk_not_served"
+    assert "grip" in str(excinfo.value)
+
+
+def test_pk_tyre_finds_its_callers(app) -> None:
+    """Progressive disclosure only works if the search reaches it. Measured
+    over the tyre-ish queries a model would actually type; rank 1 on all."""
+    for query in (
+        "tyre deflection",
+        "tire contact patch",
+        "landing gear tyre stiffness",
+        "wheel vertical stiffness",
+        "aircraft tire loaded radius",
+        "how stiff is a tire",
+    ):
+        names = [item["name"] for item in app.registry.search(query, limit=5)["items"]]
+        assert names[:1] == ["pk_tyre"], (query, names)
+
+
 # -- the surface promise -------------------------------------------------------
 
 
 def test_the_surface_does_not_move(app) -> None:
-    """A66's architectural claim, as an assertion: fourteen new tools, zero
-    new always-loaded ones."""
+    """A66's architectural claim, as an assertion: fifteen new tools, zero
+    new always-loaded ones. `pk_tyre` joined them and the 17 did not move."""
     from tee.server import _DESC
 
     assert len(_DESC) == 17, "the always-loaded surface moved"
@@ -291,7 +346,7 @@ def test_the_surface_does_not_move(app) -> None:
     assert set(PK_TOOLS) <= set(app.registry.names())
 
 
-def test_all_fourteen_are_tabled_in_the_trust_kernel(app) -> None:
+def test_all_fifteen_are_tabled_in_the_trust_kernel(app) -> None:
     """An untabled tool raises at STARTUP, so building the app at all is most
     of this assertion; the tiers are pinned because a writer inheriting the
     open read tier is exactly the A45 failure this table exists to prevent."""
@@ -307,6 +362,7 @@ def test_all_fourteen_are_tabled_in_the_trust_kernel(app) -> None:
         "pk_check": "read-compute",
         "pk_standards": "read-compute",
         "pk_materials": "read-compute",
+        "pk_tyre": "read-compute",
         "pk_bom": "read-scene",
         "pk_drawing": "write-artifacts",
         "pk_export": "write-artifacts",

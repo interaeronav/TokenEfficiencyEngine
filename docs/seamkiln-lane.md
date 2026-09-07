@@ -17,8 +17,10 @@ tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/pa
 #   an editable `-e seamkiln` install is a .pth read at interpreter start: restart the server after it
 ```
 
-The surface before A53 was 17 tools / 2,033 tok. After A65: 17 tools /
-2,033 tok. Fourteen `sk_*` tools sit behind progressive disclosure.
+A53 through A65 added **no** always-loaded tools: 17 before, 17 after.
+Those 17 cost 2,129 wire tokens today — the figure moved from 2,033 at
+`bd70096` (A68's one-line `adapter=` description on eight tools), not in
+this lane. Fourteen `sk_*` tools sit behind progressive disclosure.
 
 ## The loop
 

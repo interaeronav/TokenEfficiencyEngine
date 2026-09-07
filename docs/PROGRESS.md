@@ -13926,7 +13926,7 @@ CI does not install Qt: 445.2 MB (addons 332.0, essentials 110.8) that no test
 uses, and installing it would make the coverage worse, because the test
 asserting the panel names its extra skips itself where PySide6 exists.
 
-### A73 P2 — the handoff, on the real ParaView and OpenVSP (0.24.1)
+### A73 P2 — the handoff, on the real ParaView and OpenVSP (0.25.1)
 
 Run after the owner's local session reported ParaView working properly again,
 and it found **three defects in shipped code that the hermetic tests could not
@@ -13975,13 +13975,20 @@ hermetic tests in `tests/test_windtunnel_open.py` pin all three on the
 generated script text, which is the only guard that runs where ParaView is
 absent — CI included.
 
-**Bundle, from a clean unzip of `tee-engine-0.24.1.mcpb` (1,239,830 B)**, driven
+**Cut as 0.24.1, ships as 0.25.1.** The version was bumped here before the base
+took 0.25.0 (the material-card release, cut from a worktree precisely so it
+would not ship this branch's half); that release's own note says *"A73 P2's
+0.24.1 is still on its own branch and merges on its own schedule"*. It merged
+here, so this round becomes the patch after it. The three pins and the lock
+move together, as they must.
+
+**Bundle, from a clean unzip of `tee-engine-0.25.1.mcpb` (1,241,297 B)**, driven
 with the manifest's exact command through a stdio MCP client:
 
 ```
 uv run --directory <bundle> --no-dev tee serve --adapter blender --adapter partkiln \
     --adapter seamkiln --adapter fusion --project <p>
-handshake: {'name': 'tee', 'version': '0.24.1'}   boot 4.83 s
+handshake: {'name': 'tee', 'version': '0.25.1'}   boot 3.17 s
 always-loaded tools: 17
 search 'wind tunnel' reaches wt_*: True   [wt_case, wt_conditions, wt_export, wt_geom, wt_mesh]
 tee_call wt_probe -> openfoam v2606 | su2 wt_su2_missing (the install line) | vspaero 3.51.3 | pvpython 5.11.2
@@ -13989,6 +13996,7 @@ tee_call wt_run on an unmeshed case -> wt_no_mesh: "Case ... has no mesh yet." f
 tee_call wt_mesh  -> ok, 16,000 cells, omesh_polymesh
 tee_call wt_open view=pressure -> full, 203,996 B, run_id None, launched False
 tee_call wt_open view=mesh     -> full, 179,508 B, run_id None, launched False
+(0.24.1 measured the same, at 1,239,830 B and boot 4.83 s, before the renumber)
 ```
 
 The last line is the one worth having: the shipped bundle writes a mesh-view
@@ -14020,9 +14028,10 @@ returns. The narrowing the scare caused would have cost this campaign all three
 of the defects above, which is the argument for running the live tier rather
 than reasoning about it.
 
-**Suites at close:** hermetic `pytest -q` **1,870 passed / 38 skipped / 133
-deselected** in 2:31 on the merged tree (1,867 before, plus this round's two
-hermetic tests and the base's own bytecode-guard test);
+**Suites at close:** hermetic `pytest -q` **1,875 passed / 38 skipped / 133
+deselected** in 2:42 on the tree with both base merges in (1,867 before, plus
+this round's two hermetic tests, the base's bytecode-guard test and 0.25.0's
+five);
 `make lint` clean over `src tests ../benchmarks`, 394 files formatted; the
 `cfd` tier `pytest -m cfd tests/test_windtunnel_live.py` **14 passed / 3
 skipped** in 14:09 — the whole file, A72's eight live tests and this round's
@@ -14418,3 +14427,125 @@ refusal automatically, listing NBR and EPDM.
 
 partkiln **921 passed / 2 skipped**, ruff clean, **25 cards**, nine named
 authorities.
+
+### A66 addendum — `pk_tyre`: the structural half of the refusal (2026-09-07)
+
+The materials lane refuses "tyre" because a tyre is a structure, not a
+material. That refusal is right and it is also only half an answer: a landing
+gear, bracket or fairing designer needs the structure. `partkiln/tyre.py` is
+that half, reached as the fifteenth `pk_*` tool.
+
+**It ships no tyre table, deliberately.** The dimension and load tables in an
+aircraft tyre data book carry "REPRINTED WITH PERMISSION FROM THE TIRE AND RIM
+ASSOCIATION"; they are not ours to redistribute. This is the ISO 286 precedent
+already in this lane: what a source publishes as a RELATIONSHIP may be
+implemented with a citation, what it publishes only as a TABLE may not be
+copied. So the caller passes the row they read off the book they hold, and the
+module computes structure from it — deflection, static loaded radius, ground
+clearance, vertical rate in N/mm, contact-patch bound. Definitions are quoted
+short, with attribution, because they are what make the inputs unambiguous.
+
+Four things the build had to get right rather than guess:
+
+- **Nothing defaults the percent deflection.** The book states the SLR
+  relationship in terms of `d` and never prints a value for it, saying only
+  that an "H" prefix marks a tyre "designed for a higher percent deflection" —
+  naming no number. So `d` is either stated by the caller or recovered by
+  inverting the book's own formula on the book's own tabled SLR, which uses
+  only numbers the caller already has.
+- **Two ratios wear the same word and have different denominators.** The
+  book's `d` is referenced to the height above the rim FLANGE; section height
+  is referenced to the rim LEDGE. The module keeps them apart by name and a
+  test asserts they disagree.
+- **A uniform unit slip is arithmetically invisible.** Read every length in
+  inches, pass them all as bare numbers, and every ratio comes out
+  bit-identical — only magnitudes move. So the module does not pretend to
+  catch it with a plausibility threshold, which would mean inventing a number
+  for how big a tyre may be. It states which system it read bare numbers in
+  and returns every length in BOTH, so a 4 mm deflection on a 49-unit tyre is
+  visible in the answer. A MIXED slip is caught by the geometry guards.
+- **The contact patch is never a bare number.** Load over pressure is an
+  upper bound, so the key is named `area_upper_bound_mm2`.
+
+Grip, wear, rolling resistance, running temperature and compound refuse by
+name with a reason and a fix; so do `rated_load`, `size` and `table`, for the
+licence reason. One trust row — `"pk_tyre": "read-compute"` — tabled
+individually; still no `pk_` family row.
+
+**The defect this work exposed, and the fix.** The surface figure printed in
+the lane guides, the adapter docstrings, this file, `RESULTS.md` and every
+campaign script is an invariant, and NOTHING measured it. It moved **2,033 →
+2,129** at `bd70096` (A68 P2 gave the shared `adapter=` parameter a one-line
+description on eight tools, +96) and four commits of prose went on printing
+2,033 — mine included. A count canary cannot catch it: the tool count never
+changed. `server/tests/test_server_lint.py` now pins two things — the measured
+wire cost (`EXPECTED_WIRE_TOKENS`), and the agreement between that measurement
+and the `N wire tokens` figure every `docs/*-lane.md` prints. Both were
+mutation-tested: setting the constant to 2,033 reproduces the exact `+96`
+message, and reverting a lane guide to 2,033 names the file and the number.
+
+Corrected with it: `docs/partkiln-gui.md` said 12 of **25** kernel methods
+(26 since `tyre`) and 13 methods with no button (14), `docs/DECISIONS.md` and
+the lane guide said **fourteen** `pk_*` tools (fifteen), and the `RESULTS.md`
+surface table was re-measured rather than patched — 17 / 2,129 wire / 2,596 by
+`model_dump`, 141 virtual tools, modules still adding exactly 0.
+
+**Suites at close:** partkiln **967 passed / 2 skipped**; server **1,932
+passed / 20 skipped / 130 deselected**; lint clean. Surface unchanged by this
+work: 17 tools / 2,129 tok — and now tested.
+
+### 0.25.0 cut and bundled (2026-09-07)
+
+Fifteen commits since 0.24.0: the partkiln material campaign (11 cards to 25,
+every new one from a named datasheet), `pk_tyre`, the test that pins the
+always-loaded surface figure, and the fix for `pvpython` breaking ParaView's
+code signature.
+
+Version bumped in the three places that must move together — `server/Makefile`,
+`server/pyproject.toml`, `packaging/mcpb_manifest.json` — plus `server/uv.lock`,
+which `uv lock` also re-normalised: 32 lines where redundant environment markers
+were dropped from CUDA and numpy entries. No package version changed; checked
+by diffing every non-marker line.
+
+**Cut from a worktree, not this checkout.** Midway through, the parallel
+session switched `/Users/john/TokenEfficiencyEngine` to its own branch
+(`claude/wind-tunnel-aerodynamic-integration-hcsa7u`, 0.24.1), which does not
+contain the partkiln work. Cutting there would have shipped a release missing
+half of what it names, and switching the shared checkout back would have done
+to that session what had just been done to this one. So the cut ran in
+`/Users/john/TEE-release-0.25.0`, a worktree on the default branch. A73 P2's
+0.24.1 is still on its own branch and merges on its own schedule.
+
+**Verified on the release tree**, with the worktree's own sources ahead of the
+main venv on `PYTHONPATH` (asserted by printing `tee.__file__` before trusting
+a single number):
+
+```
+partkiln  967 passed, 2 skipped
+server    1932 passed, 20 skipped, 130 deselected
+ruff      All checks passed! / 394 files already formatted
+```
+
+**Bundle**, built and then verified by unzipping it clean and serving from the
+shipped source rather than from the repo:
+
+```
+built dist/tee-engine-0.25.0.mcpb            1,240,366 bytes
+manifest_version 0.4 | version 0.25.0 | tools 17
+pyproject version = "0.25.0"; default-groups = [] (the dev-group opt-out)
+no __pycache__ and no .pyc in the archive
+always-loaded tools: 17
+  search 'extrude a sketch'        -> ['pk_verbs', 'pk_lint']
+  search 'aircraft tyre deflection'-> ['pk_tyre']
+  search 'carbon fibre modulus'    -> ['pk_materials']
+  pk_probe -> pk_not_served, naming the serve command (no adapter attached)
+```
+
+One honest limit on that check: it runs the bundle's `src` under the dev venv,
+so `tee.__version__` still reads the dev install's metadata. The version chain
+that reaches a user is the manifest and the bundle's own `pyproject.toml`, both
+read at 0.25.0 out of the archive. Running the manifest's literal `uv run`
+command would provision a fresh 1.3 GB venv from the lock and was not done.
+
+The manifest still declares blender, partkiln, seamkiln and fusion, and is
+otherwise untouched: which lanes Desktop serves is the owner's decision (A71).

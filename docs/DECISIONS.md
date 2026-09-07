@@ -1191,9 +1191,10 @@ GLB writer sets `XCAFDoc_LengthUnit = 0.001` AND the Z-up input coordinate
 system — measured: without the first a 10 mm part is 10 m, without the second
 it arrives lying on its side.
 
-**No `pk_` family row in the trust table.** Three of the fourteen `pk_*`
+**No `pk_` family row in the trust table.** Three of the fifteen `pk_*`
 tools write files and two mutate the document; every one is tabled
-explicitly (the `cad_`/`trade_` rule).
+explicitly (the `cad_`/`trade_` rule). `pk_tyre` (2026-09-07) was added the
+same way — one row, no family.
 
 **Headless first; the GUI is a later phase.** Owner, 2026-09-02. The Qt shell,
 when built, is a client of `partkiln.document` exactly as seamkiln's is.

@@ -3,11 +3,12 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## 0.24.1 — 2026-09-07
+## 0.25.1 — 2026-09-07
 
 A73 P2: the handoff run against the REAL ParaView and OpenVSP for the first
 time, which found three defects in `wt_open` that a fake `pvpython` cannot
-find, because a fake accepts whatever script it is handed.
+find, because a fake accepts whatever script it is handed. (Cut as 0.24.1
+before 0.25.0 landed on the base; the same tree, renumbered to sit after it.)
 
 ### Fixed
 
@@ -49,6 +50,87 @@ find, because a fake accepts whatever script it is handed.
   Doc 73 §4b now records that, and keeps the three instabilities measured here
   — none of which was the fault — plus the five-row specification a
   replacement would have to satisfy.
+## 0.25.0 — the material a part is made of, said honestly (2026-09-07)
+
+The material lane grew from 11 cards to **25**, every new one built from a
+named manufacturer datasheet or standard rather than a handbook range — and,
+more usefully, it learned to refuse. A card now says which numbers it will not
+invent, and why, so nobody fills the silence from memory.
+
+### Material cards
+
+- **Eleven to twenty-five.** Carbon fibre (T300 UD, AS4/8552 woven, an AS4/8552
+  quasi-isotropic laminate), glass fibre (E-glass UD and woven), titanium
+  (Ti-6Al-4V and CP Grade 2), aluminium 7075-T6, stainless 316L, PEEK 450G,
+  PA66, rebuilt PLA and ABS, and NBR and EPDM rubber. Every value still carries
+  `{value, unit, source, honesty}`, and the loader refuses a card that lacks a
+  density or a value that lacks any of the four.
+- **`anisotropic` and `refuses`.** A card whose stiffness depends on the
+  direction of the load serves direction-named values (`E_0`, `E_90`,
+  `tensile_90`) and refuses the isotropic scalars by name, each refusal
+  carrying a reason AND a fix, both validated at load. `property_value` raises
+  the refusal rather than returning nothing, because a card that simply omits
+  `E` reads as "not recorded yet" — which for a laminate is exactly the wrong
+  thing to guess.
+- **Three different reasons to refuse, which is why one mechanism was not
+  enough.** A laminate's modulus depends on the layup. A printed part's
+  strength across layers is interlayer adhesion, not the material. And rubber's
+  datasheet "100% Modulus" is the *stress at 100% strain* (DIN 53504), not a
+  Young's modulus, while its Poisson ratio sits near 0.4999 where an E/ν pair
+  is ill-conditioned — the reason the datasheet prints no E is itself the
+  lesson.
+- **An isotropic card may still refuse.** The quasi-isotropic laminate is
+  genuinely isotropic in-plane, so it serves an `E` computed from classical
+  laminate theory invariants; its strength still depends on the stacking
+  sequence, so that is refused.
+- **A family name is not a material.** `cfrp`, `gfrp`, `titanium`, `stainless`,
+  `aluminium`, `steel`, `nylon` and `rubber` now raise `pk_ref_ambiguous`
+  listing their members instead of silently picking one. "Titanium" spans 3.15x
+  in yield between CP Grade 2 and Ti-6Al-4V, so picking one answers a question
+  the caller never asked.
+- **Two sources argued with themselves, and the cards say so.** One aluminium
+  datasheet prints a yield of "24-68 ksi, 455-465 MPa" — but 24-68 ksi is
+  165-469 MPa, so the two halves disagree; the T6 end was taken, because the
+  tensile line is self-consistent there, and the contradiction is named in the
+  card's note. One composite datasheet's section heading names a different
+  fibre from the table beneath it, so every value is attributed from its own
+  table's fibre row, not from the heading.
+- **Seven cards are still handbook-sourced, and a test says which seven**, so
+  the frontier between datasheet and handbook cannot quietly move.
+
+### `pk_tyre`, and a test for the number every doc prints
+
+- **A tyre is a structure, so it gets a structure tool.** `pk_materials`
+  refuses "tyre", "f1 tyre" and "aircraft tyre"; `pk_tyre` is the other half —
+  deflection, static loaded radius, ground clearance, vertical rate in N/mm
+  and a contact-patch **upper bound** (named `area_upper_bound_mm2`, never a
+  bare area), computed from the rated row the caller reads off their own data
+  book. **It ships no tyre table**: those tables are reprinted with permission
+  from The Tire and Rim Association, so the lane implements the relationships
+  and quotes the definitions, exactly as ISO 286 ships as formulae. Nothing
+  defaults the percent deflection — the book states its formula in terms of it
+  and never prints a value — so it is either given or recovered by inverting
+  the book's own formula. Grip, wear, rolling resistance, temperature and
+  compound refuse by name; so do `rated_load`, `size` and `table`, for the
+  licence reason. Fifteen `pk_*` tools now, each still tabled individually.
+- **The surface figure is finally measured.** It moved **2,033 → 2,129** at
+  `bd70096` and four commits of prose kept printing 2,033, because the tool
+  COUNT never changed and only the count had a canary. `test_server_lint.py`
+  now pins the wire cost and asserts the lane guides print the same number.
+  The stale figures in the guides, the adapter docstrings and the `RESULTS.md`
+  surface table are corrected from a fresh measurement, not patched.
+
+### Fixed
+
+- **`pvpython` was silently breaking the owner's ParaView install.** It imports
+  its own modules from inside the signed `.app`, and CPython caches bytecode
+  next to the source, so one run wrote 201 `.pyc` files into a sealed bundle:
+  `codesign` then reports a missing or invalid sealed resource and Gatekeeper
+  refuses to launch it. Every field probe was doing this. The guard is
+  `PYTHONDONTWRITEBYTECODE=1` in the `pvpython` environment, measured both ways
+  on the owner's Mac — 0 files and `codesign` clean with it, 201 files and
+  `codesign` failing without. An already-damaged install is repaired by
+  deleting the `__pycache__` directories inside the bundle; no reinstall.
 
 ## 0.24.0 — 2026-09-07
 

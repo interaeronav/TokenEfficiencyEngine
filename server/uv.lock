@@ -4912,7 +4912,7 @@ wheels = [
 
 [[package]]
 name = "tee-engine"
-version = "0.24.1"
+version = "0.25.1"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },

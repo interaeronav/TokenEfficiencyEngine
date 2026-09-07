@@ -4,8 +4,9 @@ A66 P4. A part is a scene: sketches, features, bodies, components, mates,
 drawings and exports are entities with stable prefixed ids (D7), an edit is
 a batch, and what changed is a diff - so `tee_scene_summary`, `tee_batch`,
 `tee_diff`, `tee_checkpoint` and `tee_rollback` drive a CAD document the way
-they drive Blender, and the 17-tool surface does not move (measured: 2,033
-tok before and after). The seamkiln precedent, carried over whole.
+they drive Blender, and the 17-tool surface does not move (measured at A66:
+2,033 tok before and after; 2,129 today - A68 moved it, no lane did). The
+seamkiln precedent, carried over whole.
 
 Two kernels, one Protocol (D2). `LocalKernel` runs in this interpreter when
 `find_spec("partkiln")` AND `find_spec("OCP")` both succeed (the repo dev
