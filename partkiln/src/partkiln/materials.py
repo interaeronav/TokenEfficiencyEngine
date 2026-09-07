@@ -69,14 +69,28 @@ def _validate_anisotropy(name: str, card: dict[str, Any]) -> None:
     `refuses` entry per isotropic scalar, each with a reason and a fix, and
     `property_value` raises it rather than returning nothing.
     """
-    if not card.get("anisotropic"):
-        return
     refuses = card.get("refuses")
+    if not card.get("anisotropic"):
+        # An ISOTROPIC card may still refuse. The quasi-isotropic laminate is
+        # genuinely isotropic in-plane and serves E, yet its strength depends
+        # on the stacking sequence and is refused. So validate whatever is
+        # declared; only REQUIRE a declaration when the card says its
+        # properties have a direction.
+        if refuses is not None:
+            _validate_refusals(name, card, refuses)
+        return
     if not isinstance(refuses, dict) or not refuses:
         raise DataError(
             f"material card {name!r} is anisotropic but lists no `refuses`; say which "
             "scalars it will not invent (E, yield, G, nu) with a reason and a fix."
         )
+    _validate_refusals(name, card, refuses)
+
+
+def _validate_refusals(name: str, card: dict[str, Any], refuses: Any) -> None:
+    """Every declared refusal names a reason AND a fix, and refuses nothing served."""
+    if not isinstance(refuses, dict):
+        raise DataError(f"material card {name!r}.refuses must map a property to its reason.")
     for prop, entry in refuses.items():
         for key in ("reason", "fix"):
             if not isinstance(entry, dict) or not entry.get(key):
@@ -94,12 +108,64 @@ ANISOTROPIC_HINT = (
 )
 
 
+# Names people reasonably ask this lane for that are NOT materials. A tyre is a
+# STRUCTURE - several rubber compounds, textile or steel cords, belts and a bead
+# - so it has a vertical stiffness in N/mm, not a modulus in N/mm2, and no
+# density that means anything for a part's mass. Answering with a rubber card
+# would be a confident wrong answer of the worst kind, so each of these refuses
+# and says what IS knowable.
+_NOT_A_MATERIAL: dict[str, tuple[str, str]] = {
+    "tyre": (
+        "a tyre is a structure, not a material: several rubber compounds over textile or "
+        "steel cords, with a bead and belts, so its stiffness is a vertical rate in N/mm "
+        "that depends on inflation pressure, not a modulus",
+        "for the rubber itself see rubber_nbr or rubber_epdm; for the tyre, take a vertical "
+        "and lateral stiffness from its manufacturer's load-deflection data at your pressure",
+    ),
+    "f1 tyre": (
+        "Formula 1 compounds are trade secrets. Pirelli publishes the compound DESIGNATIONS "
+        "(C1 hardest to C5 softest), their operating temperature windows and the tyre "
+        "dimensions - and no compound properties whatever: no density, no modulus, no "
+        "filler loading. Nothing in this lane could serve one without inventing it",
+        "model the tyre as a structure with a measured vertical stiffness, or use a generic "
+        "filled elastomer (rubber_nbr, rubber_epdm) and say in your report that it is a "
+        "stand-in, not a compound",
+    ),
+    "aircraft tyre": (
+        "aircraft tyre makers publish load, speed, inflation and dimension tables - the "
+        "data a landing gear engineer actually needs - and not the compound properties. A "
+        "tyre is also a pressure vessel here: most of its load capacity is the inflation "
+        "gas, not the rubber",
+        "take rated load, pressure and deflection from the manufacturer's aircraft tyre "
+        "data book; for the rubber alone see rubber_nbr or rubber_epdm",
+    ),
+}
+_NOT_A_MATERIAL_ALIASES = {
+    "tire": "tyre",
+    "tyres": "tyre",
+    "tires": "tyre",
+    "rubber tyre": "tyre",
+    "f1 tire": "f1 tyre",
+    "formula 1 tyre": "f1 tyre",
+    "formula 1 tire": "f1 tyre",
+    "formula one tyre": "f1 tyre",
+    "racing tyre": "f1 tyre",
+    "racing tire": "f1 tyre",
+    "aircraft tire": "aircraft tyre",
+    "aeroplane tyre": "aircraft tyre",
+    "airplane tire": "aircraft tyre",
+    "aeroplane tire": "aircraft tyre",
+    "aviation tyre": "aircraft tyre",
+    "aviation tire": "aircraft tyre",
+}
+
+
 def names() -> list[str]:
     return sorted(_cards())
 
 
 def resolve(name: str) -> str:
-    """The card key for a name or alias ('steel', 's275', '304' ...); refuses listing names."""
+    """The card key for a name or alias ('s275', '304', '6061'); refuses listing names."""
     wanted = str(name).strip().lower()
     cards = _cards()
     if wanted in cards:
@@ -107,19 +173,24 @@ def resolve(name: str) -> str:
     for key, card in cards.items():
         if wanted in (alias.lower() for alias in card.get("aliases", [])):
             return key
+    not_material = _NOT_A_MATERIAL.get(_NOT_A_MATERIAL_ALIASES.get(wanted, wanted))
+    if not_material is not None:
+        reason, fix = not_material
+        raise CommandError(f"{name!r} is not a material: {reason}. Fix: {fix}.", code="pk_needs")
     family = [key for key in cards if key.startswith(f"{wanted}_")]
     if family:
-        # "cfrp" is a family, not a material: its stiffness spans an order of
-        # magnitude across layups, so picking one silently would answer a
-        # question the caller never asked.
+        # A family name is not a material. "cfrp" spans an order of magnitude in
+        # stiffness across layups; "titanium" spans 3.15x in yield between CP
+        # Grade 2 and Ti-6Al-4V. Picking one silently answers a question the
+        # caller never asked, so name them and let the caller choose.
         raise CommandError(
-            f"{name!r} is a family, not a material - its properties depend on the layup. "
-            f"Cards in it: {', '.join(sorted(family))}. Name one, or supply your own "
-            "laminate data.",
+            f"{name!r} names a family, not one material, and the cards in it differ enough "
+            f"that picking one would be a guess: {', '.join(sorted(family))}. Name the one "
+            "you mean.",
             code="pk_ref_ambiguous",
         )
     raise CommandError(
-        f"no material {name!r}. Cards: {', '.join(names())} (aliases such as 'steel', "
+        f"no material {name!r}. Cards: {', '.join(names())} (aliases such as 's275', "
         "'304' or '6061' are accepted).",
         code="pk_ref_unknown",
     )

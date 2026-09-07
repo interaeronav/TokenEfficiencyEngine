@@ -234,7 +234,11 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   `registry.require`, the panel renders nothing (A67 stands), and neither adds
   a tool: the surface is still 17. **P2 then ran on the real ParaView** — the
   owner's local session, which had been looking for a replacement, reported it
-  working properly on 2026-09-07 — **and it found three defects a fake pvpython
+  working properly on 2026-09-07 (the instability was OURS: `pvpython` wrote 201
+  `.pyc` files into ParaView's signed `.app`, breaking its notarization seal so
+  macOS refused to launch it; `PYTHONDONTWRITEBYTECODE=1` in `run_script` is the
+  fix, and deleting the bundle's `__pycache__` dirs repairs an install) — **and
+  it found three defects a fake pvpython
   can never find**: `ColorBy(d, None)` RAISES on data with no arrays (the
   meshed-but-unsolved case the mesh view exists for); a state that sets only
   `rv.ViewTime` reloads at **t=0**, because `SaveState` carries the ANIMATION

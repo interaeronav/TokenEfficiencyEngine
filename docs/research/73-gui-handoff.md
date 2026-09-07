@@ -159,19 +159,39 @@ A72's own live tier was re-run on this build after the fixes — `wt_probe_field
 - **Remote or client/server ParaView** (`pvserver`, `--url`): out of scope; the handoff is to an application on the same machine as the case.
 - **A state that regenerates itself** when a case moves: the path appears once, so a later campaign can rewrite it if the need is real.
 
-## 4b. ParaView: the instability, the resolution, and the specification it left behind (2026-09-07)
+## 4b. ParaView: the instability was ours (2026-09-07)
 
-Raised while this campaign was being built: ParaView was proving unstable in
-use, and the owner's local session went looking for a replacement. **Later the
-same day that session reported ParaView working properly**, so the search is
-closed and no swap is being made. This section stays, for two reasons.
+Raised while this campaign was being built: ParaView was proving unstable —
+*"would just refuse to start"* — and the owner's local session went looking for
+a replacement. It found the cause instead, on the owner's Mac, and **the cause
+was this lane**:
 
-The first is that the three instabilities below were **measured here**, not
-reported — a declaration is a claim and a measurement is evidence (A65) — and
-they remain true of the tool whatever the operational problem turned out to
-be. They are also the reason the lane is shaped as it is: the display check in
+> `pvpython` imports its own modules from INSIDE the signed `.app` bundle, and
+> CPython caches bytecode next to the source: **201 `.pyc` files** written into
+> a notarized bundle on one run (measured 2026-09-07). Files added to a sealed
+> bundle invalidate its code signature — `codesign` then reports *"a sealed
+> resource is missing or invalid"* — and macOS refuses to launch the
+> application. Every `wt_probe_field` and `wt_view` call was damaging the
+> owner's install until the GUI would not start.
+
+`PYTHONDONTWRITEBYTECODE=1` in `paraview.run_script`'s environment is the fix
+(base commit `c082dae`): 0 `.pyc` and `codesign` exit 0 with it, 201 and exit 1
+without. Deleting the `__pycache__` directories inside the bundle restores the
+seal; no reinstall. The handoff inherits the guard without doing anything,
+because `state.write()` drives the same `run_script` — so writing a state has
+never been able to write into the bundle since that commit landed.
+
+So no swap is being made. This section stays, for two reasons.
+
+The first is precision about what this campaign *did* measure. The three
+instabilities below were **measured here**, not reported — a declaration is a
+claim and a measurement is evidence (A65) — and they remain true of the tool.
+They are also the reason the lane is shaped as it is: the display check in
 `wt_open`, the two state kinds, and `xvfb-run` in `argv_for` all exist because
-of them.
+of them. But **none of them was the fault above.** A tool that aborts without a
+display is behaving badly; a tool that will not start at all was a tool we had
+broken, and reading the first as evidence for the second would have been the
+wrong conclusion drawn from real data.
 
 1. **It cannot be asked anything without a display.** The client builds its Qt
    application before parsing arguments, so `paraview --help` aborts on signal
@@ -207,8 +227,15 @@ measure them against, not a recommendation.
 bent toward the search while it was open - no ParaView-specific capability was
 deepened while a replacement was in question - and nothing is being unbent now.
 What it unblocked is P2: the live tier ran in full on the real ParaView instead
-of the narrowed OpenVSP-only route, which is how the two defects in §2.10 were
-found. The narrowing would have cost the campaign both of them.
+of the narrowed OpenVSP-only route, which is how the three defects in §2.10
+were found. The narrowing would have cost the campaign all three.
+
+There is a lesson in the pairing. The lane spent this campaign measuring
+ParaView's faults and shipped three of its own into the same tool; the
+`.pyc` fault was invisible from here because this container's ParaView is an
+apt install with nothing to seal, and the state defects were invisible because
+the fake `pvpython` accepts any script. Both needed the real application, on a
+real machine, doing the real thing.
 
 ## 5. Open questions
 

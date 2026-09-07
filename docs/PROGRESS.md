@@ -13995,19 +13995,34 @@ The last line is the one worth having: the shipped bundle writes a mesh-view
 state over a case with no run, which is the call that raised on 5.11.2 before
 this round.
 
-**ParaView: resolved.** Mid-campaign the owner's local session went looking for
-a replacement, ParaView having proved unstable in use; later the same day that
-session reported it working properly, so the search is closed and no swap is
-made. What stays is doc 73 §4b: the three instabilities **measured** here (they
-are still true of the tool, and they are why the lane checks the display, keeps
-two state kinds and reaches for `xvfb-run`) and the five rows a replacement
-would have to satisfy. Nothing was bent toward the search while it was open and
-nothing is unbent now — but the narrowing it caused would have cost this
-campaign all three defects above, which is the argument for running the live
-tier rather than reasoning about it.
+**ParaView: it was us.** Mid-campaign the owner's local session went looking
+for a replacement, ParaView having proved unstable — it *"would just refuse to
+start"*. That session found the cause on the owner's Mac and it was this lane:
+`pvpython` imports its own modules from INSIDE the signed `.app`, CPython
+caches bytecode next to the source, and 201 `.pyc` files added to a notarized
+bundle break its seal, after which Gatekeeper refuses to launch the
+application at all. Every `wt_probe_field` and `wt_view` call was quietly
+damaging the install. `PYTHONDONTWRITEBYTECODE=1` in `run_script`'s
+environment is the fix (base commit `c082dae`, merged into this branch), and
+the handoff inherits it for free: `state.write()` goes through that same
+`run_script`, so writing a state never writes into the bundle either. Deleting
+the `__pycache__` directories restores the seal — no reinstall.
 
-**Suites at close:** hermetic `pytest -q` **1,869 passed / 38 skipped / 133
-deselected** in 2:39 (1,867 before, plus the two new hermetic tests);
+That is worth stating precisely, because this campaign measured three
+instabilities and **none of them was the fault**: ParaView aborting on signal 6
+without a display, a render view segfaulting offscreen, a 200 kB versioned
+state (doc 73 §4b). They are real, they are still true of the tool, and they
+are why the lane checks the display, keeps two state kinds and reaches for
+`xvfb-run` — but a tool that will not start is a different problem, and it was
+ours. The five-row replacement specification stays a specification: no swap is
+made, and the application is still an enum behind two modules if the question
+returns. The narrowing the scare caused would have cost this campaign all three
+of the defects above, which is the argument for running the live tier rather
+than reasoning about it.
+
+**Suites at close:** hermetic `pytest -q` **1,870 passed / 38 skipped / 133
+deselected** in 2:31 on the merged tree (1,867 before, plus this round's two
+hermetic tests and the base's own bytecode-guard test);
 `make lint` clean over `src tests ../benchmarks`, 394 files formatted; the
 `cfd` tier `pytest -m cfd tests/test_windtunnel_live.py` **14 passed / 3
 skipped** in 14:09 — the whole file, A72's eight live tests and this round's
@@ -14025,3 +14040,381 @@ lock is part of a version bump, not a consequence of one.
 5.11-written state, and does `open -a ParaView --args --state=` pass the flag
 through? Doc 73's open questions 1 and 2, and the only rows of this campaign
 that need a machine this container is not.
+
+### CFRP: a woven card, and a quasi-isotropic one that had to be computed (2026-09-07)
+
+Owner: *"add a woven and quasi-isotropic card"*. Both landed, from the Hexcel
+HexPly 8552 product data sheet read out of the PDF — but they landed for
+different reasons, and the QI one nearly did not land at all.
+
+**An attribution trap in the source, caught before it reached a card.** The
+8552 sheet's woven section is headed *"Woven Carbon Prepregs (AS4 Fibre)"* and
+the table printed directly beneath it reads **`Fibre Type: IM7 6K`**. PDF text
+extraction had displaced the headings by one block. Every number was therefore
+attributed from each table's OWN `Fibre Type` and `Fibre Density` rows rather
+than from the heading above it — AS4 3K plain weave (Vf 55.29%, laminate
+density 1.57) and IM7 6K 8HS (Vf 55.57%, 1.56) are different products, and
+reading the heading would have put IM7 numbers on an AS4 card.
+
+**Woven: balanced, which is not the same as isotropic.** `cfrp_as4_8552_woven`
+serves E_0 68 000 and E_90 66 000 N/mm², within 3% — and that closeness IS the
+trap, because a plain weave at 45° is far softer, where the load goes into
+shear, and the sheet prints no 45° value. So a plain `E` is still refused, with
+that as the reason. Its density is **printed** (1.57 g/cm³ → `datasheet`),
+which is better provenance than the UD card's derived value.
+
+**Quasi-isotropic is a layup, not a material, and the datasheet cannot supply
+it.** Classical laminate theory needs E₁, E₂, G₁₂ and ν₁₂; Hexcel prints the
+first two and neither of the last two. The widely-repeated `E1=140, E2=10,
+G12=7, nu12=0.29` traces to homework sites and figure captions — exactly the
+secondary sourcing the licence gate exists to keep out — so it was not used.
+
+**What made the card honest was a sensitivity measurement.** Sweeping G₁₂ over
+a FACTOR OF TWO (4 000–8 500 N/mm²) and ν₁₂ over 0.25–0.35:
+
+```
+E_qi = (U1^2 - U4^2)/U1   over that whole box:  53 538 - 57 369 N/mm2   = +/- 3.5%
+```
+
+The answer is governed by E₁ and E₂, which ARE printed. So `cfrp_as4_8552_qi`
+serves **E 55 454 N/mm², range [53 538, 57 369]**, `derived`, with the range
+being the whole span of the unknown constants — the same pattern as the UD
+card's density: the assumption is visible, not hidden. A test re-derives the
+sweep and asserts the served range equals it, so the two cannot drift.
+
+**It is also the one CFRP card that may serve a plain `E` and `nu`** — a
+quasi-isotropic stack genuinely is isotropic in-plane, which is the entire
+point of the layup. It still refuses `yield` (strength turns on which ply
+fails first, hence on the stacking sequence the card does not fix), and its
+note says plainly that it is **not** isotropic in bending: `[0/45/-45/90]s`
+and `[90/45/-45/0]s` share this E and have different bending stiffness.
+Density is layup-independent, so it carries Hexcel's printed UD value (1.58
+g/cm³) rather than deriving a second, differing number.
+
+That inverted the validator: an **isotropic** card can now carry refusals too,
+so `_validate_refusals` was split out and runs on any declared block rather
+than only on anisotropic cards — otherwise the QI card's refusals would have
+gone unchecked. A test covers exactly that.
+
+partkiln **889 passed / 2 skipped**, ruff clean; 14 cards; `data/manifest.json`
+names both Toray and Hexcel as authorities.
+
+### Titanium and glass fibre: an isotropic control, and a card built from the wrong kind of datasheet (2026-09-07)
+
+Owner: *"add glass fibre and titanium cards"*. Two cards, and they are
+interesting for opposite reasons.
+
+**`titanium_ti6al4v` is deliberately boring, and that is the point.** Grade 5,
+annealed sheet and plate to AMS 4911, from the Rolled Alloys data sheet:
+density 4 429 kg/m³ (printed 0.160 lb/in³), E 115 000 N/mm² (16.7 × 10⁶ psi),
+yield 869 and tensile 924 N/mm² (the AMS 4911 minima, 126 and 134 ksi). One
+`E`, one `yield`, **no refusals at all** — which is the contrast that shows
+the composite refusals are a fact about those materials, not a quirk of the
+schema. Two honesty details carried rather than smoothed over: the strengths
+are **specified minima** and drop with thickness (above 0.1874 in AMS 4911
+specifies 130/120 ksi), the same trap `steel_s275` already documents for ReH;
+and the modulus is printed in the sheet's **STA** row while the strengths are
+annealed, so the source string says so instead of implying one condition.
+
+**`gfrp_eglass_ud` is built from a FIBRE datasheet, and that decides what it
+may serve.** No reachable E-glass *laminate* datasheet: Gurit returned 403 on
+both URLs, the Hexcel 8552 sheet mentions glass only in passing, and MatWeb is
+on the banned list. What was reachable is a real fibre sheet — Saint-Gobain
+Vetrotex, *"E, R and D glass properties"* (03/2002) — printing density
+2.60 g/cm³, tensile modulus 73 GPa and virgin filament strength 3 400 MPa.
+
+So the card serves exactly the two laminate properties a rule of mixtures
+predicts **well**, at a stated Vf of 50%:
+
+```
+density  0.50 x 2600 + 0.50 x rho_matrix(1150-1300)  ->  1912 kg/m3  [1875, 1950]
+E_0      0.50 x 73000 + 0.50 x Em(3000-4000)         ->  38 250 N/mm2 [38000, 38500]
+```
+
+Voigt is exact for iso-strain along continuous aligned fibres, and the matrix
+term is small enough that the whole Em span moves E_0 by **under 1.5%** — a
+test asserts that, because it is the reason E_0 is servable at all.
+
+**And it refuses `E_90` by name, which is the entry worth reading.** The
+transverse modulus would have to come from the inverse rule of mixtures, and
+that model is *known* to underestimate measured E_90 for glass/epoxy by
+roughly a third. A number we know to be wrong is worse than no number, so the
+refusal names the model, its error, and says to take E_90 from a laminate
+datasheet instead. `yield` refuses too, distinguishing the **virgin filament**
+3 400 MPa from the 2 400 the same sheet prints for an impregnated strand —
+neither of which is a laminate strength.
+
+A test pins the comparison a reader actually wants, from the cards rather than
+from a sentence: **glass is heavier than carbon per unit volume and less than
+a third as stiff along the fibres.**
+
+partkiln **897 passed / 2 skipped**, ruff clean, 16 cards. The manifest now
+names four authorities: Toray, Hexcel, Saint-Gobain Vetrotex and Rolled Alloys
+(AMS 4911).
+
+**Not done, and cheap when wanted:** commercially pure titanium (Grade 2) is a
+different card, and a GFRP card with measured transverse and shear values
+needs a laminate datasheet nobody has reached yet.
+
+### CP titanium Grade 2, and a family name that stopped meaning one grade (2026-09-07)
+
+Owner: *"add commercially pure titanium grade 2"*. `titanium_grade2` from the
+Rolled Alloys Titanium Grade 2/2H data sheet, `Specification: ASTM B265`:
+density 4 512 kg/m³ (0.163 lb/in³), E 105 000 N/mm² (15.2 × 10⁶ psi), **ν 0.32
+printed** — which the Ti-6Al-4V sheet does not give, so that card has no ν and
+this one does — and the B265 minima 276 yield / 345 tensile / 20% elongation.
+
+**Adding it made an existing alias dangerous.** `titanium` resolved silently to
+Ti-6Al-4V. The two grades sit at **3.15× apart in yield** (869 against 276
+N/mm²) at densities 2% apart, so a caller who wrote "titanium" meaning CP sheet
+would have been handed an alloy number three times too high, with nothing
+saying so. That is the `cfrp` ruling in a metal, so `titanium` and `ti` were
+dropped as Grade 5 aliases and the family refusal now fires and names both
+grades. `ti64`, `grade 5 titanium`, `cp titanium` and the rest still resolve.
+The family message was also generalised — it said "properties depend on the
+layup", which is true of CFRP and nonsense for a titanium grade.
+
+partkiln **900 passed / 2 skipped**, ruff clean, 17 cards.
+
+### The right datasheets: glass and carbon rebuilt on laminate data (2026-09-07)
+
+Owner: *"get the right data sheet for carbon fiber and glass fiber"* — a fair
+push, because `gfrp_eglass_ud` was built from a **fibre** sheet and it showed.
+
+**Gurit's SE 75 sheet (PDS-SE75-04-0625) is the right one, and WebFetch could
+not have it.** Both Gurit URLs returned 403 to WebFetch; `curl` with an
+ordinary browser user-agent got the current one at 200 and 410 KB. It carries
+full UD *and* woven laminate tables for carbon and glass with test methods
+named per row (ISO 527-4/5, SACMA SRM1-94, ISO 14125, ISO 14130) and fibre
+volume measured to ASTM D3171 Method II.
+
+**What that bought, per card:**
+
+| | before | after |
+| --- | --- | --- |
+| `gfrp_eglass_ud` E_90 | REFUSED (inverse rule of mixtures is a known-bad model) | **10 700 N/mm², measured** |
+| `gfrp_eglass_ud` E_0 | derived, 38 250 | **51 000, printed** |
+| `gfrp_eglass_ud` density | derived, range [1875, 1950] from an ASSUMED resin density | derived **1857, every input printed** |
+| `gfrp_eglass_woven` | — | new: 32 000 both directions |
+| `cfrp_hec_se75_ud` | — | new: carbon UD with **E_90 8 700 measured** |
+
+The density is still `derived` — no sheet prints a laminate density — but it
+is now `0.473 × 2600 + 0.527 × 1190` where **all three numbers are printed**:
+fibre density, cured resin density, and the measured Vf. Nothing is assumed,
+so the assumption range is gone rather than merely narrowed.
+
+**A cross-check fell out of it.** `cfrp_hec_se75_ud` derives 1526 kg/m³ from
+Gurit's fibre and resin densities; `cfrp_t300_ud` derives 1546 from Toray's
+fibre density and an assumed epoxy range. Two independent routes, **1.3%
+apart** — which is a real check on both, and it is asserted by a test.
+
+**One honesty wrinkle the sheet forces, now declared on each card.** The
+starred values (0° tensile and compressive) are *normalized to 55% fibre
+volume*, while the 90° values, ILSS and the derived density are *as measured*
+at 47.3%. Dividing a normalized stiffness by an as-measured density and
+calling it specific stiffness would be wrong, so the note names both bases and
+gives the 55% density (about 1966) for anyone who needs to work there.
+
+`cfrp_t300_ud` is deliberately kept as it stands: it is honestly sourced to
+Toray's fibre sheet and its refusal of E_90 is *correct for that source*. The
+new card's note points at it, and the contrast is the lesson — the same
+material, two datasheets, and only one of them can answer the transverse
+question.
+
+A test that compared glass to carbon had to be rewritten rather than re-pinned,
+because the better data inverted half of it: like for like, glass is heavier
+and less than half as stiff **along** the fibres, and yet **stiffer across
+them** (10 700 against 8 700), since the transverse direction is the matrix's
+job and glass carries more of it.
+
+partkiln **901 passed / 2 skipped**, ruff clean, 19 cards.
+
+### 7075-T6 and 316L, and a datasheet that contradicts itself (2026-09-07)
+
+Owner: *"add aluminium 7075 and stainless 316"*. Both from primary datasheets
+fetched by `curl` (the pattern that beat Gurit's 403), and one of them turned
+out to be internally inconsistent.
+
+**`stainless_1_4404` from Aperam's 316L sheet** (FT_316L.en, grades table
+citing EN 10088-2 and ASTM A240): density 7 900 kg/m³, E 200 000 N/mm²,
+**ν 0.30 printed**, Rp0.2 300, Rm 620, A 52% — annealed cold rolled to
+ISO 6892-1. The honesty tier matters here and cuts the opposite way from the
+steels: Aperam labels these **TYPICAL values**, where `steel_s275`'s ReH is a
+specified *minimum*. EN 10088-2's minimum for this grade is materially lower,
+so a design to the standard must not use the 300. The card says so, and a test
+asserts the two cards carry different tiers for the same property name.
+
+**`aluminium_7075_t6` from Smith Metals, whose yield line disagrees with
+itself.** It prints `Yield Strength 24-68 ksi, 455-465 MPa`. But 24–68 ksi is
+**165–469 MPa**, so the two cannot be the same quantity: the ksi range spans
+tempers from annealed while the MPa figures are the T6 end. Its *tensile* line
+is self-consistent (40–78 ksi = 275–540 MPa), and 68 ksi = 469 MPa agrees with
+the 465 in its own prose — so the T6 values are taken, the annealed end is not
+served, and the note names the contradiction rather than quietly picking a
+number. A test re-does the ksi arithmetic so the reasoning cannot rot.
+
+**Two more family names stopped meaning one grade.** `stainless` resolved
+silently to 1.4301 (304). Adding 316 makes that a real trap — not because the
+strengths differ but because **the molybdenum is why 316 is specified at all**:
+it resists chlorides where 304 pits. `aluminium` had no bare alias but now
+matches three cards spanning 240–465 N/mm² in yield, so it refuses too. Both
+now name their members; `304`, `316`, `6061` and `7075` still resolve.
+
+That is the fourth application of the same ruling — `cfrp`, `titanium`,
+`stainless`, `aluminium` — and the shape is always identical: a name that once
+had one plausible referent acquires a second, and the alias becomes a silent
+wrong answer unless it is retired.
+
+partkiln **906 passed / 2 skipped**, ruff clean, **21 cards**.
+
+### `steel` retired as an alias, and why it was the least dangerous of the five (2026-09-07)
+
+Owner: *"do the same for steel"*. Done, and it is worth recording that this
+one differs from the other four.
+
+`steel` resolved silently to S275 with S355, DC01 and 100Cr6 beside it. But
+**mass was never the risk**: every steel card sits between 7 810 and 7 850
+kg/m³, so the one quantity the kernel actually USES moved by at most 0.5%
+whichever grade the alias picked. What differed was **strength** — 210 to 355
+N/mm² in yield across the family, and 100Cr6 is a hardened bearing steel that
+does not belong in the same sentence as structural plate. So the word was
+retired not because it was returning wrong masses but because it was returning
+**confident yields**.
+
+Ten call sites passed the bare alias — five test modules plus two examples
+inside `materials.py`'s own docstring and refusal text — and every one now
+names `steel_s275`. **No measured number moved**, because the alias only ever
+resolved there: the W1 bracket is still 715.595 g, asserted in the new test.
+`s275`, `mild steel`, `s355`, `dc01` and `100cr6` all still resolve.
+
+The `pk_materials` tool was checked and left alone: its `"steel"` is a search
+TAG and a category filter, not a card name, so the surface is untouched.
+
+That completes the sweep — `cfrp`, `titanium`, `stainless`, `aluminium`,
+`steel`. **No bare family name in the material lane resolves to a member any
+more.** The rule that emerged from it, worth carrying to any future lookup
+table: a name with one plausible referent is fine until a second arrives, and
+at that moment the alias silently becomes a wrong answer. It has to be retired
+in the same commit that creates the ambiguity, not later.
+
+partkiln **907 passed / 2 skipped**, ruff clean, 21 cards.
+
+### PEEK and PA66, and the last family name (2026-09-07)
+
+Owner: *"add nylon and PEEK cards"*. `nylon_pa6` already existed, so this
+landed as one genuinely new material and one better-sourced sibling.
+
+**The plastics were the weakest-sourced cards in the lane** — `pla`, `abs` and
+`nylon_pa6` are all `typical_range` from an engineering handbook, with no
+datasheet behind them. Both new cards come from the manufacturer, with a test
+method on every row:
+
+| | `peek_450g` (Victrex TDS) | `nylon_pa66` (Ensinger TECAMID 66, v AD 2023-07-19) |
+| --- | --- | --- |
+| density | 1 300 kg/m³, ISO 1183 | 1 150 kg/m³ |
+| E | 4 000 N/mm², ISO 527-1 | 3 500 N/mm², ISO 527-2 at 1 mm/min |
+| yield | 98 N/mm², ISO 527-2 | 84 N/mm², ISO 527-2 at 50 mm/min |
+| elongation | 25% at break | 70% at break |
+| flexural E | 3 800, ISO 178 | 3 100, ISO 178 |
+
+**Each card names the way its own numbers mislead.** PEEK is bought *for
+temperature*, and every value on its sheet is 23 °C — the same sheet tabulates
+strength falling steeply above 125 °C — so a card of room-temperature figures
+is exactly what a reader could misuse, and the note says so first. It also
+says the density is the sheet's **crystalline** value, since a quenched
+largely-amorphous moulding is lighter and that changes mass on a thin part.
+PA66's sheet states its data were generated *directly after machining*: a
+polyamide takes up water until its stiffness falls well below 3 500, which is
+the caveat PA6 already carried from a handbook and PA66 now carries from the
+manufacturer's own wording.
+
+**`nylon` was the sixth and last family name to go.** PA66 is about 30%
+stiffer than PA6, so the bare word was quietly choosing a stiffness. A single
+test now asserts the whole sweep in one place: `cfrp`, `gfrp`, `titanium`,
+`stainless`, `aluminium`, `steel` and `nylon` all refuse and list their
+members, while every specific name still resolves.
+
+partkiln **912 passed / 2 skipped**, ruff clean, **23 cards**, six named
+authorities in `data/manifest.json`.
+
+### PLA and ABS rebuilt on printed-specimen datasheets, and both became anisotropic (2026-09-07)
+
+Owner: *"upgrade pla and abs to real datasheets"*. Doing it changed what the
+cards ARE, not just where their numbers came from.
+
+**A printed part is anisotropic, and the manufacturers measure it.** Prusa's
+PLA sheet reports a print-direction table plus, separately, an **interlayer
+adhesion of 17 ± 3 N/mm²** against 51 and 59 for two specimen orientations. A
+part pulled across its layers fails at that bond — **a third of the in-plane
+figure** — so `pla` is now an `anisotropic` card serving
+`tensile_horizontal`, `tensile_vertical`, `interlayer_adhesion` and
+`tensile_filament`, and refusing a bare `yield`. The card it replaced served a
+single handbook yield of 55 N/mm², which hid a factor of three.
+
+**The ABS rebuild exposed a real error in the old card.** It served a handbook
+`E` of 2 200 N/mm². Flashforge, testing *printed* specimens at 100% infill,
+reports a modulus of **1 500–1 650 N/mm² in the X-Y plane** — the bulk figure
+overstated a printed part's stiffness by about a third. Every mechanical row
+on that sheet is labelled `(X-Y)` and none is across the layers, so the card
+serves `E_xy`, `tensile_xy`, `flexural_xy` and refuses the bare `E` naming
+exactly that gap and pointing at the PLA card's interlayer figure for its size.
+
+Density stays honest on both and both keep answering `mass_g`: direction ruins
+strength, not mass. Each note says the solid-infill assumption out loud, since
+a part at 20% infill weighs about a fifth of what the card says.
+
+**A test I wrote over-claimed and was corrected before it landed.** It asserted
+that no handbook-sourced card remained; seven still are — `aluminium_6061`,
+`aluminium_6082`, `brass_cw614n`, `nylon_pa6`, `stainless_1_4301`,
+`steel_100cr6`, `steel_dc01`. The test now pins that exact set, so the frontier
+can shrink deliberately and cannot grow by accident. Every *plastic* has left
+it, which was the actual claim worth making.
+
+partkiln **916 passed / 2 skipped**, ruff clean, 23 cards, eight named
+authorities.
+
+### Elastomers, and a refusal for things that are not materials (2026-09-07)
+
+Owner: *"include rubber and tire material, specifically formula 1 car tires and
+aircraft tires"*. The rubber is real; the tyres are refusals, and the refusals
+are the substance.
+
+**Two elastomer cards from Trygonal's standard datasheets**, every row naming
+its DIN/ISO method: `rubber_nbr` (85 Shore A, 1 317 kg/m³, tensile 15.2 N/mm²,
+elongation 226%, service −35 to +110 °C) and `rubber_epdm` (87 Shore A,
+1 160 kg/m³, 11.7 N/mm², 263%, −45 to +135 °C).
+
+**They introduce the third distinct kind of refusal in this lane.** After
+composite anisotropy and printed anisotropy comes **hyperelasticity**: rubber's
+stress-strain curve is not a line, so there is no Young's modulus to quote. The
+datasheets hand over the right answer themselves — what they call
+**"100% Modulus"** is the *stress at 100% strain* (8.8 and 10.0 N/mm², DIN
+53504), which is not interchangeable with an E. So `E` refuses and points at
+`modulus_100` or a hyperelastic fit; `nu` refuses because rubber is nearly
+incompressible at about 0.4999 and an E/ν pair is ill-conditioned there — and
+the reason the datasheet prints none is itself the lesson; `yield` refuses
+because an elastomer stretches to several times its length and tears.
+
+**The tyres are not materials, and that is the honest answer rather than a
+shortfall.** A new `_NOT_A_MATERIAL` table in `resolve()` refuses `tyre`,
+`f1 tyre` and `aircraft tyre` (with the American spellings and plurals), each
+for its own reason:
+
+- **a tyre is a STRUCTURE** — several compounds over textile or steel cords,
+  with belts and a bead — so it has a vertical stiffness in N/mm that depends
+  on inflation pressure, not a modulus, and no density meaningful for a part's
+  mass;
+- **F1 compounds are trade secrets.** Checked before claiming it: Pirelli
+  publishes the compound designations C1–C5, their operating temperature
+  windows and the tyre dimensions, and no compound properties at all. Nothing
+  here could serve one without inventing it;
+- **aircraft tyre makers publish load, speed, inflation and dimension tables**
+  — what a landing gear engineer actually needs — and the tyre is largely a
+  pressure vessel, most of its load capacity being the inflation gas rather
+  than the rubber.
+
+Each refusal names where to go instead, and `rubber` on its own hits the family
+refusal automatically, listing NBR and EPDM.
+
+partkiln **921 passed / 2 skipped**, ruff clean, **25 cards**, nine named
+authorities.

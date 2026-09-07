@@ -173,9 +173,9 @@ def test_bom_parts_view_block_and_four_pins(f6) -> None:
     block, pin = f6
     asm = four_pin_assembly(f6)
     parts = {
-        "block": {"material": "steel", "volume_mm3": shapes.volume(block)},
+        "block": {"material": "steel_s275", "volume_mm3": shapes.volume(block)},
         "pin": {
-            "material": "steel",
+            "material": "steel_s275",
             "volume_mm3": shapes.volume(pin),
             "standard_designation": "ISO 2338 10 m6 x 40",
         },
@@ -190,7 +190,7 @@ def test_bom_parts_view_block_and_four_pins(f6) -> None:
     assert all(r["kind"] == "part" for r in out["rows"])
     # a mass given directly is taken as-is (3 dp)
     direct = bom(
-        asm, {"block": {"material": "steel", "mass_g": 238.8691}, "pin": {"mass_g": 24.6615}}
+        asm, {"block": {"material": "steel_s275", "mass_g": 238.8691}, "pin": {"mass_g": 24.6615}}
     )
     assert direct["total_g"] == 337.517
 
@@ -259,7 +259,7 @@ def test_bom_row_with_no_material_is_none_and_the_total_says_partial(f6) -> None
             Component("pin1", "pin", pin),
         ]
     )
-    priced = {"material": "steel", "volume_mm3": shapes.volume(block)}
+    priced = {"material": "steel_s275", "volume_mm3": shapes.volume(block)}
     out = bom(asm, {"block": priced, "pin": {"volume_mm3": shapes.volume(pin)}})
     rows = {r["part"]: r for r in out["rows"]}
     assert rows["block"]["mass_g"] == 238.869 and rows["block"]["total_g"] == 238.869
@@ -270,7 +270,7 @@ def test_bom_row_with_no_material_is_none_and_the_total_says_partial(f6) -> None
 
     whole = bom(
         asm,
-        {"block": priced, "pin": {"material": "steel", "volume_mm3": shapes.volume(pin)}},
+        {"block": priced, "pin": {"material": "steel_s275", "volume_mm3": shapes.volume(pin)}},
     )
     assert whole["total_g"] == 263.531
     assert whole["partial"] is False and whole["missing_mass"] == []

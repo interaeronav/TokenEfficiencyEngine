@@ -173,9 +173,17 @@ def run_script(
     script = workdir / "pv_script.py"
     script.write_text(script_text)
     argv = argv_for(pvpython, script, render=render)
+    # PYTHONDONTWRITEBYTECODE is load-bearing, not tidiness. pvpython imports
+    # its own modules from INSIDE the .app bundle, and CPython caches the
+    # bytecode next to the source - 201 .pyc files on a first run, measured
+    # 2026-09-07. Those files are additions to a signed, notarized bundle, so
+    # they break its code-signature seal ("a sealed resource is missing or
+    # invalid") and macOS then refuses to launch ParaView at all. TEE was
+    # bricking the owner's ParaView every time it sampled a field.
+    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     try:
         res = subprocess.run(
-            argv, capture_output=True, text=True, timeout=timeout_s, cwd=str(workdir)
+            argv, capture_output=True, text=True, timeout=timeout_s, cwd=str(workdir), env=env
         )
     except subprocess.TimeoutExpired as exc:
         raise TeeError(

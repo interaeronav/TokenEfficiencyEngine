@@ -197,7 +197,7 @@ def test_every_card_validates_and_carries_an_honesty_tier() -> None:
 
 
 def test_structural_steel_is_the_standard_value() -> None:
-    steel = materials.card("steel")
+    steel = materials.card("steel_s275")
     assert steel["name"] == "steel_s275"
     density = steel["properties"]["density"]
     assert (density["value"], density["unit"], density["honesty"]) == (
@@ -215,11 +215,11 @@ def test_structural_steel_is_the_standard_value() -> None:
 
 
 def test_mass_g_is_rounded_before_the_wire() -> None:
-    assert materials.mass_g("steel", 91158.6) == 715.595  # the W1 bracket
+    assert materials.mass_g("steel_s275", 91158.6) == 715.595  # the W1 bracket
     assert materials.mass_g("s275", 44916.967) == 352.598  # F2
     assert materials.mass_g("6061", 1_000_000) == 2700.0  # a litre of aluminium
     with pytest.raises(CommandError, match="never negative"):
-        materials.mass_g("steel", -1.0)
+        materials.mass_g("steel_s275", -1.0)
 
 
 def test_unknown_material_lists_the_cards() -> None:

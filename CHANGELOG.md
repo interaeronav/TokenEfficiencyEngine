@@ -42,9 +42,13 @@ find, because a fake accepts whatever script it is handed.
 - The OpenVSP route verified by asking OpenVSP: `vsp -script` reading back the
   `.vsp3` the command line names reports one geom, `WingGeom`, type `Wing`.
 - ParaView's instability, which the owner's local session had been looking to
-  replace, was reported resolved on 2026-09-07; doc 73 §4b keeps the three
-  instabilities measured here and the five-row specification a replacement
-  would have to satisfy.
+  replace, turned out to be **ours**: `pvpython` wrote 201 `.pyc` files into
+  the signed `.app`, breaking its notarization seal so macOS refused to launch
+  it. The fix is `PYTHONDONTWRITEBYTECODE=1` in `run_script`'s environment,
+  which this lane's state writer inherits by going through the same function.
+  Doc 73 §4b now records that, and keeps the three instabilities measured here
+  — none of which was the fault — plus the five-row specification a
+  replacement would have to satisfy.
 
 ## 0.24.0 — 2026-09-07
 

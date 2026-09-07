@@ -8,44 +8,75 @@
  ],
  "cards": {
   "abs": {
-   "family": "thermoplastic (FFF)",
-   "designation": "acrylonitrile butadiene styrene",
+   "family": "thermoplastic (FFF printed)",
+   "designation": "ABS filament, printed at 100% infill",
    "aliases": [
     "abs"
    ],
+   "anisotropic": true,
    "properties": {
     "density": {
-     "value": 1040,
+     "value": 1050,
      "unit": "kg/m3",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; 1.04-1.06 g/cm3, ISO 1183",
+     "honesty": "datasheet",
      "range": [
-      1020,
+      1040,
       1060
-     ],
-     "source": "engineering handbook range",
-     "honesty": "typical_range"
+     ]
     },
-    "E": {
-     "value": 2200,
+    "E_xy": {
+     "value": 1575,
      "unit": "N/mm2",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; modulus of elasticity (X-Y) 1500-1650, ISO 527",
+     "honesty": "datasheet",
      "range": [
-      1900,
-      2500
-     ],
-     "source": "engineering handbook range",
-     "honesty": "typical_range"
+      1500,
+      1650
+     ]
     },
-    "yield": {
-     "value": 40,
+    "tensile_xy": {
+     "value": 38,
      "unit": "N/mm2",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; tensile strength (X-Y) 35-40, ISO 527",
+     "honesty": "datasheet",
      "range": [
-      30,
-      50
-     ],
-     "source": "engineering handbook range, tensile strength",
-     "honesty": "typical_range"
+      35,
+      40
+     ]
+    },
+    "flexural_xy": {
+     "value": 68,
+     "unit": "N/mm2",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; bending strength (X-Y) 65-70, ISO 178",
+     "honesty": "datasheet",
+     "range": [
+      65,
+      70
+     ]
+    },
+    "elongation_xy": {
+     "value": 15,
+     "unit": "%",
+     "source": "Flashforge ABS Filament technical data sheet (ABS_TDS_EN); every mechanical row is labelled (X-Y), specimens printed at 100% infill, 0.4 mm nozzle, 230 C; elongation at break (X-Y) 12-17, ISO 527",
+     "honesty": "datasheet",
+     "range": [
+      12,
+      17
+     ]
     }
    },
-   "notes": "Same printing caveat as pla: bulk figures, 100% solid assumed."
+   "refuses": {
+    "E": {
+     "reason": "every mechanical row on this sheet is labelled (X-Y) - in the print plane - and it reports nothing across the layers, which is the direction that governs a printed part",
+     "fix": "read E_xy, and for the across-layer direction use a sheet that measures it; the pla card carries an interlayer_adhesion figure showing the size of that gap"
+    },
+    "yield": {
+     "reason": "same reason: 35-40 N/mm2 is the in-plane strength, not the layer bond",
+     "fix": "read tensile_xy, and measure or source the Z direction separately"
+    }
+   },
+   "notes": "THE PRINTED MODULUS IS WELL BELOW THE BULK FIGURE, and that is why this card was rebuilt: it used to serve a handbook E of 2200 N/mm2, while a manufacturer testing PRINTED specimens reports 1500-1650 in plane - the old number overstated a printed part's stiffness by about a third. Ranges here are the datasheet's own, not a handbook spread. Printed at 100% infill, so mass_g's solid assumption matches these specimens and not a sparse part."
   },
   "aluminium_6061": {
    "family": "aluminium alloy",
@@ -131,6 +162,43 @@
    },
    "notes": "Same caveat as aluminium_6061: EN 1999-1-1 design values not fetched, so served as a handbook range. Yield is temper-dependent; the T6 range is served."
   },
+  "aluminium_7075_t6": {
+   "family": "aluminium alloy",
+   "designation": "EN AW-7075 (AlZn5.5MgCu), T6 temper",
+   "aliases": [
+    "7075",
+    "al7075",
+    "aluminum_7075",
+    "7075-t6"
+   ],
+   "properties": {
+    "density": {
+     "value": 2810,
+     "unit": "kg/m3",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; density 2.81 g/cm3",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 72000,
+     "unit": "N/mm2",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; modulus of elasticity 72 GPa",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 465,
+     "unit": "N/mm2",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; 'up to 465 MPa yield strength ... depending on temper', i.e. the T6 peak - the sheet does not tabulate per temper",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 540,
+     "unit": "N/mm2",
+     "source": "Smith Metals 7075 Aluminium technical datasheet, mechanical + physical property tables; 'up to ... 540 MPa tensile strength', corroborated by its own 78 ksi upper bound (538 MPa)",
+     "honesty": "datasheet"
+    }
+   },
+   "notes": "THE SOURCE CONTRADICTS ITSELF ON YIELD and this card follows the self-consistent half. It prints 'Yield Strength 24-68 ksi, 455-465 MPa'; 24-68 ksi is 165-469 MPa, so the MPa range cannot be the same quantity - the ksi range spans tempers from annealed while the MPa figures are the T6 end. Its tensile line IS consistent (40-78 ksi = 275-540 MPa), and 68 ksi = 469 MPa agrees with the 465 quoted in its own prose, so the T6 values are taken and the annealed end is not served. 7075 is roughly TWICE the yield of 6061 at the same stiffness and 4% more weight, and it is chosen where corrosion resistance is not the concern - the datasheet says so itself."
+  },
   "brass_cw614n": {
    "family": "free-machining brass",
    "designation": "CW614N (CuZn39Pb3, EN 12164)",
@@ -172,6 +240,204 @@
     }
    },
    "notes": "Lead content makes CW614N RoHS-exempt only under specific annexes; the card carries mechanics, not compliance."
+  },
+  "cfrp_as4_8552_qi": {
+   "family": "carbon fibre composite (quasi-isotropic laminate)",
+   "designation": "AS4/8552 quasi-isotropic layup, e.g. [0/+45/-45/90]s, fibre volume 57.42%",
+   "aliases": [
+    "cfrp qi",
+    "carbon qi",
+    "quasi-isotropic cfrp",
+    "as4 qi"
+   ],
+   "anisotropic": false,
+   "properties": {
+    "density": {
+     "value": 1580,
+     "unit": "kg/m3",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, UD Nominal Laminate Density 1.58 g/cm3; stacking sequence does not change density, so the same plies quasi-isotropically stacked weigh the same",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 55454,
+     "unit": "N/mm2",
+     "source": "classical laminate theory, in-plane invariants U1 = (3Q11+3Q22+2Q12+4Q66)/8 and U4 = (Q11+Q22+6Q12-4Q66)/8, E = (U1^2-U4^2)/U1, nu = U4/U1, evaluated on the AS4/8552 UD lamina E1 = 141 000 and E2 = 10 000 N/mm2 printed by Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry. G12 and nu12 are NOT on that datasheet, so they are swept over 4 000-8 500 N/mm2 and 0.25-0.35 - a factor of two in G12 - and the range below is that whole sweep: the answer moves 3.5%, because a quasi-isotropic laminate's in-plane stiffness is governed by E1 and E2",
+     "honesty": "derived",
+     "range": [
+      53538,
+      57369
+     ]
+    },
+    "nu": {
+     "value": 0.298,
+     "unit": "-",
+     "source": "classical laminate theory, in-plane invariants U1 = (3Q11+3Q22+2Q12+4Q66)/8 and U4 = (Q11+Q22+6Q12-4Q66)/8, E = (U1^2-U4^2)/U1, nu = U4/U1, evaluated on the AS4/8552 UD lamina E1 = 141 000 and E2 = 10 000 N/mm2 printed by Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry. G12 and nu12 are NOT on that datasheet, so they are swept over 4 000-8 500 N/mm2 and 0.25-0.35 - a factor of two in G12 - and the range below is that whole sweep: the answer moves 3.5%, because a quasi-isotropic laminate's in-plane stiffness is governed by E1 and E2",
+     "honesty": "derived",
+     "range": [
+      0.269,
+      0.328
+     ]
+    }
+   },
+   "refuses": {
+    "yield": {
+     "reason": "in-plane STIFFNESS is quasi-isotropic; strength is not. It depends on which ply fails first and therefore on the stacking sequence, which this card does not fix",
+     "fix": "read the UD card's tensile_0/tensile_90 and run a laminate failure criterion for your actual stack"
+    },
+    "G": {
+     "reason": "derivable as E/(2(1+nu)) BECAUSE the in-plane response is isotropic, but the datasheet prints no G12 to derive it from",
+     "fix": "supply G12 and compute, or accept E/(2(1+nu)) yourself and say you did"
+    }
+   },
+   "notes": "The one CFRP card that may serve a plain E and nu: a quasi-isotropic stack really is isotropic IN-PLANE, which is the whole point of the layup. It is NOT isotropic in bending - [0/45/-45/90]s and [90/45/-45/0]s share this E and have different bending stiffness because the plies sit at different distances from the mid-plane - and it is not isotropic through the thickness. Use this for in-plane membrane loads only."
+  },
+  "cfrp_as4_8552_woven": {
+   "family": "carbon fibre composite (woven fabric laminate)",
+   "designation": "AS4 3K plain weave / HexPly 8552, fibre volume 55.29%",
+   "aliases": [
+    "cfrp woven",
+    "carbon woven",
+    "as4 woven",
+    "8552 woven"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1570,
+     "unit": "kg/m3",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, Nominal Laminate Density 1.57 g/cm3 (printed, not derived)",
+     "honesty": "datasheet"
+    },
+    "E_0": {
+     "value": 68000,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg tensile modulus",
+     "honesty": "datasheet"
+    },
+    "E_90": {
+     "value": 66000,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 90 deg tensile modulus",
+     "honesty": "datasheet"
+    },
+    "tensile_0": {
+     "value": 793,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg tensile strength",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 883,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg compression strength",
+     "honesty": "datasheet"
+    },
+    "E_compressive_0": {
+     "value": 60000,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg compression modulus",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 84,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg ILSS, short-beam shear",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "a 0/90 weave is BALANCED, not isotropic: 68 000 N/mm2 along the warp and 66 000 along the fill, but far softer at 45 deg, where the load goes into shear - and this datasheet prints no 45 deg value",
+     "fix": "read E_0 and E_90, and if the load runs at 45 deg to the weave say so and supply a 45 deg value or a laminate calculation"
+    },
+    "yield": {
+     "reason": "CFRP breaks rather than yielding, and the strength is direction-dependent",
+     "fix": "read tensile_0 or compressive_0"
+    },
+    "G": {
+     "reason": "the sheet prints interlaminar shear (ILSS, short-beam) and no in-plane shear modulus",
+     "fix": "read ilss for the interlaminar strength; supply G_12 from your own laminate data"
+    },
+    "nu": {
+     "reason": "not printed on this datasheet",
+     "fix": "supply nu from your own laminate data"
+    }
+   },
+   "notes": "Balanced 0/90, which is why E_0 and E_90 are within 3% - and exactly why a single E is still wrong: rotate the load 45 deg and a plain weave is far softer. The second fabric style in the same table (5HS) reads 67/66 GPa, so the weave style barely moves the in-plane numbers; the drape and the thickness are what change."
+  },
+  "cfrp_hec_se75_ud": {
+   "family": "carbon fibre composite (unidirectional laminate)",
+   "designation": "High-elongation carbon (T700 class) 300 g/m2 / SE 75 epoxy UD, fibre volume 55%",
+   "aliases": [
+    "cfrp ud measured",
+    "hec ud",
+    "t700 ud",
+    "se75 carbon ud"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1526,
+     "unit": "kg/m3",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0.55 x 1800 (printed fibre density) + 0.45 x 1190 (printed cured resin density) at the printed Vf 55% (ASTM D3171 Method II)",
+     "honesty": "derived"
+    },
+    "E_0": {
+     "value": 138000,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg tensile modulus, ISO 527-5, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "E_90": {
+     "value": 8700,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile modulus ET22, ISO 527-5",
+     "honesty": "datasheet"
+    },
+    "tensile_0": {
+     "value": 2775,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-5, normalized",
+     "honesty": "datasheet"
+    },
+    "tensile_90": {
+     "value": 49,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-5",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 1356,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; SACMA SRM1-94",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 86,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg ILSS, ISO 14130",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "138 000 N/mm2 along the fibres and 8 700 across them - a factor of 16, both MEASURED on this sheet rather than argued from theory",
+     "fix": "read E_0 and E_90, or give the layup"
+    },
+    "yield": {
+     "reason": "it breaks rather than yielding: 2775 N/mm2 along the fibres, 49 across",
+     "fix": "read tensile_0, tensile_90 or compressive_0"
+    },
+    "G": {
+     "reason": "only interlaminar shear (ILSS) is printed",
+     "fix": "read ilss; supply G_12"
+    },
+    "nu": {
+     "reason": "not printed",
+     "fix": "supply nu_12 from laminate data"
+    }
+   },
+   "notes": "The carbon UD card whose transverse numbers are MEASURED rather than refused - compare cfrp_t300_ud, built from Toray's fibre sheet, which has to refuse E_90 because a fibre datasheet cannot supply it. The two densities agree to 1.3% (1526 here against 1546 there) by independent routes, which is a useful check on both."
   },
   "cfrp_t300_ud": {
    "family": "carbon fibre composite (unidirectional laminate)",
@@ -245,11 +511,160 @@
    },
    "notes": "UNIDIRECTIONAL, and that is the least representative layup for a real part: a woven or quasi-isotropic laminate of the same fibre is far stiffer across the part and far less stiff along it. Density is what the kernel uses for mass and is direction-free; every stiffness and strength here is the 0 deg value unless its name says otherwise."
   },
+  "gfrp_eglass_ud": {
+   "family": "glass fibre composite (unidirectional laminate)",
+   "designation": "E-glass EGL 300 g/m2 / SE 75 epoxy UD, measured fibre volume 47.3%",
+   "aliases": [
+    "gfrp ud",
+    "e-glass ud",
+    "glass fibre ud",
+    "fibreglass ud",
+    "grp ud"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1857,
+     "unit": "kg/m3",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0.473 x 2600 (printed fibre density) + 0.527 x 1190 (printed cured resin density) at the printed Vf 47.3% measured to ASTM D3171 Method II - every input is printed, so nothing here is assumed",
+     "honesty": "derived"
+    },
+    "E_0": {
+     "value": 51000,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg tensile modulus, ISO 527-5, normalized to 55% fibre volume",
+     "honesty": "datasheet"
+    },
+    "E_90": {
+     "value": 10700,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile modulus ET22, ISO 527-5, as measured at Vf 47.3%",
+     "honesty": "datasheet"
+    },
+    "tensile_0": {
+     "value": 1499,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-5, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "tensile_90": {
+     "value": 46,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile strength 45.6 MPa, ISO 527-5, as measured",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 1207,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; SACMA SRM1-94, normalized",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 92,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg ILSS 91.5 MPa, ISO 14130",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "a UD laminate has no single modulus: 51 000 N/mm2 along the fibres and 10 700 across them, a factor of nearly five, both measured",
+     "fix": "read E_0 and E_90, or give the layup and ask for the laminate's own modulus"
+    },
+    "yield": {
+     "reason": "GFRP breaks rather than yielding, and the strength depends on direction: 1499 N/mm2 along the fibres against 46 across",
+     "fix": "read tensile_0, tensile_90 or compressive_0"
+    },
+    "G": {
+     "reason": "the sheet prints interlaminar shear (ILSS) and no in-plane shear modulus",
+     "fix": "read ilss; supply G_12 from your own laminate data"
+    },
+    "nu": {
+     "reason": "not printed on this datasheet",
+     "fix": "supply nu_12 from laminate data"
+    }
+   },
+   "notes": "TWO FIBRE VOLUMES ON ONE CARD, and it matters: the starred datasheet values (E_0, tensile_0, compressive_0) are normalized to 55% fibre volume, while E_90, tensile_90, ILSS and the density above are as measured at 47.3%. At 55% the same mixture gives a density of about 1966 kg/m3, so do not divide a normalized stiffness by this density and call it specific stiffness. Cured ply thickness 0.25 mm."
+  },
+  "gfrp_eglass_woven": {
+   "family": "glass fibre composite (woven fabric laminate)",
+   "designation": "E-glass RE295 H4 4-harness satin / SE 75 epoxy, measured fibre volume 51.2%",
+   "aliases": [
+    "gfrp woven",
+    "e-glass woven",
+    "glass woven",
+    "fibreglass woven",
+    "grp woven"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1912,
+     "unit": "kg/m3",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0.512 x 2600 + 0.488 x 1190 at the printed Vf 51.2% (ASTM D3171 Method II)",
+     "honesty": "derived"
+    },
+    "E_0": {
+     "value": 32000,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg tensile modulus, ISO 527-4, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "E_90": {
+     "value": 32000,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 90 deg tensile modulus, ISO 527-4, normalized to 55% Vf",
+     "honesty": "datasheet"
+    },
+    "tensile_0": {
+     "value": 550,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-4, normalized",
+     "honesty": "datasheet"
+    },
+    "tensile_90": {
+     "value": 526,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; ISO 527-4, normalized",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 643,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; SACMA SRM1-94, normalized",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 66,
+     "unit": "N/mm2",
+     "source": "Gurit SE 75 product data sheet PDS-SE75-04-0625, laminate property tables; cured resin density 1.19 g/cm3 from its resin table; 0 deg ILSS, ISO 14130",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "a 4-harness satin weave is BALANCED - 32 000 N/mm2 in both fibre directions, the same number to the sheet's own precision - but it is not isotropic: at 45 deg the load goes into shear and the sheet prints no 45 deg value",
+     "fix": "read E_0 and E_90; for a 45 deg load supply a laminate calculation"
+    },
+    "yield": {
+     "reason": "it breaks rather than yielding",
+     "fix": "read tensile_0 or compressive_0"
+    },
+    "G": {
+     "reason": "no in-plane shear modulus is printed",
+     "fix": "read ilss; supply G_12"
+    },
+    "nu": {
+     "reason": "not printed",
+     "fix": "supply nu_12 from laminate data"
+    }
+   },
+   "notes": "The most balanced card here: 32 000 N/mm2 and 550/526 N/mm2 in warp and fill. Compare the UD glass card, which is five times stiffer along the fibres and five times softer across them - the weave trades peak stiffness for evenness. Cured ply 0.225 mm."
+  },
   "nylon_pa6": {
    "family": "engineering thermoplastic",
    "designation": "polyamide 6",
    "aliases": [
-    "nylon",
     "pa6",
     "nylon6"
    ],
@@ -287,51 +702,338 @@
    },
    "notes": "PA6 absorbs water; conditioned stiffness can be a third of the dry figure. The card serves dry-as-moulded."
   },
-  "pla": {
-   "family": "thermoplastic (FFF)",
-   "designation": "polylactic acid, printed",
+  "nylon_pa66": {
+   "family": "engineering thermoplastic",
+   "designation": "PA 66 (polyamide 66), Ensinger TECAMID 66 natural, machined stock shape",
    "aliases": [
-    "pla"
+    "pa66",
+    "nylon66",
+    "nylon 66",
+    "tecamid 66"
    ],
    "properties": {
     "density": {
-     "value": 1240,
+     "value": 1150,
      "unit": "kg/m3",
-     "range": [
-      1210,
-      1250
-     ],
-     "source": "engineering handbook range",
-     "honesty": "typical_range"
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; 1.15 g/cm3",
+     "honesty": "datasheet"
     },
     "E": {
      "value": 3500,
      "unit": "N/mm2",
-     "range": [
-      3000,
-      4000
-     ],
-     "source": "engineering handbook range, injection-moulded",
-     "honesty": "typical_range"
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; modulus of elasticity, tensile test at 1 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
     },
     "yield": {
-     "value": 55,
+     "value": 84,
      "unit": "N/mm2",
-     "range": [
-      45,
-      65
-     ],
-     "source": "engineering handbook range, tensile strength",
-     "honesty": "typical_range"
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; tensile strength at yield, 50 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 85,
+     "unit": "N/mm2",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; tensile strength, 50 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 70,
+     "unit": "%",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; elongation at break, 50 mm/min, DIN EN ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "E_flexural": {
+     "value": 3100,
+     "unit": "N/mm2",
+     "source": "Ensinger TECAMID 66 natural stock-shapes data sheet, version AD dated 2023-07-19, mechanical properties table; data generated directly after machining, standard climate Germany; modulus of elasticity, flexural test, DIN EN ISO 178",
+     "honesty": "datasheet"
     }
    },
-   "notes": "A printed part is not solid: infill and layer adhesion scale mass and strength well below these bulk figures. mass_g assumes 100% solid."
+   "notes": "DRY AS MACHINED, and for a polyamide that is half the story: the sheet says the data were generated directly after machining, and PA66 absorbs water from the air until its stiffness falls well below this 3500. The same caveat the PA6 card carries, from a datasheet rather than a handbook - PA6 beside it is still an engineering-handbook range and is the weaker-sourced of the two."
+  },
+  "peek_450g": {
+   "family": "high-performance thermoplastic (PAEK)",
+   "designation": "PEEK, Victrex 450G unfilled, injection moulding / extrusion grade",
+   "aliases": [
+    "peek",
+    "450g",
+    "polyetheretherketone",
+    "victrex 450g"
+   ],
+   "properties": {
+    "density": {
+     "value": 1300,
+     "unit": "kg/m3",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; 1.30 g/cm3 (crystalline), ISO 1183",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 4000,
+     "unit": "N/mm2",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; tensile modulus at 23 C, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 98,
+     "unit": "N/mm2",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; tensile stress at yield, 23 C, ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 25,
+     "unit": "%",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; tensile strain at break, 23 C, ISO 527-2",
+     "honesty": "datasheet"
+    },
+    "E_flexural": {
+     "value": 3800,
+     "unit": "N/mm2",
+     "source": "Victrex PEEK 450G technical data sheet (VICTREX_TDS_450G), typical properties table; flexural modulus at 23 C, ISO 178",
+     "honesty": "datasheet"
+    }
+   },
+   "notes": "EVERY VALUE HERE IS 23 C, and PEEK is bought for temperature: the same datasheet tabulates strength falling steeply above 125 C, so using these figures for a hot part is the mistake this card cannot stop you making. The density is the sheet's CRYSTALLINE value; a quenched, largely amorphous moulding is slightly lighter, which matters for mass on a thin part. Unfilled 450G - the carbon- and glass-filled grades are stiffer, stronger and anisotropic, and would be different cards with a `refuses` block."
+  },
+  "pla": {
+   "family": "thermoplastic (FFF printed)",
+   "designation": "PLA, Prusament PLA, printed at 0.20 mm layers",
+   "aliases": [
+    "pla",
+    "prusament pla"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1240,
+     "unit": "kg/m3",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; 1.24 g/cm3, ISO 1183",
+     "honesty": "datasheet"
+    },
+    "E_horizontal": {
+     "value": 2300,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile modulus 2.3 GPa, horizontal specimen, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "E_vertical": {
+     "value": 2400,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile modulus 2.4 GPa, vertical xz specimen, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "tensile_horizontal": {
+     "value": 51,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile yield 51 +/- 3, horizontal, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "tensile_vertical": {
+     "value": 59,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile yield 59 +/- 2, vertical xz, ISO 527-1",
+     "honesty": "datasheet"
+    },
+    "interlayer_adhesion": {
+     "value": 17,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; interlayer adhesion 17 +/- 3, Prusa Polymers method",
+     "honesty": "datasheet"
+    },
+    "tensile_filament": {
+     "value": 57,
+     "unit": "N/mm2",
+     "source": "Prusament PLA by Prusa Polymers technical data sheet (PLA_Prusament_TDS_2021_10_EN); print-direction table, specimens at 0.20 mm layers, 215 C nozzle, 60 C bed; tensile yield strength for the FILAMENT itself, ISO 527",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "yield": {
+     "reason": "a printed part has no single strength: this sheet gives 51 and 59 N/mm2 for two specimen orientations and 17 for the INTERLAYER BOND - a third of the in-plane figure, and that bond is what a part pulled across its layers actually fails at",
+     "fix": "read tensile_horizontal, tensile_vertical or interlayer_adhesion, and say which way the load crosses the layers"
+    },
+    "E": {
+     "reason": "stiffness is the tamer direction (2300 against 2400) but it is still measured per orientation, and this sheet reports no across-layer modulus",
+     "fix": "read E_horizontal or E_vertical"
+    }
+   },
+   "notes": "MASS IS THE HONEST NUMBER HERE AND STRENGTH IS NOT. `density` is the solid polymer, so mass_g assumes 100% infill; a part at 20% infill weighs roughly a fifth of what this card says. The strengths are the manufacturer's own printed specimens at 0.20 mm layers, and the datasheet states plainly that values depend significantly on print settings - a different nozzle, temperature or layer height moves them. The old card here served a single handbook yield of 55 N/mm2, which hid all of this."
+  },
+  "rubber_epdm": {
+   "family": "elastomer",
+   "designation": "EPDM (ethylene propylene diene rubber), standard compound, 87 Shore A",
+   "aliases": [
+    "epdm",
+    "epdm rubber"
+   ],
+   "properties": {
+    "density": {
+     "value": 1160,
+     "unit": "kg/m3",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN EN ISO 1183-1",
+     "honesty": "datasheet"
+    },
+    "hardness_shore_a": {
+     "value": 87,
+     "unit": "Shore A",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; 87 +/- 5, DIN ISO 7619-1",
+     "honesty": "datasheet"
+    },
+    "modulus_100": {
+     "value": 10.0,
+     "unit": "N/mm2",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; '100% Modulus' - the STRESS AT 100% STRAIN, DIN 53504, which is what a rubber datasheet means by modulus and is not a Young's modulus",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 11.7,
+     "unit": "N/mm2",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN 53504",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 263,
+     "unit": "%",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; at break, DIN 53504",
+     "honesty": "datasheet"
+    },
+    "tear_resistance": {
+     "value": 9.1,
+     "unit": "N/mm",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 34-1 A",
+     "honesty": "datasheet"
+    },
+    "rebound_resilience": {
+     "value": 43,
+     "unit": "%",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4662",
+     "honesty": "datasheet"
+    },
+    "abrasion_loss": {
+     "value": 167,
+     "unit": "mm3",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4649 B",
+     "honesty": "datasheet"
+    },
+    "service_temp_min": {
+     "value": -45,
+     "unit": "C",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    },
+    "service_temp_max": {
+     "value": 135,
+     "unit": "C",
+     "source": "Trygonal EPDM (ethylene propylene diene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "rubber is HYPERELASTIC: its stress-strain curve is not a line, so there is no Young's modulus to quote. What a rubber datasheet calls 'modulus' is the stress at a stated strain - here 10.0 N/mm2 at 100% - and that number is not interchangeable with an E",
+     "fix": "read modulus_100 (10.0 N/mm2 at 100% strain), or fit a hyperelastic model (Mooney-Rivlin, Ogden) to your own test data; hardness_shore_a is the usual shorthand when a correlation is good enough"
+    },
+    "yield": {
+     "reason": "an elastomer does not yield: it stretches to several times its length and tears. This one breaks at 263% elongation",
+     "fix": "read tensile (strength at break), elongation, or tear_resistance"
+    },
+    "nu": {
+     "reason": "rubber is very nearly INCOMPRESSIBLE, so nu is about 0.4999 and a small-strain elastic model using it is numerically ill-conditioned - the datasheet prints none, and the reason it prints none matters",
+     "fix": "use a hyperelastic formulation with a separate bulk modulus rather than an E/nu pair"
+    }
+   },
+   "notes": "Service range -45 to 135 C, which for an elastomer is usually the deciding property rather than any strength. Density is the honest number for mass and is filler-dependent: a differently compounded EPDM (ethylene propylene diene rubber) of the same hardness can sit meaningfully away from this. EPDM resists weather, ozone and hot water but is attacked by mineral oils - the opposite trade to NBR, and the usual reason to choose between them."
+  },
+  "rubber_nbr": {
+   "family": "elastomer",
+   "designation": "NBR (nitrile butadiene rubber), standard compound, 85 Shore A",
+   "aliases": [
+    "nbr",
+    "nitrile",
+    "buna-n",
+    "nitrile rubber"
+   ],
+   "properties": {
+    "density": {
+     "value": 1317,
+     "unit": "kg/m3",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN EN ISO 1183-1",
+     "honesty": "datasheet"
+    },
+    "hardness_shore_a": {
+     "value": 85,
+     "unit": "Shore A",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; 85 +/- 5, DIN ISO 7619-1",
+     "honesty": "datasheet"
+    },
+    "modulus_100": {
+     "value": 8.8,
+     "unit": "N/mm2",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; '100% Modulus' - the STRESS AT 100% STRAIN, DIN 53504, which is what a rubber datasheet means by modulus and is not a Young's modulus",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 15.2,
+     "unit": "N/mm2",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN 53504",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 226,
+     "unit": "%",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; at break, DIN 53504",
+     "honesty": "datasheet"
+    },
+    "tear_resistance": {
+     "value": 5.4,
+     "unit": "N/mm",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 34-1 A",
+     "honesty": "datasheet"
+    },
+    "rebound_resilience": {
+     "value": 25,
+     "unit": "%",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4662",
+     "honesty": "datasheet"
+    },
+    "abrasion_loss": {
+     "value": 82,
+     "unit": "mm3",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method; DIN ISO 4649 B",
+     "honesty": "datasheet"
+    },
+    "service_temp_min": {
+     "value": -35,
+     "unit": "C",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    },
+    "service_temp_max": {
+     "value": 110,
+     "unit": "C",
+     "source": "Trygonal NBR (nitrile butadiene rubber) standard material datasheet (rev. 2019), properties table; every row names its DIN/ISO test method",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "rubber is HYPERELASTIC: its stress-strain curve is not a line, so there is no Young's modulus to quote. What a rubber datasheet calls 'modulus' is the stress at a stated strain - here 8.8 N/mm2 at 100% - and that number is not interchangeable with an E",
+     "fix": "read modulus_100 (8.8 N/mm2 at 100% strain), or fit a hyperelastic model (Mooney-Rivlin, Ogden) to your own test data; hardness_shore_a is the usual shorthand when a correlation is good enough"
+    },
+    "yield": {
+     "reason": "an elastomer does not yield: it stretches to several times its length and tears. This one breaks at 226% elongation",
+     "fix": "read tensile (strength at break), elongation, or tear_resistance"
+    },
+    "nu": {
+     "reason": "rubber is very nearly INCOMPRESSIBLE, so nu is about 0.4999 and a small-strain elastic model using it is numerically ill-conditioned - the datasheet prints none, and the reason it prints none matters",
+     "fix": "use a hyperelastic formulation with a separate bulk modulus rather than an E/nu pair"
+    }
+   },
+   "notes": "Service range -35 to 110 C, which for an elastomer is usually the deciding property rather than any strength. Density is the honest number for mass and is filler-dependent: a differently compounded NBR (nitrile butadiene rubber) of the same hardness can sit meaningfully away from this. NBR is the oil- and fuel-resistant one, which is why it is the default O-ring material."
   },
   "stainless_1_4301": {
    "family": "austenitic stainless steel",
    "designation": "X5CrNi18-10, 1.4301 (EN 10088), AISI 304",
    "aliases": [
-    "stainless",
     "304",
     "1.4301",
     "a2"
@@ -365,6 +1067,57 @@
     }
    },
    "notes": "EN 10088-2 was not fetched this session; only the density is served as a standard value."
+  },
+  "stainless_1_4404": {
+   "family": "austenitic stainless steel",
+   "designation": "X2CrNiMo17-12-2, 1.4404 / 1.4401 (EN 10088), AISI 316L / 316, annealed",
+   "aliases": [
+    "316",
+    "316l",
+    "1.4404",
+    "1.4401",
+    "a4",
+    "marine stainless"
+   ],
+   "properties": {
+    "density": {
+     "value": 7900,
+     "unit": "kg/m3",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; density 7.9 kg/dm3 at 20 C",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 200000,
+     "unit": "N/mm2",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Young's modulus 200 GPa at 20 C",
+     "honesty": "datasheet"
+    },
+    "nu": {
+     "value": 0.3,
+     "unit": "-",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Poisson's coefficient 0.30, printed",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 300,
+     "unit": "N/mm2",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Rp0.2 300 MPa",
+     "honesty": "datasheet"
+    },
+    "tensile": {
+     "value": 620,
+     "unit": "N/mm2",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; Rm 620 MPa",
+     "honesty": "datasheet"
+    },
+    "elongation": {
+     "value": 52,
+     "unit": "%",
+     "source": "Aperam 316L data sheet FT_316L.en (2026), physical + mechanical property tables; grades table 316L / EN 1.4401-1.4404 / ASTM A240 316-316L, annealed cold rolled, ISO 6892-1, TYPICAL values; A 52%",
+     "honesty": "datasheet"
+    }
+   },
+   "notes": "TYPICAL values, not specified minima - the distinction the steel cards carry the other way round, where ReH is a minimum. EN 10088-2 sets materially lower minima for this grade, so a design to the standard must use those and not this 300. The molybdenum is the whole point: 316 resists chlorides where 1.4301 (304) pits, which is why the two must not share a name. Aperam prints 1.4401 and 1.4404 in one row, so this card does not distinguish 316 from low-carbon 316L; if the weld sensitisation matters to you, that difference is real and this card does not carry it."
   },
   "steel_100cr6": {
    "family": "bearing steel",
@@ -442,7 +1195,6 @@
    "family": "structural steel",
    "designation": "S275JR (EN 10025-2)",
    "aliases": [
-    "steel",
     "s275",
     "mild steel"
    ],
@@ -478,7 +1230,7 @@
      "honesty": "standard_value"
     }
    },
-   "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only."
+   "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only. The bare alias 'steel' was retired on 2026-09-07: with S355, DC01 and 100Cr6 beside it, the word names a family. Mass is barely affected either way (every one of these is 7810-7850 kg/m3) - it is the STRENGTH that differs, and 100Cr6 is a different class of material entirely."
   },
   "steel_s355": {
    "family": "structural steel",
@@ -519,6 +1271,99 @@
     }
    },
    "notes": "ReH drops with thickness above 16 mm (EN 10025-2 tables it); the card serves the t <= 16 value only."
+  },
+  "titanium_grade2": {
+   "family": "commercially pure titanium",
+   "designation": "Titanium Grade 2 (UNS R50400), annealed, ASTM B265",
+   "aliases": [
+    "cp titanium",
+    "cp ti",
+    "grade 2 titanium",
+    "ti grade 2",
+    "titanium grade 2"
+   ],
+   "properties": {
+    "density": {
+     "value": 4512,
+     "unit": "kg/m3",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); printed 0.163 lb/in3, converted at 27 679.905 kg/m3 per lb/in3",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 105000,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); printed 15.2 x 10^6 psi at 68 F",
+     "honesty": "datasheet"
+    },
+    "nu": {
+     "value": 0.32,
+     "unit": "-",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); Poisson Ratio 0.32, printed",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 276,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); ASTM B265 minimum 0.2% yield 40 ksi",
+     "honesty": "standard_value"
+    },
+    "tensile": {
+     "value": 345,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); ASTM B265 minimum ultimate tensile 50 ksi",
+     "honesty": "standard_value"
+    },
+    "elongation": {
+     "value": 20,
+     "unit": "%",
+     "source": "Rolled Alloys Titanium Grade 2/2H data sheet, physical + mechanical property tables, Specification: ASTM B265, Grade 2 column (minimum values per specification); ASTM B265 minimum elongation 20%",
+     "honesty": "standard_value"
+    }
+   },
+   "notes": "Unalloyed titanium: about a THIRD the yield of Ti-6Al-4V (276 against 869 N/mm2) at nearly the same density, so it is chosen for corrosion resistance, formability and weldability rather than strength - seawater, heat exchangers, pressure vessels. The same data sheet also covers Grade 2H, which is Grade 2 held to a higher 58 ksi minimum tensile with the same 40 ksi yield; that is a different column and would be a different card. Unlike the Ti-6Al-4V sheet, this one prints a Poisson ratio."
+  },
+  "titanium_ti6al4v": {
+   "family": "titanium alloy",
+   "designation": "Ti-6Al-4V (Grade 5), annealed sheet & plate to AMS 4911",
+   "aliases": [
+    "ti64",
+    "ti-6al-4v",
+    "grade 5 titanium",
+    "ti6al4v"
+   ],
+   "properties": {
+    "density": {
+     "value": 4429,
+     "unit": "kg/m3",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); printed 0.160 lb/in3, converted at 27 679.905 kg/m3 per lb/in3",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 115000,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); printed 16.7 x 10^6 psi at 70 F, in the STA row - the alloy's modulus barely moves between annealed and STA, but the sheet prints it for STA and this card does not pretend otherwise",
+     "honesty": "datasheet"
+    },
+    "yield": {
+     "value": 869,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); AMS 4911 specified minimum 0.2% yield 126 ksi",
+     "honesty": "standard_value"
+    },
+    "tensile": {
+     "value": 924,
+     "unit": "N/mm2",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); AMS 4911 specified minimum tensile 134 ksi",
+     "honesty": "standard_value"
+    },
+    "elongation": {
+     "value": 8,
+     "unit": "%",
+     "source": "Rolled Alloys 6Al-4V Titanium data sheet, physical + mechanical property tables (strengths specified to AMS 4911, annealed sheet & plate, thickness <= 0.1874 in); AMS 4911 specified minimum in 2 in, thinnest gauge band",
+     "honesty": "standard_value"
+    }
+   },
+   "notes": "Strengths are SPECIFIED MINIMA, not typical values - the same distinction the steel cards carry - and they drop with thickness exactly as steel's ReH does: above 0.1874 in AMS 4911 specifies 130 ksi tensile and 120 ksi yield, so a thick plate is weaker than this card says. Typical annealed bar runs 138-155 ksi tensile. Solution treated and aged material is stronger again (150-172 ksi) and is a different card if you need it."
   }
  }
 }
