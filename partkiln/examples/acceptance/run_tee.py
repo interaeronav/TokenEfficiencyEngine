@@ -632,22 +632,33 @@ def step6_cross_kernel(app: TeeApp, session: Session, *, occt: str) -> dict[str,
 
 
 def step7_blender(
-    session: Session, glb: Path, *, target_dims: list[float], blender: str | None
+    app: TeeApp, session: Session, *, target_dims: list[float], blender: str | None
 ) -> dict[str, Any]:
-    """The handoff: ingest the GLB into the asset library, import it headless."""
+    """The handoff, in-server: `pk_export into=blender` lands the GLB in a
+    Blender lane served beside partkiln, as ONE checkpointed batch (A68 P3).
+
+    Until A68 this step built a second app holding only Blender and walked
+    four calls - pk_export, as_ingest, as_import, tee_capture - the route the
+    capture refusal prescribed. Now the one app holds both lanes, the way
+    `tee serve --adapter blender --adapter partkiln` does; the Blender lane
+    is attached here rather than at boot only because the bridge's boot is
+    timed as a fact of this step, and detached after so the later steps run
+    on the same app they started with.
+    """
     session.open()
+    title = "land the GLB in a served Blender lane"
     binary = blender or _find_blender()
     if binary is None or not Path(binary).exists():
         session.close(
             7,
-            "hand the GLB to headless Blender",
+            title,
             {},
             skipped=f"no Blender binary at {binary!r} (set TEE_BLENDER or pass --blender)",
         )
         return {}
     from tee.adapters.blender.adapter import BlenderAdapter
     from tee.adapters.blender.wire import BlenderWire
-    from tee.assets import tools as asset_tools
+    from tee.kernel.scene_cache import SceneCache
 
     port = _free_port()
     boot = session.out / "blender_boot.py"
@@ -687,40 +698,40 @@ def step7_blender(
         proc.terminate()
         with suppress(subprocess.TimeoutExpired):
             proc.wait(timeout=10)
-        session.close(7, "hand the GLB to headless Blender", {"blender": binary}, skipped=down)
+        session.close(7, title, {"blender": binary}, skipped=down)
         return {}
     boot_s = time.perf_counter() - started
 
+    lane = BlenderAdapter(wire, workdir=str(session.out))
+    handoff = session.out / "handoff"
+    handoff.mkdir(parents=True, exist_ok=True)
     try:
-        app = TeeApp(
-            {"blender": BlenderAdapter(wire, workdir=str(session.out))},
-            project_root=session.out,
-        )
-        asset_tools.register_asset_tools(app, session.out)
-        # The library keys a local asset by file STEM, so `bracket.glb` and
-        # `bracket.stl` from step 5 would be one entry and the last one wins.
-        # Ingest a folder holding only the file being handed over.
-        handoff = session.out / "handoff"
-        handoff.mkdir(parents=True, exist_ok=True)
-        shutil.copy(glb, handoff / glb.name)
+        # The ONE app now holds both lanes - what the CLI's repeated --adapter
+        # flags do at boot. No default is declared: the batch carries its lane.
+        app.adapters["blender"] = lane
+        app.caches["blender"] = SceneCache()
         try:
-            ingest = session.call(app, "as_ingest", {"directory": str(handoff)})
             placed = session.call(
                 app,
-                "as_import",
+                "pk_export",
                 {
-                    "asset": f"local:{glb.stem}",
-                    "adapter": "blender",
-                    "asset_class": "model",
-                    "target_dims": list(target_dims),
-                    "name": "bracket",
+                    "format": "glb",
+                    "out": str(handoff / "bracket.glb"),
+                    "of": "part:bracket",
+                    "into": "blender",
                 },
             )
-            entity = placed["created"][0]
+            landed = placed["landed"]
+            entity = landed["created"][0]
             row = app.cache("blender").entities[entity]
             summary = dict(row.summary)
         finally:
-            app.shutdown()
+            app.adapters.pop("blender", None)
+            app.caches.pop("blender", None)
+            with suppress(Exception):
+                app.checkpoints.discard_all(lane, lane="blender")
+            with suppress(Exception):
+                lane.close()
     finally:
         proc.terminate()
         with suppress(subprocess.TimeoutExpired):
@@ -730,23 +741,25 @@ def step7_blender(
     facts = {
         "blender": binary,
         "bridge boot_s": round(boot_s, 3),
-        "as_ingest": ingest,
-        "ingested from": str(handoff),
-        "scale band": placed["scale_band"],
-        "verify.ok": placed["verify"]["ok"],
-        "target dims_m": list(target_dims),
-        "expected dims_m": placed["verify"]["expected_dims"],
-        "read back dims_m": placed["verify"]["read_back"],
+        "calls": 1,
+        "landed in": landed["lane"],
+        "checkpoint": landed.get("checkpoint"),
+        "scale": landed["scale"],
+        "GLB units/up": [placed.get("units"), placed.get("up")],
+        "verify.ok": landed["verify"]["ok"],
+        "expected dims_m": landed["verify"]["expected_dims"],
+        "read back dims_m": landed["verify"]["read_back"],
+        "target dims_zup_m": list(target_dims),
         "entity": entity,
         "entity dimensions_m": dims,
         "entity summary": summary,
     }
-    assert placed["verify"]["ok"] is True
+    assert landed["verify"]["ok"] is True
     # Upright: the plate's thinnest axis must land on Z, not on Y - a glTF
     # handed over without the Z-up correction arrives lying on its side.
-    read_back = placed["verify"]["read_back"]
+    read_back = landed["verify"]["read_back"]
     assert read_back[2] == min(read_back), read_back
-    session.close(7, "hand the GLB to headless Blender", facts)
+    session.close(7, title, facts)
     return facts
 
 
@@ -860,11 +873,11 @@ def run(out: Path, *, probe: bool = False, blender: str | None = None) -> dict[s
         exported = step5_export(app, session)
         step6_cross_kernel(app, session, occt=built["kernel OCCT"])
         if probe:
-            session.close(7, "hand the GLB to headless Blender", {}, skipped="--probe")
+            session.close(7, "land the GLB in a served Blender lane", {}, skipped="--probe")
         else:
             step7_blender(
+                app,
                 session,
-                out / "export" / "bracket.glb",
                 target_dims=exported["GLB probe dims_zup_m"],
                 blender=blender,
             )

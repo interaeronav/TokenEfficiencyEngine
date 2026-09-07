@@ -1777,6 +1777,263 @@ hint now says "then restart the server". The first theory — a stale import
 cache in `_need()` — was measured wrong before it was acted on, and that
 order of operations is the point.
 
+## No lane is the hub: the declared default becomes opt-in (2026-09-05, A68)
+
+Owner directive: *"Integrate better all components of TEE — too much goes
+through Blender when there are other components that are able to work
+better."* Then, on the first plan: *"Allow to bypass Blender if not required.
+Decentralize the use of Blender or Unreal Engine."* Design of record:
+`docs/research/70-lane-routing-no-hub.md`; plan of record `CLAUDE_A68_SCRIPT.md`.
+
+**This revises the ruling of 2026-09-04 above.** That ruling made the first
+`--adapter` the declared default so that an omitted `adapter=` would "just
+work" on the Desktop server — the tax SI-B6 had refused to impose was
+`adapter=` on every call. Three audits found what that default actually
+does on a three-lane server: every adapter-less call, read or write, lands
+on Blender, and a partkiln op sent there comes back as a raw traceback with no
+hint that another lane accepts it. The default was not routing; it was a hub.
+
+**The kernel routes by content, and declares.** An omitted `adapter=` on a
+batch resolves by what the ops contain — an entity id names the lane whose
+cache holds it, a `create` kind names the lane that can create it, any other
+verb names the lanes that accept it — and the batch goes to the one lane that
+accepts every op, with `adapter` (and how it was chosen) in the reply. When
+several lanes accept the batch, the declared default breaks the tie if one was
+declared; otherwise the refusal names the lanes (SI-B6's loud failure,
+unchanged). When no lane accepts an op, the refusal names the lanes that
+would, per op. So the common case is no longer ambiguous, and the tax that
+justified a positional default no longer exists.
+
+**Therefore the default is opt-in.** `tee serve --default-adapter NAME`
+declares one (Law 19: default and declare — an explicit declaration is
+honoured and `tee_status` reports it). `--adapter` order no longer implies
+it, and the Desktop manifest declares none. Reads without a lane are
+decentralised rather than defaulted: `tee_scene_summary` answers a per-lane
+overview, `tee_entity_detail` finds the lane that holds the id,
+`tee_rollback` finds the lane that owns the checkpoint (ids were global and
+lane-stamped all along), `tee_checkpoint` snapshots every lane that has state,
+`tee_capture` goes to the one lane that can render, and `tee_diff` — whose
+stamps are per lane — asks for the lane by name.
+
+**A headless lane never touches a DCC.** Nine sites defaulted to Blender by
+position (`next(iter(app.adapters))`), by alphabet (`sorted(adapters)[0]`) or
+by name; each now resolves by capability (the served Blender for a tool that
+compiles to bpy; the served lane that can import a file for an importer) and
+refuses `blender_not_served` with the fix when there is none. `tee_script`
+checkpoints only the lane a tool actually touches; a script that calls
+`pdf_compose` takes no Blender snapshot. This is the structural form of
+"bypass Blender if not required".
+
+**Every adapter may declare its vocabulary — ONE optional method.** `vocab()`
+returns ops, create kinds, whether a kind may be omitted, the file suffixes
+it imports, whether it can render, and a one-line purpose. An adapter that
+says nothing claims everything and surfaces as an honest `adapter_required`
+on a multi-lane server until it speaks. partkiln's vocabulary is a closed
+tuple in the adapter (Law 17: routing never waits on the OCP warm-up),
+asserted against `partkiln.document.KINDS` where partkiln imports.
+
+**A scene-writing tool must say which scene.** `kernel/lanes.py` is one table,
+like the trust table: a `write-scene` virtual tool with no lane is a startup
+error. Found while tabling: `as_sheet` was tabled `write-scene` but writes a
+contact-sheet image and touches no scene; its row becomes `write-artifacts`.
+Both capabilities are baseline, so nothing is granted by the correction.
+
+**An export never imports unless told, and then through the trust check.**
+`pk_export`, `sk_handoff` and `fc_export` gain `into=<lane>` (or `auto` for
+the one served lane that can take the file). With no `into` they write a
+file, as before. The landing runs the target lane's `import_file` batch with
+the manifest's units — scale 1.0 for glTF, which is self-describing — and it
+checks `write-scene` at the point of use because the calling tool is
+`write-artifacts`. The partkiln capture refusal, which said "a TEE served on
+partkiln holds only that adapter, so nothing in this session can do it", was
+already false on the Desktop server and now names the two-call route. Found
+on the way: seamkiln's `ops_for` emitted `{"op":"create","kind":"import_file"}`,
+a shape Blender rejects; it now emits the `import_file` op.
+
+**What does not change.** SI-B6's loud refusal on undeclared ambiguity; the
+17-tool surface (the wire may grow under +100 tokens, measured; the
+instructions string stays under 2 KB because Claude Code truncates past it);
+the taint law; the search-vocabulary ruling (the recall table is re-measured
+over the Desktop composition, never edited to fit). Declined by the owner:
+`adapter=` on `bl_build_from_plan` / `bl_check_against_plan` / `capture_apply`
+(they stay Blender-bound, resolved by capability rather than position) and
+wiring the `drafting/` package.
+
+## A live GUI lane on the owner's own document: the Fusion lane (2026-09-06, A69)
+
+**Owner directive:** *"Create a lane dedicated to autodesk fusion."*
+
+**Fusion is the Blender shape, not the partkiln shape.** There is no headless
+Fusion and no official local HTTP surface; code runs inside the application,
+in its embedded Python, and the API may be touched only from the primary
+thread. So the lane is a bridge add-in (`adapters/fusion/tee_bridge/TEE/`,
+MIT, 127.0.0.1:9881, one NUL-framed JSON request per connection) that
+marshals each request onto the primary thread through Fusion's custom-event
+queue — the mechanism Autodesk's own `FusionMCPSample` add-in uses — and an
+adapter that compiles one batch to one script and reads one JSON diff back,
+the FreeCAD precedent. Zero new always-loaded tools.
+
+**Every API call is verified in the reference before it is emitted.** Research
+doc 71 §3 is the table: twenty rows, each with the reference page it was read
+from on 2026-09-06, and a live column that only the owner's Mac can fill.
+Two findings changed the design on the way: `ExtrudeFeatureInput.
+setDistanceExtent` is retired (the current call is `setOneSideExtent`), and
+the export-option constructors take their arguments in different orders by
+format. The knowledge-base's Fusion prose was orientation only, per the
+`CLAUDE.md` rule.
+
+**Millimetres on the wire, centimetres inside, the unit always written.**
+Fusion's internal units are centimetres; a unitless expression takes the
+document's active unit, which the lane cannot know. Every length the codegen
+emits is a string with `mm`; every read-back converts once at the boundary.
+
+**A checkpoint is the timeline marker plus every parameter expression, and
+it says what it restores.** Fusion has no scriptable undo. Rolling back
+deletes what was created after the marker and restores the expressions
+recorded; it cannot bring back what was deleted or un-edit sketch geometry,
+and the payload says so. A direct-modeling design has no timeline and
+refuses honestly.
+
+**The owner's document is the owner's.** The lane creates, saves, closes and
+uploads nothing; it works in the active design and writes exports and
+captures where the caller says. The escape hatch, `fu_execute_python`, is
+`exec-code` and denied unless granted.
+
+**A lane whose application is not running is not a candidate.** Fusion's
+vocabulary overlaps partkiln's on the words that matter, so A68's router
+gains one refinement: when several lanes take a batch and at least one is
+connected, the disconnected ones drop out before the tie is judged. Both
+live is genuinely ambiguous and still refuses naming both.
+
+## The Fusion lane v2: every feature is a row and an emitter, and drawings are partkiln's (2026-09-06, A70)
+
+**Owner directive:** *"v2 should add holes, chamfers, revolves, sketch
+constraints, joints, drawings or the iges/sat/3mf/usd exports, each of which
+is one more verified row and one more emitter."*
+
+**The rows came first, and one premise inverted.** Nineteen more reference
+rows (doc 71 §3, 31–49) were read before a line of codegen: holes,
+chamfers, revolves, sketch geometry and its constraints and dimensions,
+joints, faces, the four exporters — and the drawing surface, read for its
+absence. `DocumentTypes` has one member (the design), `Drawing` has no
+sheets or views, and the two pages a view API would need do not exist. So
+**the Fusion API cannot create a drawing.** v2 does not pretend otherwise:
+`fu_drawing` exports STEP from Fusion and hands it to the served partkiln
+lane, whose drawings read every dimension from the model. The PDF export of
+a drawing the owner already has open is verified in row 49 and waits for a
+smoke that can open one. Three retirements shape the emitters:
+`ChamferFeatures.createInput` (use `createInput2`), `GeometricConstraints.
+addOffset`, and — the other way — `HoleFeatureInput.setDistanceExtent`,
+which is NOT retired although the extrude call of the same name is.
+
+**Sketch geometry is addressed by where it is.** `addTwoPointRectangle`
+returns four lines in an order the reference does not state, so a
+rectangle's sides are `r0.bottom / top / left / right` and its corners
+`r0.bl / br / tl / tr`, classified from their geometry after creation;
+explicit lines, circles and points are numbered in creation order. A
+dimension is an entity (`dim1`) because a model will `set` its expression
+to a user parameter — that binding is the parametric truth v1 left to
+feature expressions; a constraint is not an entity because nothing is ever
+set on it, and the sketch row reports the count and `isFullyConstrained`.
+
+**Faces have no ids; they have directions.** A hole, a chamfer's edge set
+or a joint's geometry names a planar face by its outward normal (`+z`), the
+plane's normal flipped by `isParamReversed`, outermost along the axis —
+the same lookup a person makes when they say "the top face". Holes place a
+point on that face (projected by Fusion) or a sketch point.
+
+**What the reference does not settle is a smoke step, not a guess.** A
+face-placed hole's default direction, which occurrence a joint moves, the
+unit each of IGES / SAT / 3MF / USD declares inside the file, and whether
+the rectangle call adds constraints of its own are §9 items 4–7 with a smoke
+step each; the codegen exposes `flip` rather than asserting a direction, and
+`fu_export` declares `units: null` for the four rather than a number nobody
+read.
+
+**The shim stays honest about what it solves.** It drives rectangles and
+circles from their dimensions (a `param_set` on `width` re-sizes the body),
+subtracts holes, revolves by Pappus, records joints — and moves no
+occurrence, solves no general sketch, and says so in the test that would
+otherwise have to fake it.
+
+**The Desktop manifest does not change yet.** It lists what the owner's
+machine is known to serve; the lane joins it after the Mac smoke, not
+before.
+
+## The Fusion lane goes live: what the machine decided when the owner was not in the room (2026-09-06, A71)
+
+**Owner directive:** *"Write a claude code script to execute everything on a
+session local to my Mac."* The script assumed an owner at the keyboard; the
+session that ran it was autonomous. Every place the two met, the machine's
+measured fact decided, and the script's Amendments block says so.
+
+**A bridge that is already running is a transport, not a shortcut.** The Mac
+runs the FusionMcpBridge (HTTP :8766, auto-starting) and no TEE add-in. The
+script's first step — the owner installing a second add-in through the GUI —
+had nobody to do it. The lane gained `FusionHttpWire` (that bridge's
+protocol, with the codegen's persistent `_tee` kept in a process-lifetime
+module because that bridge execs each job in a fresh namespace) and
+`FusionAutoWire` (whichever add-in answers). Neither add-in is preferred by
+policy; the TEE add-in's own primary-thread hop stays proven hermetically
+only, and doc 71 says which rows were measured over which bridge.
+
+**The lane never opens a document; the smoke's harness may, when told to.**
+Law 5 binds the lane. With `TEE_FUSION_SCRATCH_DESIGN=1` and nothing open,
+the test fixture opens one untitled design and closes exactly that document
+unsaved — the calls the default branch's A68 had verified live. An owner's
+open design is never used or closed; without the flag the smoke skips as
+before. The lane's code gained no such call.
+
+**The id map is per document, and the key is measured.** Resolving a token
+minted in a design that has since been closed segfaults Fusion 2704.1.53 in
+`findEntityByToken` and leaves it in its crash reporter with the primary
+thread — and the bridge — held; the process `sample` is in PROGRESS. The
+first fix keyed the map on the root component's `entityToken` and crashed
+Fusion the same way: two untitled designs share that 24-character token.
+`Document.creationId` differs per document (reference: "unique... constant
+for the life of the document"; a copied document may share it, accepted). A
+token from another document is never resolved; a switch renumbers as a
+bridge restart does.
+
+**A measurement outranks the smoke's own expectation.** Three times the
+smoke, not Fusion, was wrong: a join inside the plate adds nothing; the
+revolve profile it drew was 10 × 10, not the documented 10 × 20; a lone joint
+op's diff row has no `kind` because the kernel trims echoes of the op. Each
+time the test moved to Fusion's answer, and the shim — right in all three —
+was left alone. Where Fusion corrected the CODE (a body on STEP/archive;
+USD's `.usdz`; the units IGES/SAT/3MF/OBJ/STL really carry), the reference
+row was amended first, then the codegen, then the shim, then the test — and
+STL's unit is now READ from the design at export time rather than hardcoded
+to the millimetres one design measured.
+
+**Granting inside a test project is not granting to TEE.** The two
+`bl_execute_python` live tests answered `trust_denied` on this branch and on
+the default branch alike; the fixture now writes `[trust] grants =
+["exec-code"]` into its own tmp project, the documented owner path. No kernel
+rule moved.
+
+**What was NOT decided.** The Desktop manifest, the version cut and PR #1's
+readiness are the owner's (the script's P4) and were left open with their
+consequences written out. The session changed nothing on the default branch
+and did not install anything into Claude Desktop.
+
+**A claim about another branch is a claim, and this one did not survive
+measurement (2026-09-07).** The Mac session also left a fourth decision — two
+live-verified Fusion lanes at the same paths on two branches — and warned that
+0.22.0 was claimed twice. Checked against `origin` rather than against a local
+checkout, neither holds: no branch but this one carries a Fusion adapter, a
+bridge, a `test_fusion_*` file or any `fu_*` tool, and 0.22.0 is claimed once,
+by PR #2's wind tunnel. The fourth decision is **withdrawn**, and the version
+advice reduces to: this branch and PR #2 must not cut the same number. The
+rule this restates is the A65 law applied to repository state — a measurement
+outranks a declaration, and a branch you have not fetched is a declaration.
+
+**Force-quitting a crashed application is cleanup, not driving its GUI.**
+Twice Fusion sat in its crash reporter after the segfault above; each time
+0 documents had been open before the run and only the harness's unsaved
+scratch design during it; each time it was killed and relaunched with
+`open -a`, and the bridge answered within 20 s. Stated here and in PROGRESS
+so the owner knows their application was restarted.
 ## The wind-tunnel lane: doc 52's parking reversed, every engine at arm's length (2026-09-06)
 
 Owner directive: *"Integrate and consolidate wind tunnel and aerodynamic

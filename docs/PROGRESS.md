@@ -12305,7 +12305,604 @@ seamkiln install; both go back with two commands, then the server needs a
 restart for the `.pth` to be read. The partkiln sidecar is untouched by any
 of it — that is what the sidecar route is for.
 
-### CI: the cad spec is checked before the OpenSCAD binary, and the lock re-keyed to 0.21.1 (2026-09-06)
+## A68 — no lane is the hub (2026-09-05)
+
+Owner: *"Integrate better all components of TEE — too much goes through
+Blender when there are other components that are able to work better."*
+Then, on the first plan: *"Allow to bypass Blender if not required.
+Decentralize the use of Blender or Unreal Engine."* Plan of record
+`CLAUDE_A68_SCRIPT.md`; design of record `docs/research/70-lane-routing-no-hub.md`;
+the ruling in DECISIONS (*No lane is the hub: the declared default becomes
+opt-in*), which revises 2026-09-04's "first listed is the default".
+
+### P0 — the finding, and the numbers before (2026-09-05)
+
+Three audits of the working tree (dispatch, the component inventory, the
+model-facing text) found the pull toward Blender is structural, in four
+layers — doc 70 §1 cites every line. The one that matters most: a partkiln
+op sent to the Desktop server with no `adapter=` reaches Blender's codegen,
+raises a raw `ValueError`, and comes back as `blender_error` whose fix says
+"roll back with tee_rollback" — nothing names the lane that accepts it. When
+Blender is *down* the refusal does name the other lanes. Better guidance on
+the failure path than on the success path.
+
+**P0b — measured before**, on ONE app composed like the Desktop manifest
+(blender as a stand-in that speaks exactly codegen's vocabulary and answers
+0.21.1's refusal, partkiln on the suite's `FakeKernel`, seamkiln real), every
+call through the real MCP layer (`benchmarks/run_benchmarks.py::run_routing_scenario`,
+new RESULTS section *Lane routing: no lane is the hub (A68)*):
+
+```
+partkiln batch, adapter omitted     3 calls / 731 tok   refused (blender_error); no lane in the fix; asked tee_status; retried
+seamkiln batch, adapter omitted     3 calls / 562 tok   same
+tee_script calling kb_status        1 call  / 586 tok   1 Blender checkpoint taken for an adapter-agnostic tool
+tee_scene_summary, adapter omitted  1 call  /  26 tok   Blender's rows, not the server's lanes
+render a partkiln part              4 calls / 477 tok   pk_export, as_ingest, as_import, tee_capture
+surface 17 tools / 2,033 tok · instructions 433 B · 173 virtual tools · default_adapter blender
+search recall over the FULL composition: limit 3: 29/33 · 5: 32/33 · 8: 33/33 · 10: 33/33
+```
+
+**Two things the before-run found that nobody had measured.** (1) The recall
+table was taken on an 85-tool fixture; on the 173-tool registry a Desktop
+server actually serves, the shipped limit of 5 misses one case — "size from
+an image" wants `ex_estimate` and ranks **sixth**, behind `bl_build_from_plan`,
+`pdf_compose`, `sk_body`, `board_compose`, `cad_scad_build` (A66 recorded it
+at rank 4 on the small corpus). P1d re-baselines on the real composition.
+(2) The suite's `FakeKernel` wrote a nine-byte text file for a GLB, so the
+manual render route could not even be *measured* on it — the asset indexer
+rightly skipped "bracket.glb: missing glTF magic header". It now writes a
+real minimal GLB (header + JSON chunk with the part's extents), which is what
+the handoff rows will land in P3.
+
+Baseline suite on this machine, before any kernel change: **1,402 passed /
+66 skipped / 8 failed**, the eight all environmental (six seamkiln tests
+needing `rtree`, one `[solve]` refusal text, one OpenSCAD-on-PATH); `rtree`
+and `networkx` installed here, the other two stay as they are on the owner's
+machine.
+
+**P1 — the kernel knows its lanes** (five commits: `f9e95b6` 1a, `8a21124`
+1b, `8423cd2` 1c, `97e4a18` 1d, `0272f52` 1e). 1a: `LaneVocab` — the
+optional eighth adapter method, `vocab()` (ops, create kinds, `kind_optional`,
+import suffixes, `renders`, `purpose`), declared by all seven shipped adapters
+and held equal to each one's dispatcher by `test_lane_vocab.py` (Blender's
+parsed from codegen, Godot's from `bridge.gd`; partkiln's static so routing
+never waits on OCP — Law 17); `TeeApp.route_batch` (explicit → entity id →
+create kind → verb → declared default → sole → `adapter_required` /
+`op_not_in_lane` / `batch_spans_lanes`); Blender pre-validates in the kernel
+(`codegen.check_batch` → `bad_op` / `bad_kind`, no wire trip, no traceback)
+and `run_batch` appends the cross-lane hint so no adapter knows the others.
+1b: `--default-adapter NAME` (validated at startup); `build_app` implies
+none; the manifest's args untouched. 1c: `overview`, `locate`,
+`checkpoint_all`, `CheckpointManager.find` (global ids; checkpoint stacks
+keyed by the served lane name — two fakes no longer share a stack, and one
+Blender `info()` wire call per checkpoint is gone), `capture_lane` /
+`renderers`, `rollback_ref`; `tee_script` guards only the tool's own lane
+and reads never checkpoint. 1d: `kernel/lanes.py` — `VirtualTool.lane`
+resolved at registration, the structural law that a `write-scene` /
+`exec-code` tool must name its lane, search's lane haystack (weight 1.0,
+last) with a served tie-break, `tee_status`'s per-lane block; `as_sheet`
+corrected to `write-artifacts` (DECISIONS). The recall table now runs on the
+Desktop composition's real registry: 38 cases, `{3: 35, 5: 38, 8: 38,
+10: 38}` — "size from an image" fixed by `ex_estimate` saying "image" and
+"size" in its own tags, never by touching another lane's. 1e: the nine
+Blender defaults (`next(iter(app.adapters))`, `sorted(adapters)[0]`, the
+literal `"blender"`) became capability lookups (`blender_lane`,
+`importer_lane`, `capture_lane`, `locate`); `as_import` branches by what the
+lane declares; `ex_export_ifc` registers on every server;
+`test_lane_defaults.py` greps the old habits out for good.
+
+**P2 — the model is told** (`bd70096`). `lanes.instructions(app)` builds the
+MCP instructions from the served lanes (purposes trimmed first under the
+2,048 B cap, never the routing rule; tested on the seven-lane and a
+sixty-lane composition); every `adapter=` parameter carries `lane;
+omit=routed` (SI-B6 kept: no wire default); `tee_batch` says the ops pick
+the lane; search examples span the lanes. Measured on the Desktop
+composition: 17 tools, **2,033 → 2,129 wire tokens (+96**, under the +100
+the owner set — the first draft measured +291 and was trimmed word by word);
+instructions 433 B → 1,571 B. README, quickstart (Lanes), troubleshooting
+(the lane refusals), adapter-kit (`vocab()`), the tee-usage skill, the
+manifest's description and keywords, and the two lane guides follow.
+
+**P3 — the handoff lands in-server.** `kernel/handoff_import.land(app,
+files=, into=, units=, expected_dims_m=, caller=)`: `into=` resolves to the
+named lane or, for `auto`, the one served lane whose vocab imports the
+suffix; a lane that cannot import it refuses `handoff_import_unsupported`
+naming one that can or the format to export instead; the landing is a
+write-scene decided by `registry.require()` (the same path as a tool's own
+row, shadow band included — a tainted job is refused, or recorded, exactly
+as a write-scene tool would be); one checkpointed `import_file` batch on
+that lane (Unreal through its content plugin, the `as_import` precedent);
+a read-back verdict against the writer's extents, with a glTF's own declared
+extents standing in when the writer's reply carried none. Scale: 1.0 for
+glb/gltf whatever the source's units, metres-per-declared-unit for formats
+that declare nothing, and a writer that declared none is refused
+(`handoff_units_unknown`), never guessed. Callers: `pk_export into=`
+(`target` defaults to a lane named for its application), `sk_handoff out=
+target= format= hardware= into=` (garment and hardware in ONE batch; the
+verb's load ops are run, not handed back), `fc_export into=`. seamkiln's
+`ops_for` now emits the `import_file` OP (0.21.1 emitted a create of kind
+`import_file`, which Blender rejects — its own test pinned the defect).
+The partkiln capture refusal names the two-call route (`pk_export into=`
+then `tee_capture adapter=`) and says what to do when no lane renders;
+`test_partkiln_capture.py` holds it to that and to naming only tools that
+exist. The acceptance example's step 7 is the two-call route on the ONE app
+holding both lanes. `docs/mac-handoff.md` prescribed no partkiln route and
+was left alone. Tests: `test_handoff_import.py` (23, the sk_handoff landing
+on a real arranged garment among them), seamkiln's `test_handoff.py` green;
+`numba` installed beside the dev venv here, which also turned the five
+"environmental" seamkiln adapter failures green.
+
+**P4 — measured after** (`benchmarks/run_benchmarks.py::run_routing_scenario`,
+same scenario and composition as P0b, the Blender stand-in now declaring
+Blender's vocabulary and pre-validating the way the real adapter does since
+1a; RESULTS section rewritten, doc 70 §7 carries the before/after table):
+
+```
+partkiln batch, adapter omitted     3 calls / 731 tok  ->  1 call / 232 tok   routed by kind; the reply says adapter and routed
+seamkiln batch, adapter omitted     3 calls / 562 tok  ->  1 call /  91 tok   routed by kind
+tee_script calling kb_status        1 Blender checkpoint  ->  0               an adapter-agnostic tool checkpoints nothing
+tee_scene_summary, adapter omitted  1 / 26 (one lane)  ->  1 / 103 (every lane)   the overview costs more than Blender's empty rows and answers the question
+render a partkiln part              4 calls / 477 tok  ->  2 calls / 370 tok  pk_export into=blender, tee_capture adapter=blender
+surface 17 tools / 2,033 tok  ->  17 / 2,129 (+96) · instructions 433 B -> 1,571 B (cap 2,048, tested) · default_adapter blender -> none
+search recall on the real 173-tool registry: 29/32/33/33 of 33  ->  35/38/38/38 of 38 at limit 3/5/8/10
+```
+
+Suite on the P3 snapshot: **1,499 passed / 66 skipped**, `make lint` clean;
+the two fleet refusals that need OpenSCAD on PATH and the `[solve]` extra
+deselected as on 2026-09-04. The seamkiln adapter suite that was
+environmental here is green with `numba` installed beside the dev venv.
+
+Open, and named rather than hidden: the version cut is the owner's call
+(0.22.0 if taken: `server/pyproject.toml`, `server/Makefile`
+`TEE_SERVER_VERSION`, the manifest `version`, `test_a46_version_agrees`);
+the `drafting/` critic is still unreachable from the server (doc 70 names it
+as a gap; the owner declined wiring it this campaign); `tee_script`'s
+`call()` guards a tool's own lane and stays silent when an `adapter=`-routed
+tool names none — the tool itself refuses, so no `script_adapter_required`
+code was added; the acceptance example's step 7 is rewritten to the two-call
+route but this machine has no Blender to run it on.
+
+## A69 — the Fusion lane (2026-09-06)
+
+Owner directive: *"Create a lane dedicated to autodesk fusion."* Research doc
+71 is the design of record, `CLAUDE_A69_SCRIPT.md` the plan; the decision is
+in DECISIONS ("A live GUI lane on the owner's own document").
+
+**P0 — the facts before the code.** Fusion has no Linux build and none is on
+this machine, so the campaign is built on a hermetic shim and the live half
+waits for the owner's Mac. Twenty API rows were read from Autodesk's Fusion
+API reference and from Autodesk's own `FusionMCPSample` add-in (its
+custom-event marshalling code in full) before a line of codegen was written —
+doc 71 §3 carries each with its page. Two of them changed the design:
+`ExtrudeFeatureInput.setDistanceExtent` is retired (September 2022; the
+current call is `setOneSideExtent` with a `DistanceExtentDefinition`), and the
+ExportManager's option constructors take `(filename, geometry)` for STEP and
+the Fusion archive but `(geometry, filename)` for STL and OBJ. Also confirmed:
+internal units are centimetres and radians and a unitless expression takes
+the document's active unit; the timeline (`markerPosition`,
+`deleteAllAfterMarker`) plus `Parameter.expression` is the only rollback
+mechanism there is; `entityToken` + `findEntityByToken` is the stable
+identity; the ImportManager reads STEP/IGES/SAT/f3d and no mesh format. Not
+settled by the reference and left to the smoke: which image extensions
+`Viewport.saveAsImageFile` writes.
+
+**P1 — the bridge and the wire** (`4e23341`). `adapters/fusion/tee_bridge/TEE/`
+(MIT): one daemon I/O thread, NUL-framed JSON, one request per connection;
+each request parked in a task table and announced with
+`Application.fireCustomEvent`; the `CustomEventHandler` Fusion services when
+idle executes the frame on the primary thread and releases the waiting
+socket thread — Autodesk's own MCP sample's mechanism, read in full. A ping
+takes the same hop, so a bridge whose primary thread is held by a modal
+dialog looks down (the FreeCAD SI-B12 lesson). `FusionWire` is the Blender
+wire's shape with Fusion's refusals and the install fix. Twenty-three tests
+drive the add-in's own code without Fusion: a real listener on an ephemeral
+port, a stub primary thread, the wire on the other end, the run/stop glue
+against a fake `adsk.core` speaking the verified names.
+
+**P2 — codegen, adapter, shim** (`98df3a0`). One batch → one script → one
+JSON-shaped result; every emitted call a row in doc 71 §3 (thirty rows now
+— the collection convention, `extentOne.distance`, the visibility setters,
+`UserParameter.deleteMe`/`itemByName` and the mesh exporters' `unitType`
+found while writing it). Millimetres on the wire with the unit in every
+`ValueInput` string, centimetres inside, one conversion per read-back;
+`setDistanceExtent` never emitted and the shim raises if it is. Short ids
+minted over `entityToken` and kept both ways. `FusionAdapter`: the seven kit
+methods + `vocab()`, batches pre-validated so a malformed op never crosses
+the wire, checkpoints = timeline marker + every parameter expression with
+the payload saying what is not restored, the direct-design refusal, capture
+at the Blender rungs with jpg-then-png left to the smoke.
+`tests/fixtures_fusion.py` is a fake `adsk` the generated scripts execute
+against, in Fusion's units; the kit contract passes on it and a 120×80×10 mm
+plate reads back 96,000 mm³.
+
+**P3 — tools, tables, CLI, routing, docs.** `fu_probe`, `fu_export` (step /
+stl / obj / f3d with `into=` through `handoff_import.land`; OBJ declared as
+Fusion's default centimetres, STL declared as unknown rather than guessed),
+`fu_measure`, `fu_params`, `fu_timeline`, and `fu_execute_python` — tabled
+individually (one `exec-code`, one writer, four reads), the escape hatch
+registering only with `--allow-code-exec` and the kernel deciding it per
+call. `("fu_", "fusion")` in the lane table; `tee serve --adapter fusion
+[--fusion-port]`, `[fusion] port`, `tee doctor`'s `fusion-bridge` check.
+The A68 router gained one refinement: when several lanes take a batch and at
+least one is connected, the disconnected ones drop out — Fusion's vocabulary
+overlaps partkiln's on `sketch`/`extrude`/`fillet`, and a closed Fusion must
+not make every adapter-less sketch ambiguous; both live still refuses naming
+both, and a single taker never probes. `docs/fusion-lane.md`, README,
+quickstart and troubleshooting rows. The Desktop manifest is unchanged by
+decision. Fusion-touching test files: 217 passed.
+
+**P4 — measured, recorded, pushed.** `run_fusion_scenario` joins the benchmark
+battery (`benchmarks/RESULTS.md`, "Fusion lane: sketch, extrude, fillet,
+measure"): the 120×80×10 mm plate with its 2 mm fillet, then volume and
+bbox, on the shim — TEE 254 tokens in 2 calls against 1,776 in 2 for a model
+that writes the API script itself and reads the design back as a listing,
+**85.7% saved**; the compiled batch script is 140 tokens the model never
+reads, the diff it reads instead is 131; read-back 96,000 mm³, bbox
+[120, 80, 10] mm. *(Corrected in A70 P5: the runner had measured the
+checkpoint's snapshot program as the batch script; with the real script the
+row is TEE 270 vs 8,833 tokens, 96.9% saved, script 4,282, diff 147 —
+doc 71 §8.1.)* The always-loaded surface is unchanged at 17 tools. Full
+suite on the P3 tree: 1,579 passed, 66 skipped, 115 deselected; `make lint`
+clean. CHANGELOG Unreleased carries "The Fusion lane (A69)"; doc 71 §8 the
+numbers and what they do not measure. CI's server job, whose venv has no
+seamkiln, then caught one environment-dependent assertion: the multi-adapter
+test expected `create kind=panel` to be ambiguous between fake and seamkiln,
+which under the A69 refinement holds only while both can run — with seamkiln
+unimportable its `probe()` is false and the batch routes to the fake by kind.
+The test now pins connectivity explicitly and asserts both truths; reproduced
+locally with `seamkiln` blocked on the import path before and after.
+
+Open at the tail of A69:
+
+1. **The Mac smoke has not run** (`docs/fusion-lane.md`, "The smoke"). Nothing
+   about this lane is live-verified: doc 71 §3's live column is ○ on every
+   row and §9's questions are open. The Desktop manifest stays unchanged
+   until it has run.
+2. `Viewport.saveAsImageFile`'s extensions are unspecified; the capture
+   tries `.jpg` then `.png` and the smoke records which one wrote.
+3. `fu_export` ships step / stl / obj / f3d; iges, sat, 3mf and usd exist in
+   Fusion but their option constructors were not read, so they are refused
+   naming doc 71 rather than guessed.
+4. Holes, chamfers, revolves, shells, sweeps, lofts, sketch constraints,
+   joints, drawings and CAM: each is one more verified §3 row and one more
+   emitter (doc 71 §7). *Taken up by A70 below, except shells / sweeps /
+   lofts / CAM.*
+5. The version cut is the owner's call (0.22.0 if taken).
+
+## A70 — the Fusion lane v2 (2026-09-06)
+
+Owner directive: *"v2 should add holes, chamfers, revolves, sketch
+constraints, joints, drawings or the iges/sat/3mf/usd exports, each of which
+is one more verified row and one more emitter."* Doc 71 §3 rows 31–49 and
+§10 are the design of record; `CLAUDE_A70_SCRIPT.md` the plan; the decision
+is in DECISIONS ("every feature is a row and an emitter, and drawings are
+partkiln's").
+
+**P0 — the rows before the code.** Nineteen rows read from Autodesk's
+reference (fifty-odd pages) before any emitter: holes (three input
+constructors; position by face + point or by sketch point; `setDistanceExtent`
+NOT retired for holes, unlike the extrude call), chamfers
+(`createInput` RETIRED → `createInput2` + equal-distance edge sets), revolves
+(`createInput(profile, axis, op)` + `setAngleExtent`, current), sketch lines /
+points / origin, the eleven geometric constraints (`addOffset` retired), four
+dimension calls with a settable `parameter.expression`, joints (geometry by
+planar-face centre or point, seven motion setters, angle / offset
+ValueInputs, rotation and slide values), faces (surface type, normal flipped
+by `isParamReversed`, centroid, proxies), the four exporters (iges / sat /
+usd filename-first and component-only; 3mf geometry-first) — and the drawing
+surface read for its absence: **the Fusion API cannot create a drawing**
+(`DocumentTypes` has one member; `Drawing` has no sheets or views; the view
+pages do not exist), only export one the owner has open. Two facts the
+reference leaves open became smoke steps rather than guesses: a rectangle's
+line order (sides are named by position) and a face-placed hole's default
+direction (`flip` is exposed). Design in doc 71 §10: sketch-local addresses
+(`sk1/r0.bottom`, `sk1/c0.center`, `sk1/origin`), dimensions as entities and
+constraints not, faces by outward normal, `fu_drawing` through partkiln.
+
+**P1 — addressable sketch geometry, constraints, dimensions.** `create
+sketch` takes `lines` and `points` beside `rects` and `circles`, and every
+piece is registered under a sketch-local address as it is made
+(`sk1/r0.bottom`, `r0.bl`, `l0.start`, `c0.center`, `p0`, `origin`) in the
+bridge's persistent map; a rectangle's sides and corners are classified from
+their geometry after creation, and the shim returns the four lines scrambled
+so no index is ever trusted (Law 8). `create constraint {sketch, type, of}`
+for the eleven row-40 calls, arity and address syntax refused before the
+wire; `create dimension {sketch, type, of, orientation, expression, text,
+driving}` for distance / diameter / radius / angle — a dimension is an
+entity (`dim1`, parent the sketch) whose `expression` binds a user
+parameter, settable and deletable; both are accepted inline on the sketch
+op. The shim solves rectangles and circles only (Law 10): a 100×50
+rectangle dimensioned to `width` / `height` user parameters extrudes at
+120×80, `param_set width=150` re-sizes the body to 120,000 mm³ through the
+dimension, and a constraint the geometry contradicts is Fusion's own
+creation failure, one refusal naming the op. Sketch rows carry
+`constraints`, `dims` and `constrained`. Twenty-two tests in
+`test_fusion_v2.py`; 110 Fusion-touching tests green; lint clean.
+
+**P2 — holes, chamfers, revolves, faces by direction.** A face has no id;
+it is named by its outward normal (`+z`) — the plane's normal flipped by
+`isParamReversed`, outermost along the axis or nearest a 3-vector `at` (doc
+71 §10.2) — and a body without one refuses `fusion_no_face` listing the
+directions it has. `create hole`: simple, counterbore or countersink (row
+31), placed on a face at `[u, v]` or `[x, y, z]` mm (Fusion projects the
+point, row 32) or by a sketch point address, `depth` or `through`, `flip`
+clearing `isDefaultDirection` (row 33); the feature reports `diameter_mm`
+and `position_mm`, and its diameter is a parameter a `set` re-bores (row
+34). `create chamfer` through `createInput2` and an equal-distance edge set
+— the retired `createInput` is never emitted and the shim raises on it;
+`edges` is `all` or `{face: "+z"}` on chamfers and fillets alike, and the
+diff says how many edges were taken. `create revolve` about a root
+construction axis or a sketch-line address, angle in degrees, symmetric or
+not (rows 36–37). The shim grew six-face boxes with normals, centroids and
+edges; holes that subtract their cylinder plus the counterbore ring or the
+countersink frustum; chamfers that touch only the timeline; revolves by
+Pappus, the axis required in the sketch plane and the profile off it. Two
+Ø6.6 through holes read 96,000 − 2·π·3.3²·10 mm³; a 10×20 rectangle 30 mm
+off the x axis revolves to 2π·200·30 mm³ with a [10, 80, 80] bbox. 135
+Fusion-touching tests green; lint clean.
+
+**P3 — joints.** `create joint {one, two, motion, axis, slide, angle,
+offset, flip}`: each side is an occurrence's planar face centre
+(`createByPlanarFace(face, None, CenterKeyPoint)` on a body under
+`occ.bRepBodies`, rows 44 and 12), the occurrence's origin point in its
+context (`originConstructionPoint.createForAssemblyContext(occ)`, rows 37
+and 47), or a root body's face; the seven motions emit their verified
+setters (row 45) with the axis words mapped to `JointDirections`, ball on
+pitch Z and yaw X; angle and offset are written with their units. A joint
+is an entity `j1` reporting `motion`, `between`, `angle_deg`, `offset_mm`
+and, where the motion has them, `rotation_deg` / `slide_mm`; `set j1
+{angle, offset, flipped, suppressed, rotation (deg), slide (mm)}` writes
+the joint's parameters, `isFlipped`, `isSuppressed`, `rotationValue`
+(radians) and `slideValue` (cm) (row 46), refusing a drive the motion does
+not have. New-component extrudes now report the occurrence Fusion made
+(row 50, `feature.parentComponent` matched against `_root.occurrences`),
+so a joint has something to join. The shim records joints with their
+motions and parameters and moves no occurrence (§9 item 5), and refuses a
+joint whose two sides are the same component as Fusion's own null. 153
+Fusion-touching tests green; lint clean.
+
+**P4 — the four exports, and drawings through partkiln.** `fu_export`
+takes iges, sat, usd (filename-first, "currently a Component object", so a
+body id is refused before the wire with the fix) and 3mf (geometry-first
+like stl/obj: a body, an occurrence or a component) — row 48's argument
+orders, each answered `units: null, declares_units: true` with a note
+naming where the file declares its unit, because none of the four option
+objects carries one and nobody has read what Fusion writes (§9 item 6).
+`fu_drawing {out, of, name, sheet, standard, angle, scale, views, dims,
+hole_table, formats}` is the drawings route the API cannot provide (row
+49): STEP into the lane's workdir, `pk_import` into the served partkiln
+lane, `pk_drawing` with every dimension read from the model; it refuses
+`partkiln_not_served` naming `--adapter partkiln`, and the import into
+partkiln's document is decided as the scene write it is through
+`registry.require` before the STEP is written — a task carrying untrusted
+content is refused with nothing on disk. Tabled `write-artifacts`, in the
+`fu_` lane family. 201 tests across the Fusion, trust, server-lint and
+search suites green; lint clean.
+
+**P5 — measured, recorded, pushed.** `run_fusion_v2_scenario` joins the
+battery (`benchmarks/RESULTS.md`, "Fusion lane v2: a dimensioned bracket
+with holes, a chamfer, a revolve and a joint"): twelve ops in one batch —
+the rectangle dimensioned to `width` / `height` user parameters and
+extruded into its own component, two Ø6.6 through holes on `+z`, a chamfer
+on that face's edges, a post extruded into a second component, a pin
+revolved about x, a revolute joint — TEE 1,144 tokens in 2 calls against
+12,168 in 2 for a model that writes the script itself and reads the design
+back, **90.6% saved**; nineteen entities made; the script is 6,582 tokens
+the model never reads, the diff it reads instead 629; the plate reads back
+95,315.8 mm³ (96,000 less two holes) in a [120, 80, 10] box. Writing the
+scenario found a defect in A69's runner — it had counted the checkpoint's
+snapshot program as the batch script — so that row was re-measured with the
+real script: TEE 270 vs 8,833 tokens, 96.9% saved (doc 71 §8.1 carries the
+correction). The always-loaded surface is unchanged at 17 tools. Docs:
+`docs/fusion-lane.md` (the v2 ops, addresses and faces, the eight exports,
+`fu_drawing`, smoke steps 7–11, "Not yet"), troubleshooting rows for the
+v2 refusals, README and quickstart, CHANGELOG Unreleased, doc 71 §8.3. Full
+suite on the P5 tree: 1,647 passed, 66 skipped, 113 deselected, and the one
+known environmental failure (`test_fleet_solve::test_bad_specs…` needs the
+`[solve]` extra this machine lacks — CI carries it and passes); `make lint`
+clean. Pushed as five commits on top of A69; PR #1 carries all three
+campaigns.
+
+**The smoke as one test** (`031b394`). `tests/test_fusion_live.py` (`-m
+dcc`) drives `docs/fusion-lane.md` steps 1–11 against the real add-in in
+one sitting: it skips when no add-in answers, when no design is open, when
+the design is direct-modeling, and — so it can never touch the owner's work
+— when the active design is not empty; it saves nothing. It prints and
+writes every fact §9 leaves to the smoke (the capture extension, a bare
+rectangle's own constraints, a face hole's default direction, which
+occurrence a joint moved, the unit each of the eight exports declares —
+measured from the file's extents against the 120 mm plate for OBJ and STL,
+read from the global section, header, model element or `metersPerUnit`
+for the rest) to `fusion-live-facts.json`. `fu_measure` of a component now
+measures the occurrence where it sits, through its proxy bodies (rows 12,
+47), so a joint's move is visible to it.
+
+Open at the tail of A70: the Mac smoke, steps 7–11 (§9 items 4–7); the PDF
+export of an open drawing (row 49, verified, no emitter); shells / sweeps /
+lofts / threads / arcs / joint origins / motion links; the version cut
+(owner's call).
+
+## A71 — the Fusion lane goes live (2026-09-06, on the owner's Mac)
+
+Owner directive: *"Write a claude code script to execute everything on a
+session local to my Mac."* `CLAUDE_A71_SCRIPT.md` is the plan of record; this
+session ran it in a dedicated worktree of this branch
+(`/Users/john/TokenEfficiencyEngine-a71`) with Fusion 2704.1.53, Blender 5.2.0
+LTS and the OCP wheel present and **no owner at the keyboard** — so where the
+script assumed one, the machine's facts decided and the script's Amendments
+block records each change. Evidence: `docs/research/71-fusion-live-facts.json`
+(30 facts), the run logs quoted below, and doc 71 §8.2 / §9.
+
+**P0 — preconditions.** Hermetic suite in a fresh worktree venv after the
+script's `uv sync --extra extract`: **22 failed / 33 errors** — all
+environmental (`pointcloud`, `pdf`, `quant`, `solve`, `medimg`, `assets`,
+`physical` extras absent; `tee doctor`'s fleet-extras line named five of
+them). With the seven extras synced: **1,661 passed / 32 skipped / 115
+deselected**, `make lint` clean. `tee doctor`: `WARN fusion-bridge: nothing
+listening on 127.0.0.1:9881` — the machine runs the **FusionMcpBridge** (HTTP
+:8766, auto-starting, `~/Library/Application Support/Autodesk/Autodesk Fusion
+360/API/AddIns/FusionMcpBridge`, the add-in that drove the CERES 50 baseline)
+and has no TEE add-in installed. Desktop still serves 0.21.1 (three lanes).
+
+**Amendment 1 — the second transport** (`4edec3e`). Rather than wait for a
+GUI install nobody was present to click, the lane speaks the bridge already
+running: `FusionHttpWire` (the FusionMcpBridge protocol; a fresh namespace per
+job, so `_tee` lives in a process-lifetime module the prelude installs; 504 =
+the job is STILL RUNNING) and `FusionAutoWire` (TEE add-in :9881 first, then
+FusionMcpBridge :8766, whichever answers, kept until it stops answering;
+`port`/`transport` report it) — plumbed through `tee serve --fusion-http-port`,
+`[fusion] http_port` and `tee doctor`. The FusionMcpBridge is vendored
+byte-identical (`diff -rq`) beside the TEE add-in. Ten hermetic tests stand
+the protocol up over real HTTP. **Amendment 2 — the harness's scratch design**
+(`910b2d0`): with `TEE_FUSION_SCRATCH_DESIGN=1` and NOTHING open, the smoke's
+fixture opens one untitled design over the bridge (doc 71 row 51) and closes
+exactly that document unsaved afterwards; the lane's code never gains the
+call and an owner's open design is never used (Law 5 binds the lane; the
+harness is the owner's stand-in). Fusion held 0 documents before, between and
+after every run.
+
+**P1 — the smoke, five runs** (`TEE_FUSION_SCRATCH_DESIGN=1 UV_FROZEN=1 uv run
+pytest -q -s -m dcc tests/test_fusion_live.py`, all over the FusionMcpBridge):
+
+1. Run 1 (2.3 s): seven facts, then `assert 96000.0 > 96000.0` at step 4 —
+   the boss circle sketched on the XY plane at z=0 and joined 5 mm lies INSIDE
+   the 10 mm plate; Fusion rightly added nothing (the shim sums volumes). The
+   boss now rises 15 mm.
+2. Run 2: the first listing hung; pytest-timeout fired at 60 s, the harness
+   could not close its design ("did not answer within 40 s"), and even the
+   bridge's HTTP `/status` fell silent. `sample 7357` on the hung process:
+   `_wrap_Design_findEntityByToken → Xl::Fusion::DesignImp::findEntityByToken_raw
+   → __dynamic_cast → _sigtramp → libcer.dylib → read` — **resolving a token
+   minted in the design run 1 had closed segfaulted Fusion**, and its crash
+   reporter held the primary thread and, with the GIL, every Python thread.
+   State S, 0 % CPU, unrecoverable. Fusion was force-quit (only the harness's
+   unsaved scratch design had ever been open) and relaunched; the bridge was
+   back in 20 s. Fix `66fe3d8`: the id map is per document.
+3. Run 3 (with the fix keyed on the ROOT COMPONENT's token): 17 facts — the
+   rollback restores 96,000 mm³, `.jpg` written, the hole bores into the
+   material, the counterbore matches, six edges on `+z`, `['c1','c2']` — then
+   `StopIteration` looking for a `kind == "joint"` row, and the second test
+   **crashed Fusion the same way**. Measured after the relaunch (15 s): two
+   untitled designs' root components carry the SAME 24-character token
+   (`/v4BAAEAAwAAAAAAAAAAAAAA`) while `Document.creationId` differs
+   (`27ee725b…` vs `c4b5dc4d…`). The key is `creationId` (row 52); the shim's
+   `Document` carries one; the test's shim asserts no foreign token ever
+   reaches Fusion. A probe then re-ran the joint: Fusion moves `c2` (`two`);
+   the joint row arrives without `kind`/`name`/`motion` because
+   `_trim_batch_echoes` drops fields that echo the op when every creator op
+   yielded one entity — `created` is the address. The revolve's 15,707.96 mm³
+   was Fusion being right about a 10 × 10 profile the smoke had drawn (the v2
+   test and the shim draw 10 × 20 — the shim's Pappus was never wrong).
+4. Run 4 (8.9 s): **2 passed** — every step; two exports told the truth
+   against the code: `fu_export step of=b1` → `RuntimeError: 3 : invlid
+   argument geometry` (the reference: "valid geometry for this is currently a
+   Component object" — STEP, the archive and USD alike), and `format=usd`
+   wrote nothing at the path given: Fusion appends `.usdz` and writes a USDZ
+   package (one binary usdc declaring `metersPerUnit`, `upAxis` Z).
+5. Run 5 (7.8 s): **2 passed, 30 facts** — the committed evidence. STEP of
+   the whole design 31,368 B; OBJ centimetres (as declared); STL `mm`
+   declared from the design and `mm` measured from the file; IGES `flag=2
+   name=MM`; SAT header `1 …` (1 mm/unit); 3MF `unit="millimeter"`; USD
+   `.usd.usdz`; the revolve 37,699.112 mm³ in [10, 80, 80]; rotation 45.0;
+   `fu_drawing` → `dwg:plate`, A4L, ISO, first angle, one top view (4 visible
+   / 4 hidden edges), SVG written.
+
+`tee doctor` after: `OK fusion-bridge: Fusion 2704.1.53 via the FusionMcpBridge
+on :8766, no document open (no design)`.
+
+**P2 — acting on the facts** (`e3446c4`, `52f34da`): `COMPONENT_ONLY_EXPORTS`
+gains step and f3d (refused before the wire with Fusion's words; the shim
+raises them); the export program reports the file that exists (`<out>.usdz`
+for USD) and refuses honestly when nothing was written; `_EXPORT_UNITS`: iges
+/ sat / 3mf → `mm`, obj `cm` confirmed, stl → the design's
+`unitsManager.defaultLengthUnits` read at export time (row 53), usd stays
+`null` with the package named; every `_EXPORT_NOTES` entry is now a
+measurement; both bridges' ping counts ids only for the active document
+(`fu_probe` had reported 12 ids in an empty design). Doc 71: 49 live cells,
+rows 51–54 added (the harness calls, `creationId`, `defaultLengthUnits`, the
+crash), §4.1/4.2/4.4/4.10 and Laws 8–9 amended, §8.2 rewritten from the
+facts, §9 answered in place, §10.5/10.6/10.8 corrected. `docs/fusion-lane.md`,
+troubleshooting, README, quickstart, the research index and the CLAUDE.md
+bullets follow. Not changed on purpose: the shim's Pappus (right), the v1
+benchmark's 10 × 10 revolve profile (its row measures tokens, not volume).
+
+**P3 — the other live suites** (`d06bb06`): `test_partkiln_live.py` **2
+passed** (3.6 s; OCP and partkiln installed into the worktree venv).
+`test_blender_live.py` **6 failed / 20 passed** → **26 passed** (1.8 s):
+`test_import_file_bad_format_is_one_line` expected "unsupported import format"
+and A68's kernel pre-validation now says `batch[0]: Blender cannot import
+'xyz'.` (the assertion follows the better message); the two
+`bl_execute_python` tests answered `trust_denied` — **also on the default
+branch's checkout**, so pre-existing: `allow_code_exec` registers the tool and
+the trust kernel decides from the project's grants, which a tmp project lacks;
+the fixture now grants `exec-code` in its own `.tee/config.toml`, as an owner
+does. `partkiln/examples/acceptance/run_tee.py`: **10 steps run, 0 skipped,
+6.89 s, 6,962 tokens**; step 7 "land the GLB in a served Blender lane" →
+`landed in: blender`. With a headless Blender bridge (`boot_background.py
+--port 9876`, up in 2–3 s) beside Fusion: `fu_export format=obj of=b1
+into=blender` → 2,168 B, `landed: {lane: blender, scale: 0.01, checkpoint:
+cp2, created: [b146]}` with the read-back note, 0.11 s; `tee_capture
+adapter=blender` → 4,415 B JPEG, 0.05 s; **3 calls**, ~109 tokens for the
+export reply. (First attempt failed on the harness: a Blender workdir that did
+not exist — the adapter does not create it; the CLI does.)
+
+**P4 — the owner's decisions: NOT taken.** The session was autonomous, so the
+three `AskUserQuestion`s were not asked; each is prepared and left open: (1)
+the Desktop manifest (`--adapter fusion` after seamkiln; the manifest test's
+exact list, the description/keywords, `test_instructions.py`'s 2,048 B cap);
+(2) the version cut with its re-lock (`uv 0.12.5` here, CI's major); (3) PR #1
+ready for review. The session also named a fourth decision — two Fusion lanes
+at the same paths on two branches — which the container session then measured
+and **found not to hold on the remote** (below).
+This session also left the default branch and the Desktop install untouched.
+
+### Correction — the second Fusion lane is not on the remote (2026-09-07)
+
+The Mac session's P4 recorded two claims about branches other than its own,
+neither of which it had checked against the remote, and both are wrong there.
+Measured on `origin` at `021fc15` (`git ls-tree`, `git grep`, `git show`):
+
+- **There is no second Fusion lane.** The default branch
+  (`claude/token-efficiency-engine-5jv1dj`, 0.21.1) has no
+  `server/src/tee/adapters/fusion/`, no `adapters/fusion/tee_bridge/`, no
+  `tests/test_fusion_*`, no `fu_*` tool named anywhere in the tree, and no
+  0.22.0 line in its CHANGELOG. Neither does PR #2's branch nor
+  `claude/magical-jennings-5f0bbb`. `git grep -l fu_probe` across all four
+  remote heads matches this branch only. **This branch holds the only Fusion
+  lane in the repository**, so nothing has to be reconciled and no lane has to
+  be chosen; the fourth decision is withdrawn, not answered.
+- **0.22.0 is claimed once, not twice** — by PR #2's branch
+  (`claude/wind-tunnel-aerodynamic-integration-hcsa7u`, A72 wind tunnel, whose
+  `server/pyproject.toml` reads 0.22.0). The default branch reads 0.21.1, as
+  does this branch. The advice that lands unchanged: **whatever this branch
+  cuts should be 0.23.0** if PR #2 merges first, or 0.22.0 if it merges first
+  — one number, one PR, whichever lands ahead of the other.
+
+The likeliest source of the claim is the Mac itself: the run was in a worktree
+(`/Users/john/TokenEfficiencyEngine-a71`) beside the owner's main clone, and a
+locally built `tee-engine-0.22.0.mcpb` or a local unpushed branch there would
+look like "the default branch shipped it" without a remote check. Nothing on
+the remote was touched either way. What PR #1 actually conflicted with was two
+files and no Fusion at all — see the merge commit above this entry.
+
+**P5 — record and push.** Full suite in the worktree: **1,696 passed / 28
+skipped / 118 deselected in 73.6 s**; `make lint` clean. Nine commits on this
+branch, each fix quoting its measurement; pushed to
+`claude/tee-component-integration-iflsyq`.
+
+**Two interventions on the owner's machine, stated plainly:** Fusion was
+force-quit and relaunched twice (PIDs 7357 and 9419), each time after the
+segfault above, each time with only the harness's unsaved scratch design
+having been open (0 documents verified before every run); and OCP, partkiln
+and the seven fleet extras were installed into the worktree's own venv.
+
+## CI: the cad spec is checked before the OpenSCAD binary, and the lock re-keyed to 0.21.1 (2026-09-06)
+
+*(From the base branch, merged in on 2026-09-07. Promoted from `###` to `##`
+so it does not read as part of the A71 entry above it: it is the base
+branch's own work, and this branch had fixed the same `scad_build` ordering
+defect independently — the merge kept both explanations, the docstring here
+and the inline comment at the call site.)*
 
 The base branch's `server` job had failed its last three runs at
 `uv sync --locked`: `server/uv.lock` still recorded `tee-engine 0.20.0`

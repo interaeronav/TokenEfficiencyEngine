@@ -1,0 +1,12 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "addin",
+    "author": "Token Efficiency Engine",
+    "description": {
+        "": "TEE bridge: a localhost socket (127.0.0.1:9881) that runs TEE's batches on Fusion's primary thread"
+    },
+    "version": "0.1.0",
+    "runOnStartup": true,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

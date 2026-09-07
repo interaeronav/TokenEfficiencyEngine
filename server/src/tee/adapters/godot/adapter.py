@@ -30,10 +30,13 @@ from pathlib import Path
 from typing import Any
 
 from tee.adapters.godot.wire import DEFAULT_PORT, GodotWire
-from tee.kernel.adapter import AdapterInfo, Diff, Entity
+from tee.kernel.adapter import AdapterInfo, Diff, Entity, LaneVocab
 from tee.kernel.errors import TeeError
 
 BRIDGE_RELATIVE = Path("adapters/godot/tee_bridge/bridge.gd")
+# The bridge's command arms, in bridge.gd's match order (tests/test_lane_vocab.py
+# parses the .gd file to hold this equal to the script).
+BRIDGE_OPS = ("add_node", "set_props", "remove_node", "save_scene", "load_scene", "run_scene")
 IMPORT_TIMEOUT_S = 180.0
 BOOT_TIMEOUT_S = 60.0
 
@@ -88,6 +91,19 @@ class GodotAdapter:
 
     def probe(self) -> bool:
         return self.wire.probe()
+
+    def vocab(self) -> LaneVocab:
+        """What this lane accepts (A68): the bridge's six commands
+        (adapters/godot/tee_bridge/bridge.gd), forwarded as they are. No
+        pixels: headless Godot has a dummy rasterizer."""
+        return LaneVocab(
+            ops=BRIDGE_OPS,
+            kinds=None,
+            kind_optional=True,
+            imports=(),
+            renders=False,
+            purpose="Godot 4 headless: scene tree + run_scene evidence, no pixels",
+        )
 
     def list_entities(self) -> list[Entity]:
         nodes = self.wire.request({"type": "list"}).get("nodes") or []

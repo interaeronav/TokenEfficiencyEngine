@@ -113,6 +113,19 @@ def test_adapter_params_advertise_no_default(tools):
             assert "default" not in prop, tool.name
 
 
+def test_adapter_params_carry_one_short_line(tools):
+    # A68: a bare {"type":"string"} told the model nothing about what to put
+    # there. One line, capped, so eight copies stay cheap on the wire.
+    seen = 0
+    for tool in tools:
+        prop = (tool.input_schema.get("properties") or {}).get("adapter")
+        if prop is not None:
+            seen += 1
+            assert prop.get("description"), tool.name
+            assert len(prop["description"].encode()) <= 64, tool.name
+    assert seen == 8
+
+
 def test_mcpb_manifest_tool_list_matches_surface(tools):
     """The store-facing manifest names every always-loaded tool and nothing
     else - it went stale once (16 entries while the server served 17)."""

@@ -871,21 +871,90 @@ def register_seamkiln_tools(app) -> None:
             "transform baked into its vertices. Verified in a headless Blender 5.2.",
         }
 
+    def handoff(args: dict[str, Any]) -> dict[str, Any]:
+        """No `out`: the targets and their conventions, the listing this tool
+        has always been. With `out`: the bundle, written through the
+        session's own handoff verb. With `into` as well: the bundle landed in
+        a served scene lane as one checkpointed batch with a read-back verdict
+        (A68 P3, `kernel/handoff_import.land`) - the ops the verb used to hand
+        back are run, not returned."""
+        if not args.get("out"):
+            return handoff_info(args)
+        _need()
+        adapter = _adapter(app)
+        from seamkiln.session import Command, CommandError
+
+        into = args.get("into")
+        into = str(into).strip() if into is not None else None
+        verb_args = {k: args[k] for k in ("out", "target", "format", "hardware") if k in args}
+        if into and into.lower() != "auto" and "target" not in verb_args:
+            from seamkiln.handoff import TARGETS
+
+            if into in TARGETS:  # a lane named for its application writes ITS convention
+                verb_args["target"] = into
+        try:
+            result = adapter.session.apply(Command("handoff", verb_args))
+        except CommandError as exc:
+            raise TeeError("seamkiln_handoff_refused", str(exc), fix=str(exc)) from exc
+        out = dict(result)
+        if into:
+            from pathlib import Path
+
+            from tee.kernel.handoff_import import land
+
+            name = Path(result["files"]["garment"]).stem
+            files = {name: result["files"]["garment"]}
+            if "hardware" in result["files"]:
+                files[f"{name}-hardware"] = result["files"]["hardware"]
+            out.pop("ops", None)
+            out.pop("why_no_ops", None)
+            out["landed"] = land(
+                app, files=files, into=into, units=result.get("units"), caller="sk_handoff"
+            )
+        return out
+
     app.registry.register(
         VirtualTool(
             name="sk_handoff",
             description=(
                 "Hand a draped garment to another application - Blender, Unreal, Maya, "
                 "ZBrush, Houdini, Marvelous, Godot - in ITS units and up-axis, with the "
-                "flat-pattern UVs and the hardware, plus the ops that load it where TEE "
-                "can drive the target. Lists every target's conventions."
+                "flat-pattern UVs and the hardware. No args lists every target's "
+                "conventions; out= writes the bundle (plus the ops that load it where TEE "
+                "drives the target); into=<lane|auto> also lands it in a served scene lane "
+                "as one checkpointed batch with a read-back verdict."
             ),
-            schema={"type": "object", "properties": {}},
-            handler=handoff_info,
+            schema={
+                "type": "object",
+                "properties": {
+                    "out": {
+                        "type": "string",
+                        "description": "directory to write the bundle into; omit to list targets",
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "blender|unreal|maya|zbrush|houdini|marvelous|godot",
+                    },
+                    "format": {
+                        "type": "string",
+                        "description": "glb|obj (default: the target's preference)",
+                    },
+                    "hardware": {
+                        "type": "boolean",
+                        "description": "include zips and buttons (default true)",
+                    },
+                    "into": {
+                        "type": "string",
+                        "description": "land the bundle in this served lane (or auto)",
+                    },
+                },
+            },
+            handler=handoff,
             tags=[
                 "seamkiln",
                 "handoff",
                 "export",
+                "land",
                 "blender",
                 "unreal",
                 "maya",
@@ -898,6 +967,6 @@ def register_seamkiln_tools(app) -> None:
                 "units",
                 "axis",
             ],
-            examples=[{}],
+            examples=[{}, {"out": "shot/", "target": "blender", "into": "auto"}],
         )
     )

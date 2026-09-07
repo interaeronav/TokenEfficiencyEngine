@@ -1,0 +1,52 @@
+{
+  "bridge": "FusionMcpBridge on :8766",
+  "fusion_version": "2704.1.53",
+  "document": "Untitled",
+  "bare_rectangle_constraints": 0,
+  "bare_rectangle_fully_constrained": false,
+  "dimensioned_sketch_fully_constrained": true,
+  "plate_bbox_mm": [
+    120.0,
+    80.0,
+    10.0
+  ],
+  "param_set_recomputes_the_body": true,
+  "rollback_restored_the_plate": true,
+  "capture_extension_fusion_wrote": [
+    "capture-1024.jpg"
+  ],
+  "face_hole_default_bores_into_material": true,
+  "counterbore_volume_matches": true,
+  "top_face_edges_chamfered": 6,
+  "revolve_volume_mm3": 37699.112,
+  "revolve_bbox_mm": [
+    10.0,
+    80.0,
+    80.0
+  ],
+  "revolve_pappus_matches": true,
+  "new_component_extrudes_reported": [
+    "c1",
+    "c2"
+  ],
+  "joint_row_keys": [
+    "angle_deg",
+    "between",
+    "offset_mm",
+    "rotation_deg"
+  ],
+  "joint_moved_occurrences": [
+    "c2"
+  ],
+  "joint_rotation_reads_back": 45.0,
+  "export_step_bytes": 31368,
+  "export_obj_unit_measured": "cm",
+  "export_stl_units_declared": "mm",
+  "export_stl_unit_measured": "mm",
+  "export_3mf_unit": "millimeter",
+  "export_f3d_bytes": 115679,
+  "export_iges_global_units": "flag=2 name=2HMM",
+  "export_sat_header": "700 0 4 0            | 30 Autodesk Translation Framework 21 ASM 232.4.0.65535 OSX 24 Sun Sep  6 23:31:14 2026  | 1 9.999999999999999547e-07 1.000000000000000036e-10  | body $4 -1 $-1 $5 $-1 $-1 #",
+  "export_usd_path_suffix": ".usd.usdz",
+  "export_usd_metersPerUnit": "usdz package ['plate.usd.usdc']: binary usdc declares metersPerUnit (value unread without the USD library)"
+}

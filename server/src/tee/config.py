@@ -63,6 +63,8 @@ class ProjectConfig:
     disabled_tools: set[str] = field(default_factory=set)
     allow_code_exec: bool | None = None  # None = not set
     blender_port: int | None = None
+    fusion_port: int | None = None  # A69: the TEE bridge add-in port (TCP)
+    fusion_http_port: int | None = None  # A71: the FusionMcpBridge add-in port (HTTP)
     assets: dict[str, Any] = field(default_factory=dict)
     pins: dict[str, Any] = field(default_factory=dict)
     kb: dict[str, Any] = field(default_factory=dict)
@@ -116,6 +118,18 @@ class ProjectConfig:
             config.blender_port = port
         elif port is not None:
             problems.append("[blender].port must be an integer in 1024-65535")
+
+        fusion = data.get("fusion", {})
+        fusion_port = fusion.get("port") if isinstance(fusion, dict) else None
+        if isinstance(fusion_port, int) and 1024 <= fusion_port <= 65535:
+            config.fusion_port = fusion_port
+        elif fusion_port is not None:
+            problems.append("[fusion].port must be an integer in 1024-65535")
+        fusion_http = fusion.get("http_port") if isinstance(fusion, dict) else None
+        if isinstance(fusion_http, int) and 1024 <= fusion_http <= 65535:
+            config.fusion_http_port = fusion_http
+        elif fusion_http is not None:
+            problems.append("[fusion].http_port must be an integer in 1024-65535")
 
         assets = data.get("assets", {})
         if isinstance(assets, dict):

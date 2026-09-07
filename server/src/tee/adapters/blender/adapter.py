@@ -16,7 +16,7 @@ from typing import Any
 from tee.adapters.blender import codegen
 from tee.adapters.blender.shim import compact_traceback, firewall_check
 from tee.adapters.blender.wire import BlenderWire
-from tee.kernel.adapter import AdapterInfo, Diff, Entity
+from tee.kernel.adapter import AdapterInfo, Diff, Entity, LaneVocab
 from tee.kernel.errors import TeeError
 
 _CAPTURE_FULL = (512, 288, 60)  # (width, height, jpeg quality)
@@ -61,11 +61,23 @@ class BlenderAdapter:
     def probe(self) -> bool:
         return self.wire.probe()
 
+    def vocab(self) -> LaneVocab:
+        """What this lane accepts (A68) - exactly what codegen dispatches."""
+        return LaneVocab(
+            ops=codegen.BASE_OPS + codegen._MODELING_OPS,
+            kinds=codegen.CREATE_KINDS,
+            kind_optional=True,
+            imports=codegen.IMPORT_SUFFIXES,
+            renders=True,
+            purpose="3D scene: model, materials, physics, render (pixels)",
+        )
+
     def list_entities(self) -> list[Entity]:
         data = self._call(codegen.program_list_entities())
         return [_to_entity(e) for e in data["entities"]]
 
     def execute(self, batch: list[dict[str, Any]]) -> Diff:
+        codegen.check_batch(batch)  # a foreign op is a structured refusal, not a traceback
         data = self._call(codegen.program_batch(batch, undo_label="TEE batch"))
         return Diff(
             created=data["created"],

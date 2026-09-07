@@ -335,18 +335,25 @@ def test_adapter_omitted_resolves_to_sole_adapter():
     run_session(scenario)
 
 
-def test_adapter_omitted_with_two_adapters_fails_loud():
+def test_adapter_omitted_with_two_adapters_reads_across_and_writes_loud():
+    """SI-B6 as A68 keeps it: a WRITE two lanes accept and none was declared
+    for fails loud, naming them. A READ with no lane is no longer a
+    refusal - it is the lanes at a glance."""
     app = TeeApp({"fake": FakeAdapter(), "fake2": FakeAdapter()}, project_root=".")
     server = build_server(app)
 
     async def main():
         async with Client(server) as client:
             out = payload(await client.call_tool("tee_scene_summary", {}))
-            assert out["ok"] is False
-            assert out["error"]["code"] == "adapter_required"
-            assert "fake2" in out["error"]["fix"]
+            assert out["ok"] is True and set(out["lanes"]) == {"fake", "fake2"}
+            write = payload(
+                await client.call_tool("tee_batch", {"ops": [{"op": "create", "name": "x"}]})
+            )
+            assert write["ok"] is False
+            assert write["error"]["code"] == "adapter_required"
+            assert "fake, fake2" in write["error"]["message"]
             named = payload(await client.call_tool("tee_scene_summary", {"adapter": "fake2"}))
-            assert named["ok"] is True
+            assert named["ok"] is True and named["adapter"] == "fake2"
 
     try:
         anyio.run(main)

@@ -688,7 +688,14 @@ def register_capture_tools(app, project_root: Path | str, extract_store=None) ->
                         "The scene lane needs the entity to correct.",
                         fix="Pass entity=<scene id> (tee_scene_summary lists ids).",
                     )
-                adapter_name = str(args.get("adapter") or next(iter(app.adapters), "fake"))
+                # A68: the entity's own lane, never the first adapter listed
+                named = args.get("adapter")
+                if named is not None:
+                    adapter_name = str(named)
+                elif app.unbound():
+                    adapter_name = app.locate(entity)
+                else:
+                    adapter_name = app.resolve_adapter(None)
                 applied.append(
                     apply_mod.apply_scene_offset(
                         app,

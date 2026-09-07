@@ -322,9 +322,14 @@ def test_physical_tools_register_and_guard(tmp_path):
         "param_set",
     ):
         assert expected in names
-    # tier-2 ops guard non-Blender adapters with the exact fix
+    # tier-2 ops need a Blender lane: none served refuses by name with the
+    # serve command (A68); naming a non-Blender lane refuses as unsupported
     with pytest.raises(TeeError) as err:
         app.registry.call("wall_with_openings", {"props": {}})
+    assert err.value.code == "blender_not_served"
+    assert "tee serve --adapter blender" in err.value.fix
+    with pytest.raises(TeeError) as err:
+        app.registry.call("wall_with_openings", {"props": {}, "adapter": "fake"})
     assert err.value.code == "unsupported_adapter"
     # mat_assign works on the fake adapter (assign_material parity)
     created = app.run_batch(

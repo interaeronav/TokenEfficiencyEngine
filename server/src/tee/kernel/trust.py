@@ -274,7 +274,11 @@ _EXPLICIT: dict[str, str] = {
     "as_material": "write-scene",
     "as_photo_material": "write-scene",
     "as_sun": "write-scene",
-    "as_sheet": "write-scene",
+    # A68: as_sheet writes a contact-sheet IMAGE and touches no scene; it was
+    # tabled write-scene by habit. Both are baseline, so nothing is granted
+    # by the correction - but a scene-writing tool must name its lane, and
+    # this one has none to name.
+    "as_sheet": "write-artifacts",
     "as_ingest": "write-state",
     "as_publish_library": "write-state",
     "as_generate": "call-engine",
@@ -367,6 +371,15 @@ _EXPLICIT: dict[str, str] = {
     "pk_export": "write-artifacts",
     "pk_flat": "write-artifacts",
     "pk_import": "write-scene",
+    # --- A69: the Fusion lane. One escape hatch, one writer, four reads;
+    # tabled individually like pk_* (no fu_ family row). ---
+    "fu_probe": "read-compute",
+    "fu_measure": "read-compute",
+    "fu_params": "read-scene",
+    "fu_timeline": "read-scene",
+    "fu_export": "write-artifacts",
+    "fu_drawing": "write-artifacts",
+    "fu_execute_python": "exec-code",  # arbitrary Python on Fusion's primary thread
     "pk_script": "write-scene",  # its replay action mutates the live document
     # --- gateway control. Accepting a drifted backend fingerprint is a
     # TRUST decision about a third party, not a read - so it is policy

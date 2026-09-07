@@ -64,6 +64,12 @@ class SceneCache:
     def stamp(self) -> dict[str, int]:
         return {"epoch": self.epoch, "revision": self.revision}
 
+    def has_state(self) -> bool:
+        """Anything a checkpoint could restore: entities, or diffs applied
+        since the last resync. A warm-up alone bumps the revision without
+        putting anything here, so the revision is not the test (A68)."""
+        return bool(self.entities or self._log)
+
     def diff_since(self, epoch: int, revision: int) -> dict[str, Any]:
         if epoch != self.epoch:
             return {

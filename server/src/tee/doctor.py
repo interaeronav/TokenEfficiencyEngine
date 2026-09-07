@@ -165,6 +165,45 @@ def check_blender_bridge(port: int = BRIDGE_PORT) -> Check:
     return Check("blender-bridge", "ok", f"Blender {result.get('v')} ({mode}) on :{port}")
 
 
+def check_fusion_bridge(port: int = 9881, http_port: int = 8766) -> Check:
+    """A69/A71: a TEE bridge add-in inside Fusion - the TEE add-in (TCP) or the
+    FusionMcpBridge (HTTP), whichever answers a ping. A port that answers a
+    ping is up; a port that is open but silent is Fusion's primary thread held
+    by a modal dialog (the FreeCAD lesson), reported as such."""
+    from tee.adapters.fusion.wire import START_FIX_ANY, FusionAutoWire
+    from tee.kernel.errors import TeeError
+
+    open_ports = [p for p in (port, http_port) if _port_open("127.0.0.1", p)]
+    if not open_ports:
+        return Check(
+            "fusion-bridge",
+            "warn",
+            f"nothing listening on 127.0.0.1:{port} (TEE add-in) or :{http_port} (FusionMcpBridge)",
+            fix=START_FIX_ANY,
+        )
+    wire = FusionAutoWire(port=port, http_port=http_port, connect_timeout=1.0)
+    try:
+        ping = wire.ping()
+    except TeeError as exc:
+        return Check(
+            "fusion-bridge",
+            "warn",
+            f"port {', '.join(str(p) for p in open_ports)} open but no bridge answered a ping "
+            f"({exc.code})",
+            fix="A modal dialog may be holding Fusion's primary thread - check the "
+            "Fusion window; or another program holds the port (set TEE_FUSION_PORT / "
+            "--fusion-http-port).",
+        )
+    document = ping.get("document") or "no document open"
+    design = ping.get("design") or "no design"
+    return Check(
+        "fusion-bridge",
+        "ok",
+        f"Fusion {ping.get('version')} via the {wire.transport} on :{wire.port}, "
+        f"{document} ({design})",
+    )
+
+
 def check_bpy_wheel_abi() -> Check:
     minor = sys.version_info.minor
     if minor == 11:
@@ -685,6 +724,7 @@ def run_checks(bridge_port: int = BRIDGE_PORT) -> list[Check]:
         check_unreal(),
         check_voxkiln(),
         check_partkiln(),
+        check_fusion_bridge(),
         check_windtunnel(),
         check_kb(),
         check_web(),

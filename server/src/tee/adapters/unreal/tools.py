@@ -57,7 +57,9 @@ def register_unreal_tools(app: TeeApp, adapter: UnrealAdapter) -> None:
                 fix="Set [server].allow_code_exec = true in .tee/config.toml, "
                 "or use typed ops via tee_batch / ue_call.",
             )
-        checkpoint = app.checkpoints.create(adapter, "auto:ue_script", app.cache("unreal").revision)
+        checkpoint = app.checkpoints.create(
+            adapter, "auto:ue_script", app.cache("unreal").revision, lane="unreal"
+        )
         result = adapter._run_script(str(args["script"]), timeout=float(args.get("timeout", 300)))
         app.cache("unreal").resync(adapter)
         return {"checkpoint": checkpoint.id, "result": result}

@@ -3,6 +3,132 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased — one server, N lanes, no hub (A68, 2026-09-05)
+
+0.21.1 put blender, partkiln and seamkiln in one server and made the first
+listed the default. Everything then went through Blender: a partkiln batch
+with no `adapter=` reached Blender's codegen and came back as a traceback
+naming no other lane, every `tee_script` call took a `.blend` checkpoint even
+for `pdf_compose`, the instructions told every model that TEE "drives Unreal
+Engine and Blender", and the only route from a part to a JPEG was four manual
+calls in "a TEE served on Blender". Research doc 70 is the design of record;
+`CLAUDE_A68_SCRIPT.md` the plan; the owner's rulings are in DECISIONS.
+
+### Content routes; the declared default is opt-in
+
+Every adapter declares what it accepts (`vocab()`: ops, create kinds, import
+suffixes, whether it renders, what it is for). A batch with no `adapter=` on
+a multi-lane server goes where its content says - an entity id to the lane
+that holds it, a create kind to the lane that makes it, a verb to the lane
+that speaks it - and the reply carries `adapter` and `routed`. Two lanes that
+both take a batch refuse naming them (`adapter_required`), an op no lane
+takes refuses naming the lanes that would (`op_not_in_lane`), ops that fit
+different lanes refuse (`batch_spans_lanes`). `tee serve --default-adapter
+NAME` declares a tie-breaker; the order of `--adapter` implies nothing, and
+the Desktop manifest declares none. Single-lane servers change no byte.
+
+### Reads and writes that name no lane
+
+`tee_scene_summary` with no lane is every lane at a glance; `tee_entity_detail`
+finds the id across lanes; `tee_checkpoint` snapshots every lane that holds
+state; `tee_rollback` finds a checkpoint by its global id in the lane that
+owns it; `tee_capture` goes to the one lane that renders; `tee_diff` refuses
+(stamps are per lane). `tee_script` checkpoints ONLY the lane a tool touches:
+`kernel/lanes.py` tables which lane every virtual tool belongs to, a
+write-scene tool with no lane fails at registration, search indexes the lane
+and prefers served lanes at equal score, and `tee_status` reports each lane's
+purpose, ops, kinds and tool families. Nine positional and literal Blender
+defaults in the kernel lanes became capability lookups; a headless lane
+(`pc_`, `pdf_`, `ex_`, `sense_`, `kb_`, the fleet) never touches a DCC.
+
+### The model is told, and the handoff lands
+
+The MCP instructions are built from what the server serves (the lanes and
+their purposes, the routing rule, which lanes never need a DCC), under the
+2 KB a deferring host truncates past; every `adapter=` parameter carries one
+line; `tee_search_tools` examples span the lanes. `pk_export`, `sk_handoff`
+and `fc_export` take `into=<lane|auto>` and land the written file in a served
+scene lane as one checkpointed batch with a read-back verdict - a JPEG of a
+part is `pk_export into=blender` then `tee_capture adapter=blender`. A landing
+is a write-scene the trust kernel decides as one. seamkiln's `ops_for` emitted
+a create of kind `import_file`, which Blender rejects; it now emits the
+`import_file` op.
+
+### Measured (Desktop composition, every call through the MCP layer)
+
+partkiln and seamkiln batches with no `adapter=`: 3 calls → **1**; a script
+calling `kb_status`: 1 Blender checkpoint → **0**; render a part: 4 calls →
+**2**; always-loaded surface 17 tools, 2,033 → 2,129 wire tokens (+96);
+search recall re-baselined on the real 173-tool registry (38 cases, 35 / 38
+/ 38 / 38 at limit 3 / 5 / 8 / 10). `benchmarks/RESULTS.md` and doc 70 §7
+carry the before/after table.
+
+### The Fusion lane (A69, 2026-09-06)
+
+Autodesk Fusion is a lane: `tee serve --adapter fusion`, with a bridge
+add-in (`adapters/fusion/tee_bridge/TEE/`, MIT) running inside Fusion that
+runs every request on Fusion's primary thread through its custom-event
+queue — the mechanism Autodesk's own MCP sample uses — and an adapter that
+compiles one batch to one script and reads one diff back, the FreeCAD
+precedent. Zero new always-loaded tools. Sketches (rectangles, circles on
+the origin planes), extrudes (join/cut/intersect/new body/new component),
+fillets, components, user parameters, `set`/`delete`/`param_set`, STEP/IGES/
+SAT/f3d imports; `fu_probe`, `fu_measure`, `fu_params`, `fu_timeline`,
+`fu_export` (step/stl/obj/f3d, `into=` lands the file in a scene lane) and
+the `exec-code` escape hatch `fu_execute_python`. Millimetres on the wire
+with the unit written into every expression, centimetres inside; a
+checkpoint is the timeline marker plus every parameter expression and says
+what it cannot restore; the lane never creates, saves or closes a document.
+Every API call is a reference-verified row in research doc 71; nothing is
+claimed live until the smoke in `docs/fusion-lane.md` has run on a machine
+with Fusion. The router gained one refinement: a lane whose application is
+not running is not a candidate, so a closed Fusion never competes with
+partkiln for a sketch. The Desktop manifest is unchanged until then.
+
+**v2 (A70, the same day).** Sketch geometry has addresses (`sk1/r0.bottom`,
+`r0.bl`, `l0.start`, `c0.center`, `p0`, `origin` — a rectangle's sides named
+by position, because the API leaves their order unstated); `create
+constraint` (eleven kinds) and `create dimension` (distance / diameter /
+radius / angle — an entity `dim1` whose `expression` binds a user parameter,
+so a `param_set` re-sizes the part); faces named by outward normal (`+z`);
+`create hole` (simple / counterbore / countersink, by face and point or by
+sketch point, depth or through, `flip`), `create chamfer` and an `edges`
+selector on fillets, `create revolve` (a construction axis or a sketch line);
+`create joint` (seven motions, geometry at a face centre or an origin,
+angle / offset / flip, `set` rotation and slide); `fu_export` iges / sat /
+3mf / usd, self-describing on units and declared so; `fu_drawing` — the
+Fusion API cannot create a drawing (doc 71 row 49), so the sheet is
+partkiln's from a STEP handoff, decided as the scene write it is. Twenty
+more reference-verified rows (doc 71 §3, 31–50) and one inverted premise;
+everything still on the shim until the Mac smoke, which gained five steps.
+
+### The Fusion lane goes live (A71, 2026-09-06)
+
+The Mac smoke ran on Fusion 2704.1.53: `tests/test_fusion_live.py` passed
+end to end (steps 1–11 and `fu_drawing` through partkiln, 2 passed in 7.8 s)
+and `docs/research/71-fusion-live-facts.json` holds its 30 facts. The lane
+speaks to **either bridge add-in** — the TEE add-in (TCP 9881) or the
+FusionMcpBridge the owner's Mac already runs (HTTP 8766, vendored
+byte-identical), whichever answers (`FusionAutoWire`; `--fusion-http-port`,
+`[fusion] http_port`; `tee doctor` names the one in use). What the live
+build corrected: the id map is **per document** (resolving a token from a
+closed design crashed Fusion twice — a segfault in `findEntityByToken`; the
+key is `Document.creationId`, since the root component's token is identical
+across untitled designs); STEP and the Fusion archive take a component or
+the whole design and refuse a body before the wire with Fusion's own words;
+USD is a USDZ package at `<out>.usdz` and `fu_export` returns the file that
+exists; IGES, SAT and 3MF declare millimetres, OBJ centimetres, and STL the
+design's default length unit, read from the design at export time; a ping
+counts only the active document's ids. The smoke itself learned three
+things from Fusion (a join inside the plate adds nothing; the revolve
+profile it drew; a lone joint's diff row carries no `kind`, so `created` is
+the address). Live beside a headless Blender: `fu_export format=obj
+into=blender` landed the plate (scale 0.01, 0.11 s) and `tee_capture
+adapter=blender` returned a JPEG in 0.05 s. The Blender live suite is green
+again (26 passed): one assertion followed A68's better import refusal, and
+the two `bl_execute_python` tests grant the escape hatch in their own test
+project, as an owner does. Desktop manifest and version: unchanged, the
+owner's decisions.
 ## 0.22.0 — 2026-09-06
 
 The wind-tunnel lane (A72; numbered A68 while it was built, renumbered before

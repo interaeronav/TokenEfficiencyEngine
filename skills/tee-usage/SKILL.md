@@ -1,6 +1,6 @@
 ---
 name: tee-usage
-description: Drive Blender/Unreal through the TEE MCP server with minimal tokens - the macro-first, diff-based operating procedure. Use whenever a TEE server (tee_* tools) is connected and you are building, editing, furnishing, or verifying a 3D scene.
+description: Drive TEE's lanes - Blender or Unreal scenes, partkiln mechanical CAD, seamkiln garments, and the headless point-cloud, PDF, extraction and sense lanes - through the TEE MCP server with minimal tokens; the macro-first, diff-based operating procedure. Use whenever a TEE server (tee_* tools) is connected and you are modelling, drafting, measuring, extracting, furnishing, or verifying anything it serves.
 version: 1.0
 license: MIT
 ---
@@ -24,6 +24,37 @@ procedure that keeps YOU from working against it.
 4. **End**: `tee_remember` durable facts (versions, conventions,
    decisions) so the next session starts warm.
 
+## Lanes: no lane is the hub
+
+One server holds several lanes (`tee_status` lists them with what each
+is for, its ops and kinds, and its tool prefixes). A lane is used only
+when the work needs it — a headless lane never touches Blender or
+Unreal, and pixels come only from a lane that renders.
+
+- **Let content route.** `tee_batch` with no `adapter=` goes where its
+  ops say: an op naming an entity to the lane that holds it, a `create`
+  to the lane that makes that `kind`, any other verb to the lane that
+  speaks it. Read `adapter` (and `routed`) in the reply. Name `adapter=`
+  when two lanes could take the batch — the refusal lists them — never
+  guess a lane by habit.
+- **Prefixes tell you the lane**: `bl_`/`hb_` Blender, `pk_` partkiln,
+  `sk_` seamkiln, `ue_`/`pin_` Unreal, `fc_` FreeCAD; `pc_`, `pdf_`,
+  `ex_`, `sense_`, `kb_`, `solve_`/`quant_`/`med_` and the rest need no
+  lane at all.
+- **Which lane works better**: exact dimensions, holes, fillets, STEP
+  and dimensioned drawings are partkiln's (`pk_verbs` lists its ops);
+  patterns, sewing, drape and fit are seamkiln's; a raw scan is `pc_*`;
+  a document is `pdf_*`; meshes, materials, physics settles and renders
+  are Blender's; levels and Blueprints are Unreal's.
+- **Reads without a lane**: `tee_scene_summary` is the lanes at a glance;
+  `tee_entity_detail` finds the lane that holds the id; `tee_rollback`
+  finds the lane that owns the checkpoint; `tee_diff` needs the lane the
+  stamp came from (the reply that gave you the stamp says it).
+- **Handoff on request only**: `pk_export ... into=blender` (or
+  `sk_handoff`, `fc_export`) lands a file in a scene lane in the same
+  server; then `tee_capture adapter=blender` for pixels. An export with
+  no `into` writes a file and touches no scene.
+
 ## The macro-first rule
 
 Any loop whose intermediate results you will not quote back — check ⇢
@@ -43,11 +74,15 @@ virtual tools, adapter-dependent) is behind `tee_search_tools` →
 (Unreal), modeling/physics (`wall_with_openings`, `sim_settle`,
 `plaus_check`, `joinery_check`, `mat_assign`), `uefn_*`, fabrication
 (`fc_drawing`, `fc_export` on the FreeCAD adapter; `hb_*` closets and
-cut lists on Blender), gateway-fronted backends (`<backend>.<tool>`,
-e.g. `fs.read_text_file` — see gw_status), session tools
-(`report_savings`, `handoff`, `board_compose`). Search by capability
-words ("bake physics", "cut list", "drawing sheet") — don't guess
-names.
+cut lists on Blender), mechanical CAD (`pk_*`: measure, check, drawing,
+export, flat, BOM — modelling itself is a `tee_batch` of partkiln ops),
+garments (`sk_*`: fit, plot, interchange DXF, bodies, tech pack,
+handoff), point clouds (`pc_*`), PDFs (`pdf_*`), senses (`sense_*`),
+gateway-fronted backends (`<backend>.<tool>`, e.g. `fs.read_text_file`
+— see gw_status), session tools (`report_savings`, `handoff`,
+`board_compose`). Search by capability words ("bake physics", "cut
+list", "drawing sheet", "drape a garment", "level a scan") — don't
+guess names; `tee_describe_tool` names each tool's `lane`.
 
 ## Web reading
 

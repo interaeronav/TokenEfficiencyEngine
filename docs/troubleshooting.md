@@ -15,6 +15,27 @@ failures beyond it.
 | "another tee server (pid N) already serves this project" | Two clients on one project is legal; they share `.tee/` memory and checkpoints — expect shared state, not corruption |
 | responses look truncated with a `narrow` hint | The response budgeter fired; follow the hint (page, filter, or query the detail tool) — that is the design, not a bug |
 
+## Lanes (A68: no lane is the hub)
+
+| Refusal | Meaning | Fix |
+|---|---|---|
+| `adapter_required` | several served lanes accept this batch (or a read named none and stamps are per lane) | pass `adapter=<lane>`; `tee_status` lists each lane's ops and kinds; an operator can declare a tie-breaker with `tee serve --default-adapter NAME` |
+| `op_not_in_lane` | no served lane accepts that op or create kind | the refusal lists what each served lane takes; check the op name, or serve the lane that speaks it |
+| `batch_spans_lanes` | the ops fit different lanes | one batch per lane (a `tee_script` can chain them), or pin one with `adapter=` |
+| `bad_op` / `bad_kind` (Blender) | Blender was named, or was the only taker, and does not speak that op | the fix names Blender's vocabulary and, on a multi-lane server, the lanes that accept the batch |
+| `blender_not_served` | a tool that compiles to Blender-side patterns (tier-2 modeling, sims, the UEFN export, the extract-to-scene bridge) found no Blender lane | `tee serve --adapter blender ...`; on Desktop start Blender with the bridge add-on and check `tee_status` |
+| `capture_no_renderer` / `capture_ambiguous` | no connected lane can render pixels right now / several can | start a lane that renders, arrange a garment in seamkiln, or pass `adapter=` |
+| `entity_ambiguous` / `checkpoint_ambiguous` | an id or a label exists in several lanes | pass `adapter=`; roll back by checkpoint id |
+| `handoff_no_importer` / `handoff_importer_ambiguous` | no served lane imports that file suffix / several do | export a suffix a served lane takes (Blender: glb/gltf/obj/fbx), or pass `adapter=` (`into=` on an export) |
+| `handoff_import_unsupported` | `pk_export` / `sk_handoff` / `fc_export` named a lane (`into=`) that does not import that suffix | the fix names a served lane that does, or the format to export instead (a STEP into Blender: export glb) |
+| `handoff_units_unknown` | landing an OBJ/FBX whose writer declared no units | export glb (self-describing), or state the units the writer used |
+| `handoff_file_missing` | `into=` on an export whose file was not written | export first; the path the export reply names is what lands |
+| `trust_denied` on an export with `into=` | landing a file in a scene is a write-scene, decided as one - a task carrying untrusted content may not do it | re-run the step yourself in a live turn if you have read the content and intend it |
+| `sense_adapter_required` | two connected lanes have a viewport | pass `adapter=` |
+
+`tee_status` shows `default_adapter` only when one was declared. A Desktop
+server that still shows one is running an older bundle.
+
 ## Blender bridge
 
 | Symptom | Cause / fix |
@@ -100,3 +121,29 @@ rm -rf ~/Library/Caches/FreeCAD/v1-1/Cache/FreeCAD_Doc_* ~/Library/Caches/FreeCA
 FreeCAD's user cache directory.) The benchmark battery probes for this
 state and skips the fabrication scenario with this page's fix instead
 of hanging.
+
+## Fusion bridge (A69)
+
+| Symptom | Cause / fix |
+|---|---|
+| `fusion_unreachable` | No bridge add-in answered — the TEE add-in on :9881 (Utilities → Add-Ins → Scripts and Add-Ins → TEE → Run) or the FusionMcpBridge on :8766 (auto-starts with Fusion once copied into the AddIns folder); `tee doctor` shows `fusion-bridge` and which one answered; `--fusion-port` / `--fusion-http-port`, `[fusion] port` / `http_port` if one moved |
+| `fusion_wire_failed` "did not answer within N s" / "STILL RUNNING" | The port is open but Fusion's primary thread is not servicing events. A modal dialog holds it (the FreeCAD lesson above) — bring the Fusion window forward and dismiss it. Over the FusionMcpBridge a 504 means the job is **still running** inside Fusion: read the design back before resending anything |
+| Fusion stops answering everything — ping, `/status`, the window — right after a design was closed or switched | Before A71 the lane resolved ids remembered from the previous document, and `findEntityByToken` on such a token **crashes Fusion** (segfault, then its crash reporter holds the primary thread; doc 71 row 54). Upgrade: the map is per document now. Recovery is a force-quit and relaunch of Fusion; the bridge is back within ~20 s |
+| `fusion_bad_reply` | The bridge answered something that is not a JSON object with a dict `result` — the FusionMcpBridge reprs a non-JSON result. A typed batch never produces this; `fu_execute_python` code that assigns a non-dict to `result` does |
+| `bad_op` "never a body" on `fu_export` step / f3d / iges / sat / usd | Those formats take a component or the whole design (Fusion's own words: `3 : invlid argument geometry`) — pass a component id or omit `of`; 3mf, stl and obj take a body |
+| `fusion_no_design` | No design is open — File → New Design, then retry; `fu_probe` says which document is active |
+| `fusion_direct_design` on `tee_checkpoint` | The design captures no history, so there is no timeline to roll back — Design Settings → Capture Design History, or work without rollback |
+| `fusion_bridge_error` | Fusion's own exception; the message is the traceback's last lines. Fix what it names and resend; nothing after the failing op ran |
+| `fusion_unknown_entity` | An id this bridge session does not know (a bridge restart renumbers) — `tee_scene_summary(adapter=fusion, refresh=true)` |
+| `capture_needs_pillow` | Fusion wrote a PNG and Pillow is missing — `uv pip install pillow` (Fusion 2704.1.53 writes JPEG directly; the fallback is for a build that refuses it) |
+| `adapter_required` naming fusion and partkiln | Both applications are live and both take the batch — pass `adapter=`; a closed Fusion never competes |
+| `bad_op` naming a sketch address (v2) | An address is `r0.bottom\|top\|left\|right`, `r0.bl\|br\|tl\|tr`, `l0`, `l0.start\|end`, `c0`, `c0.center`, `p0` or `origin` — bare inside the sketch op, prefixed `sk1/` (or with `sketch` given) outside it |
+| `fusion_unknown_entity` naming a sketch and what it has | The address is well-formed but that sketch has no such piece; the message lists the ones it has |
+| `fusion_op_failed` "refused the … constraint" | Fusion could not create it: the geometry contradicts it or the sketch is over-constrained — place the geometry where the constraint puts it, or drop one |
+| `fusion_no_face` | The body has no planar face facing the direction named; the message lists the ones it has (a cylinder: `+z`, `-z`). Directions are `+x -x +y -y +z -z` |
+| `fusion_op_failed` "hole failed" | Fusion returned null: is the point on the face, and does the extent reach a body? Try `flip: true` (doc 71 §9 item 4) |
+| `fusion_op_failed` "revolve failed" | The profile crosses its axis, or the axis is not in the sketch plane (an XY sketch revolves about `x` or `y`, never `z`) |
+| `fusion_op_failed` "joint failed … different components" | Both sides resolved to the same component; a joint is between two — a `new_component` extrude makes one |
+| `bad_op` "not a body" on `fu_export` | iges, sat and usd export a component or the whole design — pass a component id or omit `of`; 3mf, stl and obj take a body |
+| `partkiln_not_served` on `fu_drawing` | The Fusion API cannot create a drawing; the sheet comes from partkiln — `tee serve --adapter fusion --adapter partkiln` |
+

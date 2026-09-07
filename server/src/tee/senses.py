@@ -336,6 +336,35 @@ def transcribe(spec: dict[str, Any], *, state_dir: Path | None = None) -> dict[s
     return out
 
 
+def _one_viewport(adapters: dict[str, Any]) -> str:
+    """The lane a viewport question means when none was named (A68): the
+    one connected lane that renders - never the first alphabetically. Two
+    that could answer is a question back, not a guess."""
+    able = []
+    for name, adapter in adapters.items():
+        vocab = getattr(adapter, "vocab", None)
+        try:
+            renders = vocab().renders if callable(vocab) else True
+        except Exception:
+            renders = True
+        if renders:
+            able.append(name)
+    if len(able) == 1:
+        return able[0]
+    if not able:
+        raise TeeError(
+            "sense_no_adapter",
+            "No connected lane renders a viewport.",
+            fix=f"Connected: {', '.join(sorted(adapters))}. Start Blender or Unreal with the "
+            "TEE bridge, then pass adapter=<lane>.",
+        )
+    raise TeeError(
+        "sense_adapter_required",
+        f"{len(able)} connected lanes have a viewport: {', '.join(able)}.",
+        fix="Pass adapter=<lane>.",
+    )
+
+
 def viewport(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any]:
     """Look at what a DCC is actually showing, and answer in text.
 
@@ -365,7 +394,7 @@ def viewport(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any
             fix=f"Connected: {', '.join(sorted(adapters))}.",
         )
     if not name:
-        name = sorted(adapters)[0]
+        name = _one_viewport(adapters)
     adapter = adapters[name]
 
     question = str(spec.get("question") or "").strip()
@@ -434,7 +463,10 @@ def camera(spec: dict[str, Any], *, adapters: dict[str, Any]) -> dict[str, Any]:
     """
     from tee.kernel import local_vlm
 
-    blender = adapters.get("blender")
+    # A68: the served Blender by what it can do, not by its name
+    blender = adapters.get("blender") or next(
+        (a for a in adapters.values() if hasattr(a, "capture_look")), None
+    )
     if blender is None:
         raise TeeError(
             "sense_no_adapter",
@@ -604,7 +636,7 @@ def frame(spec: dict[str, Any], *, adapters: dict[str, Any], state_dir: Path | N
             f"No adapter named '{name}'.",
             fix=f"Connected: {', '.join(sorted(adapters))}.",
         )
-    name = name or sorted(adapters)[0]
+    name = name or _one_viewport(adapters)
     adapter = adapters[name]
     if not hasattr(adapter, "capture_look"):
         raise TeeError(

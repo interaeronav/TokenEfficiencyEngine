@@ -1303,6 +1303,508 @@ def run_pointcloud_scenario() -> dict | None:
     }
 
 
+# --------------------------------------------------------------------------
+# A68: lane routing on the Desktop composition (blender + partkiln + seamkiln)
+# --------------------------------------------------------------------------
+
+ROUTING_HEADER = "## Lane routing: no lane is the hub (A68)"
+
+# Blender's batch vocabulary as adapters/blender/codegen.py accepts it at
+# 0.21.1: five ops plus the eight tier-2 modeling ops, and eleven create
+# kinds (an omitted kind is a cube). The stand-in below speaks exactly this.
+_BLENDER_OPS = (
+    "create", "set", "delete", "assign_material", "import_file",
+    "wall_with_openings", "slab", "roof", "stairs",
+    "opening_cut", "array_along", "profile_extrude", "param_set",
+)
+_BLENDER_KINDS = (
+    "cube", "plane", "uv_sphere", "ico_sphere", "cylinder", "cone",
+    "torus", "monkey", "empty", "light", "camera",
+)
+_ROUTING_PART = [
+    {"op": "create", "kind": "part", "name": "bracket", "props": {"material": "steel_s275"}},
+    {"op": "create", "kind": "sketch", "name": "base",
+     "props": {"plane": "XY", "profile": [{"rect": ["120mm", "80mm"], "tag": "outer"}]}},
+    {"op": "create", "kind": "extrude", "name": "plate",
+     "props": {"sketch": "base", "distance": "10mm"}},
+]
+_ROUTING_GARMENT = [{"op": "create", "kind": "block", "props": {"block": "tee"}}]
+
+
+def _blender_stand_in():
+    """Blender's vocabulary and refusal shape, with no bridge.
+
+    Used where no Blender binary is on the machine. It declares exactly the
+    vocabulary `adapters/blender/adapter.py` declares and pre-validates a
+    batch the way that adapter does since A68 P1a - `codegen.check_batch`,
+    so a foreign op is `bad_op`/`bad_kind` carrying Blender's own list
+    (0.21.1 answered `blender_error` with a compacted traceback and a fix
+    naming no other lane; the P0b "before" rows in RESULTS were taken
+    against that shape). An `import_file` lands a mesh whose dimensions are
+    what the GLB declares, so a landing's read-back verdict is real.
+    `snapshots` counts checkpoints taken against it, `captures` the pixels
+    asked of it."""
+    from tee.adapters.blender import codegen
+    from tee.adapters.blender.adapter import BlenderAdapter
+    from tee.kernel.adapter import AdapterInfo, FakeAdapter
+    from tee.kernel.errors import TeeError
+
+    def declared_dims(path) -> list[float]:
+        try:
+            from tee.assets import gltf
+
+            return [float(v) for v in gltf.probe(Path(str(path)))["extents_m"]]
+        except Exception:
+            return [0.12, 0.08, 0.01]
+
+    class BlenderStandIn(FakeAdapter):
+        def __init__(self) -> None:
+            super().__init__()
+            self.snapshots = 0
+            self.captures = 0
+
+        vocab = BlenderAdapter.vocab  # the same declaration, from codegen's constants
+
+        def info(self) -> AdapterInfo:
+            return AdapterInfo(
+                id="blender", product="Blender (stand-in)", version="5.2.0",
+                connected=True, extra={"entities": len(self._store)},
+            )
+
+        def execute(self, batch):
+            codegen.check_batch(batch)  # what the real adapter does before the wire
+            rewritten = []
+            for op in batch:
+                verb = op.get("op")
+                if verb == "import_file":
+                    props = dict(op.get("props") or {})
+                    props.setdefault("dimensions", declared_dims(op.get("path")))
+                    rewritten.append(
+                        {"op": "create", "kind": "mesh", "name": op.get("name"), "props": props}
+                    )
+                elif verb in codegen._MODELING_OPS:
+                    raise TeeError("stand_in", f"the stand-in does not model ({verb}).")
+                else:
+                    rewritten.append(op)
+            return super().execute(rewritten)
+
+        def snapshot(self, label: str):
+            self.snapshots += 1
+            return super().snapshot(label)
+
+        def capture(self, view: str, max_bytes: int) -> bytes:
+            self.captures += 1
+            return super().capture(view, max_bytes)
+
+    return BlenderStandIn()
+
+
+def _desktop_app(root: str):
+    """ONE app composed the way the Desktop manifest serves it - blender,
+    partkiln, seamkiln - built through `cli.build_app` so the benchmark
+    inherits whatever default the CLI implies (0.21.1: the first listed;
+    A68: none), then every kernel lane `cmd_serve` attaches, in its order.
+    partkiln runs on the test suite's FakeKernel (no OCP anywhere near a
+    benchmark that measures routing); seamkiln rides along when it imports."""
+    from importlib import import_module
+
+    from tee import cli
+    from tee.adapters.partkiln import PartkilnAdapter
+
+    tests_dir = REPO / "server" / "tests"
+    if str(tests_dir) not in sys.path:
+        sys.path.insert(0, str(tests_dir))
+    fake_kernel = import_module("fixtures_partkiln").FakeKernel  # the suite's own fake
+    blender = _blender_stand_in()
+    lanes = [
+        cli.Lane("blender", blender),
+        cli.Lane("partkiln", PartkilnAdapter(root, kernel=fake_kernel())),
+    ]
+    seamkiln_note = None
+    try:
+        import_module("seamkiln")
+        from tee.adapters.seamkiln import SeamkilnAdapter
+
+        lanes.append(cli.Lane("seamkiln", SeamkilnAdapter(root)))
+    except ImportError as exc:
+        seamkiln_note = f"seamkiln rows skipped ({exc})"
+    app = cli.build_app(lanes, root, allow_code_exec=False)
+    store = cli._attach_extract(app, root, with_handoff="blender" in app.adapters)
+    cli._attach_assets(app, root, store)
+    cli._attach_capture(app, root, store)
+    cli._attach_pointcloud(app, root)
+    cli._attach_pipeline(app, root)
+    cli._attach_pins(app, root)
+    cli._attach_design(app, root)
+    cli._attach_senses(app, root)
+    cli._attach_pdf(app, root)
+    cli._attach_purge(app, root)
+    cli._attach_physical(app, root)
+    cli._attach_uefn(app, root)
+    cli._attach_kb(app, root)
+    cli._attach_llm(app, root)
+    cli._attach_web(app, root)
+    cli._attach_gateway(app, root)
+    return app, blender, seamkiln_note
+
+
+def run_routing_scenario() -> dict | None:
+    """A68: what choosing a lane costs on the Desktop composition.
+
+    Every call goes through the real MCP layer (`build_server` + the SDK's
+    in-memory client), so the tokens are the wire's and the behaviour is
+    whatever the served surface does today - the same scenario measures the
+    tree before and after the change. A row completes its task the way a
+    model that knows nothing about lanes would: send the batch with no
+    adapter=; if refused and the refusal names the lane, retry with it; if
+    refused and it does not, ask tee_status (one more call) and then retry.
+    Deterministic, no DCC, honest skips where a kernel is absent."""
+    try:
+        import anyio
+        from mcp.client import Client
+        from mcp.types import TextContent
+
+        from tee.server import build_server
+    except ImportError as exc:
+        print(f"routing scenario skipped ({exc})")
+        return None
+
+    root = tempfile.mkdtemp(prefix="tee-bench-routing-")
+    app, blender, seamkiln_note = _desktop_app(root)
+    server = build_server(app)
+    served = list(app.adapters)
+    rows: list[dict] = []
+    facts: dict = {
+        "served": served,
+        "default_adapter": app.default_adapter,
+        "virtual_tools": len(app.registry),
+        "seamkiln_note": seamkiln_note,
+    }
+
+    async def drive() -> None:
+        async with Client(server) as client:
+            meter = Meter()
+
+            async def call(name: str, args: dict) -> dict:
+                result = await client.call_tool(name, args)
+                block = result.content[0]
+                if isinstance(block, TextContent):
+                    meter.call({"tool": name, **args}, block.text)
+                    return _json.loads(block.text)
+                meter.round_trips += 1
+                meter.text({"tool": name, **args})
+                meter.image(512, 288)  # a budgeted capture, as the Tee arm counts it
+                return {"image": True}
+
+            def row(task: str, note: str) -> None:
+                rows.append(
+                    {"task": task, "calls": meter.round_trips, "tokens": meter.tokens, "note": note}
+                )
+                meter.__init__()
+
+            async def complete(task: str, ops: list[dict], lane: str) -> None:
+                out = await call("tee_batch", {"ops": ops})
+                if out.get("ok"):
+                    lane_seen = out.get("adapter")
+                    landed = f"landed on {lane_seen}" if lane_seen else "one call"
+                    row(task, out.get("routed") or landed)
+                    return
+                error = out.get("error") or {}
+                named = lane in _json.dumps(error)
+                if not named:
+                    await call("tee_status", {})  # the refusal named no lane: ask
+                out = await call("tee_batch", {"ops": ops, "adapter": lane})
+                asked = "the fix named the lane" if named else "no lane in the fix, asked"
+                retried = "retried ok" if out.get("ok") else "retry FAILED"
+                row(task, f"refused ({error.get('code')}); {asked}; {retried}")
+
+            # 1-2: a lane-owned batch with no adapter=
+            await complete("partkiln batch, adapter omitted", _ROUTING_PART, "partkiln")
+            if "seamkiln" in served:
+                await complete("seamkiln batch, adapter omitted", _ROUTING_GARMENT, "seamkiln")
+
+            # 3: a script calling an adapter-agnostic tool
+            before = blender.snapshots
+            await call("tee_script", {"code": 'result = call("kb_status", {})'})
+            taken = blender.snapshots - before
+            facts["script_blender_checkpoints"] = taken
+            row("tee_script calling kb_status", f"{taken} Blender checkpoint(s)")
+
+            # 4: a read with no adapter=
+            out = await call("tee_scene_summary", {})
+            row(
+                "tee_scene_summary, adapter omitted",
+                "lanes overview" if "lanes" in out else "one lane's rows",
+            )
+
+            # 5: the recall table over the FULL composition
+            cases = import_module_cases()
+            recall = {}
+            for limit in (3, 5, 8, 10):
+                hits = 0
+                for query, want in cases:
+                    names = [i["name"] for i in app.registry.search(query, limit)["items"]]
+                    hits += want in names
+                recall[limit] = hits
+            facts["recall"] = recall
+            facts["cases"] = len(cases)
+
+            # 6: the always-loaded wire and the instructions the host indexes
+            tools = (await client.list_tools()).tools
+            facts["surface_tokens"] = estimate_tokens(
+                [t.model_dump(by_alias=True, mode="json", exclude_none=True) for t in tools]
+            )
+            facts["n_tools"] = len(tools)
+            facts["instructions_bytes"] = len((server.instructions or "").encode())
+
+            # 7: render a partkiln part - the handoff into a lane that renders
+            app.run_batch("partkiln", _ROUTING_PART)  # setup, not metered
+            out_dir = Path(root) / "handoff"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            glb = str(out_dir / "bracket.glb")
+            export_args = {"format": "glb", "out": glb, "of": "part:bracket", "target": "blender"}
+            exported = await call(
+                "tee_call", {"name": "pk_export", "args": {**export_args, "into": "blender"}}
+            )
+            if exported.get("ok") and exported.get("landed"):
+                await call("tee_capture", {"adapter": "blender"})
+                row("render a partkiln part", "pk_export into= then tee_capture")
+            else:
+                # A tree without `into=` refuses the probe as unknown_argument.
+                # That probe is the harness's, not a 0.21.1 model's: it walked
+                # the four-step manual route, so count exactly that.
+                meter.__init__()
+                exported = await call("tee_call", {"name": "pk_export", "args": export_args})
+                ingested = await call(
+                    "tee_call", {"name": "as_ingest", "args": {"directory": str(out_dir)}}
+                )
+                import_args = {
+                    "asset": "local:bracket", "adapter": "blender", "asset_class": "model",
+                    "target_dims": [0.12, 0.08, 0.01], "name": "bracket",
+                }
+                placed = await call("tee_call", {"name": "as_import", "args": import_args})
+                await call("tee_capture", {"adapter": "blender"})
+                ok = exported.get("ok") and ingested.get("ok") and placed.get("ok")
+                step = "ingest" if not ingested.get("ok") else "import"
+                failed = "" if ok else f" ({step} failed)"
+                route = "pk_export, as_ingest, as_import, tee_capture"
+                row("render a partkiln part", route + failed)
+
+    def import_module_cases():
+        from importlib import import_module
+
+        return list(import_module("test_search_budget").CASES)
+
+    try:
+        anyio.run(drive)
+    finally:
+        app.shutdown()
+    facts["rows"] = rows
+    for r in rows:
+        print(f"routing: {r['task']}: {r['calls']} calls / {r['tokens']} tok - {r['note']}")
+    print(
+        f"routing: {facts['n_tools']} tools = {facts['surface_tokens']} tok on the wire, "
+        f"instructions {facts['instructions_bytes']} B, {facts['virtual_tools']} virtual tools, "
+        f"recall {facts['recall']} of {facts['cases']}, default {facts['default_adapter']}"
+    )
+    return facts
+
+
+FUSION_HEADER = "## Fusion lane: sketch, extrude, fillet, measure (A69)"
+FUSION_V2_HEADER = (
+    "## Fusion lane v2: a dimensioned bracket with holes, a chamfer, a revolve and a joint (A70)"
+)
+
+
+def _batch_script(executed: list[str]) -> str:
+    """The batch script the lane sent - not the checkpoint's snapshot program
+    that `run_batch` runs first (A70 P5 found A69's row measuring that one)."""
+    return next(s for s in executed if "# op 0:" in s)
+
+
+def run_fusion_scenario() -> dict | None:
+    """A69 P4: what a part costs a model through the Fusion lane, on the shim.
+
+    Fusion has no headless build, so this runs on the suite's fake adsk
+    (tests/fixtures_fusion.py), which executes the SAME scripts the adapter
+    sends a live Fusion - the tokens are the wire's, only the geometry is
+    arithmetic. The naive arm is what a model does without the lane: write
+    the Fusion API script itself (the script TEE compiles is the fairest
+    stand-in - it is the minimum a correct one contains), send it through an
+    execute-script door, and read the design back as a listing to learn what
+    it made. The TEE arm is one batch, its diff, and one fu_measure."""
+    try:
+        from tee.adapters.fusion import codegen
+        from tee.adapters.fusion.adapter import FusionAdapter
+        from tee.adapters.fusion.tools import register_fusion_tools
+        from tee.app import TeeApp
+    except ImportError as exc:
+        print(f"fusion scenario skipped ({exc})")
+        return None
+    tests_dir = REPO / "server" / "tests"
+    if str(tests_dir) not in sys.path:
+        sys.path.insert(0, str(tests_dir))
+    from importlib import import_module
+
+    fake_wire = import_module("fixtures_fusion").FakeFusionWire
+
+    ops = [
+        {"op": "create", "kind": "sketch", "name": "base", "props": {"rects": [[0, 0, 120, 80]]}},
+        {"op": "create", "kind": "extrude", "name": "plate",
+         "props": {"sketch": "sk1", "distance": 10}},
+        {"op": "create", "kind": "fillet", "name": "round", "props": {"body": "b1", "radius": 2}},
+    ]
+
+    # -- TEE arm: one batch + its diff, then one measurement --------------
+    root = tempfile.mkdtemp(prefix="tee-bench-fusion-")
+    adapter = FusionAdapter(fake_wire(), workdir=root)
+    app = TeeApp({"fusion": adapter}, project_root=root)
+    register_fusion_tools(app, adapter)
+    tee = Meter()
+    try:
+        diff = app.run_batch("fusion", ops)
+        tee.call({"tool": "tee_batch", "ops": ops}, diff)
+        measured = app.registry.call("fu_measure", {"of": "b1"})
+        tee.call({"tool": "fu_measure", "of": "b1"}, measured)
+        script = _batch_script(adapter.wire.executed)
+    finally:
+        app.shutdown()
+
+    # -- naive arm: the model writes the script, runs it, reads the design back
+    naive = Meter()
+    wire = fake_wire()
+    reply = wire.execute(script)
+    naive.call({"tool": "execute_script", "code": script}, reply)
+    listing = wire.execute(codegen.LIST_PROGRAM)
+    naive.call({"tool": "execute_script", "code": codegen.LIST_PROGRAM}, listing)
+
+    row = {
+        "tee_tokens": tee.tokens,
+        "tee_calls": tee.round_trips,
+        "naive_tokens": naive.tokens,
+        "naive_calls": naive.round_trips,
+        "saving": round(100.0 * (1 - tee.tokens / naive.tokens), 1),
+        "script_tokens": estimate_tokens(script),
+        "diff_tokens": estimate_tokens(diff),
+        "volume_mm3": measured["volume_mm3"],
+        "bbox_mm": measured["bbox_mm"],
+    }
+    print(
+        f"fusion: tee {tee.tokens} tok / {tee.round_trips} calls vs naive {naive.tokens} tok / "
+        f"{naive.round_trips} calls ({row['saving']}% saved); the batch script alone is "
+        f"{row['script_tokens']} tok, the diff {row['diff_tokens']} tok"
+    )
+    return row
+
+
+def run_fusion_v2_scenario() -> dict | None:
+    """A70 P5: the v2 vocabulary in one batch, on the shim.
+
+    A bracket the way a person would ask for it: a rectangle constrained and
+    dimensioned to `width` / `height` user parameters, extruded into its own
+    component; two through holes on the top face; a chamfer on that face's
+    edges; a post extruded into a second component; a pin revolved about x;
+    a revolute joint between the two components. The naive arm is the same
+    as A69's: the script TEE compiles (the minimum a correct one contains),
+    run through an execute door, and the listing read back. The TEE arm is
+    one batch, its diff, and one fu_measure of the plate."""
+    try:
+        from tee.adapters.fusion import codegen
+        from tee.adapters.fusion.adapter import FusionAdapter
+        from tee.adapters.fusion.tools import register_fusion_tools
+        from tee.app import TeeApp
+    except ImportError as exc:
+        print(f"fusion v2 scenario skipped ({exc})")
+        return None
+    tests_dir = REPO / "server" / "tests"
+    if str(tests_dir) not in sys.path:
+        sys.path.insert(0, str(tests_dir))
+    from importlib import import_module
+
+    fake_wire = import_module("fixtures_fusion").FakeFusionWire
+
+    ops = [
+        {"op": "create", "kind": "param", "name": "width", "props": {"value": "120 mm"}},
+        {"op": "create", "kind": "param", "name": "height", "props": {"value": "80 mm"}},
+        {"op": "create", "kind": "sketch", "name": "base", "props": {
+            "rects": [[0, 0, 100, 50]],
+            "constraints": [
+                {"type": "coincident", "of": ["r0.bl", "origin"]},
+                {"type": "horizontal", "of": ["r0.bottom"]},
+                {"type": "horizontal", "of": ["r0.top"]},
+                {"type": "vertical", "of": ["r0.left"]},
+                {"type": "vertical", "of": ["r0.right"]},
+            ],
+            "dims": [
+                {"type": "distance", "of": ["r0.bl", "r0.br"], "orientation": "horizontal",
+                 "expression": "width"},
+                {"type": "distance", "of": ["r0.bl", "r0.tl"], "orientation": "vertical",
+                 "expression": "height"},
+            ],
+        }},
+        {"op": "create", "kind": "extrude", "name": "plate",
+         "props": {"sketch": "sk1", "distance": 10, "operation": "new_component"}},
+        {"op": "create", "kind": "hole", "name": "m6a",
+         "props": {"body": "b1", "face": "+z", "at": [20, 20], "diameter": 6.6, "through": True}},
+        {"op": "create", "kind": "hole", "name": "m6b",
+         "props": {"body": "b1", "face": "+z", "at": [100, 60], "diameter": 6.6, "through": True}},
+        {"op": "create", "kind": "chamfer", "name": "break",
+         "props": {"body": "b1", "distance": 1, "edges": {"face": "+z"}}},
+        {"op": "create", "kind": "sketch", "name": "boss", "props": {"circles": [[110, 40, 5]]}},
+        {"op": "create", "kind": "extrude", "name": "post",
+         "props": {"sketch": "sk2", "distance": 20, "operation": "new_component"}},
+        {"op": "create", "kind": "sketch", "name": "pin_profile",
+         "props": {"rects": [[0, 20, 10, 30]]}},
+        {"op": "create", "kind": "revolve", "name": "pin", "props": {"sketch": "sk3", "axis": "x"}},
+        {"op": "create", "kind": "joint", "name": "hinge", "props": {
+            "one": {"component": "c1", "face": "+z"}, "two": {"component": "c2", "face": "-z"},
+            "motion": "revolute", "axis": "z"}},
+    ]
+
+    root = tempfile.mkdtemp(prefix="tee-bench-fusion-v2-")
+    adapter = FusionAdapter(fake_wire(), workdir=root)
+    app = TeeApp({"fusion": adapter}, project_root=root)
+    register_fusion_tools(app, adapter)
+    tee = Meter()
+    try:
+        diff = app.run_batch("fusion", ops)
+        tee.call({"tool": "tee_batch", "ops": ops}, diff)
+        measured = app.registry.call("fu_measure", {"of": "b1"})
+        tee.call({"tool": "fu_measure", "of": "b1"}, measured)
+        script = _batch_script(adapter.wire.executed)
+        created = list(diff.get("created", [])) if isinstance(diff, dict) else []
+    finally:
+        app.shutdown()
+
+    naive = Meter()
+    wire = fake_wire()
+    reply = wire.execute(script)
+    naive.call({"tool": "execute_script", "code": script}, reply)
+    listing = wire.execute(codegen.LIST_PROGRAM)
+    naive.call({"tool": "execute_script", "code": codegen.LIST_PROGRAM}, listing)
+
+    row = {
+        "tee_tokens": tee.tokens,
+        "tee_calls": tee.round_trips,
+        "naive_tokens": naive.tokens,
+        "naive_calls": naive.round_trips,
+        "saving": round(100.0 * (1 - tee.tokens / naive.tokens), 1),
+        "script_tokens": estimate_tokens(script),
+        "diff_tokens": estimate_tokens(diff),
+        "ops": len(ops),
+        "entities": len(created),
+        "volume_mm3": measured["volume_mm3"],
+        "bbox_mm": measured["bbox_mm"],
+    }
+    print(
+        f"fusion v2: tee {tee.tokens} tok / {tee.round_trips} calls vs naive {naive.tokens} tok / "
+        f"{naive.round_trips} calls ({row['saving']}% saved); {row['ops']} ops made "
+        f"{row['entities']} entities; the batch script is {row['script_tokens']} tok, the diff "
+        f"{row['diff_tokens']} tok"
+    )
+    return row
+
+
 def run_windtunnel_scenario() -> dict | None:
     """A72: what a wind-tunnel loop costs a model - the W1 batch of the script.
 
@@ -2226,12 +2728,17 @@ def main() -> None:
     partkiln_row = _safe(run_partkiln_scenario)
     partkiln_followup_row = _safe(run_partkiln_followup_scenario)
     pointcloud_row = _safe(run_pointcloud_scenario)
+    routing_row = _safe(run_routing_scenario)
+    fusion_row = _safe(run_fusion_scenario)
+    fusion_v2_row = _safe(run_fusion_v2_scenario)
     windtunnel_row = _safe(run_windtunnel_scenario)
     write_results(rows, extract_row, asset_row, physical_row, unreal_row,
                   surface_row, jurisdiction_row, kb_row, web_row, gateway_row,
                   fabrication_row, senses_row, seamkiln_row, seamkiln_followup_row,
                   pointcloud_row, partkiln_row=partkiln_row,
                   partkiln_followup_row=partkiln_followup_row,
+                  routing_row=routing_row, fusion_row=fusion_row,
+                  fusion_v2_row=fusion_v2_row,
                   windtunnel_row=windtunnel_row)
     _stage("total", t0)
 
@@ -2302,6 +2809,7 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   fabrication_row=None, senses_row=None, seamkiln_row=None,
                   seamkiln_followup_row=None, pointcloud_row=None,
                   partkiln_row=None, partkiln_followup_row=None,
+                  routing_row=None, fusion_row=None, fusion_v2_row=None,
                   windtunnel_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
@@ -2573,6 +3081,18 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         lines += _pointcloud_section(pointcloud_row)
     else:
         lines += _carry_forward("## Point-cloud scan prep: level, scale-check, section (A67)")
+    if routing_row is not None:
+        lines += _routing_section(routing_row)
+    else:
+        lines += _carry_forward(ROUTING_HEADER)
+    if fusion_row is not None:
+        lines += _fusion_section(fusion_row)
+    else:
+        lines += _carry_forward(FUSION_HEADER)
+    if fusion_v2_row is not None:
+        lines += _fusion_v2_section(fusion_v2_row)
+    else:
+        lines += _carry_forward(FUSION_V2_HEADER)
     if windtunnel_row is not None:
         lines += _windtunnel_section(windtunnel_row)
     else:
@@ -2665,6 +3185,110 @@ def _pointcloud_section(row: dict) -> list[str]:
         "2 KB) is what keeps the TEE arm flat as the cloud grows: the same five calls cost the "
         "same whether the scan is 280 K points or 15 M.",
         "",
+    ]
+
+
+def _routing_section(f: dict) -> list[str]:
+    lines = [
+        "",
+        ROUTING_HEADER,
+        "",
+        "One server composed like the Desktop manifest ("
+        + ", ".join(f["served"])
+        + f"; declared default: {f['default_adapter'] or 'none'}), every call through the real "
+        "MCP layer. A row completes its task the way a model that knows nothing about lanes "
+        "would: no adapter=; if refused and the refusal names the lane, retry with it; if it "
+        "does not, ask tee_status and then retry.",
+        "",
+        "| Task | Calls | Tokens | What happened |",
+        "|---|---|---|---|",
+    ]
+    for r in f["rows"]:
+        lines.append(f"| {r['task']} | {r['calls']} | {r['tokens']:,} | {r['note']} |")
+    recall = ", ".join(f"limit {k}: {v}/{f['cases']}" for k, v in f["recall"].items())
+    lines += [
+        "",
+        f"Always-loaded surface {f['n_tools']} tools / **{f['surface_tokens']:,}** wire tokens; "
+        f"instructions **{f['instructions_bytes']} B**; {f['virtual_tools']} virtual tools "
+        f"registered; search recall over this composition {recall}.",
+    ]
+    lines += ["", _ROUTING_BEFORE]
+    if f.get("seamkiln_note"):
+        lines += ["", f"*{f['seamkiln_note']}*"]
+    lines.append("")
+    return lines
+
+
+# The same scenario on the tree before A68 (0.21.1 behaviour, measured
+# 2026-09-05, P0b): kept in the section so the after-table reads against it.
+_ROUTING_BEFORE = (
+    "Before A68 (same scenario, same composition, declared default blender): partkiln batch "
+    "3 calls / 731 tok and seamkiln batch 3 / 562 (refused `blender_error`, no lane in the fix, "
+    "asked tee_status, retried); tee_script calling kb_status 1 / 586 with 1 Blender "
+    "checkpoint; tee_scene_summary 1 / 26 (one lane's rows, not the server's lanes); render a "
+    "partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / "
+    "2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33."
+)
+
+
+def _fusion_v2_section(row: dict) -> list[str]:
+    """A70 P5: the v2 vocabulary in one batch, on the shim."""
+    return [
+        "",
+        FUSION_V2_HEADER,
+        "",
+        "A bracket the way a person asks for it: a rectangle constrained and dimensioned to",
+        "`width` / `height` user parameters and extruded into its own component, two",
+        "through holes on the top face, a chamfer on that face's edges, a post extruded",
+        "into a second component, a pin revolved about x, and a revolute joint between the",
+        "two components - one batch. Measured on the suite's fake adsk, as above: the",
+        "scripts are the ones a live Fusion receives, only the geometry is arithmetic. The",
+        "naive arm writes the script itself, runs it, and reads the design back.",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (write the script, run it, read the design back) | "
+        f"{row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| tee (batch + diff + fu_measure) | {row['tee_tokens']:,} | {row['tee_calls']} |",
+        f"| **saved** | **{row['saving']}%** | |",
+        "",
+        f"{row['ops']} ops made {row['entities']} entities. The batch script the lane sends is",
+        f"{row['script_tokens']:,} tokens the model never reads; the diff it reads instead is",
+        f"{row['diff_tokens']} tokens. The plate reads back {row['volume_mm3']:,.1f} mm3 (two",
+        f"holes bored) in a {row['bbox_mm']} mm box - the dimensions drove the 100 x 50",
+        "rectangle to 120 x 80 before the extrude. The always-loaded surface is unchanged at",
+        "17 tools. Live numbers wait for the smoke in docs/fusion-lane.md (steps 7-11).",
+    ]
+
+
+def _fusion_section(row: dict) -> list[str]:
+    """A69 P4: the Fusion lane's tokens-per-task row, on the shim."""
+    return [
+        "",
+        FUSION_HEADER,
+        "",
+        "A 120 x 80 x 10 mm plate with a 2 mm fillet, then its volume and bounding box.",
+        "Measured on the suite's fake adsk (Fusion has no headless build): the scripts are",
+        "the ones a live Fusion receives, only the geometry is arithmetic. The naive arm",
+        "is what a model does without the lane - write the Fusion API script itself (the",
+        "script TEE compiles is the fairest stand-in), run it through an execute-script",
+        "door, and read the design back as a listing. The TEE arm is one batch, its diff,",
+        "and one `fu_measure`.",
+        "",
+        "| arm | tokens | calls |",
+        "| --- | ---: | ---: |",
+        f"| naive (write the script, run it, read the design back) | "
+        f"{row['naive_tokens']:,} | {row['naive_calls']} |",
+        f"| tee (batch + diff + fu_measure) | {row['tee_tokens']:,} | {row['tee_calls']} |",
+        f"| **saved** | **{row['saving']}%** | |",
+        "",
+        f"The batch script the lane sends is {row['script_tokens']:,} tokens the model never",
+        f"reads; the diff it reads instead is {row['diff_tokens']} tokens. Read back:",
+        f"{row['volume_mm3']:,.0f} mm3, bbox {row['bbox_mm']} mm.",
+        "",
+        "The always-loaded surface is unchanged at 17 tools - Fusion joins through the",
+        "Adapter protocol and six `fu_*` virtual tools. Live numbers wait for the smoke in",
+        "docs/fusion-lane.md.",
     ]
 
 

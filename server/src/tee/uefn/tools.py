@@ -108,13 +108,8 @@ def register_uefn_tools(app, project_root: Path | str, *, uefn: UefnAdapter | No
             }
         if not args.get("ids"):
             return report or {"note": "pass asset (preflight) and/or ids (export)"}
-        adapter_name = str(args.get("adapter") or "blender")
-        blender = app.adapters.get(adapter_name)
-        if blender is None or not hasattr(blender, "execute_python"):
-            raise TeeError(
-                "unsupported_adapter",
-                f"Live export needs the Blender adapter (got '{adapter_name}').",
-            )
+        adapter_name = app.blender_lane(args.get("adapter"))  # A68: by capability
+        blender = app.adapters[adapter_name]
         out_path = str(
             Path(project_root).resolve() / ".tee" / "exports" / f"{args.get('name', 'asset')}.fbx"
         )

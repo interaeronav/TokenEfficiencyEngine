@@ -14,9 +14,10 @@ this shape.
 uv pip install --python server/.venv/bin/python -e partkiln
 
 tee serve --adapter partkiln --project ~/parts
-# or, as the Desktop extension serves it - several lanes, the first is the default:
+# or, as the Desktop extension serves it - several lanes, none of them the hub (A68):
 tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/parts
-#   then a partkiln batch names its lane:  tee_batch adapter=partkiln ops=[...]
+#   a batch of partkiln kinds routes here by content and the reply says so;
+#   name the lane only when two lanes could take it:  tee_batch adapter=partkiln ops=[...]
 ```
 
 The surface before A66 was 17 tools / 2,033 tok. After A66: 17 tools /
@@ -181,8 +182,13 @@ and the height of the smallest face the fillet had to roll across.
 `tee_capture` refuses `pk_capture_text_first`. The numbers are the evidence:
 `pk_drawing` writes an SVG sheet whose dimensions were read from the model,
 `pk_measure` answers mass, bbox, clearance and interference, and
-`tee_entity_detail` answers one entity. A JPEG through Blender is opt-in and
-lands with the handoff work, not before it.
+`tee_entity_detail` answers one entity. A JPEG is two calls away when a lane
+that renders is served beside this one (A68): `pk_export format=glb
+out=… into=blender` lands the part in that lane as one checkpointed batch —
+`into=auto` picks the one served lane that imports GLB, and the reply's
+`landed.verify` compares the read-back dimensions with the writer's extents —
+then `tee_capture adapter=blender`. Without `into`, an export never touches a
+scene.
 
 ## Licences
 

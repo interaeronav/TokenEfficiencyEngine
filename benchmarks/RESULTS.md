@@ -328,6 +328,68 @@ A 279,352-point room scan taken from raw file to a scale-verified DXF the owner 
 
 **Saving: 99.3%.** The naive arm is already being flattered - reading 1 point in 40 is far more generous than a real tool that returns what it holds. The lane's own cap (no array over 64 elements, no string over 2 KB) is what keeps the TEE arm flat as the cloud grows: the same five calls cost the same whether the scan is 280 K points or 15 M.
 
+## Lane routing: no lane is the hub (A68)
+
+One server composed like the Desktop manifest (blender, partkiln, seamkiln; declared default: none), every call through the real MCP layer. A row completes its task the way a model that knows nothing about lanes would: no adapter=; if refused and the refusal names the lane, retry with it; if it does not, ask tee_status and then retry.
+
+| Task | Calls | Tokens | What happened |
+|---|---|---|---|
+| partkiln batch, adapter omitted | 1 | 232 | by kind; pass adapter= to pin |
+| seamkiln batch, adapter omitted | 1 | 91 | by kind; pass adapter= to pin |
+| tee_script calling kb_status | 1 | 564 | 0 Blender checkpoint(s) |
+| tee_scene_summary, adapter omitted | 1 | 103 | lanes overview |
+| render a partkiln part | 2 | 370 | pk_export into= then tee_capture |
+
+Always-loaded surface 17 tools / **2,129** wire tokens; instructions **1571 B**; 173 virtual tools registered; search recall over this composition limit 3: 35/38, limit 5: 38/38, limit 8: 38/38, limit 10: 38/38.
+
+Before A68 (same scenario, same composition, declared default blender): partkiln batch 3 calls / 731 tok and seamkiln batch 3 / 562 (refused `blender_error`, no lane in the fix, asked tee_status, retried); tee_script calling kb_status 1 / 586 with 1 Blender checkpoint; tee_scene_summary 1 / 26 (one lane's rows, not the server's lanes); render a partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / 2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33.
+
+## Fusion lane: sketch, extrude, fillet, measure (A69)
+
+A 120 x 80 x 10 mm plate with a 2 mm fillet, then its volume and bounding box.
+Measured on the suite's fake adsk (Fusion has no headless build): the scripts are
+the ones a live Fusion receives, only the geometry is arithmetic. The naive arm
+is what a model does without the lane - write the Fusion API script itself (the
+script TEE compiles is the fairest stand-in), run it through an execute-script
+door, and read the design back as a listing. The TEE arm is one batch, its diff,
+and one `fu_measure`.
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (write the script, run it, read the design back) | 8,833 | 2 |
+| tee (batch + diff + fu_measure) | 270 | 2 |
+| **saved** | **96.9%** | |
+
+The batch script the lane sends is 4,282 tokens the model never
+reads; the diff it reads instead is 147 tokens. Read back:
+96,000 mm3, bbox [120.0, 80.0, 10.0] mm.
+
+The always-loaded surface is unchanged at 17 tools - Fusion joins through the
+Adapter protocol and six `fu_*` virtual tools. Live numbers wait for the smoke in
+docs/fusion-lane.md.
+
+## Fusion lane v2: a dimensioned bracket with holes, a chamfer, a revolve and a joint (A70)
+
+A bracket the way a person asks for it: a rectangle constrained and dimensioned to
+`width` / `height` user parameters and extruded into its own component, two
+through holes on the top face, a chamfer on that face's edges, a post extruded
+into a second component, a pin revolved about x, and a revolute joint between the
+two components - one batch. Measured on the suite's fake adsk, as above: the
+scripts are the ones a live Fusion receives, only the geometry is arithmetic. The
+naive arm writes the script itself, runs it, and reads the design back.
+
+| arm | tokens | calls |
+| --- | ---: | ---: |
+| naive (write the script, run it, read the design back) | 12,168 | 2 |
+| tee (batch + diff + fu_measure) | 1,144 | 2 |
+| **saved** | **90.6%** | |
+
+12 ops made 19 entities. The batch script the lane sends is
+6,582 tokens the model never reads; the diff it reads instead is
+629 tokens. The plate reads back 95,315.8 mm3 (two
+holes bored) in a [120.0, 80.0, 10.0] mm box - the dimensions drove the 100 x 50
+rectangle to 120 x 80 before the extrude. The always-loaded surface is unchanged at
+17 tools. Live numbers wait for the smoke in docs/fusion-lane.md (steps 7-11).
 
 ## Wind-tunnel lane: geometry, panel sweep, RANS, verdict (A72)
 

@@ -94,9 +94,13 @@ def test_a_target_tee_can_drive_gets_ops_and_one_it_cannot_gets_a_reason(zipped)
     Godot instead of here, which is the expensive place to find out."""
     session, root = zipped
     blender = session.apply(Command("handoff", {"out": str(root / "b2"), "target": "blender"}))
-    assert blender["ops"][0]["kind"] == "import_file"
-    assert blender["ops"][0]["props"]["path"] == blender["files"]["garment"]
+    # import_file is an OP in TEE's scene lanes, never a create kind: the
+    # shape this test pinned until A68 was one Blender's codegen rejected
+    assert blender["ops"][0]["op"] == "import_file"
+    assert blender["ops"][0]["path"] == blender["files"]["garment"]
+    assert "kind" not in blender["ops"][0] and "props" not in blender["ops"][0]
     assert len(blender["ops"]) == 2, "the hardware needs importing too"
+    assert blender["ops"][1]["path"] == blender["files"]["hardware"]
 
     godot = session.apply(Command("handoff", {"out": str(root / "g"), "target": "godot"}))
     assert godot["ops"] is None

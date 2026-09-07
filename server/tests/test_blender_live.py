@@ -21,6 +21,12 @@ def adapter(blender_bridge, tmp_path):
 
 @pytest.fixture()
 def app(adapter, tmp_path):
+    # A71: `allow_code_exec` registers bl_execute_python; the trust kernel still
+    # decides each call from the project's grants (A43/A45), so the test project
+    # grants its own escape hatch the way an owner does - measured live, the two
+    # exec tests answered `trust_denied` on the default branch too, not only here.
+    (tmp_path / ".tee").mkdir(exist_ok=True)
+    (tmp_path / ".tee" / "config.toml").write_text('[trust]\ngrants = ["exec-code"]\n')
     application = TeeApp({"blender": adapter}, project_root=tmp_path, allow_code_exec=True)
     register_blender_tools(application, adapter, docs_cache_dir=tmp_path / "docs-cache")
     # factory scene contains Cube/Camera/Light; start every test from empty
@@ -251,4 +257,5 @@ def test_import_file_bad_format_is_one_line(app, tmp_path):
     bad.write_text("nope")
     with pytest.raises(TeeError) as err:
         app.run_batch("blender", [{"op": "import_file", "path": str(bad)}])
-    assert "unsupported import format" in err.value.message
+    # A68 pre-validates in the kernel: one line naming the lane and the suffix
+    assert "Blender cannot import 'xyz'" in err.value.message

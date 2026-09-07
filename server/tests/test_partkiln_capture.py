@@ -1,17 +1,12 @@
-"""A66 gap 3 — the capture refusal must name a route the caller can walk.
+"""A66 gap 3, closed by A68 P3 - the capture refusal names a route that exists.
 
 The shipped 0.20.0 refusal ended "A JPEG through Blender is the P6 opt-in."
-No such opt-in was ever built. A refusal that names a door that is not there
-is worse than a plain no: the reader stops reading and goes looking for it.
-So these tests hold the fix to two things at once - that it names the manual
-route STEP BY STEP, and that every tool it names is a tool that exists.
-
-Why the route stays manual, checked here so the reason cannot rot:
-`capture()` is handed no app to reach the asset lane through, and the
-partkiln lane builds no Blender adapter of its own - one is in the process
-only when the operator lists `--adapter blender` too (the Desktop manifest
-does, since 2026-09-04), and even then it is `as_import`'s batch, not
-`capture()`, that reaches it.
+No such opt-in was ever built; 0.21.1 replaced it with four manual calls "in
+a TEE served on Blender", false the moment one server held several lanes.
+A refusal that names a door that is not there is worse than a plain no: the
+reader stops reading and goes looking for it. So these tests hold the fix
+to two things at once - that it names the two-call route `pk_export into=`
+then `tee_capture adapter=` in order, and that every tool it names exists.
 """
 
 from __future__ import annotations
@@ -25,7 +20,7 @@ from tee.kernel import trust
 from tee.kernel.errors import TeeError
 
 # Every `xx_yyy` token in the fix that looks like a TEE tool name.
-_TOOL_TOKEN = re.compile(r"\b((?:pk|as|tee)_[a-z_]+)\b")
+_TOOL_TOKEN = re.compile(r"\b((?:pk|as|tee|sk|fc)_[a-z_]+)\b")
 
 
 @pytest.fixture
@@ -41,24 +36,35 @@ def test_capture_refuses_with_its_own_code(refusal) -> None:
     assert "numbers are the evidence" in refusal.message
 
 
-def test_the_fix_names_no_opt_in_that_does_not_exist(refusal) -> None:
-    """The defect itself: an advertised P6 opt-in nobody can take."""
+def test_the_fix_names_no_door_that_is_not_there(refusal) -> None:
+    """The defect itself, twice over: an advertised P6 opt-in nobody could
+    take, then a manual route in "a TEE served on Blender" that a multi-lane
+    server made false."""
     fix = refusal.fix.lower()
-    assert "opt-in" not in fix
-    assert "p6" not in fix
+    assert "opt-in" not in fix and "p6" not in fix
+    assert "nothing in this session" not in fix
+    assert "served on partkiln" not in fix and "served on blender" not in fix
+    assert "as_ingest" not in fix and "as_import" not in fix, "the four-call route is gone"
 
 
-def test_the_fix_walks_the_route_that_actually_exists(refusal) -> None:
-    """Four steps, in order, each naming the tool that performs it - the
-    same route `examples/acceptance/run_tee.py` step 7 walks."""
+def test_the_fix_walks_the_two_call_route_in_order(refusal) -> None:
+    """pk_export into= lands the GLB in a served lane that renders, then
+    tee_capture adapter= looks at it - the route kernel/handoff_import built."""
     fix = refusal.fix
-    for step in ("pk_export", "as_ingest", "as_import", "tee_capture"):
+    for step in ("pk_export", "into=", "tee_capture", "adapter="):
         assert step in fix, step
-    order = [fix.index(s) for s in ("pk_export", "as_ingest", "as_import", "tee_capture")]
+    order = [fix.index(s) for s in ("pk_export", "into=", "tee_capture", "adapter=")]
     assert order == sorted(order), "the steps must read in the order they are run"
-    assert "format=glb" in fix and "adapter=blender" in fix
-    assert "tee serve --adapter blender" in fix, "the route needs a server that HAS Blender"
-    assert "stem" in fix.lower(), "as_ingest keys a local asset by file stem - a real trap"
+    assert "format=glb" in fix
+    assert "into=auto" in fix, "auto is the one served lane that imports GLB"
+    assert "tee_status" in fix, "where the lane names come from"
+    assert "verify" in fix, "the read-back verdict is part of the route"
+
+
+def test_the_fix_says_what_to_do_when_no_lane_renders(refusal) -> None:
+    fix = refusal.fix
+    assert "tee serve --adapter blender --adapter partkiln" in fix
+    assert "never renders" in fix
 
 
 def test_every_tool_the_fix_names_is_a_tool_that_exists(refusal) -> None:
@@ -78,17 +84,14 @@ def test_the_text_routes_are_still_offered_first(refusal) -> None:
     assert fix.index("pk_drawing") < fix.index("pk_export")
 
 
-def test_the_partkiln_lane_builds_no_blender_adapter_of_its_own() -> None:
-    """The reason the route is manual, pinned so a later reader does not
-    have to take the docstring's word for it. Until 2026-09-04 a partkiln
-    server held exactly one adapter; now `tee serve` holds every adapter
-    listed in ONE app, so what stays true is narrower: the partkiln lane
-    constructs only `PartkilnAdapter`, and `capture()` takes no app."""
+def test_the_route_the_fix_names_is_the_one_the_tool_takes() -> None:
+    """The fix is not prose about a tool: `pk_export` really takes `into`,
+    and `capture()` still takes no app - the route is a call the model
+    makes, not a side effect of asking this lane for pixels."""
     import inspect
 
-    from tee import cli
+    from tee.adapters.partkiln import tools
 
-    source = inspect.getsource(cli._partkiln_lane)
-    assert "PartkilnAdapter(" in source
-    assert "blender" not in source.lower()
+    source = inspect.getsource(tools.register_partkiln_tools)
+    assert '"into"' in source and "handoff_import" in source
     assert "app" not in inspect.signature(PartkilnAdapter.capture).parameters
