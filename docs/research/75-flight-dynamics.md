@@ -249,9 +249,11 @@ polar, and a JSBSim `<aerodynamics>` section begins at one.
 1. **The licence route** — in-process (LGPL), the wheel's CLI (GPL-3), or the
    C++ binary (LGPL)? §3. Owner's. A gate that asserts on file headers rather
    than PyPI classifiers is a prerequisite either way.
-2. **Does a generated aircraft round-trip?** Writing `<aerodynamics>` from a
-   `wt_sweep` polar and getting a trim out of it is unproven; everything in §2
-   used a bundled aircraft.
+2. ~~Does a generated aircraft round-trip?~~ **Answered by A75 P1**: yes.
+   Doc 76 §2.5 has the measurement — and the reason it looked impossible from
+   here, which is that JSBSim's `do_trim` blames `qdot` when the axis that
+   cannot be trimmed is `udot`, because the turbine has not spooled when the
+   trim looks at it.
 3. **Mass properties.** partkiln knows mass and inertia of a part. Whether that
    composes into an aircraft's inertia tensor at a useful fidelity is untested.
 4. **Where does the ARM-Linux sdist build land?** Untested; the Mac is native.

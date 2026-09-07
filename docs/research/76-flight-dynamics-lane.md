@@ -93,18 +93,60 @@ not a defect and not a units problem, and it cost this session two wrong
 diagnoses before it was measured. A generator that verifies its own output must
 verify it after the IC.
 
-### 2.5 What is NOT yet proven
+### 2.5 The premise, proven during P1
 
-The generated aircraft **does not trim**: `do_trim(0)` returns *"qdot doesn't
-appear to be trimmable"*, because the pitch axis so far carries only `Cm_alpha`
-and a crude `Cm_de` with the aero reference point sitting on the CG. Doc 74 §5
-asked whether a generated aircraft round-trips; the honest answer today is
-*loads and reads back exactly; trim open*. **That gap is A75 P3's acceptance
-criterion** and is deliberately not papered over: a lane whose bridge is
-unproven should say so in its design of record.
+Doc 75 could not trim a generated aircraft and said so. It is trimmed now, and
+what stood in the way was never the pitch axis JSBSim blamed.
 
-`do_trim`'s modes, from the wheel's own stub: `0` tLongitudinal, `1` tFull,
-`2` tGround, `3` tPullup, `4` tCustom, `5` tTurn, `6` tNone.
+**`do_trim` reports the wrong axis.** `Sorry, qdot doesn't appear to be
+trimmable` is what it says; bracketing each axis by hand shows `qdot` swinging
+cleanly through zero (elevator -1/0/+1 gives +6.69 / -0.02 / -6.73 rad/s^2) and
+`wdot` likewise, while **`udot` never brackets zero at all** - 1.72, 1.64, 1.68
+ft/s^2 across the whole throttle range. The un-trimmable axis was the one it did
+not name.
+
+**Because a turbine has not spooled when the trim looks at it.**
+`propulsion/set-running` leaves N1/N2 near 100 %, and a `<turbine_engine>`
+follows its spool state rather than its throttle for about a second of sim
+time: at the first frame it made 193.6 lb of a 200 lb rating whatever the
+throttle said. Once spooled it is exactly right - 4.00 / 53.00 / 200.00 lb at
+throttle 0 / 0.5 / 1.0. Spooling before `do_trim` does not help, because the
+trim resets what it evaluates.
+
+**And a turbine without `IdleThrust` and `MilThrust` function tables segfaults
+at `run_ic()`** rather than reporting a problem - the third SIGSEGV this lane
+has measured, and the reason `aircraft.py` writes flat-rated tables. (An
+`<electric_engine>` behind a `<direct>` thruster does load, and made **88,507
+lbf** on an 1,874 lb aeroplane; `<direct>` is right for a turbine, which is what
+the bundled 737 uses.)
+
+So the lane trims the aircraft itself: a 3x3 Newton over angle of attack,
+elevator and throttle, with JSBSim as the force calculator. It rests on one more
+measured fact - **`run_ic()` does NOT reset the spool** - so the engine is
+spooled once and the initial condition re-set freely per iteration.
+
+The result, on a generated aircraft at 5,000 ft and 90 KCAS:
+
+```
+trim      converged in 7 iterations   alpha 1.408 deg  elevator -0.035  throttle 0.610
+modes     T  2.03 s  zeta 0.699   Alpha 50%, Q 50%      <- short period
+          T 31.53 s  zeta 0.028   Theta 49%, Vt 48%     <- phugoid
+check     Lanchester 22.59 s (+39.6%) - zeta 0.0230 theory vs 0.0282 (+23%) - L/D 30.7
+hold 60s  altitude drift 1.5 ft   KCAS 89.88   Nz 0.9965
+```
+
+The two classic longitudinal modes fall out and name themselves by
+participation; the lateral pair comes back degenerate, which is correct - a
+polar carries no `Cl_beta` or `Cn_beta`, and the lane drops it rather than
+reporting a mode it has no data for. Both closed-form checks are approximations
+that neglect thrust, so `fd_modes` reports the comparison **with its basis
+stated** and the tests assert a band those approximations are worth, not a
+tolerance they cannot support.
+
+Two traps found while proving it, both now guarded in code: `FGLinearization`
+**perturbs the model and leaves it perturbed** (read L/D afterwards and it comes
+back 125 instead of 30.7), and it **leaves `dt` at 0**, so a later `run()` loop
+divides by zero.
 
 ## 3. The tool surface
 
@@ -190,8 +232,10 @@ viewer (A67), and a flight model is not an exception.
 ## 7. Open questions
 
 1. **The licence route** (§5). The owner's, in P0.
-2. **Does a generated aircraft trim?** §2.5. A75 P3's acceptance criterion, and
-   the one thing that decides whether the lane's premise holds.
+2. ~~Does a generated aircraft trim?~~ **Answered in P1** (§2.5): yes, in seven
+   Newton iterations, with both longitudinal modes physical and the trim
+   holding for a minute. JSBSim's own `do_trim` cannot do it and names the
+   wrong axis; the lane trims itself.
 3. **Do partkiln's inertias compose into an aircraft's tensor** at a useful
    fidelity? Untested; `pk_*` knows a part, not an assembly's flight mass.
 4. **Where does the ARM-Linux sdist build land?** No linux-aarch64 wheel exists
