@@ -77,7 +77,9 @@ if [ -z "$APP" ]; then
 else
   echo "-- before"
   echo "   .pyc inside the bundle: $(find "$APP" -name '*.pyc' 2>/dev/null | wc -l | tr -d ' ')"
-  codesign --verify --deep --strict "$APP" 2>&1 | head -3; echo "   codesign rc=$?"
+  codesign --verify --deep --strict "$APP" >/tmp/a73_cs.$$ 2>&1; cs=$?
+  head -3 /tmp/a73_cs.$$; rm -f /tmp/a73_cs.$$
+  echo "   codesign rc=$cs"   # $? after a PIPE is head's status, never codesign's
   spctl -a -t exec -vv "$APP" 2>&1 | head -2
 fi
 cat > "$WORK/b_state.py" <<'PY'
@@ -101,7 +103,12 @@ try:
         started = call("wt_run", case_id=cid, iters=300)
         job = started["job"]
         for _ in range(600):
-            st = app.registry.call("tee_job", {"action": "status", "job": job})
+            # app.jobs, not registry.call("tee_job"): tee_job is registered on
+            # the MCP server (server.py), and this harness only registers the
+            # wt_* lane, so the tool name does not exist here. RUN_SOLVE=1
+            # raised "No tool named 'tee_job'" and the solve never ran, which
+            # left section C vacuous while looking like it had run.
+            st = app.jobs.status(job)
             if st.get("state") in ("done", "error", "cancelled"):
                 break
             time.sleep(1.0)
@@ -123,7 +130,9 @@ py "$WORK/b_state.py" "$WORK"
 if [ -n "$APP" ]; then
   echo "-- after"
   echo "   .pyc inside the bundle: $(find "$APP" -name '*.pyc' 2>/dev/null | wc -l | tr -d ' ')"
-  codesign --verify --deep --strict "$APP" 2>&1 | head -3; echo "   codesign rc=$?"
+  codesign --verify --deep --strict "$APP" >/tmp/a73_cs.$$ 2>&1; cs=$?
+  head -3 /tmp/a73_cs.$$; rm -f /tmp/a73_cs.$$
+  echo "   codesign rc=$cs"   # $? after a PIPE is head's status, never codesign's
   echo "   (0 .pyc and rc 0 is the pass; PYTHONDONTWRITEBYTECODE=1 in run_script is what does it)"
   echo "   to repair an already-damaged install: find <app> -name __pycache__ -type d -exec rm -rf {} +"
 fi
