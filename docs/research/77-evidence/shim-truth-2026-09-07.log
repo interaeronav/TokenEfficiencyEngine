@@ -1,0 +1,17 @@
+http://127.0.0.1:4000/v1 advertises 8 routes
+
+  route                   /models   asked  produced  tok  note
+  claude-qwen-27b          listed     200     False    6  EMPTY 200 -- listed, usage billed, nothing produced
+  qwen-27b                 listed     200     False    6  EMPTY 200 -- listed, usage billed, nothing produced
+  claude-qwen-35b          listed     200     False    6  EMPTY 200 -- listed, usage billed, nothing produced
+  qwen-35b                 listed     200     False    6  EMPTY 200 -- listed, usage billed, nothing produced
+  claude-qwen-small        listed     500     False    -  {"error":{"message":"litellm.InternalServerError: In
+  claude-qwen-vl           listed     200      True    5  'OK! 😊'
+  mlx-community/*          listed       -         -    -  wildcard, not a route
+  claude-qwen-max          listed     200      True   19  'OK'
+
+  advertised 8 | produce text 2 | 200-but-empty 4 | errored 1
+
+  A liveness check that reads /v1/models sees every one of these as healthy.
+  A check that reads only the HTTP code still sees the empty ones as healthy.
+  Only a check that reads the CONTENT is telling the truth.

@@ -2313,3 +2313,62 @@ lane is built so that reversing it changes `probe.py` and the gate rather than
 the design: `fd_run` and `fd_modes` already execute **out-of-process** for an
 unrelated reason (doc 76 §2.2 — `FGLinearization` on an engineless aircraft
 segfaults), so the subprocess boundary a CLI route would need is already there.
+
+## The engine lane is built, and the machine decided it (2026-09-07, A76)
+
+`CLAUDE_A76_SCRIPT.md` opens by telling a cold session the campaign may not be
+worth running: *"`eng_reconcile` shipped alone is a config fix in a lane
+costume"*, and the lane earns its place only if the audition lands where the
+router reads it. Doc 77 §9 question 1 left the choice to the owner. The owner
+directed the session to complete every phase without prompting, so the session
+took it — on evidence, not preference.
+
+**Ruled: build the lane.** What settled it is one measurement
+(`docs/research/77-evidence/shim-truth.py`, run on the owner's Mac):
+
+```
+http://127.0.0.1:4000/v1 advertises 8 routes
+  advertised 8 | produce text 2 | 200-but-empty 4 | errored 1
+```
+
+Four of eight advertised routes return **HTTP 200 with empty content and a
+usage block claiming completion tokens**. `local_llm.available()` asks
+`GET /v1/models` and would call all eight healthy. A check that read the HTTP
+status would call six healthy. Only reading the content is telling the truth,
+and nothing in TEE reads the content.
+
+That is not a config error to be fixed once. It is a class of fact no existing
+tool can express, on a machine whose state changed twice during this session —
+which is the argument for a measured row rather than a better-maintained
+literal. Three further live findings say the same thing:
+
+- **`doctor.check_llm` reports `status="ok"` with `fix=None`** while the chore
+  engine is dead by name, because `if llm_up or vlm_up` takes the early branch
+  on vision alone. Two independent facts collapsed into one status.
+- **The router defect fires on this machine right now.** Every local text route
+  is dead, so every chore escalates, and each dead hop is recorded as
+  `verified=False` — a verification failure against a model that was never
+  reached. Reproduced as `server/tests/test_a76_router_unreachable.py`, whose
+  two strict xfails become a gate when P3 lands the split.
+- **An audition can genuinely run.** `claude-qwen-vl` and `claude-qwen-max`
+  both answer, so P2 is not hypothetical here.
+
+**The config fix is still owed and is not a substitute.** Dropping the
+`dsflash` row, declaring `q35b`, and fixing `[llm] model` remains half a day of
+work that fixes today's outage; the lane is what stops the next one being
+invisible. P3 does both.
+
+**Two corrections to the script this ruling supersedes.** `CLAUDE_A76_SCRIPT.md`
+fact 1 says `dsflash` is the cheapest declared rung and `_ladder()` tries it
+first. Measured, `LADDER == ('q14b+a2', 'dsflash', 'q27b-bare', 'q35b')` —
+`q14b+a2` sorts first at 1.74 s against dsflash's 4.41. And the script's fact 4,
+*"nothing is answering at all"*, was true when it was written and is false now:
+`:4000` and `:8081` answer, `:8080` and `:8082` do not. Both are declarations of
+mine that a measurement outranks, which is the campaign's own thesis turned on
+its author.
+
+**Scope limit recorded honestly.** P2's live acceptance — a measured row for
+every engine this machine serves, and the `q35b` token floor re-derived by
+sweep — can only be met for the engines that actually answer. Where it cannot,
+the row says `unmeasured` and why, the way A69 refused to claim anything live
+until the Mac smoke had run.

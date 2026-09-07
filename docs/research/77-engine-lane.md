@@ -235,6 +235,73 @@ conversation (doc 55's scope law stands).
    identically" must be softened to *MLX and LiteLLM measured; others untested*.
 4. **The prefix and lane name** — `eng_` / "engines". The owner's.
 
+## 9b. P0 answers (2026-09-07, measured on the owner's Mac)
+
+**The shim advertises eight routes; two of them work.** `77-evidence/shim-truth.py`
+asks every advertised route for six tokens and reads what comes back:
+
+| route | `/v1/models` | asked | produced | note |
+|---|---|---|---|---|
+| `claude-qwen-27b` | listed | 200 | **no** | empty content, usage claims 6 tokens |
+| `qwen-27b` | listed | 200 | **no** | same |
+| `claude-qwen-35b` | listed | 200 | **no** | same |
+| `qwen-35b` | listed | 200 | **no** | same |
+| `claude-qwen-small` | listed | 500 | no | `Hosted_vllmException` — `:8082` is down, and says so |
+| `claude-qwen-vl` | listed | 200 | **yes** | `'OK! 😊'` |
+| `claude-qwen-max` | listed | 200 | **yes** | the paid route |
+
+**advertised 8 | produce text 2 | 200-but-empty 4 | errored 1.** A liveness
+check that reads `/v1/models` sees eight healthy engines. One that reads the
+HTTP status sees six. Only one that reads the **content** is telling the truth,
+and `local_llm.available()` is the first kind. Its own docstring states the
+assumption the machine falsifies — *"The model may still be COLD — listed but
+not loaded — which costs only latency"* — where here it costs an empty answer
+recorded as a verification failure.
+
+**The naive read is 20,840 tokens** — `machine.py` 5,711, `profiles.py` 6,473,
+`router.py` 2,366, `llm/tools.py` 2,052, `local_llm.py` 2,245, the head of
+`chores.py` 963, `.tee/config.toml` 274, `litellm.yaml` 756; 1,783 lines,
+72,963 bytes, by TEE's own `estimate_tokens`. **And it does not answer the
+question** — the empty-200 table above is in none of those files and cost live
+probes.
+
+**Two of §2's own claims are corrected by measurement.** `LADDER` is
+`('q14b+a2', 'dsflash', 'q27b-bare', 'q35b')`, so `q14b+a2` sorts first at
+1.74 s, not `dsflash` at 4.41 as this doc and the script said. And *"nothing is
+answering at all"* was true when written and is false now. Both were
+declarations of ours, outranked by a measurement, which is this campaign's own
+thesis applied to its author.
+
+**Three more defects P0 found, none of them the one it went looking for.**
+
+1. **`doctor.check_llm` reports `ok` with no fix while chores are dead.**
+   `if llm_up or vlm_up:` takes the early branch on vision alone, so a machine
+   whose chore engine is down by name reports healthy. Measured live:
+   `chores down at http://127.0.0.1:8080/v1 (tee-coder); vision UP` →
+   `status="ok"`, `fix=None`.
+2. **`save_state` silently persists nothing without `cfg["_state_dir"]`**, which
+   is injected at exactly one site (`app.py:277`). A `switch()` called from a
+   CLI or a test returns `{"ok": true, ...}` and changes nothing — this session
+   hit it while switching profile on the owner's instruction.
+3. **`switch()`'s own refusal advertises profiles that do not exist here** —
+   `TEE/35B` and `TEE/DSFLASH` name profiles absent from both `BUILTIN_PROFILES`
+   and the config, so typing either raises `llm_unknown_profile` whose fix line
+   recommends them.
+
+Two dead declarations worth recording: `min_chore_tokens`' only non-default row
+(`q35b`, 1024) is unreachable because `q35b` is not a declared profile, and
+`senses_source` — the provenance field A49 added — is **read nowhere in the
+codebase**. `RESERVE_GB = 16.0` carries its own comment calling itself "a stated
+placeholder until R2 measures the real constant", and `may_swap` and `may_admit`
+both spend it.
+
+**The router defect, reproduced before it is fixed.**
+`server/tests/test_a76_router_unreachable.py` — five tests: three pass (every
+rung attempted, the escalation recorded, a genuine verifier kill still counted
+as one), and **two are strict xfails** that turn into a gate the moment P3 lands
+the split. A fifth asserts the two causes are currently indistinguishable and is
+marked for deletion when they are not.
+
 ## 10. Sources
 
 All read or run 2026-09-07 on the owner's Mac: `kernel/machine.py`,
