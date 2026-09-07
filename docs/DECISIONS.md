@@ -2153,3 +2153,32 @@ and the Fusion lane is verified live on Fusion 2704.1.53.
 The fourth question A71 raised — which of two Fusion lanes survives — was
 withdrawn rather than answered: there is only one, as the entry above
 records.
+
+## Two Fusion lanes, one kept: the extras come across (2026-09-07, A71)
+
+**Owner decision**, on being shown that the machine held a second,
+live-verified Fusion lane in six unpushed commits: keep this lane, port the
+three tools only the other had, and let those commits be superseded
+deliberately.
+
+**A branch you have not fetched is a declaration; unpushed work on the machine
+you are working on is still part of the state.** The withdrawal recorded above
+is right that no *remote* head carries a Fusion adapter, bridge, test or `fu_*`
+tool - re-verified. The conclusion drawn from it, that nothing had to be
+reconciled, was not: the lane was real, 3,069 lines at these same paths,
+stamped with a version the default branch had meanwhile spent. Dismissing it
+as a phantom would have discarded it silently.
+
+**An introspected API index is a lane's answer to a hallucinated call.**
+`fu_search_docs` indexes the Fusion you are connected to, not a reference page:
+13,498 symbols in 0.2 s on 2704.1.53, cached per version. It lists
+`setDistanceExtent`, which doc 71 row 8 records as retired and the codegen
+never emits - the index reports what the build has, the codegen decides what to
+send. Searching the API is `read-compute`, not `read-scene`: it reads the
+software, not the design.
+
+**Do not import half of another campaign's chain.** The merged base was red on
+macOS in the wind-tunnel lane. One standalone upstream commit fixed six tests
+and was cherry-picked; the next fixed the seventh and broke another, because it
+depended on two commits not taken - so it was reverted and dropped. The
+remaining failure is flaky, named, and left to PR #4 rather than papered over.

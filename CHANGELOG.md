@@ -117,6 +117,23 @@ partkiln's from a STEP handoff, decided as the scene write it is. Twenty
 more reference-verified rows (doc 71 §3, 31–50) and one inverted premise;
 everything still on the shim until the Mac smoke, which gained five steps.
 
+### Three more Fusion tools, and the base merged (A71, 2026-09-07)
+
+The default branch shipped the wind-tunnel lane as 0.22.0 while A71 ran, so
+this release is **0.23.0** and merges that lane beside the Fusion one; every
+conflict was additive and both sides are kept, except the search recall table,
+which is a measurement and was re-measured (197 tools, 47 cases, 43/47 at
+limit 3 and 47/47 at 5).
+
+`fu_design_stats`, `fu_search_docs` and `fu_api_detail` join the lane, ported
+from the second Fusion lane that lived unpushed on the owner's machine when
+they chose this one. The docs index is introspected from the Fusion you are
+connected to and cached per version — 13,498 symbols in 0.2 s on 2704.1.53,
+a cached search in 0.007 s — because a Fusion API answered from memory is the
+friction this project exists to remove. `fu_design_stats` reads the whole
+design in about 80 tokens and names overlapping bodies in text before any
+pixel. Still 17 always-loaded tools.
+
 ### The Fusion lane goes live (A71, 2026-09-06)
 
 The Mac smoke ran on Fusion 2704.1.53: `tests/test_fusion_live.py` passed

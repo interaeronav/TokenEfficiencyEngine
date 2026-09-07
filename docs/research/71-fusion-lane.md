@@ -294,6 +294,20 @@ equal to the codegen's dispatcher.
 Families: `("fu_", "fusion")` in `kernel/lanes.py`; no `fu_` family row in
 the trust table (three writers among six — the `pk_` rule).
 
+**A71 — three more, ported from the other lane.** When the owner chose this
+lane over the A68 lane their machine carried (PROGRESS, 2026-09-07), the three
+tools only that lane had came across rather than being lost with it:
+`fu_design_stats` (read-scene), `fu_search_docs` and `fu_api_detail`
+(read-compute — an introspection of the API is not a read of the design), each
+tabled individually as the rest are. They rest on rows already in §3 (4, 14–16,
+21, 53) plus Python's own `inspect`, which this table does not govern. Measured
+live on 2704.1.53: the index is **13,498 symbols built in 0.2 s** and cached per
+version (a cached search costs 0.007 s and no round trip beyond the version
+ping); `fu_design_stats` answers a two-body design in ~80 tokens and names the
+overlapping pair. The index is worth having precisely because it is THIS
+build's: it lists `setDistanceExtent`, which row 8 records as retired and the
+codegen never emits.
+
 ### 4.9 A router refinement: a lane whose application is not running is not a candidate
 
 A68's `route_batch` intersects candidate lanes by vocabulary. Fusion is the

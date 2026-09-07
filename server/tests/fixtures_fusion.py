@@ -888,6 +888,19 @@ class DesignTypes:
     ParametricDesignType = 1
 
 
+class FeatureHealthStates:
+    """Doc 71 rows 15-16: a feature's / timeline item's healthState. The names
+    end in FeatureHealthState, which is how `fu_design_stats` reads the word
+    back out of the enum rather than hardcoding the integers."""
+
+    HealthyFeatureHealthState = 0
+    ErrorFeatureHealthState = 1
+    WarningFeatureHealthState = 2
+    SuppressedFeatureHealthState = 3
+    RolledBackFeatureHealthState = 4
+    UnknownFeatureHealthState = 5
+
+
 class Parameter(_Entity):
     objectType = "adsk::fusion::Parameter"
 
@@ -1738,6 +1751,11 @@ class TimelineObject:
     def errorOrWarningMessage(self) -> str:
         return str(getattr(self.entity, "errorOrWarningMessage", ""))
 
+    @property
+    def healthState(self) -> int:
+        """Row 16: the item reports its entity's health (0 = healthy)."""
+        return int(getattr(self.entity, "healthState", 0))
+
 
 class Timeline:
     def __init__(self):
@@ -2045,6 +2063,7 @@ def _modules(app: Application) -> dict[str, types.ModuleType]:
     for name in (
         "Design",
         "DesignTypes",
+        "FeatureHealthStates",
         "FeatureOperations",
         "ExtentDirections",
         "DimensionOrientations",

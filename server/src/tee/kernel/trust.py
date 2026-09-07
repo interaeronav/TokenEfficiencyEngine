@@ -376,6 +376,9 @@ _EXPLICIT: dict[str, str] = {
     "fu_probe": "read-compute",
     "fu_measure": "read-compute",
     "fu_params": "read-scene",
+    "fu_design_stats": "read-scene",
+    "fu_search_docs": "read-compute",  # the index is introspection, not the design
+    "fu_api_detail": "read-compute",
     "fu_timeline": "read-scene",
     "fu_export": "write-artifacts",
     "fu_drawing": "write-artifacts",

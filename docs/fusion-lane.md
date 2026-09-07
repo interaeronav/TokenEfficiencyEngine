@@ -166,6 +166,9 @@ are for when you need to see it.
 | `fu_timeline` | the history with suppressed / rolled-back flags and health, and the marker |
 | `fu_export {format, out, of?, into?}` | step, stl, obj, f3d, iges, sat, 3mf or usd; `into=<lane\|auto>` lands the file in a served scene lane as one checkpointed batch with a read-back verdict (an OBJ into Blender scales from Fusion's centimetres — measured live: 0.11 s, then a Blender capture in 0.05 s); step / f3d / iges / sat / usd export a component or the whole design, never a body; usd lands at `<out>.usdz` |
 | `fu_drawing {out, of?, name?, sheet?, standard?, angle?, scale?, views?, dims?, hole_table?, formats?}` | a dimensioned sheet **through partkiln**: the Fusion API cannot create a drawing (doc 71 row 49), so the lane exports STEP, imports it into the served partkiln lane and writes the sheet with `pk_drawing`, every dimension read from the model; needs `--adapter partkiln`, and the import is decided as the scene write it is |
+| `fu_design_stats` | one health read of the whole design: bodies, total volume and mass, the overall bbox in mm, bodies still called `Body1`, non-solid bodies, **overlapping body pairs**, feature and suppressed counts, and every timeline item Fusion marks warning or error — measured live at ~80 tokens for a two-body design, and it names a real overlap before any pixel is spent |
+| `fu_search_docs {query, limit?}` | search the API of **the Fusion you are connected to** — introspected live from `adsk.core` and `adsk.fusion`, cached on disk per version, searched server-side. Measured on 2704.1.53: **13,498 symbols indexed in 0.2 s**, a cached search in 0.007 s. The cure for a hallucinated call, because it answers from this build rather than from memory |
+| `fu_api_detail {path}` | one symbol in full from the live build: docstring, signature and, for a class, its members. Follows a `fu_search_docs` hit |
 | `fu_execute_python {code}` | the escape hatch — registers only with `--allow-code-exec`, and the trust kernel decides it per call |
 
 What each export declares, **measured on Fusion 2704.1.53** (A71): STEP
@@ -181,6 +184,10 @@ in its header, 3MF `unit="millimeter"` — all three declare `mm`; USD is a
 `fu_export` returns is the file that exists), one binary usdc declaring
 `metersPerUnit` — a value the lane cannot read without the USD library, so
 USD alone keeps `units: null`.
+
+The index reports what the build HAS, which is not always what the reference
+says is current: `setDistanceExtent` is retired (doc 71 row 8) and is still
+exported by 2704.1.53. The codegen never emits it; the index never hides it.
 
 ## Beside partkiln
 

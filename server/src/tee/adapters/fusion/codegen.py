@@ -1554,6 +1554,149 @@ TIMELINE_PROGRAM = (
 )
 
 
+# A71: the three programs the A68 lane on the owner's machine had and this one
+# did not - a design-wide health read, and a docs index introspected from the
+# LIVE Fusion. Every adsk name they touch is already a row in doc 71 section 3
+# (4 app.version, 14 body properties, 15/16 health and the timeline, 21 design
+# types, 53 defaultLengthUnits); the rest is Python's own `inspect`, which the
+# table does not govern.
+
+STATS_PROGRAM = (
+    _PRELUDE
+    + """\
+    _health = {}
+    for _n in dir(adsk.fusion.FeatureHealthStates):
+        if _n.endswith("FeatureHealthState"):
+            _health[getattr(adsk.fusion.FeatureHealthStates, _n)] = \
+                _n[: -len("FeatureHealthState")].lower()
+    _bodies = []
+    for _i in range(_root.bRepBodies.count):
+        _b = _root.bRepBodies.item(_i)
+        _bb = _b.boundingBox
+        _bodies.append({
+            "name": str(_b.name), "id": _sid_of("body", _b),
+            "volume_mm3": round(float(_b.volume) * 1000.0, 3),
+            "mass_kg": round(float(_b.physicalProperties.mass), 6),
+            "solid": bool(_b.isSolid),
+            "box": [_bb.minPoint.x * 10.0, _bb.minPoint.y * 10.0, _bb.minPoint.z * 10.0,
+                    _bb.maxPoint.x * 10.0, _bb.maxPoint.y * 10.0, _bb.maxPoint.z * 10.0],
+        })
+    _box = None
+    for _b in _bodies:
+        _v = _b["box"]
+        if _box is None:
+            _box = list(_v)
+        else:
+            _box = [min(_box[_k], _v[_k]) for _k in range(3)] + \
+                   [max(_box[_k], _v[_k]) for _k in range(3, 6)]
+    _overlaps = []
+    for _a in range(len(_bodies)):
+        for _c in range(_a + 1, len(_bodies)):
+            _x, _y = _bodies[_a]["box"], _bodies[_c]["box"]
+            if (_x[0] < _y[3] and _y[0] < _x[3] and _x[1] < _y[4] and _y[1] < _x[4]
+                    and _x[2] < _y[5] and _y[2] < _x[5]):
+                _overlaps.append([_bodies[_a]["name"], _bodies[_c]["name"]])
+        if len(_overlaps) >= 20: break
+    _problems = []; _suppressed = 0; _features = 0
+    _parametric = _design.designType == adsk.fusion.DesignTypes.ParametricDesignType
+    if _parametric:
+        _tl = _design.timeline; _features = _tl.count
+        for _i in range(_tl.count):
+            _o = _tl.item(_i)
+            if _o.isSuppressed: _suppressed += 1
+            _h = _health.get(_o.healthState, str(_o.healthState))
+            if _h in ("warning", "error") and len(_problems) < 20:
+                _problems.append({"index": _o.index, "name": str(_o.name), "health": _h,
+                                  "message": str(_o.errorOrWarningMessage or "")[:160]})
+    result = {
+        "design": "parametric" if _parametric else "direct",
+        "units": str(_design.unitsManager.defaultLengthUnits),
+        "bodies": len(_bodies),
+        "total_volume_mm3": round(sum(_b["volume_mm3"] for _b in _bodies), 2),
+        "total_mass_kg": round(sum(_b["mass_kg"] for _b in _bodies), 6),
+        "bbox_mm": [round(_v, 3) for _v in _box] if _box else None,
+        "non_solid": [_b["name"] for _b in _bodies if not _b["solid"]][:20],
+        "default_named": [_b["name"] for _b in _bodies
+                          if _b["name"][:4] == "Body" and _b["name"][4:].isdigit()][:20],
+        "overlapping_pairs": _overlaps[:20],
+        "features": _features, "suppressed": _suppressed, "problems": _problems,
+        "user_parameters": _design.userParameters.count if _parametric else 0,
+    }
+"""
+    + _EPILOGUE
+)
+
+_DOC_SKIP = ("thisown", "this")
+
+DOCS_INDEX_PROGRAM = (
+    _PRELUDE
+    + """\
+    import inspect
+    _entries = []
+    def _first(_o):
+        _d = inspect.getdoc(_o) or ""
+        return _d.strip().splitlines()[0][:200] if _d.strip() else ""
+    for _mn, _mod in (("adsk.core", adsk.core), ("adsk.fusion", adsk.fusion)):
+        for _cn in dir(_mod):
+            if _cn.startswith("_"): continue
+            _cls = getattr(_mod, _cn)
+            if not isinstance(_cls, type): continue
+            _cp = _mn + "." + _cn
+            _entries.append({"path": _cp, "kind": "class", "doc": _first(_cls)})
+            for _mnm, _mem in list(vars(_cls).items()):
+                if _mnm.startswith("_") or _mnm in """
+    + repr(_DOC_SKIP := ("thisown", "this"))
+    + """: continue
+                _kind = ("method" if callable(_mem) else
+                         ("property" if isinstance(_mem, property) else "constant"))
+                _e = {"path": _cp + "." + _mnm, "kind": _kind, "doc": _first(_mem)}
+                if _kind == "method":
+                    try: _e["sig"] = str(inspect.signature(_mem))[:200]
+                    except Exception: pass
+                elif _kind == "constant" and isinstance(_mem, (int, float, str, bool)):
+                    _e["value"] = _mem
+                _entries.append(_e)
+    result = {"version": str(_app.version), "entries": _entries}
+"""
+    + _EPILOGUE
+)
+
+
+def api_detail_program(path: str) -> str:
+    """One symbol, read from the live Fusion: its docstring, signature and,
+    for a class, its member list. `path` must start with `adsk.`"""
+    return (
+        _PRELUDE
+        + f"""\
+    import inspect
+    _parts = {_lit(path)}.split(".")
+    if not _parts or _parts[0] != "adsk":
+        raise _OpError(-1, "path must start with adsk. (e.g. "
+                       "adsk.fusion.ExtrudeFeatures.addSimple)", "bad_path")
+    _obj = adsk
+    for _p in _parts[1:]:
+        _obj = getattr(_obj, _p, None)
+        if _obj is None:
+            result = {{"found": False, "path": {_lit(path)}}}
+            break
+    else:
+        _out = {{"found": True, "path": {_lit(path)}, "type": type(_obj).__name__,
+                "doc": (inspect.getdoc(_obj) or "").strip()[:2000]}}
+        if callable(_obj) and not isinstance(_obj, type):
+            try: _out["signature"] = str(inspect.signature(_obj))
+            except Exception: pass
+        if isinstance(_obj, type):
+            _members = []
+            for _n, _m in list(vars(_obj).items()):
+                if _n.startswith("_") or _n in ("thisown", "this"): continue
+                _members.append(_n)
+            _out["members"] = sorted(_members)[:200]
+        result = _out
+"""
+        + _EPILOGUE
+    )
+
+
 def export_program(fmt: str, path: str, of: str | None) -> str:
     method, order, _suffix = EXPORT_FORMATS[fmt]
     geometry = f"_find({_lit(of)})" if of else "None"
