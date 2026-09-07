@@ -221,7 +221,6 @@ def domain_surface(
     engine_dir: Path,
     *,
     body_name: str = "body",
-    farfield_name: str = "farfield",
 ) -> Path:
     """The domain box and the body as ONE multi-solid ASCII STL.
 
@@ -231,23 +230,27 @@ def domain_surface(
     target - and it is why the body is REWRITTEN rather than copied: the solid
     name inside a user's STL is whatever their exporter wrote, and a binary
     STL carries no name at all. `physics.read_stl` reads both.
+
+    The box goes in under blockMesh's OWN patch names - inlet, outlet, sides,
+    top, ground - so one set of boundary conditions serves both meshers. A
+    single `farfield` solid meshes just as well and then stops the solver dead
+    at `Cannot find patchField entry for farfield` (A74 P2, measured).
     """
     tri = engine_dir / "constant" / "triSurface"
     tri.mkdir(parents=True, exist_ok=True)
     body = physics.read_stl(Path(case["geometry"]["stl"]))
     dom = case["domain"]
+    faces = physics.box_faces(
+        dom["xmin"], dom["xmax"], dom["ymin"], dom["ymax"], dom["zmin"], dom["zmax"]
+    )
+    parts = []
+    for name, tris in faces.items():
+        physics.write_stl_ascii(tri / f"{name}.stl", tris, name=name)
+        parts.append(tri / f"{name}.stl")
     physics.write_stl_ascii(tri / f"{body_name}.stl", body.tris, name=body_name)
-    physics.write_stl_ascii(
-        tri / f"{farfield_name}.stl",
-        physics.box_tris(
-            dom["xmin"], dom["xmax"], dom["ymin"], dom["ymax"], dom["zmin"], dom["zmax"]
-        ),
-        name=farfield_name,
-    )
+    parts.append(tri / f"{body_name}.stl")
     out = tri / "domain.stl"
-    out.write_text(
-        (tri / f"{farfield_name}.stl").read_text() + (tri / f"{body_name}.stl").read_text()
-    )
+    out.write_text("".join(p.read_text() for p in parts))
     return out
 
 

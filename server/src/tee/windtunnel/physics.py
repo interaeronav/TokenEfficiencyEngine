@@ -296,6 +296,31 @@ def read_stl(path: str | Path) -> Surface:
     return Surface(tris, path.stem)
 
 
+def box_faces(
+    xmin: float, xmax: float, ymin: float, ymax: float, zmin: float, zmax: float
+) -> dict[str, list[tuple[Vec, Vec, Vec]]]:
+    """The box's twelve triangles, grouped under BLOCKMESH'S PATCH NAMES.
+
+    Not decoration: a patch in a cfMesh case is an STL `solid`, so these names
+    are the mesh's patch names, and they have to be the ones the rest of the
+    lane already writes boundary conditions for. Measured the hard way (A74
+    P2): a single `farfield` solid meshes perfectly and then `simpleFoam`
+    stops at `Cannot find patchField entry for farfield`, because `0/p` names
+    inlet, outlet, sides, top and ground. One set of boundary conditions has
+    to serve both meshers.
+
+    Each group's normals point out of the box, checked by computing them.
+    """
+    t = box_tris(xmin, xmax, ymin, ymax, zmin, zmax)
+    return {
+        "inlet": [t[10], t[11]],  # -x
+        "outlet": [t[6], t[7]],  # +x
+        "sides": [t[4], t[5], t[8], t[9]],  # -y and +y, one patch as blockMesh has it
+        "top": [t[2], t[3]],  # +z
+        "ground": [t[0], t[1]],  # -z
+    }
+
+
 def box_tris(
     xmin: float, xmax: float, ymin: float, ymax: float, zmin: float, zmax: float
 ) -> list[tuple[Vec, Vec, Vec]]:

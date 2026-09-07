@@ -258,10 +258,10 @@ def cartesian_mesh():
     layers = re.search(r"nLayers\s+(\d+)", text)
     out("Reading " + surface.name + ": " + str(len(solids)) + " patches")
     out("Requested cell size " + (cell.group(1) if cell else "?"))
-    # the farfield solids are patches, the body a wall - the same shape snappy
-    # leaves behind, so everything downstream reads one mesh either way
-    body = solids[-1]
-    patches = [(s, "patch") for s in solids[:-1]] + [(body, "wall")]
+    # measured on the real cartesianMesh (A74 P2): EVERY patch it makes from a
+    # solid comes out `type wall`, the farfield included - so the fake says so
+    # too rather than inventing the tidier answer
+    patches = [(s, "wall") for s in solids]
     n = int(os.environ.get("TEE_FAKE_CFMESH_CELLS", "40000"))
     write_polymesh(case, patches, n)
     out("Starting creating layer cells")

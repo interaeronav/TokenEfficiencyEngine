@@ -98,16 +98,17 @@ def test_the_domain_surface_is_one_file_with_the_box_and_the_body_named(app, bod
     surface = runs.domain_surface(rec, edir)
     text = surface.read_text()
     solids = [ln.split()[1] for ln in text.splitlines() if ln.startswith("solid ")]
-    assert solids == ["farfield", "body"], solids
-    assert text.count("endsolid") == 2
+    # blockMesh's own patch names, because a solid IS a patch and one set of
+    # boundary conditions has to serve both meshers (A74 P2)
+    assert solids == ["inlet", "outlet", "sides", "top", "ground", "body"], solids
+    assert text.count("endsolid") == 6
     # the body's own STL called its solid "section": the name did not survive,
     # which is the point
     assert "section" not in text
-    box = physics.read_stl(edir / "constant" / "triSurface" / "farfield.stl")
-    assert len(box.tris) == 12
     whole = physics.read_stl(surface)
     body = physics.read_stl(Path(rec["geometry"]["stl"]))
-    assert len(whole.tris) == len(body.tris) + 12
+    assert len(whole.tris) == len(body.tris) + 12  # the box is still twelve triangles
+    assert len(physics.read_stl(edir / "constant" / "triSurface" / "sides.stl").tris) == 4
 
 
 def test_the_domain_surface_encloses_the_body(app, body_case):
@@ -117,6 +118,28 @@ def test_the_domain_surface_encloses_the_body(app, body_case):
     dom = rec["domain"]
     assert (bx0, by0, bz0) == pytest.approx((dom["xmin"], dom["ymin"], dom["zmin"]))
     assert (bx1, by1, bz1) == pytest.approx((dom["xmax"], dom["ymax"], dom["zmax"]))
+
+
+def test_the_box_faces_carry_blockmeshs_names_and_point_outward():
+    """The defect P2 found, pinned. A single `farfield` solid meshes perfectly
+    and then stops the solver at `Cannot find patchField entry for farfield`,
+    because `0/p` names inlet, outlet, sides, top and ground."""
+    faces = physics.box_faces(-1.0, 4.0, -2.0, 2.0, -3.0, 3.0)
+    assert list(faces) == ["inlet", "outlet", "sides", "top", "ground"]
+    assert sum(len(v) for v in faces.values()) == 12
+    assert len(faces["sides"]) == 4  # one patch, two walls of the box
+    centre = (1.5, 0.0, 0.0)
+    for name, tris in faces.items():
+        for p0, q, r in tris:
+            u = [q[i] - p0[i] for i in range(3)]
+            v = [r[i] - p0[i] for i in range(3)]
+            n = [
+                u[1] * v[2] - u[2] * v[1],
+                u[2] * v[0] - u[0] * v[2],
+                u[0] * v[1] - u[1] * v[0],
+            ]
+            mid = [sum(pt[i] for pt in (p0, q, r)) / 3 - centre[i] for i in range(3)]
+            assert sum(n[i] * mid[i] for i in range(3)) > 0, f"{name} points inward"
 
 
 # -- through the tool --------------------------------------------------------
@@ -137,7 +160,10 @@ def test_wt_mesh_with_cfmesh_runs_cartesian_mesh_and_says_which_mesher(app, body
     assert (edir / "system" / "meshDict").is_file()
     assert not (edir / "system" / "snappyHexMeshDict").is_file(), "the snappy path did not run"
     log = (edir / "log.cartesianMesh").read_text()
-    assert "(cfmesh)" in log and "2 patches" in log
+    assert "(cfmesh)" in log and "6 patches" in log
+    boundary = (edir / "constant" / "polyMesh" / "boundary").read_text()
+    for patch in ("inlet", "outlet", "sides", "top", "ground", "body"):
+        assert patch in boundary, f"{patch} is not a patch of the mesh"
 
 
 def test_the_snappy_path_is_untouched_and_is_still_the_default(app, body_case):
