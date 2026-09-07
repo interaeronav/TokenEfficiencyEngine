@@ -139,3 +139,56 @@ def test_mcpb_manifest_tool_list_matches_surface(tools):
         f"manifest drift: only-in-manifest={sorted(declared - served)}, "
         f"only-on-server={sorted(served - declared)}"
     )
+
+
+# A66/A68: the surface figure is an invariant quoted in the lane guides, the
+# CHANGELOG and every campaign script - and until now NOTHING measured it. It
+# moved 2,033 -> 2,129 at bd70096 (A68 P2 gave the shared `adapter=` parameter
+# a one-line description on eight tools, +96 tok) and four commits' worth of
+# prose went on printing the old number, this file's author included. A count
+# canary does not catch that: the tool count never changed.
+EXPECTED_WIRE_TOKENS = 2_129
+
+
+def _wire_tokens(tools) -> int:
+    # by_alias + exclude_none is what the SDK actually puts on the wire; a bare
+    # model_dump counts ~470 tokens of null padding no client ever sees. This
+    # is the same measurement benchmarks/run_benchmarks.py prints as `surface:`.
+    return estimate_tokens(
+        [t.model_dump(by_alias=True, mode="json", exclude_none=True) for t in tools]
+    )
+
+
+def test_wire_token_cost_is_pinned(tools):
+    wire = _wire_tokens(tools)
+    assert wire == EXPECTED_WIRE_TOKENS, (
+        f"always-loaded surface is {wire} tok on the wire, pinned at "
+        f"{EXPECTED_WIRE_TOKENS} ({wire - EXPECTED_WIRE_TOKENS:+d}). Adding a tool, a "
+        "description or a schema field is what moves this. If the change is deliberate, "
+        "update EXPECTED_WIRE_TOKENS and the `N wire tokens` figure every docs/*-lane.md "
+        "prints - test_lane_docs_quote_the_measured_surface asserts they agree."
+    )
+
+
+def test_lane_docs_quote_the_measured_surface(tools):
+    """A lane guide states the surface cost as current fact; a stale one is a lie
+    told to every reader. The figure it prints must be the figure we measure."""
+    import re
+    from pathlib import Path
+
+    docs = sorted((Path(__file__).resolve().parents[2] / "docs").glob("*-lane.md"))
+    assert docs, "no lane guides found; this test would pass vacuously"
+    quoted = [
+        (doc.name, int(m.group(1).replace(",", "")))
+        for doc in docs
+        for m in re.finditer(r"([\d,]+) wire tokens", doc.read_text())
+    ]
+    assert quoted, (
+        "no lane guide states the surface cost. One of them should: it is the "
+        "invariant the whole progressive-disclosure design rests on."
+    )
+    stale = [(name, n) for name, n in quoted if n != _wire_tokens(tools)]
+    assert not stale, (
+        f"lane guides print a surface cost we do not measure: {stale}; "
+        f"measured {_wire_tokens(tools)} tok on the wire."
+    )

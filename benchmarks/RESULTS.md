@@ -110,16 +110,26 @@ fields no client ever sees, so it overstates the surface by ~20%.
 
 | | Tools | Tokens |
 |---|---|---|
-| TEE always-loaded (wire) | 17 | **2,033** |
-| same, by `model_dump()` | 17 | 2,500 |
-| flat server, one tool per capability | 157 | 19,438 |
+| TEE always-loaded (wire) | 17 | **2,129** |
+| same, by `model_dump()` | 17 | 2,596 |
+| flat server, one tool per capability | 158 | 20,545 |
 
 Registering all seven modules (extract, assets, design, physical,
 pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 140 tools they contribute live behind the
-meta-tools. Reaching one costs 545 tokens (one search +
+surface - the 141 tools they contribute live behind the
+meta-tools. Reaching one costs 548 tokens (one search +
 one describe), so the flat design only pays off in a session that
-uses more than ~35 distinct long-tail tools.
+uses more than ~37 distinct long-tail tools.
+
+Re-measured 2026-09-07 by `run_surface_scenario`. The wire figure
+was **2,033** from A12 until `bd70096` (A68 P2), which gave the
+shared `adapter=` parameter a one-line description on eight tools:
+**+96 tokens**, and no lane has moved it before or since. It now
+has a test. `test_server_lint.py` pins both the number and the
+figure every `docs/*-lane.md` prints, because for four commits this
+table and those guides went on saying 2,033 while the server served
+2,129 - a count canary cannot catch that, since the count never
+changed.
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 

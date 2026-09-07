@@ -20,9 +20,12 @@ tee serve --adapter blender --adapter partkiln --adapter seamkiln --project ~/pa
 #   name the lane only when two lanes could take it:  tee_batch adapter=partkiln ops=[...]
 ```
 
-The surface before A66 was 17 tools / 2,033 tok. After A66: 17 tools /
-2,033 tok. Fourteen `pk_*` tools sit behind progressive disclosure; find them
-with `tee_search_tools("export STEP")`, not by reading a list.
+A66 added **no** always-loaded tools: 17 before, 17 after. Those 17 cost
+2,129 wire tokens today — the figure moved from 2,033 at `bd70096`, where
+A68 gave the shared `adapter=` parameter a one-line description on eight
+tools. No lane moved it. Fifteen `pk_*` tools sit behind progressive
+disclosure; find them with `tee_search_tools("export STEP")`, not by
+reading a list.
 
 ## The loop
 
@@ -85,7 +88,7 @@ expression (`"W/2 - 5mm"`) is legal wherever a length is.
 | `set` / `delete` | any creation prop, `suppressed`, `material`, `name` / `id` (+`cascade`) | `id` |
 | `export` / `check` | write a file / verify a spec | `format`+`out` / `spec` |
 
-## The fourteen tools
+## The fifteen tools
 
 | tool | what it is for |
 | --- | --- |
@@ -97,6 +100,7 @@ expression (`"W/2 - 5mm"`) is legal wherever a length is.
 | `pk_check` | verify a spec → verdict + violations, each with `got`, `limit` and the fix |
 | `pk_standards` | clearance/tap/drill for a bolt, ISO 4762/4014/4017/4032/7089, with source and licence |
 | `pk_materials` | material cards (density, E, yield) with an honesty tier per value; an anisotropic card names directions (`E_0`, `tensile_90`) and refuses the scalars it will not invent |
+| `pk_tyre` | tyre STRUCTURE from **your** rated data: deflection, loaded radius, ground clearance, vertical rate in N/mm, contact-patch upper bound. Ships no tyre table — the data book's tables are T&RA-licensed, so this implements the relationships and quotes the definitions, as ISO 286 is shipped as formulae |
 | `pk_bom` | bill of materials: structured or parts-only, qty, material, mass |
 | `pk_drawing` | write a dimensioned sheet to SVG/DXF/PDF |
 | `pk_export` | STEP AP242/214/203, IGES, BREP, STL, OBJ, 3MF, GLB, DXF + a handoff manifest |
@@ -105,7 +109,7 @@ expression (`"W/2 - 5mm"`) is legal wherever a length is.
 | `pk_script` | dump / replay / replay-with-overrides (the part family) / compare fingerprints |
 
 Three of them write files (`pk_drawing`, `pk_export`, `pk_flat`) and two
-mutate the document (`pk_import`, `pk_script`), so all fourteen are tabled
+mutate the document (`pk_import`, `pk_script`), so all fifteen are tabled
 **individually** in the trust kernel — there is deliberately no `pk_` family
 row that would hand a writer the open read tier.
 

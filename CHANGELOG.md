@@ -54,6 +54,29 @@ control to keep it so.
   carries the three instabilities measured while building this and the
   five-row specification a replacement must meet.
 
+### `pk_tyre`, and a test for the number every doc prints
+
+- **A tyre is a structure, so it gets a structure tool.** `pk_materials`
+  refuses "tyre", "f1 tyre" and "aircraft tyre"; `pk_tyre` is the other half —
+  deflection, static loaded radius, ground clearance, vertical rate in N/mm
+  and a contact-patch **upper bound** (named `area_upper_bound_mm2`, never a
+  bare area), computed from the rated row the caller reads off their own data
+  book. **It ships no tyre table**: those tables are reprinted with permission
+  from The Tire and Rim Association, so the lane implements the relationships
+  and quotes the definitions, exactly as ISO 286 ships as formulae. Nothing
+  defaults the percent deflection — the book states its formula in terms of it
+  and never prints a value — so it is either given or recovered by inverting
+  the book's own formula. Grip, wear, rolling resistance, temperature and
+  compound refuse by name; so do `rated_load`, `size` and `table`, for the
+  licence reason. Fifteen `pk_*` tools now, each still tabled individually.
+- **The surface figure is finally measured.** It moved **2,033 → 2,129** at
+  `bd70096` and four commits of prose kept printing 2,033, because the tool
+  COUNT never changed and only the count had a canary. `test_server_lint.py`
+  now pins the wire cost and asserts the lane guides print the same number.
+  The stale figures in the guides, the adapter docstrings and the `RESULTS.md`
+  surface table are corrected from a fresh measurement, not patched.
+
+
 ## 0.23.0 — one server, N lanes, no hub, and a Fusion lane (2026-09-07)
 
 Released from `claude/tee-component-integration-iflsyq` after A71 verified the

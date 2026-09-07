@@ -89,10 +89,12 @@ Asserted, not remembered: `test_gui.py` checks these lists against
 `document.VERBS`, `document.KINDS` and `client.known_methods()`, so a kind
 added to the kernel and to neither list fails the test the same day.
 
-**Coverage, measured 2026-09-04: 4 of 4 verbs, 10 of 37 `create` kinds, 12 of
-25 kernel methods.** (35 became 37 the same day, when `coil` and `thread`
-landed in the kernel and the test above failed until both were listed — which
-is the point of asserting the list against the kernel rather than typing it.)
+**Coverage: 4 of 4 verbs, 10 of 37 `create` kinds, 12 of 26 kernel methods.**
+(Measured 2026-09-04 at 35 kinds and 25 methods. 35 became 37 the same day,
+when `coil` and `thread` landed in the kernel; 25 became 26 when `tyre` landed
+on 2026-09-07. Each time the test above failed until the new name was listed —
+which is the point of asserting the list against the kernel rather than typing
+it.)
 
 - **Verbs: all four.** `create`, `param_set`, `set`, `delete`.
 - **Kinds with no button (27).** `revolve`, `sweep`, `loft`, `shell`, `draft`,
@@ -102,10 +104,11 @@ is the point of asserting the list against the kernel rather than typing it.)
   joint kinds `ball`, `cylindrical`, `revolute`, `rigid`, `slider`.
   **There is no assembly in this window at all**: no components, no mates, no
   joints, no DOF, no interference, no BOM.
-- **Kernel methods with no button (13).** `bom`, `flat` (sheet metal),
-  `import`, `lint`, `materials`, `measure`, `query`, `standards`, `verbs`, and
-  the checkpoint set `snapshot` / `restore` / `discard` — so the window cannot
-  take or roll back to a checkpoint. `ping` is the worker's liveness probe.
+- **Kernel methods with no button (14).** `bom`, `flat` (sheet metal),
+  `import`, `lint`, `materials`, `measure`, `query`, `standards`, `tyre`,
+  `verbs`, and the checkpoint set `snapshot` / `restore` / `discard` — so the
+  window cannot take or roll back to a checkpoint. `ping` is the worker's
+  liveness probe.
 - **No sketch editing.** You cannot drag a point, add a constraint, or
   re-dimension: the Sketch button emits one parametric rectangle. Everything
   else is a batch.

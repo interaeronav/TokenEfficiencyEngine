@@ -14318,3 +14318,69 @@ refusal automatically, listing NBR and EPDM.
 
 partkiln **921 passed / 2 skipped**, ruff clean, **25 cards**, nine named
 authorities.
+
+### A66 addendum — `pk_tyre`: the structural half of the refusal (2026-09-07)
+
+The materials lane refuses "tyre" because a tyre is a structure, not a
+material. That refusal is right and it is also only half an answer: a landing
+gear, bracket or fairing designer needs the structure. `partkiln/tyre.py` is
+that half, reached as the fifteenth `pk_*` tool.
+
+**It ships no tyre table, deliberately.** The dimension and load tables in an
+aircraft tyre data book carry "REPRINTED WITH PERMISSION FROM THE TIRE AND RIM
+ASSOCIATION"; they are not ours to redistribute. This is the ISO 286 precedent
+already in this lane: what a source publishes as a RELATIONSHIP may be
+implemented with a citation, what it publishes only as a TABLE may not be
+copied. So the caller passes the row they read off the book they hold, and the
+module computes structure from it — deflection, static loaded radius, ground
+clearance, vertical rate in N/mm, contact-patch bound. Definitions are quoted
+short, with attribution, because they are what make the inputs unambiguous.
+
+Four things the build had to get right rather than guess:
+
+- **Nothing defaults the percent deflection.** The book states the SLR
+  relationship in terms of `d` and never prints a value for it, saying only
+  that an "H" prefix marks a tyre "designed for a higher percent deflection" —
+  naming no number. So `d` is either stated by the caller or recovered by
+  inverting the book's own formula on the book's own tabled SLR, which uses
+  only numbers the caller already has.
+- **Two ratios wear the same word and have different denominators.** The
+  book's `d` is referenced to the height above the rim FLANGE; section height
+  is referenced to the rim LEDGE. The module keeps them apart by name and a
+  test asserts they disagree.
+- **A uniform unit slip is arithmetically invisible.** Read every length in
+  inches, pass them all as bare numbers, and every ratio comes out
+  bit-identical — only magnitudes move. So the module does not pretend to
+  catch it with a plausibility threshold, which would mean inventing a number
+  for how big a tyre may be. It states which system it read bare numbers in
+  and returns every length in BOTH, so a 4 mm deflection on a 49-unit tyre is
+  visible in the answer. A MIXED slip is caught by the geometry guards.
+- **The contact patch is never a bare number.** Load over pressure is an
+  upper bound, so the key is named `area_upper_bound_mm2`.
+
+Grip, wear, rolling resistance, running temperature and compound refuse by
+name with a reason and a fix; so do `rated_load`, `size` and `table`, for the
+licence reason. One trust row — `"pk_tyre": "read-compute"` — tabled
+individually; still no `pk_` family row.
+
+**The defect this work exposed, and the fix.** The surface figure printed in
+the lane guides, the adapter docstrings, this file, `RESULTS.md` and every
+campaign script is an invariant, and NOTHING measured it. It moved **2,033 →
+2,129** at `bd70096` (A68 P2 gave the shared `adapter=` parameter a one-line
+description on eight tools, +96) and four commits of prose went on printing
+2,033 — mine included. A count canary cannot catch it: the tool count never
+changed. `server/tests/test_server_lint.py` now pins two things — the measured
+wire cost (`EXPECTED_WIRE_TOKENS`), and the agreement between that measurement
+and the `N wire tokens` figure every `docs/*-lane.md` prints. Both were
+mutation-tested: setting the constant to 2,033 reproduces the exact `+96`
+message, and reverting a lane guide to 2,033 names the file and the number.
+
+Corrected with it: `docs/partkiln-gui.md` said 12 of **25** kernel methods
+(26 since `tyre`) and 13 methods with no button (14), `docs/DECISIONS.md` and
+the lane guide said **fourteen** `pk_*` tools (fifteen), and the `RESULTS.md`
+surface table was re-measured rather than patched — 17 / 2,129 wire / 2,596 by
+`model_dump`, 141 virtual tools, modules still adding exactly 0.
+
+**Suites at close:** partkiln **967 passed / 2 skipped**; server **1,932
+passed / 20 skipped / 130 deselected**; lint clean. Surface unchanged by this
+work: 17 tools / 2,129 tok — and now tested.
