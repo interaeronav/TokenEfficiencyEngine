@@ -12305,6 +12305,43 @@ seamkiln install; both go back with two commands, then the server needs a
 restart for the `.pth` to be read. The partkiln sidecar is untouched by any
 of it — that is what the sidecar route is for.
 
+### CI: the cad spec is checked before the OpenSCAD binary, and the lock re-keyed to 0.21.1 (2026-09-06)
+
+The base branch's `server` job had failed its last three runs at
+`uv sync --locked`: `server/uv.lock` still recorded `tee-engine 0.20.0`
+against a `pyproject.toml` at 0.21.1, so the suite never ran. `uv lock`
+changes exactly that one line (the 204 packages resolve unchanged) and
+`uv sync --locked` succeeds again.
+
+Behind it sat the failure both open PRs inherit:
+`test_fleet_cad.py::test_a_build_with_no_input_refuses`. `scad_build`
+called `_require_openscad()` before it looked at the spec, so on a machine
+without OpenSCAD (`ubuntu-latest`, any container) `cad.scad_build({})`
+refused with `cad_no_openscad` instead of `cad_bad_spec`. The test is
+deliberately NOT marked `needs_openscad`: it states the order — the
+argument the caller can fix now comes before the binary they would have
+to install. The binary check now sits after the source, size and format
+checks, just before the temp directory is opened; `exe` is first used
+where the argv is built, so nothing else moves. Measured with OpenSCAD
+hidden from PATH: the untouched code fails exactly the CI assertion
+(`'source' in 'brew install --cask openscad …'`); the fix takes the file
+from **1 failed / 14 passed / 8 skipped** to **15 passed / 8 skipped**;
+ruff check and format clean. `cad_scad_build` in `fleet/tools.py` is the
+only other caller and only forwards.
+
+**A machine fact found on the way, and its correction:** mid-session this
+Mac lost OpenSCAD — the 2021.01 app went to the Trash, leaving
+`/opt/homebrew/bin/openscad` dangling — so the `needs_openscad` tests were
+skipping locally and the OpenSCAD build path was unexercised anywhere.
+`brew install --cask openscad` does NOT bring it back: Homebrew disabled
+that cask on 2026-09-01 (2021.01 fails Gatekeeper), and its stale
+registration blocks the replacement ("conflicts with 'openscad'"). What
+worked: `brew uninstall --cask --force openscad`, then
+`brew install --cask openscad@snapshot` (2026.09.05), which links
+`/opt/homebrew/bin/openscad`. With it present the same file runs
+**21 passed / 2 skipped** (cadquery only), so the reorder is verified on
+both sides of the binary.
+
 ## A72 — the wind-tunnel lane: OpenFOAM, SU2, OpenVSP/VSPAERO and ParaView, headless (2026-09-06)
 
 Owner: *"Integrate and consolidate wind tunnel and aerodynamic platforms
