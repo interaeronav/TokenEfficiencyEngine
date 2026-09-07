@@ -36,7 +36,7 @@ Read first: doc 74 (all five sections), then `foam.py`'s `write_snappy_dicts`/`d
 
 - **P0** — the measurements above, doc 74, this script, the DECISIONS ruling, `74-evidence/`. **Done 2026-09-07**; the evidence directory holds both arms' scripts and their output.
 - **P1** — `write_cfmesh_dicts()`, `domain_surface()`, `mesher=` on `wt_mesh`, the fake `cartesianMesh` arm, hermetic tests per refusal. *Acceptance:* the whole path exercised with no real binary; byte-stable dictionaries; the surface's solids named and asserted; surface still 17 tools.
-- **P2** — the `cfd` tier: mesh the prism both ways, then **solve on both and compare the forces**. *Acceptance:* the comparison recorded with its numbers, whichever way it falls. A mesh that covers its layers and does not move Cd has not earned the argument.
+- **P2** — the `cfd` tier: mesh the prism both ways, then **solve on both and compare the forces**. **Done 2026-09-07** (doc 74 §2.7): the forces move — Cd −27.6 %, spurious lift 6× smaller, `converged` against `stalled` on the same budget — so the argument is earned and P4 has a measurement to route on.
 - **P3** — the twelve skew faces at the trailing edge: `surfaceFeatureEdges` → FMS, `edgeMeshRefinement`. *Acceptance:* `checkMesh` passes clean, or `mesher="cfmesh"` ships with a documented refusal for sharp sections — never a widened tolerance.
 - **P4** — `mesher="auto"` (the router's rule, from P2's numbers), the benchmark scenario, `docs/windtunnel-lane.md`, `docs/setup-windtunnel.md`, the CLAUDE.md bullet, CHANGELOG, PROGRESS, version.
 
@@ -48,3 +48,11 @@ Read first: doc 74 (all five sections), then `foam.py`'s `write_snappy_dicts`/`d
 4. **Never widen `TOLERATED_CHECKS` to make a mesh pass.** Fix the mesh or refuse the geometry.
 5. **The caller's arguments do not change between meshers**, which is what makes `auto` honest.
 6. Zero always-loaded tools; no new `wt_*` name; no family row.
+
+## Amendments learned while building (the script is amended, not improvised around)
+
+- **P2 defect 1 — a patch is a solid.** The box went in as one `farfield` solid; the mesh was perfect and `simpleFoam` stopped at `Cannot find patchField entry for farfield`, because every `0/` field names blockMesh's patches. `physics.box_faces()` writes the box as inlet/outlet/sides/top/ground, verified by computing each normal rather than trusting the face order.
+- **P2 defect 2 — cfMesh is not reproducible when threaded.** Same case, two runs, same 38,352 cells, different mesh hashes (`7c26…`, `cc2a…`); `OMP_NUM_THREADS=1` gives `c5fa…` twice for ~25 % more wall time. The lane pins the single-threaded route because the mesh hash travels with every coefficient and same-mesh deltas are first-class, and `cores` is how a caller buys the speed back — with the loss named in the reply. It reaches the answer: spurious Cl wandered 0.0013 → 0.0093 threaded, then repeated at 0.011943 / 0.011940 pinned.
+- **P2 fake correction.** Real `cartesianMesh` gives EVERY patch made from a solid `type wall`, the farfield included — read out of the `polyMesh/boundary` it wrote. The fake had been inventing the tidier `patch`/`wall` split, and a fake kinder than the tool it stands in for is how a lane ships a defect that only appears on real engines.
+- **P2 threshold lesson.** The symmetry test was first written `abs(cl) < 0.01`, from the first threaded run's 0.0013. With the mesh pinned the true figure is 0.0119, so the original bound had been measuring whichever run happened to be luckiest. The assertion is now a ratio against snappy's 0.0746, with a loose absolute band as a nonsense guard.
+

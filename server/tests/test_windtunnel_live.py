@@ -534,3 +534,121 @@ def test_a_state_over_an_su2_volume_file_writes_and_loads(app, tmp_path):
     facts = _loadback(app, str(out["state"]), render=out["kind"] == "full")
     # the .vtu reader's FileName is a LIST, unlike the .foam reader's string
     assert facts["reader"] == "XMLUnstructuredGridReader" and "flow.vtu" in facts["file"]
+
+
+# -- A74: cfMesh against snappyHexMesh, on the real binaries ------------------
+#
+# The campaign's acceptance (A74 law 3): a mesh that covers its boundary layer
+# and does not move the forces has not earned a `mesher=` argument. Measured
+# 2026-09-07 on the prism at alpha 0, 200 iterations, same domain and layers:
+#
+#   snappy  46,160 cells  11.2 s  STALLED (2.03 orders)  Cl 0.0746  Cd 0.4343
+#   cfmesh  38,352 cells   5.1 s  converged (5.01)       Cl 0.0013  Cd 0.3146
+#
+# The Cl column is the one that decides it. The section is symmetric and the
+# incidence is zero, so lift MUST be zero: 0.0746 is the mesh talking. That is
+# the invariant asserted here - a physical truth rather than a golden number.
+
+
+@pytest.fixture(scope="module")
+def prism_stl(tmp_path_factory):
+    stl = tmp_path_factory.mktemp("a74") / "prism.stl"
+    airfoil.extrude_stl(stl, airfoil.naca4("0012", 24), span=0.4, chord=0.3, name="section")
+    return stl
+
+
+def _mesh_and_solve(app, stl, mesher: str) -> dict:
+    cid = call(app, "wt_case", action="create", stl=str(stl), V_mps=20, aoa_deg=0)["case_id"]
+    args = {"case_id": cid, "base_cell_m": 0.15, "levels": [1, 2], "layers": 2}
+    if mesher != "snappy":
+        args["mesher"] = mesher
+    t0 = time.time()
+    status = wait_job(app, call(app, "wt_mesh", **args)["job"], timeout_s=2400)
+    assert status["state"] == "done", status
+    mesh = status["result"]
+    mesh["mesh_wall_s"] = round(time.time() - t0, 1)
+    started = call(app, "wt_run", case_id=cid, iters=200, confirm_cost=True)
+    assert wait_job(app, started["job"], timeout_s=3600)["state"] == "done"
+    return {"case_id": cid, "mesh": mesh, "result": call(app, "wt_result", case_id=cid)}
+
+
+def test_cfmesh_meshes_the_prism_and_solves_on_it(app, prism_stl):
+    """The integration P2 existed to prove, and the defect it found first.
+
+    A patch in a cfMesh case is an STL `solid`, so the first attempt - one
+    `farfield` solid - meshed perfectly and stopped `simpleFoam` dead at
+    "Cannot find patchField entry for farfield". The box carries blockMesh's
+    own patch names now, and this test fails the moment that regresses.
+    """
+    _need("openfoam")
+    out = _mesh_and_solve(app, prism_stl, "cfmesh")
+    mesh, res = out["mesh"], out["result"]
+    assert mesh["kind"] == "cfmesh" and mesh["cells"] > 10_000
+    assert mesh["threads"] == 1 and mesh["reproducible"] is True
+    assert res["cd"] is not None and res["cl"] is not None
+    edir = Path(app._wt_store.load(out["case_id"])["engine_dir"])
+    boundary = (edir / "constant" / "polyMesh" / "boundary").read_text()
+    for patch in ("inlet", "outlet", "sides", "top", "ground", "body"):
+        assert patch in boundary, f"{patch} missing: the 0/ fields name it"
+    app._a74_cfmesh = out
+
+
+def test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh(app, prism_stl):
+    """The acceptance, and the honest version of it.
+
+    A NACA 0012 at alpha 0 must produce ZERO lift, so any Cl at all is the
+    mesh's asymmetry rather than the flow's. Neither mesher reaches zero at
+    this refinement: measured 2026-09-07, cfMesh 0.0119 against snappy 0.0746 -
+    six times less of a quantity that should not exist. That ratio is the
+    claim; the absolute band below is only a guard against nonsense.
+
+    The scatter deserves its own sentence. Before OMP_NUM_THREADS=1 became the
+    default, three runs of this case gave 0.0013, 0.0093 and 0.0119, because a
+    threaded cfMesh built a different mesh each time. The band was first set at
+    0.01 from the first of those - which is how a threshold ends up measuring
+    whichever run happened to be luckiest.
+    """
+    _need("openfoam")
+    cf = getattr(app, "_a74_cfmesh", None) or _mesh_and_solve(app, prism_stl, "cfmesh")
+    assert abs(cf["result"]["cl"]) < 0.02, "spurious lift beyond anything measured here"
+    assert cf["result"]["verdict"]["state"] == "converged"
+    assert cf["result"]["uncertainty"]["trust"] == "comparative"
+
+    sn = _mesh_and_solve(app, prism_stl, "snappy")
+    # Recorded rather than asserted: snappy's spurious lift is a fact about
+    # this geometry at this refinement, not a promise the lane makes.
+    print(
+        f"\nA74 P2: cl cfmesh {cf['result']['cl']:+.5f} vs snappy {sn['result']['cl']:+.5f}; "
+        f"cd {cf['result']['cd']:.5f} vs {sn['result']['cd']:.5f}; "
+        f"verdict {cf['result']['verdict']['state']} vs {sn['result']['verdict']['state']}; "
+        f"cells {cf['mesh']['cells']} vs {sn['mesh']['cells']}; "
+        f"mesh {cf['mesh']['mesh_wall_s']} s vs {sn['mesh']['mesh_wall_s']} s"
+    )
+    assert abs(cf["result"]["cl"]) < 0.5 * abs(sn["result"]["cl"]), (
+        "the cartesian mesh is the symmetric one"
+    )
+
+
+def test_cfmesh_meshes_the_same_case_to_the_same_mesh_by_default(app, prism_stl):
+    """The reproducibility the default buys, on the real binary.
+
+    Threaded, cfMesh answered 7c260615fd23772e and cc2a2a95b348336a to the same
+    question (2026-09-07). snappy answered b0b9f5b5b90059d8 twice. A mesh hash
+    that changes for the same input cannot do the job this lane gives it - it
+    travels with every coefficient, and same-mesh deltas are the first-class
+    claim - so `wt_mesh mesher=cfmesh` pins OMP_NUM_THREADS=1 and pays about
+    25 % of a few seconds for an answer that repeats.
+    """
+    _need("openfoam")
+    hashes = []
+    for _ in range(2):
+        cid = call(app, "wt_case", action="create", stl=str(prism_stl), V_mps=20)["case_id"]
+        status = wait_job(
+            app,
+            call(app, "wt_mesh", case_id=cid, mesher="cfmesh", base_cell_m=0.15, layers=2)["job"],
+            timeout_s=1200,
+        )
+        assert status["state"] == "done", status
+        assert status["result"]["reproducible"] is True
+        hashes.append(status["result"]["mesh_hash"])
+    assert hashes[0] == hashes[1], f"cfMesh answered differently twice: {hashes}"

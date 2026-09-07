@@ -14772,7 +14772,72 @@ STL carries none at all.
 Nine hermetic tests (`tests/test_windtunnel_cfmesh.py`); server **1,884 passed
 / 38 skipped**, ruff clean, search budget and surface lint unchanged.
 
-**Open:** P2 (solve on both meshes and compare the forces — the
-acceptance that actually decides this), P3 (the twelve skew faces, via feature
+### A74 P2 — the forces move, and two defects on the way (2026-09-07)
+
+The acceptance, run on the real binaries. It produced two defects before it
+produced a number, and both were invisible to everything hermetic.
+
+**A patch is a solid.** The first attempt meshed the prism perfectly and stopped
+the solver dead: `Cannot find patchField entry for farfield`. The box had gone
+in as ONE solid called `farfield` while every `0/` field this lane writes names
+blockMesh's patches — a valid mesh nothing could solve on. `physics.box_faces()`
+writes the box as five solids under blockMesh's own names, so one set of
+boundary conditions serves both meshers, and the face-to-name mapping was
+settled by computing every normal rather than trusting the face order.
+
+**cfMesh threads itself, and threaded it is not reproducible:**
+
+| | run 1 | run 2 |
+| --- | --- | --- |
+| `cartesianMesh`, threaded | `7c260615fd23772e` | `cc2a2a95b348336a` |
+| `cartesianMesh`, `OMP_NUM_THREADS=1` | `c5fa100c6f08f733` | `c5fa100c6f08f733` |
+| `snappyHexMesh` | `b0b9f5b5b90059d8` | `b0b9f5b5b90059d8` |
+
+38,352 cells every cfMesh time, 46,160 every snappy time — the count is stable
+and the mesh is not. Two laws of this lane need a mesh that can be identified:
+the hash travels with every coefficient, and same-mesh deltas are the
+first-class claim. So `mesher=cfmesh` pins the single-threaded route (~25 % more
+wall time: 3.4 s against 2.7 s, still 3× faster than snappy's 11 s) and `cores`
+buys the speed back with the loss named in the reply. It reaches the answer:
+spurious Cl wandered **0.0013 → 0.0093** across threaded runs and then repeated
+to five decimals — **0.011943, 0.011940** — once the mesh was pinned.
+
+**The comparison** (prism, α = 0, 200 iterations, same domain and layers):
+
+| | snappyHexMesh | cfMesh |
+| --- | ---: | ---: |
+| cells | 46,160 | 38,352 |
+| mesh wall | 10.8 s | **3.7 s** |
+| verdict | **stalled** (2.03 orders, at the cap) | **converged** (5.01 in 196) |
+| uncertainty | `indicative` | **`comparative`** |
+| Cd | 0.43435 | 0.31464 (−27.6 %) |
+| **Cl** | **0.07458** | **0.01194** |
+
+The Cl row decides it: a symmetric section at zero incidence must produce zero
+lift, so every count is the mesh's asymmetry rather than the flow's, and cfMesh
+leaves six times less of a quantity that should not exist. The solver says the
+same thing from its side — the same case, budget and settings converged on one
+mesh and stalled on the other.
+
+**Not claimed:** Cd has no reference here, so −27.6 % is a difference and not an
+improvement; one geometry at one refinement; and 0.012 of spurious lift is still
+not zero. Law 3 asked whether the forces move at all. They move by more than any
+mesh-convergence band would excuse, so the campaign continues and P4's router
+has a measurement to route on.
+
+**A threshold lesson worth keeping.** The symmetry test was first written
+`abs(cl) < 0.01`, taken from the first threaded run's 0.0013. With the mesh
+pinned the true figure is 0.0119, so that bound had been measuring whichever run
+happened to be luckiest. It is a ratio against snappy's number now, with a loose
+absolute band as a nonsense guard. And the fake was corrected against the real
+binary in the same round: `cartesianMesh` gives EVERY solid-derived patch `type
+wall`, the farfield included, where the fake had invented the tidier
+`patch`/`wall` split — a fake kinder than the tool it stands for is how a lane
+ships a defect that only appears on real engines.
+
+Three live tests (`cfd`), eleven hermetic; server **1,886 passed / 38 skipped**,
+ruff clean.
+
+**Open:** P3 (the twelve skew faces, via feature
 edges), P4 (`auto`, benchmark, docs, version). Doc 74 §5 carries four open
 questions, including whether the Mac's v2606 bundle carries cfMesh too.

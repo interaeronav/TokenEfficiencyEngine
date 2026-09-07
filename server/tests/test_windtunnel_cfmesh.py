@@ -155,7 +155,7 @@ def test_wt_mesh_with_cfmesh_runs_cartesian_mesh_and_says_which_mesher(app, body
     assert mesh["kind"] == "cfmesh" and mesh["ok"] is True
     assert mesh["cells"] > 0 and mesh["layers"] == 2
     assert mesh["body_cell_m"] == pytest.approx(0.15 / 16)  # levels default (3, 4)
-    assert mesh["cores"] == 1 and "unmeasured" in mesh["cores_note"]
+    assert mesh["threads"] == 1 and mesh["reproducible"] is True
     edir = Path(_record(app, body_case)["engine_dir"])
     assert (edir / "system" / "meshDict").is_file()
     assert not (edir / "system" / "snappyHexMeshDict").is_file(), "the snappy path did not run"
@@ -164,6 +164,31 @@ def test_wt_mesh_with_cfmesh_runs_cartesian_mesh_and_says_which_mesher(app, body
     boundary = (edir / "constant" / "polyMesh" / "boundary").read_text()
     for patch in ("inlet", "outlet", "sides", "top", "ground", "body"):
         assert patch in boundary, f"{patch} is not a patch of the mesh"
+
+
+def test_reproducible_is_the_default_and_cores_is_how_speed_is_bought(app, body_case):
+    """cfMesh threads itself and threaded it is NOT reproducible: measured
+    2026-09-07, the same case gave mesh hashes 7c260615fd23772e and
+    cc2a2a95b348336a at an identical 38,352 cells, where OMP_NUM_THREADS=1
+    gave c5fa100c6f08f733 twice for 25 % more wall time.
+
+    The lane's own laws decide the default: the mesh hash travels with every
+    coefficient, and same-mesh deltas are first-class. Neither survives a
+    mesher that answers differently each time it is asked.
+    """
+    default = wait_job(
+        app, app.registry.call("wt_mesh", {"case_id": body_case, "mesher": "cfmesh"})["job"], 120
+    )["result"]
+    assert default["threads"] == 1 and default["reproducible"] is True
+    assert "same hash" in default["cores_note"]
+
+    threaded = wait_job(
+        app,
+        app.registry.call("wt_mesh", {"case_id": body_case, "mesher": "cfmesh", "cores": 4})["job"],
+        120,
+    )["result"]
+    assert threaded["threads"] == 4 and threaded["reproducible"] is False
+    assert "NOT reproducible" in threaded["cores_note"]
 
 
 def test_the_snappy_path_is_untouched_and_is_still_the_default(app, body_case):

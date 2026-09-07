@@ -1343,6 +1343,8 @@ class _Lane:
                 fix="mesher=snappy (the default) or mesher=cfmesh. 'auto' arrives with A74 P4, "
                 "which measures which one to pick rather than guessing here.",
             )
+        mesh_env: dict[str, str] = {}
+        threads = 1
         if mesher == "cfmesh":
             # The caller's arguments do not change between meshers (A74 law 5):
             # `levels` is snappy's vocabulary, so the finest level is mapped to
@@ -1351,6 +1353,17 @@ class _Lane:
             prep = runs.write_tunnel_3d_cfmesh(
                 rec, edir, base_cell_m=base, body_cell_m=body_cell, layers=layers
             )
+            # cfMesh THREADS itself, and threaded it is not reproducible:
+            # measured 2026-09-07, the same case meshed twice gave hashes
+            # 7c260615fd23772e and cc2a2a95b348336a at an identical 38,352
+            # cells, while OMP_NUM_THREADS=1 gave c5fa100c6f08f733 both times
+            # for 25 % more wall time (3.4 s against 2.7 s, still 3x faster
+            # than snappy's 11 s). Two laws of this lane need a mesh you can
+            # identify - the hash travels with every coefficient, and same-mesh
+            # deltas are first-class - so reproducible is the DEFAULT and
+            # `cores` is how a caller buys speed with it.
+            threads = max(1, cores) if args.get("cores") else 1
+            mesh_env["OMP_NUM_THREADS"] = str(threads)
             seq = runs.mesh_sequence_3d_cfmesh(install, edir, cores)
         else:
             prep = runs.write_tunnel_3d(rec, edir, base_cell_m=base, levels=levels, layers=layers)
@@ -1373,6 +1386,7 @@ class _Lane:
                             cwd=run_dir,
                             log_name=f"log.{app_name}",
                             timeout_s=float(args.get("timeout_s", 7200)),
+                            env=mesh_env,
                         )
                     )
                     current["run"] = r
@@ -1401,11 +1415,16 @@ class _Lane:
                 if mesher == "cfmesh":
                     mesh["body_cell_m"] = prep["body_cell_m"]
                     mesh["surface"] = prep["surface"]
-                    # cfMesh threads itself instead of taking MPI ranks, and
-                    # neither route is measured here, so the run was serial and
-                    # says so rather than implying `cores` was spent.
-                    mesh["cores"] = 1
-                    mesh["cores_note"] = "cfMesh ran serially; its parallel route is unmeasured"
+                    mesh["threads"] = threads
+                    mesh["reproducible"] = threads == 1
+                    mesh["cores_note"] = (
+                        "OMP_NUM_THREADS=1: the same case meshes to the same hash, ~25 % "
+                        "slower than threaded"
+                        if threads == 1
+                        else f"threaded on {threads}: faster, and NOT reproducible - the same "
+                        "case meshes to a different hash, so a same-mesh comparison must reuse "
+                        "this mesh rather than re-make it"
+                    )
                 self.store.update(case_id, mesh=mesh, state="meshed")
                 return {
                     "case_id": case_id,

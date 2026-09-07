@@ -78,6 +78,46 @@ plus `localRefinement { "<patch regex>" { cellSize; } }`, which §2.3 shows is t
 
 cfMesh is GPL and has been distributed inside OpenFOAM.com since v1806. It is the same separate process, from the same install, under the same licence as every other binary this lane drives — so A72's law 5 ("copyleft at arm's length, nothing downloaded, nothing vendored") is satisfied by doing nothing new. There is no install step, no download, and no new row in the licence gate beyond naming it.
 
+### 2.7 What solving on both meshes found (P2, 2026-09-07)
+
+The campaign's acceptance, and it produced two defects before it produced a number.
+
+**A patch is a solid.** The first attempt meshed perfectly and stopped the solver dead:
+
+```
+--> FOAM FATAL IO ERROR: Cannot find patchField entry for farfield
+file: 0/p/boundaryField
+```
+
+The box had gone in as one solid named `farfield`, while every `0/` field this lane writes names blockMesh's patches. A valid mesh nothing could solve on. `physics.box_faces()` now writes the box as five solids under **blockMesh's own names** — inlet, outlet, sides, top, ground — so one set of boundary conditions serves both meshers. The mapping was fixed by computing every normal, not by reading the face order: all twelve outward, `sides` being the two y-walls as a single patch.
+
+**cfMesh threads itself, and threaded it is not reproducible.** The same case meshed twice:
+
+| | run 1 | run 2 | cells |
+|---|---|---|---|
+| `cartesianMesh`, threaded (default) | `7c260615fd23772e` | `cc2a2a95b348336a` | 38,352 both |
+| `cartesianMesh`, `OMP_NUM_THREADS=1` | `c5fa100c6f08f733` | `c5fa100c6f08f733` | 38,352 both |
+| `snappyHexMesh` | `b0b9f5b5b90059d8` | `b0b9f5b5b90059d8` | 46,160 both |
+
+Two of this lane's laws need a mesh that can be identified: the mesh hash travels with every coefficient (A72 law 2), and same-mesh deltas are the first-class claim (law 3). Neither survives a mesher that answers differently each time it is asked — so `wt_mesh mesher=cfmesh` pins `OMP_NUM_THREADS=1`, costing about 25 % of a few seconds (3.4 s against 2.7 s, still 3× faster than snappy's 11 s), and `cores` is how a caller buys the speed back with the loss stated in the reply.
+
+It shows up in the answer, which is why it matters rather than being tidiness: the spurious lift wandered 0.0013 → 0.0093 across threaded runs and then repeated to five decimals — **0.011943, 0.011940** — once the mesh was pinned.
+
+**The comparison, on the prism at α = 0, 200 iterations, same domain and layers:**
+
+| | snappyHexMesh | cfMesh |
+|---|---:|---:|
+| cells | 46,160 | 38,352 |
+| mesh wall | 10.8 s | **3.7 s** |
+| verdict | **stalled** (2.03 orders, at the 200-iteration cap) | **converged** (5.01 orders in 196) |
+| uncertainty label | `indicative` | **`comparative`** |
+| Cd | 0.43435 | 0.31464 (−27.6 %) |
+| **Cl** | **0.07458** | **0.01194** |
+
+The Cl row decides it. The section is symmetric and the incidence is zero, so **lift must be zero**: every count of it is the mesh's asymmetry rather than the flow's. Neither mesher reaches zero at this refinement, and cfMesh leaves six times less of a quantity that should not exist. The convergence difference is the same story from the solver's side — the same case, budget and settings converged on one mesh and stalled on the other, which is why the verdict machinery hands back `comparative` for one and `indicative` for the other.
+
+**What is NOT claimed.** Cd has no reference here, so −27.6 % is a difference, not an improvement; this is one geometry at one refinement; and a 0.012 spurious Cl is still not zero. What A74 law 3 asked was whether the forces move at all, and they move by more than any mesh-convergence band would excuse.
+
 ## 3. Why the design is shaped this way
 
 **`wt_mesh` grows a `mesher=` argument; nothing else moves.** The tool already takes `base_cell_m`, `levels` and `layers`; it gains `mesher="snappy" | "cfmesh" | "auto"`, and a `meshDict` writer sits beside the `snappyHexMeshDict` writer in `foam.py`. No new tool, no new engine row, no new capability tier — the always-loaded surface is untouched, and `wt_mesh` is already `call-engine`.
@@ -98,6 +138,6 @@ cfMesh is GPL and has been distributed inside OpenFOAM.com since v1806. It is th
 ## 5. Open questions
 
 1. **Does the trailing-edge skewness survive feature edges?** The twelve faces are the campaign's one measured defect. If `surfaceFeatureEdges` + FMS does not clear them, the honest outcome is `mesher="cfmesh"` shipping with a documented refusal for sharp sections rather than a silent tolerance.
-2. **Does the layer coverage move the forces?** P2 answers it on the same case. If Cd moves by more than the mesh-convergence band, cfMesh is the better default for 3-D bodies; if it does not, `mesher="auto"` should keep choosing snappy and the campaign closes with a measured "no".
+2. ~~**Does the layer coverage move the forces?**~~ **Answered (§2.7): yes.** Cd by −27.6 %, spurious lift by 6×, and the verdict from `stalled` to `converged` on the same budget. The campaign does not close with a "no"; P4's router has a measurement to route on.
 3. **Is cfMesh in the Mac's v2606 bundle too?** The same openfoam.com distribution should carry it, but that is an assumption until `wt_probe` reports it there — one line in the owner's session.
 4. **HiSA's licence**, at its own repository rather than at a search result, before it is ever named as an option in a refusal.
