@@ -168,7 +168,11 @@ def test_openfoam_three_d_prism_meshes_with_snappy_and_runs(app, tmp_path):
     airfoil.extrude_stl(stl, airfoil.naca4("0012", 24), span=0.4, chord=0.3)
     created = call(app, "wt_case", action="create", stl=str(stl), V_mps=20, aoa_deg=0)
     cid = created["case_id"]
-    started = call(app, "wt_mesh", case_id=cid, base_cell_m=0.15, levels=[1, 2], layers=2)
+    # `mesher="snappy"` by name: A74 P4 made `auto` the default, and a test of
+    # the snappy path that silently measured cfMesh would be no test at all
+    started = call(
+        app, "wt_mesh", case_id=cid, mesher="snappy", base_cell_m=0.15, levels=[1, 2], layers=2
+    )
     status = wait_job(app, started["job"], timeout_s=900)
     assert status["state"] == "done", status
     mesh = status["result"]
@@ -566,9 +570,9 @@ def prism_stl(tmp_path_factory):
 
 def _mesh_and_solve(app, stl, mesher: str) -> dict:
     cid = call(app, "wt_case", action="create", stl=str(stl), V_mps=20, aoa_deg=0)["case_id"]
-    args = {"case_id": cid, "base_cell_m": 0.15, "levels": [1, 2], "layers": 2}
-    if mesher != "snappy":
-        args["mesher"] = mesher
+    # always explicit: with `auto` the default (P4), an omitted `mesher` would
+    # make the snappy arm of this comparison mesh with cfMesh
+    args = {"case_id": cid, "mesher": mesher, "base_cell_m": 0.15, "levels": [1, 2], "layers": 2}
     t0 = time.time()
     status = wait_job(app, call(app, "wt_mesh", **args)["job"], timeout_s=2400)
     assert status["state"] == "done", status

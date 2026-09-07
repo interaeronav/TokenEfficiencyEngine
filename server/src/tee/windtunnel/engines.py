@@ -90,6 +90,11 @@ class FoamInstall:
     fork: str = ""
     via: str = ""
     mpirun: str = ""
+    # cfMesh's `cartesianMesh`, when this install carries it (openfoam.com has
+    # since v1806). A path, not a bool, because the answer to "is cfMesh here"
+    # is more useful as "here it is" - and because an empty string is what
+    # `command -v` gives for an application that is not on the PATH.
+    cfmesh: str = ""
 
     def argv(self, app: str, *args: str) -> list[str]:
         if self.kind == "bashrc":
@@ -114,7 +119,12 @@ class FoamInstall:
         return ["mpirun", "-np", str(cores), str(Path(self.path) / app), "-parallel", *args]
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        # `cfmesh` goes on the wire as the ANSWER, not the path: a caller can
+        # do nothing with the path (cfMesh is not installable on its own, it
+        # comes with the distribution), and the path costs 17 tokens of every
+        # `wt_probe` where the bool costs 4. The path stays on the dataclass,
+        # which is where the router and a person debugging an install read it.
+        return {**asdict(self), "cfmesh": bool(self.cfmesh)}
 
 
 def _foam_route_for(root: Path) -> FoamInstall | None:
@@ -198,18 +208,34 @@ def _probe_foam_version(route: FoamInstall) -> None:
     try:
         if route.kind == "bindir":
             route.version, route.fork = "unknown", "unknown"
+            cartesian = Path(route.path) / "cartesianMesh"
+            route.cfmesh = str(cartesian) if cartesian.is_file() else ""
         else:
+            # KEYED, not positional: `command -v mpirun` prints nothing on a
+            # machine without MPI, and a positional reader then reads the NEXT
+            # answer as the missing one. Three questions, one process - the
+            # version probe was already paying for it.
             out = subprocess.run(
-                route.argv("bash", "-c", "echo $WM_PROJECT_VERSION; command -v mpirun"),
+                route.argv(
+                    "bash",
+                    "-c",
+                    'echo "VERSION=$WM_PROJECT_VERSION"; echo "MPIRUN=$(command -v mpirun)"; '
+                    'echo "CFMESH=$(command -v cartesianMesh)"',
+                ),
                 capture_output=True,
                 text=True,
                 timeout=30,
             )
-            lines = [ln.strip() for ln in out.stdout.splitlines() if ln.strip()]
-            route.version = lines[0] if lines else "unknown"
+            got = dict(
+                ln.strip().split("=", 1)
+                for ln in out.stdout.splitlines()
+                if "=" in ln and not ln.startswith(" ")
+            )
+            route.version = got.get("VERSION") or "unknown"
             route.fork = fork_of(route.version)[0]
-            route.mpirun = lines[1] if len(lines) > 1 else ""
-    except (OSError, subprocess.SubprocessError):
+            route.mpirun = got.get("MPIRUN", "")
+            route.cfmesh = got.get("CFMESH", "")
+    except (OSError, subprocess.SubprocessError, ValueError):
         route.version, route.fork = "unknown", "unknown"
 
 

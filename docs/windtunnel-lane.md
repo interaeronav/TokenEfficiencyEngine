@@ -58,8 +58,11 @@ wt_probe → wt_conditions → wt_case (create | adopt) → wt_mesh → wt_run /
    OpenVSP `.vsp3`. Copied, never mutated; its `Allrun` is parsed for the
    binaries it names and never executed.
 5. **`wt_mesh`** — a structured O-mesh for a 2-D section (seconds, written as
-   OpenFOAM `polyMesh` or SU2 `.su2` by TEE itself) or `blockMesh` +
-   `snappyHexMesh` around a 3-D body (a job). Returns the checkMesh digest.
+   OpenFOAM `polyMesh` or SU2 `.su2` by TEE itself) or **cfMesh** /
+   `blockMesh` + `snappyHexMesh` around a 3-D body (a job). Returns the
+   checkMesh digest. `mesher=` picks; the default `auto` picks cfMesh wherever
+   the OpenFOAM install carries it, and the reply says which ran and why
+   (**The 3-D mesher**, below).
 6. **`wt_run`** — the solve, as a job: poll `tee_job`, watch `wt_status`,
    `tee_job action=cancel` **kills the solver** (a real simpleFoam was gone in
    0.05 s). Above the measured cost threshold it asks once for
@@ -118,6 +121,52 @@ A case with only a mesh can be opened — that is the point of looking before yo
 solve — and `view=mesh` is the preset for it. The panel over the same lane is
 `docs/windtunnel-gui.md`.
 
+## The 3-D mesher (A74)
+
+```
+wt_mesh case_id=wt_1a2b3c4d5e                     # auto: cfMesh where the install has it
+wt_mesh case_id=wt_1a2b3c4d5e mesher=snappy       # blockMesh + snappyHexMesh, by name
+wt_mesh case_id=wt_1a2b3c4d5e mesher=cfmesh cores=4   # threaded, and no longer reproducible
+```
+
+A 3-D body can be meshed two ways and **the choice moves the answer**, so it is
+not a preference. Measured on a NACA 0012 prism at α = 0, 200 iterations, same
+domain, same layers, both meshes solved (doc 74 §2.7–2.8):
+
+| | snappyHexMesh | cfMesh |
+|---|---:|---:|
+| cells | 46,160 | 36,768 |
+| mesh wall | 11.1 s | **4.1 s** |
+| verdict | **stalled** at the budget | **converged** in 196 |
+| Cd | 0.4343 | 0.3076 |
+| **Cl** (must be zero) | **0.07458** | **0.00004** |
+
+The Cl row is the one that decides it: the section is symmetric at zero
+incidence, so every count of lift is the mesh's asymmetry rather than the
+flow's. cfMesh also covers its boundary layers by construction, where snappy's
+own log admitted **1.32 of 2 requested layers at 41.6 % of the thickness**.
+
+Three things about it are worth knowing before you use it:
+
+- **The default is `auto`, and it says what it did.** The mesh row carries
+  `chose` whenever auto picked — including the fallback, on an OpenFOAM build
+  with no `cartesianMesh` (`wt_probe` reports that in the `openfoam` row).
+  Asking for `mesher=cfmesh` on such a build refuses by name; nothing is
+  substituted quietly and nothing is downloaded.
+- **cfMesh is pinned single-threaded**, because threaded it builds a *different
+  mesh each time* — the same case gave two mesh hashes at an identical cell
+  count. The hash travels with every coefficient here and same-mesh deltas are
+  the lane's first-class claim, so reproducible is the default and `cores=`
+  is how you buy the speed back, with `reproducible: false` in the reply.
+- **Feature edges are not optional and not an argument.** `surfaceFeatureEdges`
+  runs first and hands `cartesianMesh` an FMS; without it the sharp trailing
+  edge comes out as twelve skew faces and `checkMesh` fails. The 30° criterion
+  is the same one the snappy route already applies as `includedAngle 150`.
+
+The caller's other arguments do not change between meshers: `base_cell_m`,
+`levels` and `layers` mean the same thing either way (`levels`' finest entry
+becomes cfMesh's body cell size), which is what lets `auto` choose at all.
+
 ## Rules that bite
 
 - **A declaration is a claim; a measurement is evidence.** `vspscript` exits 2
@@ -162,6 +211,8 @@ solve — and `view=mesh` is the preset for it. The panel over the same lane is
 | `wt_no_display` | `wt_open launch=true` where no window can open, or a state with a view where nothing can render | the command to run where you are sitting, or `kind=pipeline` |
 | `wt_paraview_missing` | the state is written but the application is absent | the install, and the state's own path |
 | `wt_no_geometry` | `wt_open app=openvsp` on a case with no `.vsp3` | `wt_geom` |
+| `wt_cfmesh_absent` | `mesher=cfmesh` on an OpenFOAM build that carries no `cartesianMesh` | openfoam.com's build (it has cfMesh since v1806), or `mesher=snappy` |
+| `wt_bad_mesher` | a `mesher=` this lane does not write for, or `mesher=` on a case that is not a 3-D body | the three that work, or drop the argument |
 
 ## Licences
 
@@ -183,6 +234,8 @@ reached by one function. No tutorial case is copied into the tree.
 | SU2 Euler NACA 0012, M 0.8, 1.25°, TEE's 10,000-quad O-mesh | 1,279 iterations, 80 s; CL +1.8 % / CD −7.3 % against the QuickStart figure on its official mesh |
 | VSPAERO AR 10 wing, four angles | ~5 s; CL_α 4.905 /rad, −5.5 % from lifting line |
 | the apt `airFoil2D` tutorial, adopted | 313 iterations, 4.8 s; Cl 0.970 at 8° once the chord (35.05 m) is measured from the mesh |
+| the prism (3-D), meshed by snappyHexMesh then by cfMesh and solved on both | 46,160 cells / 11.1 s / stalled / Cl 0.07458 against 36,768 / 4.1 s / converged / Cl 0.00004 (A74) |
+| cfMesh's feature edges, on the same prism | max skewness 5.5497206 → 2.0995350, `checkMesh` FAILS → passes clean, for 0.4 s (A74) |
 | token cost per call | probe 55 · case 181 · mesh 162 · run 97 · status 21–87 · result 163 · probe_field 83 · view 88 · export 33 |
 | the benchmark batch (fakes) | TEE 2,796 tokens / 15 calls vs naive 19,145 / 16: 85 % saved |
 

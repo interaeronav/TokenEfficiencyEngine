@@ -14694,7 +14694,7 @@ command would provision a fresh 1.3 GB venv from the lock and was not done.
 The manifest still declares blender, partkiln, seamkiln and fusion, and is
 otherwise untouched: which lanes Desktop serves is the owner's decision (A71).
 
-## A74 — cfMesh: the mesher HELYX sells, already on the disk (opened 2026-09-07)
+## A74 — cfMesh: the mesher HELYX sells, already on the disk (2026-09-07, COMPLETE P0–P4, 0.28.0)
 
 Plan of record `CLAUDE_A74_SCRIPT.md`, design of record doc 74, evidence in
 `docs/research/74-evidence/`, ruling in `docs/DECISIONS.md`.
@@ -14838,9 +14838,88 @@ ships a defect that only appears on real engines.
 Three live tests (`cfd`), eleven hermetic; server **1,886 passed / 38 skipped**,
 ruff clean.
 
-**Open:** P3 (the twelve skew faces, via feature
-edges), P4 (`auto`, benchmark, docs, version). Doc 74 §5 carries four open
-questions, including whether the Mac's v2606 bundle carries cfMesh too.
+**Then:** P3 below.
+
+### A74 P3 — the twelve skew faces, cleared (2026-09-07)
+
+P2's one measured defect, fixed rather than tolerated. cfMesh rounds a sharp
+trailing edge off into skew cells unless it is told where the edges are;
+`surfaceFeatureEdges` rewrites the surface as an FMS carrying them and
+`cartesianMesh` then respects them. Four variants, each meshed twice under
+`OMP_NUM_THREADS=1`, every row repeating exactly:
+
+| surface | cells | max skewness | `checkMesh` | mesh wall |
+| --- | ---: | ---: | --- | ---: |
+| plain STL | 38,352 | 5.5497206 | **FAILS** — 12 skew faces | 2.3 s |
+| **FMS, `-angle 30`** | **36,768** | **2.0995350** | **clean** | 2.5 s + 0.4 s |
+| FMS + `edgeMeshRefinement` | — | — | `cartesianMesh` **rc=1** | — |
+| FMS, `-angle 45` | 36,768 | 2.2391098 | clean | 2.6 s + 0.4 s |
+
+0.4 s and 1,584 fewer cells for a clean check. The angle is a constant of the
+lane, not a caller argument: snappy's own `includedAngle 150` is the same
+criterion from the other end (180 − 150 = 30), and 45° was measured and is
+worse. `edgeMeshRefinement` — the other half of the plan — killed
+`cartesianMesh` with rc=1 both times and is not shipped.
+
+**And it did something P3 was not looking for.** Solved through the lane at
+α = 0, the spurious lift a symmetric section cannot have went **0.01194 →
+0.00004**, against snappy's 0.07458 on the same case. A trailing edge the mesher
+rounds off asymmetrically is lift that is not there.
+
+**Checked because P2 had been bitten by it once:** an FMS that lost the patch
+names would mesh perfectly and then stop `simpleFoam` at `Cannot find patchField
+entry`. It does not — the FMS names its patches at the top and the same six come
+out of `polyMesh/boundary`, all `type wall`. The live test asserts it; the fake
+`surfaceFeatureEdges` reproduces the format so CI can too.
+
+**The threading lesson, learned twice.** The first four-variant table was
+measured *threaded* and its 45° row moved between runs (2.2391098 → 2.6517441).
+P2 had pinned the LANE; the probe script had not been pinned with it. Both are
+now, and `74-evidence/p3-2026-09-07.log` repeats.
+
+`TOLERATED_CHECKS` untouched. Skew is one of the two failures this lane
+tolerates, so the mesh would have run either way — which is exactly why buying
+the pass with a widened tolerance would have been the wrong answer (law 4).
+
+### A74 P4 — `auto`, and the campaign closes (2026-09-07)
+
+**The rule, and why it does not hedge.** No arm of A74 measured snappy ahead of
+cfMesh on a 3-D body — including with a hole cut in the body (four triangles,
+then a hole several cells across: both meshers closed it and both stayed clean,
+so "not watertight → snappy" would have been a rule with no measurement behind
+it). So `mesher="auto"` picks cfMesh wherever the install carries it, says so in
+the mesh row as `chose`, and the one thing that sends it back to snappy is
+cfMesh not being there. **`auto` is the default**; `mesher="snappy"` is one word
+back, and `wt_result compare_to=` still reports `same_mesh` from the mesh hash,
+so a comparison across the change says so rather than lying quietly.
+
+**Detection is a fact, not a version guess.** `wt_probe`'s `openfoam` row now
+carries `cfmesh` — the `cartesianMesh` path, empty where the build has none —
+read from the install itself. It cost no extra process: the version probe
+already ran one, and it now asks three questions instead of two. They are KEYED
+now rather than positional, because `command -v mpirun` prints nothing on a
+machine with no MPI and a positional reader then reads the next answer as the
+missing one. On a build without cfMesh, `auto` falls back and names the reason;
+`mesher=cfmesh` refuses as `wt_cfmesh_absent` and names the install (law 1:
+nothing is downloaded).
+
+**The benchmark is unmoved and was not re-run to prove it:** the wind-tunnel
+batch's OpenFOAM arm is the 2-D O-mesh case, which no 3-D mesher touches. What
+A74 changes is engine wall time and convergence, not the token shape of any
+reply — the mesh digest is the same digest.
+
+Surface still **17 tools / 2,129 wire tok** (the figure `test_server_lint.py`
+pins, not the 2,033 four campaigns' worth of prose kept reprinting); no new
+`wt_*` name, no family row, no new engine, no new licence.
+
+**Suites at close:** server **1,949 passed / 39 skipped / 2 xfailed** hermetic,
+ruff clean; the `cfd` tier's A74 tests green on the real binaries (OpenFOAM
+v2606). Shipped as **0.28.0**.
+
+**Open:** doc 74 §5's remaining questions — whether the Mac's v2606 bundle
+carries cfMesh (now answered by `wt_probe` on any machine that runs it), HiSA's
+licence at its own repository, and the 2-D `cartesian2DMesh` route the lane has
+nothing to compare against.
 
 ## A75 — the flight-dynamics lane: a polar becomes an aircraft that flies (2026-09-07)
 

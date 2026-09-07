@@ -38,7 +38,7 @@ Read first: doc 74 (all five sections), then `foam.py`'s `write_snappy_dicts`/`d
 - **P1** — `write_cfmesh_dicts()`, `domain_surface()`, `mesher=` on `wt_mesh`, the fake `cartesianMesh` arm, hermetic tests per refusal. *Acceptance:* the whole path exercised with no real binary; byte-stable dictionaries; the surface's solids named and asserted; surface still 17 tools.
 - **P2** — the `cfd` tier: mesh the prism both ways, then **solve on both and compare the forces**. **Done 2026-09-07** (doc 74 §2.7): the forces move — Cd −27.6 %, spurious lift 6× smaller, `converged` against `stalled` on the same budget — so the argument is earned and P4 has a measurement to route on.
 - **P3** — the twelve skew faces at the trailing edge: `surfaceFeatureEdges` → FMS, `edgeMeshRefinement`. **Done 2026-09-07** (doc 74 §2.8): the FMS route at 30° takes max skewness 5.5497206 → 2.0995350 and `checkMesh` from FAILING to a clean pass, for 0.4 s and 1,584 fewer cells, with `TOLERATED_CHECKS` untouched. `edgeMeshRefinement` kills `cartesianMesh` (rc=1) and is not shipped. It also took the spurious lift from 0.01194 to **0.00004**.
-- **P4** — `mesher="auto"` (the router's rule, from P2's numbers), the benchmark scenario, `docs/windtunnel-lane.md`, `docs/setup-windtunnel.md`, the CLAUDE.md bullet, CHANGELOG, PROGRESS, version.
+- **P4** — `mesher="auto"` (the router's rule, from P2's numbers), the benchmark scenario, `docs/windtunnel-lane.md`, `docs/setup-windtunnel.md`, the CLAUDE.md bullet, CHANGELOG, PROGRESS, version. **Done 2026-09-07**: `auto` is the DEFAULT and picks cfMesh wherever the install carries it, saying so in the mesh row (`chose`); `wt_probe` reports `cfmesh` in the `openfoam` row; `wt_cfmesh_absent` refuses by name on a build without it. The benchmark batch is unmoved and was not re-run to pretend otherwise — its OpenFOAM arm is the 2-D O-mesh case, which no 3-D mesher touches. Shipped as **0.28.0**.
 
 ## Laws
 
@@ -49,6 +49,12 @@ Read first: doc 74 (all five sections), then `foam.py`'s `write_snappy_dicts`/`d
 5. **The caller's arguments do not change between meshers**, which is what makes `auto` honest.
 6. Zero always-loaded tools; no new `wt_*` name; no family row.
 
+## Outcome
+
+**The campaign closed with a measured yes.** cfMesh meshes the lane's prism in 4.1 s against 11.1 s, in 36,768 cells against 46,160, converges where snappy stalls on the same 200-iteration budget, and leaves Cl **0.00004** where snappy leaves 0.07458 on a symmetric section at zero incidence. Law 3 asked whether a better mesh shows up in the answer; it shows up in the one number on the sheet whose true value is known.
+
+Zero always-loaded tools added, no new `wt_*` name, no family row, no new engine, no new licence, `TOLERATED_CHECKS` untouched.
+
 ## Amendments learned while building (the script is amended, not improvised around)
 
 - **P2 defect 1 — a patch is a solid.** The box went in as one `farfield` solid; the mesh was perfect and `simpleFoam` stopped at `Cannot find patchField entry for farfield`, because every `0/` field names blockMesh's patches. `physics.box_faces()` writes the box as inlet/outlet/sides/top/ground, verified by computing each normal rather than trusting the face order.
@@ -56,6 +62,9 @@ Read first: doc 74 (all five sections), then `foam.py`'s `write_snappy_dicts`/`d
 - **P2 fake correction.** Real `cartesianMesh` gives EVERY patch made from a solid `type wall`, the farfield included — read out of the `polyMesh/boundary` it wrote. The fake had been inventing the tidier `patch`/`wall` split, and a fake kinder than the tool it stands in for is how a lane ships a defect that only appears on real engines.
 - **P3 amendment — the feature angle is not a caller argument.** The plan said "`surfaceFeatureEdges` → FMS, `edgeMeshRefinement`" without saying who chooses the angle. Law 5 answers it: snappy's own `includedAngle 150` is the same criterion from the other end (180 − 150 = 30) and is not an argument either, so 30° is a constant of the lane (`runs.FEATURE_ANGLE_DEG`), reported in the mesh row because it changes the mesh. 45° was measured too and is worse.
 - **P3 amendment — the same threading lesson, in the probe this time.** The first four-variant table was measured threaded and its 45° row moved between runs (2.2391098 → 2.6517441). P2 had already pinned the LANE; the evidence script had not been pinned with it. Both are now, and every row of `74-evidence/p3-2026-09-07.log` repeats exactly.
+
+- **P4 amendment — the `auto` rule does not hedge, because hedging was unmeasured.** The obvious rule was "a body that is not watertight goes to snappy", cfMesh needing a closed surface. It was measured instead of assumed: a four-triangle hole and then a hole several cells across, both meshers, same case. Both closed the hole, both stayed `checkMesh`-clean, cfMesh's cell count barely moved (36,768 → 36,863). With no arm of the campaign measuring snappy ahead on a 3-D body, a watertightness branch would have been exactly the guess-with-a-name the script's own comment warns about. The one branch that IS measured is whether `cartesianMesh` exists on the machine.
+- **P4 amendment — the probe reads three answers by key.** cfMesh detection rides along in the OpenFOAM version probe rather than adding a process. The old reader was positional, and `command -v mpirun` prints NOTHING on a machine without MPI: a third question would have been read as the second. Keys now.
 
 - **P2 threshold lesson.** The symmetry test was first written `abs(cl) < 0.01`, from the first threaded run's 0.0013. With the mesh pinned the true figure is 0.0119, so the original bound had been measuring whichever run happened to be luckiest. The assertion is now a ratio against snappy's 0.0746, with a loose absolute band as a nonsense guard.
 

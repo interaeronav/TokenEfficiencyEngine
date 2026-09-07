@@ -2267,6 +2267,23 @@ counts and layer tables do not decide it: P2 solves the same case on both
 meshes and compares Cd. A mesh that covers its boundary layer and changes
 nothing downstream has not earned a `mesher=` argument.
 
+**Closed 2026-09-07 with a measured yes, and the blocker fixed rather than
+tolerated.** Solved on both meshes at α = 0: cfMesh converged where snappy
+stalled on the same budget, Cd 0.3076 against 0.4343, and the lift a symmetric
+section at zero incidence cannot have came out **0.00004 against 0.07458**. The
+skewness failure was cleared by cfMesh's own feature edges
+(`surfaceFeatureEdges` → FMS, max skewness 5.5497206 → 2.0995350, `checkMesh`
+clean) at a cost of 0.4 s; `TOLERATED_CHECKS` is exactly as it was.
+
+**Ruled with it: `mesher="auto"` is the DEFAULT for a 3-D body**, picking cfMesh
+wherever the OpenFOAM install carries it and saying so in the mesh row. No arm
+of the campaign measured snappyHexMesh ahead of cfMesh on a 3-D body — a hole
+cut in the body did not separate them either — so a hedging rule would have had
+no measurement behind it. The one branch that does: a build without
+`cartesianMesh` (Foundation, or older than v1806), where `auto` falls back and
+names the reason and `mesher="cfmesh"` refuses by name. Nothing is installed and
+nothing is downloaded, exactly as A74 law 1 says.
+
 
 ## The flight-dynamics lane talks to JSBSim in-process, under LGPL (2026-09-07, A75)
 

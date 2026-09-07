@@ -192,25 +192,35 @@ def test_reproducible_is_the_default_and_cores_is_how_speed_is_bought(app, body_
     assert "NOT reproducible" in threaded["cores_note"]
 
 
-def test_the_snappy_path_is_untouched_and_is_still_the_default(app, body_case):
+def test_the_snappy_path_is_untouched_and_one_word_away(app, body_case):
+    """P4 made `auto` the default, so this is no longer what a bare call does -
+    but it is still exactly what it always was when asked for by name, and an
+    explicit choice carries no `chose` line because nothing chose it."""
     started = app.registry.call(
-        "wt_mesh", {"case_id": body_case, "base_cell_m": 0.15, "levels": [1, 2], "layers": 2}
+        "wt_mesh",
+        {
+            "case_id": body_case,
+            "mesher": "snappy",
+            "base_cell_m": 0.15,
+            "levels": [1, 2],
+            "layers": 2,
+        },
     )
     status = wait_job(app, started["job"], timeout_s=120)
     assert status["state"] == "done", status
     assert status["result"]["kind"] == "snappy"
+    assert "chose" not in status["result"]
     edir = Path(_record(app, body_case)["engine_dir"])
     assert (edir / "system" / "snappyHexMeshDict").is_file()
     assert not (edir / "system" / "meshDict").is_file()
 
 
-def test_an_unknown_mesher_refuses_and_auto_says_which_phase_owns_it(app, body_case):
-    for name in ("nonsense", "auto"):
-        with pytest.raises(TeeError) as exc:
-            app.registry.call("wt_mesh", {"case_id": body_case, "mesher": name})
-        assert exc.value.code == "wt_bad_mesher"
-        assert "snappy" in exc.value.fix and "cfmesh" in exc.value.fix
-    assert "P4" in exc.value.fix, "auto's refusal names the phase that will measure it"
+def test_an_unknown_mesher_refuses_and_names_the_three_that_work(app, body_case):
+    with pytest.raises(TeeError) as exc:
+        app.registry.call("wt_mesh", {"case_id": body_case, "mesher": "nonsense"})
+    assert exc.value.code == "wt_bad_mesher"
+    for name in ("auto", "cfmesh", "snappy"):
+        assert name in exc.value.fix
 
 
 def test_mesher_on_a_two_d_case_refuses_rather_than_being_ignored(app):
@@ -315,3 +325,91 @@ def test_the_feature_angle_is_not_a_caller_argument(app):
     )
     assert snappy_angle, "the snappy route's own feature angle moved"
     assert 180.0 - float(snappy_angle.group(1)) == runs.FEATURE_ANGLE_DEG
+
+
+# -- P4: the router ----------------------------------------------------------
+
+
+def _without_cfmesh(tmp_path):
+    """An app whose OpenFOAM install carries every binary EXCEPT cfMesh's.
+
+    The probe is lazy, so removing the two files before anything asks is
+    enough - and it is the honest shape of the machine this branch exists
+    for: a Foundation build, or anything older than openfoam.com v1806.
+    """
+    from fixtures_windtunnel import make_app
+
+    app = make_app(tmp_path)
+    for name in ("cartesianMesh", "surfaceFeatureEdges"):
+        (Path(tmp_path) / "engines" / "fake-foam" / name).unlink()
+    return app
+
+
+def test_auto_is_the_default_and_picks_cfmesh_where_the_install_has_it(app, body_case):
+    """A74 P4's rule, and the numbers it is made of: cfMesh meshed the prism in
+    4.1 s against 11.1 s, converged where snappy stalled on the same budget, and
+    left 0.00004 of the lift a symmetric section at zero incidence cannot have
+    against snappy's 0.07458 (doc 74 §2.7-2.8). No arm of A74 measured snappy
+    ahead of it on a 3-D body, so `auto` does not hedge - and it says why."""
+    started = app.registry.call("wt_mesh", {"case_id": body_case, "base_cell_m": 0.15})
+    mesh = wait_job(app, started["job"], timeout_s=120)["result"]
+    assert mesh["kind"] == "cfmesh", "auto is the default and cfMesh is here"
+    assert "doc 74" in mesh["chose"] and "converged" in mesh["chose"]
+    assert len(mesh["chose"]) < 200, "the reason travels in every mesh row; keep it a line"
+
+
+def test_asking_for_cfmesh_by_name_carries_no_reason(app, body_case):
+    """`chose` is what AUTO decided, not a label on every cfMesh mesh. A caller
+    who named the mesher does not need to be told why it ran."""
+    started = app.registry.call("wt_mesh", {"case_id": body_case, "mesher": "cfmesh"})
+    mesh = wait_job(app, started["job"], timeout_s=120)["result"]
+    assert mesh["kind"] == "cfmesh" and "chose" not in mesh
+
+
+def test_auto_falls_back_to_snappy_on_an_install_without_cfmesh(tmp_path):
+    """An install without `cartesianMesh` is not a defect of the CASE, so auto
+    meshes it with what is there and says so in the row rather than failing."""
+    app = _without_cfmesh(tmp_path)
+    stl = Path(tmp_path) / "prism.stl"
+    airfoil.extrude_stl(stl, airfoil.naca4("0012", 24), span=0.4, chord=0.3, name="section")
+    cid = app.registry.call("wt_case", {"action": "create", "stl": str(stl), "V_mps": 20})[
+        "case_id"
+    ]
+    mesh = wait_job(
+        app, app.registry.call("wt_mesh", {"case_id": cid, "base_cell_m": 0.15})["job"], 120
+    )["result"]
+    assert mesh["kind"] == "snappy"
+    assert "no cartesianMesh" in mesh["chose"] and "v1806" in mesh["chose"]
+
+
+def test_naming_cfmesh_on_such_an_install_refuses_by_name(tmp_path):
+    """A74 law 1: nothing is installed and nothing is downloaded, so a machine
+    without cfMesh gets a refusal that names the install - never a quiet
+    substitution of a mesher the caller did not ask for."""
+    app = _without_cfmesh(tmp_path)
+    stl = Path(tmp_path) / "prism.stl"
+    airfoil.extrude_stl(stl, airfoil.naca4("0012", 24), span=0.4, chord=0.3, name="section")
+    cid = app.registry.call("wt_case", {"action": "create", "stl": str(stl), "V_mps": 20})[
+        "case_id"
+    ]
+    with pytest.raises(TeeError) as exc:
+        app.registry.call("wt_mesh", {"case_id": cid, "mesher": "cfmesh"})
+    assert exc.value.code == "wt_cfmesh_absent"
+    assert "v1806" in exc.value.fix and "mesher=snappy" in exc.value.fix
+    assert "download" in exc.value.fix.lower(), "law 1 is stated where it applies"
+
+
+def test_the_probe_says_whether_this_install_carries_cfmesh(app, tmp_path):
+    """The router's one input, visible where a person looks for it - and the
+    answer to doc 74 §5's third open question on any machine that runs it."""
+    row = app.registry.call("wt_probe", {})["engines"]["openfoam"]
+    assert row["found"] is True and row["cfmesh"] is True
+    assert (
+        _without_cfmesh(tmp_path).registry.call("wt_probe", {})["engines"]["openfoam"]["cfmesh"]
+        is False
+    )
+    # the ANSWER on the wire, the path on the install: a path costs 17 tokens
+    # of every probe and a caller can act on none of them
+    from tee.windtunnel import engines
+
+    assert engines.find_openfoam({}, probe_version=True).cfmesh.endswith("cartesianMesh")

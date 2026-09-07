@@ -57,9 +57,18 @@ PROBE_TTL_S = 3600.0
 TOLERATED_CHECKS = ("skew", "upper triangular")
 # The 3-D meshers this lane WRITES for. `cartesianMesh` was already run for an
 # adopted case whose Allrun named it (cfdof.KNOWN_BINARIES); A74 writes its
-# dictionary too. "auto" is deliberately absent until A74 P2 measures which
-# one to pick - a router with no measurement behind it is a guess with a name.
-MESHERS_3D = ("snappy", "cfmesh")
+# dictionary too. "auto" arrived with A74 P4 and only then, because a router
+# with no measurement behind it is a guess with a name - the measurements are
+# doc 74 sections 2.7 and 2.8, and MESHER_REASON quotes them.
+MESHERS_3D = ("snappy", "cfmesh", "auto")
+DEFAULT_MESHER_3D = "auto"
+# Short enough to travel in every mesh row, specific enough to be checkable.
+MESHER_REASON = {
+    "cfmesh": "cfMesh: 3x faster, converged where snappy stalled, 1/1900th the spurious "
+    "lift on the campaign's prism (doc 74 2.7-2.8)",
+    "snappy": "snappyHexMesh: this OpenFOAM install carries no cartesianMesh "
+    "(openfoam.com's build has it since v1806)",
+}
 DEFAULT_ITERS = {"openfoam": 2000, "su2": 3000}
 DEFAULT_TIMEOUT_S = 600.0
 MAX_WALL_S = 14_400.0
@@ -298,8 +307,8 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
         (
             "wt_mesh",
             "Mesh the case: a structured O-mesh for a 2-D section (seconds, written as OpenFOAM "
-            "polyMesh or SU2 .su2), or blockMesh + snappyHexMesh around a 3-D body (a job), or "
-            "cfMesh with mesher=cfmesh. Returns the checkMesh digest, never a cell.",
+            "polyMesh or SU2 .su2), or cfMesh/snappyHexMesh around a 3-D body (a job); mesher= "
+            "picks, default auto. Returns the checkMesh digest, never a cell.",
             {
                 "type": "object",
                 "properties": {
@@ -331,8 +340,8 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                     "layers": {"type": "integer", "description": "3-D prism layers (default 5)."},
                     "mesher": {
                         "type": "string",
-                        "description": "3-D mesher: snappy (default) or cfmesh. cfMesh is in the "
-                        "same OpenFOAM install and covers its layers by construction.",
+                        "description": "3-D mesher: auto (default; picks cfMesh where the "
+                        "install has it), cfmesh, or snappy. The reply says which ran and why.",
                     },
                     "body_cell_m": {
                         "type": "number",
@@ -750,6 +759,41 @@ class _Lane:
                 e["vspaero"].get("found") and e["vspaero"].get("extra", {}).get("vspaero")
             ),
         }
+
+    def _pick_mesher(self, asked: str) -> tuple[str, str]:
+        """Which 3-D mesher runs, and WHY - `auto` is a measurement, not a taste.
+
+        Measured on the campaign's prism (doc 74 sections 2.7 and 2.8, both
+        arms solved, not just meshed): cfMesh meshes it in 4.1 s against 11.1 s,
+        in 36,768 cells against 46,160, converges where snappy stalls on the
+        same 200-iteration budget, and leaves 0.00004 of the lift a symmetric
+        section at zero incidence cannot have where snappy leaves 0.07458. No
+        arm of A74 measured snappy ahead of it on a 3-D body, including with a
+        hole cut in the body - so `auto` picks cfMesh wherever the install has
+        it, and the one thing that can send it back to snappy is cfMesh not
+        being there.
+
+        An install without `cartesianMesh` is not a defect of the case, so
+        `auto` falls back and SAYS SO in the row; asking for cfMesh by name on
+        such a machine refuses by name instead (A74 law 1) rather than quietly
+        meshing with something else.
+        """
+        if asked == "snappy":
+            return "snappy", ""
+        probed = self._probe if self._probe is not None else self.probe({})
+        found = probed.get("engines", {}).get("openfoam", {})
+        if found.get("cfmesh"):
+            return "cfmesh", MESHER_REASON["cfmesh"] if asked == "auto" else ""
+        if asked == "cfmesh":
+            raise TeeError(
+                "wt_cfmesh_absent",
+                f"This OpenFOAM install has no cartesianMesh ({found.get('version') or 'unknown'}"
+                f" at {found.get('path') or 'unknown path'}).",
+                fix="cfMesh ships inside openfoam.com's distribution from v1806 - install that "
+                "build (wt_probe names the line), or use mesher=snappy, which needs nothing "
+                "extra. Nothing is downloaded for you.",
+            )
+        return "snappy", MESHER_REASON["snappy"]
 
     def _openfoam(self, *, for_writer: bool = False):
         """The install route. `for_writer=True` means TEE's own dictionaries
@@ -1335,14 +1379,14 @@ class _Lane:
         levels = tuple(int(x) for x in (args.get("levels") or (3, 4)))
         layers = int(args.get("layers", 5))
         cores = int(args.get("cores", 1))
-        mesher = str(args.get("mesher") or "snappy").lower()
-        if mesher not in MESHERS_3D:
+        asked = str(args.get("mesher") or DEFAULT_MESHER_3D).lower()
+        if asked not in MESHERS_3D:
             raise TeeError(
                 "wt_bad_mesher",
-                f"'{mesher}' is not a mesher this lane writes for.",
-                fix="mesher=snappy (the default) or mesher=cfmesh. 'auto' arrives with A74 P4, "
-                "which measures which one to pick rather than guessing here.",
+                f"'{asked}' is not a mesher this lane writes for.",
+                fix="mesher=auto (the default), mesher=cfmesh or mesher=snappy.",
             )
+        mesher, why = self._pick_mesher(asked)
         mesh_env: dict[str, str] = {}
         threads = 1
         if mesher == "cfmesh":
@@ -1404,6 +1448,7 @@ class _Lane:
                 )
                 mesh = {
                     "kind": mesher,
+                    **({"chose": why} if why else {}),
                     "body": prep["body"],
                     **check,
                     "levels": list(levels),

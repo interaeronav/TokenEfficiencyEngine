@@ -3,6 +3,61 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.28.0 — cfMesh in the wind-tunnel lane (A74)
+
+`wt_mesh` meshes a 3-D body with **cfMesh** as well as snappyHexMesh, and
+`mesher="auto"` — the new default — picks the one the install can run. No new
+tool, no new engine, no new licence and no change to the always-loaded surface:
+cfMesh ships *inside* openfoam.com's OpenFOAM, which this lane already drives.
+
+It closed with a measured yes rather than a preference. The lane's own prism at
+α = 0, 200 iterations, same domain and layers, **both meshes solved**:
+
+| | snappyHexMesh | cfMesh |
+|---|---:|---:|
+| cells | 46,160 | 36,768 |
+| mesh wall | 11.1 s | 4.1 s |
+| verdict | stalled at the budget | converged in 196 |
+| Cd | 0.4343 | 0.3076 |
+| Cl (must be zero) | 0.07458 | **0.00004** |
+
+The section is symmetric at zero incidence, so lift *must* be zero and every
+count of it is the mesh talking. snappy's own log admitted 1.32 of the 2
+boundary layers asked for, at 41.6 % of the requested thickness.
+
+### Added
+
+- `wt_mesh mesher="auto" | "cfmesh" | "snappy"`, default **auto**. The mesh row
+  carries `chose` whenever auto decided, with the reason.
+- `wt_probe` reports cfMesh in the `openfoam` row (`cfmesh`: the
+  `cartesianMesh` path, empty where the build has none).
+- `surfaceFeatureEdges` runs before `cartesianMesh` and hands it an FMS.
+  Without it the sharp trailing edge comes out as twelve skew faces and
+  `checkMesh` fails (max skewness 5.5497206); with it, a clean pass at
+  2.0995350 for 0.4 s. 30° is snappy's own `includedAngle 150` from the other
+  end (180 − 150), so it is a constant of the lane, not a new argument.
+- `wt_cfmesh_absent`: naming cfMesh on a build without it refuses and names the
+  install, rather than quietly meshing with something else. Nothing is
+  downloaded.
+
+### Changed
+
+- **The default 3-D mesher.** A bare `wt_mesh` on a 3-D body now meshes with
+  cfMesh where the install has it; `mesher="snappy"` is the one word back, and
+  `wt_result compare_to=` still reports `same_mesh` from the mesh hash, so a
+  comparison across the change says so.
+- cfMesh is pinned to `OMP_NUM_THREADS=1`, because threaded it builds a
+  different mesh each time — the same case gave two hashes at an identical
+  38,352 cells. `cores=` buys the speed back and the reply says
+  `reproducible: false`.
+- The OpenFOAM version probe asks its three questions by key rather than by
+  position: `command -v mpirun` prints nothing on a machine without MPI, and a
+  positional reader then reads the next answer as the missing one.
+
+`TOLERATED_CHECKS` was not widened. Skew is one of the two `checkMesh` failures
+this lane tolerates, so a cfMesh mesh would have run either way — which is
+exactly why the mesh was fixed instead.
+
 ## 0.27.0 — the flight-dynamics lane (A75)
 
 `fd_*`: a `wt_sweep` polar and a mass become a JSBSim aircraft that trims, and

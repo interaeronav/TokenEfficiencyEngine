@@ -250,27 +250,36 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   meet: the application is an enum and the ParaView-specific code sits in two
   modules, so the swap stays cheap if the question returns.
 
-- The A74 campaign (**cfMesh** in the wind-tunnel lane) is driven by
-  `CLAUDE_A74_SCRIPT.md`; research doc 74 is the design of record and
-  `docs/research/74-evidence/` holds what produced its numbers. It opened when
-  "can you download and integrate HELYX" turned out to be **no** — ENGYS ships
-  it to paying customers only, with no macOS build — and the owner asked for an
-  analogue: the mesher HELYX sells is already inside the openfoam.com v2606
-  this lane drives. A72 already RUNS `cartesianMesh` for adopted cases; A74
-  writes for it. Its measured facts: `cartesianMesh` needs the `openfoam2606`
-  wrapper (direct, it cannot find `libmeshLibrary.so`); on one prism, snappy
-  took 46,160 cells and 12.0 s and its own log admits **1.32 of 2 boundary
-  layers at 41.6 % of the requested thickness**, while cfMesh took 37,960 cells
-  in 1.6 s and creates layer cells on every boundary face by construction —
-  **but FAILS `checkMesh` on skewness** (5.55, twelve faces at the sharp
-  trailing edge) where snappy passes at 0.70, which is the campaign's blocker
-  and is never to be hidden by widening `TOLERATED_CHECKS`. Two more laws it
-  starts with: cfMesh meshes the volume bounded by a CLOSED surface, so an
-  external-aero case needs the domain box and the body as ONE multi-solid STL
-  (each `solid` becomes a patch); and a dictionary key nearly inverted its own
-  P0 — a global `boundaryCellSize` refines at the farfield and cost 630,980
-  cells, where `localRefinement` on the body is the idiom. The campaign closes
-  with a measured **no** if solving on the better mesh does not move Cd.
+- The A74 campaign (**cfMesh** in the wind-tunnel lane) is **COMPLETE**, P0–P4,
+  shipped as 0.28.0; `CLAUDE_A74_SCRIPT.md` is the plan of record, research doc
+  74 the design of record and `docs/research/74-evidence/` holds what produced
+  its numbers. It opened when "can you download and integrate HELYX" turned out
+  to be **no** — ENGYS ships it to paying customers only, with no macOS build —
+  and the owner asked for an analogue: the mesher HELYX sells is already inside
+  the openfoam.com v2606 this lane drives. Zero new tools, zero new engines,
+  zero new licences; `wt_mesh mesher=` is the whole surface change and
+  **`auto` is now the default** for a 3-D body. It closed with a measured
+  **yes**: on the lane's own prism, cfMesh meshes in 4.1 s against 11.1 s, in
+  36,768 cells against 46,160, **converges where snappy stalls** on the same
+  200-iteration budget, and leaves Cl 0.00004 where snappy leaves 0.07458 on a
+  symmetric section at zero incidence, where the true answer is zero. Its laws
+  outrank memory: `cartesianMesh` needs the `openfoam2606` wrapper (direct, it
+  cannot find `libmeshLibrary.so`); cfMesh meshes the volume bounded by a
+  **CLOSED surface**, so an external-aero case needs the domain box and the body
+  as ONE multi-solid STL and **each `solid` becomes a patch** — under
+  blockMesh's own names, or `simpleFoam` stops at `Cannot find patchField entry`;
+  a global `boundaryCellSize` refines at the farfield and cost 630,980 cells
+  where `localRefinement` on the body is the idiom; **threaded, cfMesh builds a
+  different mesh each time** (two hashes at an identical cell count), so the
+  lane pins `OMP_NUM_THREADS=1` and `cores=` buys the speed back with
+  `reproducible: false` said out loud; and the sharp trailing edge comes out as
+  twelve skew faces unless `surfaceFeatureEdges` hands `cartesianMesh` an FMS
+  first — 30°, which is snappy's own `includedAngle 150` from the other end.
+  `TOLERATED_CHECKS` was never widened: skew is one of the two failures this
+  lane tolerates, so the mesh had to be fixed rather than the gate. A
+  measurement that is not pinned is not a measurement — the same threading
+  lesson bit the campaign twice, once in the lane and once in its own probe
+  script.
 
 - The A75 build (`fd_*`: a headless flight-dynamics lane where a `wt_sweep`
   polar and a mass become a JSBSim aircraft that trims) is **COMPLETE**, P0-P4,

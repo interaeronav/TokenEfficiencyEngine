@@ -437,7 +437,9 @@ def test_a_body_meshes_as_a_job_and_runs(app, tmp_path):
     cid = created["case_id"]
     assert created["kind"] == "body3d" and created["engine"] == "openfoam"
     assert created["domain"]["verdict"] == "ok" and created["geometry"]["watertight"] is True
-    started = call(app, "wt_mesh", case_id=cid, levels=[2, 3], layers=3)
+    # snappy BY NAME: A74 P4 made `auto` the default, and this is the test of
+    # the snappy sequence (the cfMesh one, and what auto picks, are A74's own)
+    started = call(app, "wt_mesh", case_id=cid, mesher="snappy", levels=[2, 3], layers=3)
     assert started["sequence"] == [
         "blockMesh",
         "surfaceFeatureExtract",
