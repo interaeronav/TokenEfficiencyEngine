@@ -72,9 +72,20 @@ Usage: vsp [inputfile.vsp3]               Run interactively
 
 The GUI route is the positional argument; `-script` is the headless route the lane already drives. `vsp` and `vspviewer` are both on PATH here.
 
-### 2.7 Writing a state needs no display
+### 2.7 A state that carries a view needs a display; a pipeline-only state does not
 
-The state is produced by a render-free `pvpython` run, so `wt_open` works in exactly the environment where `wt_view` segfaults (doc 72 §3: the apt build cannot render without `xvfb-run`). A machine with no display can still prepare the handoff for a machine that has one.
+This was measured after being assumed wrongly, which is the reason it is written out in full.
+
+| script | display | result |
+|---|---|---|
+| reader + `Show` + `ColorBy` + camera + `Render` | none, plain `pvpython` | **SIGSEGV**, rc 139 |
+| the same | none, `--force-offscreen-rendering` | **SIGSEGV**, rc 139 |
+| the same | `xvfb-run -a` | 203,042 bytes, rc 0 |
+| reader + arrays + time, no `Show`, no `Render` | none, plain `pvpython` | **16,545 bytes, rc 0** |
+
+The fault is the one doc 72 §3 already recorded for the apt build: a render view without a display segfaults, and the offscreen flag does not save it. But a state does not have to carry a view. A pipeline-only state - the reader, its mesh regions, its arrays, its time - is an eighth of the size, writes anywhere, and still opens the case in ParaView with everything selected; the human colours it in two clicks.
+
+So `wt_open` writes the richer state where it can render (a display, or `xvfb-run` on Linux) and the pipeline-only state where it cannot, and the reply says which it wrote. The tool therefore works on a headless container, which is exactly where a model driving TEE usually is.
 
 ### 2.8 A defect inherited from A72
 
@@ -107,6 +118,42 @@ But ParaView opens a meshed case with no solution perfectly well, and looking at
 - **SimFlow**: still not integrable as software; a case it writes is adoptable like any other.
 - **Remote or client/server ParaView** (`pvserver`, `--url`): out of scope; the handoff is to an application on the same machine as the case.
 - **A state that regenerates itself** when a case moves: the path appears once, so a later campaign can rewrite it if the need is real.
+
+## 4b. What a replacement for ParaView would have to satisfy (2026-09-07)
+
+Raised while this campaign was being built: ParaView is proving unstable in
+use, and a replacement is being looked for in a separate session. Three
+instabilities were measured here on the way to the handoff, and they are
+written down because they are the evidence for that search rather than
+complaints about it:
+
+1. **It cannot be asked anything without a display.** The client builds its Qt
+   application before parsing arguments, so `paraview --help` aborts on signal
+   6 (§2.1). No other tool in this repo behaves that way.
+2. **A render view without a display segfaults**, and
+   `--force-offscreen-rendering` does not save it - only `xvfb-run` does
+   (§2.7, and doc 72 §3 recorded the same for `wt_view`).
+3. **A trivial state file is 200 KB of XML** whose schema is versioned against
+   the writing application (§2.4, open question 1).
+
+What the lane actually needs from a viewer, which is a much shorter list than
+what ParaView does:
+
+| need | why | ParaView's answer |
+|---|---|---|
+| open an OpenFOAM case directory | the case directory is the interface | `.foam` stub + OpenFOAMReader |
+| open an SU2 volume file | the other engine | `.vtu` reader |
+| be told what to show, from the command line | a handoff is one command | `--state` |
+| sample a line and a slice to CSV, render-free | `wt_probe_field` | `PlotOverLine`, `SaveData` |
+| write a PNG offscreen | `wt_view` | `SaveScreenshot` under xvfb |
+
+Anything that covers those five rows can replace it without touching the tool
+surface: `wt_open`'s `app` is an enum, the ParaView-specific parts are
+confined to `state.py` and `paraview.py`, and the panel calls the registry
+rather than any application. The two candidates worth measuring first are
+**glvis/VisIt-class viewers** and **PyVista/trame with an offscreen backend** -
+but neither has been measured here, and this table is the specification to
+measure them against, not a recommendation.
 
 ## 5. Open questions
 

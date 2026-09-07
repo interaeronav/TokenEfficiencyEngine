@@ -25,7 +25,7 @@ Campaign **A73**; research doc **73** the design of record; server **0.23.0 → 
 4. **A state file is a disk artefact, never an answer.** A one-reader state over a 16,000-cell case is **177,402 bytes**; a realistic one — reader, coloured surface, scalar bar, camera, time — is **203,042 bytes**. It names the case's absolute path **exactly once**, so relocating a case is a one-string rewrite rather than a re-generation.
 5. **A state round-trips.** Written by one process and loaded by a fresh `pvpython`, the reader comes back with its `FileName`, the view with `ViewTime` 0.0 and `CameraPosition` `[0.5, 0.0, 273.224]`, and the representation still coloured by `['POINTS', 'p']`.
 6. **`vsp [inputfile.vsp3]`** opens the model in the OpenVSP GUI — the model is a positional argument, and `vsp -script` is the headless route the lane already uses. `vsp` and `vspviewer` are both on PATH here (3.51.3).
-7. **Writing a state needs no display at all.** It is XML on disk, produced by a render-free `pvpython` run. So `wt_open` succeeds in exactly the environment where `wt_view` fails — which is the strongest argument for the tool.
+7. **A state with a view needs a display; a pipeline-only state does not.** Assumed wrongly, then measured: reader + `Show` + `ColorBy` + camera + `Render` **segfaults** (rc 139) with no display, offscreen flag included, and writes 203,042 bytes under `xvfb-run`; reader + arrays + time with no `Show` and no `Render` writes **16,545 bytes, rc 0, no display, no xvfb**. So `wt_open` writes the richer state where it can render and the pipeline-only state where it cannot, says which, and therefore works on a headless container — which is where a model driving TEE usually is.
 8. **A defect this campaign inherits:** `wt_export format=foam` refuses with `wt_no_results` until the case has a run, yet ParaView opens a *meshed* case perfectly well. The stub the GUI needs is gated behind a solve. P1 ungates it.
 9. This container has `paraview`, `pvpython`, `vsp` and `vspviewer`; **FreeCAD is absent**, which is one reason CfdOF is out of scope.
 
@@ -43,7 +43,7 @@ Campaign **A73**; research doc **73** the design of record; server **0.23.0 → 
 
 | half | what it does | needs a display? |
 |---|---|---|
-| **prepare** (always) | ensures the `.foam` stub, writes `<case>/views/<name>.pvsm` through a render-free pvpython, returns `{app, state, target, command, bytes, launched: false}` | no |
+| **prepare** (always) | ensures the `.foam` stub, writes `<case>/views/<name>.pvsm` through pvpython, returns `{app, state, kind, target, command, bytes, launched: false}` | no — the state is `full` where it can render and `pipeline` where it cannot, and `kind` says which |
 | **launch** (`launch=true`) | spawns the application detached and returns `launched: true` with its pid | yes, or it refuses |
 
 `app` is `paraview` (default: the results) or `openvsp` (the `.vsp3`). `view` picks the preset the state opens on, reusing `wt_view`'s names so one vocabulary serves both. The command is returned as an argv list and a copy-pasteable string, so a human on a machine TEE cannot reach still gets the answer.
