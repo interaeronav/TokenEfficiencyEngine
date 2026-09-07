@@ -221,6 +221,14 @@ def _attach_flightdyn(app, project: str) -> None:
     register_flightdyn_tools(app, Path(project))
 
 
+def _attach_engines(app, project: str) -> None:
+    """Attach the eng_* lane. Stdlib only, and unconditional: the whole point
+    is to answer on a machine where nothing is installed or running."""
+    from tee.engines.tools import register_engine_tools
+
+    register_engine_tools(app, Path(project))
+
+
 def _attach_assets(app, project: str, extract_store) -> None:
     """Register TEE Assets tools (stdlib core; astral/shapely lanes degrade
     with actionable errors when their extra is missing)."""
@@ -404,6 +412,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     _attach_pointcloud(app, args.project)
     _attach_windtunnel(app, args.project)
     _attach_flightdyn(app, args.project)
+    _attach_engines(app, args.project)
     _attach_pipeline(app, args.project)
     _attach_pins(app, args.project)
     _attach_design(app, args.project)

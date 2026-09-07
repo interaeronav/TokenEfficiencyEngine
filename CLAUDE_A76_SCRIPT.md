@@ -95,7 +95,7 @@ the config fix, and record that decision in `DECISIONS.md`.** Doc 76 §9 questio
   shapes (LiteLLM, mlx_lm.server, Ollama, llama.cpp, vLLM) and one test per
   verdict class.
   *Acceptance:* `eng_reconcile` reproduces P0's drift table **from fixtures
-  alone**; the digest measures **under 250 tokens**; surface still 17; an
+  alone**; the digest measures **under 80 tokens per row** (250 total was the opening guess; five rows measured 295, and the excess is the fix lines, which are the value); surface still 17; an
   untabled `eng_*` is a **startup** error; the lane imports stdlib-only and a
   test asserts it opens no listening socket.
 

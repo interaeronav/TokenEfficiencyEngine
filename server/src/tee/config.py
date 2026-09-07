@@ -85,6 +85,7 @@ class ProjectConfig:
     # binary each), `cores`, `max_wall_s`, `confirm_above_s`.
     windtunnel: dict[str, Any] = field(default_factory=dict)
     flightdyn: dict[str, Any] = field(default_factory=dict)
+    engines: dict[str, Any] = field(default_factory=dict)
     warning: str | None = None
 
     @classmethod
@@ -209,6 +210,12 @@ class ProjectConfig:
             config.flightdyn = flightdyn_section
         elif flightdyn_section:
             problems.append("[flightdyn] must be a table")
+
+        engines_section = data.get("engines", {})
+        if isinstance(engines_section, dict):
+            config.engines = engines_section
+        elif engines_section:
+            problems.append("[engines] must be a table")
 
         trust_section = data.get("trust", {})
         if isinstance(trust_section, dict):

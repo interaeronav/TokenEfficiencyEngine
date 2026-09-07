@@ -268,6 +268,17 @@ _EXPLICIT: dict[str, str] = {
     "fd_trim": "call-engine",  # a JSBSim child process
     "fd_modes": "call-engine",
     "fd_fly": "call-engine",
+    # --- A76: the engine lane ---
+    # DELIBERATELY NO ("eng_", ...) FAMILY ROW (the cad_/trade_/pc_/wt_/fd_
+    # lesson). Three of these read and three touch the world: a prefix default
+    # would hand the writers the open tier. The lane serves no model, starts
+    # nothing and never writes the owner's config; eng_adopt writes ONE file
+    # the router's ladder reads, which is state, not artifacts.
+    "eng_scan": "read-compute",  # GET /v1/models only; caches engine-scan.json
+    "eng_senses": "read-extract",  # reads config.json beside the weights
+    "eng_check": "call-engine",  # one completion, and it reads the content
+    "eng_reconcile": "read-compute",  # cache only; the digest never probes
+    "eng_adopt": "write-state",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",
