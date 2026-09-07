@@ -153,6 +153,19 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                         "type": "boolean",
                         "description": "A circular cylinder section (the bluff-body benchmark).",
                     },
+                    "plate": {
+                        "type": "boolean",
+                        "description": "The NASA TMR zero-pressure-gradient flat plate "
+                        "(the turbulence-model verification case).",
+                    },
+                    "turbulence_intensity": {
+                        "type": "number",
+                        "description": "Freestream turbulence intensity, fraction (default 0.01).",
+                    },
+                    "viscosity_ratio": {
+                        "type": "number",
+                        "description": "Freestream nut/nu (default 10).",
+                    },
                     "n_surface": {
                         "type": "integer",
                         "description": "Points per surface on a generated section (default 100); "
@@ -747,7 +760,15 @@ class _Lane:
         geom_dir = self.store.root / "tmp_geometry" / str(time.time_ns())
         geom_dir.mkdir(parents=True, exist_ok=True)
         # geometry
-        if args.get("naca") or args.get("dat") or args.get("circle"):
+        if args.get("plate"):
+            # The NASA TMR zero-pressure-gradient plate: no section to build,
+            # the geometry IS the block layout. cref is the length Re is
+            # stated on (1), not the plate's own 2.
+            geometry = runs.flat_plate_geometry(args)
+            L = 1.0
+            refs = {"Sref": geometry["plate_length_m"], "cref": 1.0, "bref": 1.0}
+            kind = "flatplate2d"
+        elif args.get("naca") or args.get("dat") or args.get("circle"):
             geometry = runs.section_from(args, geom_dir)
             chord = float(args.get("chord_m", 1.0))
             L = chord
@@ -826,6 +847,8 @@ class _Lane:
             "refs": refs,
             "geometry": geometry,
             "turbulence": str(args.get("turbulence", "kOmegaSST")),
+            "turbulence_intensity": float(args.get("turbulence_intensity", 0.01)),
+            "viscosity_ratio": float(args.get("viscosity_ratio", 10.0)),
         }
         if kind in ("body3d", "wing3d") and choice.engine == "openfoam":
             bbox = (tuple(geometry["bbox"][0]), tuple(geometry["bbox"][1]))
@@ -1160,6 +1183,39 @@ class _Lane:
             out = {"case_id": case_id, **mesh}
             out["next"] = "wt_run"
             return digest(out)
+        if rec["kind"] == "flatplate2d":
+            install = self._openfoam(for_writer=True)
+            edir = Path(rec["engine_dir"])
+            import subprocess
+
+            t0 = time.time()
+            mesh = runs.mesh_flat_plate(rec, edir)
+            res = subprocess.run(
+                install.argv("blockMesh", "-case", str(edir)),
+                capture_output=True,
+                text=True,
+                timeout=1800,
+            )
+            (edir / "log.blockMesh").write_text(res.stdout + res.stderr)
+            if res.returncode != 0:
+                raise TeeError(
+                    "wt_mesh_failed",
+                    "blockMesh refused the flat-plate layout.",
+                    fix=" | ".join(foam.last_error_lines(res.stdout + res.stderr, 3))[:300]
+                    or f"See {edir / 'log.blockMesh'}.",
+                )
+            check = self._checkmesh(install, edir)
+            mesh["checkMesh"] = check
+            # a low-Re plate is high aspect ratio BY DESIGN: microns at the
+            # wall, millimetres along it. That check failing is the mesh
+            # being right, not wrong.
+            mesh["ok"] = _mesh_ok(check) or check.get("failed") == [
+                f for f in check.get("failed", []) if "aspect ratio" in f.lower()
+            ]
+            mesh["wall_s"] = round(time.time() - t0, 2)
+            mesh["mesh_hash"] = runs._polymesh_hash(edir)
+            self.store.update(case_id, mesh=mesh, state="meshed")
+            return digest({"case_id": case_id, **mesh, "next": "wt_run"})
         if rec["kind"] == "adopted":
             return digest(self._mesh_adopted(rec, args))
         # 3-D: a job

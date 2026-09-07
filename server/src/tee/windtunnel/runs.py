@@ -16,6 +16,7 @@ import math
 import os
 import shutil
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +95,29 @@ def mesh_airfoil_openfoam(
             "tolerates them",
         ],
         "mesh_hash": _polymesh_hash(engine_dir),
+    }
+
+
+def mesh_flat_plate(case: dict[str, Any], engine_dir: Path) -> dict[str, Any]:
+    """Write the TMR plate's blockMeshDict. blockMesh itself is run by the
+    caller, because it is an engine step and this module only writes files."""
+    plate = foam.FlatPlate2D(**case["geometry"]["plate"])
+    engine_dir.mkdir(parents=True, exist_ok=True)
+    foam.write_mesh_system(engine_dir)
+    (engine_dir / "system" / "blockMeshDict").write_text(foam.flat_plate_block_mesh_dict(plate))
+    return {
+        "kind": "flatplate_blockmesh",
+        "cells": plate.cells,
+        "nx": plate.nx_upstream + plate.nx_plate,
+        "ny": plate.ny,
+        "first_cell_m": plate.first_cell,
+        "x_range": [plate.x0, plate.x1],
+        "plate_x": [plate.x_le, plate.x1],
+        "thickness_m": plate.thickness,
+        "notes": [
+            "a low-Re plate mesh is deliberately high aspect ratio at the wall "
+            "(the first cell is microns and the streamwise spacing is millimetres)"
+        ],
     }
 
 
@@ -244,10 +268,16 @@ def prepare_openfoam_run(
     tri = engine_dir / "constant" / "triSurface"
     if tri.is_dir() and not (const / "triSurface").exists():
         os.symlink(tri, const / "triSurface", target_is_directory=True)
-    two_d = case["kind"] == "airfoil2d"
+    two_d = case["kind"] in ("airfoil2d", "flatplate2d")
+    plate2d = case["kind"] == "flatplate2d"
     mesh = case.get("mesh", {})
     Aref = float(refs["Sref"]) * (float(mesh.get("thickness_m", 1.0)) if two_d else 1.0)
-    if two_d:
+    if plate2d:
+        # the TMR layout: slip ahead of the leading edge, wall on the plate,
+        # farfield along the top (measured from the case's own .nmf map)
+        wall, free, empty = ("plate",), ("top",), ("frontAndBack",)
+        inlet, outlet, slip = ("inlet",), ("outlet",), ("symm",)
+    elif two_d:
         wall, free, empty, inlet, outlet, slip = (
             ("airfoil",),
             ("farfield",),
@@ -269,6 +299,8 @@ def prepare_openfoam_run(
         nu=nu,
         turbulence=case.get("turbulence", "kOmegaSST"),
         wall_treatment="low_re" if two_d else "wall_function",
+        turbulence_intensity=float(case.get("turbulence_intensity", 0.01)),
+        viscosity_ratio=float(case.get("viscosity_ratio", 10.0)),
         end_time=iters,
         write_interval=iters,
         Aref=Aref,
@@ -286,6 +318,11 @@ def prepare_openfoam_run(
         empty_patches=empty,
     )
     files = foam.write_case(run_dir, setup)
+    if plate2d:
+        # Cf at a station is the whole point of this case, and it comes from
+        # a wall-shear sample rather than an integrated force.
+        cd = run_dir / "system" / "controlDict"
+        cd.write_text(foam.add_functions(cd.read_text(), foam.wall_shear_functions("plate")))
     return {"files": files, "Aref": Aref, "U": list(setup.U_inf), "two_d": two_d}
 
 
@@ -807,6 +844,30 @@ def vsp_result(run_dir: Path, *, ended: bool, fatal: bool, cancelled: bool) -> d
 # ---------------------------------------------------------------------------
 # Geometry intake
 # ---------------------------------------------------------------------------
+
+
+def flat_plate_geometry(args: dict[str, Any]) -> dict[str, Any]:
+    """The TMR 2DZP layout as a geometry record. There is no surface file:
+    a flat plate is a block layout, and `foam.FlatPlate2D` carries it."""
+    plate = foam.FlatPlate2D(
+        nx_upstream=int(args.get("nx_upstream", 64)),
+        nx_plate=int(args.get("nx_plate", 320)),
+        ny=int(args.get("ny", 140)),
+        first_cell=float(args.get("first_cell_m", 3e-6)),
+    )
+    return {
+        "kind": "flatplate2d",
+        "name": "NASA TMR zero-pressure-gradient flat plate",
+        "plate": asdict(plate),
+        "plate_length_m": plate.x1 - plate.x_le,
+        "properties": {
+            "x0": plate.x0,
+            "x_leading_edge": plate.x_le,
+            "x1": plate.x1,
+            "y_top": plate.y1,
+            "cells": plate.cells,
+        },
+    }
 
 
 def section_from(args: dict[str, Any], geom_dir: Path) -> dict[str, Any]:
