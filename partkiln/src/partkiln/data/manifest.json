@@ -75,7 +75,7 @@
    "source": "own",
    "licence": "own",
    "retrieved": "2026-09-02",
-   "authority": "EN 1993-1-1:2005 3.2.6 (steel design values), EN 10025-2:2019 (S275/S355 ReH), EN 10130:2006 (DC01), EN 10088-1 (1.4301 density), grade datasheet class for 100Cr6; Toray TORAYCA T300 data sheet Rev. 04/22/2025 (CFRP composite values, normalized to 60% fibre volume); everything else an engineering handbook range",
+   "authority": "EN 1993-1-1:2005 3.2.6 (steel design values), EN 10025-2:2019 (S275/S355 ReH), EN 10130:2006 (DC01), EN 10088-1 (1.4301 density), grade datasheet class for 100Cr6; Toray TORAYCA T300 data sheet Rev. 04/22/2025 and Hexcel HexPly 8552 product data sheet (EU) for the CFRP cards, each value attributed to its own table's fibre column; everything else an engineering handbook range",
    "units": "kg/m3, N/mm2",
    "notes": "Every value carries {value, unit, source, honesty}. honesty standard_value = the number the named standard prints; datasheet = a grade datasheet class; typical_range = a handbook range, the midpoint served with the range beside it; derived = computed here. No value was taken from a banned bulk source. An anisotropic card names directions in its property keys (E_0, tensile_90) and lists in `refuses` the isotropic scalars it will not invent, each with a reason and a fix - a laminate has no single modulus, and an omitted value gets filled from memory by the next reader."
   },

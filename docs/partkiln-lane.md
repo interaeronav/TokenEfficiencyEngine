@@ -229,7 +229,21 @@ and `.ipt`/`.iam`/`.idw`).
   along the fibres and 76 across, a factor of 24. A card that merely omitted
   `E` would read as "not recorded yet" and the next reader would supply one
   from memory. `cfrp` on its own is refused too — it is a family, and UD is
-  the least representative layup for a real part.
+  the least representative layup for a real part; it now lists three.
+- **Woven and quasi-isotropic**, from the Hexcel HexPly 8552 sheet.
+  `cfrp_as4_8552_woven` (AS4 3K plain weave) is BALANCED, not isotropic —
+  68 000 N/mm² along the warp and 66 000 along the fill, within 3%, which is
+  precisely the trap, because at 45° a plain weave is far softer and the sheet
+  prints no 45° value. Its density is *printed*, not derived.
+  `cfrp_as4_8552_qi` is **the one CFRP card that may serve a plain `E` and
+  `nu`**: a quasi-isotropic stack genuinely is isotropic in-plane. Its
+  55 454 N/mm² is `derived` by classical laminate theory from the E₁ and E₂
+  Hexcel prints; G₁₂ and ν₁₂ are not on the sheet, so they are swept over a
+  factor of two and the served range is that whole sweep — the answer moves
+  3.5%, because a QI laminate's in-plane stiffness is governed by E₁ and E₂.
+  It still refuses `yield`: stiffness is quasi-isotropic, strength is not, and
+  it is NOT isotropic in bending — `[0/45/-45/90]s` and `[90/45/-45/0]s` share
+  this E and have different bending stiffness.
 
 - **ISO 286 fits** (`standards fit`, and `fit:` on a hole). No tolerance
   table was transcribed: the grades are computed from the standard's own

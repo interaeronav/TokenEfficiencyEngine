@@ -13940,3 +13940,61 @@ not yet run; the `.mcpb` bundle for 0.24.0 is not built; the Mac has not seen
 `wt_open` (does ParaView 6.1 accept a 5.11-written state? does `open -a
 ParaView --args --state=` pass the flag through?) — both are doc 73's open
 questions 1 and 2.
+
+### CFRP: a woven card, and a quasi-isotropic one that had to be computed (2026-09-07)
+
+Owner: *"add a woven and quasi-isotropic card"*. Both landed, from the Hexcel
+HexPly 8552 product data sheet read out of the PDF — but they landed for
+different reasons, and the QI one nearly did not land at all.
+
+**An attribution trap in the source, caught before it reached a card.** The
+8552 sheet's woven section is headed *"Woven Carbon Prepregs (AS4 Fibre)"* and
+the table printed directly beneath it reads **`Fibre Type: IM7 6K`**. PDF text
+extraction had displaced the headings by one block. Every number was therefore
+attributed from each table's OWN `Fibre Type` and `Fibre Density` rows rather
+than from the heading above it — AS4 3K plain weave (Vf 55.29%, laminate
+density 1.57) and IM7 6K 8HS (Vf 55.57%, 1.56) are different products, and
+reading the heading would have put IM7 numbers on an AS4 card.
+
+**Woven: balanced, which is not the same as isotropic.** `cfrp_as4_8552_woven`
+serves E_0 68 000 and E_90 66 000 N/mm², within 3% — and that closeness IS the
+trap, because a plain weave at 45° is far softer, where the load goes into
+shear, and the sheet prints no 45° value. So a plain `E` is still refused, with
+that as the reason. Its density is **printed** (1.57 g/cm³ → `datasheet`),
+which is better provenance than the UD card's derived value.
+
+**Quasi-isotropic is a layup, not a material, and the datasheet cannot supply
+it.** Classical laminate theory needs E₁, E₂, G₁₂ and ν₁₂; Hexcel prints the
+first two and neither of the last two. The widely-repeated `E1=140, E2=10,
+G12=7, nu12=0.29` traces to homework sites and figure captions — exactly the
+secondary sourcing the licence gate exists to keep out — so it was not used.
+
+**What made the card honest was a sensitivity measurement.** Sweeping G₁₂ over
+a FACTOR OF TWO (4 000–8 500 N/mm²) and ν₁₂ over 0.25–0.35:
+
+```
+E_qi = (U1^2 - U4^2)/U1   over that whole box:  53 538 - 57 369 N/mm2   = +/- 3.5%
+```
+
+The answer is governed by E₁ and E₂, which ARE printed. So `cfrp_as4_8552_qi`
+serves **E 55 454 N/mm², range [53 538, 57 369]**, `derived`, with the range
+being the whole span of the unknown constants — the same pattern as the UD
+card's density: the assumption is visible, not hidden. A test re-derives the
+sweep and asserts the served range equals it, so the two cannot drift.
+
+**It is also the one CFRP card that may serve a plain `E` and `nu`** — a
+quasi-isotropic stack genuinely is isotropic in-plane, which is the entire
+point of the layup. It still refuses `yield` (strength turns on which ply
+fails first, hence on the stacking sequence the card does not fix), and its
+note says plainly that it is **not** isotropic in bending: `[0/45/-45/90]s`
+and `[90/45/-45/0]s` share this E and have different bending stiffness.
+Density is layup-independent, so it carries Hexcel's printed UD value (1.58
+g/cm³) rather than deriving a second, differing number.
+
+That inverted the validator: an **isotropic** card can now carry refusals too,
+so `_validate_refusals` was split out and runs on any declared block rather
+than only on anisotropic cards — otherwise the QI card's refusals would have
+gone unchecked. A test covers exactly that.
+
+partkiln **889 passed / 2 skipped**, ruff clean; 14 cards; `data/manifest.json`
+names both Toray and Hexcel as authorities.

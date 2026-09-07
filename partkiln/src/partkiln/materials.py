@@ -69,14 +69,28 @@ def _validate_anisotropy(name: str, card: dict[str, Any]) -> None:
     `refuses` entry per isotropic scalar, each with a reason and a fix, and
     `property_value` raises it rather than returning nothing.
     """
-    if not card.get("anisotropic"):
-        return
     refuses = card.get("refuses")
+    if not card.get("anisotropic"):
+        # An ISOTROPIC card may still refuse. The quasi-isotropic laminate is
+        # genuinely isotropic in-plane and serves E, yet its strength depends
+        # on the stacking sequence and is refused. So validate whatever is
+        # declared; only REQUIRE a declaration when the card says its
+        # properties have a direction.
+        if refuses is not None:
+            _validate_refusals(name, card, refuses)
+        return
     if not isinstance(refuses, dict) or not refuses:
         raise DataError(
             f"material card {name!r} is anisotropic but lists no `refuses`; say which "
             "scalars it will not invent (E, yield, G, nu) with a reason and a fix."
         )
+    _validate_refusals(name, card, refuses)
+
+
+def _validate_refusals(name: str, card: dict[str, Any], refuses: Any) -> None:
+    """Every declared refusal names a reason AND a fix, and refuses nothing served."""
+    if not isinstance(refuses, dict):
+        raise DataError(f"material card {name!r}.refuses must map a property to its reason.")
     for prop, entry in refuses.items():
         for key in ("reason", "fix"):
             if not isinstance(entry, dict) or not entry.get(key):

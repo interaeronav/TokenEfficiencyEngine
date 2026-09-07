@@ -173,6 +173,130 @@
    },
    "notes": "Lead content makes CW614N RoHS-exempt only under specific annexes; the card carries mechanics, not compliance."
   },
+  "cfrp_as4_8552_qi": {
+   "family": "carbon fibre composite (quasi-isotropic laminate)",
+   "designation": "AS4/8552 quasi-isotropic layup, e.g. [0/+45/-45/90]s, fibre volume 57.42%",
+   "aliases": [
+    "cfrp qi",
+    "carbon qi",
+    "quasi-isotropic cfrp",
+    "as4 qi"
+   ],
+   "anisotropic": false,
+   "properties": {
+    "density": {
+     "value": 1580,
+     "unit": "kg/m3",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, UD Nominal Laminate Density 1.58 g/cm3; stacking sequence does not change density, so the same plies quasi-isotropically stacked weigh the same",
+     "honesty": "datasheet"
+    },
+    "E": {
+     "value": 55454,
+     "unit": "N/mm2",
+     "source": "classical laminate theory, in-plane invariants U1 = (3Q11+3Q22+2Q12+4Q66)/8 and U4 = (Q11+Q22+6Q12-4Q66)/8, E = (U1^2-U4^2)/U1, nu = U4/U1, evaluated on the AS4/8552 UD lamina E1 = 141 000 and E2 = 10 000 N/mm2 printed by Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry. G12 and nu12 are NOT on that datasheet, so they are swept over 4 000-8 500 N/mm2 and 0.25-0.35 - a factor of two in G12 - and the range below is that whole sweep: the answer moves 3.5%, because a quasi-isotropic laminate's in-plane stiffness is governed by E1 and E2",
+     "honesty": "derived",
+     "range": [
+      53538,
+      57369
+     ]
+    },
+    "nu": {
+     "value": 0.298,
+     "unit": "-",
+     "source": "classical laminate theory, in-plane invariants U1 = (3Q11+3Q22+2Q12+4Q66)/8 and U4 = (Q11+Q22+6Q12-4Q66)/8, E = (U1^2-U4^2)/U1, nu = U4/U1, evaluated on the AS4/8552 UD lamina E1 = 141 000 and E2 = 10 000 N/mm2 printed by Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry. G12 and nu12 are NOT on that datasheet, so they are swept over 4 000-8 500 N/mm2 and 0.25-0.35 - a factor of two in G12 - and the range below is that whole sweep: the answer moves 3.5%, because a quasi-isotropic laminate's in-plane stiffness is governed by E1 and E2",
+     "honesty": "derived",
+     "range": [
+      0.269,
+      0.328
+     ]
+    }
+   },
+   "refuses": {
+    "yield": {
+     "reason": "in-plane STIFFNESS is quasi-isotropic; strength is not. It depends on which ply fails first and therefore on the stacking sequence, which this card does not fix",
+     "fix": "read the UD card's tensile_0/tensile_90 and run a laminate failure criterion for your actual stack"
+    },
+    "G": {
+     "reason": "derivable as E/(2(1+nu)) BECAUSE the in-plane response is isotropic, but the datasheet prints no G12 to derive it from",
+     "fix": "supply G12 and compute, or accept E/(2(1+nu)) yourself and say you did"
+    }
+   },
+   "notes": "The one CFRP card that may serve a plain E and nu: a quasi-isotropic stack really is isotropic IN-PLANE, which is the whole point of the layup. It is NOT isotropic in bending - [0/45/-45/90]s and [90/45/-45/0]s share this E and have different bending stiffness because the plies sit at different distances from the mid-plane - and it is not isotropic through the thickness. Use this for in-plane membrane loads only."
+  },
+  "cfrp_as4_8552_woven": {
+   "family": "carbon fibre composite (woven fabric laminate)",
+   "designation": "AS4 3K plain weave / HexPly 8552, fibre volume 55.29%",
+   "aliases": [
+    "cfrp woven",
+    "carbon woven",
+    "as4 woven",
+    "8552 woven"
+   ],
+   "anisotropic": true,
+   "properties": {
+    "density": {
+     "value": 1570,
+     "unit": "kg/m3",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, Nominal Laminate Density 1.57 g/cm3 (printed, not derived)",
+     "honesty": "datasheet"
+    },
+    "E_0": {
+     "value": 68000,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg tensile modulus",
+     "honesty": "datasheet"
+    },
+    "E_90": {
+     "value": 66000,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 90 deg tensile modulus",
+     "honesty": "datasheet"
+    },
+    "tensile_0": {
+     "value": 793,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg tensile strength",
+     "honesty": "datasheet"
+    },
+    "compressive_0": {
+     "value": 883,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg compression strength",
+     "honesty": "datasheet"
+    },
+    "E_compressive_0": {
+     "value": 60000,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg compression modulus",
+     "honesty": "datasheet"
+    },
+    "ilss": {
+     "value": 84,
+     "unit": "N/mm2",
+     "source": "Hexcel HexPly 8552 product data sheet (EU), physical + mechanical property tables, AS4 column, 25 C dry, 0 deg ILSS, short-beam shear",
+     "honesty": "datasheet"
+    }
+   },
+   "refuses": {
+    "E": {
+     "reason": "a 0/90 weave is BALANCED, not isotropic: 68 000 N/mm2 along the warp and 66 000 along the fill, but far softer at 45 deg, where the load goes into shear - and this datasheet prints no 45 deg value",
+     "fix": "read E_0 and E_90, and if the load runs at 45 deg to the weave say so and supply a 45 deg value or a laminate calculation"
+    },
+    "yield": {
+     "reason": "CFRP breaks rather than yielding, and the strength is direction-dependent",
+     "fix": "read tensile_0 or compressive_0"
+    },
+    "G": {
+     "reason": "the sheet prints interlaminar shear (ILSS, short-beam) and no in-plane shear modulus",
+     "fix": "read ilss for the interlaminar strength; supply G_12 from your own laminate data"
+    },
+    "nu": {
+     "reason": "not printed on this datasheet",
+     "fix": "supply nu from your own laminate data"
+    }
+   },
+   "notes": "Balanced 0/90, which is why E_0 and E_90 are within 3% - and exactly why a single E is still wrong: rotate the load 45 deg and a plain weave is far softer. The second fabric style in the same table (5HS) reads 67/66 GPa, so the weave style barely moves the in-plane numbers; the drape and the thickness are what change."
+  },
   "cfrp_t300_ud": {
    "family": "carbon fibre composite (unidirectional laminate)",
    "designation": "T300/epoxy UD, fibre volume fraction 60%",
