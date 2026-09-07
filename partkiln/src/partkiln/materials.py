@@ -32,6 +32,7 @@ def _cards() -> dict[str, dict[str, Any]]:
     cards = doc["cards"]
     for name, card in cards.items():
         _validate(name, card)
+        _validate_anisotropy(name, card)
     return cards
 
 
@@ -59,6 +60,40 @@ def _validate(name: str, card: dict[str, Any]) -> None:
             )
 
 
+def _validate_anisotropy(name: str, card: dict[str, Any]) -> None:
+    """An anisotropic card must say WHICH scalars it will not invent, and why.
+
+    A card that simply omits `E` reads as "not recorded yet", and the next
+    reader supplies one from memory - which for a laminate is the failure this
+    whole tier system exists to stop. So an anisotropic card carries a
+    `refuses` entry per isotropic scalar, each with a reason and a fix, and
+    `property_value` raises it rather than returning nothing.
+    """
+    if not card.get("anisotropic"):
+        return
+    refuses = card.get("refuses")
+    if not isinstance(refuses, dict) or not refuses:
+        raise DataError(
+            f"material card {name!r} is anisotropic but lists no `refuses`; say which "
+            "scalars it will not invent (E, yield, G, nu) with a reason and a fix."
+        )
+    for prop, entry in refuses.items():
+        for key in ("reason", "fix"):
+            if not isinstance(entry, dict) or not entry.get(key):
+                raise DataError(
+                    f"material card {name!r}.refuses.{prop} has no {key!r}; a refusal "
+                    "names its reason and the fix."
+                )
+        if prop in card["properties"]:
+            raise DataError(f"material card {name!r} both serves and refuses {prop!r}; pick one.")
+
+
+ANISOTROPIC_HINT = (
+    "This card is anisotropic: its stiffness and strength depend on the direction of "
+    "the load, so it serves direction-named values instead."
+)
+
+
 def names() -> list[str]:
     return sorted(_cards())
 
@@ -72,6 +107,17 @@ def resolve(name: str) -> str:
     for key, card in cards.items():
         if wanted in (alias.lower() for alias in card.get("aliases", [])):
             return key
+    family = [key for key in cards if key.startswith(f"{wanted}_")]
+    if family:
+        # "cfrp" is a family, not a material: its stiffness spans an order of
+        # magnitude across layups, so picking one silently would answer a
+        # question the caller never asked.
+        raise CommandError(
+            f"{name!r} is a family, not a material - its properties depend on the layup. "
+            f"Cards in it: {', '.join(sorted(family))}. Name one, or supply your own "
+            "laminate data.",
+            code="pk_ref_ambiguous",
+        )
     raise CommandError(
         f"no material {name!r}. Cards: {', '.join(names())} (aliases such as 'steel', "
         "'304' or '6061' are accepted).",
@@ -109,6 +155,30 @@ def mass_g(name: str, volume_mm3: float) -> float:
     return round(float(volume_mm3) * density_kg_m3(name) * _G_PER_MM3_PER_KGM3, 3)
 
 
+def property_value(name: str, prop: str) -> float:
+    """One property of one card, or a refusal that says why it does not exist.
+
+    `density` always answers - it is direction-free and it is what mass uses.
+    A scalar an anisotropic card deliberately does not carry raises with the
+    reason and the fix, so nobody fills the silence from memory.
+    """
+    full = card(name)
+    leaf = full["properties"].get(prop)
+    if leaf is not None:
+        return float(leaf["value"])
+    refused = (full.get("refuses") or {}).get(prop)
+    if refused is not None:
+        raise CommandError(
+            f"{full['name']} does not carry {prop!r}: {refused['reason']}. Fix: {refused['fix']}.",
+            code="pk_needs",
+        )
+    served = ", ".join(sorted(full["properties"]))
+    raise CommandError(
+        f"{full['name']} has no {prop!r}. It carries: {served}.",
+        code="pk_ref_unknown",
+    )
+
+
 def describe(name: str) -> dict[str, Any]:
     """The card flattened for a reader: one line per value with its honesty and source.
 
@@ -134,6 +204,10 @@ def describe(name: str) -> dict[str, Any]:
             ranges[prop] = [low, high]
             line += f", range {low:g}-{high:g}"
         notes.append(line)
+    for prop, entry in (full.get("refuses") or {}).items():
+        notes.append(f"{prop} = REFUSED: {entry['reason']}. Fix: {entry['fix']}.")
+    if full.get("anisotropic"):
+        notes.append(ANISOTROPIC_HINT)
     if full.get("notes"):
         notes.append(full["notes"])
     return {
@@ -143,6 +217,8 @@ def describe(name: str) -> dict[str, Any]:
         "values": values,
         "units": units,
         "honesty": honesty,
+        "anisotropic": bool(full.get("anisotropic")),
+        "refuses": {p: e["reason"] for p, e in (full.get("refuses") or {}).items()},
         "sources": sources,
         "ranges": ranges,
         "notes": notes,
