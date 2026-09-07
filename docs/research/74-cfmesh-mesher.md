@@ -114,9 +114,42 @@ It shows up in the answer, which is why it matters rather than being tidiness: t
 | Cd | 0.43435 | 0.31464 (−27.6 %) |
 | **Cl** | **0.07458** | **0.01194** |
 
-The Cl row decides it. The section is symmetric and the incidence is zero, so **lift must be zero**: every count of it is the mesh's asymmetry rather than the flow's. Neither mesher reaches zero at this refinement, and cfMesh leaves six times less of a quantity that should not exist. The convergence difference is the same story from the solver's side — the same case, budget and settings converged on one mesh and stalled on the other, which is why the verdict machinery hands back `comparative` for one and `indicative` for the other.
+The Cl row decides it (and P3 pushes it a further two orders — §2.8). The section is symmetric and the incidence is zero, so **lift must be zero**: every count of it is the mesh's asymmetry rather than the flow's. Neither mesher reaches zero at this refinement, and cfMesh leaves six times less of a quantity that should not exist. The convergence difference is the same story from the solver's side — the same case, budget and settings converged on one mesh and stalled on the other, which is why the verdict machinery hands back `comparative` for one and `indicative` for the other.
 
 **What is NOT claimed.** Cd has no reference here, so −27.6 % is a difference, not an improvement; this is one geometry at one refinement; and a 0.012 spurious Cl is still not zero. What A74 law 3 asked was whether the forces move at all, and they move by more than any mesh-convergence band would excuse.
+
+### 2.8 The twelve skew faces, and what cleared them (P3, 2026-09-07)
+
+§2.2's one measured defect: from a plain STL, `cartesianMesh` rounds the NACA 0012's sharp trailing edge off into skew cells and `checkMesh` **fails**. cfMesh's own answer is to be told where the edges are — `surfaceFeatureEdges` rewrites the surface as an **FMS** carrying its feature edges, and the mesher then respects them. Four variants of the same case, all else equal (prism, 0.15 m base cell, 0.0375 m body cell, 2 layers), each meshed twice under `OMP_NUM_THREADS=1`, every row repeating exactly (`74-evidence/p3-2026-09-07.log`):
+
+| surface | cells | max skewness | max aspect | `checkMesh` | mesh wall |
+|---|---:|---:|---:|---|---:|
+| plain STL | 38,352 | 5.5497206 | 4.95 | **FAILS** — 12 highly skew faces | 2.3 s |
+| **FMS, `-angle 30`** | **36,768** | **2.0995350** | 5.31 | **passes clean** | 2.5 s + 0.4 s |
+| FMS + `edgeMeshRefinement` | — | — | — | `cartesianMesh` **rc=1**, "FOAM exiting" | — |
+| FMS, `-angle 45` | 36,768 | 2.2391098 | 4.74 | passes clean | 2.6 s + 0.4 s |
+
+The feature step **costs 0.4 s and 1,584 fewer cells** and turns a failing check into a clean one. 30° is not a round number picked for looking round: 45° also passes and is measurably worse. It is also the same criterion the snappy route already uses from the other end — `surfaceFeatureExtract`'s `includedAngle 150`, and 180 − 150 = 30 — which is why the angle is a constant of the lane rather than a new caller argument (A74 law 5). Max aspect ratio goes slightly the other way (4.95 → 5.31) and is not flagged by `checkMesh` at either value; the honest reading is that the trailing-edge cells got thinner as they got straighter.
+
+**And it did something P3 was not looking for.** Solved through the lane at α = 0, 200 iterations, the same comparison §2.7 ran:
+
+| | §2.7 (plain STL) | P3 (feature edges) |
+|---|---:|---:|
+| cells | 38,352 | 36,768 |
+| Cd | 0.31464 | 0.30757 |
+| **Cl** (must be zero) | **0.01194** | **0.00004** |
+
+A trailing edge the mesher rounds off asymmetrically is lift that is not there. Against snappy's 0.07458 the feature-edge mesh leaves about **1/1900th** of a quantity a symmetric section at zero incidence cannot have. That is one geometry at one refinement and it is not a claim about Cd, which still has no reference here — but it is the clearest form of A74 law 3's question, and the answer got stronger, not weaker, when the mesh was fixed for an unrelated reason.
+
+**`edgeMeshRefinement` is not shipped.** cfMesh's own key for refining along those edges killed `cartesianMesh` with rc=1 on the very case the feature edges had just fixed, both times it was tried. The clean pass was already earned without it, so the campaign takes the pass and records the failure rather than debugging a key it does not need.
+
+**What had to be checked, because P2 had already been bitten by it once.** An FMS is a different file format, and a format that lost the patch names would mesh perfectly and then stop `simpleFoam` dead at `Cannot find patchField entry`. It does not: the FMS names its patches in a block at the top — `6 ( inlet empty outlet empty … body empty )`, the type token being cfMesh's own — and the `constant/polyMesh/boundary` that comes out carries the same six patches, all `type wall`, exactly as from the plain STL. The live test asserts that rather than trusting it, and the fake `surfaceFeatureEdges` reproduces the format so the hermetic tier can catch a regression too.
+
+**Reproducibility survives.** The FMS itself is byte-identical across invocations (`6fa708223fc52de48f5b2ea53b5c41742587873ce6cbad8c2ff08fba902a760a`, including one run through `-case` from a different working directory), and the mesh built from it repeats: `d766b634f6f0a6bb` twice under `OMP_NUM_THREADS=1`.
+
+**The lesson P2 taught, learned twice.** The first version of the table above was measured **threaded**, and its 45° row moved between runs — 2.2391098, then 2.6517441 — which would have made "30 beats 45" a claim about whichever run was luckiest. P2 had already recorded that a threaded cfMesh builds a different mesh each time and pinned the lane accordingly; the probe script had not been pinned with it. It is now (`74-evidence/p3-features.py`), and the pinned 45° figure is the original 2.2391098.
+
+**The acceptance, stated plainly.** `TOLERATED_CHECKS` was not touched. Skew is one of the two failures the lane tolerates, so a cfMesh mesh would have *run* either way — which is precisely why buying the pass with a widened tolerance would have been the wrong answer (A74 law 4). The mesh was fixed instead.
 
 ## 3. Why the design is shaped this way
 
@@ -124,7 +157,7 @@ The Cl row decides it. The section is symmetric and the incidence is zero, so **
 
 **The domain surface is built, not asked for.** The case record already carries the box (`domain: {xmin … zmax}`) and the geometry already carries the body STL. A `domain_surface()` helper writes the box as a named solid and concatenates, so the caller's arguments do not change between meshers — which is what makes `mesher="auto"` honest.
 
-**The skewness failure is the campaign's blocker, not a footnote.** The lane's own gate (`TOLERATED_CHECKS`) treats skew as one of two tolerated `checkMesh` failures, so a cfMesh mesh would run today only under that tolerance. Twelve faces at the sharp trailing edge is a specific, addressable defect — cfMesh's own answer is feature edges (`surfaceFeatureEdges` → an FMS surface, `edgeMeshRefinement`) — and P3 exists to fix it rather than to tolerate it.
+**The skewness failure was the campaign's blocker, not a footnote.** The lane's own gate (`TOLERATED_CHECKS`) treats skew as one of two tolerated `checkMesh` failures, so a cfMesh mesh would have run under that tolerance rather than on its merits. Twelve faces at the sharp trailing edge was a specific, addressable defect, and P3 fixed it with cfMesh's own answer — `surfaceFeatureEdges` → an FMS surface (§2.8) — rather than tolerating it. `feature_angle` is not a caller argument for the same reason `includedAngle` is not one on the snappy route: it is a property of the lane, not of the question being asked.
 
 **A better mesh has to show up in the answer.** The acceptance that decides this campaign is not cell counts: it is the same case solved on both meshes with the forces compared. A mesh that covers its boundary layer and does not move Cd has not earned a `mesher=` argument.
 
@@ -137,7 +170,7 @@ The Cl row decides it. The section is symmetric and the incidence is zero, so **
 
 ## 5. Open questions
 
-1. **Does the trailing-edge skewness survive feature edges?** The twelve faces are the campaign's one measured defect. If `surfaceFeatureEdges` + FMS does not clear them, the honest outcome is `mesher="cfmesh"` shipping with a documented refusal for sharp sections rather than a silent tolerance.
+1. ~~**Does the trailing-edge skewness survive feature edges?**~~ **Answered (§2.8): no, they clear it.** `surfaceFeatureEdges -angle 30` → FMS takes max skewness from 5.5497206 to 2.0995350 and `checkMesh` from FAILING to a clean pass, for 0.4 s. No refusal is needed and no tolerance was widened. `edgeMeshRefinement`, the other half of the plan, kills `cartesianMesh` and is not shipped.
 2. ~~**Does the layer coverage move the forces?**~~ **Answered (§2.7): yes.** Cd by −27.6 %, spurious lift by 6×, and the verdict from `stalled` to `converged` on the same budget. The campaign does not close with a "no"; P4's router has a measurement to route on.
 3. **Is cfMesh in the Mac's v2606 bundle too?** The same openfoam.com distribution should carry it, but that is an assumption until `wt_probe` reports it there — one line in the owner's session.
 4. **HiSA's licence**, at its own repository rather than at a search result, before it is ever named as an option in a refusal.

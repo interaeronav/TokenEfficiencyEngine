@@ -28,6 +28,15 @@ from tee.windtunnel.runner import read_json, tail_text
 # Meshing
 # ---------------------------------------------------------------------------
 
+# cfMesh's feature angle, and snappy's `includedAngle 150` are the SAME
+# criterion written from opposite ends: 180 - 150 = 30, an edge whose two
+# faces turn by more than this is a feature. Measured on the lane's own prism
+# (doc 74 section 2.8): without it `checkMesh` FAILS with twelve skew faces at
+# the trailing edge (max skew 5.5497203); with it the check passes clean (max
+# skew 2.0995350) for 0.4 s and 1,584 fewer cells. 45 degrees also passes but
+# is worse (2.2391098), so 30 is not a round number picked for looking round.
+FEATURE_ANGLE_DEG = 30.0
+
 
 def omesh_for(
     case: dict[str, Any], *, first_cell_m: float, nj: int, radius_c: float
@@ -261,12 +270,19 @@ def write_tunnel_3d_cfmesh(
     base_cell_m: float,
     body_cell_m: float,
     layers: int,
+    feature_angle: float = FEATURE_ANGLE_DEG,
 ) -> dict[str, Any]:
     """The multi-solid surface + `meshDict` for `cartesianMesh`.
 
     The snappy analogue of this writes a background box and lets surface
     levels refine it; cfMesh has no background mesh, so `maxCellSize` is the
     far-field cell and `localRefinement` on the body patch is the level.
+
+    `feature_angle` decides WHICH surface the dictionary names. Above zero it
+    names `domain.fms` - the feature-edge file `surfaceFeatureEdges` writes as
+    the first step of `mesh_sequence_3d_cfmesh`, exactly as the snappy route
+    names an `.eMesh` that `surfaceFeatureExtract` has yet to write. It does
+    not exist at the moment this dictionary is written, and that is fine.
     """
     geom = case["geometry"]
     body_name = "body"
@@ -288,10 +304,11 @@ def write_tunnel_3d_cfmesh(
     sysd = engine_dir / "system"
     sysd.mkdir(parents=True, exist_ok=True)
     foam.write_mesh_system(engine_dir)  # cartesianMesh and checkMesh want controlDict
+    named = surface.with_suffix(".fms") if feature_angle > 0 else surface
     (sysd / "meshDict").write_text(
         foam.cfmesh_dict(
             t,
-            surface_file=str(surface.relative_to(engine_dir)),
+            surface_file=str(named.relative_to(engine_dir)),
             body_cell=body_cell_m,
             layers=layers,
         )
@@ -301,11 +318,13 @@ def write_tunnel_3d_cfmesh(
     nz = max(round((t.zmax - t.zmin) / base_cell_m), 4)
     return {
         "body": body_name,
-        "surface": str(surface),
+        "surface": str(named),
+        "stl": str(surface),
         "background_cells": nx * ny * nz,
         "base_cell_m": base_cell_m,
         "body_cell_m": body_cell_m,
         "layers": layers,
+        "feature_angle": feature_angle,
     }
 
 
@@ -335,8 +354,22 @@ def mesh_sequence_3d(install: Any, engine_dir: Path, cores: int) -> list[Step]:
     return seq
 
 
-def mesh_sequence_3d_cfmesh(install: Any, engine_dir: Path, cores: int) -> list[Step]:
-    """`cartesianMesh` then `checkMesh` - two steps where snappy needs four.
+def mesh_sequence_3d_cfmesh(
+    install: Any,
+    engine_dir: Path,
+    cores: int,
+    *,
+    feature_angle: float = FEATURE_ANGLE_DEG,
+) -> list[Step]:
+    """`surfaceFeatureEdges` then `cartesianMesh` then `checkMesh`.
+
+    Three steps where snappy needs four, and the first is what earns the
+    clean `checkMesh`: cfMesh rounds a sharp trailing edge off into skew
+    cells unless it is told where the edges ARE, and `surfaceFeatureEdges`
+    tells it by rewriting the surface as an FMS that carries them. Both
+    files hold the same six solids, so the patch names are unchanged
+    (measured, doc 74 section 2.8 - the boundary that comes out is the same
+    six `type wall` patches as from the plain STL).
 
     `cores` is deliberately not spent here. cfMesh threads itself rather than
     taking MPI ranks the way snappyHexMesh does, and TEE has measured neither
@@ -344,10 +377,26 @@ def mesh_sequence_3d_cfmesh(install: Any, engine_dir: Path, cores: int) -> list[
     reply says so rather than passing a flag whose effect is unknown.
     """
     c = str(engine_dir)
-    return [
-        ("cartesianMesh", install.argv("cartesianMesh", "-case", c)),
-        ("checkMesh", install.argv("checkMesh", "-case", c)),
-    ]
+    tri = engine_dir / "constant" / "triSurface"
+    seq: list[Step] = []
+    if feature_angle > 0:
+        seq.append(
+            (
+                "surfaceFeatureEdges",
+                install.argv(
+                    "surfaceFeatureEdges",
+                    "-case",
+                    c,
+                    "-angle",
+                    repr(float(feature_angle)),
+                    str(tri / "domain.stl"),
+                    str(tri / "domain.fms"),
+                ),
+            )
+        )
+    seq.append(("cartesianMesh", install.argv("cartesianMesh", "-case", c)))
+    seq.append(("checkMesh", install.argv("checkMesh", "-case", c)))
+    return seq
 
 
 # ---------------------------------------------------------------------------

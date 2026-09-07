@@ -12,6 +12,7 @@ patches come from the STL's `solid` names.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -223,3 +224,94 @@ def test_mesher_on_a_two_d_case_refuses_rather_than_being_ignored(app):
 
 def _record(app, case_id):
     return app._wt_store.load(case_id)  # make_app attaches the store it registered
+
+
+# -- P3: the feature edges ---------------------------------------------------
+
+
+class _FakeInstall:
+    def argv(self, *a):
+        return ["/usr/bin/openfoam2606", *a]
+
+
+def test_the_sequence_extracts_feature_edges_before_meshing():
+    """`surfaceFeatureEdges` is the first step, not an afterthought: the FMS
+    it writes is the surface `cartesianMesh` is then pointed at."""
+    seq = runs.mesh_sequence_3d_cfmesh(_FakeInstall(), Path("/case"), 1)
+    assert [name for name, _ in seq] == ["surfaceFeatureEdges", "cartesianMesh", "checkMesh"]
+    argv = seq[0][1]
+    assert argv[-2:] == [
+        "/case/constant/triSurface/domain.stl",
+        "/case/constant/triSurface/domain.fms",
+    ], argv
+    # measured 2026-09-07: the real binary takes `-case` from any cwd and
+    # accepts the float form of the angle (`surfaceFeatureEdges -help` says
+    # `-angle <scalar>`); both forms were run before this argv was written
+    assert argv[argv.index("-angle") + 1] == "30.0"
+    assert argv[argv.index("-case") + 1] == "/case"
+
+
+def test_the_plain_surface_route_survives_as_the_thing_the_measurement_compared():
+    """`feature_angle=0` is what P3 measured against, and it is what a machine
+    with no `surfaceFeatureEdges` would fall back to. It is NOT reachable from
+    the tool - see the law-5 test below - and it is what FAILS `checkMesh`."""
+    seq = runs.mesh_sequence_3d_cfmesh(_FakeInstall(), Path("/case"), 1, feature_angle=0)
+    assert [name for name, _ in seq] == ["cartesianMesh", "checkMesh"]
+
+
+def test_the_dict_names_the_fms_the_feature_step_has_yet_to_write(app, body_case):
+    """The dictionary names a file that does not exist yet, exactly as the
+    snappy route names an `.eMesh` `surfaceFeatureExtract` has yet to write."""
+    rec = _record(app, body_case)
+    edir = Path(rec["engine_dir"])
+    prep = runs.write_tunnel_3d_cfmesh(rec, edir, base_cell_m=0.15, body_cell_m=0.0375, layers=2)
+    text = (edir / "system" / "meshDict").read_text()
+    assert 'surfaceFile     "constant/triSurface/domain.fms";' in text
+    assert not (edir / "constant" / "triSurface" / "domain.fms").exists()
+    assert (edir / "constant" / "triSurface" / "domain.stl").is_file(), "the STL feeds the FMS"
+    assert prep["feature_angle"] == 30.0 and prep["surface"].endswith("domain.fms")
+    assert prep["stl"].endswith("domain.stl")
+
+    plain = runs.write_tunnel_3d_cfmesh(
+        rec, edir, base_cell_m=0.15, body_cell_m=0.0375, layers=2, feature_angle=0
+    )
+    assert (
+        'surfaceFile     "constant/triSurface/domain.stl";'
+        in (edir / "system" / "meshDict").read_text()
+    )
+    assert plain["surface"] == plain["stl"]
+
+
+def test_the_feature_route_carries_every_patch_name_through_the_conversion(app, body_case):
+    """The FMS is a different file format, and a format that lost the patch
+    names would mesh perfectly and then stop `simpleFoam` dead at `Cannot find
+    patchField entry` - which is A74 P2's defect 1, in a new place."""
+    started = app.registry.call(
+        "wt_mesh", {"case_id": body_case, "mesher": "cfmesh", "base_cell_m": 0.15, "layers": 2}
+    )
+    mesh = wait_job(app, started["job"], timeout_s=120)["result"]
+    assert mesh["feature_angle"] == 30.0
+    edir = Path(_record(app, body_case)["engine_dir"])
+    assert (edir / "log.surfaceFeatureEdges").is_file(), "the feature step did not run"
+    fms = edir / "constant" / "triSurface" / "domain.fms"
+    assert fms.is_file() and fms.stat().st_size > 0
+    named = [ln.split()[0] for ln in fms.read_text().split(")", 1)[0].splitlines() if " " in ln]
+    assert named == ["inlet", "outlet", "sides", "top", "ground", "body"], named
+    boundary = (edir / "constant" / "polyMesh" / "boundary").read_text()
+    for patch in named:
+        assert patch in boundary, f"{patch} survived the FMS but not the mesh"
+
+
+def test_the_feature_angle_is_not_a_caller_argument(app):
+    """A74 law 5: the caller's arguments do not change between meshers, which
+    is what makes `auto` honest. snappy's own `includedAngle 150` is the same
+    criterion from the other end (180 - 150 = 30) and is not an argument
+    either - so this one is a constant the reply reports, not a knob."""
+    schema = app.registry.describe("wt_mesh")["schema"]["properties"]
+    assert "feature_angle" not in schema
+    assert "mesher" in schema, "the one argument the meshers do differ on"
+    snappy_angle = re.search(
+        r"includedAngle\s+([0-9.]+);", foam.surface_feature_extract_dict("body")
+    )
+    assert snappy_angle, "the snappy route's own feature angle moved"
+    assert 180.0 - float(snappy_angle.group(1)) == runs.FEATURE_ANGLE_DEG

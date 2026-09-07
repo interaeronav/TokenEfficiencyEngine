@@ -10,6 +10,9 @@ probes, and the log is their output transcribed from runs TEE made.
 | `snappy-arm.py` | builds the prism through `airfoil.extrude_stl`, creates the case through `wt_case`, meshes it through `wt_mesh` (the lane exactly as it ships), and reads the layer table out of `log.snappyHexMesh` |
 | `cfmesh-arm.py` | writes the domain box and the body as ONE multi-solid STL, writes a `meshDict`, and runs `cartesianMesh` then `checkMesh` through the `openfoam2606` wrapper |
 | `p0-2026-09-07.log` | both arms' numbers, and the two facts about the binary: it needs the wrapper, and it announces itself as `(cfmesh)` |
+| `p3-features.py` | P3: the same case meshed from the plain STL, from the FMS `surfaceFeatureEdges` writes at 30 and at 45 degrees, and with `edgeMeshRefinement` added - each twice, single-threaded |
+| `p3-determinism.py` | P3: the FMS route meshed twice under `OMP_NUM_THREADS=1`, hashing `constant/polyMesh` each time |
+| `p3-2026-09-07.log` | both P3 scripts' output: the failing check, the clean one, the key that kills `cartesianMesh`, and the hash repeating |
 
 The headline the campaign exists for is in the layer table: snappy asked for two
 layers on the body and got **1.32 of them at 41.6 % of the requested

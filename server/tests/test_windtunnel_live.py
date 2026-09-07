@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import time
 from pathlib import Path
 
@@ -23,9 +24,9 @@ from fixtures_windtunnel import wait_job
 from tee.app import TeeApp
 from tee.kernel.adapter import FakeAdapter
 from tee.kernel.errors import TeeError
-from tee.windtunnel import airfoil, engines
+from tee.windtunnel import airfoil, engines, foam, runs
 from tee.windtunnel.runner import pid_alive
-from tee.windtunnel.tools import register_windtunnel_tools
+from tee.windtunnel.tools import TOLERATED_CHECKS, register_windtunnel_tools
 
 # the repo's 60 s per-test timeout is for hermetic tests; a real SU2 Euler run
 # is ~90 s and `wt_verify all` about two minutes (measured 2026-09-06)
@@ -542,12 +543,18 @@ def test_a_state_over_an_su2_volume_file_writes_and_loads(app, tmp_path):
 # and does not move the forces has not earned a `mesher=` argument. Measured
 # 2026-09-07 on the prism at alpha 0, 200 iterations, same domain and layers:
 #
-#   snappy  46,160 cells  11.2 s  STALLED (2.03 orders)  Cl 0.0746  Cd 0.4343
-#   cfmesh  38,352 cells   5.1 s  converged (5.01)       Cl 0.0013  Cd 0.3146
+#   snappy                 46,160 cells  11.1 s  STALLED (2.03)  Cl 0.07458  Cd 0.4343
+#   cfmesh, plain STL      38,352 cells   3.7 s  converged       Cl 0.01194  Cd 0.3146
+#   cfmesh, feature edges  36,768 cells   4.1 s  converged       Cl 0.00004  Cd 0.3076
 #
 # The Cl column is the one that decides it. The section is symmetric and the
 # incidence is zero, so lift MUST be zero: 0.0746 is the mesh talking. That is
 # the invariant asserted here - a physical truth rather than a golden number.
+#
+# The third row is what ships, and it was a P3 surprise: the feature edges were
+# added to clear twelve skew faces (they did), and they took the spurious lift
+# down with them by another factor of ~300. A trailing edge the mesher rounds
+# off asymmetrically is lift that is not there.
 
 
 @pytest.fixture(scope="module")
@@ -597,10 +604,12 @@ def test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh(app, pris
     """The acceptance, and the honest version of it.
 
     A NACA 0012 at alpha 0 must produce ZERO lift, so any Cl at all is the
-    mesh's asymmetry rather than the flow's. Neither mesher reaches zero at
-    this refinement: measured 2026-09-07, cfMesh 0.0119 against snappy 0.0746 -
-    six times less of a quantity that should not exist. That ratio is the
-    claim; the absolute band below is only a guard against nonsense.
+    mesh's asymmetry rather than the flow's. Measured 2026-09-07 on the same
+    case: snappy 0.07458, cfMesh from a plain STL 0.01194, and cfMesh from the
+    feature-edge FMS this lane now writes **0.00004** - which is zero to every
+    decimal a 200-iteration RANS run can defend. The ratio against snappy is
+    the claim; the absolute band below is a guard against nonsense, set two
+    orders above what was measured so it cannot start reporting the weather.
 
     The scatter deserves its own sentence. Before OMP_NUM_THREADS=1 became the
     default, three runs of this case gave 0.0013, 0.0093 and 0.0119, because a
@@ -610,7 +619,7 @@ def test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh(app, pris
     """
     _need("openfoam")
     cf = getattr(app, "_a74_cfmesh", None) or _mesh_and_solve(app, prism_stl, "cfmesh")
-    assert abs(cf["result"]["cl"]) < 0.02, "spurious lift beyond anything measured here"
+    assert abs(cf["result"]["cl"]) < 0.005, "spurious lift beyond anything measured here"
     assert cf["result"]["verdict"]["state"] == "converged"
     assert cf["result"]["uncertainty"]["trust"] == "comparative"
 
@@ -652,3 +661,71 @@ def test_cfmesh_meshes_the_same_case_to_the_same_mesh_by_default(app, prism_stl)
         assert status["result"]["reproducible"] is True
         hashes.append(status["result"]["mesh_hash"])
     assert hashes[0] == hashes[1], f"cfMesh answered differently twice: {hashes}"
+
+
+def _mesh_without_features(app, stl) -> dict:
+    """A74 P3's other arm: the same case meshed from the plain STL.
+
+    `feature_angle` is deliberately not a caller argument (A74 law 5), so this
+    reaches past the tool to the writer - which is the only honest way to
+    measure what the feature step BUYS. It runs the real binaries by the same
+    argv the lane would, single-threaded, and returns `checkMesh`'s digest.
+    """
+    cid = call(app, "wt_case", action="create", stl=str(stl), V_mps=20, aoa_deg=0)["case_id"]
+    rec = app._wt_store.load(cid)
+    edir = Path(rec["engine_dir"])
+    runs.write_tunnel_3d_cfmesh(
+        rec, edir, base_cell_m=0.15, body_cell_m=0.0375, layers=2, feature_angle=0
+    )
+    install = engines.find_openfoam({}, probe_version=False)
+    for name, argv in runs.mesh_sequence_3d_cfmesh(install, edir, 1, feature_angle=0):
+        res = subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+            cwd=str(edir),
+            env={**os.environ, "OMP_NUM_THREADS": "1"},
+        )
+        (edir / f"log.{name}").write_text(res.stdout + res.stderr)
+        assert res.returncode == 0, f"{name} rc={res.returncode}: {res.stderr[-300:]}"
+    return foam.parse_checkmesh((edir / "log.checkMesh").read_text())
+
+
+def test_feature_edges_earn_the_clean_checkmesh_the_plain_surface_cannot(app, prism_stl):
+    """A74 P3's acceptance: `checkMesh` passes CLEAN, without widening anything.
+
+    cfMesh rounds a sharp trailing edge off into skew cells unless it is told
+    where the edges are. Measured 2026-09-07 on this prism: from the plain STL,
+    max skewness 5.5497203 with twelve faces flagged and `checkMesh` FAILING;
+    from the FMS `surfaceFeatureEdges -angle 30` writes, 2.0995350 and a clean
+    pass, for 0.4 s and 1,584 fewer cells. 45 degrees also passes and is worse
+    (2.2391098). `edgeMeshRefinement` - cfMesh's own key for refining along
+    those edges - was tried and killed `cartesianMesh` with rc=1, so it is not
+    shipped (doc 74 section 2.8).
+
+    Both halves are asserted because skew is one of `TOLERATED_CHECKS`: a mesh
+    that FAILS this check would still run under that tolerance, which is
+    exactly what A74 law 4 forbids buying the pass with.
+    """
+    _need("openfoam")
+    cf = getattr(app, "_a74_cfmesh", None) or _mesh_and_solve(app, prism_stl, "cfmesh")
+    good = cf["mesh"]
+    assert good["feature_angle"] == 30.0
+    assert good.get("failed") in ([], None), f"the feature route did not pass clean: {good}"
+    assert good.get("failed_checks", 0) == 0, good
+    assert good["ok"] is True
+
+    plain = _mesh_without_features(app, prism_stl)
+    print(
+        f"\nA74 P3: skew {good['max_skew']} clean vs {plain['max_skew']} with "
+        f"{len(plain.get('failed') or [])} failed; cells {good['cells']} vs {plain['cells']}"
+    )
+    assert plain.get("failed"), (
+        "the plain surface passed checkMesh: cfMesh's own behaviour has changed "
+        "and the feature step is no longer what earns the clean pass"
+    )
+    assert float(good["max_skew"]) < float(plain["max_skew"])
+    assert TOLERATED_CHECKS == ("skew", "upper triangular"), (
+        "A74 law 4: the pass is earned by fixing the mesh, never by widening this"
+    )

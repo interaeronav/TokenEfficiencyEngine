@@ -1415,6 +1415,12 @@ class _Lane:
                 if mesher == "cfmesh":
                     mesh["body_cell_m"] = prep["body_cell_m"]
                     mesh["surface"] = prep["surface"]
+                    # the feature angle is NOT a caller argument (A74 law 5):
+                    # snappy's own `includedAngle 150` is the same criterion
+                    # and is not one either. It is reported because it changes
+                    # the mesh, and a number that changes the mesh belongs in
+                    # the row the mesh hash sits in.
+                    mesh["feature_angle"] = prep["feature_angle"]
                     mesh["threads"] = threads
                     mesh["reproducible"] = threads == 1
                     mesh["cores_note"] = (
