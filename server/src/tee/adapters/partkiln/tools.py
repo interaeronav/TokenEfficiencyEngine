@@ -1,4 +1,4 @@
-"""The fourteen `pk_*` tools: mechanical CAD capability a batch is the wrong shape for.
+"""The fifteen `pk_*` tools: mechanical CAD capability a batch is the wrong shape for.
 
 A66 P4 / D9. Modelling IS `tee_batch` - sketch, extrude, hole, fillet, mate,
 drawing and export are wire ops on the `PartkilnAdapter`, so the whole
@@ -6,9 +6,10 @@ Inventor-class loop arrives through the surface TEE already has. What is left
 over is everything that is not a scene mutation: health, the vocabulary
 itself, a pre-flight, selector and tree reads, measurements, spec checks, the
 standards and material tables, the BOM, and the four things that write files
-(drawing, export, flat pattern) or read one (import). Those are these fourteen,
+(drawing, export, flat pattern) or read one (import). Those are these fifteen,
 and they live behind progressive disclosure like every other long-tail tool,
-so the always-loaded surface stays at 17 tools / 2,033 tok.
+so the always-loaded surface stays at 17 tools (2,129 wire tok, pinned by
+test_server_lint.py).
 
 Three rules hold this file's shape:
 
@@ -21,7 +22,7 @@ Three rules hold this file's shape:
   interpreter: the production route is the sidecar venv that survives the
   extension wipe, and only the adapter knows which kernel it holds.
 * **`capability` is left `None`** so `trust.capability_for` resolves it from
-  the table at registration - all fourteen are tabled individually in
+  the table at registration - all fifteen are tabled individually in
   `kernel/trust.py` (no `pk_` family row: three of them write files and two
   mutate the document, and a prefix default would hand a writer the open read
   tier - the A45 `cad_`/`trade_` lesson).
@@ -98,7 +99,7 @@ def _need(app: Any = None) -> None:
 
 
 def register_partkiln_tools(app: Any) -> None:
-    """Register the fourteen `pk_*` virtual tools (the surface stays 17).
+    """Register the fifteen `pk_*` virtual tools (the surface stays 17).
 
     Metadata only: no partkiln import happens here, so a server with no
     kernel boots at the same speed and every tool refuses with the install
@@ -159,6 +160,12 @@ def register_partkiln_tools(app: Any) -> None:
 
     def materials(args: dict[str, Any]) -> dict[str, Any]:
         return _call("materials", args)
+
+    def tyre(args: dict[str, Any]) -> dict[str, Any]:
+        """The structural half of `pk_materials`' refusal of "tyre". Pure
+        arithmetic over the caller's own rated data - no table ships, because
+        the tyre dimension and load tables are T&RA-licensed."""
+        return _call("tyre", args)
 
     def bom(args: dict[str, Any]) -> dict[str, Any]:
         return _call("bom", args)
@@ -600,6 +607,102 @@ def register_partkiln_tools(app: Any) -> None:
                 "cad",
             ],
             examples=[{"name": "steel_s275"}],
+        ),
+        VirtualTool(
+            name="pk_tyre",
+            description=(
+                "Tyre STRUCTURE from YOUR rated data: deflection, loaded radius, ground "
+                "clearance, vertical rate in N/mm, contact patch. Ships no tyre table.\n\n"
+                "A tyre is a structure, not a material, which is why `pk_materials` refuses "
+                "one - this is the other half of that refusal. The dimension and load tables "
+                "in an aircraft tyre data book are reprinted with permission from The Tire "
+                "and Rim Association, so this lane implements the RELATIONSHIPS and quotes "
+                "the DEFINITIONS and ships no table, exactly as ISO 286 is shipped as "
+                "formulae. You pass the row you read; it computes the structure. Nothing "
+                "defaults the percent deflection - the data book states the formula in terms "
+                "of it and never prints its value - so pass the tabled "
+                "`static_loaded_radius` and it is recovered by inverting the book's own "
+                "formula. Grip, wear, rolling resistance and running temperature refuse by "
+                "name with the fix. Bare numbers are mm/N/MPa; pass units='in' for a data "
+                "book row, or suffix any value ('13.75in', '3450lbf', '135psi')."
+            ),
+            schema={
+                "type": "object",
+                "properties": {
+                    "what": {
+                        "type": "string",
+                        "description": "help - the definitions, relationships and refusals",
+                    },
+                    "units": {
+                        "type": "string",
+                        "description": "mm (default) or in - the system bare numbers are in",
+                    },
+                    "outside_diameter": {"description": "number, or a string with a unit"},
+                    "outside_diameter_min": {"description": "number, or a string with a unit"},
+                    "rim_diameter": {"description": "specified rim (ledge) diameter"},
+                    "flange_height": {"description": "flange height h; D_F = D + 2h"},
+                    "flange_diameter": {"description": "number, or a string with a unit"},
+                    "static_loaded_radius": {
+                        "description": "the tabled SLR - preferred over percent_deflection"
+                    },
+                    "percent_deflection": {"type": "number"},
+                    "section_width": {"description": "number, or a string with a unit"},
+                    "flat_tire_radius": {"description": "number, or a string with a unit"},
+                    "rated_load": {"description": "number, or a string with a unit"},
+                    "rated_inflation": {"description": "number, or a string with a unit"},
+                    "inflation": {"description": "number, or a string with a unit"},
+                    "load": {"description": "number, or a string with a unit"},
+                    "service": {
+                        "type": "string",
+                        "description": "aircraft (default) or helicopter",
+                    },
+                    "refuses": {
+                        "type": "string",
+                        "description": "ask why a quantity is refused, e.g. grip",
+                    },
+                },
+            },
+            handler=tyre,
+            tags=[
+                "partkiln",
+                "tyre",
+                "tyres",
+                "tire",
+                "tires",
+                "wheel",
+                "wheels",
+                "landing",
+                "gear",
+                "undercarriage",
+                "aircraft",
+                "aviation",
+                "deflection",
+                "inflation",
+                "pressure",
+                "footprint",
+                "patch",
+                "contact",
+                "stiffness",
+                "rate",
+                "spring",
+                "clearance",
+                "radius",
+                "rubber",
+                "grip",
+                "cad",
+            ],
+            examples=[
+                {
+                    "units": "in",
+                    "outside_diameter": 49,
+                    "rim_diameter": 20,
+                    "flange_height": 1.3,
+                    "static_loaded_radius": 20.5,
+                    "rated_load": 46000,
+                    "rated_inflation": 195,
+                },
+                {"what": "help"},
+            ],
         ),
         VirtualTool(
             name="pk_bom",

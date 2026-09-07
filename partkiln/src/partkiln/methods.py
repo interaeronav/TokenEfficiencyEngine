@@ -1,10 +1,10 @@
-"""The kernel methods behind the fourteen `pk_*` tools (A66 D9).
+"""The kernel methods behind the fifteen `pk_*` tools (A66 D9).
 
 `client.py` opens ONE generic door - `call(method, params)` over
 `KERNEL_METHODS` - and this module fills it: `probe verbs lint query measure
-check standards materials bom export import script drawing flat`, each a
+check standards materials tyre bom export import script drawing flat`, each a
 function over the live `Document` that returns plain JSON-able scalars. The
-adapter's fourteen `VirtualTool`s are thin wrappers over these names, and the
+adapter's fifteen `VirtualTool`s are thin wrappers over these names, and the
 worker dispatches them through the same table, so a method added here is on
 the wire with no adapter and no worker change.
 
@@ -1465,6 +1465,27 @@ def m_materials(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
         ],
         "note": "pass name: <key> for the full card with sources.",
     }
+
+
+# --------------------------------------------------------------------------- tyre
+
+
+@register_method("tyre")
+def m_tyre(kernel: LocalKernel, params: dict[str, Any]) -> dict[str, Any]:
+    """Tyre STRUCTURE from the caller's rated data - the other half of the
+    refusal `materials` gives to "tyre", which is a structure and not a
+    material. Pure arithmetic over numbers the caller read out of their own
+    data book: this lane ships no tyre table, because the dimension and load
+    tables are T&RA-licensed (the ISO 286 precedent). Nothing here mutates."""
+    from partkiln import tyre
+
+    what = str(params.get("what") or "").strip().lower()
+    if what in ("help", "list", "definitions") or params.get("list"):
+        return tyre.describe()
+    refused = params.get("refuses") or params.get("quantity")
+    if refused:
+        tyre.refuse(str(refused))  # always raises: names the reason and the fix
+    return tyre.analyse(params)
 
 
 # --------------------------------------------------------------------------- bom

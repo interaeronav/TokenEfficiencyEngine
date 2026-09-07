@@ -439,6 +439,7 @@ METHODS_WITHOUT_A_CONTROL: tuple[str, ...] = (
     "restore",
     "snapshot",
     "standards",
+    "tyre",
     "verbs",
 )
 

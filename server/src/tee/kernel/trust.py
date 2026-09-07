@@ -374,6 +374,7 @@ _EXPLICIT: dict[str, str] = {
     "pk_check": "read-compute",
     "pk_standards": "read-compute",
     "pk_materials": "read-compute",  # pure lookup; assignment is a batch `set`
+    "pk_tyre": "read-compute",  # arithmetic over the caller's own rated data; ships no table
     "pk_bom": "read-scene",
     "pk_drawing": "write-artifacts",
     "pk_export": "write-artifacts",

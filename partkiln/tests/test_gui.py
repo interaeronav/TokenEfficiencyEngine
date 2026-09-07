@@ -104,12 +104,14 @@ def test_every_verb_kind_and_method_is_either_covered_or_listed() -> None:
 
 
 def test_the_coverage_numbers_are_the_ones_the_guide_prints() -> None:
-    """Measured 2026-09-04: 4 of 4 verbs, 10 of 35 create kinds, 12 of 25
-    kernel methods. Pinned so a new kind moves the number, not the claim."""
+    """The numbers docs/partkiln-gui.md prints: 4 of 4 verbs, 10 of 37 create
+    kinds, 12 of 26 kernel methods. First measured 2026-09-04 at 35 kinds and
+    25 methods; `coil` and `thread` made it 37 that day and `tyre` made it 26.
+    Pinned so a new kind moves the number, not the claim."""
     coverage = actions.coverage()
     assert coverage["verbs"] == (4, 4)
     assert coverage["kinds"] == (10, 37)
-    assert coverage["methods"] == (12, 25)
+    assert coverage["methods"] == (12, 26)
 
 
 # -- the controls, without Qt ---------------------------------------------------
