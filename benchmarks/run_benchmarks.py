@@ -736,6 +736,108 @@ CODE_CORPUS = [
 ]
 
 
+def run_flightdyn_scenario() -> dict | None:
+    """A75's row, as a SCENARIO rather than prose.
+
+    A77 P2: this row was measured by hand in a shell and written into
+    RESULTS.md, which is precisely the thing this campaign is about. Now it
+    re-runs like every other.
+    """
+    try:
+        import tempfile
+
+        from tee.app import TeeApp
+        from tee.cli import _attach_flightdyn
+        from tee.kernel.adapter import FakeAdapter
+        from tee.kernel.budget import estimate_tokens
+    except ImportError as exc:
+        print(f"flightdyn scenario skipped ({exc})")
+        return None
+
+    root = tempfile.mkdtemp(prefix="tee-bench-fd-")
+    app = TeeApp({"fake": FakeAdapter()}, project_root=root)
+    _attach_flightdyn(app, root)
+    polar = {
+        "alpha_deg": [-6.0, -3.0, 0.0, 3.0, 6.0, 9.0, 12.0, 15.0],
+        "cl": [-0.38, -0.06, 0.26, 0.58, 0.89, 1.18, 1.40, 1.32],
+        "cd": [0.0181, 0.0132, 0.0121, 0.0148, 0.0213, 0.0316, 0.0470, 0.0721],
+        "cm_alpha": -0.55, "cm_q": -12.0, "cm_de": -1.1, "source": "W1 polar",
+    }
+    calls = [
+        ("fd_probe", {}),
+        ("fd_aircraft", {"action": "create", "aircraft_id": "w1", "polar": polar,
+                         "mass": {"mass_kg": 850.0, "ixx": 1290.0, "iyy": 1820.0, "izz": 2670.0},
+                         "geometry": {"wing_area_m2": 16.2, "span_m": 10.9, "chord_m": 1.49}}),
+        ("fd_trim", {"aircraft_id": "w1", "condition": {"altitude_ft": 5000.0, "kcas": 90.0}}),
+        ("fd_modes", {"aircraft_id": "w1"}),
+        ("fd_fly", {"aircraft_id": "w1", "seconds": 60.0}),
+    ]
+    per, total = {}, 0
+    for name, args in calls:
+        try:
+            out = app.registry.call(name, args)
+        except Exception as exc:  # jsbsim absent: the row is HELD, not faked
+            print(f"flightdyn scenario incomplete at {name} ({exc})")
+            app.shutdown()
+            return None
+        tok = estimate_tokens(out)
+        per[name] = tok
+        total += tok
+    app.shutdown()
+    row = {"tee_tokens": total, "calls": len(calls), "per_call": per}
+    print(f"flightdyn: {total} tok over {len(calls)} calls {per}")
+    return row
+
+
+def run_engines_scenario() -> dict | None:
+    """A76's row, as a SCENARIO. Reads only; starts and serves nothing."""
+    try:
+        import socket
+        import tempfile
+
+        from tee.app import TeeApp
+        from tee.cli import _attach_engines
+        from tee.kernel.adapter import FakeAdapter
+        from tee.kernel.budget import estimate_tokens
+    except ImportError as exc:
+        print(f"engines scenario skipped ({exc})")
+        return None
+
+    root = tempfile.mkdtemp(prefix="tee-bench-eng-")
+    app = TeeApp({"fake": FakeAdapter()}, project_root=root)
+    _attach_engines(app, root)
+
+    # A77 P3 caught this row moving 311 -> 364 between runs: eng_scan probes
+    # whatever is listening on the machine, so the "hermetic" scenario was
+    # measuring the developer's stack. Pin it to a port nothing can answer, so
+    # the number is the same on any machine. What eng_scan costs WITH endpoints
+    # answering is a different figure and RESULTS.md states it separately.
+    from tee.kernel import local_llm, local_vlm
+
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        closed = f"http://127.0.0.1:{probe.getsockname()[1]}/v1"
+    saved = (local_llm.DEFAULT_URL, getattr(local_vlm, "DEFAULT_URL", None))
+    local_llm.DEFAULT_URL = closed
+    if saved[1] is not None:
+        local_vlm.DEFAULT_URL = closed
+    try:
+        per, total = {}, 0
+        for name in ("eng_scan", "eng_reconcile"):
+            out = app.registry.call(name, {})
+            tok = estimate_tokens(out)
+            per[name] = tok
+            total += tok
+    finally:
+        local_llm.DEFAULT_URL = saved[0]
+        if saved[1] is not None:
+            local_vlm.DEFAULT_URL = saved[1]
+    app.shutdown()
+    row = {"tee_tokens": total, "calls": 2, "per_call": per}
+    print(f"engines: {total} tok over 2 calls {per}")
+    return row
+
+
 def run_surface_scenario() -> dict | None:
     """Always-loaded MCP surface, measured as the wire actually carries it,
     plus what a flat one-tool-per-capability server would have cost."""
@@ -743,16 +845,10 @@ def run_surface_scenario() -> dict | None:
         import anyio
         from mcp.client import Client
 
+        from tee import cli
         from tee.app import TeeApp
-        from tee.assets.tools import register_asset_tools
-        from tee.design.tools import register_design_tools
-        from tee.extract.tools import register_extract_tools
-        from tee.kb.tools import register_kb_tools
         from tee.kernel.adapter import FakeAdapter
-        from tee.physical.tools import register_physical_tools
-        from tee.pins.tools import register_pin_tools
         from tee.server import build_server
-        from tee.uefn.tools import register_uefn_tools
     except ImportError as exc:
         print(f"surface scenario skipped ({exc})")
         return None
@@ -776,13 +872,11 @@ def run_surface_scenario() -> dict | None:
     bare.shutdown()
 
     app = TeeApp({"fake": FakeAdapter()}, project_root=root)
-    store, _ = register_extract_tools(app, root)
-    register_asset_tools(app, root, extract_store=store)
-    register_design_tools(app, root)
-    register_physical_tools(app, root)
-    register_pin_tools(app, root)
-    register_uefn_tools(app, root)
-    register_kb_tools(app, root, root=str(REPO / "knowledge-base"))
+    # A77 P1: through cli.attach_all, the ONE list, so this measures the server
+    # that ships. Hand-rolled here, it had fallen seven lanes behind and the
+    # saving below was computed over 141 virtual tools where a real server
+    # serves 197.
+    cli.attach_all(app, root)
     tools = listed(app)
     full_tokens = estimate_tokens([t.model_dump(**wire_kw) for t in tools])
     dump_tokens = estimate_tokens([t.model_dump(mode="json") for t in tools])
@@ -2717,6 +2811,8 @@ def main() -> None:
     physical_row = _timed(run_physical_scenario)
     unreal_row = _safe(run_unreal_scenario)
     surface_row = _safe(run_surface_scenario)
+    flightdyn_row = _safe(run_flightdyn_scenario)
+    engines_row = _safe(run_engines_scenario)
     jurisdiction_row = _safe(run_jurisdiction_scenario)
     kb_row = _safe(run_kb_scenario)
     web_row = _safe(run_web_scenario)
@@ -2739,7 +2835,8 @@ def main() -> None:
                   partkiln_followup_row=partkiln_followup_row,
                   routing_row=routing_row, fusion_row=fusion_row,
                   fusion_v2_row=fusion_v2_row,
-                  windtunnel_row=windtunnel_row)
+                  windtunnel_row=windtunnel_row,
+                  flightdyn_row=flightdyn_row, engines_row=engines_row)
     _stage("total", t0)
 
 
@@ -2810,7 +2907,8 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
                   seamkiln_followup_row=None, pointcloud_row=None,
                   partkiln_row=None, partkiln_followup_row=None,
                   routing_row=None, fusion_row=None, fusion_v2_row=None,
-                  windtunnel_row=None) -> None:
+                  windtunnel_row=None, flightdyn_row=None,
+                  engines_row=None) -> None:
     out = Path(__file__).parent / "RESULTS.md"
     lines = [
         "# Token benchmark results",
@@ -2949,6 +3047,16 @@ def write_results(rows, extract_row=None, asset_row=None, physical_row=None,
         ]
     else:
         lines += _carry_forward("## Unreal: level population + Blueprint function")
+    # A77 P2: these two rows were hand-measured prose until this campaign.
+    # A held row says it held rather than carrying a stale number forward.
+    for label, row in (("Flight dynamics", flightdyn_row), ("Engine lane", engines_row)):
+        if row is None:
+            lines += [f"_{label}: scenario HELD this run - its engine is not "
+                      f"installed here; the row above keeps its last measured value._", ""]
+        else:
+            lines += [f"_{label}: re-measured this run at {row['tee_tokens']} tokens "
+                      f"over {row['calls']} calls._", ""]
+
     if surface_row is not None:
         r = surface_row
         payoff = r["flat_server_tokens"] // max(1, r["reach_one_tool"])

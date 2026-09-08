@@ -1,0 +1,45 @@
+A73 Mac check - 2026-09-07T14:45:40Z
+macOS 26.6.2 arm64   repo /Users/john/TokenEfficiencyEngine
+branch claude/wind-tunnel-aerodynamic-integration-hcsa7u   head 875bbd6
+
+=== A. what the lane resolves ===
+pvpython     /Applications/ParaView-6.1.1.app/Contents/bin/pvpython   via default   version 6.1.1
+paraview app /Applications/ParaView-6.1.1.app/Contents/MacOS/paraview   via beside pvpython   version (not probed: asking ParaView anything without a display aborts it)
+bundle: /Applications/ParaView-6.1.1.app
+
+=== B. the signed bundle, before and after a state is written ===
+-- before
+   .pyc inside the bundle: 0
+   codesign rc=0
+/Applications/ParaView-6.1.1.app: accepted
+source=Notarized Developer ID
+mesh: {'ok': True, 'cells': 16000, 'kind': 'omesh_polymesh'}
+run: done 6.0 s
+wt_open view=pressure: {"kind": "full", "bytes": 233972, "run_id": "run_001", "launched": false} 1.9 s
+   command: /Applications/ParaView-6.1.1.app/Contents/MacOS/paraview --state=/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/tee-a73-2026-09-07/project/.tee/windtunnel/cases/wt_4d084dcd5b/runs/run_001/views/pressure.pvsm
+wt_open view=mesh: {"kind": "full", "bytes": 220104, "run_id": "run_001", "launched": false} 1.9 s
+   command: /Applications/ParaView-6.1.1.app/Contents/MacOS/paraview --state=/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/tee-a73-2026-09-07/project/.tee/windtunnel/cases/wt_4d084dcd5b/runs/run_001/views/mesh.pvsm
+-- after
+   .pyc inside the bundle: 0
+   codesign rc=0
+   (0 .pyc and rc 0 is the pass; PYTHONDONTWRITEBYTECODE=1 in run_script is what does it)
+   to repair an already-damaged install: find <app> -name __pycache__ -type d -exec rm -rf {} +
+
+=== C. the state, loaded back in a fresh pvpython (the two P2 defects) ===
+pressure: {"reader": "OpenFOAMReader", "cells": 16000, "timesteps": [197.0], "scene_time": 197.0, "view_time": 197.0, "colour": ["CELLS", "p"], "representation": "Surface"}
+   time: OPENS AT THE SOLUTION, t=197.0 (defect 1 fixed on this version)
+mesh: {"reader": "OpenFOAMReader", "cells": 16000, "timesteps": [197.0], "scene_time": 197.0, "view_time": 197.0, "colour": ["CELLS", ""], "representation": "Surface With Edges"}
+   time: OPENS AT THE SOLUTION, t=197.0 (defect 1 fixed on this version)
+(a mesh-view state that loads at all is defect 2 fixed on this version:
+ ColorBy(d, None) raised 'invalid association string NONE' on 5.11.2)
+
+=== D. does the GUI take --state on macOS? (doc 73 open question 2) ===
+skipped (OPEN_GUI=1 to run it - it opens a window)
+what wt_open would run:  /Applications/ParaView-6.1.1.app/Contents/MacOS/paraview --state=/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/tee-a73-2026-09-07/project/.tee/windtunnel/cases/wt_4d084dcd5b/runs/run_001/views/pressure.pvsm
+
+=== E. what this run does not settle ===
+Doc 73 open question 1 - does ParaView 6.1 accept a 5.11-WRITTEN state?
+  Not answerable here: this machine writes with its own pvpython, and
+  section A prints whether that pvpython and the GUI come from one
+  install. If they do, the skew only arises when a state is carried
+  between machines, which nothing in the lane does today.

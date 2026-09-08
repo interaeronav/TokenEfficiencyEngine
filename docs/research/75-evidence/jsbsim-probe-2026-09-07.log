@@ -1,0 +1,46 @@
+
+=== 1. the wheel ===
+version        1.3.1
+python         3.11.15 on darwin
+cold import    0.023 s  (fresh interpreter)
+data root      /private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/539c5736-725e-409b-afa1-2f8ef9a153b4/scratchpad/jsb-venv/lib/python3.11/site-packages/jsbsim
+root contents  ['GeographicLib-LICENSE.txt', 'LICENSE.txt', '__init__.py', '__init__.pyi', '__pycache__', '_jsbsim.so', 'aircraft', 'engine', 'libexpat-LICENSE.txt', 'py.typed', 'script.py', 'scripts', 'systems']
+footprint      8.8 MB  (60 aircraft bundled)
+aircraft[:12]  ['737', '787-8', 'A320', 'A4', 'B17', 'B747', 'Boeing314', 'C130', 'Camel', 'Concorde', 'DHC6', 'F450']
+
+=== 2. the API surface ===
+top-level (28): ['Attribute', 'BaseError', 'DefaultLogger', 'FGAerodynamics', 'FGAircraft', 'FGAtmosphere', 'FGAuxiliary', 'FGEngine', 'FGFDMExec', 'FGGroundReactions', 'FGJSBBase', 'FGLGear', 'FGLinearization', 'FGLogger', 'FGMassBalance', 'FGPropagate', 'FGPropertyManager', 'FGPropertyNode', 'FGPropulsion', 'GeographicError', 'LogFormat', 'LogLevel', 'TrimFailureError', 'ePressure', 'eTemperature', 'get_default_root_dir', 'get_logger', 'set_logger']
+FGFDMExec (65): ['check_incremental_hold', 'debug_lvl', 'disable_highlighting', 'disable_input', 'disable_output', 'do_trim', 'enable_increment_then_hold', 'enable_input', 'enable_output', 'get_aerodynamics', 'get_aircraft', 'get_aircraft_path', 'get_atmosphere', 'get_auxiliary', 'get_debug_level', 'get_delta_t', 'get_engine_path', 'get_full_aircraft_path', 'get_ground_reactions', 'get_mass_balance', 'get_model_name', 'get_output_filename', 'get_output_path', 'get_propagate', 'get_property_catalog', 'get_property_manager', 'get_property_value', 'get_propulsion', 'get_propulsion_tank_report', 'get_root_dir', 'get_sim_time', 'get_systems_path', 'get_trim_status', 'get_version', 'hold', 'holding', 'incr_time', 'integration_suspended', 'load_ic', 'load_model', 'load_model_with_paths', 'load_planet', 'load_script', 'print_property_catalog', 'print_simulation_configuration', 'query_property_catalog', 'reset_to_initial_conditions', 'resume', 'resume_integration', 'run', 'run_ic', 'set_aircraft_path', 'set_debug_level', 'set_dt', 'set_engine_path', 'set_logging_rate', 'set_output_directive', 'set_output_filename', 'set_output_path', 'set_property_value', 'set_root_dir', 'set_sim_time', 'set_systems_path', 'set_trim_status', 'suspend_integration']
+
+=== 3. load, trim, fly ===
+load_model     True  0.003 s  model=c172p
+catalog        656 properties (a list of names), e.g. ['inertial/sea-level-radius_ft (R)', 'simulation/gravity-model (RW)', 'simulation/integrator/rate/rotational (RW)']
+run_ic         True
+do_trim(1)     ok  0.002 s
+  alpha -0.81 deg   elevator 0.000   throttle 0.84
+dt             0.0083 s -> 7200 steps for 60 s of flight
+wall           0.020 s = 2977x real time, 357,224 steps/s
+held trim      alt 5001 ft   KCAS 120.0   Nz 1.00   t 60.0 s
+
+=== 4. FGLinearization at that trim point ===
+A (13, 13)  B (13, 4)  C (13, 13)  D (13, 4)
+states: Vt [ft/s], Alpha [rad], Theta [rad], Q [rad/s], Rpm0 [rev/min], Beta [rad], Phi [rad], P [rad/s], Psi [rad], R [rad/s], Latitude [rad], Longitude [rad], Alt [ft]
+inputs: ThtlCmd [norm], DaCmd [norm], DeCmd [norm], DrCmd [norm]
+eigenvalue               T (s)      wn    zeta   participation
+-4.9980+6.5990j           0.95   8.278   0.604   Q 50%, Alpha 50%
+-0.5151+2.8387j           2.21   2.885   0.179   Beta 48%, R 47%
+-0.0297+0.2126j          29.56   0.215   0.138   Theta 50%, Vt 49%
+
+slowest oscillatory pair T = 29.56 s   Lanchester phugoid at 120 kt = 28.0 s   (+5.7 %)
+
+=== 5. the startup banner ===
+default              stdout  192 bytes | first line: JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b
+set_logger(Mute())   stdout    0 bytes | first line: <silent>
+
+=== 6. what the raw surface costs ===
+  property catalog, dumped                        19,176 bytes  ~   4,794 tokens
+  60 s of 6 states at 120 Hz (7200 rows)         439,200 bytes  ~ 109,800 tokens
+  the digest a lane would return                     213 bytes  ~      53 tokens
+  ratio: the digest is 1/2,152 of the raw surface
+
+wrote /Users/john/TokenEfficiencyEngine/docs/research/75-evidence/75-facts.json

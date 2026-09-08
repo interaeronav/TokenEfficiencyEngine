@@ -30,7 +30,7 @@ QOS = ("interactive", "standard", "batch", "maintenance")
 MIN_CHORE_TOKENS = 256
 
 
-def min_chore_tokens(profile: str | None) -> int:
+def min_chore_tokens(profile: str | None, measured: dict[str, Any] | None = None) -> int:
     """The output floor for one engine, not for all of them.
 
     A46 set a single global 256 from two models that both cleared it. Adding
@@ -40,8 +40,16 @@ def min_chore_tokens(profile: str | None) -> int:
     so it belongs on the model's row. `MIN_CHORE_TOKENS` remains the default
     for engines that have not been measured.
     """
-    for spec in ENGINES.values():
-        if spec.get("profile") == profile and spec.get("min_chore_tokens"):
+    # A76 P3: a floor found by sweeping outranks one written by hand. The
+    # registry's only non-default floor (q35b, 1024) belongs to a profile this
+    # machine does not declare, so it has never once been reached.
+    for name, spec in ENGINES.items():
+        if spec.get("profile") != profile:
+            continue
+        row = (measured or {}).get(name) or {}
+        if row.get("min_chore_tokens"):
+            return int(row["min_chore_tokens"])
+        if spec.get("min_chore_tokens"):
             return int(spec["min_chore_tokens"])
     return MIN_CHORE_TOKENS
 
@@ -125,6 +133,14 @@ ENGINES: dict[str, dict[str, Any]] = {
         "capability": ["chores"],
         "senses": [],
         "senses_source": "config.json DeepseekV4ForCausalLM, no vision_config, read 2026-08-31",
+        # A76 (2026-09-07): this machine no longer has a serving path - the
+        # shim's deepseek route is gone, no checkpoint is in the HF cache, and
+        # oMLX has been idle since the day the latency below was measured. The
+        # row STAYS: registering an engine centrally must not defame it on
+        # machines that do not serve it (A46 P3b), and route() already skips a
+        # rung whose profile is undeclared. eng_reconcile is what says, per
+        # machine and per run, whether it is reachable today.
+        "serving_note": "no path on the owner's Mac as of 2026-09-07 (A76)",
         # No resident process observed across a live 900-token generation
         # (polled 15 s at 0.7 s). Served on demand and not held, so there
         # is no steady footprint to charge the ledger for. NOT a measured
@@ -229,6 +245,17 @@ ENGINES: dict[str, dict[str, Any]] = {
     # -- A72: the wind-tunnel lane. The rows are floors; wt_run registers a
     # per-run override computed from the mesh (cells x 3 KB, measured RSS 80 MB
     # for 12,800 cells). wall_s measured 2026-09-06 on one core.
+    # A76: an audition drives an engine that is ALREADY resident behind an
+    # endpoint someone else started - TEE loads nothing here, so the footprint
+    # it charges is its own, which is nil. The wall is a few chores plus a
+    # descending token sweep.
+    "engine-audition": {
+        "kind": "job",
+        "capability": ["engine-rows"],
+        "footprint_gb": 0.0,
+        "qos_default": "batch",
+        "cost": {"wall_s": [5, 900], "measured": "A76 P2"},
+    },
     "cfd-mesh": {
         "kind": "job",
         "capability": ["cfd-cases"],
@@ -385,9 +412,21 @@ class MachineLedger:
         with self._lock:
             self._tasks += 1
 
-    def record_route(self, engine: str, verified: bool) -> None:
+    def record_route(self, engine: str, verified: bool, *, unreachable: bool = False) -> None:
+        """A76 P3: an engine that was never REACHED is not an engine that
+        failed. A46 P3b already made this distinction for a profile the machine
+        has not declared - "registering an engine centrally must not defame it
+        on machines that do not serve it" - and the same sentence applies to a
+        dead endpoint. `calls` counts what was actually asked something, so
+        `verified/calls` stays a statement about model quality; `unreachable`
+        counts the rest, and doc 55's escalation alarm can finally say which of
+        the two it is looking at."""
         with self._lock:
-            row = self._routes.setdefault(engine, {"calls": 0, "verified": 0})
+            row = self._routes.setdefault(engine, {"calls": 0, "verified": 0, "unreachable": 0})
+            row.setdefault("unreachable", 0)
+            if unreachable:
+                row["unreachable"] += 1
+                return
             row["calls"] += 1
             if verified:
                 row["verified"] += 1
@@ -431,6 +470,12 @@ class MachineLedger:
                 "escalation_rate": round(self._escalations / self._tasks, 3)
                 if self._tasks
                 else 0.0,
+                # Without this column escalation_rate cannot be read: a rising
+                # rate is either the models degrading or the machine being off,
+                # and doc 55 designates it the QUALITY alarm.
+                "unreachable_hops": sum(
+                    int(row.get("unreachable", 0)) for row in self._routes.values()
+                ),
                 "swaps": {
                     key: (round(value, 1) if isinstance(value, float) else value)
                     for key, value in self._swaps.items()

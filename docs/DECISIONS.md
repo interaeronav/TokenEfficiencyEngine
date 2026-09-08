@@ -2232,3 +2232,211 @@ own evidence that logic living in widgets ships untested.
 **ParaView and OpenVSP only.** FreeCAD with CfdOF was offered and declined for
 this campaign; FreeCAD is not on the build machine either, and the C2/C3 rows
 of A72's Mac checklist stay open.
+
+## A74 — cfMesh, and the HELYX question that produced it (2026-09-07)
+
+**HELYX is not integrable, and not for a licence-posture reason.** The owner
+asked whether it could be downloaded and integrated. ENGYS' own FAQ answers the
+availability question verbatim - *"No. HELYX and ELEMENTS are only available to
+paying customers"* - the installers are behind a customer portal, and the
+platform list is Linux and Windows, so it could not run on the machine that
+runs this lane's OpenFOAM anyway. HELYX-Core is GPL, but only to customers;
+HELYX-GUI is proprietary. The one freely downloadable thing carrying the name
+is HELYX-OS, a Java GUI for OpenFOAM 4.1/v1606+ that ENGYS marks deprecated on
+its own repository. Dispositioned the way SimFlow was in A72: **not integrable
+as software; a standard OpenFOAM case it writes is adoptable like any other.**
+
+**The analogue was already installed.** Asked for an alternative, the answer is
+cfMesh: GPL, distributed inside OpenFOAM.com since v1806, already in this
+lane's `KNOWN_BINARIES` and already run for adopted cases whose `Allrun` names
+it. So A74 is not "add a mesher" - it is **TEE writing for the mesher it
+already runs**, and it adds no install, no download, no engine row and no
+licence exposure.
+
+**It is opened on a measured shortfall, not on a vendor's claim.** On the
+lane's own prism, snappyHexMesh delivered 1.32 of 2 requested boundary layers
+at 41.6 % of the requested thickness, while cfMesh meshed the same geometry in
+1.6 s against 12.0 s with 18 % fewer cells and creates layer cells on every
+boundary face by construction. It is not a clean win: cfMesh's mesh FAILS
+`checkMesh` on skewness (5.55, twelve faces at the sharp trailing edge) where
+snappy passes at 0.70. That failure is the campaign's blocker and P3's subject;
+**`TOLERATED_CHECKS` is not to be widened to hide it.**
+
+**The campaign closes with a measured no if the forces do not move.** Cell
+counts and layer tables do not decide it: P2 solves the same case on both
+meshes and compares Cd. A mesh that covers its boundary layer and changes
+nothing downstream has not earned a `mesher=` argument.
+
+**Closed 2026-09-07 with a measured yes, and the blocker fixed rather than
+tolerated.** Solved on both meshes at α = 0: cfMesh converged where snappy
+stalled on the same budget, Cd 0.3076 against 0.4343, and the lift a symmetric
+section at zero incidence cannot have came out **0.00004 against 0.07458**. The
+skewness failure was cleared by cfMesh's own feature edges
+(`surfaceFeatureEdges` → FMS, max skewness 5.5497206 → 2.0995350, `checkMesh`
+clean) at a cost of 0.4 s; `TOLERATED_CHECKS` is exactly as it was.
+
+**Ruled with it: `mesher="auto"` is the DEFAULT for a 3-D body**, picking cfMesh
+wherever the OpenFOAM install carries it and saying so in the mesh row. No arm
+of the campaign measured snappyHexMesh ahead of cfMesh on a 3-D body — a hole
+cut in the body did not separate them either — so a hedging rule would have had
+no measurement behind it. The one branch that does: a build without
+`cartesianMesh` (Foundation, or older than v1806), where `auto` falls back and
+names the reason and `mesher="cfmesh"` refuses by name. Nothing is installed and
+nothing is downloaded, exactly as A74 law 1 says.
+
+
+## The flight-dynamics lane talks to JSBSim in-process, under LGPL (2026-09-07, A75)
+
+Research doc 75 measured three ways to invoke JSBSim and found they carry
+**three different licences**, which no reading of the repository's `COPYING`
+reveals:
+
+| route | grant | what it costs |
+|---|---|---|
+| `import jsbsim` (the wheel's own binding) | **LGPL-2.0-or-later** | nothing beyond LGPL's dynamic-linking terms |
+| the wheel's `jsbsim` console script (`jsbsim/script.py`, upstream `python/JSBSim.py`) | **GPL-3.0-or-later** | a stronger copyleft than the route it would be retreating from |
+| the C++ `JSBSim` binary (`src/JSBSim.cpp`) | **LGPL-2.0-or-later** | no `FGLinearization`, and nobody's default |
+
+**Ruled: in-process.** It is the only route that reaches `FGLinearization`,
+which doc 76 §2.5 argues is the most valuable thing in the library — A and B at
+a trim point are where stability derivatives and handling qualities start, and
+they are a few hundred tokens where a trajectory is a hundred thousand. The
+wheel is unmodified and dynamically linked, which is the case LGPL §6 is
+written for.
+
+**The other two are refused, with reasons.** The wheel's CLI is **GPL-3**: TEE
+already drives a GPL-3 program at arm's length (OpenFOAM, every `wt_run`), so
+the precedent is clean, but retreating *to* it from LGPL would take on a
+stronger copyleft to avoid a weaker one — the instinct is backwards, and doc 75
+§2.1 records why. The C++ binary is LGPL again but reaches no linearisation and
+is not what a Python process would reach for; it stays available if the ruling
+is ever revisited.
+
+**Two obligations this ruling creates**, both discharged in P1:
+
+1. **The gate reads file headers, not metadata.** PyPI declares `LGPLv2+` for
+   the whole distribution while a GPL-3 file ships inside it, so a gate of the
+   shape TEE already has — `foamlib is GPL-3.0-only on PyPI today` — passes this
+   package. `test_flightdyn_licences.py` asserts on the grant in each installed
+   file's own header, and fails if `script.py`'s licence moves.
+2. **Nothing upstream is vendored**, the 60 bundled aircraft included. The lane
+   uses the installed root or generates its own.
+
+**Note on how this was taken.** The plan approved for A75 assumed in-process and
+left the ruling to the owner; the owner then directed the session to complete
+every phase without prompting. So this is the session's ruling recorded under
+that authority, not the owner's own — it is deliberately reversible, and the
+lane is built so that reversing it changes `probe.py` and the gate rather than
+the design: `fd_run` and `fd_modes` already execute **out-of-process** for an
+unrelated reason (doc 76 §2.2 — `FGLinearization` on an engineless aircraft
+segfaults), so the subprocess boundary a CLI route would need is already there.
+
+## The engine lane is built, and the machine decided it (2026-09-07, A76)
+
+`CLAUDE_A76_SCRIPT.md` opens by telling a cold session the campaign may not be
+worth running: *"`eng_reconcile` shipped alone is a config fix in a lane
+costume"*, and the lane earns its place only if the audition lands where the
+router reads it. Doc 77 §9 question 1 left the choice to the owner. The owner
+directed the session to complete every phase without prompting, so the session
+took it — on evidence, not preference.
+
+**Ruled: build the lane.** What settled it is one measurement
+(`docs/research/77-evidence/shim-truth.py`, run on the owner's Mac):
+
+```
+http://127.0.0.1:4000/v1 advertises 8 routes
+  advertised 8 | produce text 2 | 200-but-empty 4 | errored 1
+```
+
+Four of eight advertised routes return **HTTP 200 with empty content and a
+usage block claiming completion tokens**. `local_llm.available()` asks
+`GET /v1/models` and would call all eight healthy. A check that read the HTTP
+status would call six healthy. Only reading the content is telling the truth,
+and nothing in TEE reads the content.
+
+That is not a config error to be fixed once. It is a class of fact no existing
+tool can express, on a machine whose state changed twice during this session —
+which is the argument for a measured row rather than a better-maintained
+literal. Three further live findings say the same thing:
+
+- **`doctor.check_llm` reports `status="ok"` with `fix=None`** while the chore
+  engine is dead by name, because `if llm_up or vlm_up` takes the early branch
+  on vision alone. Two independent facts collapsed into one status.
+- **The router defect fires on this machine right now.** Every local text route
+  is dead, so every chore escalates, and each dead hop is recorded as
+  `verified=False` — a verification failure against a model that was never
+  reached. Reproduced as `server/tests/test_a76_router_unreachable.py`, whose
+  two strict xfails become a gate when P3 lands the split.
+- **An audition can genuinely run.** `claude-qwen-vl` and `claude-qwen-max`
+  both answer, so P2 is not hypothetical here.
+
+**The config fix is still owed and is not a substitute.** Dropping the
+`dsflash` row, declaring `q35b`, and fixing `[llm] model` remains half a day of
+work that fixes today's outage; the lane is what stops the next one being
+invisible. P3 does both.
+
+**Two corrections to the script this ruling supersedes.** `CLAUDE_A76_SCRIPT.md`
+fact 1 says `dsflash` is the cheapest declared rung and `_ladder()` tries it
+first. Measured, `LADDER == ('q14b+a2', 'dsflash', 'q27b-bare', 'q35b')` —
+`q14b+a2` sorts first at 1.74 s against dsflash's 4.41. And the script's fact 4,
+*"nothing is answering at all"*, was true when it was written and is false now:
+`:4000` and `:8081` answer, `:8080` and `:8082` do not. Both are declarations of
+mine that a measurement outranks, which is the campaign's own thesis turned on
+its author.
+
+**Scope limit recorded honestly.** P2's live acceptance — a measured row for
+every engine this machine serves, and the `q35b` token floor re-derived by
+sweep — can only be met for the engines that actually answer. Where it cannot,
+the row says `unmeasured` and why, the way A69 refused to claim anything live
+until the Mac smoke had run.
+
+## A77's subject, chosen by the session on evidence (2026-09-08)
+
+The owner said *"start A77 P0"* and then *"continue all phases without my
+input"*. No A77 existed — no script, no research doc — so P0's first act was to
+decide what the campaign is. Every campaign in this repo quotes an owner
+directive; this one quotes a directive to choose, and the choice is recorded
+here so it can be reversed as easily as it was made.
+
+**Ruled: A77 is the benchmark telling the truth.**
+
+`CLAUDE.md`'s opening paragraph says TEE's core metric is tokens per completed
+user task, and that every design decision is judged by that metric first. The
+survey found that metric is the one thing in the repo with no owner:
+
+| guarded by | |
+|---|---|
+| licences | a load-bearing gate per lane |
+| the tool surface | nine assertions across the suite |
+| trust | a table that refuses an untabled tool at startup |
+| **tokens per task** | **nothing** |
+
+And it has already drifted. A real server serves 210 tools; the benchmark
+harness measures 141. **52 tools — 27 % of the long tail — are invisible to it**
+because `windtunnel`, `flightdyn` and `engines` are attached by `cmd_serve` and
+not by `run_benchmarks.py`. Its headline "89.6 % saved" is computed over the
+smaller corpus; measured through the real list it is **93.2 %**, so the stale
+figure understated TEE's own saving by 3.6 points rather than flattering it — an
+unmanaged metric is not biased toward its author, it is simply unread.
+`RESULTS.md` carries 85 tabled numbers and no test references the file.
+
+**Why this and not the alternatives.** Three other candidates were surveyed and
+put down with reasons. Closing the ~20 open questions across docs 72–77 is a
+sweep, not a campaign, and several need hardware this machine lacks. Measuring
+non-MLX conformance (A76's own owed item) is a single afternoon behind a
+download gate. Auditioning every engine needs the model stack up, and it is
+down. This one recurs by construction — every lane since A72 widened the gap
+and nothing failed — which is what makes it lane-shaped rather than a chore.
+
+**What would make this the wrong call.** If the owner wants capability rather
+than confidence, A77 is the wrong campaign: it adds no tools and no features,
+and its whole product is that a number fails when it stops being true. Say so
+and it is dropped; the drift measurement in `78-evidence/` stands on its own
+either way.
+
+**A near-miss worth recording.** The premise was nearly abandoned mid-P0: a
+commit titled *"the always-loaded surface figure is measured, not remembered"*
+appeared in the log and looked like the parallel session already doing this
+work. It is historical, and the most recent commit touching `benchmarks/` is
+this session's own A76 P4. But the check cost one fetch and the alternative was
+proposing a campaign on top of someone else's — the A71 lesson, paid forward.

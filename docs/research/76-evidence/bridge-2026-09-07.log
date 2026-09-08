@@ -1,0 +1,22 @@
+units          SI on the wire
+aircraft       3416 bytes, engine + thruster written beside it
+
+
+
+
+load_model     True
+  Sw     174.3753 ft2   expected   174.3753
+  cbar     4.8885 ft    expected     4.8885
+  wt    1873.9292 lb    expected  1873.9292
+  iyy      0.0000       <- 0.0 BEFORE run_ic, always
+run_ic         True
+  iyy   1342.2423 slug-ft2  expected  1342.3630  [after run_ic]
+  engines 1
+  Sorry, qdot doesn't appear to be trimmable
+do_trim(0)     OPEN — Trim Failed
+               the pitch axis is not yet trimmable; this is A75 P3's
+               acceptance criterion and is deliberately NOT claimed here.
+
+FGLinearization vs propulsion (each in a FRESH interpreter):
+  <propulsion> with one engine  -> SURVIVED 12
+  <propulsion> with NO engine   -> DIED rc=-11 (SIGSEGV)

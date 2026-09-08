@@ -671,13 +671,20 @@ def check_llm() -> Check:
         f"chores {'UP' if llm_up else 'down'} at {url} ({model}); "
         f"vision {'UP' if vlm_up else 'down'} at {local_vlm.DEFAULT_URL}"
     )
-    if llm_up or vlm_up:
+    # A76 P0 found this reporting "ok" with no remedy while the chore engine was
+    # dead by name, because vision answering took the early branch. They are two
+    # independent facts and collapsing them hides the one that matters: chores
+    # are what the router spends.
+    if llm_up:
         return Check("local models", "ok", detail)
     return Check(
         "local models",
         "ok",
         detail + " - chores degrade to their deterministic paths",
-        fix="see docs/setup-local-llm.md to enable chores and captions",
+        fix=(
+            "eng_scan then eng_reconcile names the drift and the line that fixes "
+            "it; docs/setup-local-llm.md to enable chores and captions"
+        ),
     )
 
 

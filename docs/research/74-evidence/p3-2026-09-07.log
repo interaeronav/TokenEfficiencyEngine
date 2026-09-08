@@ -1,0 +1,18 @@
+A74 P3 - feature edges against the plain surface, and the FMS route's determinism.
+Linux build container, OpenFOAM v2606 (openfoam.com), 4 cores, 2026-09-07.
+Every mesh below is single-threaded (OMP_NUM_THREADS=1), which is what the lane pins.
+
+stl-plain run1           cells   38352  skew 5.5497206  aspect 4.9513905  failed 1  mesh 2.4 s (+0.0 s features)
+    Max skewness = 5.5497206, 12 highly skew faces detected which may impair the qua
+stl-plain run2           cells   38352  skew 5.5497206  aspect 4.9513905  failed 1  mesh 2.3 s (+0.0 s features)
+    Max skewness = 5.5497206, 12 highly skew faces detected which may impair the qua
+fms-30deg run1           cells   36768  skew 2.099535  aspect 5.3109554  failed 0  mesh 2.5 s (+0.4 s features)
+fms-30deg run2           cells   36768  skew 2.099535  aspect 5.3109554  failed 0  mesh 2.5 s (+0.4 s features)
+fms-30deg-edge-refine run1 cartesianMesh rc=1: FOAM exiting
+fms-30deg-edge-refine run2 cartesianMesh rc=1: FOAM exiting
+fms-45deg run1           cells   36768  skew 2.2391098  aspect 4.735656  failed 0  mesh 2.7 s (+0.4 s features)
+fms-45deg run2           cells   36768  skew 2.2391098  aspect 4.735656  failed 0  mesh 2.5 s (+0.4 s features)
+
+=== p3-determinism.py: the FMS route, twice, OMP_NUM_THREADS=1 ===
+run 1: rc=0  polyMesh hash d766b634f6f0a6bb
+run 2: rc=0  polyMesh hash d766b634f6f0a6bb

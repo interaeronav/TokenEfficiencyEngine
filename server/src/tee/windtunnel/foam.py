@@ -899,6 +899,35 @@ def snappy_dict(t: Tunnel3D) -> str:
     return text.replace('#include        "meshQualityDict";', '#include "meshQualityDict"')
 
 
+def cfmesh_dict(t: Tunnel3D, *, surface_file: str, body_cell: float, layers: int) -> str:
+    """cfMesh's `meshDict` - what `snappy_dict` is for snappyHexMesh.
+
+    The keys were read off a real v2606 `meshDict` (doc 74 §2.5), never
+    remembered, and the ONE that matters is which refinement key is used:
+    `boundaryCellSize` refines at every boundary, farfield walls included, and
+    cost **630,980 cells against 37,960** on the same geometry (doc 74 §2.3).
+    So the refinement is local to the body patch and this writer never emits
+    the global key - a test asserts that, because the wrong one still produces
+    a valid mesh and would only show up as a bill.
+
+    `cartesianMesh` meshes the volume bounded by the surface it is given, so
+    `surface_file` is the MULTI-SOLID domain surface (`runs.domain_surface`),
+    not the body alone; each `solid` in it becomes a patch, which is how
+    `"<body>.*"` finds its target here.
+    """
+    patch = f'"{t.body_name}.*"'
+    body: dict[str, Any] = {
+        "surfaceFile": f'"{surface_file}"',
+        "maxCellSize": t.base_cell,
+        "localRefinement": {patch: {"cellSize": body_cell}},
+    }
+    if layers > 0:
+        body["boundaryLayers"] = {
+            "patchBoundaryLayers": {patch: {"nLayers": layers, "thicknessRatio": t.layer_expansion}}
+        }
+    return foam_file("dictionary", "meshDict", body)
+
+
 def mesh_quality_dict() -> str:
     return foam_file(
         "dictionary",

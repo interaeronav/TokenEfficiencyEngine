@@ -5,7 +5,7 @@ check: lint test
 BLENDER ?= $(shell command -v blender 2>/dev/null || echo /home/user/blender-5.2.0-linux-x64/blender)
 TEE_PLUGIN_VERSION ?= 0.1.0
 # server/.mcpb version; TEE_PLUGIN_VERSION tracks the UE TeeToolset .uplugin
-TEE_SERVER_VERSION ?= 0.25.0
+TEE_SERVER_VERSION ?= 0.30.0
 
 dist:
 	uv build
@@ -41,20 +41,32 @@ mcpb:
 	@echo "  lock and drops anything installed on top. Restore afterwards:"
 	@echo ""
 	@echo "    uv pip install --python \"$$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python\" \\"
-	@echo "      'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' 'tee-engine[extract]' 'tee-engine[pdf]'"
+	@echo "      'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' 'tee-engine[extract]' \\"
+	@echo "      'tee-engine[pdf]' 'tee-engine[windtunnel]' 'tee-engine[flightdyn]' \\"
+	@echo "      'tee-engine[pointcloud]'"
 	@echo ""
 	@echo "  See docs/setup-fleet.md. 'cad' is excluded on purpose (sidecar)."
+	@echo "  windtunnel is wt_export format=vtu only; flightdyn and pointcloud are"
+	@echo "  what fd_* and pc_* need to run at all - all three were missing from"
+	@echo "  this line until A75/A77."
 
 # SI-B20: ../benchmarks was NOT in this list, and `ruff check .` run from
 # server/ cannot reach it - so the code that produces the numbers this
 # project is judged by went unlinted for its whole life, accumulating 30
 # errors including unreachable code referencing an undefined name.
+# `--no-sync` on every one of these, and it is load-bearing rather than tidy:
+# a bare `uv run` SYNCS the venv to the lock first, and this project's engine
+# extras (medimg, quant, solve, extract, pdf, and OCP/jsbsim/meshio) are
+# installed ON TOP of the locked set with `uv pip install` - see the reminder
+# the mcpb target below prints. A sync drops them. `make test` was the worst
+# of the four: it would remove the extras and then the suites that need them
+# would SKIP rather than fail, so the only trace is a skip count nobody reads.
 lint:
-	uv run ruff check src tests ../benchmarks
-	uv run ruff format --check src tests
+	uv run --no-sync ruff check src tests ../benchmarks
+	uv run --no-sync ruff format --check src tests
 
 format:
-	uv run ruff format src tests
+	uv run --no-sync ruff format src tests
 
 test:
-	uv run pytest
+	uv run --no-sync pytest

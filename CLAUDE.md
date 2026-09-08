@@ -225,17 +225,137 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   with CfdOF declined). Its measured laws: ParaView builds its Qt application
   BEFORE parsing arguments, so with no display even `paraview --help` aborts
   on signal 6 — the lane never asks the binary anything and decides about the
-  display before it spawns; a state file carrying a view is 203,984 bytes and
-  needs a display to WRITE, while a pipeline-only one is 17,132 and writes
+  display before it spawns; a state file carrying a view is ~206 kB and needs
+  a display to WRITE, while a pipeline-only one is ~17 kB and writes
   anywhere, so the tool writes the best the machine can do, says which, and
   REFUSES rather than downgrading an explicit ask; a state names its case
   exactly once, so a moved case is a string swap; `vsp` takes the model
   positionally. The window is an escalation asked for by name through
   `registry.require`, the panel renders nothing (A67 stands), and neither adds
-  a tool: the surface is still 17. **ParaView is under review by the owner as
-  unstable — doc 73 §4b carries the three instabilities measured here and the
-  five-row specification a replacement must meet; the application is an enum
-  and the ParaView-specific code sits in two modules.**
+  a tool: the surface is still 17. **P2 then ran on the real ParaView** — the
+  owner's local session, which had been looking for a replacement, reported it
+  working properly on 2026-09-07 (the instability was OURS: `pvpython` wrote 201
+  `.pyc` files into ParaView's signed `.app`, breaking its notarization seal so
+  macOS refused to launch it; `PYTHONDONTWRITEBYTECODE=1` in `run_script` is the
+  fix, and deleting the bundle's `__pycache__` dirs repairs an install) — **and
+  it found three defects a fake pvpython
+  can never find**: `ColorBy(d, None)` RAISES on data with no arrays (the
+  meshed-but-unsolved case the mesh view exists for); a state that sets only
+  `rv.ViewTime` reloads at **t=0**, because `SaveState` carries the ANIMATION
+  SCENE's time — a handoff that opens the initial field while the human
+  believes it is the solution; and `wt_open` on an SU2 case died with
+  `NameError: ts`, the reader block having bound that name for `.foam` and not
+  for `.vtu`. Doc 73 §4b keeps the three instabilities
+  measured here and the five-row specification a replacement would have to
+  meet: the application is an enum and the ParaView-specific code sits in two
+  modules, so the swap stays cheap if the question returns.
+
+- The A74 campaign (**cfMesh** in the wind-tunnel lane) is **COMPLETE**, P0–P4,
+  shipped as 0.29.0; `CLAUDE_A74_SCRIPT.md` is the plan of record, research doc
+  74 the design of record and `docs/research/74-evidence/` holds what produced
+  its numbers. It opened when "can you download and integrate HELYX" turned out
+  to be **no** — ENGYS ships it to paying customers only, with no macOS build —
+  and the owner asked for an analogue: the mesher HELYX sells is already inside
+  the openfoam.com v2606 this lane drives. Zero new tools, zero new engines,
+  zero new licences; `wt_mesh mesher=` is the whole surface change and
+  **`auto` is now the default** for a 3-D body. It closed with a measured
+  **yes**: on the lane's own prism, cfMesh meshes in 4.1 s against 11.1 s, in
+  36,768 cells against 46,160, **converges where snappy stalls** on the same
+  200-iteration budget, and leaves Cl 0.00004 where snappy leaves 0.07458 on a
+  symmetric section at zero incidence, where the true answer is zero. Its laws
+  outrank memory: `cartesianMesh` needs the `openfoam2606` wrapper (direct, it
+  cannot find `libmeshLibrary.so`); cfMesh meshes the volume bounded by a
+  **CLOSED surface**, so an external-aero case needs the domain box and the body
+  as ONE multi-solid STL and **each `solid` becomes a patch** — under
+  blockMesh's own names, or `simpleFoam` stops at `Cannot find patchField entry`;
+  a global `boundaryCellSize` refines at the farfield and cost 630,980 cells
+  where `localRefinement` on the body is the idiom; **threaded, cfMesh builds a
+  different mesh each time** (two hashes at an identical cell count), so the
+  lane pins `OMP_NUM_THREADS=1` and `cores=` buys the speed back with
+  `reproducible: false` said out loud; and the sharp trailing edge comes out as
+  twelve skew faces unless `surfaceFeatureEdges` hands `cartesianMesh` an FMS
+  first — 30°, which is snappy's own `includedAngle 150` from the other end.
+  `TOLERATED_CHECKS` was never widened: skew is one of the two failures this
+  lane tolerates, so the mesh had to be fixed rather than the gate. A
+  measurement that is not pinned is not a measurement — the same threading
+  lesson bit the campaign twice, once in the lane and once in its own probe
+  script. **P5 (2026-09-08) then measured the 2-D route and DECLINED it**
+  (doc 74 §2.9): `cartesian2DMesh` gives Cd roughly double the lane's own
+  O-mesh on the same section, and refining the cartesian mesh toward the
+  O-mesh's near-wall resolution widens the gap rather than closing it, with a
+  control on the SAME O-mesh ruling out the near-wall model. Two facts from it
+  outrank memory: **the surface rule INVERTS** — `cartesianMesh` needs a CLOSED
+  surface and `cartesian2DMesh` refuses one, wanting the outline extruded
+  without caps (a ribbon, open in z) and supplying the through-thickness cell
+  itself; and **cfMesh assigns no patch types in either dimension** — 3-D makes
+  every solid-derived patch `wall`, 2-D makes every patch `empty` including the
+  wall and the farfield, so `checkMesh` says "not 1D or 2D" until the caller
+  rewrites them.
+
+- The A75 build (`fd_*`: a headless flight-dynamics lane where a `wt_sweep`
+  polar and a mass become a JSBSim aircraft that trims) is **COMPLETE**, P0-P4,
+  shipped as 0.27.0; `CLAUDE_A75_SCRIPT.md` is the plan of record, research doc
+  **76** the design of record, doc **75** the grounding, `docs/flightdyn-lane.md`
+  the user guide and `docs/setup-flightdyn.md` the install. Zero always-loaded
+  tools; five `fd_*` tabled individually with no family row. Its measured laws
+  outrank memory: **JSBSim's licence is not what its metadata says** - the
+  library is LGPL-2.0-or-later but the wheel ships `jsbsim/script.py` under
+  GPL-3.0-or-later while PyPI declares `LGPLv2+`, so the gate reads FILE HEADERS
+  (the ruling is in DECISIONS: in-process, LGPL, because it is the only route
+  that reaches `FGLinearization`); **`FGLinearization` on an aircraft with no
+  engine SIGSEGVs** rather than raising, so the lane refuses that aircraft in
+  its own code and runs every flying call out of process; **`do_trim` names the
+  wrong axis** - it reports `qdot` when `udot` is the one that cannot bracket
+  zero, because a turbine sits near 100 % N2 until it spools and `run_ic` does
+  NOT reset that spool, which is what makes the lane's own Newton trim possible;
+  **a `<turbine_engine>` without `IdleThrust`/`MilThrust` tables segfaults at
+  `run_ic`**; and `FGLinearization` leaves the model perturbed and `dt` at 0, so
+  anything the answer needs is snapshotted before it runs. A polar carries no
+  lateral terms, so the degenerate pair is dropped rather than reported as a
+  mode. SI on the wire with the unit always written; nothing upstream is
+  vendored, the wheel's 60 aircraft included.
+
+- The A76 build (`eng_*`: truth about the local models TEE routes work to) is
+  **COMPLETE**, P0-P4, shipped as 0.28.0; `CLAUDE_A76_SCRIPT.md` is the plan of
+  record, research doc **77** the design of record, `docs/engines-lane.md` the
+  user guide. Six tools, zero always-loaded, tabled individually with no family
+  row; the package is stdlib at import time so it answers on a machine with
+  nothing installed. Its measured laws outrank memory: **a listing is not
+  liveness** - four of the eight routes the owner's shim advertises answer HTTP
+  200 with EMPTY CONTENT and a usage block claiming completion tokens, so
+  `local_llm.available()` (a `GET /v1/models`) calls all eight healthy and only
+  reading the CONTENT is truthful; **ENGINES carries `model=None` on every row**
+  (the id lives in the profile spec), which is the mechanical reason nothing had
+  ever reconciled that table; **the registry's latency is five times off** -
+  q27b-bare declares [3.07, 9.69] s and auditioned at 44-47 s on the same
+  machine, so the ladder now orders on measured rows with the literals as
+  fallback; **an unreachable engine is not a failed verification** (both used to
+  increment the same counter, so doc 55's escalation alarm was measuring the
+  network); and a sweep that passes every rung reports a BOUND, not a floor. The
+  lane serves no model, starts nothing, never writes the owner's config and
+  refuses a paid engine by name. `docs/setup-local-llm.md`'s "any
+  OpenAI-compatible endpoint works identically" is now marked as an expectation,
+  not a result: MLX and LiteLLM are measured, Ollama/llama.cpp/vLLM/LM Studio
+  are named nowhere in `server/src/`.
+
+- The A77 build (the benchmark tells the truth) is **COMPLETE**, P0-P4, shipped
+  as 0.30.0; `CLAUDE_A77_SCRIPT.md` is the plan of record and research doc **78**
+  the design of record. It adds ZERO tools: its product is that a number fails
+  when it stops being true. Its measured facts outrank memory: **the harness was
+  measuring a server that does not exist** - `run_benchmarks.py` hand-rolled
+  seven lanes where `cmd_serve` attaches nineteen, so the headline saving was
+  computed over 141 virtual tools where a real server serves 197, and the true
+  figure is **93.2%** not 89.6%; **the stale number drifted AGAINST TEE**,
+  understating its own saving by 3.6 points, because an unmanaged metric is not
+  biased toward its author, it is simply unread; **a row measured against a live
+  machine is not reproducible** and must say so (the engine row read 375 with two
+  endpoints answering and 311 with nothing running - both true, different
+  questions); and a scenario nobody calls is a row nobody re-runs, which is how
+  the A75 and A76 rows came to be hand-measured prose. `cli.attach_all` is now
+  the single seam both callers build from, and `test_a77_one_server.py` plus
+  `test_a77_benchmark_canary.py` fail when a lane reaches one caller and not the
+  other, or when a quoted number stops being true. Bands are stated, and each
+  gate has a test proving it fires.
 
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is

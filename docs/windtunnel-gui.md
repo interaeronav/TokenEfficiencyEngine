@@ -33,7 +33,7 @@ same compact state a model sees.
 | Pane | Source | Never |
 | --- | --- | --- |
 | Case list | `wt_case action=list` | a directory walk, a store read |
-| Status line | `wt_status` on a tick, after `tee_job` | a solver log, a residual plot |
+| Status line | `wt_status` on a tick, after the job manager | a solver log, a residual plot |
 | Result line | `wt_result` | a bare coefficient — the verdict and the uncertainty label travel with it |
 | Output pane | the last answer, or the refusal's message and fix | a traceback |
 | Anything visual | — | there is no such pane |
@@ -47,7 +47,7 @@ there is no path through the window that a tool call could not take.
 | --- | --- | --- |
 | Mesh | `wt_mesh` | a job; the window polls it |
 | Run | `wt_run` | a job, with `confirm_cost` — pressing the button IS the confirmation |
-| Cancel | *(none)* | the one control with no virtual tool: `tee_job` is an always-loaded MCP tool, so the shell asks the same job manager directly |
+| Cancel | *(none)* | the one CONTROL with no virtual tool: `tee_job` is an always-loaded MCP tool, not a member of this registry, so the shell asks `app.jobs` directly — and so does the clock, which had been calling `tee_job` through the registry and getting `unknown_tool` on every tick |
 | Open in ParaView | `wt_open` | writes the state file; **does not** open a window |
 | Open in OpenVSP | `wt_open app=openvsp` | names the `.vsp3`; **does not** open a window |
 
@@ -73,7 +73,7 @@ the package leaves PySide6 out of `sys.modules`.
 ## What it does not do
 
 - **Render.** See the one law.
-- **Poll a solver itself.** `tee_job` owns whether the work is finished and
+- **Poll a solver itself.** The job manager owns whether the work is finished and
   `wt_status` owns what the solver is doing; asking the second without the
   first is how a window ends up reporting `running` for a job that died.
 - **Create cases.** `wt_case action=create` takes a geometry, conditions and a

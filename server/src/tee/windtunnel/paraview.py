@@ -29,7 +29,14 @@ VIEWS = ("pressure", "velocity", "cp", "mesh", "residuals")
 
 
 def _reader_lines(source: Path) -> list[str]:
-    """Open an OpenFOAM case (.foam stub) or an SU2 volume file (.vtu)."""
+    """Open an OpenFOAM case (.foam stub) or an SU2 volume file (.vtu).
+
+    The block's contract, which `state.py` depends on: it leaves `src` bound to
+    the reader and `ts` bound to its time steps. The `.vtu` branch defined only
+    the first, and `wt_open` on an SU2 case died with `NameError: ts` (measured
+    2026-09-07 on the shipped code, doc 73 §2.10) - a single `.vtu` has no time
+    steps, so the honest value is an empty list rather than no name at all.
+    """
     s = str(source)
     if s.endswith(".foam"):
         return [
@@ -42,7 +49,11 @@ def _reader_lines(source: Path) -> list[str]:
             "src.UpdatePipeline(last)",
         ]
     if s.endswith(".vtu"):
-        return [f"src = XMLUnstructuredGridReader(FileName=[{s!r}])", "src.UpdatePipeline()"]
+        return [
+            f"src = XMLUnstructuredGridReader(FileName=[{s!r}])",
+            "src.UpdatePipeline()",
+            "ts = list(getattr(src, 'TimestepValues', []) or [])",
+        ]
     raise TeeError(
         "wt_field_missing",
         f"{source.name} is neither a .foam stub nor a .vtu volume file.",

@@ -1,0 +1,69 @@
+{
+  "base": "http://127.0.0.1:4000/v1",
+  "listed": [
+    "claude-qwen-27b",
+    "qwen-27b",
+    "claude-qwen-35b",
+    "qwen-35b",
+    "claude-qwen-small",
+    "claude-qwen-vl",
+    "mlx-community/*",
+    "claude-qwen-max"
+  ],
+  "rows": {
+    "claude-qwen-27b": {
+      "completion_tokens": 6,
+      "content": null,
+      "finish": "length",
+      "http": 200,
+      "produced": false,
+      "wall_s": 7.68
+    },
+    "claude-qwen-35b": {
+      "completion_tokens": 6,
+      "content": null,
+      "finish": "length",
+      "http": 200,
+      "produced": false,
+      "wall_s": 16.04
+    },
+    "claude-qwen-max": {
+      "completion_tokens": 19,
+      "content": "OK",
+      "finish": "stop",
+      "http": 200,
+      "produced": true,
+      "wall_s": 1.41
+    },
+    "claude-qwen-small": {
+      "detail": "{\"error\":{\"message\":\"litellm.InternalServerError: InternalServerError: Hosted_vllmException - Cannot connect to host 127",
+      "http": 500,
+      "produced": false,
+      "wall_s": 4.58
+    },
+    "claude-qwen-vl": {
+      "completion_tokens": 5,
+      "content": "OK! \ud83d\ude0a",
+      "finish": "stop",
+      "http": 200,
+      "produced": true,
+      "wall_s": 1.4
+    },
+    "qwen-27b": {
+      "completion_tokens": 6,
+      "content": null,
+      "finish": "length",
+      "http": 200,
+      "produced": false,
+      "wall_s": 0.88
+    },
+    "qwen-35b": {
+      "completion_tokens": 6,
+      "content": null,
+      "finish": "length",
+      "http": 200,
+      "produced": false,
+      "wall_s": 0.23
+    }
+  }
+}

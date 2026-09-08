@@ -199,3 +199,25 @@ the scheduler to function, the recorder's failures are swallowed, and
 the owner's TEE/Q pin outranks every policy. Decisions are data:
 `report_savings` shows the dispatch counters, queue ages and shadow
 columns; the traces live under `.tee/shadow/`.
+
+## What A76 measured about this claim (2026-09-07)
+
+This document says TEE "runs against **any OpenAI-compatible local endpoint**".
+That was never tested, and one half of it is now measured and false in a way
+worth knowing about.
+
+**A listing is not liveness.** On the owner's own stack, four of eight routes a
+LiteLLM shim advertised answered `HTTP 200` with **empty content and a usage
+block claiming completion tokens**, because their backend was down. Anything
+that checks `GET /v1/models` — which is what `local_llm.available()` does — calls
+those engines healthy. Anything that checks only the HTTP status does too.
+
+Use `eng_ask` to find out whether a route actually produces text, and
+`eng_reconcile` to see the registry against reality. `docs/engines-lane.md` is
+the guide; `docs/research/77-evidence/shim-truth.py` is the probe, and it is
+stdlib-only so it runs before TEE is installed.
+
+**Still untested:** Ollama, llama.cpp, vLLM and LM Studio are named nowhere in
+`server/src/`, and no conformance measurement has been taken against any of
+them. MLX and LiteLLM are what this machine has and what the numbers above come
+from. Treat "works identically" as an expectation, not a result.

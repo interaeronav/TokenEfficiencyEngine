@@ -13926,20 +13926,273 @@ CI does not install Qt: 445.2 MB (addons 332.0, essentials 110.8) that no test
 uses, and installing it would make the coverage worse, because the test
 asserting the panel names its extra skips itself where PySide6 exists.
 
-**ParaView under review.** Mid-campaign the owner's local session began looking
-for a replacement, ParaView having proved unstable in use. Doc 73 §4b records
-the three instabilities measured here as evidence and the five rows a candidate
-must satisfy. The architecture survives a swap: the application is an enum, the
-ParaView-specific code is confined to `state.py` and `paraview.py`, and the
-panel talks to the registry rather than to any application. No ParaView-specific
-capability was deepened after that news.
+### A73 P2 — the handoff, on the real ParaView and OpenVSP (0.25.1)
 
-**Still open:** the live tier for this campaign (the OpenVSP route on a real
-`.vsp3`, a state loaded back in a fresh pvpython) is deliberately narrowed and
-not yet run; the `.mcpb` bundle for 0.24.0 is not built; the Mac has not seen
-`wt_open` (does ParaView 6.1 accept a 5.11-written state? does `open -a
-ParaView --args --state=` pass the flag through?) — both are doc 73's open
-questions 1 and 2.
+Run after the owner's local session reported ParaView working properly again,
+and it found **three defects in shipped code that the hermetic tests could not
+reach**, because a fake `pvpython` accepts whatever script it is handed:
+
+1. **The state opened at t=0.** `SaveState` carries the ANIMATION SCENE's time,
+   not the view's, so `rv.ViewTime = ts[-1]` was lost on reload. ParaView would
+   have opened the initial field — coloured, framed and captioned exactly like
+   the converged one. This is the worse kind of defect: not an error, a wrong
+   answer wearing a right one's clothes. Both state kinds now set the scene.
+2. **`wt_open view=mesh` failed on a case that had not run.**
+   `ColorBy(d, None)`, the documented way to turn colouring off, re-reads the
+   representation's current association — `'NONE'` where the data has no array
+   to colour by — and raises. That is precisely the meshed-but-unsolved case
+   the mesh view exists for, and the one path `wt_view` can never reach
+   (`_volume_source` refuses without a run), which is why A72's live tier
+   never saw it. `ColorBy(d, ('CELLS', None))` works with fields and without;
+   `paraview.render_script` keeps the old form deliberately.
+3. **`wt_open` on an SU2 case died with `NameError: ts`.** The reader block
+   bound that name in its `.foam` branch and not in its `.vtu` one, while the
+   state script reads it in both — so half the lane's engines had never had
+   this tool run against them, and one undefined name is what that handoff was
+   worth. The `.vtu` branch now binds `ts` to an empty list, which is what a
+   single `.vtu` honestly has.
+
+Measured after the fixes (ParaView 5.11.2 + xvfb, OpenVSP 3.51.3, the
+16,000-cell NACA 0012 case at 197 iterations):
+
+| state | bytes | write | read back in a fresh pvpython |
+| --- | ---: | ---: | ---: |
+| `full`, solved run, `view=pressure` | 206,584 | 4.5 s | 3.6 s |
+| `full`, meshed case, no run, `view=mesh` | 179,725 | 3.1 s | 3.5 s |
+| `pipeline`, no display either way | 17,233 | 2.7 s | 2.8 s |
+
+The reload reports `OpenFOAMReader`, the case's own `case.foam`, 16,000 cells,
+**view time 197.0 = scene time = the last time step**, `['CELLS', 'p']`,
+`Surface`, camera framed. `relocate()` replaced exactly **1** occurrence over a
+copied run and the moved state loaded 16,000 cells from the new path — §2.4's
+"the path appears once" law now holds for a state ParaView wrote, not one we
+predicted. The OpenVSP route is verified by asking OpenVSP: `vsp -script`
+reading back the `.vsp3` the command line names reports one geom, `WingGeom`,
+type `Wing`, from an 86,830-byte model. An SU2 `.vtu` writes 198,796 B full
+and 12,089 B pipeline and reloads as `XMLUnstructuredGridReader`. Six live
+tests in `tests/test_windtunnel_live.py` (`cfd`-marked) found them; two
+hermetic tests in `tests/test_windtunnel_open.py` pin all three on the
+generated script text, which is the only guard that runs where ParaView is
+absent — CI included.
+
+**Cut as 0.24.1, ships as 0.25.1.** The version was bumped here before the base
+took 0.25.0 (the material-card release, cut from a worktree precisely so it
+would not ship this branch's half); that release's own note says *"A73 P2's
+0.24.1 is still on its own branch and merges on its own schedule"*. It merged
+here, so this round becomes the patch after it. The three pins and the lock
+move together, as they must.
+
+**Bundle, from a clean unzip of `tee-engine-0.25.1.mcpb` (1,241,297 B)**, driven
+with the manifest's exact command through a stdio MCP client:
+
+```
+uv run --directory <bundle> --no-dev tee serve --adapter blender --adapter partkiln \
+    --adapter seamkiln --adapter fusion --project <p>
+handshake: {'name': 'tee', 'version': '0.25.1'}   boot 3.17 s
+always-loaded tools: 17
+search 'wind tunnel' reaches wt_*: True   [wt_case, wt_conditions, wt_export, wt_geom, wt_mesh]
+tee_call wt_probe -> openfoam v2606 | su2 wt_su2_missing (the install line) | vspaero 3.51.3 | pvpython 5.11.2
+tee_call wt_run on an unmeshed case -> wt_no_mesh: "Case ... has no mesh yet." fix "wt_mesh first."
+tee_call wt_mesh  -> ok, 16,000 cells, omesh_polymesh
+tee_call wt_open view=pressure -> full, 203,996 B, run_id None, launched False
+tee_call wt_open view=mesh     -> full, 179,508 B, run_id None, launched False
+(0.24.1 measured the same, at 1,239,830 B and boot 4.83 s, before the renumber)
+```
+
+The last line is the one worth having: the shipped bundle writes a mesh-view
+state over a case with no run, which is the call that raised on 5.11.2 before
+this round.
+
+**ParaView: it was us.** Mid-campaign the owner's local session went looking
+for a replacement, ParaView having proved unstable — it *"would just refuse to
+start"*. That session found the cause on the owner's Mac and it was this lane:
+`pvpython` imports its own modules from INSIDE the signed `.app`, CPython
+caches bytecode next to the source, and 201 `.pyc` files added to a notarized
+bundle break its seal, after which Gatekeeper refuses to launch the
+application at all. Every `wt_probe_field` and `wt_view` call was quietly
+damaging the install. `PYTHONDONTWRITEBYTECODE=1` in `run_script`'s
+environment is the fix (base commit `c082dae`, merged into this branch), and
+the handoff inherits it for free: `state.write()` goes through that same
+`run_script`, so writing a state never writes into the bundle either. Deleting
+the `__pycache__` directories restores the seal — no reinstall.
+
+That is worth stating precisely, because this campaign measured three
+instabilities and **none of them was the fault**: ParaView aborting on signal 6
+without a display, a render view segfaulting offscreen, a 200 kB versioned
+state (doc 73 §4b). They are real, they are still true of the tool, and they
+are why the lane checks the display, keeps two state kinds and reaches for
+`xvfb-run` — but a tool that will not start is a different problem, and it was
+ours. The five-row replacement specification stays a specification: no swap is
+made, and the application is still an enum behind two modules if the question
+returns. The narrowing the scare caused would have cost this campaign all three
+of the defects above, which is the argument for running the live tier rather
+than reasoning about it.
+
+### A73 P2 addendum — the same trap, three times (2026-09-07)
+
+The Mac session found two defects in `mac-check.sh`, **both of which faked a
+pass**, and one of them generalised into shipped code:
+
+1. `RUN_SOLVE=1` never ran: the script polled `registry.call("tee_job", …)`,
+   and `tee_job` is an always-loaded MCP tool registered on the server, not a
+   member of the app's registry. Section C then printed its own "only t=0
+   exists, the check is vacuous" line as though the flag had simply not been
+   passed.
+2. `codesign --verify … | head -3; echo "rc=$?"` reported `head`'s status, so
+   section B — the row this campaign had flagged as *the* unchecked one —
+   printed `rc=0` on a bundle `codesign` had just called invalid. It was
+   structurally incapable of failing. **A72's `p0-measure.sh` had the identical
+   defect and it is written down in this file**; the fix was applied there and
+   the lesson was not carried.
+3. Their third finding needed no code: comparing `.pyc` counts before and after
+   cannot fail on a bundle whose cache is already saturated (211 → 211 reads as
+   a pass). Cleaned first, the row means something — 0 before, 0 after,
+   `codesign` 0, `spctl` accepted.
+
+**And the first one was in the panel.** `WindTunnelShell.poll` called
+`registry.call("tee_job", …)` on every tick of the window's clock, which
+returns `{"error": "unknown_tool", "message": "No tool named 'tee_job'."}` —
+measured here, not deduced. The job pane could never show a job. A73 P3 had
+already met this trap and moved *cancel* onto `app.jobs`, even writing a test
+that keeps cancel "the only such control"; the clock stayed on the wrong door
+and its test asserted only that a `job` key existed, which an error payload
+satisfies. `poll` now asks `app.jobs.status`, and the test asserts the tick
+carries the job's id and a real state.
+
+Three times in one campaign, in three different files, the same sentence would
+have prevented it: **`tee_job` is not in this registry.** The rule that
+generalises is narrower and more useful than "be careful" — *a payload that
+proves a call happened is not evidence the call succeeded*, and every one of
+these tests and scripts was asserting the former.
+
+**The Mac rows, from the owner's session:** both P2 defects confirmed fixed on
+ParaView **6.1.1** (a state opens at t=197 with the solution; the mesh view
+loads on a case with no array); the bytecode guard verified on the handoff path
+(0 `.pyc`, `codesign` 0, `spctl` accepted); open question 2 answered and the
+documented idiom **wrong** — `open -a ParaView` cannot find the bundle at all,
+because it matches an application *name* and the bundle is
+`ParaView-6.1.1.app`, while the full path and `wt_open`'s own direct-binary
+argv both work, so the wrong idiom never reached the product; open question 1
+left open with its reason, being a two-machine test rather than a Mac row. And
+the `cfd` tier ran **whole for the first time on any machine: 17 passed,
+nothing skipped**, every `wt_open` test against 6.1.1 rather than the 5.11.2
+this campaign was written on.
+
+**Suites at close:** hermetic `pytest -q` **1,875 passed / 38 skipped / 133
+deselected** in 2:40 on the tree with both base merges and the panel-clock fix
+in (1,867 before, plus
+this round's two hermetic tests, the base's bytecode-guard test and 0.25.0's
+five);
+`make lint` clean over `src tests ../benchmarks`, 394 files formatted; the
+`cfd` tier `pytest -m cfd tests/test_windtunnel_live.py` **14 passed / 3
+skipped** in 14:09 — the whole file, A72's eight live tests and this round's
+six, on the real OpenFOAM v2606, ParaView 5.11.2 and OpenVSP 3.51.3. The three
+skips are honest and named by the refusal that raises them: SU2 is not
+installed in this container, so its two tests skip with the download line the
+lane would have printed, and the apt `airFoil2D` tutorial is not at the path
+`TEE_WT_TUTORIAL` defaults to.
+CI green on both jobs — and red for twelve seconds first, on `uv sync
+--locked`, because `pyproject.toml`'s version moved to 0.24.1 without a
+re-lock. That is the second round in a row it has caught exactly that; the
+lock is part of a version bump, not a consequence of one.
+
+**Still open:** the Mac has not seen `wt_open` — does ParaView 6.1 accept a
+5.11-written state, and does `open -a ParaView --args --state=` pass the flag
+through? Doc 73's open questions 1 and 2, and the only rows of this campaign
+that need a machine this container is not.
+
+### A73 P2 — the Mac rows (2026-09-07, owner session on the Mac)
+
+The two rows the container could not reach, run on macOS 26.6.2 arm64 with
+ParaView **6.1.1** (the GUI and `pvpython` from one install), OpenFOAM v2606
+and SU2 8.4.0. Evidence: `docs/research/73-evidence/mac-a73-2026-09-07.log`,
+regenerated from a **cleaned bundle** for the reason in the next paragraph.
+
+**Section B — the row nobody had checked — passes, but the script's own test
+of it was vacuous.** The check compares `.pyc` counts before and after a state
+is written, and the bundle already held **211** of them from an earlier
+pre-fix run. A saturated cache cannot grow, so `211 -> 211` reads as a pass
+whatever the guard does. Cleaning the bundle first is what makes the row mean
+anything, and measured that way:
+
+```
+before:  0 .pyc   codesign exit 0   spctl: accepted, Notarized Developer ID
+  (wt_case -> wt_mesh -> wt_run 197 iters -> wt_open pressure + mesh)
+after:   0 .pyc   codesign exit 0
+```
+
+**The state writer is covered by the base's bytecode guard**, as P2 predicted
+it would be: `state.write()` goes through the same `run_script` that carries
+`PYTHONDONTWRITEBYTECODE=1`. Launching the GUI twice did not damage it either.
+The 211 files were not from the handoff — they were written 13:04–13:28 by
+something running pre-`c082dae` code, which is its own lesson: **a shared
+machine can have a second session undo this, and the count is the only way to
+know.**
+
+**Section C is no longer vacuous, and both P2 defects are confirmed fixed on
+6.1.1.** With a real 197-iteration run behind it:
+
+```
+pressure: timesteps [197.0]  scene_time 197.0  view_time 197.0  colour CELLS/p
+mesh:     timesteps [197.0]  scene_time 197.0  view_time 197.0  colour CELLS/""
+```
+
+Defect 1 (a state opening at t=0) and defect 2 (`wt_open view=mesh` raising on
+a case with no array) are both gone here.
+
+**Doc 73 open question 2 — ANSWERED, and the documented idiom is wrong.**
+
+```
+open -a ParaView --args --state=<f>          -> "Unable to find application named 'ParaView'"
+open -a /Applications/ParaView-6.1.1.app ... -> works; --state= reaches the process
+<app>/Contents/MacOS/paraview --state=<f>    -> works   <- what wt_open actually composes
+```
+
+`open -a` matches an application NAME, and the bundle is `ParaView-6.1.1.app`,
+so the bare name never launches anything — the flag never got as far as being
+passed through. **The lane is unaffected: `wt_open` invokes the binary
+directly and never uses `open`.** Confirmed by looking at the window rather
+than by exit codes: pipeline browser holds `OpenFOAMReader1`, the toolbar
+reads `Time: 197`, the legend is titled `p` over −6.3e+02…4.5e+02. Via `open`
+the app runs from `AppTranslocation`, macOS's read-only randomised copy for a
+quarantined bundle — which is also why launching it that way cannot write
+bytecode into itself.
+
+*One usability observation, not a defect:* the camera frames the whole O-mesh
+farfield (50 chords), so the domain renders as a near-uniform disc with the
+aerofoil a speck at the centre. The state is right; the framing is not useful.
+A `wt_open` that fitted the camera to the wall patch would be worth having.
+
+**Doc 73 open question 1 — STILL OPEN, and structurally so.** Does 6.1 accept
+a 5.11-written state? This Mac has exactly one ParaView, so it writes and
+reads with the same install and cannot produce the input. Answering it needs a
+state carried from a 5.11 machine to a 6.1 one — a two-machine test, not a Mac
+row. Recorded open rather than filled in. It stays harmless meanwhile: the
+lane writes with the `pvpython` that came from the install the GUI launches.
+
+**Two more defects in `mac-check.sh` itself** (`875bbd6`), both of which faked
+a pass, and both in rows only a Mac could reach:
+
+1. `RUN_SOLVE=1` **never ran**. The harness registers the `wt_*` lane only, so
+   `registry.call("tee_job", …)` raised `No tool named 'tee_job'` — that tool
+   lives on the MCP server in `server.py`. The solve was skipped and section C
+   printed its "only t=0 exists" line as though nothing were wrong. It polls
+   `app.jobs.status` now.
+2. `codesign --verify … | head -3; echo "rc=$?"` reported **`head`'s** exit
+   status, so section B printed `codesign rc=0` on a bundle codesign was
+   calling invalid in the line directly above. The status is captured before
+   the pipe now. That is four defects this script has had, all of the same
+   family: **a check that cannot fail is not a check.**
+
+**The `cfd` tier on this Mac: 17 passed, 0 skipped, 15:51** — the whole file,
+against four live engines. The container ran **14 passed / 3 skipped**; the
+three extra passes are exactly the three it skipped and named: SU2 is
+installed here (its two tests run) and OpenFOAM v2606 ships the `airFoil2D`
+tutorial the apt path did not have. **Nothing is skipped on this machine**,
+which is the first time the tier has run whole anywhere — and it is the
+strongest available check on the handoff, because every `wt_open` test ran
+against ParaView 6.1.1 rather than the 5.11.2 the campaign was built on.
+
 
 ### CFRP: a woven card, and a quasi-isotropic one that had to be computed (2026-09-07)
 
@@ -14440,3 +14693,641 @@ command would provision a fresh 1.3 GB venv from the lock and was not done.
 
 The manifest still declares blender, partkiln, seamkiln and fusion, and is
 otherwise untouched: which lanes Desktop serves is the owner's decision (A71).
+
+## A74 — cfMesh: the mesher HELYX sells, already on the disk (2026-09-07, COMPLETE P0–P4, 0.29.0)
+
+Plan of record `CLAUDE_A74_SCRIPT.md`, design of record doc 74, evidence in
+`docs/research/74-evidence/`, ruling in `docs/DECISIONS.md`.
+
+**How it opened.** The owner asked whether HELYX could be downloaded and
+integrated. It cannot — *"No. HELYX and ELEMENTS are only available to paying
+customers"* is ENGYS' own answer, the installers are portal-only, and the
+platform list has no macOS, so it could not run on the machine that runs this
+lane's OpenFOAM. Asked instead to find an analogue, the search ended one
+directory away: **cfMesh is inside the openfoam.com v2606 the lane already
+drives**, and A72 already runs `cartesianMesh` for adopted cases whose `Allrun`
+names it. What is missing is TEE writing a cfMesh case of its own.
+
+**P0, measured the same day** (one prism, one domain, two layers asked):
+
+| | snappyHexMesh (today) | cfMesh `cartesianMesh` |
+| --- | ---: | ---: |
+| cells | 46,160 | **37,960** |
+| mesh wall | 12.0 s | **1.6 s** |
+| `checkMesh` | **Mesh OK** | ✗ skewness (12 faces) |
+| max aspect / non-orth avg / skew | 9.48 / 5.14 / **0.70** | **4.93** / **2.65** / 5.55 |
+| body layers | **1.32 of 2, 41.6 % of thickness** | on every boundary face by construction |
+
+The layer row is snappy's own log table, not an inference, and it is the whole
+of HELYX's meshing claim reproduced against a binary that needs no install. The
+skewness row is why this is a trade and not a rout: twelve faces at the sharp
+trailing edge, and the lane's gate treats skew as one of two tolerated
+`checkMesh` failures — **which P3 must earn its way out of rather than lean
+on.**
+
+**Two facts the probe itself taught.** `cartesianMesh` called directly cannot
+find `libmeshLibrary.so`; through the `openfoam2606` wrapper — the form
+`foam_argv()` already composes — it answers. And the first cfMesh run produced
+**630,980 cells in 17.1 s**, worse than snappy on every count, because a global
+`boundaryCellSize` refines at the farfield walls too; `localRefinement` on the
+body is the idiom, and the wrong number is kept in the evidence because a
+campaign that had stopped there would have concluded the opposite of the truth.
+
+### A74 P1 — the writer, with no cfMesh (2026-09-07)
+
+`foam.cfmesh_dict()` beside `snappy_dict()`, `physics.box_tris()`,
+`runs.domain_surface()` and `runs.write_tunnel_3d_cfmesh()` /
+`mesh_sequence_3d_cfmesh()`, and **`wt_mesh mesher=snappy|cfmesh`**. No new
+tool, no new engine row, no new capability: the surface is still 17.
+
+Three decisions worth their sentences:
+
+- **The caller's arguments do not change between meshers** (law 5). `levels` is
+  snappy's vocabulary, so cfMesh maps the finest level onto the body's cell
+  size — level 4 on a base of L/4 is L/64 either way — and `body_cell_m`
+  overrides it for anyone who wants the cfMesh word.
+- **`mesher=` on a 2-D or adopted case REFUSES rather than being ignored.** A
+  2-D case gets TEE's own O-mesh and an adopted case runs its own sequence, so
+  the argument would be a word with no effect, and a word with no effect is how
+  a caller comes to believe something happened.
+- **`cores` is not spent on cfMesh, and the reply says so.** cfMesh threads
+  itself rather than taking MPI ranks; neither route is measured here, so the
+  run is serial and carries `cores_note: "cfMesh ran serially; its parallel
+  route is unmeasured"` instead of a flag whose effect nobody has checked.
+
+The test that matters most asserts an ABSENCE: `boundaryCellSize` never appears
+in a written `meshDict`. Both keys produce a valid mesh, so nothing downstream
+could catch the wrong one — it shows up only as 630,980 cells instead of
+37,960, which is a bill rather than an error. Both that guard and the
+`mesher=` plumbing were **mutation-tested** before being trusted: emitting the
+banned key fails the guard, and hard-wiring `mesher = "snappy"` fails two tests
+by name.
+
+The fake `cartesianMesh` checks what a real one checks — the dictionary exists,
+the surface it names exists, and **the patches come from the STL's `solid`
+names**, which is why `domain_surface` rewrites the body rather than copying
+it: the name inside a user's STL is whatever their exporter wrote, and a binary
+STL carries none at all.
+
+Nine hermetic tests (`tests/test_windtunnel_cfmesh.py`); server **1,884 passed
+/ 38 skipped**, ruff clean, search budget and surface lint unchanged.
+
+### A74 P2 — the forces move, and two defects on the way (2026-09-07)
+
+The acceptance, run on the real binaries. It produced two defects before it
+produced a number, and both were invisible to everything hermetic.
+
+**A patch is a solid.** The first attempt meshed the prism perfectly and stopped
+the solver dead: `Cannot find patchField entry for farfield`. The box had gone
+in as ONE solid called `farfield` while every `0/` field this lane writes names
+blockMesh's patches — a valid mesh nothing could solve on. `physics.box_faces()`
+writes the box as five solids under blockMesh's own names, so one set of
+boundary conditions serves both meshers, and the face-to-name mapping was
+settled by computing every normal rather than trusting the face order.
+
+**cfMesh threads itself, and threaded it is not reproducible:**
+
+| | run 1 | run 2 |
+| --- | --- | --- |
+| `cartesianMesh`, threaded | `7c260615fd23772e` | `cc2a2a95b348336a` |
+| `cartesianMesh`, `OMP_NUM_THREADS=1` | `c5fa100c6f08f733` | `c5fa100c6f08f733` |
+| `snappyHexMesh` | `b0b9f5b5b90059d8` | `b0b9f5b5b90059d8` |
+
+38,352 cells every cfMesh time, 46,160 every snappy time — the count is stable
+and the mesh is not. Two laws of this lane need a mesh that can be identified:
+the hash travels with every coefficient, and same-mesh deltas are the
+first-class claim. So `mesher=cfmesh` pins the single-threaded route (~25 % more
+wall time: 3.4 s against 2.7 s, still 3× faster than snappy's 11 s) and `cores`
+buys the speed back with the loss named in the reply. It reaches the answer:
+spurious Cl wandered **0.0013 → 0.0093** across threaded runs and then repeated
+to five decimals — **0.011943, 0.011940** — once the mesh was pinned.
+
+**The comparison** (prism, α = 0, 200 iterations, same domain and layers):
+
+| | snappyHexMesh | cfMesh |
+| --- | ---: | ---: |
+| cells | 46,160 | 38,352 |
+| mesh wall | 10.8 s | **3.7 s** |
+| verdict | **stalled** (2.03 orders, at the cap) | **converged** (5.01 in 196) |
+| uncertainty | `indicative` | **`comparative`** |
+| Cd | 0.43435 | 0.31464 (−27.6 %) |
+| **Cl** | **0.07458** | **0.01194** |
+
+The Cl row decides it: a symmetric section at zero incidence must produce zero
+lift, so every count is the mesh's asymmetry rather than the flow's, and cfMesh
+leaves six times less of a quantity that should not exist. The solver says the
+same thing from its side — the same case, budget and settings converged on one
+mesh and stalled on the other.
+
+**Not claimed:** Cd has no reference here, so −27.6 % is a difference and not an
+improvement; one geometry at one refinement; and 0.012 of spurious lift is still
+not zero. Law 3 asked whether the forces move at all. They move by more than any
+mesh-convergence band would excuse, so the campaign continues and P4's router
+has a measurement to route on.
+
+**A threshold lesson worth keeping.** The symmetry test was first written
+`abs(cl) < 0.01`, taken from the first threaded run's 0.0013. With the mesh
+pinned the true figure is 0.0119, so that bound had been measuring whichever run
+happened to be luckiest. It is a ratio against snappy's number now, with a loose
+absolute band as a nonsense guard. And the fake was corrected against the real
+binary in the same round: `cartesianMesh` gives EVERY solid-derived patch `type
+wall`, the farfield included, where the fake had invented the tidier
+`patch`/`wall` split — a fake kinder than the tool it stands for is how a lane
+ships a defect that only appears on real engines.
+
+Three live tests (`cfd`), eleven hermetic; server **1,886 passed / 38 skipped**,
+ruff clean.
+
+**Then:** P3 below.
+
+### A74 P3 — the twelve skew faces, cleared (2026-09-07)
+
+P2's one measured defect, fixed rather than tolerated. cfMesh rounds a sharp
+trailing edge off into skew cells unless it is told where the edges are;
+`surfaceFeatureEdges` rewrites the surface as an FMS carrying them and
+`cartesianMesh` then respects them. Four variants, each meshed twice under
+`OMP_NUM_THREADS=1`, every row repeating exactly:
+
+| surface | cells | max skewness | `checkMesh` | mesh wall |
+| --- | ---: | ---: | --- | ---: |
+| plain STL | 38,352 | 5.5497206 | **FAILS** — 12 skew faces | 2.3 s |
+| **FMS, `-angle 30`** | **36,768** | **2.0995350** | **clean** | 2.5 s + 0.4 s |
+| FMS + `edgeMeshRefinement` | — | — | `cartesianMesh` **rc=1** | — |
+| FMS, `-angle 45` | 36,768 | 2.2391098 | clean | 2.6 s + 0.4 s |
+
+0.4 s and 1,584 fewer cells for a clean check. The angle is a constant of the
+lane, not a caller argument: snappy's own `includedAngle 150` is the same
+criterion from the other end (180 − 150 = 30), and 45° was measured and is
+worse. `edgeMeshRefinement` — the other half of the plan — killed
+`cartesianMesh` with rc=1 both times and is not shipped.
+
+**And it did something P3 was not looking for.** Solved through the lane at
+α = 0, the spurious lift a symmetric section cannot have went **0.01194 →
+0.00004**, against snappy's 0.07458 on the same case. A trailing edge the mesher
+rounds off asymmetrically is lift that is not there.
+
+**Checked because P2 had been bitten by it once:** an FMS that lost the patch
+names would mesh perfectly and then stop `simpleFoam` at `Cannot find patchField
+entry`. It does not — the FMS names its patches at the top and the same six come
+out of `polyMesh/boundary`, all `type wall`. The live test asserts it; the fake
+`surfaceFeatureEdges` reproduces the format so CI can too.
+
+**The threading lesson, learned twice.** The first four-variant table was
+measured *threaded* and its 45° row moved between runs (2.2391098 → 2.6517441).
+P2 had pinned the LANE; the probe script had not been pinned with it. Both are
+now, and `74-evidence/p3-2026-09-07.log` repeats.
+
+`TOLERATED_CHECKS` untouched. Skew is one of the two failures this lane
+tolerates, so the mesh would have run either way — which is exactly why buying
+the pass with a widened tolerance would have been the wrong answer (law 4).
+
+### A74 P4 — `auto`, and the campaign closes (2026-09-07)
+
+**The rule, and why it does not hedge.** No arm of A74 measured snappy ahead of
+cfMesh on a 3-D body — including with a hole cut in the body (four triangles,
+then a hole several cells across: both meshers closed it and both stayed clean,
+so "not watertight → snappy" would have been a rule with no measurement behind
+it). So `mesher="auto"` picks cfMesh wherever the install carries it, says so in
+the mesh row as `chose`, and the one thing that sends it back to snappy is
+cfMesh not being there. **`auto` is the default**; `mesher="snappy"` is one word
+back, and `wt_result compare_to=` still reports `same_mesh` from the mesh hash,
+so a comparison across the change says so rather than lying quietly.
+
+**Detection is a fact, not a version guess.** `wt_probe`'s `openfoam` row now
+carries `cfmesh` — the `cartesianMesh` path, empty where the build has none —
+read from the install itself. It cost no extra process: the version probe
+already ran one, and it now asks three questions instead of two. They are KEYED
+now rather than positional, because `command -v mpirun` prints nothing on a
+machine with no MPI and a positional reader then reads the next answer as the
+missing one. On a build without cfMesh, `auto` falls back and names the reason;
+`mesher=cfmesh` refuses as `wt_cfmesh_absent` and names the install (law 1:
+nothing is downloaded).
+
+**The benchmark is unmoved and was not re-run to prove it:** the wind-tunnel
+batch's OpenFOAM arm is the 2-D O-mesh case, which no 3-D mesher touches. What
+A74 changes is engine wall time and convergence, not the token shape of any
+reply — the mesh digest is the same digest.
+
+Surface still **17 tools / 2,129 wire tok** (the figure `test_server_lint.py`
+pins, not the 2,033 four campaigns' worth of prose kept reprinting); no new
+`wt_*` name, no family row, no new engine, no new licence.
+
+**Suites at close:** server **1,949 passed / 39 skipped / 2 xfailed** hermetic
+on A74's own tree, **1,959 / 39** once A76 was merged in (its P3 landed the fix
+its two xfails were waiting for), ruff clean; the `cfd` tier's A74 tests green
+on the real binaries (OpenFOAM v2606).
+
+**And CI said otherwise, which is the point of having it.** That green was
+measured on a machine with OpenFOAM installed. On the runner, one test failed:
+an assertion added in P4 called the OpenFOAM finder with an EMPTY config, which
+searches the real install locations rather than the fixtures' fake one — in the
+file whose docstring says *"the cfMesh writer, with no cfMesh"*. Fixing it to
+read the app's own config made it fail a second time, for a different reason
+that the first had been hiding: `_without_cfmesh(tmp_path)` was laying its
+fakes in the `app` fixture's own directory and then deleting `cartesianMesh`
+out from under it. Both are fixed, the failure was reproduced locally first
+(blind `_foam_candidates()` and `shutil.which` and this container raises the
+runner's error verbatim), and `test_server_lint.py` now fails any hermetic test
+that calls `find_*({})` or `probe({})` **without blinding the machine first**.
+That qualifier is itself measured: the guard's first draft flagged
+`test_windtunnel_readers.py`, which patches `shutil.which`, HOME and the
+environment and THEN calls the finder with an empty config to assert the
+absent-engine refusal — the one shape where asking the machine is the point.
+A test that passes for the wrong reason is not a passing test, and a guard
+that fails the right ones is not a guard. Shipped as **0.29.0** — 0.26.0 had been reserved for this campaign and
+0.28.0 was cut for it, and A76 reached the branch with that number first, so
+A74 took the next free one rather than a number sorting below two shipped
+releases.
+
+**The bundle was built and driven, not just built.** `make mcpb` produced
+`tee-engine-0.29.0.mcpb` (1,284,217 B), and a clean unzip driven as its own
+package meshed a real prism through the real cfMesh: manifest 0.29.0, 14 `wt_*`
+virtual tools, `wt_probe` reporting `cfmesh: True` off the v2606 install, and a
+bare `wt_mesh` running `surfaceFeatureEdges → cartesianMesh → checkMesh` to
+`kind: cfmesh`, `ok: True`, `feature_angle: 30.0`, with `chose` carrying its
+reason. The shipped tree making the call the campaign added.
+
+The `chose` line quotes the two measured numbers rather than their ratio: an
+earlier draft said "1/1900th the spurious lift", which rounds a rounded quantity
+(0.07458 / 0.00004 is ~1865) into a claim of its own.
+
+### A74 P5 — the 2-D route, measured and declined (2026-09-08)
+
+Opened on the owner's word after P4 closed, to settle the one question doc 74
+§4 had deferred rather than answered: does cfMesh's `cartesian2DMesh` earn a
+place beside the lane's own structured O-mesh?
+
+**It does not, and the numbers say so.** NACA 0012, chord 1 m, 30 m/s, α = 4°,
+kOmegaSST, both arms solved here rather than quoted:
+
+| | O-mesh (the lane's) | cartesian, 8 layers | cartesian, 30 layers |
+| --- | ---: | ---: | ---: |
+| cells | 16,000 | 10,032 | 16,456 |
+| mesh / solve | 1.6 s / 10.5 s | 1.5 s / 3.9 s | 1.8 s / 7.9 s |
+| Cl | 0.435564 | 0.427203 | 0.418769 |
+| **Cd** | **0.010913** | **0.020697** | **0.021972** |
+
+Cl agrees within 2–4 %; **Cd roughly doubles**, and giving the cartesian mesh a
+properly resolved boundary layer — 30 layers, more cells than the O-mesh,
+aspect ratio 891 — made it *worse*. The gap widens as the mesh is refined
+toward the thing it is being compared with.
+
+**The near-wall model was ruled out by measurement, not by argument.** The two
+arms differed in two ways at once, so the SAME O-mesh was solved both ways:
+`low_re` gave Cl 0.436168 / Cd 0.010896 and `wall_function` gave 0.436157 /
+0.010897 — identical to four decimals, because on a y+ ≈ 1 mesh the wall
+functions degrade to the low-Re limit. One variable moved, and it was the mesh.
+
+**Two facts kept, worth more than the verdict.** The surface rule **inverts**:
+`cartesianMesh` needs a CLOSED surface and `cartesian2DMesh` refuses one — it
+wants the outline extruded without caps, a ribbon open in z, and supplies the
+single cell through the thickness itself. Four closed variants all died in
+under a second with "There are no cells in the mesh!", whose two suggested
+causes (resolution, a maxCellSize dividing the domain evenly) were both wrong.
+And cfMesh **assigns no patch types in either dimension**: 3-D makes every
+solid-derived patch `wall` (P2), 2-D makes every patch `empty` — including the
+wall and the farfield, so `checkMesh` answers "this mesh is not 1D or 2D" until
+the caller rewrites two lines, after which the same mesh is `Mesh OK`.
+
+**A slip worth keeping.** The first run of the wall-treatment control read
+`Aref` from a guessed 1.0 m slab where the case record says 0.1 m, and every
+coefficient came out exactly 10× too small. Exactly 10× is what a guessed
+constant looks like, and the record was one `case.json` away.
+
+**No code shipped.** No tool, no argument, no version bump — the deliverable is
+the measurement and `docs/research/74-evidence/p5-*` (five probes and their
+log). Doc 74 §2.9 carries the reasoning and §4 now states the decline rather
+than the deferral.
+
+### Addendum — the lockfile guard, after the third CI cycle lost to it (2026-09-08)
+
+A77's version bump to 0.30.0 landed without `uv lock`, and CI's
+`uv sync --locked` refused the branch *before a single test ran*:
+
+```
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+```
+
+Re-locked and pushed. That is the **third** cycle this branch has spent on the
+same one-line omission — 0.24.1, the 0.29.0 renumber, and now 0.30.0 — and each
+time the signal arrived three minutes into a runner rather than in the working
+tree. `uv.lock` records `tee-engine`'s own version, so the mismatch is a string
+comparison: `test_server_lint.py` now fails it in milliseconds, with the fix in
+the message (`uv lock`, never `uv sync` — that drops the pip-installed extras,
+per the addendum below). The guard was checked against the exact state CI had
+just rejected before being trusted.
+
+### Addendum — `make` was re-syncing the venv (2026-09-08)
+
+Found while running `make lint` to validate A74 P5, and fixed in the same
+session. All four `uv run` invocations in `server/Makefile` — lint (×2),
+format, test — were **bare**, and a bare `uv run` syncs the venv to the lock
+before running anything. This project's engine extras (medimg, quant, solve,
+extract, pdf, and OCP/jsbsim/meshio) are installed ON TOP of the locked set
+with `uv pip install`; the `mcpb` target prints the restore line itself. A sync
+drops them.
+
+`make test` was the worst of the four: it would remove the extras and then
+every suite that needs them would **SKIP rather than fail**, so the only trace
+is a skip count nobody reads. That is the same shape as the defect A74 P4
+shipped and CI caught — a check that quietly depends on what the machine has —
+arriving this time through the build tooling rather than a test.
+
+Measured rather than assumed: a bare `uv run` in this tree reported
+`Installed 1 package in 1ms`, the sync doing its job on a checkout where
+nothing happened to need removing. Nothing was lost here — this container's
+extras were already absent (they are among the 39 skips) and the suite counts
+before and after are identical — but the hazard is real on a machine that has
+them. `--no-sync` on all four, and `test_server_lint.py` now fails any bare
+`uv run` in the Makefile; the guard was checked against the exact line it
+replaced.
+
+**Open:** one question of doc 74 §5 — **HiSA's licence**, read at its own
+repository rather than at a search result, before it is ever named as an option
+in a refusal. The Mac's v2606 bundle is now answered by `wt_probe` on any
+machine that runs it, and the 2-D `cartesian2DMesh` route is answered above.
+
+## A75 — the flight-dynamics lane: a polar becomes an aircraft that flies (2026-09-07)
+
+Owner: *"does TEE include a flight model"* → no; then *"check the JSBSim licence
+and API"* → doc 75; then *"research a lane for an open source model"*, doc plus
+campaign script, flight first; then *"start A75 P1"* and *"complete all phases
+without prompt"*. Numbered A75/75–77 because a parallel session opened A74
+(cfMesh) and pushed first — the check that both series were free was correct
+when made and stale by the time it was committed.
+
+**P0.** The licence ruling in `DECISIONS.md`: **in-process, LGPL-2.0-or-later**,
+because it is the only route that reaches `FGLinearization`. Both refusals are
+stated — the wheel's own CLI is GPL-3 (retreating to it would take on a
+*stronger* copyleft than the route it left), and the C++ binary is LGPL again
+but reaches no linearisation. Taken by the session under the owner's
+"without prompt" direction, recorded as reversible, and built so that reversing
+it changes `probe.py` and the gate rather than the design.
+
+**P1–P3, built together** once the trim proved out. `server/src/tee/flightdyn/`:
+`aircraft.py` (the generator), `probe.py`, `store.py`, `worker.py` (the child
+that may import JSBSim), `tools.py`. Five virtual tools — `fd_probe`,
+`fd_aircraft`, `fd_trim`, `fd_modes`, `fd_fly` — **zero** added to the
+always-loaded surface, each tabled individually in `kernel/trust.py` under a
+`# DELIBERATELY NO ("fd_", ...) FAMILY ROW` comment.
+
+**What the build measured, and what it cost to find.**
+
+1. **`do_trim` names the wrong axis.** It says `qdot doesn't appear to be
+   trimmable`. Bracketing each axis by hand: `qdot` swings cleanly through zero
+   (elevator −1/0/+1 → +6.69 / −0.02 / −6.73 rad/s²), `wdot` likewise, and
+   **`udot` never brackets zero at all** — 1.72 / 1.64 / 1.68 ft/s² across the
+   whole throttle range. The un-trimmable axis was the one it did not name.
+2. **Because the turbine has not spooled when the trim looks at it.**
+   `set-running` leaves N1/N2 near 100 %, and thrust follows the spool rather
+   than the throttle for about a second: 193.6 lb of a 200 lb rating at throttle
+   zero. Settled, it is exactly right — 4.00 / 53.00 / 200.00 lb at 0 / 0.5 /
+   1.0. Spooling *before* `do_trim` does not help; the trim resets what it
+   evaluates.
+3. **`run_ic()` does NOT reset the spool.** That is the fact the lane's own trim
+   rests on: spool once, then re-set the initial condition freely per iteration.
+   A 3×3 Newton over alpha, elevator and throttle converges in **7 iterations**.
+4. **A `<turbine_engine>` without `IdleThrust`/`MilThrust` function tables
+   segfaults at `run_ic()`** rather than reporting. So does an empty
+   `<propulsion>` under `FGLinearization` (doc 75). An `<electric_engine>`
+   behind `<direct>` does load — and made **88,507 lbf** on an 1,874 lb
+   aeroplane. `<direct>` is right for a *turbine*, which is what the bundled 737
+   uses.
+5. **`FGLinearization` leaves the model perturbed and `dt` at 0.** Read L/D
+   afterwards and it comes back 125 where the truth is 30.7; loop on `run()`
+   afterwards and it divides by zero. Both guarded.
+6. **Body axes are not wind axes.** `forces/fbx-aero-lbs` carries lift's
+   component at alpha; `forces/lod-norm` is the ratio, and is what the
+   cross-check uses.
+7. **A bare `python` in a subprocess is not this interpreter.** `fd_probe`
+   reported the wheel absent on a venv that had it — caught by booting the real
+   `.mcpb`, fixed to `sys.executable`, and now asserted by a test.
+
+**P3's acceptance, met on a generated aircraft** (5,000 ft, 90 KCAS):
+
+```
+trim      converged in 7 iterations   alpha 1.408 deg  elevator -0.035  throttle 0.610
+modes     T  2.03 s  zeta 0.699   Alpha 50%, Q 50%      <- short period
+          T 31.53 s  zeta 0.028   Theta 49%, Vt 48%     <- phugoid
+check     Lanchester 22.59 s (+39.6%); zeta 0.0230 theory vs 0.0282 (+23%); L/D 30.7
+hold 60s  altitude drift 1.5 ft   KCAS 89.88   Nz 0.9965
+```
+
+Both longitudinal modes name themselves by modal participation. The lateral
+pair comes back degenerate and is **dropped rather than reported** — a polar
+carries no `Cl_beta` or `Cn_beta`, and a mode with no data behind it is not a
+result. The closed-form checks neglect thrust, so the tests assert the band
+those approximations are worth, not a tolerance they cannot support.
+
+**P4.** `docs/flightdyn-lane.md`, `docs/setup-flightdyn.md`, the `CLAUDE.md`
+bullet, CHANGELOG **0.27.0** (0.26.0 left to the in-flight A74), version ×3, the
+`flightdyn` extra + `extras.WITNESS` + the `fdm` marker, five search-budget
+cases and the **re-measured** recall table (49/53 at limit 3, 53/53 at 5 — it
+was 44/48 and 48/48), and a `benchmarks/RESULTS.md` row: **131,179 → 898 tokens,
+99.3 %**, of which the time history alone is 125,206 and grows with every second
+flown while the digest does not. `make mcpb` + clean-unzip verified: manifest
+0.27.0, `tools[]` still 17, no `fd_` on the surface, search reaches the lane
+from the bundle.
+
+**Open, and honest about it:** whether partkiln's part inertias compose into an
+aircraft's tensor at a useful fidelity (untested); where the ARM-Linux sdist
+build lands (no aarch64 wheel exists); the aero reference point sits on the CG,
+so there is no lift-arm contribution to pitch; and the generated engine is a
+flat-rated thrust source, not a powerplant model.
+
+**Suites at close:** server `uv run --no-sync pytest -q` **1,980 passed / 13
+skipped / 143 deselected**; `-m fdm` **4 passed / 1 skipped**; `make lint` clean.
+Surface unchanged: **17 tools**.
+
+## A76 — the engine lane: truth about the local models (2026-09-07)
+
+Owner: *"research a lane for an open source model"*, then *"start A76 P0"*, then
+*"complete all phases without my input"*. The script opened by telling a cold
+session the campaign might not be worth running and left the choice to the
+owner; the owner's direction moved it to the session, which took it on evidence.
+
+**P0.** One measurement settled it (`docs/research/77-evidence/shim-truth.py`):
+the owner's shim advertises **8 routes, 2 produce text, 4 answer HTTP 200 with
+empty content and a usage block claiming completion tokens, 1 errors honestly**.
+`local_llm.available()` asks `GET /v1/models`, so it calls all eight healthy;
+a status-code check calls six healthy. Only reading the content is truthful.
+The ruling is in `DECISIONS.md`, with the config fix recorded as still owed and
+not a substitute.
+
+The router defect was reproduced **before** it was fixed: two strict xfails plus
+a test asserting the two causes were indistinguishable. Three more defects P0
+found without looking for them: `doctor.check_llm` reporting `ok` with no remedy
+while chores were dead by name; `save_state` silently persisting nothing without
+`cfg["_state_dir"]` (hit live while switching profile on the owner's
+instruction — `switch()` returned `ok` having changed nothing); and `switch()`'s
+own refusal advertising `TEE/35B` and `TEE/DSFLASH`, profiles that exist in
+neither the builtins nor the config.
+
+**Two of the script's own facts were wrong**, which is the campaign's thesis
+turned on its author: `LADDER` is `('q14b+a2', 'dsflash', 'q27b-bare', 'q35b')`,
+so `q14b+a2` sorts first at 1.74 s and not `dsflash`; and *"nothing is answering
+at all"* was true when written and false by P0. A third followed in P1 — the
+digest budget I wrote as "under 250 tokens" is only reachable by deleting the
+fix lines that give it value, so it is now bounded per row.
+
+**P1.** `server/src/tee/engines/`: `discover.py`, `weights.py`, `table.py`,
+`tools.py`. Running it against the real machine found three things no fixture
+would have. Two were mine — the scan read only config-named endpoints and so
+missed the vision endpoint then declared its engine unserved; and the reconcile
+join fell back to the ACTIVE profile's model for engines declaring none, so
+every unknown engine appeared to serve whatever was pinned. The third is TEE's:
+**every `ENGINES` row carries `model=None`**, the id living in the profile spec
+— the mechanical reason nothing had ever reconciled that table.
+
+`weights.py` automates A49's hand method and reproduces its reading:
+`Qwen3.8-27B` measures **50.956 GB** on disk against **55.0 declared** and
+**43.7** in the row's own comment.
+
+**P2.** `eng_audition` runs TEE's own triage chore against an engine, graded by
+that chore's own validator. Live on `mlx-community/Qwen3.8-27B-bf16` at `:8080`:
+cold **47.1 s**, warm **[44.3, 45.0]**, verified **1.0**, passing at every rung
+down to 64 tokens. The registry declares that engine at **[3.07, 9.69]** — about
+five times faster than it is. A sweep that never fails reports a **bound**, not
+a floor.
+
+`eng_check` became `eng_ask`: the old name outranked `pk_drawing` on "check the
+drawing" because the tool NAME carried the word. A lane must not cost another
+lane its vocabulary.
+
+**P3.** `record_route(..., unreachable=)` splits a dead endpoint from a verifier
+kill and `meter_block` gains `unreachable_hops`, so doc 55's escalation alarm
+can be read. The ladder orders from the measured file at call time, with the
+literals as fallback and `LADDER` surviving as the attribute five test modules
+import. Proven end to end: adopting the measured 45 s row moves `q27b-bare` from
+third to last. `min_chore_tokens` takes the same precedence.
+`doctor.check_llm` reports chores and vision as the two facts they are.
+
+**P4.** `docs/engines-lane.md`; `setup-local-llm.md` amended to mark "any
+OpenAI-compatible endpoint works identically" as an expectation rather than a
+result; the `CLAUDE.md` bullet; CHANGELOG **0.28.0** (0.26.0 still reserved for
+the in-flight A74); version ×3; four search-budget cases and the re-measured
+recall table (**57 cases, 53/57 at limit 3, 57/57 at 5**, over a 209-tool
+registry); and a `benchmarks/RESULTS.md` row: **21,979 → 375 tokens, 98.3%**.
+
+**Owed, and named as owed:** the config fix itself (drop `dsflash`, declare
+`q35b`, correct `[llm] model`) — the lane names it in one line but does not
+apply it, because the lane measures and the owner declares. Non-MLX conformance
+is unmeasured: Ollama, llama.cpp, vLLM and LM Studio are named nowhere in
+`server/src/`. And `eng_audition` has been run against one engine on one
+machine; every other row still reads `unmeasured`, honestly.
+
+**Suites at close:** server `uv run --no-sync pytest -q` **2,008 passed / 21
+skipped / 143 deselected**; `make lint` clean. Surface unchanged: **17 tools**.
+
+### A76 addendum — the debts paid (2026-09-08)
+
+The three things A76 named as owed and did not do, done on the owner's
+instruction. The lane still measures and never declares; this is the owner's
+declaration, made through a session they directed.
+
+- **`q35b` is declared** in `BUILTIN_PROFILES`, not in one machine's config, so
+  any machine serving `mlx-community/Qwen3.6-35B-A3B-bf16` can reach it. It had
+  a registry row and no profile anywhere, which is why `route()` skipped it with
+  *"profile not declared here"* while `:8080` was serving the weights.
+  `min_chore_tokens`' only non-default row (1024) becomes reachable with it.
+- **`[llm] model` corrected** from `tee-coder`, which `:8080` does not serve, to
+  an id it lists. `local_llm.available()` returned False for the DEFAULT profile
+  even with the whole stack up.
+- **`dsflash` keeps its row.** Dropping it centrally because one machine stopped
+  serving it would break A46 P3b's own law — *registering an engine centrally
+  must not defame it on machines that do not serve it* — and `route()` already
+  skips an undeclared rung. The row gains a dated `serving_note`; what is
+  reachable *today* is `eng_reconcile`'s answer, per machine and per run.
+- **`save_state` reports whether it wrote**, and `switch()` raises
+  `llm_no_state_dir` rather than returning `ok` for a switch that cannot
+  survive the call.
+- **The chat phrases are computed**, so no refusal recommends a profile it would
+  itself reject.
+
+Also removed: `server/src/tee/engines/.tee/extras-seen.json`, a runtime artifact
+committed inside the lane package in A76 P1. `.tee/` is gitignored, but
+`git update-index --add` — which the temp-index commit this repo needs uses —
+bypasses `.gitignore`. The same trap that once committed ten cache files.
+
+**Not ours, reported not touched:** `test_windtunnel_cfmesh.py::test_the_probe_
+says_whether_this_install_carries_cfmesh` fails on this machine. `engines.py`
+and the test are byte-identical to A74's tip, so it is not a regression from
+this work. The cause: `cartesianMesh` lives at
+`/Volumes/OpenFOAM-v2606/plugins/cfmesh/executables/cartesianMesh` on the
+mounted DMG, while the probe resolves the install to
+`/Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam` and looks
+there. The probe already finds `mpirun` on the volume, so it knows the volume
+exists — the cfmesh lookup does not use it.
+
+**Suites:** 2,022 passed / 21 skipped / 1 failed (the cfMesh probe above, A74's
+and pre-existing); `make lint` clean.
+
+## A77 — the benchmark tells the truth (2026-09-08)
+
+Owner: *"start A77 P0"*, then *"continue all phases without my input"*. No A77
+existed, so P0's first act was choosing the campaign; the choice and the three
+alternatives it beat are in `DECISIONS.md`, and it is reversible.
+
+**P0.** `CLAUDE.md` says tokens per completed task is TEE's core metric and that
+every design decision is judged by it first. It is the one thing in the repo
+with no owner: licences have a gate per lane, the tool surface has nine
+assertions, trust has a table that refuses an untabled tool at startup, and
+`RESULTS.md` — 26 sections, 85 tabled numbers — is referenced by no test at all.
+
+And it had drifted. A real server serves 210 tools; the harness measured 141.
+**52 tools, 27 % of the long tail, were invisible to it.** `78-evidence/drift.py`
+reads both lane lists out of the SOURCE rather than restating them, so the
+measurement cannot go stale the way its subject did.
+
+**P1.** `cli.attach_all` is the single seam, built from `LANE_ATTACHMENTS`.
+`cmd_serve` had nineteen bare `_attach_` calls; the harness hand-rolled seven of
+its own. Both now go through it. `test_a77_one_server.py` asserts every
+`_attach_` function cli.py defines is in the list, that `cmd_serve` attaches
+nothing on its own, and that the harness does not hand-roll a server again — and
+one test plants a lane outside the list to prove the gate fires.
+
+**The correction, and its direction.** Measured through the real list: **197
+virtual tools, 31,283 tokens flat, 93.2 % saved** where the row claimed 141 and
+89.6 %. The stale figure understated TEE's own saving by 3.6 points. Worth
+stating plainly because the assumption runs the other way — an unmanaged number
+is not biased toward its author, it is simply unread, and nobody looked for four
+campaigns even while it undersold the feature. Doc 78, the script, the ruling and
+the evidence README all said "drifts in TEE's favour" until P1 measured it and
+all four were corrected.
+
+**P2.** The A75 and A76 rows had no scenarios: both were hand-measured in a shell
+and written in as prose, which is the exact thing this campaign is about.
+`run_flightdyn_scenario` and `run_engines_scenario` now re-run them like every
+other row, and both feed `write_results`, which states whether a row was
+re-measured or **held** this run rather than carrying a stale number silently
+forward. Flight dynamics re-measured **898 → 835**. The engine row re-measured
+**375 → 311**, and the gap is methodological, not drift: 375 was taken against a
+live model stack where `eng_scan` had two answering endpoints to describe, and
+the scenario runs hermetically. Both are true and they answer different
+questions, so the row now names its condition — **a benchmark number that omits
+the machine state it was taken in cannot be re-run.**
+
+**P3.** `test_a77_benchmark_canary.py` reads the numbers out of `RESULTS.md`'s
+own prose and fails when they stop being true: the always-loaded wire figure
+(±2 %, tight because the one recorded regression moved it +96 tokens), the
+corpus size (exact — a tool count is an integer), the headline saving (±1 point)
+and each lane's headline cost (±10 %, wide because a rephrased verdict line is
+not a regression). Every band is stated with why. Verified by planting a stale
+number and watching it fail.
+
+**Not the campaign's, but paid here:** the venv had lost eight extras — laspy,
+trimesh, fpdf, pydicom, highspy, skfolio, meshio, jsbsim — plus networkx, rtree
+and numba that seamkiln reaches through trimesh and no TEE extra declares. The
+cause was `make lint` running a plain `uv run`, which syncs from the lock; the
+parallel session's `--no-sync` fix landed in the same pull that surfaced it. 12
+failures and 33 errors were checked against the pre-change tip before being
+blamed on anything of this campaign's.
+
+**Held, and named as held:** the DCC scenarios (donut, hundred-objects,
+material-pass, verify) need a live headless Blender and were not re-run; the
+Fusion, Unreal and windtunnel rows likewise need their engines. They keep their
+last measured values and their dates. P2 re-measured what runs here and nothing
+else.
+
+**Suites at close:** server `uv run --no-sync pytest -q` **2,010 passed / 28
+skipped / 141 deselected**; `make lint` clean. Surface unchanged: **17 tools**.

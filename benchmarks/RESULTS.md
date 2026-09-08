@@ -112,16 +112,25 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,129** |
 | same, by `model_dump()` | 17 | 2,596 |
-| flat server, one tool per capability | 158 | 20,545 |
+| flat server, one tool per capability | 214 | 31,283 |
 
-Registering all seven modules (extract, assets, design, physical,
-pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 141 tools they contribute live behind the
-meta-tools. Reaching one costs 548 tokens (one search +
-one describe), so the flat design only pays off in a session that
-uses more than ~37 distinct long-tail tools.
+Attaching **every lane a served TEE has** adds **0 tokens** to the
+always-loaded surface - the **197** tools they contribute live
+behind the meta-tools, a **93.2%** saving. Reaching one costs 544
+tokens (one search + one describe), so the flat design only pays
+off in a session that uses more than ~57 distinct long-tail tools.
 
-Re-measured 2026-09-07 by `run_surface_scenario`. The wire figure
+**A77 P1 corrected this row.** It read 141 tools and 89.6% because
+the harness hand-rolled its own list of seven lanes where
+`cmd_serve` attaches nineteen - `windtunnel`, `flightdyn`, `engines`,
+`pipeline`, `senses`, `pdf`, `purge`, `llm`, `web`, `gateway`,
+`pointcloud` and `capture` were all invisible to it. The stale figure
+understated the saving by 3.6 points; an unmanaged number is not
+biased toward its author, it is simply unread. Both callers now go
+through `cli.attach_all`, and `test_a77_one_server.py` fails if a
+lane ever reaches one and not the other.
+
+Re-measured 2026-09-08 by `run_surface_scenario`. The wire figure
 was **2,033** from A12 until `bd70096` (A68 P2), which gave the
 shared `adapter=` parameter a one-line description on eight tools:
 **+96 tokens**, and no lane has moved it before or since. It now
@@ -413,6 +422,86 @@ The script's W1 batch: a tapered wing built and swept through six angles by VSPA
 **Saving: 85.4%.** The naive arm grows with every iteration the solver takes (736 bytes of log per simpleFoam step, measured on v2606) and with every point in the polar; the TEE arm is flat: no array over 64 elements, no string over 2 KB, a verdict and an uncertainty label on every number. On the real engines the same calls measured 55 / 181 / 162 / 97 / 21-87 / 163 / 88 / 33 tokens (probe, case, mesh, run, status, result, view, export; research doc 72 3.5).
 
 _(recorded 2026-09-06 by running `run_windtunnel_scenario()` directly in the Linux build container, which has no Blender for the full script; the section is the one `write_results` emits and is carried forward by header on machines that skip it)_
+
+
+## Flight dynamics: a polar becomes an aircraft that flies (A75)
+
+The lane's whole loop on a generated aircraft — probe, generate from an
+eight-point polar, trim, take the modes, then fly the trim for a minute — against
+what a model must otherwise read to reach the same answer.
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (the aircraft XML authored and read back, the property catalogue, 60 s of six states at 120 Hz, the raw A and B) | 131,179 | — |
+| TEE (`fd_probe` to `fd_fly`, digests only) | **835** | 5 |
+
+**Saving: 99.4%** — a factor of 157. Per call: `fd_probe` 128, `fd_aircraft` 90,
+`fd_trim` 128, `fd_modes` 334, `fd_fly` 155.
+
+_A77 P2 re-measured this: it read **898** and was taken by hand in a shell, with
+no scenario behind it. `run_flightdyn_scenario` now re-runs it like every other
+row. It holds rather than guesses when jsbsim is absent._
+
+The naive arm is dominated by one term: the time history is 125,206 of its
+131,179 tokens, and it grows linearly with every second flown and every state
+watched — sixty seconds of *six* states here, where the model has 656 properties
+available and a mission is not a minute. The TEE arm is flat: the reply is the
+trim state, the verdict and the mode table whatever the flight length, capped at
+64 elements per array and 2 KB per string, and a test asserts the whole reply
+stays under 4 KB.
+
+The mode table is why the lane is cheap rather than merely terse. A and B at a
+trim point are 950 tokens raw and 363 as a digest that has already named each
+mode by its modal participation — and they are where stability derivatives and
+handling qualities start, so the expensive part of a flight-dynamics answer is a
+small matrix rather than a trajectory.
+
+_(recorded 2026-09-07 on the owner's Mac against jsbsim 1.3.1, through
+`app.registry.call` with the real engine; token counts by the repo's own
+`estimate_tokens`.)_
+
+
+## Engine lane: is the router's table still true? (A76)
+
+`eng_scan` then `eng_reconcile` on the owner's live stack, against what a model
+must otherwise read to answer "which local engines can this machine actually
+use, and are the router's numbers still true".
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (`machine.py`, `profiles.py`, `router.py`, `llm/tools.py`, `local_llm.py`, the head of `chores.py`, `.tee/config.toml`, the shim's `litellm.yaml`) | 21,979 | — |
+| TEE (`eng_scan` 57 + `eng_reconcile` 254) | **311** | 2 |
+
+**Saving: 98.6%** — a factor of 71, on a machine with **nothing running**.
+
+_A77 P2 re-measured this and found the row was not reproducible. It read **375**,
+taken against a live stack where `eng_scan` had endpoints to describe; the
+scenario pins every endpoint to a closed port, where the same call costs 57.
+Both are true and they answer different questions, which is why the row says
+which one it is._
+
+_And P3's canary immediately caught the same mistake again: the row moved
+**311 → 364** between two runs an hour apart, because `eng_scan` genuinely
+probes localhost and the owner's model stack had come back up — so the
+"hermetic" scenario was measuring the developer's machine. It is now pinned to a
+port nothing can answer and returns 311 on three consecutive runs with the stack
+up. **The cost scales with what is answering**: 57 tokens for `eng_scan` against
+nothing, 75 against four live endpoints. A benchmark number that omits the
+machine state it was taken in cannot be re-run — the campaign's own thesis,
+caught by the campaign's own gate, on the campaign's own row._
+
+**And the naive arm does not answer the question.** Four of the eight routes the
+shim advertises return HTTP 200 with empty content; that fact is in none of
+those eight files and costs a live probe. Reading everything TEE knows about its
+engines still leaves you unable to say which of them work.
+
+The larger cost is not the digest. A wrong `ENGINES` row is paid on every chore,
+for as long as it stands: the registry declares `q27b-bare` at 3.07–9.69 s and
+an audition measured 44–47 s on the same machine, so the ladder was sorting on a
+number five times off. Every chore routed on that order pays for it.
+
+_(recorded 2026-09-07 on the owner's Mac through `app.registry.call` against the
+live stack; token counts by the repo's own `estimate_tokens`.)_
 
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)

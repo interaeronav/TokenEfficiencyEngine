@@ -7,6 +7,7 @@ its own basename (argv[0]); `install_fakes` lays them out the way the real
 installs look and returns the `[windtunnel]` config that points at them:
 
     fake-foam/   blockMesh surfaceFeatureExtract snappyHexMesh checkMesh
+                 surfaceFeatureEdges cartesianMesh
                  simpleFoam decomposePar reconstructPar reconstructParMesh
     fake-su2/    SU2_CFD
     fake-vsp/    vspscript vspaero vsp
@@ -59,6 +60,8 @@ FOAM_APPS = (
     "blockMesh",
     "surfaceFeatureExtract",
     "snappyHexMesh",
+    "surfaceFeatureEdges",
+    "cartesianMesh",
     "checkMesh",
     "simpleFoam",
     "decomposePar",
@@ -224,6 +227,105 @@ def snappy():
     for phase in ("Castellation", "Snapping", "Layer addition"):
         out(phase + " ...")
     out("Layer mesh : cells:%d" % cells_of(case))
+    out("End")
+
+
+def surface_feature_edges():
+    """cfMesh's `surfaceFeatureEdges`: an STL in, an FMS out.
+
+    The shape is transcribed from a real v2606 output (doc 74 section 2.8):
+    a patch block - count, parens, one `<name> <type>` row per solid, the
+    type being the literal `empty` cfMesh writes there - then points, then
+    the feature edges. What a test must be able to catch is that the PATCH
+    NAMES SURVIVE the conversion: they are what `cartesianMesh` turns into
+    the six boundary patches every `0/` field names, and an FMS that lost
+    them would mesh perfectly and then stop `simpleFoam` dead (A74 P2).
+    """
+    case = case_dir()
+    positional = [a for a in ARGS if not a.startswith("-")]
+    positional = [a for a in positional if a not in (str(case),)]
+    if "-angle" in ARGS:
+        positional = [a for a in positional if a != ARGS[ARGS.index("-angle") + 1]]
+    foam_banner("surfaceFeatureEdges")
+    out("(cfmesh)")
+    if len(positional) != 2:
+        out("Usage: surfaceFeatureEdges [OPTIONS] <input surface file> <output surface file>")
+        sys.exit(1)
+    src_path, dst_path = Path(positional[0]), Path(positional[1])
+    if not src_path.is_file():
+        out("--> FOAM FATAL ERROR: cannot read " + str(src_path))
+        sys.exit(1)
+    solids = re.findall(r"^solid\s+(\S+)", read(src_path), re.M)
+    if not solids:
+        out("--> FOAM FATAL ERROR: no solids in " + src_path.name)
+        sys.exit(1)
+    angle = ARGS[ARGS.index("-angle") + 1] if "-angle" in ARGS else "45"
+    verts = re.findall(r"vertex\s+(\S+)\s+(\S+)\s+(\S+)", read(src_path))[:8]
+    points = "\n".join("(%s %s %s)" % v for v in verts)
+    body = "\n%d\n(\n" % len(solids)
+    body += "".join("\n%s empty\n" % s for s in solids)
+    body += ")\n\n\n%d\n(\n%s\n)\n\n%d\n(\n%s\n)\n\n0()\n0()\n0()" % (
+        len(verts),
+        points,
+        max(len(verts) - 1, 0),
+        "\n".join("(%d %d)" % (i, i + 1) for i in range(max(len(verts) - 1, 0))),
+    )
+    dst_path.write_text(body)
+    out("Feature angle " + angle)
+    out('Writing : "' + str(dst_path) + '"')
+    out("End")
+
+
+def cartesian_mesh():
+    """cfMesh's `cartesianMesh`, faked at the level that matters.
+
+    What a test needs to be able to catch: the dictionary must exist, the
+    surface it names must exist, and the PATCHES COME FROM THE STL's `solid`
+    names - which is the whole reason `runs.domain_surface` rewrites the body
+    rather than copying it. Everything else is log shape.
+    """
+    case = case_dir()
+    need_control_dict(case)
+    foam_banner("cartesianMesh")
+    out("(cfmesh)")
+    mesh_dict = case / "system" / "meshDict"
+    if not mesh_dict.is_file():
+        out("--> FOAM FATAL IO ERROR: cannot find file meshDict")
+        sys.exit(1)
+    text = read(mesh_dict)
+    m = re.search(r'surfaceFile\s+"([^"]+)"', text)
+    surface = case / m.group(1) if m else None
+    if surface is None or not surface.is_file():
+        out("--> FOAM FATAL ERROR: cannot read surface file " + str(surface))
+        sys.exit(1)
+    text_surface = read(surface)
+    if surface.suffix == ".fms":
+        # an FMS names its patches in the block at the top: count, parens,
+        # then one `<name> <type>` row each. Same names, same order.
+        head = text_surface.split(")", 1)[0]
+        solids = re.findall(r"^(\w+)\s+\w+$", head, re.M)
+    else:
+        solids = re.findall(r"^solid\s+(\S+)", text_surface, re.M)
+    if not solids:
+        out("--> FOAM FATAL ERROR: no solids in " + surface.name)
+        sys.exit(1)
+    cell = re.search(r"maxCellSize\s+([0-9.eE+-]+)", text)
+    layers = re.search(r"nLayers\s+(\d+)", text)
+    out("Reading " + surface.name + ": " + str(len(solids)) + " patches")
+    out("Requested cell size " + (cell.group(1) if cell else "?"))
+    # measured on the real cartesianMesh (A74 P2): EVERY patch it makes from a
+    # solid comes out `type wall`, the farfield included - so the fake says so
+    # too rather than inventing the tidier answer
+    patches = [(s, "wall") for s in solids]
+    n = int(os.environ.get("TEE_FAKE_CFMESH_CELLS", "40000"))
+    write_polymesh(case, patches, n)
+    out("Starting creating layer cells")
+    out("Adding %d cells to the mesh" % (n // 8))
+    if layers:
+        out("Starting refining boundary layers")
+        out("Number of newly generated cells %d" % (int(layers.group(1)) * 150))
+        out("Finished refining boundary layers")
+    out("Finished generating the mesh")
     out("End")
 
 
@@ -710,6 +812,8 @@ DISPATCH = {
     "blockMesh": block_mesh,
     "surfaceFeatureExtract": surface_feature_extract,
     "snappyHexMesh": snappy,
+    "surfaceFeatureEdges": surface_feature_edges,
+    "cartesianMesh": cartesian_mesh,
     "checkMesh": check_mesh,
     "simpleFoam": simple_foam,
     "decomposePar": decompose_par,

@@ -6,7 +6,7 @@ names the install line below with its size and the date it was verified.
 
 | engine | licence | what TEE runs | found at |
 | --- | --- | --- | --- |
-| OpenFOAM (openfoam.com) | GPL-3 | `blockMesh snappyHexMesh checkMesh simpleFoam decomposePar reconstructPar` through the install's own environment | `[windtunnel] openfoam`, then `/usr/lib/openfoam/openfoam*`, `/opt/openfoam*`, `~/OpenFOAM/OpenFOAM-*`, `/usr/share/openfoam`; the Mac app under `/Applications/OpenFOAM-v*.app` |
+| OpenFOAM (openfoam.com) | GPL-3 | `blockMesh snappyHexMesh checkMesh simpleFoam decomposePar reconstructPar`, and cfMesh's `cartesianMesh surfaceFeatureEdges` where the install carries them, through the install's own environment | `[windtunnel] openfoam`, then `/usr/lib/openfoam/openfoam*`, `/opt/openfoam*`, `~/OpenFOAM/OpenFOAM-*`, `/usr/share/openfoam`; the Mac app under `/Applications/OpenFOAM-v*.app` |
 | SU2 | LGPL-2.1 | `SU2_CFD` | `[windtunnel] su2`, `$SU2_RUN`, `~/SU2/bin`, `/opt/SU2/bin`, PATH |
 | OpenVSP / VSPAERO | NOSA-1.3 | `vspscript` (with `vspaero` beside it) | `[windtunnel] openvsp`, `/opt/OpenVSP`, `/usr/local/bin`, `/Applications/OpenVSP*`, PATH |
 | ParaView | BSD-3 | `pvpython` | `[windtunnel] pvpython`, `/Applications/ParaView-*.app/Contents/bin`, `/opt/paraview*/bin`, `/usr/bin`, PATH |
@@ -36,6 +36,15 @@ sudo apt-get install paraview python3-paraview xvfb
 moment any function object is on — so it can mesh and solve but never report
 a force. TEE searches `/usr/lib/openfoam/openfoam*` first and `/usr/share/openfoam`
 last for that reason.
+
+**cfMesh needs no install of its own (A74).** `cartesianMesh` and
+`surfaceFeatureEdges` ship *inside* openfoam.com's distribution (from v1806),
+so the line above already installed them and `wt_mesh` defaults to
+`mesher="auto"`, which uses cfMesh wherever it is present. `wt_probe` reports
+the binary's path in the `openfoam` row (`cfmesh`), empty on a build that has
+none — a Foundation install, or anything older. On such a machine `auto` meshes
+with snappyHexMesh and says so in the mesh row; `mesher="cfmesh"` refuses by
+name rather than quietly substituting. Nothing is downloaded either way.
 
 **Root containers:** Open MPI refuses to run as root. For a parallel run
 (`cores > 1`) started by root, TEE sets `OMPI_ALLOW_RUN_AS_ROOT=1` and its

@@ -236,6 +236,52 @@ def test_the_state_script_opens_what_wt_view_renders(tmp_path):
     assert e.value.code == "wt_bad_view"
 
 
+def test_the_state_script_carries_the_time_and_never_colours_by_none():
+    """The two defects P2 found on the real ParaView (doc 73 §2.10), pinned
+    where CI can see them.
+
+    A fake `pvpython` accepts whatever script it is handed, so the only guard
+    that runs on a machine without ParaView is the text of the script itself:
+    the animation scene must carry the time - `SaveState` does not save the
+    view's - and `ColorBy(d, None)` must never appear, because it raises on a
+    case whose data has no array to colour by.
+    """
+    from tee.windtunnel import state as state_mod
+
+    for kind in state_mod.KINDS:
+        text = state_mod.state_script(
+            Path("/x/case.foam"), Path("/x/s.pvsm"), view="mesh", kind=kind
+        )
+        assert "GetAnimationScene()" in text, kind
+        assert "scene.UpdateAnimationUsingDataTimeSteps()" in text, kind
+        assert "scene.AnimationTime = ts[-1]" in text, kind
+        assert "ColorBy(d, None)" not in text, kind
+
+    full = state_mod.state_script(Path("/x/case.foam"), Path("/x/s.pvsm"), view="mesh", kind="full")
+    assert "ColorBy(d, ('CELLS', None))" in full  # a valid association, no array
+    assert "rv.ViewTime = ts[-1]" in full  # the view too, for the writing process
+
+
+def test_the_reader_block_binds_ts_before_the_state_script_uses_it():
+    """`wt_open` on an SU2 case died with `NameError: ts`.
+
+    `paraview._reader_lines` bound `ts` in its `.foam` branch and not in its
+    `.vtu` one, while `state_script` reads it in both - so the handoff worked
+    for one engine and crashed for the other, and only on a real `pvpython`.
+    The structural assertion is the one worth keeping: whatever the reader
+    block grows into, it assigns `ts` before anything reads it.
+    """
+    from tee.windtunnel import state as state_mod
+
+    for source in (Path("/x/case.foam"), Path("/x/flow.vtu")):
+        for kind in state_mod.KINDS:
+            body = state_mod.state_script(source, Path("/x/s.pvsm"), kind=kind).splitlines()
+            assigned = next(i for i, ln in enumerate(body) if ln.startswith("ts = "))
+            used = [i for i, ln in enumerate(body) if "ts[-1]" in ln or "len(ts)" in ln]
+            assert used, (source.suffix, kind)
+            assert assigned < min(used), (source.suffix, kind)
+
+
 def test_the_engine_resolvers_find_the_applications_beside_their_own_binaries(tmp_path):
     from tee.windtunnel import engines
 

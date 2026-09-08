@@ -1,0 +1,42 @@
+A74 P5 - cfMesh's 2-D mesher against the lane's own O-mesh.
+Linux build container, OpenFOAM v2606 (openfoam.com), 2026-09-08.
+Every mesh single-threaded (OMP_NUM_THREADS=1). NACA 0012, chord 1.0 m,
+30 m/s, alpha 4 deg, kOmegaSST, slab 0.1 m thick, Aref = chord x thickness.
+
+== p5-closed-surface.py: the 3-D idiom, four ways ==
+cell 1.0 slab 0.1   (the first try)    rc=1 in   0.6 s   --> FOAM FATAL ERROR: (openfoam-2606)
+cell 0.999 slab 0.1  (not a divisor)   rc=1 in   0.4 s   --> FOAM FATAL ERROR: (openfoam-2606)
+cell 0.1  slab 0.1   (cell = slab)     rc=1 in   0.9 s   --> FOAM FATAL ERROR: (openfoam-2606)
+cell 0.999 slab 1.0  (slab = cell)     rc=1 in   0.4 s   --> FOAM FATAL ERROR: (openfoam-2606)
+  (all four: 'There are no cells in the mesh!', in under a second)
+
+== p5-ribbon-surface.py: the surface OPEN in z ==
+ribbon box + ribbon airfoil    rc=0   1.6 s  cells 8572  skew 1.3762784  failed 2  patches [('farfield', 'empty'), ('airfoil', 'empty'), ('bottomEmptyFaces', 'empty'), ('topEmptyFaces', 'empty')]
+ribbon box + capped airfoil    rc=0   1.7 s  cells 8572  skew 0.83798945  failed 2  patches [('farfield', 'empty'), ('airfoil', 'empty'), ('bottomEmptyFaces', 'empty'), ('topEmptyFaces', 'empty')]
+
+== patch types cfMesh wrote, and after the caller fixed them ==
+  as written: farfield empty | airfoil empty | bottomEmptyFaces empty | topEmptyFaces empty
+  checkMesh:  ***Total number of faces on empty patches is not divisible by the
+              number of cells in the mesh. Hence this mesh is not 1D or 2D.
+  rewritten:  farfield patch | airfoil wall | bottomEmptyFaces empty | topEmptyFaces empty
+  checkMesh:  Mesh OK.  cells 8572  skew 0.83798945  aspect 5.7560163
+
+== p5-omesh-arm.py: the lane's own O-mesh, through the lane ==
+O-MESH  cells 16000  mesh 1.6 s  ok True skew None aspect None
+  solve 10.5 s  iterations None  Cl 0.435564  Cd 0.010913  Cm 0.000558  verdict converged  trust comparative
+
+== p5-solve-cartesian2d.py: the cartesian 2-D mesh, solved ==
+### layers=8 body_cell=0.0125 wall_function
+CARTESIAN 2-D  cells 10032  mesh 1.5 s  solve 3.9 s
+  iteration 133  Cl 4.27203005e-01  Cd 2.06972656e-02  Cm -2.29910426e-03
+### layers=30 body_cell=0.0125 low_re
+CARTESIAN 2-D  cells 16456  mesh 1.8 s  solve 7.9 s
+  iteration 164  Cl 4.18769495e-01  Cd 2.19723673e-02  Cm -5.48929867e-04
+  checkMesh, 8 layers : Mesh OK, skew 2.5552919, aspect 25.883086
+  checkMesh, 30 layers: Mesh OK, skew 2.9141629, aspect 891.36598
+
+== p5-wall-treatment-control.py: the SAME O-mesh, both treatments ==
+low_re         iter   197  Cl 0.436168  Cd 0.010896  Cm 0.000536  10.8 s
+wall_function  iter   197  Cl 0.436157  Cd 0.010897  Cm 0.000538  10.5 s
+  (a first run of this control read Aref from a guessed 1.0 m slab instead
+   of the recorded 0.1 m and made every coefficient exactly 10x too small)

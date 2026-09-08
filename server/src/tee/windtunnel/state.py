@@ -10,11 +10,16 @@ Two kinds, and the difference was measured on 2026-09-07 rather than assumed
 (doc 73 §2.7):
 
 * **full** - reader, surface, colouring, scalar bar, camera, last time step.
-  **203,984 bytes** over a 16,000-cell case as this module writes it, and it
+  **206,584 bytes** over a 16,000-cell case as this module writes it, and it
   needs a display: with none it SEGFAULTS (rc 139), offscreen flag included,
   which is the fault doc 72 recorded for rendering.
 * **pipeline** - reader, mesh regions, arrays, time, and nothing shown.
-  **17,132 bytes**, rc 0, no display and no xvfb needed.
+  **17,233 bytes**, rc 0, no display and no xvfb needed.
+
+Both open at the last time step, and that took a second measurement to get
+right (doc 73 §2.10): `SaveState` carries the ANIMATION SCENE's time, so a
+state that set only the view's reloaded at t=0 - the initial field, coloured
+and framed exactly like the solution.
 
 So the writer asks for `full`, and falls back to `pipeline` where nothing can
 render. Both open the case; only one arrives coloured. The reply says which,
@@ -36,6 +41,18 @@ from tee.kernel.errors import TeeError
 from tee.windtunnel import paraview
 
 KINDS = ("full", "pipeline")
+
+# The last time step has to be set on the ANIMATION SCENE, not only on the
+# view. A state that sets `rv.ViewTime` alone reloads at 0.0 - measured on
+# 5.11.2, doc 73 §2.10 - so the human who opened the handoff would be looking
+# at the initial field while believing it was the solution. The scene carries
+# the time through SaveState, and a state with no view (kind='pipeline') has
+# nowhere else to put it.
+_SCENE_TIME = (
+    "    scene = GetAnimationScene()\n"
+    "    scene.UpdateAnimationUsingDataTimeSteps()\n"
+    "    scene.AnimationTime = ts[-1]"
+)
 
 # The field each preset colours by, keyed the way wt_view keys them so one
 # vocabulary serves the render and the handoff. None = no colouring.
@@ -88,13 +105,23 @@ def state_script(
                 "d.SetScalarBarVisibility(rv, True)",
             ]
         else:
-            lines += ["ColorBy(d, None)"]
+            # `ColorBy(d, None)` is the documented way to turn colouring off
+            # and it RAISES here: on 5.11.2 it re-reads the representation's
+            # current association, which is 'NONE' when the data carries no
+            # array to auto-colour by - a meshed case that has not run, which
+            # is exactly what this view is for (measured 2026-09-07, doc 73
+            # §2.10). The tuple form names a valid association and unsets
+            # the array, and works in both worlds.
+            lines += ["ColorBy(d, ('CELLS', None))"]
         lines += [
             "if hasattr(ts, '__len__') and len(ts):",
+            _SCENE_TIME,
             "    rv.ViewTime = ts[-1]",
             "rv.ResetCamera()",
             "Render(rv)",
         ]
+    else:
+        lines += ["if hasattr(ts, '__len__') and len(ts):", _SCENE_TIME]
     lines += [f"SaveState({str(out_pvsm)!r})", "print('OK')"]
     return "\n".join(lines) + "\n"
 

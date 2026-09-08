@@ -30,7 +30,7 @@ from tee.llm import profiles
 
 # Ladder order among local engines; the resident engine is always tried
 # first (it costs nothing to use what is already loaded).
-def _ladder() -> tuple[str, ...]:
+def _ladder(measured: dict[str, Any] | None = None) -> tuple[str, ...]:
     """Cheapest-capable first, ORDERED BY THE MEASURED TABLE rather than by
     hand (A46 P3b).
 
@@ -47,8 +47,19 @@ def _ladder() -> tuple[str, ...]:
     ENGINES entirely, so no ordering can promote one into the ladder.
     """
 
+    # A76 P3: a MEASURED row outranks the literal. The registry's latency is a
+    # hand-copied number stamped with the date of the session that produced it;
+    # a row written by eng_audition is evidence. The literal stays as the
+    # fallback, so a machine that has never auditioned behaves exactly as
+    # before, and `LADDER` below remains importable for the tests that pin it.
     def cost(name: str) -> float:
-        c = ENGINES[name].get("cost") or {}
+        row = (measured or {}).get(name) or {}
+        warm = row.get("latency_warm_s")
+        if isinstance(warm, list) and len(warm) > 1:
+            return float(warm[1])
+        if isinstance(warm, (int, float)):
+            return float(warm)
+        c = ENGINES.get(name, {}).get("cost") or {}
         lat = c.get("latency_s")
         return float(lat[1]) if isinstance(lat, list) and len(lat) > 1 else 1e6
 
@@ -60,8 +71,22 @@ def _ladder() -> tuple[str, ...]:
     return tuple(sorted(chore_engines, key=cost))
 
 
+def measured_rows(cfg: dict[str, Any] | None) -> dict[str, Any]:
+    """Rows eng_adopt has written, or {} - the router never requires the lane."""
+    try:
+        from tee.engines.table import load_measured
+
+        return load_measured((cfg or {}).get("_state_dir"))
+    except Exception:  # pragma: no cover - the router must never fail on this
+        return {}
+
+
 LADDER = _ladder()
 BRIEF_TOKEN_CAP = 200
+
+#: Codes meaning the engine was never reached, so nothing about the MODEL was
+#: learned. Anything else from the call is a verdict on what it answered.
+UNREACHABLE_CODES = frozenset({"llm_unreachable"})
 
 _PROFILE_TO_ENGINE = {
     spec["profile"]: name for name, spec in ENGINES.items() if spec.get("profile")
@@ -69,7 +94,7 @@ _PROFILE_TO_ENGINE = {
 
 
 def _hop_cfg(cfg: dict[str, Any], engine: str) -> dict[str, Any]:
-    return dict(cfg, _profile=ENGINES[engine]["profile"])
+    return dict(cfg, _profile=ENGINES.get(engine, {}).get("profile"))
 
 
 def route(
@@ -92,7 +117,10 @@ def route(
     cfg = dict(cfg or {})
     started = time.monotonic()
     state = profiles.load_state(cfg)
-    resident = _PROFILE_TO_ENGINE.get(state["active"], LADDER[0])
+    # Ordered at CALL time so a row written since boot is honoured; LADDER
+    # stays the import-time fallback and the name five test modules import.
+    order = _ladder(measured_rows(cfg)) or LADDER
+    resident = _PROFILE_TO_ENGINE.get(state["active"], order[0])
     pinned = bool(state.get("pinned"))
     if pinned:
         ladder = [resident]
@@ -100,10 +128,10 @@ def route(
     elif policy == "greedy":
         choice = shadow.greedy_choice("chore", resident=resident)
         first = choice.get("engine") or resident
-        ladder = [first, *[e for e in LADDER if e != first]]
+        ladder = [first, *[e for e in order if e != first]]
         reason = f"greedy: {first} est {choice.get('estimate_s')}s ({choice.get('reason')})"
     else:
-        ladder = [resident, *[e for e in LADDER if e != resident]]
+        ladder = [resident, *[e for e in order if e != resident]]
         reason = f"static: resident-first {resident}"
     ledger.record_dispatch("pinned" if pinned else policy, reason)
     ledger.record_task()
@@ -117,7 +145,7 @@ def route(
         # anything - inflating the escalation rate with absent hardware.
         # Registering an engine centrally must not defame it on machines
         # that do not serve it.
-        if ENGINES[engine]["profile"] not in declared:
+        if ENGINES.get(engine, {}).get("profile") not in declared:
             hops.append({"engine": engine, "skipped": "profile not declared here"})
             continue
         if engine != resident:
@@ -130,8 +158,18 @@ def route(
         try:
             result = call(_hop_cfg(cfg, engine))
         except TeeError as exc:
-            hops.append({"engine": engine, "verdict": exc.code})
-            ledger.record_route(engine, verified=False)
+            # A76 P3: nothing listening is not a failed verification. Both used
+            # to increment the same counter, so on a machine whose backend was
+            # down every chore inflated the escalation rate with the network.
+            unreachable = exc.code in UNREACHABLE_CODES
+            hops.append(
+                {
+                    "engine": engine,
+                    "verdict": exc.code,
+                    **({"unreachable": True} if unreachable else {}),
+                }
+            )
+            ledger.record_route(engine, verified=False, unreachable=unreachable)
             continue
         if result is None:
             hops.append({"engine": engine, "verdict": "empty_result"})

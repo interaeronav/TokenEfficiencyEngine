@@ -20,6 +20,178 @@ to 5,000 ms and a cold spawn of the four-lane server to tools/list measured
 955-1,158 ms over five runs (median 1,086), so the default already carries 4x
 headroom and a number nobody measured would be worse than none.
 
+## 0.30.0 — the benchmark tells the truth (A77)
+
+No new tools; the surface stays 17. This release is about the one number TEE
+says it judges every decision by.
+
+- **`cli.attach_all` is the single seam.** `cmd_serve` and `run_benchmarks.py`
+  build the same registry from `LANE_ATTACHMENTS`. The harness had hand-rolled
+  seven lanes where the server attaches nineteen.
+- **The surface row was wrong and is corrected**: **197** virtual tools costing
+  31,283 tokens flat against a 2,129-token always-loaded surface — **93.2%
+  saved**, not the 89.6% it claimed over a 141-tool corpus. The stale figure
+  *understated* TEE's own saving by 3.6 points.
+- **The flight-dynamics and engine rows now have scenarios.** Both were
+  hand-measured in a shell and written into `RESULTS.md` as prose. The engine
+  row was not even reproducible: it was taken against a live model stack, and
+  the row now says so.
+- **A canary**: `test_a77_benchmark_canary.py` fails when the surface figure,
+  the corpus size, or a lane's headline cost stops matching what `RESULTS.md`
+  prints — with every band stated and a test proving the gate fires.
+
+## 0.29.0 — cfMesh in the wind-tunnel lane (A74)
+
+`wt_mesh` meshes a 3-D body with **cfMesh** as well as snappyHexMesh, and
+`mesher="auto"` — the new default — picks the one the install can run. No new
+tool, no new engine, no new licence and no change to the always-loaded surface:
+cfMesh ships *inside* openfoam.com's OpenFOAM, which this lane already drives.
+
+It closed with a measured yes rather than a preference. The lane's own prism at
+α = 0, 200 iterations, same domain and layers, **both meshes solved**:
+
+| | snappyHexMesh | cfMesh |
+|---|---:|---:|
+| cells | 46,160 | 36,768 |
+| mesh wall | 11.1 s | 4.1 s |
+| verdict | stalled at the budget | converged in 196 |
+| Cd | 0.4343 | 0.3076 |
+| Cl (must be zero) | 0.07458 | **0.00004** |
+
+The section is symmetric at zero incidence, so lift *must* be zero and every
+count of it is the mesh talking. snappy's own log admitted 1.32 of the 2
+boundary layers asked for, at 41.6 % of the requested thickness.
+
+### Added
+
+- `wt_mesh mesher="auto" | "cfmesh" | "snappy"`, default **auto**. The mesh row
+  carries `chose` whenever auto decided, with the reason.
+- `wt_probe` reports cfMesh in the `openfoam` row (`cfmesh`: the
+  `cartesianMesh` path, empty where the build has none).
+- `surfaceFeatureEdges` runs before `cartesianMesh` and hands it an FMS.
+  Without it the sharp trailing edge comes out as twelve skew faces and
+  `checkMesh` fails (max skewness 5.5497206); with it, a clean pass at
+  2.0995350 for 0.4 s. 30° is snappy's own `includedAngle 150` from the other
+  end (180 − 150), so it is a constant of the lane, not a new argument.
+- `wt_cfmesh_absent`: naming cfMesh on a build without it refuses and names the
+  install, rather than quietly meshing with something else. Nothing is
+  downloaded.
+
+### Changed
+
+- **The default 3-D mesher.** A bare `wt_mesh` on a 3-D body now meshes with
+  cfMesh where the install has it; `mesher="snappy"` is the one word back, and
+  `wt_result compare_to=` still reports `same_mesh` from the mesh hash, so a
+  comparison across the change says so.
+- cfMesh is pinned to `OMP_NUM_THREADS=1`, because threaded it builds a
+  different mesh each time — the same case gave two hashes at an identical
+  38,352 cells. `cores=` buys the speed back and the reply says
+  `reproducible: false`.
+- The OpenFOAM version probe asks its three questions by key rather than by
+  position: `command -v mpirun` prints nothing on a machine without MPI, and a
+  positional reader then reads the next answer as the missing one.
+
+`TOLERATED_CHECKS` was not widened. Skew is one of the two `checkMesh` failures
+this lane tolerates, so a cfMesh mesh would have run either way — which is
+exactly why the mesh was fixed instead.
+
+**0.26.0 and 0.28.0 are not this.** 0.26.0 was reserved for A74 while it was in
+flight and then overtaken twice; 0.28.0 went to A76, which reached the branch
+first. A campaign takes the next free number, not the one it was promised.
+
+## 0.28.0 — the engine lane (A76)
+
+`eng_*`: truth about the local models TEE routes work to. Six virtual tools,
+**zero** added to the always-loaded surface, each tabled individually with no
+family row. The package is stdlib at import time, so it answers on a machine
+with nothing installed and nothing running.
+
+- `eng_scan`, `eng_ask`, `eng_senses`, `eng_audition`, `eng_reconcile`,
+  `eng_adopt`.
+- **The router's ladder now orders on measured rows**, with the registry's
+  literals as the fallback. Measured on this machine, `q27b-bare` is 44–47 s
+  where the registry declares 3.07–9.69 — adopting the row moves it from third
+  to last.
+- **An unreachable engine is no longer recorded as a failed verification.**
+  `llm_unreachable` and a genuine verifier kill used to increment the same
+  counter, so `escalation_rate` — doc 55's quality alarm — was measuring the
+  network. `meter_block` gains `unreachable_hops`.
+- `doctor.check_llm` no longer reports `ok` with no remedy while chores are dead
+  because vision answered.
+- `eng_ask` reads the **content**, not the status code: four of eight routes on
+  the owner's shim answer HTTP 200 with empty content and billed usage.
+
+0.26.0 remains reserved for the in-flight A74 (cfMesh).
+
+## 0.27.0 — the flight-dynamics lane (A75)
+
+`fd_*`: a `wt_sweep` polar and a mass become a JSBSim aircraft that trims, and
+the answer is the trim state and the mode table rather than a trajectory. Five
+virtual tools, **zero** added to the always-loaded surface, each tabled
+individually in the trust kernel with no family row.
+
+- `fd_probe`, `fd_aircraft`, `fd_trim`, `fd_modes`, `fd_fly`.
+- JSBSim is LGPL-2.0-or-later and used in-process (ruled in DECISIONS); its
+  wheel also ships one GPL-3.0-or-later file, so the licence gate asserts on
+  **file headers** rather than the `LGPLv2+` the distribution metadata declares.
+- Everything that flies runs **out of process**: `FGLinearization` on an
+  aircraft with no engine SIGSEGVs rather than raising, so the lane refuses that
+  aircraft in its own code and keeps the engine out of the server either way.
+- The lane trims itself. JSBSim's `do_trim` cannot trim a generated aircraft and
+  reports `qdot` when the axis that will not converge is `udot` — the turbine
+  has not spooled when the trim looks at it.
+- Optional extra `flightdyn` (jsbsim, numpy) and a `fdm` test tier.
+
+0.26.0 is deliberately skipped: A74 (cfMesh in the wind-tunnel lane) was in
+flight on this branch when this cut was made and has the prior claim on it.
+
+## 0.25.1 — 2026-09-07
+
+A73 P2: the handoff run against the REAL ParaView and OpenVSP for the first
+time, which found three defects in `wt_open` that a fake `pvpython` cannot
+find, because a fake accepts whatever script it is handed. (Cut as 0.24.1
+before 0.25.0 landed on the base; the same tree, renumbered to sit after it.)
+
+### Fixed
+
+- **A state file now opens at the solution.** `SaveState` carries the
+  animation scene's time, not the view's, so a state that set only
+  `rv.ViewTime` reloaded at **t=0**: ParaView opened the initial field,
+  coloured and framed exactly as if it were the converged one. The scene is
+  now set in both state kinds, and a live test asserts the reloaded time
+  equals the case's last time step.
+- **`wt_open view=mesh` no longer fails on a case that has not run.**
+  `ColorBy(d, None)` - the documented way to turn colouring off - re-reads the
+  representation's current association, which is `'NONE'` when the data
+  carries no array to colour by, and raises. That is exactly the meshed-but-
+  unsolved case the mesh view exists for. The tuple form
+  `ColorBy(d, ('CELLS', None))` names a valid association and works with
+  fields and without.
+- **`wt_open` works on an SU2 case at all.** It raised `NameError: ts`: the
+  reader block bound that name in its OpenFOAM branch and not in its `.vtu`
+  one, while the state script reads it in both. Half the lane's engines had
+  never had this tool run against them.
+
+### Measured
+
+- The state round trip, on ParaView 5.11.2 + xvfb over a 16,000-cell case:
+  206,584 bytes written in 4.5 s and read back in 3.6 s at t=197 with
+  `['CELLS', 'p']` and the camera framed; a mesh-only state 179,725 bytes; a
+  pipeline state 17,233 bytes, written and read with no display in either
+  direction. `relocate()` replaced exactly 1 occurrence over a copied run and
+  the moved state loaded 16,000 cells from the new path.
+- An SU2 `.vtu` source writes 198,796 bytes full and 12,089 pipeline, and
+  reloads as `XMLUnstructuredGridReader` on the file it was given.
+- The OpenVSP route verified by asking OpenVSP: `vsp -script` reading back the
+  `.vsp3` the command line names reports one geom, `WingGeom`, type `Wing`.
+- ParaView's instability, which the owner's local session had been looking to
+  replace, turned out to be **ours**: `pvpython` wrote 201 `.pyc` files into
+  the signed `.app`, breaking its notarization seal so macOS refused to launch
+  it. The fix is `PYTHONDONTWRITEBYTECODE=1` in `run_script`'s environment,
+  which this lane's state writer inherits by going through the same function.
+  Doc 73 §4b now records that, and keeps the three instabilities measured here
+  — none of which was the fault — plus the five-row specification a
+  replacement would have to satisfy.
 ## 0.25.0 — the material a part is made of, said honestly (2026-09-07)
 
 The material lane grew from 11 cards to **25**, every new one built from a

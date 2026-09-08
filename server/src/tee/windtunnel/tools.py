@@ -55,6 +55,22 @@ PROBE_TTL_S = 3600.0
 # upper-triangular order (the apt airFoil2D tutorial, measured 2026-09-06) is
 # a matrix-ordering remark that `renumberMesh` fixes, not a geometry defect.
 TOLERATED_CHECKS = ("skew", "upper triangular")
+# The 3-D meshers this lane WRITES for. `cartesianMesh` was already run for an
+# adopted case whose Allrun named it (cfdof.KNOWN_BINARIES); A74 writes its
+# dictionary too. "auto" arrived with A74 P4 and only then, because a router
+# with no measurement behind it is a guess with a name - the measurements are
+# doc 74 sections 2.7 and 2.8, and MESHER_REASON quotes them.
+MESHERS_3D = ("snappy", "cfmesh", "auto")
+DEFAULT_MESHER_3D = "auto"
+# Short enough to travel in every mesh row, specific enough to be checkable.
+MESHER_REASON = {
+    # the two measured numbers rather than their ratio: 0.07458/0.00004 is
+    # ~1865, and quoting "1/1900th" rounds a rounded quantity into a claim
+    "cfmesh": "cfMesh: 3x faster, converged where snappy stalled, and 0.00004 of spurious "
+    "lift against snappy's 0.07458 on the campaign's prism (doc 74 2.7-2.8)",
+    "snappy": "snappyHexMesh: this OpenFOAM install carries no cartesianMesh "
+    "(openfoam.com's build has it since v1806)",
+}
 DEFAULT_ITERS = {"openfoam": 2000, "su2": 3000}
 DEFAULT_TIMEOUT_S = 600.0
 MAX_WALL_S = 14_400.0
@@ -293,8 +309,8 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
         (
             "wt_mesh",
             "Mesh the case: a structured O-mesh for a 2-D section (seconds, written as OpenFOAM "
-            "polyMesh or SU2 .su2), or blockMesh + snappyHexMesh around a 3-D body (a job). "
-            "Returns the checkMesh digest, never a cell.",
+            "polyMesh or SU2 .su2), or cfMesh/snappyHexMesh around a 3-D body (a job); mesher= "
+            "picks, default auto. Returns the checkMesh digest, never a cell.",
             {
                 "type": "object",
                 "properties": {
@@ -324,6 +340,16 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                         "description": "3-D surface refinement levels, e.g. [3, 4].",
                     },
                     "layers": {"type": "integer", "description": "3-D prism layers (default 5)."},
+                    "mesher": {
+                        "type": "string",
+                        "description": "3-D mesher: auto (default; picks cfMesh where the "
+                        "install has it), cfmesh, or snappy. The reply says which ran and why.",
+                    },
+                    "body_cell_m": {
+                        "type": "number",
+                        "description": "cfMesh only: cell size at the body (default: the finest "
+                        "level applied to base_cell_m).",
+                    },
                     "cores": {"type": "integer"},
                 },
                 "required": ["case_id"],
@@ -335,6 +361,7 @@ def register_windtunnel_tools(app, project_root: Path | str) -> CaseStore:
                 "grid",
                 "snappyhexmesh",
                 "blockmesh",
+                "cfmesh",
                 "omesh",
                 "cells",
                 "refinement",
@@ -734,6 +761,41 @@ class _Lane:
                 e["vspaero"].get("found") and e["vspaero"].get("extra", {}).get("vspaero")
             ),
         }
+
+    def _pick_mesher(self, asked: str) -> tuple[str, str]:
+        """Which 3-D mesher runs, and WHY - `auto` is a measurement, not a taste.
+
+        Measured on the campaign's prism (doc 74 sections 2.7 and 2.8, both
+        arms solved, not just meshed): cfMesh meshes it in 4.1 s against 11.1 s,
+        in 36,768 cells against 46,160, converges where snappy stalls on the
+        same 200-iteration budget, and leaves 0.00004 of the lift a symmetric
+        section at zero incidence cannot have where snappy leaves 0.07458. No
+        arm of A74 measured snappy ahead of it on a 3-D body, including with a
+        hole cut in the body - so `auto` picks cfMesh wherever the install has
+        it, and the one thing that can send it back to snappy is cfMesh not
+        being there.
+
+        An install without `cartesianMesh` is not a defect of the case, so
+        `auto` falls back and SAYS SO in the row; asking for cfMesh by name on
+        such a machine refuses by name instead (A74 law 1) rather than quietly
+        meshing with something else.
+        """
+        if asked == "snappy":
+            return "snappy", ""
+        probed = self._probe if self._probe is not None else self.probe({})
+        found = probed.get("engines", {}).get("openfoam", {})
+        if found.get("cfmesh"):
+            return "cfmesh", MESHER_REASON["cfmesh"] if asked == "auto" else ""
+        if asked == "cfmesh":
+            raise TeeError(
+                "wt_cfmesh_absent",
+                f"This OpenFOAM install has no cartesianMesh ({found.get('version') or 'unknown'}"
+                f" at {found.get('path') or 'unknown path'}).",
+                fix="cfMesh ships inside openfoam.com's distribution from v1806 - install that "
+                "build (wt_probe names the line), or use mesher=snappy, which needs nothing "
+                "extra. Nothing is downloaded for you.",
+            )
+        return "snappy", MESHER_REASON["snappy"]
 
     def _openfoam(self, *, for_writer: bool = False):
         """The install route. `for_writer=True` means TEE's own dictionaries
@@ -1202,6 +1264,16 @@ class _Lane:
         engine = rec["engine"]
         edir = Path(rec["engine_dir"])
         edir.mkdir(parents=True, exist_ok=True)
+        if args.get("mesher") and rec["kind"] not in ("body3d", "wing3d"):
+            # Refused rather than ignored: a 2-D case is meshed by TEE's own
+            # structured O-mesh and an adopted case runs its own sequence, so
+            # `mesher=` there would be a word with no effect.
+            raise TeeError(
+                "wt_bad_mesher",
+                f"mesher= applies to a 3-D body case; {case_id} is {rec['kind']}.",
+                fix="Drop mesher= (a 2-D case gets the O-mesh, an adopted case its own "
+                "sequence), or make a 3-D case from an STL.",
+            )
         if engine == "vspaero":
             return digest(
                 {
@@ -1298,7 +1370,7 @@ class _Lane:
 
     def _mesh_3d(self, rec: dict[str, Any], args: dict[str, Any]) -> dict[str, Any]:
         case_id = rec["case_id"]
-        install = self._openfoam(for_writer=True)  # snappy dictionaries are TEE's dialect
+        install = self._openfoam(for_writer=True)  # the dictionaries are TEE's dialect
         edir = Path(rec["engine_dir"])
         rec["domain"]
         L = max(rec["geometry"]["length_m"], 1e-6)
@@ -1309,8 +1381,39 @@ class _Lane:
         levels = tuple(int(x) for x in (args.get("levels") or (3, 4)))
         layers = int(args.get("layers", 5))
         cores = int(args.get("cores", 1))
-        prep = runs.write_tunnel_3d(rec, edir, base_cell_m=base, levels=levels, layers=layers)
-        seq = runs.mesh_sequence_3d(install, edir, cores)
+        asked = str(args.get("mesher") or DEFAULT_MESHER_3D).lower()
+        if asked not in MESHERS_3D:
+            raise TeeError(
+                "wt_bad_mesher",
+                f"'{asked}' is not a mesher this lane writes for.",
+                fix="mesher=auto (the default), mesher=cfmesh or mesher=snappy.",
+            )
+        mesher, why = self._pick_mesher(asked)
+        mesh_env: dict[str, str] = {}
+        threads = 1
+        if mesher == "cfmesh":
+            # The caller's arguments do not change between meshers (A74 law 5):
+            # `levels` is snappy's vocabulary, so the finest level is mapped to
+            # the body's cell size - level 4 on a base of L/4 is L/64 either way.
+            body_cell = float(args.get("body_cell_m") or base / (2 ** max(levels)))
+            prep = runs.write_tunnel_3d_cfmesh(
+                rec, edir, base_cell_m=base, body_cell_m=body_cell, layers=layers
+            )
+            # cfMesh THREADS itself, and threaded it is not reproducible:
+            # measured 2026-09-07, the same case meshed twice gave hashes
+            # 7c260615fd23772e and cc2a2a95b348336a at an identical 38,352
+            # cells, while OMP_NUM_THREADS=1 gave c5fa100c6f08f733 both times
+            # for 25 % more wall time (3.4 s against 2.7 s, still 3x faster
+            # than snappy's 11 s). Two laws of this lane need a mesh you can
+            # identify - the hash travels with every coefficient, and same-mesh
+            # deltas are first-class - so reproducible is the DEFAULT and
+            # `cores` is how a caller buys speed with it.
+            threads = max(1, cores) if args.get("cores") else 1
+            mesh_env["OMP_NUM_THREADS"] = str(threads)
+            seq = runs.mesh_sequence_3d_cfmesh(install, edir, cores)
+        else:
+            prep = runs.write_tunnel_3d(rec, edir, base_cell_m=base, levels=levels, layers=layers)
+            seq = runs.mesh_sequence_3d(install, edir, cores)
         est_cells = prep["background_cells"] * 4
         ledger_key = f"{case_id}@mesh"
         self.app.machine.register_job(ledger_key, "cfd-mesh")
@@ -1329,6 +1432,7 @@ class _Lane:
                             cwd=run_dir,
                             log_name=f"log.{app_name}",
                             timeout_s=float(args.get("timeout_s", 7200)),
+                            env=mesh_env,
                         )
                     )
                     current["run"] = r
@@ -1345,7 +1449,8 @@ class _Lane:
                     (run_dir / "log.checkMesh").read_text(errors="replace")
                 )
                 mesh = {
-                    "kind": "snappy",
+                    "kind": mesher,
+                    **({"chose": why} if why else {}),
                     "body": prep["body"],
                     **check,
                     "levels": list(levels),
@@ -1354,6 +1459,25 @@ class _Lane:
                     "mesh_hash": runs._polymesh_hash(run_dir),
                     "ok": _mesh_ok(check),
                 }
+                if mesher == "cfmesh":
+                    mesh["body_cell_m"] = prep["body_cell_m"]
+                    mesh["surface"] = prep["surface"]
+                    # the feature angle is NOT a caller argument (A74 law 5):
+                    # snappy's own `includedAngle 150` is the same criterion
+                    # and is not one either. It is reported because it changes
+                    # the mesh, and a number that changes the mesh belongs in
+                    # the row the mesh hash sits in.
+                    mesh["feature_angle"] = prep["feature_angle"]
+                    mesh["threads"] = threads
+                    mesh["reproducible"] = threads == 1
+                    mesh["cores_note"] = (
+                        "OMP_NUM_THREADS=1: the same case meshes to the same hash, ~25 % "
+                        "slower than threaded"
+                        if threads == 1
+                        else f"threaded on {threads}: faster, and NOT reproducible - the same "
+                        "case meshes to a different hash, so a same-mesh comparison must reuse "
+                        "this mesh rather than re-make it"
+                    )
                 self.store.update(case_id, mesh=mesh, state="meshed")
                 return {
                     "case_id": case_id,
