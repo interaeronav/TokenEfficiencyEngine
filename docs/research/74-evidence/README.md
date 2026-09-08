@@ -19,6 +19,7 @@ probes, and the log is their output transcribed from runs TEE made.
 | `p5-omesh-arm.py` | P5: the lane's own O-mesh on the same case, THROUGH the lane, so both arms are measured here rather than quoted |
 | `p5-wall-treatment-control.py` | P5: the same O-mesh solved `low_re` and `wall_function`, which is what rules the near-wall model out as the cause |
 | `p5-2026-09-08.log` | all five P5 probes' output, including the refusals |
+| `mac-upgrade-check.sh` | the owner-session check to run AFTER installing a new `.mcpb`: which extension is installed, which fleet extras the install dropped (with the restore command for the ones that are actually gone), whether this machine's OpenFOAM carries cfMesh, and — with `RUN_MESH=1` — a bare `wt_mesh` on a 3-D body end to end |
 
 The headline the campaign exists for is in the layer table: snappy asked for two
 layers on the body and got **1.32 of them at 41.6 % of the requested
