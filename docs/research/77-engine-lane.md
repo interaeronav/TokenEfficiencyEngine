@@ -279,17 +279,20 @@ thesis applied to its author.
    whose chore engine is down by name reports healthy. Measured live:
    `chores down at http://127.0.0.1:8080/v1 (tee-coder); vision UP` →
    `status="ok"`, `fix=None`.
-2. **`save_state` silently persists nothing without `cfg["_state_dir"]`**, which
-   is injected at exactly one site (`app.py:277`). A `switch()` called from a
-   CLI or a test returns `{"ok": true, ...}` and changes nothing — this session
-   hit it while switching profile on the owner's instruction.
-3. **`switch()`'s own refusal advertises profiles that do not exist here** —
-   `TEE/35B` and `TEE/DSFLASH` name profiles absent from both `BUILTIN_PROFILES`
-   and the config, so typing either raises `llm_unknown_profile` whose fix line
-   recommends them.
+2. ~~**`save_state` silently persists nothing without `cfg["_state_dir"]`**~~ —
+   **paid down.** It now returns whether it wrote, and `switch()` refuses with
+   `llm_no_state_dir` rather than reporting `ok` for a switch that cannot
+   survive the call. This session hit it live while switching profile on the
+   owner's instruction.
+3. ~~**`switch()`'s own refusal advertises profiles that do not exist here**~~ —
+   **paid down.** `profiles.phrases(cfg)` builds the list from what this machine
+   declares, so neither the refusal nor `llm_switch`'s description can recommend
+   a profile it would reject. `TEE/AUTO` is always included.
 
-Two dead declarations worth recording: `min_chore_tokens`' only non-default row
-(`q35b`, 1024) is unreachable because `q35b` is not a declared profile, and
+One dead declaration is now live: `q35b` had an `ENGINES` row and no profile
+anywhere, so `route()` skipped it while `:8080` served the weights — it is
+declared in `BUILTIN_PROFILES` as of A76, which also makes its 1024-token floor
+reachable for the first time. Still dead:
 `senses_source` — the provenance field A49 added — is **read nowhere in the
 codebase**. `RESERVE_GB = 16.0` carries its own comment calling itself "a stated
 placeholder until R2 measures the real constant", and `may_swap` and `may_admit`

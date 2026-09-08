@@ -15175,3 +15175,46 @@ machine; every other row still reads `unmeasured`, honestly.
 
 **Suites at close:** server `uv run --no-sync pytest -q` **2,008 passed / 21
 skipped / 143 deselected**; `make lint` clean. Surface unchanged: **17 tools**.
+
+### A76 addendum — the debts paid (2026-09-08)
+
+The three things A76 named as owed and did not do, done on the owner's
+instruction. The lane still measures and never declares; this is the owner's
+declaration, made through a session they directed.
+
+- **`q35b` is declared** in `BUILTIN_PROFILES`, not in one machine's config, so
+  any machine serving `mlx-community/Qwen3.6-35B-A3B-bf16` can reach it. It had
+  a registry row and no profile anywhere, which is why `route()` skipped it with
+  *"profile not declared here"* while `:8080` was serving the weights.
+  `min_chore_tokens`' only non-default row (1024) becomes reachable with it.
+- **`[llm] model` corrected** from `tee-coder`, which `:8080` does not serve, to
+  an id it lists. `local_llm.available()` returned False for the DEFAULT profile
+  even with the whole stack up.
+- **`dsflash` keeps its row.** Dropping it centrally because one machine stopped
+  serving it would break A46 P3b's own law — *registering an engine centrally
+  must not defame it on machines that do not serve it* — and `route()` already
+  skips an undeclared rung. The row gains a dated `serving_note`; what is
+  reachable *today* is `eng_reconcile`'s answer, per machine and per run.
+- **`save_state` reports whether it wrote**, and `switch()` raises
+  `llm_no_state_dir` rather than returning `ok` for a switch that cannot
+  survive the call.
+- **The chat phrases are computed**, so no refusal recommends a profile it would
+  itself reject.
+
+Also removed: `server/src/tee/engines/.tee/extras-seen.json`, a runtime artifact
+committed inside the lane package in A76 P1. `.tee/` is gitignored, but
+`git update-index --add` — which the temp-index commit this repo needs uses —
+bypasses `.gitignore`. The same trap that once committed ten cache files.
+
+**Not ours, reported not touched:** `test_windtunnel_cfmesh.py::test_the_probe_
+says_whether_this_install_carries_cfmesh` fails on this machine. `engines.py`
+and the test are byte-identical to A74's tip, so it is not a regression from
+this work. The cause: `cartesianMesh` lives at
+`/Volumes/OpenFOAM-v2606/plugins/cfmesh/executables/cartesianMesh` on the
+mounted DMG, while the probe resolves the install to
+`/Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam` and looks
+there. The probe already finds `mpirun` on the volume, so it knows the volume
+exists — the cfmesh lookup does not use it.
+
+**Suites:** 2,022 passed / 21 skipped / 1 failed (the cfMesh probe above, A74's
+and pre-existing); `make lint` clean.

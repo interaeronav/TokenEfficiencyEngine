@@ -66,14 +66,38 @@ BUILTIN_PROFILES: dict[str, dict[str, Any]] = {
         "model": "mlx-community/Qwen3.8-27B-bf16",
         "adapters": "",  # bare on purpose: tee-triage-a2 is 14B-trained
         "note": "traps pass bare (6/6); ~4-6x chore latency, 3.11-10.12 s measured",
-        "rss_gb": 55.0,  # bf16 27B weights resident
+        # 50.956 GB MEASURED on disk by eng_senses (A76); the 55.0 that stood
+        # here and the 43.7 in machine.py's own comment were two more guesses.
+        "rss_gb": 51.0,
         "eta_s": 90,
+    },
+    # A76: q35b had an ENGINES row and no profile anywhere, so router.py:120
+    # skipped it with "profile not declared here" while :8080 was serving the
+    # weights - registered centrally and unreachable for want of these six
+    # lines. eng_reconcile called that `served-not-reachable`.
+    "q35b": {
+        "model": "mlx-community/Qwen3.6-35B-A3B-bf16",
+        "adapters": "",  # bare, for the same reason as q27b
+        "note": "local and vision-capable; a batch engine, 1024-token floor",
+        "rss_gb": 65.4,  # measured on disk by eng_senses (A76)
+        "eta_s": 120,
     },
 }
 
 # Held for the duration of one chore completion and for the managed stop:
 # an in-flight chore finishes on the old profile before its server dies.
 REQUEST_LOCK = threading.Lock()
+
+
+def phrases(cfg: dict[str, Any] | None) -> str:
+    """The TEE/... phrases that actually resolve HERE.
+
+    A76 P0: the hard-coded list advertised TEE/35B and TEE/DSFLASH, profiles
+    present in neither the builtins nor this machine's config - so typing either
+    raised `llm_unknown_profile` whose own fix line recommended them.
+    """
+    names = sorted(profiles(cfg))
+    return ", ".join([f"TEE/{n.upper()}" for n in names] + ["TEE/AUTO"])
 
 
 def profiles(cfg: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
@@ -115,14 +139,22 @@ def load_state(cfg: dict[str, Any] | None) -> dict[str, Any]:
     return state
 
 
-def save_state(cfg: dict[str, Any] | None, state: dict[str, Any]) -> None:
+def save_state(cfg: dict[str, Any] | None, state: dict[str, Any]) -> bool:
+    """Persist the choice. Returns whether it was actually written.
+
+    A76 P0 found this silently doing nothing: `cfg["_state_dir"]` is injected at
+    exactly one site (`app.py`), so a cfg that has not been through the app
+    persists nothing while `switch()` reported `ok`. Returning the fact lets the
+    caller decide; `switch()` now refuses rather than claiming a switch it
+    cannot keep."""
     path = _state_path(cfg)
     if path is None:
-        return
+        return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(state), encoding="utf-8")
     tmp.replace(path)
+    return True
 
 
 def resolve(cfg: dict[str, Any] | None) -> dict[str, Any]:
@@ -320,6 +352,13 @@ def switch(
     pressure guard -> synchronous verified stop of the OWNED leaver ->
     warm-use or (memory guard -> start -> readiness job with fallback)."""
     cfg = dict(cfg or {})
+    if _state_path(cfg) is None:
+        raise TeeError(
+            "llm_no_state_dir",
+            "This config has no state directory, so a profile switch could not survive the call.",
+            fix="Call through the app (it injects _state_dir), or set "
+            "cfg['_state_dir'] to the project's .tee directory.",
+        )
     known = profiles(cfg)
     target_name = str(target_name or "").strip().lower()
     if target_name not in known:
@@ -327,8 +366,7 @@ def switch(
         raise TeeError(
             "llm_unknown_profile",
             f"'{target_name}' is not a chore-engine profile.",
-            fix=f"Profiles: {names}. Chat phrases map to profiles: TEE/Q14B, "
-            f"TEE/Q27B, TEE/35B, TEE/DSFLASH, TEE/QMAX.",
+            fix=f"Profiles: {names}. Chat phrases map to profiles: {phrases(cfg)}.",
         )
     spec = known[target_name]
     state = load_state(cfg)
