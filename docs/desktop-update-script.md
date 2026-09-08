@@ -47,10 +47,9 @@ this script exists.
 2. RECORD what is installed now, BEFORE I replace it:
        bash docs/research/74-evidence/mac-upgrade-check.sh
    Keep the output. Section B lists the extras that must still be there when
-   we finish. Section B reports the EXTENSION's environment — the one this
-   update is about to rebuild — and it also prints, ready to paste, the
-   completeness command that step 5 needs, with the group list already filled
-   in for you. Keep that line.
+   we finish, reading the EXTENSION's environment — the one this update is
+   about to rebuild. It also prints, ready to paste, the completeness command
+   step 5 needs, with the group list already filled in. Keep that line.
 
 3. HANDS-ON, and the only one in this script. I drag the bundle into Claude
    Desktop. Talk me through it one step at a time, and wait for me:
