@@ -15331,3 +15331,55 @@ else.
 
 **Suites at close:** server `uv run --no-sync pytest -q` **2,010 passed / 28
 skipped / 141 deselected**; `make lint` clean. Surface unchanged: **17 tools**.
+
+---
+
+## The Desktop update script (2026-09-08, owner's Mac)
+
+`docs/desktop-update-script.md` is new: the **update-time** counterpart to
+`docs/claude-desktop-script.md`, which is first-time setup and now stale (it
+still names 0.1.0 installers and voxkiln). A paste-into-Desktop block for a
+non-technical owner, six steps, one hands-on moment. Built on this machine, at
+0.30.0, with every command in it run before it was written down.
+
+**The finding that shaped it: a witness proves a group is REACHABLE, not
+WHOLE.** `extras.WITNESS` maps each group to one leaf import, so all nine
+groups reported present and `tee doctor` said `9 group(s) installed` while
+`astral` was absent anyway — 113 of 114 packages — and `assets/context.py`'s
+sun azimuth/elevation was quietly gone. The cause was one level up: `assets`
+had never reached either restore line. `server/Makefile` and
+`docs/setup-fleet.md` both named eight groups where there are nine — the same
+failure `setup-fleet.md` itself warns about two paragraphs above its own stale
+list, which had already cost `pointcloud`, `windtunnel` and `flightdyn`. Both
+now name nine; `astral` is installed and `sun_position` answers (azimuth
+38.43°, elevation 83.54° for Johannesburg at noon SAST, engine `astral`), and
+the nine-group resolve says **Would make no changes**.
+
+So the script **derives** the group list from the installed package rather than
+printing one, and verifies with a resolve rather than with the witness imports.
+
+**Two install facts measured here.** `tee-engine` is not on PyPI (404), which
+makes the two forms look interchangeable: `'tee-engine[group]'` works from any
+cwd because the bundle already satisfies `tee-engine` and only the extra's
+dependencies are added, while `'.[group]'` would **uninstall the extension's own
+tee-engine and repoint it at the repo**. And the order is load-bearing —
+install the bundle first, then restore, or a group is refused with *does not
+have an extra named …* because the metadata is older than the group.
+
+**`mac-upgrade-check.sh` was answering about the wrong machine.** Its `py()`
+helper runs the REPO venv, so section B's present/MISSING list and its restore
+command described `server/.venv`, not the extension's — it could print `nothing
+to restore` about a venv the owner never installs into. It now runs against the
+extension's python when one is there, says which it used, and prints the
+completeness command aimed at that interpreter.
+
+**And it taught a bash lesson worth keeping.** A first attempt added the
+completeness check as a shell block; it ran, assigned its variable, and
+silently skipped every command after it — exit 0, no error. On bash 3.2.57
+(macOS's default, and this script's stated target) a heredoc inside a branch
+followed by more work in that branch desynchronises the parser, and inserting
+3 kB of padding **moved which lines vanished**, which is what identifies it as
+a file-offset fault rather than a syntax one. Reproduced in eight lines. The
+fix was to stop adding shell: the python that already runs safely now prints
+the command, which is what the script's own header promised all along —
+*prints, never asserts*.

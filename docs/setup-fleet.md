@@ -33,7 +33,8 @@ After any upgrade, restore with:
 uv pip install --python "$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python" \
   'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' \\
   'tee-engine[extract]' 'tee-engine[pdf]' \\
-  'tee-engine[windtunnel]' 'tee-engine[flightdyn]' 'tee-engine[pointcloud]'
+  'tee-engine[windtunnel]' 'tee-engine[flightdyn]' 'tee-engine[pointcloud]' \\
+  'tee-engine[assets]'
 ```
 
 **Check every group, not the ones you remember.** The first restore after

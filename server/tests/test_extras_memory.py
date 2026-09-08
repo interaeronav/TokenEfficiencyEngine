@@ -132,3 +132,76 @@ def test_doctor_is_quiet_when_nothing_was_lost(tmp_path, monkeypatch):
     c = check_extras(tmp_path)
     assert c.status == "ok"
     assert "sidecar by design" in c.detail  # cad's absence explained, not flagged
+
+
+# --- the restore lists, which have gone stale four times ---------------------
+#
+# Every place that names the extras by hand drifts behind the code that adds
+# them. `pointcloud` (A67), `windtunnel` (A72) and `flightdyn` (A75) each
+# shipped without reaching the restore line, and on 2026-09-08 `assets` was
+# found missing from it too — with a measured consequence: all nine groups
+# witnessed green, `tee doctor` said 9 installed, and `astral` was absent
+# anyway, so `assets/context.py`'s sun position was quietly gone.
+#
+# docs/setup-fleet.md already asks for the list to be updated "in the same
+# commit as the extra itself". Asking did not work four times, so this is the
+# canary instead: add an extra with a witness, and these fail until the places
+# that restore it know about it.
+
+_RESTORABLE = sorted(set(extras.WITNESS) - set(extras.NOT_IN_TEE_VENV))
+
+
+def _repo_file(*parts):
+    from pathlib import Path
+
+    return Path(__file__).resolve().parents[2].joinpath(*parts)
+
+
+@pytest.mark.parametrize(
+    "where",
+    [
+        ("server", "Makefile"),
+        ("docs", "setup-fleet.md"),
+        ("docs", "desktop-update-script.md"),
+    ],
+    ids=lambda w: w[-1],
+)
+def test_every_restorable_group_reaches_the_places_that_restore_it(where):
+    text = _repo_file(*where).read_text()
+    missing = [g for g in _RESTORABLE if f"tee-engine[{g}]" not in text]
+    assert not missing, (
+        f"{where[-1]} restores {len(_RESTORABLE) - len(missing)} of "
+        f"{len(_RESTORABLE)} groups; it never mentions {missing}. An extra "
+        "that no restore line names comes back missing after every upgrade, "
+        "and the tool then reports {'installed': false} — which reads as "
+        "'you never set this up'."
+    )
+
+
+def _restore_block(*parts):
+    """Just the post-upgrade restore command, not the whole file.
+
+    `setup-fleet.md` also names `tee-engine[cad]` in its per-lane table, which
+    is the correct way to build the SIDECAR; only the restore command must
+    stay clear of it.
+    """
+    text = _repo_file(*parts).read_text()
+    if parts[-1] == "Makefile":
+        # the mcpb target's printed reminder
+        return "\n".join(ln for ln in text.splitlines() if "@echo" in ln)
+    head = text.index("After any upgrade, restore with:")
+    return text[head : text.index("```", text.index("```", head) + 3)]
+
+
+def test_cad_is_never_added_to_a_restore_line():
+    """It lives in a sidecar an upgrade does not touch, so restoring it here
+    would put CadQuery back into the venv A46 P1b took it out of."""
+    for where in (("server", "Makefile"), ("docs", "setup-fleet.md")):
+        assert "tee-engine[cad]" not in _restore_block(*where), where
+
+
+def test_the_restore_block_is_what_the_canary_reads():
+    """Guard the guard: if the marker text moves, the test above would pass by
+    reading an empty string."""
+    block = _restore_block("docs", "setup-fleet.md")
+    assert "tee-engine[medimg]" in block and len(block) > 100
