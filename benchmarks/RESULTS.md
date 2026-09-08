@@ -475,12 +475,20 @@ use, and are the router's numbers still true".
 **Saving: 98.6%** — a factor of 71, on a machine with **nothing running**.
 
 _A77 P2 re-measured this and found the row was not reproducible. It read **375**,
-taken against a live stack where `eng_scan` had two answering endpoints to
-describe; `run_engines_scenario` runs hermetically, where the same call costs 57.
-Both are true and they are answers to different questions, which is why the row
-now says which one it is. A benchmark number that omits the machine state it was
-taken in cannot be re-run, and a number that cannot be re-run is the thing this
-campaign exists to stop._
+taken against a live stack where `eng_scan` had endpoints to describe; the
+scenario pins every endpoint to a closed port, where the same call costs 57.
+Both are true and they answer different questions, which is why the row says
+which one it is._
+
+_And P3's canary immediately caught the same mistake again: the row moved
+**311 → 364** between two runs an hour apart, because `eng_scan` genuinely
+probes localhost and the owner's model stack had come back up — so the
+"hermetic" scenario was measuring the developer's machine. It is now pinned to a
+port nothing can answer and returns 311 on three consecutive runs with the stack
+up. **The cost scales with what is answering**: 57 tokens for `eng_scan` against
+nothing, 75 against four live endpoints. A benchmark number that omits the
+machine state it was taken in cannot be re-run — the campaign's own thesis,
+caught by the campaign's own gate, on the campaign's own row._
 
 **And the naive arm does not answer the question.** Four of the eight routes the
 shim advertises return HTTP 200 with empty content; that fact is in none of
