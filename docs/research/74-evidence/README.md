@@ -13,6 +13,12 @@ probes, and the log is their output transcribed from runs TEE made.
 | `p3-features.py` | P3: the same case meshed from the plain STL, from the FMS `surfaceFeatureEdges` writes at 30 and at 45 degrees, and with `edgeMeshRefinement` added - each twice, single-threaded |
 | `p3-determinism.py` | P3: the FMS route meshed twice under `OMP_NUM_THREADS=1`, hashing `constant/polyMesh` each time |
 | `p3-2026-09-07.log` | both P3 scripts' output: the failing check, the clean one, the key that kills `cartesianMesh`, and the hash repeating |
+| `p5-closed-surface.py` | P5: the 3-D idiom handed to `cartesian2DMesh` four ways - cell size a divisor of the domain and not, cell larger than the slab and equal to it. All four refuse |
+| `p5-ribbon-surface.py` | P5: the same case with the surface OPEN in z (a ribbon, no caps), which is what the 2-D mesher wants - and the patch types it writes |
+| `p5-solve-cartesian2d.py` | P5: mesh, rewrite the patch types, solve. Parametrised by layers, body cell and wall treatment |
+| `p5-omesh-arm.py` | P5: the lane's own O-mesh on the same case, THROUGH the lane, so both arms are measured here rather than quoted |
+| `p5-wall-treatment-control.py` | P5: the same O-mesh solved `low_re` and `wall_function`, which is what rules the near-wall model out as the cause |
+| `p5-2026-09-08.log` | all five P5 probes' output, including the refusals |
 
 The headline the campaign exists for is in the layer table: snappy asked for two
 layers on the body and got **1.32 of them at 41.6 % of the requested
@@ -38,3 +44,9 @@ The two `.py` probes are kept exactly as they were RUN, not tidied to pass
 `ruff` (nothing lints `docs/`, and A72's evidence scripts are the same). A
 script edited after the fact is no longer the thing that produced the numbers.
 
+
+P5's scripts reach past the lane on purpose: there is no 2-D cfMesh route in
+`wt_*` and the campaign declined to build one, so the mesh, the patch-type
+rewrite and the case are composed by hand from the same `foam`/`physics`
+helpers the lane uses. `p5-omesh-arm.py` is the exception and drives the lane
+itself, because the arm it measures is what a user actually gets.

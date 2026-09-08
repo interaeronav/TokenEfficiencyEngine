@@ -151,6 +151,58 @@ A trailing edge the mesher rounds off asymmetrically is lift that is not there. 
 
 **The acceptance, stated plainly.** `TOLERATED_CHECKS` was not touched. Skew is one of the two failures the lane tolerates, so a cfMesh mesh would have *run* either way — which is precisely why buying the pass with a widened tolerance would have been the wrong answer (A74 law 4). The mesh was fixed instead.
 
+### 2.9 The 2-D route, measured and declined (P5, 2026-09-08)
+
+§4 deferred `cartesian2DMesh` because the lane's 2-D path is TEE's own structured O-mesh and there was nothing to compare against. P5 built the comparison. The answer is a **measured no** — and the two facts it turned up on the way are worth more than the verdict.
+
+**The surface rule INVERTS.** `cartesianMesh` meshes the volume bounded by a **closed** surface (§2.4). `cartesian2DMesh` refuses one. Four closed variants — the cell size a divisor of the domain and not, the cell larger than the slab and equal to it — all died in under a second with the same message:
+
+```
+--> FOAM FATAL ERROR: There are no cells in the mesh!
+The reasons for this can be fwofold:
+1. Inadequate mesh resolution.
+2. You maxCellSize is a multiplier of the domain length...
+```
+
+Neither reason it names was the reason. What it wants is the 2-D outline **extruded without caps** — a ribbon, open in z — and it supplies the single cell through the thickness itself, inventing `bottomEmptyFaces` and `topEmptyFaces` to close it. Given that, the same case meshes in 1.6 s. The error message would have sent a reader to the cell size for as long as they cared to look.
+
+**It writes every patch `empty`.** Not just the two it invents — `farfield` and `airfoil` too, and `checkMesh` then answers:
+
+```
+***Total number of faces on empty patches is not divisible by the number of
+   cells in the mesh. Hence this mesh is not 1D or 2D.
+```
+
+Rewrite the two real ones (`airfoil` → `wall`, `farfield` → `patch`) and the same mesh is `Mesh OK`. This is the exact mirror of §2.7's finding that the 3-D mesher makes **every** solid-derived patch `type wall`, the farfield included. Stated once for both: **cfMesh does not assign patch types; the caller owns them.**
+
+**The comparison** — NACA 0012, chord 1 m, 30 m/s, α = 4°, kOmegaSST, both solved here rather than quoted:
+
+| | O-mesh (the lane's own) | cartesian, 8 layers | cartesian, 30 layers |
+|---|---:|---:|---:|
+| cells | 16,000 | 10,032 | 16,456 |
+| mesh wall | 1.6 s | 1.5 s | 1.8 s |
+| solve wall | 10.5 s | 3.9 s | 7.9 s |
+| `checkMesh` | OK | OK (skew 2.56, aspect 25.9) | OK (skew 2.91, aspect 891) |
+| Cl | 0.435564 | 0.427203 | 0.418769 |
+| **Cd** | **0.010913** | **0.020697 (+90 %)** | **0.021972 (+101 %)** |
+
+Cl agrees within 2–4 %. **Cd roughly doubles**, and giving the cartesian mesh a properly resolved boundary layer — 30 layers, more cells than the O-mesh, aspect ratio 891 — made it *worse*, not better. The gap does not close; it widens as the mesh is refined toward the thing it is being compared with.
+
+**The near-wall model is not the cause, and that is a measurement rather than an argument.** The two arms differed in two ways at once: the mesh, and the wall treatment (the lane's 2-D path is low-Re by design). So the same O-mesh was solved both ways:
+
+| | Cl | Cd |
+|---|---:|---:|
+| O-mesh, `low_re` | 0.436168 | 0.010896 |
+| O-mesh, `wall_function` | 0.436157 | 0.010897 |
+
+Identical to four decimals — on a y+ ≈ 1 mesh the wall functions degrade to the low-Re limit. One variable moved, and it was the mesh.
+
+**Verdict, under A74 law 3.** A better mesh must show up in the answer. This one shows up in the answer as *worse drag on a case the lane already answers well*, for no saving that matters: the O-mesh costs 1.6 s and no external process, needs no ribbon surface, no patch-type rewrite, and is body-fitted at the wall where drag is decided. The 2-D route is **declined**, and this section is why rather than a shrug.
+
+**What is NOT claimed.** No external reference was checked for Cd on this geometry, so "worse" means *disagrees with the lane's own verified O-mesh path by 90 %*, in the direction a coarse near-wall cell predicts, not *wrong against a wind tunnel*. One geometry, one incidence, one refinement family. And the finding is about **external aero on a thin section**: a cartesian 2-D mesh has obvious uses this case cannot speak for.
+
+**A slip worth keeping.** The first run of that control read `Aref` from a guessed 1.0 m slab where the case record says 0.1 m, and every coefficient came out exactly 10× too small. Exactly 10× is what a guessed constant looks like, and the record was one `case.json` away.
+
 ## 3. Why the design is shaped this way
 
 **`wt_mesh` grows a `mesher=` argument; nothing else moves.** The tool already takes `base_cell_m`, `levels` and `layers`; it gains `mesher="snappy" | "cfmesh" | "auto"`, and a `meshDict` writer sits beside the `snappyHexMeshDict` writer in `foam.py`. No new tool, no new engine row, no new capability tier — the always-loaded surface is untouched, and `wt_mesh` is already `call-engine`.
@@ -166,7 +218,7 @@ A trailing edge the mesher rounds off asymmetrically is lift that is not there. 
 - **No new engine.** cfMesh is OpenFOAM's own binary, run the way the lane runs the rest.
 - **No HELYX.** Customer-only, no macOS build; the disposition is recorded in `docs/DECISIONS.md` the way SimFlow's was.
 - **No HiSA, no FreeCAD/CfdOF.** HiSA is a source build under an unusual licence for code (reportedly CC-BY-SA 3.0, to be read at its own `LICENSE` before any row is written); CfdOF was declined for A73 and stays declined here. Both are named in §5 as candidates, not scope.
-- **No 2-D route yet.** `cartesian2DMesh` exists and the lane's 2-D path is a structured O-mesh that snappy never touches, so there is nothing to compare against; deferred.
+- **No 2-D route.** `cartesian2DMesh` exists and the lane's 2-D path is a structured O-mesh that snappy never touches. P5 built the comparison rather than leaving it deferred, and **declined the route on the numbers** (§2.9): Cd roughly doubles against the O-mesh on the lane's own case, and refining the cartesian mesh toward the O-mesh's resolution widens the gap instead of closing it.
 
 ## 5. Open questions
 
@@ -174,3 +226,4 @@ A trailing edge the mesher rounds off asymmetrically is lift that is not there. 
 2. ~~**Does the layer coverage move the forces?**~~ **Answered (§2.7): yes.** Cd by −27.6 %, spurious lift by 6×, and the verdict from `stalled` to `converged` on the same budget. The campaign does not close with a "no"; P4's router has a measurement to route on.
 3. **Is cfMesh in the Mac's v2606 bundle too?** The same openfoam.com distribution should carry it, but that is an assumption until `wt_probe` reports it there — one line in the owner's session.
 4. **HiSA's licence**, at its own repository rather than at a search result, before it is ever named as an option in a refusal.
+5. ~~**Is the 2-D `cartesian2DMesh` route worth having?**~~ **Answered (§2.9): no.** Cd roughly doubles against the lane's own O-mesh on the same case, and refining the cartesian mesh toward the O-mesh's near-wall resolution widens the gap rather than closing it. The route is declined; the two facts it taught (the inverted surface rule, and that cfMesh assigns no patch types in either dimension) are kept.

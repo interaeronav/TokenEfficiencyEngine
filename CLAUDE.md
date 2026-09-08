@@ -279,7 +279,18 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   lane tolerates, so the mesh had to be fixed rather than the gate. A
   measurement that is not pinned is not a measurement — the same threading
   lesson bit the campaign twice, once in the lane and once in its own probe
-  script.
+  script. **P5 (2026-09-08) then measured the 2-D route and DECLINED it**
+  (doc 74 §2.9): `cartesian2DMesh` gives Cd roughly double the lane's own
+  O-mesh on the same section, and refining the cartesian mesh toward the
+  O-mesh's near-wall resolution widens the gap rather than closing it, with a
+  control on the SAME O-mesh ruling out the near-wall model. Two facts from it
+  outrank memory: **the surface rule INVERTS** — `cartesianMesh` needs a CLOSED
+  surface and `cartesian2DMesh` refuses one, wanting the outline extruded
+  without caps (a ribbon, open in z) and supplying the through-thickness cell
+  itself; and **cfMesh assigns no patch types in either dimension** — 3-D makes
+  every solid-derived patch `wall`, 2-D makes every patch `empty` including the
+  wall and the farfield, so `checkMesh` says "not 1D or 2D" until the caller
+  rewrites them.
 
 - The A75 build (`fd_*`: a headless flight-dynamics lane where a `wt_sweep`
   polar and a mass become a JSBSim aircraft that trims) is **COMPLETE**, P0-P4,

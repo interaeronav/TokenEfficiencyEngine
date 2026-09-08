@@ -14951,10 +14951,58 @@ The `chose` line quotes the two measured numbers rather than their ratio: an
 earlier draft said "1/1900th the spurious lift", which rounds a rounded quantity
 (0.07458 / 0.00004 is ~1865) into a claim of its own.
 
-**Open:** doc 74 §5's remaining questions — whether the Mac's v2606 bundle
-carries cfMesh (now answered by `wt_probe` on any machine that runs it), HiSA's
-licence at its own repository, and the 2-D `cartesian2DMesh` route the lane has
-nothing to compare against.
+### A74 P5 — the 2-D route, measured and declined (2026-09-08)
+
+Opened on the owner's word after P4 closed, to settle the one question doc 74
+§4 had deferred rather than answered: does cfMesh's `cartesian2DMesh` earn a
+place beside the lane's own structured O-mesh?
+
+**It does not, and the numbers say so.** NACA 0012, chord 1 m, 30 m/s, α = 4°,
+kOmegaSST, both arms solved here rather than quoted:
+
+| | O-mesh (the lane's) | cartesian, 8 layers | cartesian, 30 layers |
+| --- | ---: | ---: | ---: |
+| cells | 16,000 | 10,032 | 16,456 |
+| mesh / solve | 1.6 s / 10.5 s | 1.5 s / 3.9 s | 1.8 s / 7.9 s |
+| Cl | 0.435564 | 0.427203 | 0.418769 |
+| **Cd** | **0.010913** | **0.020697** | **0.021972** |
+
+Cl agrees within 2–4 %; **Cd roughly doubles**, and giving the cartesian mesh a
+properly resolved boundary layer — 30 layers, more cells than the O-mesh,
+aspect ratio 891 — made it *worse*. The gap widens as the mesh is refined
+toward the thing it is being compared with.
+
+**The near-wall model was ruled out by measurement, not by argument.** The two
+arms differed in two ways at once, so the SAME O-mesh was solved both ways:
+`low_re` gave Cl 0.436168 / Cd 0.010896 and `wall_function` gave 0.436157 /
+0.010897 — identical to four decimals, because on a y+ ≈ 1 mesh the wall
+functions degrade to the low-Re limit. One variable moved, and it was the mesh.
+
+**Two facts kept, worth more than the verdict.** The surface rule **inverts**:
+`cartesianMesh` needs a CLOSED surface and `cartesian2DMesh` refuses one — it
+wants the outline extruded without caps, a ribbon open in z, and supplies the
+single cell through the thickness itself. Four closed variants all died in
+under a second with "There are no cells in the mesh!", whose two suggested
+causes (resolution, a maxCellSize dividing the domain evenly) were both wrong.
+And cfMesh **assigns no patch types in either dimension**: 3-D makes every
+solid-derived patch `wall` (P2), 2-D makes every patch `empty` — including the
+wall and the farfield, so `checkMesh` answers "this mesh is not 1D or 2D" until
+the caller rewrites two lines, after which the same mesh is `Mesh OK`.
+
+**A slip worth keeping.** The first run of the wall-treatment control read
+`Aref` from a guessed 1.0 m slab where the case record says 0.1 m, and every
+coefficient came out exactly 10× too small. Exactly 10× is what a guessed
+constant looks like, and the record was one `case.json` away.
+
+**No code shipped.** No tool, no argument, no version bump — the deliverable is
+the measurement and `docs/research/74-evidence/p5-*` (five probes and their
+log). Doc 74 §2.9 carries the reasoning and §4 now states the decline rather
+than the deferral.
+
+**Open:** one question of doc 74 §5 — **HiSA's licence**, read at its own
+repository rather than at a search result, before it is ever named as an option
+in a refusal. The Mac's v2606 bundle is now answered by `wt_probe` on any
+machine that runs it, and the 2-D `cartesian2DMesh` route is answered above.
 
 ## A75 — the flight-dynamics lane: a polar becomes an aircraft that flies (2026-09-07)
 
