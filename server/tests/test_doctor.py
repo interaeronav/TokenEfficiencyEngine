@@ -69,8 +69,47 @@ def test_emit_config_qwen_names_its_settings_file():
 
 
 def test_emit_config_rejects_an_unknown_client():
-    with pytest.raises(ValueError, match="qwen-code"):
+    with pytest.raises(ValueError, match="opencode"):
         doctor.emit_config("codex")
+
+
+def test_emit_config_opencode_uses_its_own_shape_not_mcp_servers():
+    """opencode is not an `mcpServers` client and pasting that shape into it
+    does nothing. Its key is `mcp`, an entry is typed `local`, and command
+    plus args are ONE flat array (opencode.ai/docs/mcp-servers)."""
+    out = doctor.emit_config("opencode")
+    assert "mcpServers" not in out, "the Claude/Cursor shape is wrong here"
+    assert "~/.config/opencode/opencode.json" in out, "name the global config"
+    parsed = json.loads(out[out.index("{") :])
+    entry = parsed["mcp"]["tee"]
+    assert entry["type"] == "local"
+    assert entry["enabled"] is True
+    assert isinstance(entry["command"], list)
+    assert entry["command"][0] == "uv"
+    assert "serve" in entry["command"]
+    # one flat array, so no separate args key can be hiding the tail
+    assert "args" not in entry
+
+
+def test_emit_config_serves_every_named_lane_and_writes_the_project_root():
+    """The two things a terminal host needs and the single-lane default does
+    not give it: several lanes in one server, and `--project`. Without the
+    latter `tee serve` roots at the launching cwd, which for opencode is
+    wherever the session started - no grants file, every mutation tier
+    silently denied (research doc 66)."""
+    lanes = ["blender", "partkiln", "seamkiln", "fusion"]
+    out = doctor.emit_config("opencode", adapters=lanes, project="/Users/j/TEE")
+    cmd = json.loads(out[out.index("{") :])["mcp"]["tee"]["command"]
+    assert [cmd[i + 1] for i, a in enumerate(cmd) if a == "--adapter"] == lanes
+    assert cmd[cmd.index("--project") + 1] == "/Users/j/TEE"
+
+
+def test_emit_config_omits_a_timeout_it_cannot_justify():
+    """opencode defaults to 5,000 ms; a cold spawn of the four-lane server to
+    tools/list measured 955-1,158 ms. Emitting a timeout anyway would be a
+    number nobody measured."""
+    out = doctor.emit_config("opencode", adapters=["blender", "partkiln"])
+    assert "timeout" not in json.loads(out[out.index("{") :])["mcp"]["tee"]
 
 
 def test_unreal_check_rejects_a_stranger_on_the_port(monkeypatch):

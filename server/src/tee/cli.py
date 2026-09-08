@@ -448,7 +448,14 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
     if args.emit:
         try:
-            print(doctor.emit_config(args.emit, port=args.blender_port))
+            print(
+                doctor.emit_config(
+                    args.emit,
+                    adapters=args.emit_adapter or None,
+                    project=args.emit_project,
+                    port=args.blender_port,
+                )
+            )
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
             return 2
@@ -522,7 +529,24 @@ def main(argv: list[str] | None = None) -> int:
     doctor.add_argument(
         "--emit",
         metavar="CLIENT",
-        help="print MCP client config (claude-code|claude-desktop|cursor|qwen-code) and exit",
+        help=(
+            "print MCP client config "
+            "(claude-code|claude-desktop|cursor|qwen-code|opencode) and exit"
+        ),
+    )
+    doctor.add_argument(
+        "--emit-adapter",
+        action="append",
+        metavar="NAME",
+        help="lane for --emit; repeat for several (default: blender)",
+    )
+    doctor.add_argument(
+        "--emit-project",
+        metavar="PATH",
+        help=(
+            "write --project PATH into the emitted config: the root whose "
+            ".tee/config.toml holds your grants (default: the cwd)"
+        ),
     )
     doctor.add_argument("--blender-port", type=int, default=9876, help="Blender bridge port")
     doctor.set_defaults(fn=cmd_doctor)
