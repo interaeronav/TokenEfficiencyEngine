@@ -44,6 +44,12 @@ this script exists.
    the Blender and Unreal add-ons, which an update to Claude Desktop does not
    need.)
 
+   Then check the FILE rather than the build log, because the log can say
+   "built" for a bundle that is wrong inside. Read manifest.json out of the
+   zip and tell me three things from it: the version, the lanes it serves,
+   and that `tools` still lists 17. A version that does not match step 0, or
+   a count that is not 17, means stop and tell me before I install it.
+
 2. RECORD what is installed now, BEFORE I replace it:
        bash docs/research/74-evidence/mac-upgrade-check.sh
    Keep the output. Section B lists the extras that must still be there when
@@ -117,6 +123,11 @@ this script exists.
    you just restored, and show me the answer. An install log saying
    "installed" is not proof. An answer is.
 
+   If the status lists lanes as DISCONNECTED, that is normal and not a
+   failure: Blender, Fusion and the rest connect only while those
+   applications are actually running. Say which are disconnected for that
+   reason rather than treating them as broken.
+
 6. REPORT in plain English: the old version, the new version, which extras
    were deleted and restored, and anything still missing or broken.
 
@@ -141,6 +152,13 @@ RULES:
   into the extension, that list is wrong.
 - If Claude seems lost mid-run, say: *"re-read docs/desktop-update-script.md
   and continue from the next unfinished step."*
+
+## This is Claude Desktop only
+
+The `.mcpb` bundle has no role in opencode, which runs TEE straight from the
+checkout — there, updating is `git pull`, `uv sync`, and restarting opencode.
+See [opencode-script.md](opencode-script.md). Installing a bundle will not
+update opencode, and nothing here needs doing for it.
 
 ## Why the script derives the list instead of printing one
 
