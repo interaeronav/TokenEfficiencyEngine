@@ -14999,6 +14999,31 @@ the measurement and `docs/research/74-evidence/p5-*` (five probes and their
 log). Doc 74 §2.9 carries the reasoning and §4 now states the decline rather
 than the deferral.
 
+### Addendum — `make` was re-syncing the venv (2026-09-08)
+
+Found while running `make lint` to validate A74 P5, and fixed in the same
+session. All four `uv run` invocations in `server/Makefile` — lint (×2),
+format, test — were **bare**, and a bare `uv run` syncs the venv to the lock
+before running anything. This project's engine extras (medimg, quant, solve,
+extract, pdf, and OCP/jsbsim/meshio) are installed ON TOP of the locked set
+with `uv pip install`; the `mcpb` target prints the restore line itself. A sync
+drops them.
+
+`make test` was the worst of the four: it would remove the extras and then
+every suite that needs them would **SKIP rather than fail**, so the only trace
+is a skip count nobody reads. That is the same shape as the defect A74 P4
+shipped and CI caught — a check that quietly depends on what the machine has —
+arriving this time through the build tooling rather than a test.
+
+Measured rather than assumed: a bare `uv run` in this tree reported
+`Installed 1 package in 1ms`, the sync doing its job on a checkout where
+nothing happened to need removing. Nothing was lost here — this container's
+extras were already absent (they are among the 39 skips) and the suite counts
+before and after are identical — but the hazard is real on a machine that has
+them. `--no-sync` on all four, and `test_server_lint.py` now fails any bare
+`uv run` in the Makefile; the guard was checked against the exact line it
+replaced.
+
 **Open:** one question of doc 74 §5 — **HiSA's licence**, read at its own
 repository rather than at a search result, before it is ever named as an option
 in a refusal. The Mac's v2606 bundle is now answered by `wt_probe` on any

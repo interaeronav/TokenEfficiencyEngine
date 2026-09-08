@@ -244,3 +244,33 @@ def test_no_hermetic_engine_test_reads_this_machine():
         "depends on who is running the suite. If the point IS the absent-engine "
         "refusal, blind the machine first the way test_windtunnel_readers.py does."
     )
+
+
+def test_the_makefile_never_lets_uv_resync_the_venv():
+    """`uv run` SYNCS the venv to the lock unless told not to, and this
+    project's engine extras are installed ON TOP of the locked set with
+    `uv pip install` - the `mcpb` target prints the restore line itself. A
+    sync drops them.
+
+    `make test` was the worst of the four bare invocations: it would remove
+    the extras and then every suite that needs them would SKIP rather than
+    fail, so the only trace is a skip count nobody reads. Measured 2026-09-08:
+    a bare `uv run` in this tree reported "Installed 1 package" - the sync
+    doing its job, on a checkout where nothing happened to need removing.
+    """
+    import re
+    from pathlib import Path
+
+    makefile = Path(__file__).resolve().parents[1] / "Makefile"
+    assert makefile.is_file(), makefile
+    bare = [
+        f"{i}: {line.strip()}"
+        for i, line in enumerate(makefile.read_text().splitlines(), 1)
+        if re.match(r"^\t*uv run (?!--no-sync|--frozen)", line)
+    ]
+    assert not bare, (
+        f"these Makefile recipes let uv re-sync the venv: {bare}. Add "
+        "`--no-sync` (or `--frozen`): a bare `uv run` reinstalls from the lock "
+        "and drops every pip-installed extra, after which the suites that need "
+        "them skip instead of failing."
+    )

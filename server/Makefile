@@ -49,12 +49,19 @@ mcpb:
 # server/ cannot reach it - so the code that produces the numbers this
 # project is judged by went unlinted for its whole life, accumulating 30
 # errors including unreachable code referencing an undefined name.
+# `--no-sync` on every one of these, and it is load-bearing rather than tidy:
+# a bare `uv run` SYNCS the venv to the lock first, and this project's engine
+# extras (medimg, quant, solve, extract, pdf, and OCP/jsbsim/meshio) are
+# installed ON TOP of the locked set with `uv pip install` - see the reminder
+# the mcpb target below prints. A sync drops them. `make test` was the worst
+# of the four: it would remove the extras and then the suites that need them
+# would SKIP rather than fail, so the only trace is a skip count nobody reads.
 lint:
-	uv run ruff check src tests ../benchmarks
-	uv run ruff format --check src tests
+	uv run --no-sync ruff check src tests ../benchmarks
+	uv run --no-sync ruff format --check src tests
 
 format:
-	uv run ruff format src tests
+	uv run --no-sync ruff format src tests
 
 test:
-	uv run pytest
+	uv run --no-sync pytest
