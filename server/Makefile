@@ -42,11 +42,13 @@ mcpb:
 	@echo ""
 	@echo "    uv pip install --python \"$$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python\" \\"
 	@echo "      'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' 'tee-engine[extract]' \\"
-	@echo "      'tee-engine[pdf]' 'tee-engine[windtunnel]' 'tee-engine[flightdyn]'"
+	@echo "      'tee-engine[pdf]' 'tee-engine[windtunnel]' 'tee-engine[flightdyn]' \\"
+	@echo "      'tee-engine[pointcloud]'"
 	@echo ""
 	@echo "  See docs/setup-fleet.md. 'cad' is excluded on purpose (sidecar)."
-	@echo "  windtunnel is wt_export format=vtu only; flightdyn is what fd_* needs"
-	@echo "  to run at all - both were missing from this line until A75/A77."
+	@echo "  windtunnel is wt_export format=vtu only; flightdyn and pointcloud are"
+	@echo "  what fd_* and pc_* need to run at all - all three were missing from"
+	@echo "  this line until A75/A77."
 
 # SI-B20: ../benchmarks was NOT in this list, and `ruff check .` run from
 # server/ cannot reach it - so the code that produces the numbers this

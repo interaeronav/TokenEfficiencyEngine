@@ -33,7 +33,7 @@ After any upgrade, restore with:
 uv pip install --python "$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python" \
   'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' \\
   'tee-engine[extract]' 'tee-engine[pdf]' \\
-  'tee-engine[windtunnel]' 'tee-engine[flightdyn]'
+  'tee-engine[windtunnel]' 'tee-engine[flightdyn]' 'tee-engine[pointcloud]'
 ```
 
 **Check every group, not the ones you remember.** The first restore after
@@ -43,10 +43,11 @@ the whole video/audio half - were still missing, and nothing said so. The
 lane simply behaved as though those inputs were unsupported.
 
 **And this list itself goes stale, which is the same bug one level up.** It
-carried five groups from 0.10.0 until 2026-09-08, by which time A72 had added
-`windtunnel` and A75 `flightdyn`: a restore run from it would have brought back
-everything it names and still left `fd_*` refusing on every call. Two lanes
-shipped without their extra reaching the line that restores them. When a
+carried five groups from 0.10.0 until 2026-09-08, by which time A67 had added
+`pointcloud`, A72 `windtunnel` and A75 `flightdyn`: a restore run from it would
+have brought back everything it names and still left `fd_*` and `pc_*` refusing
+on every call. Three lanes shipped without their extra reaching the line that
+restores them. When a
 campaign adds an optional dependency, it belongs **here and in the `mcpb`
 target's printed reminder** in the same commit as the extra itself.
 
@@ -76,6 +77,7 @@ med_backends  -> "numpy": {"installed": true, "version": "2.5.2"}
 | run a wind-tunnel case | engines per `docs/setup-windtunnel.md` | `wt_case`, `wt_run` |
 | export a solved field as `.vtu` | `uv pip install 'tee-engine[windtunnel]'` | `wt_export format=vtu` |
 | trim and fly an aircraft | `uv pip install 'tee-engine[flightdyn]'` | `fd_trim`, `fd_modes` |
+| prepare a raw scan for tracing | `uv pip install 'tee-engine[pointcloud]'` | `pc_open`, `pc_section` |
 
 Every tool is found through `tee_search_tools` and called through
 `tee_call`. If a library is missing you get one short error naming the
