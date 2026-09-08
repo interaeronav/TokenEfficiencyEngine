@@ -15,6 +15,7 @@ import shutil
 import socket
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -756,13 +757,31 @@ def _dev_checkout() -> bool:
     return (server_dir() / "pyproject.toml").exists()
 
 
-def serve_command(*, adapter: str = "blender", port: int = BRIDGE_PORT) -> list[str]:
+def serve_command(
+    *,
+    adapter: str = "blender",
+    adapters: Sequence[str] | None = None,
+    project: str | None = None,
+    port: int = BRIDGE_PORT,
+) -> list[str]:
     """The command a client config should launch: the installed `tee`
     binary when this is an installed package, the uv-run form for a dev
-    checkout."""
-    tail = ["serve", "--adapter", adapter]
-    if adapter == "blender" and port != BRIDGE_PORT:
+    checkout.
+
+    `adapters` serves several lanes in one server (the Desktop manifest's
+    shape); `adapter` stays for the single-lane callers. `project` writes
+    `--project`, which a terminal host needs: `tee serve --project` defaults
+    to the launching client's cwd, so a session started anywhere else boots
+    from a root with no grants file and silently loses every mutation tier
+    (research doc 66)."""
+    names = list(adapters) if adapters else [adapter]
+    tail = ["serve"]
+    for name in names:
+        tail += ["--adapter", name]
+    if "blender" in names and port != BRIDGE_PORT:
         tail += ["--blender-port", str(port)]
+    if project:
+        tail += ["--project", project]
     if _dev_checkout():
         return ["uv", "--directory", str(server_dir()), "run", "tee", *tail]
     # a plain `tee` on PATH is usually coreutils tee - only trust a
@@ -774,8 +793,15 @@ def serve_command(*, adapter: str = "blender", port: int = BRIDGE_PORT) -> list[
     return ["uvx", "--from", "tee-engine", "tee", *tail]
 
 
-def emit_config(client: str, *, adapter: str = "blender", port: int = BRIDGE_PORT) -> str:
-    command = serve_command(adapter=adapter, port=port)
+def emit_config(
+    client: str,
+    *,
+    adapter: str = "blender",
+    adapters: Sequence[str] | None = None,
+    project: str | None = None,
+    port: int = BRIDGE_PORT,
+) -> str:
+    command = serve_command(adapter=adapter, adapters=adapters, project=project, port=port)
     entry = {"command": command[0], "args": command[1:]}
     if client == "claude-code":
         return (
@@ -790,8 +816,33 @@ def emit_config(client: str, *, adapter: str = "blender", port: int = BRIDGE_POR
             "qwen-code": "~/.qwen/settings.json (or .qwen/settings.json for project scope)",
         }[client]
         return f"// add to {where}:\n" + json.dumps({"mcpServers": {"tee": entry}}, indent=2)
+    if client == "opencode":
+        # opencode's shape is NOT the mcpServers one: the key is `mcp`, an
+        # entry is typed `local`, and command+args are ONE flat array
+        # (opencode.ai/docs/mcp-servers). Global config lives at
+        # ~/.config/opencode/opencode.json and merges with a project
+        # opencode.json, the project winning a conflict
+        # (opencode.ai/docs/config).
+        #
+        # No `timeout`: opencode defaults to 5,000 ms and a cold spawn of
+        # the four-lane server to tools/list measured 955-1,158 ms (median
+        # 1,086 ms, 5 runs), so the default already carries 4x headroom.
+        # A first spawn after an update also pays uv's resolution; raise
+        # `timeout` only if that actually trips.
+        return (
+            "// add to ~/.config/opencode/opencode.json (global) or\n"
+            "// opencode.json in a project root (project wins on conflict):\n"
+            + json.dumps(
+                {
+                    "$schema": "https://opencode.ai/config.json",
+                    "mcp": {"tee": {"type": "local", "command": command, "enabled": True}},
+                },
+                indent=2,
+            )
+        )
     raise ValueError(
-        f"unknown client '{client}' (use claude-code, claude-desktop, cursor or qwen-code)"
+        f"unknown client '{client}' (use claude-code, claude-desktop, cursor, "
+        "qwen-code or opencode)"
     )
 
 

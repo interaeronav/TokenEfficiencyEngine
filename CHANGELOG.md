@@ -3,6 +3,23 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## Unreleased
+
+`tee doctor --emit opencode`. opencode is the owner's terminal host (research
+doc 66) and was the one client TEE could not emit a config for — and pasting
+the `mcpServers` shape into it does nothing, because its key is `mcp`, an entry
+is typed `local`, and command plus args are one flat array. Verified against
+opencode.ai/docs/mcp-servers and /docs/config rather than assumed.
+
+`--emit-adapter` (repeatable) serves several lanes from one entry, and
+`--emit-project` writes `--project`, which is the fix for the defect doc 66
+recorded: `tee serve --project` defaults to the launching client's cwd, so a
+terminal session started elsewhere boots from a root with no grants file and
+silently loses every mutation tier. No `timeout` is emitted — opencode defaults
+to 5,000 ms and a cold spawn of the four-lane server to tools/list measured
+955-1,158 ms over five runs (median 1,086), so the default already carries 4x
+headroom and a number nobody measured would be worse than none.
+
 ## 0.30.0 — the benchmark tells the truth (A77)
 
 No new tools; the surface stays 17. This release is about the one number TEE
