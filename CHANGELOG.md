@@ -3,6 +3,26 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
+## 0.30.0 — the benchmark tells the truth (A77)
+
+No new tools; the surface stays 17. This release is about the one number TEE
+says it judges every decision by.
+
+- **`cli.attach_all` is the single seam.** `cmd_serve` and `run_benchmarks.py`
+  build the same registry from `LANE_ATTACHMENTS`. The harness had hand-rolled
+  seven lanes where the server attaches nineteen.
+- **The surface row was wrong and is corrected**: **197** virtual tools costing
+  31,283 tokens flat against a 2,129-token always-loaded surface — **93.2%
+  saved**, not the 89.6% it claimed over a 141-tool corpus. The stale figure
+  *understated* TEE's own saving by 3.6 points.
+- **The flight-dynamics and engine rows now have scenarios.** Both were
+  hand-measured in a shell and written into `RESULTS.md` as prose. The engine
+  row was not even reproducible: it was taken against a live model stack, and
+  the row now says so.
+- **A canary**: `test_a77_benchmark_canary.py` fails when the surface figure,
+  the corpus size, or a lane's headline cost stops matching what `RESULTS.md`
+  prints — with every band stated and a test proving the gate fires.
+
 ## 0.29.0 — cfMesh in the wind-tunnel lane (A74)
 
 `wt_mesh` meshes a 3-D body with **cfMesh** as well as snappyHexMesh, and

@@ -15243,3 +15243,73 @@ exists — the cfmesh lookup does not use it.
 
 **Suites:** 2,022 passed / 21 skipped / 1 failed (the cfMesh probe above, A74's
 and pre-existing); `make lint` clean.
+
+## A77 — the benchmark tells the truth (2026-09-08)
+
+Owner: *"start A77 P0"*, then *"continue all phases without my input"*. No A77
+existed, so P0's first act was choosing the campaign; the choice and the three
+alternatives it beat are in `DECISIONS.md`, and it is reversible.
+
+**P0.** `CLAUDE.md` says tokens per completed task is TEE's core metric and that
+every design decision is judged by it first. It is the one thing in the repo
+with no owner: licences have a gate per lane, the tool surface has nine
+assertions, trust has a table that refuses an untabled tool at startup, and
+`RESULTS.md` — 26 sections, 85 tabled numbers — is referenced by no test at all.
+
+And it had drifted. A real server serves 210 tools; the harness measured 141.
+**52 tools, 27 % of the long tail, were invisible to it.** `78-evidence/drift.py`
+reads both lane lists out of the SOURCE rather than restating them, so the
+measurement cannot go stale the way its subject did.
+
+**P1.** `cli.attach_all` is the single seam, built from `LANE_ATTACHMENTS`.
+`cmd_serve` had nineteen bare `_attach_` calls; the harness hand-rolled seven of
+its own. Both now go through it. `test_a77_one_server.py` asserts every
+`_attach_` function cli.py defines is in the list, that `cmd_serve` attaches
+nothing on its own, and that the harness does not hand-roll a server again — and
+one test plants a lane outside the list to prove the gate fires.
+
+**The correction, and its direction.** Measured through the real list: **197
+virtual tools, 31,283 tokens flat, 93.2 % saved** where the row claimed 141 and
+89.6 %. The stale figure understated TEE's own saving by 3.6 points. Worth
+stating plainly because the assumption runs the other way — an unmanaged number
+is not biased toward its author, it is simply unread, and nobody looked for four
+campaigns even while it undersold the feature. Doc 78, the script, the ruling and
+the evidence README all said "drifts in TEE's favour" until P1 measured it and
+all four were corrected.
+
+**P2.** The A75 and A76 rows had no scenarios: both were hand-measured in a shell
+and written in as prose, which is the exact thing this campaign is about.
+`run_flightdyn_scenario` and `run_engines_scenario` now re-run them like every
+other row, and both feed `write_results`, which states whether a row was
+re-measured or **held** this run rather than carrying a stale number silently
+forward. Flight dynamics re-measured **898 → 835**. The engine row re-measured
+**375 → 311**, and the gap is methodological, not drift: 375 was taken against a
+live model stack where `eng_scan` had two answering endpoints to describe, and
+the scenario runs hermetically. Both are true and they answer different
+questions, so the row now names its condition — **a benchmark number that omits
+the machine state it was taken in cannot be re-run.**
+
+**P3.** `test_a77_benchmark_canary.py` reads the numbers out of `RESULTS.md`'s
+own prose and fails when they stop being true: the always-loaded wire figure
+(±2 %, tight because the one recorded regression moved it +96 tokens), the
+corpus size (exact — a tool count is an integer), the headline saving (±1 point)
+and each lane's headline cost (±10 %, wide because a rephrased verdict line is
+not a regression). Every band is stated with why. Verified by planting a stale
+number and watching it fail.
+
+**Not the campaign's, but paid here:** the venv had lost eight extras — laspy,
+trimesh, fpdf, pydicom, highspy, skfolio, meshio, jsbsim — plus networkx, rtree
+and numba that seamkiln reaches through trimesh and no TEE extra declares. The
+cause was `make lint` running a plain `uv run`, which syncs from the lock; the
+parallel session's `--no-sync` fix landed in the same pull that surfaced it. 12
+failures and 33 errors were checked against the pre-change tip before being
+blamed on anything of this campaign's.
+
+**Held, and named as held:** the DCC scenarios (donut, hundred-objects,
+material-pass, verify) need a live headless Blender and were not re-run; the
+Fusion, Unreal and windtunnel rows likewise need their engines. They keep their
+last measured values and their dates. P2 re-measured what runs here and nothing
+else.
+
+**Suites at close:** server `uv run --no-sync pytest -q` **2,010 passed / 28
+skipped / 141 deselected**; `make lint` clean. Surface unchanged: **17 tools**.

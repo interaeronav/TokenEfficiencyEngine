@@ -433,10 +433,14 @@ what a model must otherwise read to reach the same answer.
 | Arm | Tokens | Calls |
 |---|---|---|
 | naive (the aircraft XML authored and read back, the property catalogue, 60 s of six states at 120 Hz, the raw A and B) | 131,179 | — |
-| TEE (`fd_probe` to `fd_fly`, digests only) | **898** | 5 |
+| TEE (`fd_probe` to `fd_fly`, digests only) | **835** | 5 |
 
-**Saving: 99.3%** — a factor of 146. Per call: `fd_probe` 136, `fd_aircraft` 93,
-`fd_trim` 138, `fd_modes` 363, `fd_fly` 168.
+**Saving: 99.4%** — a factor of 157. Per call: `fd_probe` 128, `fd_aircraft` 90,
+`fd_trim` 128, `fd_modes` 334, `fd_fly` 155.
+
+_A77 P2 re-measured this: it read **898** and was taken by hand in a shell, with
+no scenario behind it. `run_flightdyn_scenario` now re-runs it like every other
+row. It holds rather than guesses when jsbsim is absent._
 
 The naive arm is dominated by one term: the time history is 125,206 of its
 131,179 tokens, and it grows linearly with every second flown and every state
@@ -466,9 +470,17 @@ use, and are the router's numbers still true".
 | Arm | Tokens | Calls |
 |---|---|---|
 | naive (`machine.py`, `profiles.py`, `router.py`, `llm/tools.py`, `local_llm.py`, the head of `chores.py`, `.tee/config.toml`, the shim's `litellm.yaml`) | 21,979 | — |
-| TEE (`eng_scan` 99 + `eng_reconcile` 276) | **375** | 2 |
+| TEE (`eng_scan` 57 + `eng_reconcile` 254) | **311** | 2 |
 
-**Saving: 98.3%** — a factor of 59.
+**Saving: 98.6%** — a factor of 71, on a machine with **nothing running**.
+
+_A77 P2 re-measured this and found the row was not reproducible. It read **375**,
+taken against a live stack where `eng_scan` had two answering endpoints to
+describe; `run_engines_scenario` runs hermetically, where the same call costs 57.
+Both are true and they are answers to different questions, which is why the row
+now says which one it is. A benchmark number that omits the machine state it was
+taken in cannot be re-run, and a number that cannot be re-run is the thing this
+campaign exists to stop._
 
 **And the naive arm does not answer the question.** Four of the eight routes the
 shim advertises return HTTP 200 with empty content; that fact is in none of

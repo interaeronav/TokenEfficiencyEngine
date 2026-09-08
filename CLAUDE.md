@@ -338,6 +338,25 @@ KB retrieval) is tool-agnostic; all DCC knowledge lives in the adapters.
   not a result: MLX and LiteLLM are measured, Ollama/llama.cpp/vLLM/LM Studio
   are named nowhere in `server/src/`.
 
+- The A77 build (the benchmark tells the truth) is **COMPLETE**, P0-P4, shipped
+  as 0.30.0; `CLAUDE_A77_SCRIPT.md` is the plan of record and research doc **78**
+  the design of record. It adds ZERO tools: its product is that a number fails
+  when it stops being true. Its measured facts outrank memory: **the harness was
+  measuring a server that does not exist** - `run_benchmarks.py` hand-rolled
+  seven lanes where `cmd_serve` attaches nineteen, so the headline saving was
+  computed over 141 virtual tools where a real server serves 197, and the true
+  figure is **93.2%** not 89.6%; **the stale number drifted AGAINST TEE**,
+  understating its own saving by 3.6 points, because an unmanaged metric is not
+  biased toward its author, it is simply unread; **a row measured against a live
+  machine is not reproducible** and must say so (the engine row read 375 with two
+  endpoints answering and 311 with nothing running - both true, different
+  questions); and a scenario nobody calls is a row nobody re-runs, which is how
+  the A75 and A76 rows came to be hand-measured prose. `cli.attach_all` is now
+  the single seam both callers build from, and `test_a77_one_server.py` plus
+  `test_a77_benchmark_canary.py` fail when a lane reaches one caller and not the
+  other, or when a quoted number stops being true. Bands are stated, and each
+  gate has a test proving it fires.
+
 - The A51 campaign (faster headless boots, a camera that grades its own
   framing via the local VLM, and PDFs that can write ordinary prose) is
   driven by `CLAUDE_A51_SCRIPT.md`. Its three premises were all measured
