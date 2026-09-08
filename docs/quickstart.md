@@ -72,7 +72,8 @@ opencode runs the server straight from your checkout, so updating TEE is
 
 [opencode-script.md](opencode-script.md) is the same setup as one block to
 paste into a local Claude Code session, for when you would rather not do it
-by hand.
+by hand. [desktop-update-script.md](desktop-update-script.md) is the
+equivalent for rebuilding and reinstalling the Claude Desktop `.mcpb`.
 
 Start with the fake adapter to explore without any DCC:
 
