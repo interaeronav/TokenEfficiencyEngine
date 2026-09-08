@@ -336,12 +336,20 @@ def _without_cfmesh(tmp_path):
     The probe is lazy, so removing the two files before anything asks is
     enough - and it is the honest shape of the machine this branch exists
     for: a Foundation build, or anything older than openfoam.com v1806.
+
+    It gets its OWN directory. Given the caller's `tmp_path` it would lay the
+    fakes out where the `app` fixture already put them and then delete two of
+    them, silently gutting an install another app in the same test is still
+    using - which is exactly what happened here, invisibly, for as long as the
+    assertion below read the real machine instead of the fixture.
     """
     from fixtures_windtunnel import make_app
 
-    app = make_app(tmp_path)
+    root = Path(tmp_path) / "no-cfmesh"
+    root.mkdir(parents=True, exist_ok=True)
+    app = make_app(root)
     for name in ("cartesianMesh", "surfaceFeatureEdges"):
-        (Path(tmp_path) / "engines" / "fake-foam" / name).unlink()
+        (root / "engines" / "fake-foam" / name).unlink()
     return app
 
 
@@ -409,7 +417,13 @@ def test_the_probe_says_whether_this_install_carries_cfmesh(app, tmp_path):
         is False
     )
     # the ANSWER on the wire, the path on the install: a path costs 17 tokens
-    # of every probe and a caller can act on none of them
+    # of every probe and a caller can act on none of them. Read off the app's
+    # OWN fake install: an EMPTY config makes the finder search the real
+    # machine, which passes on a developer box with OpenFOAM and fails on any
+    # runner without it - and this file's whole premise is the cfMesh writer
+    # WITH NO cfMesh. It shipped that way once; CI caught it, this machine
+    # could not. `test_server_lint.py` now guards the shape.
     from tee.windtunnel import engines
 
-    assert engines.find_openfoam({}, probe_version=True).cfmesh.endswith("cartesianMesh")
+    route = engines.find_openfoam(app.config.windtunnel, probe_version=True)
+    assert route.cfmesh.endswith("cartesianMesh")

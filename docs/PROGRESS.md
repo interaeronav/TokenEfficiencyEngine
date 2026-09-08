@@ -14915,7 +14915,26 @@ pins, not the 2,033 four campaigns' worth of prose kept reprinting); no new
 **Suites at close:** server **1,949 passed / 39 skipped / 2 xfailed** hermetic
 on A74's own tree, **1,959 / 39** once A76 was merged in (its P3 landed the fix
 its two xfails were waiting for), ruff clean; the `cfd` tier's A74 tests green
-on the real binaries (OpenFOAM v2606). Shipped as **0.29.0** — 0.26.0 had been reserved for this campaign and
+on the real binaries (OpenFOAM v2606).
+
+**And CI said otherwise, which is the point of having it.** That green was
+measured on a machine with OpenFOAM installed. On the runner, one test failed:
+an assertion added in P4 called the OpenFOAM finder with an EMPTY config, which
+searches the real install locations rather than the fixtures' fake one — in the
+file whose docstring says *"the cfMesh writer, with no cfMesh"*. Fixing it to
+read the app's own config made it fail a second time, for a different reason
+that the first had been hiding: `_without_cfmesh(tmp_path)` was laying its
+fakes in the `app` fixture's own directory and then deleting `cartesianMesh`
+out from under it. Both are fixed, the failure was reproduced locally first
+(blind `_foam_candidates()` and `shutil.which` and this container raises the
+runner's error verbatim), and `test_server_lint.py` now fails any hermetic test
+that calls `find_*({})` or `probe({})` **without blinding the machine first**.
+That qualifier is itself measured: the guard's first draft flagged
+`test_windtunnel_readers.py`, which patches `shutil.which`, HOME and the
+environment and THEN calls the finder with an empty config to assert the
+absent-engine refusal — the one shape where asking the machine is the point.
+A test that passes for the wrong reason is not a passing test, and a guard
+that fails the right ones is not a guard. Shipped as **0.29.0** — 0.26.0 had been reserved for this campaign and
 0.28.0 was cut for it, and A76 reached the branch with that number first, so
 A74 took the next free one rather than a number sorting below two shipped
 releases.

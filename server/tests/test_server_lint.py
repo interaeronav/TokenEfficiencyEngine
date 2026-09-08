@@ -192,3 +192,55 @@ def test_lane_docs_quote_the_measured_surface(tools):
         f"lane guides print a surface cost we do not measure: {stale}; "
         f"measured {_wire_tokens(tools)} tok on the wire."
     )
+
+
+def test_no_hermetic_engine_test_reads_this_machine():
+    """A hermetic test that asks the MACHINE what it has is hermetic only on
+    the machine you ran it on.
+
+    Shipped once, on 2026-09-07: one assertion in `test_windtunnel_cfmesh.py`
+    called the OpenFOAM finder with an EMPTY config, which searches the real
+    install locations. It passed on a container with OpenFOAM v2606 and failed
+    on a CI runner with none - in the file whose own docstring says "the cfMesh
+    writer, with no cfMesh". The engine finders take a config for exactly this
+    reason: the fixtures' fake install is a config away.
+
+    `test_windtunnel_live.py` is excluded because reading the machine is its
+    entire job; it is `cfd`-marked and deselected by default.
+    """
+    import re
+    from pathlib import Path
+
+    tests = Path(__file__).resolve().parent
+    suspects = sorted(p for p in tests.glob("test_*.py") if p.name != "test_windtunnel_live.py")
+    assert suspects, "no test files found; this test would pass vacuously"
+    # `find_openfoam({})`, `find_su2({})`, `probe({})` - a call whose only
+    # argument is an empty dict asks the machine what it has
+    empty_cfg = re.compile(r"\b(find_\w+|probe)\(\s*\{\s*\}\s*[,)]")
+    # ...which is legitimate in exactly one shape: a test that BLINDS the
+    # machine first and then asserts the refusal an absent engine produces
+    # (test_windtunnel_readers.py does this - it patches `shutil.which`, HOME
+    # and the environment, then expects `wt_su2_missing`). What is forbidden
+    # is depending on whatever this particular machine happens to have.
+    blinds = ('"which"', "_foam_candidates", "_binary_candidates")
+    guilty = []
+    for path in suspects:
+        body: list[str] = []
+        start = 0
+        lines = [*path.read_text().splitlines(), "def test_END():"]
+        for i, line in enumerate(lines, 1):
+            if line.startswith("def ") or line.startswith("class "):
+                text = "\n".join(body)
+                if any(
+                    empty_cfg.search(ln) and not ln.lstrip().startswith("#") for ln in body
+                ) and not any(b in text for b in blinds):
+                    guilty.append(f"{path.name}:{start}")
+                body, start = [], i
+            body.append(line)
+    assert not guilty, (
+        "these tests read the machine's engines instead of the fixtures' fake "
+        f"install: {guilty}. Pass the app's own config (`app.config.windtunnel`) "
+        "- an empty dict searches the real install locations, so the result "
+        "depends on who is running the suite. If the point IS the absent-engine "
+        "refusal, blind the machine first the way test_windtunnel_readers.py does."
+    )
