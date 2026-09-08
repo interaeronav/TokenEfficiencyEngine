@@ -5,10 +5,12 @@
 # answer the four things a Linux container cannot:
 #
 #   A  which extension is installed, and which venv it runs in
-#   B  the FLEET EXTRAS: installing a bundle rebuilds the venv from its lock
-#      and drops anything pip-installed on top. The failure is quiet - tools
-#      report {"installed": false}, which reads as "you never set this up"
-#      rather than "your upgrade removed it" - so check on purpose
+#   B  the FLEET EXTRAS of the EXTENSION's venv: installing a bundle rebuilds
+#      it from the lock and drops anything pip-installed on top. The failure is
+#      quiet - tools report {"installed": false}, which reads as "you never set
+#      this up" rather than "your upgrade removed it" - so check on purpose.
+#      A witness is one leaf import, so it proves a group is REACHABLE, not
+#      WHOLE; the python below prints the command that answers that
 #   C  does THIS machine's OpenFOAM carry cfMesh? Open since A74 P0 as doc 74
 #      section 5 question 3; wt_probe now answers it in the openfoam row
 #   D  A74's new default, end to end: a bare wt_mesh on a 3-D body should pick
@@ -89,8 +91,31 @@ if wanted:
     print("    " + " ".join(f"'tee-engine[{g}]'" for g in wanted))
 else:
     print("\nnothing to restore.")
+
+# A witness is ONE leaf import, so "present" means reachable, not whole: on
+# 2026-09-08 all nine groups here were green, `tee doctor` said 9 installed,
+# and astral was absent anyway - 113 of 114 packages - because `assets` had
+# never reached either restore line. Only a resolve answers that, and this
+# script prints rather than runs, so here is the command.
+every = " ".join(f"'tee-engine[{g}]'" for g in sorted(WITNESS) if g not in NOT_IN_TEE_VENV)
+print("\nand to check each group is WHOLE, not merely importable (installs")
+print("nothing; 'Would make no changes' is the only clean result):")
+print(f"  uv pip install --dry-run --python '{sys.executable}' \\")
+print("    " + every)
 PY
-py "$WORK/b_extras.py"
+# The environment that MATTERS after a .mcpb install is the EXTENSION's, not
+# the repo's. `py` runs the repo venv, so until 2026-09-08 this section could
+# print "nothing to restore" about a venv the owner never installs into -
+# a green light for the wrong machine. Prefer the extension's own python
+# (`tee` imports from the bundle's own src/), and always say which was used.
+if [ -n "${VENV_PY:-}" ] && [ -x "${VENV_PY:-}" ]; then
+  echo "-- the EXTENSION's venv - the one a .mcpb install rebuilds:"
+  "$VENV_PY" "$WORK/b_extras.py"
+else
+  echo "-- the REPO's venv. There is no extension here, so this is NOT what"
+  echo "   Claude Desktop runs; on the Mac the extension's venv is the answer."
+  py "$WORK/b_extras.py"
+fi
 
 echo
 echo "-- and what the product's own check says (it remembers what it last saw):"

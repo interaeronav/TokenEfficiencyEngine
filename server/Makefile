@@ -43,7 +43,7 @@ mcpb:
 	@echo "    uv pip install --python \"$$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/.venv/bin/python\" \\"
 	@echo "      'tee-engine[medimg]' 'tee-engine[quant]' 'tee-engine[solve]' 'tee-engine[extract]' \\"
 	@echo "      'tee-engine[pdf]' 'tee-engine[windtunnel]' 'tee-engine[flightdyn]' \\"
-	@echo "      'tee-engine[pointcloud]'"
+	@echo "      'tee-engine[pointcloud]' 'tee-engine[assets]'"
 	@echo ""
 	@echo "  See docs/setup-fleet.md. 'cad' is excluded on purpose (sidecar)."
 	@echo "  windtunnel is wt_export format=vtu only; flightdyn and pointcloud are"
