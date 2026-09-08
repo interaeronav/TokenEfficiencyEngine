@@ -792,6 +792,7 @@ def run_flightdyn_scenario() -> dict | None:
 def run_engines_scenario() -> dict | None:
     """A76's row, as a SCENARIO. Reads only; starts and serves nothing."""
     try:
+        import socket
         import tempfile
 
         from tee.app import TeeApp
@@ -805,12 +806,32 @@ def run_engines_scenario() -> dict | None:
     root = tempfile.mkdtemp(prefix="tee-bench-eng-")
     app = TeeApp({"fake": FakeAdapter()}, project_root=root)
     _attach_engines(app, root)
-    per, total = {}, 0
-    for name in ("eng_scan", "eng_reconcile"):
-        out = app.registry.call(name, {})
-        tok = estimate_tokens(out)
-        per[name] = tok
-        total += tok
+
+    # A77 P3 caught this row moving 311 -> 364 between runs: eng_scan probes
+    # whatever is listening on the machine, so the "hermetic" scenario was
+    # measuring the developer's stack. Pin it to a port nothing can answer, so
+    # the number is the same on any machine. What eng_scan costs WITH endpoints
+    # answering is a different figure and RESULTS.md states it separately.
+    from tee.kernel import local_llm, local_vlm
+
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        closed = f"http://127.0.0.1:{probe.getsockname()[1]}/v1"
+    saved = (local_llm.DEFAULT_URL, getattr(local_vlm, "DEFAULT_URL", None))
+    local_llm.DEFAULT_URL = closed
+    if saved[1] is not None:
+        local_vlm.DEFAULT_URL = closed
+    try:
+        per, total = {}, 0
+        for name in ("eng_scan", "eng_reconcile"):
+            out = app.registry.call(name, {})
+            tok = estimate_tokens(out)
+            per[name] = tok
+            total += tok
+    finally:
+        local_llm.DEFAULT_URL = saved[0]
+        if saved[1] is not None:
+            local_vlm.DEFAULT_URL = saved[1]
     app.shutdown()
     row = {"tee_tokens": total, "calls": 2, "per_call": per}
     print(f"engines: {total} tok over 2 calls {per}")
