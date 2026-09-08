@@ -35,13 +35,44 @@ extra is missing.
 ## 2. Connect your client
 
 `tee doctor --emit <client>` prints a ready-to-paste config for
-`claude-code`, `claude-desktop`, `cursor`, or `qwen-code`, using whichever layout you
-installed (dev checkout → `uv run`; wheel install → the venv binary):
+`claude-code`, `claude-desktop`, `cursor`, `qwen-code` or `opencode`, using
+whichever layout you installed (dev checkout → `uv run`; wheel install → the
+venv binary):
 
 ```bash
 tee doctor --emit claude-code
 # claude mcp add tee -- <printed command>
 ```
+
+### opencode
+
+opencode is not an `mcpServers` client — its key is `mcp`, an entry is typed
+`local`, and command plus args are one flat array — so emit its own shape:
+
+```bash
+tee doctor --emit opencode \
+  --emit-adapter blender --emit-adapter partkiln \
+  --emit-adapter seamkiln --emit-adapter fusion \
+  --emit-project ~/TEE
+```
+
+Paste into `~/.config/opencode/opencode.json` (global) or `opencode.json` in a
+project root; they merge, and the project wins a conflict. Restart opencode to
+re-spawn the server after any update.
+
+**`--emit-project` is the one that bites.** `tee serve --project` defaults to
+the launching client's cwd, so an opencode session started anywhere else boots
+from a root with no grants file: the read tiers survive and every mutation tier
+is silently denied. Point it at the root whose `.tee/config.toml` holds your
+grants. `tee_status` reports `rooted_at` so you can confirm which root loaded.
+
+The Desktop bundle (`.mcpb`) is Claude Desktop only and has no role here —
+opencode runs the server straight from your checkout, so updating TEE is
+`git pull` plus `uv sync`, then a restart.
+
+[opencode-script.md](opencode-script.md) is the same setup as one block to
+paste into a local Claude Code session, for when you would rather not do it
+by hand.
 
 Start with the fake adapter to explore without any DCC:
 
