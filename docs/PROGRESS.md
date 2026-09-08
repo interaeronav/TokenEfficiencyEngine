@@ -14999,6 +14999,24 @@ the measurement and `docs/research/74-evidence/p5-*` (five probes and their
 log). Doc 74 §2.9 carries the reasoning and §4 now states the decline rather
 than the deferral.
 
+### Addendum — the lockfile guard, after the third CI cycle lost to it (2026-09-08)
+
+A77's version bump to 0.30.0 landed without `uv lock`, and CI's
+`uv sync --locked` refused the branch *before a single test ran*:
+
+```
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+```
+
+Re-locked and pushed. That is the **third** cycle this branch has spent on the
+same one-line omission — 0.24.1, the 0.29.0 renumber, and now 0.30.0 — and each
+time the signal arrived three minutes into a runner rather than in the working
+tree. `uv.lock` records `tee-engine`'s own version, so the mismatch is a string
+comparison: `test_server_lint.py` now fails it in milliseconds, with the fix in
+the message (`uv lock`, never `uv sync` — that drops the pip-installed extras,
+per the addendum below). The guard was checked against the exact state CI had
+just rejected before being trusted.
+
 ### Addendum — `make` was re-syncing the venv (2026-09-08)
 
 Found while running `make lint` to validate A74 P5, and fixed in the same

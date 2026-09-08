@@ -274,3 +274,31 @@ def test_the_makefile_never_lets_uv_resync_the_venv():
         "and drops every pip-installed extra, after which the suites that need "
         "them skip instead of failing."
     )
+
+
+def test_the_lockfile_records_the_version_pyproject_declares():
+    """CI runs `uv sync --locked`, which refuses a lockfile that does not match
+    `pyproject.toml` — so a version bump without `uv lock` fails the build
+    BEFORE a single test runs:
+
+        error: The lockfile at `uv.lock` needs to be updated, but `--locked`
+        was provided.
+
+    That has cost this branch three CI cycles (0.24.1, the 0.29.0 renumber, and
+    0.30.0). The lock records `tee-engine`'s own version, so the mismatch is
+    visible locally in milliseconds instead of three minutes into a runner.
+    """
+    import re
+    import tomllib
+    from pathlib import Path
+
+    server = Path(__file__).resolve().parents[1]
+    declared = tomllib.loads((server / "pyproject.toml").read_text())["project"]["version"]
+    lock = (server / "uv.lock").read_text()
+    m = re.search(r'name = "tee-engine"\nversion = "([^"]+)"', lock)
+    assert m, "uv.lock has no tee-engine entry; has the distribution been renamed?"
+    assert m.group(1) == declared, (
+        f"pyproject declares {declared} and uv.lock records {m.group(1)}. "
+        "Run `uv lock` (never `uv sync`, which drops the pip-installed extras) "
+        "and commit the lock with the bump."
+    )
