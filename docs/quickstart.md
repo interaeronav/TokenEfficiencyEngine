@@ -70,6 +70,10 @@ The Desktop bundle (`.mcpb`) is Claude Desktop only and has no role here —
 opencode runs the server straight from your checkout, so updating TEE is
 `git pull` plus `uv sync`, then a restart.
 
+[opencode-script.md](opencode-script.md) is the same setup as one block to
+paste into a local Claude Code session, for when you would rather not do it
+by hand.
+
 Start with the fake adapter to explore without any DCC:
 
 ```bash
