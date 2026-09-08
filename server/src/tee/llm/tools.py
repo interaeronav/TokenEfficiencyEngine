@@ -19,7 +19,7 @@ from pathlib import Path
 
 from tee.kernel.errors import TeeError
 from tee.kernel.registry import VirtualTool
-from tee.llm import chores
+from tee.llm import chores, profiles
 
 
 def register_llm_tools(app, project_root: Path | str) -> None:
@@ -110,10 +110,11 @@ def register_llm_tools(app, project_root: Path | str) -> None:
         VirtualTool(
             "llm_switch",
             "Switch the chore engine between local-model profiles. THE CHAT "
-            "PHRASE: the user typing TEE/Q14B, TEE/Q27B, TEE/35B, "
-            "TEE/DSFLASH or TEE/QMAX is a switch request - call this with "
-            "the matching profile ('q14b', 'q27b', 'q35b', 'dsflash', "
-            "'qmax'). q14b (14B + tee-triage-a2) is the default; q27b "
+            f"PHRASE: the user typing {profiles.phrases(cfg)} is a switch "
+            "request - call this with the matching profile name in lower case. "
+            "The list is built from the profiles THIS machine declares, so it "
+            "never advertises one that would be refused. "
+            "q14b (14B + tee-triage-a2) is the default; q27b "
             "passes the traps bare at ~4-6x chore latency (3.11-10.12 s "
             "measured); q35b is Qwen3.6-35B, local and vision-capable, at "
             "~16 s a chore and a 1024-token floor. The choice "

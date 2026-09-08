@@ -133,6 +133,14 @@ ENGINES: dict[str, dict[str, Any]] = {
         "capability": ["chores"],
         "senses": [],
         "senses_source": "config.json DeepseekV4ForCausalLM, no vision_config, read 2026-08-31",
+        # A76 (2026-09-07): this machine no longer has a serving path - the
+        # shim's deepseek route is gone, no checkpoint is in the HF cache, and
+        # oMLX has been idle since the day the latency below was measured. The
+        # row STAYS: registering an engine centrally must not defame it on
+        # machines that do not serve it (A46 P3b), and route() already skips a
+        # rung whose profile is undeclared. eng_reconcile is what says, per
+        # machine and per run, whether it is reachable today.
+        "serving_note": "no path on the owner's Mac as of 2026-09-07 (A76)",
         # No resident process observed across a live 900-token generation
         # (polled 15 s at 0.7 s). Served on demand and not held, so there
         # is no steady footprint to charge the ledger for. NOT a measured

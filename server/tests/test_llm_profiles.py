@@ -346,3 +346,64 @@ def test_llm_switch_tool_and_tee_status_integration(tmp_path) -> None:
         assert "TEE/Q14B" in described["description"]  # the chat phrase contract
     finally:
         app.shutdown()
+
+
+# --- A76: the two defects P0 found and left standing ----------------------
+
+
+def test_a_switch_that_cannot_persist_refuses_rather_than_claiming_ok(tmp_path):
+    """A76 P0 hit this live: `_state_dir` is injected at exactly one site, so a
+    cfg that has not been through the app persisted nothing while switch()
+    returned {"ok": true, "profile": ...}. A switch that does not survive the
+    call is not a switch."""
+    with pytest.raises(TeeError) as e:
+        profiles.switch({}, "q27b")
+    assert e.value.code == "llm_no_state_dir"
+    assert "_state_dir" in e.value.fix
+
+    ok = profiles.switch(base_cfg(tmp_path), "q27b")
+    assert ok["ok"] and profiles.load_state(base_cfg(tmp_path))["active"] == "q27b"
+
+
+def test_save_state_reports_whether_it_wrote(tmp_path):
+    assert profiles.save_state({}, {"active": "q14b"}) is False
+    assert profiles.save_state(base_cfg(tmp_path), {"active": "q14b"}) is True
+
+
+def test_the_chat_phrases_are_only_the_profiles_that_exist_here(tmp_path):
+    """The hard-coded list advertised TEE/35B and TEE/DSFLASH - profiles in
+    neither the builtins nor this machine's config - so typing either raised
+    llm_unknown_profile whose own fix line recommended them."""
+    said = profiles.phrases({})
+    for name in sorted(profiles.profiles({})):
+        assert f"TEE/{name.upper()}" in said
+    assert "TEE/AUTO" in said, "the pin-lifting phrase is always available"
+    assert "TEE/DSFLASH" not in said, "dsflash is declared by no profile here"
+
+    # and a config that DOES declare one gets it advertised
+    cfg = base_cfg(tmp_path, profiles={"qmax": {"model": "m", "paid": True}})
+    assert "TEE/QMAX" in profiles.phrases(cfg)
+
+
+def test_the_refusal_advertises_only_what_it_would_accept(tmp_path):
+    with pytest.raises(TeeError) as e:
+        profiles.switch(base_cfg(tmp_path), "q99")
+    assert e.value.code == "llm_unknown_profile"
+    for phrase in e.value.fix.split("phrases map to profiles: ")[-1].split(", "):
+        name = phrase.strip(" .").removeprefix("TEE/").lower()
+        if name == "auto":
+            continue
+        assert name in profiles.profiles(base_cfg(tmp_path)), (
+            f"the refusal recommends {phrase}, which it would also refuse"
+        )
+
+
+def test_q35b_is_declared_so_a_served_engine_is_reachable():
+    """It had an ENGINES row and no profile anywhere, so route() skipped it with
+    'profile not declared here' while :8080 was serving the weights."""
+    from tee.kernel.machine import ENGINES
+
+    declared = profiles.profiles({})
+    assert "q35b" in declared
+    assert declared["q35b"]["model"] == ENGINES["q35b"].get("model") or declared["q35b"]["model"]
+    assert declared["q35b"]["adapters"] == "", "bare, for q27b's reason"
