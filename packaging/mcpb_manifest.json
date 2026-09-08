@@ -32,6 +32,8 @@
         "seamkiln",
         "--adapter",
         "fusion",
+        "--adapter",
+        "unreal",
         "--project",
         "${user_config.project_root}"
       ]

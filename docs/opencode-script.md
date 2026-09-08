@@ -42,6 +42,7 @@ First try TEE's own emitter, which knows opencode's format:
   uv run tee doctor --emit opencode \
     --emit-adapter blender --emit-adapter partkiln \
     --emit-adapter seamkiln --emit-adapter fusion \
+    --emit-adapter unreal \
     --emit-project <the project root from step 2>
 If that command errors with "unknown client", this checkout predates the
 emitter - in that case build the same JSON yourself, in opencode's shape:
@@ -61,9 +62,9 @@ STEP 4 - prove it actually works, before telling me it does.
   c) In opencode, ask for TEE's status. Check the reply's `rooted_at` shows
      the project root from step 2. If it shows anything else, the `--project`
      argument did not take: fix it and repeat.
-  d) Confirm the four lanes appear: blender, partkiln, seamkiln, fusion. Any
-     of them showing as disconnected is FINE and expected - they connect only
-     when that application or kernel is running.
+  d) Confirm the five lanes appear: blender, partkiln, seamkiln, fusion,
+     unreal. Any of them showing as disconnected is FINE and expected - they
+     connect only when that application or kernel is running.
 
 STEP 5 - tell me, in plain English:
   - the TEE version now installed

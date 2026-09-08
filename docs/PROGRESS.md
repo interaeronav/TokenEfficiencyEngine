@@ -15383,3 +15383,57 @@ a file-offset fault rather than a syntax one. Reproduced in eight lines. The
 fix was to stop adding shell: the python that already runs safely now prints
 the command, which is what the script's own header promised all along —
 *prints, never asserts*.
+
+---
+
+## The Unreal lane was complete and unreachable (2026-09-08, owner's Mac)
+
+Asked to check and fix the Unreal lane. Nothing in it was broken. Everything
+around it was ready, on this machine:
+
+- **UE 5.8.1** at `/Users/Shared/Epic Games/UE_5.8`, changelist 56057345 —
+  byte-for-byte the build `docs/setup-unreal.md` records as verified;
+- Epic's **ModelContextProtocol** plugin present in the engine (Experimental),
+  and `OkongoSim.uproject` enables it along with `AllToolsets`,
+  `PythonScriptPlugin` and **TeeToolset**, whose installed 0.1.0 matches the
+  repo;
+- 50 unit tests pass, the 27 live tests skip cleanly with no editor, and
+  `UnrealWire.probe()` returns False honestly rather than hanging.
+
+**The fault was that nobody asked for the lane.** `packaging/mcpb_manifest.json`
+served `blender partkiln seamkiln fusion` and never named `unreal`, so from
+every Claude Desktop session **19 long-tail tools were unreachable**: the 12
+`ue_*` plus the 7 `pin_*` that `_attach_pins` gates on unreal being served.
+Measured, not inferred — 199 tools served against 218 with the adapter added.
+
+Adding it costs nothing measurable. The always-loaded surface is built from a
+single FakeAdapter and is adapter-independent, so it stays **17 tools / 2,129
+wire tokens**; cold build was 0.056–0.070 s either way across fresh processes;
+and `UnrealAdapter.__init__` does not connect — `probe()` is lazy, so a machine
+with no editor pays nothing. Routing is unchanged despite unreal's wildcard
+vocab (`kinds=None`, `kind_optional`): cube still routes to blender, part to
+partkiln, drape to seamkiln, and a bare create to blender.
+
+`docs/opencode-script.md` carried the same staleness one step behind — it
+passed four `--emit-adapter` flags and told the reader to expect four lanes —
+and now names five. (`tee doctor --emit opencode` defaults to blender alone;
+that is a default the script overrides, not a bug.)
+
+**Why no test caught it.** `test_mcpb_manifest_tool_list_matches_surface`
+checks the manifest's `tools` array against the served surface, but nothing
+checked its `--adapter` flags, and a lane nobody names is invisible to every
+other test — all 50 unreal tests passed throughout. So the served set is now
+pinned in `test_server_lint.py` with the reason written down, and a second test
+rejects an adapter name that is not real. Verified by removing `unreal` and
+watching it fail. `test_multi_adapter_serve.py`'s four-lane test becomes the
+five-lane test, and now asserts `ue_*` and `pin_*` are actually registered.
+
+**Not verified live.** No editor was launched in this session, so the wire has
+not been exercised against a running UE 5.8.1 here; the lane's live proof
+remains the 2026-08-22 run recorded in `docs/setup-unreal.md`.
+
+**Suites:** `2,029 passed / 20 skipped`, three consecutive full runs; ruff
+clean. One flake seen once and not reproduced in three subsequent full runs:
+`test_windtunnel_tools.py::test_an_orphaned_solver_is_named_and_can_be_stopped`,
+which spawns a real subprocess and asserts a timed kill — unrelated to this
+change, and recorded here rather than explained away.

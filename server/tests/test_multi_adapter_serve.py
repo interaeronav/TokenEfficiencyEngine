@@ -166,17 +166,28 @@ def test_partkiln_warm_up_lands_in_the_shared_app(serve):
     assert serve.warm_jobs is serve.app.jobs
 
 
-def test_the_desktop_manifest_serves_four_lanes_and_declares_no_hub(serve):
-    """The manifest serves blender, partkiln, seamkiln and fusion and declares
-    NO default (A68): an existing Desktop batch of Blender kinds still lands on
-    Blender - by content, not by position - and a partkiln batch lands on
-    partkiln without naming it. Fusion joined the manifest by the owner's
-    decision of 2026-09-07, after A71 verified the lane live; it is a bridge
-    lane, so on a machine with no Fusion running it is simply disconnected and
-    the other three route exactly as they did before."""
+def test_the_desktop_manifest_serves_five_lanes_and_declares_no_hub(serve):
+    """The manifest serves blender, partkiln, seamkiln, fusion and unreal and
+    declares NO default (A68): an existing Desktop batch of Blender kinds still
+    lands on Blender - by content, not by position - and a partkiln batch lands
+    on partkiln without naming it. Fusion joined the manifest by the owner's
+    decision of 2026-09-07, after A71 verified the lane live.
+
+    Unreal joined on 2026-09-08, also by the owner's decision. It had been the
+    odd one out: the lane was complete and passing (50 unit tests, live tests
+    skipping cleanly), UE 5.8.1 was installed with Epic's ModelContextProtocol
+    plugin, and OkongoSim enabled TeeToolset - but the manifest never named the
+    adapter, so 19 long-tail tools were unreachable from every Desktop session:
+    12 `ue_*` plus the 7 `pin_*` that `_attach_pins` gates on unreal. Nothing
+    was broken; the lane was simply never asked for.
+
+    Both are bridge lanes, so on a machine with nothing running they are
+    disconnected rather than absent - and, measured here, unreal's wildcard
+    vocab (kinds=None, kind_optional) does NOT make the existing batches
+    ambiguous: cube, part and drape route exactly as they did before."""
     args = json.loads(MANIFEST.read_text())["server"]["mcp_config"]["args"]
     names = [args[i + 1] for i, flag in enumerate(args) if flag == "--adapter"]
-    assert names == ["blender", "partkiln", "seamkiln", "fusion"]
+    assert names == ["blender", "partkiln", "seamkiln", "fusion", "unreal"]
     assert "--default-adapter" not in args
 
     assert serve(*[word for name in names for word in ("--adapter", name)]) == 0
@@ -193,6 +204,9 @@ def test_the_desktop_manifest_serves_four_lanes_and_declares_no_hub(serve):
     assert any(n.startswith("bl_") for n in registered), "Blender's lane attached"
     assert any(n.startswith("hb_") for n in registered), "and its joinery lane"
     assert {"pk_probe", "sk_avatar"} <= registered
+    # the whole point of naming unreal: these are reachable or they are not
+    assert {"ue_toolsets", "ue_call", "ue_editor_state"} <= registered
+    assert {"pin_set", "pin_list"} <= registered, "the pin lane rides on unreal"
     try:
         import tee.extract.tools  # noqa: F401
     except ImportError:

@@ -302,3 +302,46 @@ def test_the_lockfile_records_the_version_pyproject_declares():
         "Run `uv lock` (never `uv sync`, which drops the pip-installed extras) "
         "and commit the lock with the bump."
     )
+
+
+# --- which adapters the shipped manifest serves ------------------------------
+#
+# The manifest's `tools` list is checked above, but nothing checked its
+# `--adapter` flags, and an adapter that is never named is a lane nobody can
+# reach: measured 2026-09-08, the shipped manifest served blender, partkiln,
+# seamkiln and fusion, so 19 long-tail tools - 12 `ue_*` and the 7 `pin_*` that
+# `_attach_pins` gates on unreal - were unreachable from Claude Desktop while
+# UE 5.8.1, the ModelContextProtocol plugin and TeeToolset were all installed
+# and every unreal unit test passed. Nothing was broken; the lane was simply
+# not asked for.
+#
+# So the served set is pinned. Changing it is fine - editing this line is how
+# that change becomes visible in review instead of silent in a JSON array.
+SERVED_ADAPTERS = ("blender", "partkiln", "seamkiln", "fusion", "unreal")
+
+
+def _manifest_args():
+    import json
+    from pathlib import Path
+
+    manifest = Path(__file__).resolve().parents[2] / "packaging" / "mcpb_manifest.json"
+    return json.loads(manifest.read_text())["server"]["mcp_config"]["args"]
+
+
+def test_manifest_serves_the_adapters_we_think_it_does():
+    args = _manifest_args()
+    served = tuple(args[i + 1] for i, a in enumerate(args) if a == "--adapter")
+    assert served == SERVED_ADAPTERS, (
+        f"the shipped manifest serves {served}, pinned at {SERVED_ADAPTERS}. An "
+        "adapter dropped from here takes its whole lane out of reach of every "
+        "Desktop session, and no other test notices."
+    )
+
+
+def test_every_adapter_the_manifest_names_is_real():
+    from tee.cli import ADAPTER_NAMES
+
+    args = _manifest_args()
+    named = [args[i + 1] for i, a in enumerate(args) if a == "--adapter"]
+    unknown = [n for n in named if n not in ADAPTER_NAMES]
+    assert not unknown, f"manifest names adapters that do not exist: {unknown}"
