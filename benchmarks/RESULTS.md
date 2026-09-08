@@ -112,16 +112,25 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,129** |
 | same, by `model_dump()` | 17 | 2,596 |
-| flat server, one tool per capability | 158 | 20,545 |
+| flat server, one tool per capability | 214 | 31,283 |
 
-Registering all seven modules (extract, assets, design, physical,
-pins, uefn, kb) adds **0 tokens** to the always-loaded
-surface - the 141 tools they contribute live behind the
-meta-tools. Reaching one costs 548 tokens (one search +
-one describe), so the flat design only pays off in a session that
-uses more than ~37 distinct long-tail tools.
+Attaching **every lane a served TEE has** adds **0 tokens** to the
+always-loaded surface - the **197** tools they contribute live
+behind the meta-tools, a **93.2%** saving. Reaching one costs 544
+tokens (one search + one describe), so the flat design only pays
+off in a session that uses more than ~57 distinct long-tail tools.
 
-Re-measured 2026-09-07 by `run_surface_scenario`. The wire figure
+**A77 P1 corrected this row.** It read 141 tools and 89.6% because
+the harness hand-rolled its own list of seven lanes where
+`cmd_serve` attaches nineteen - `windtunnel`, `flightdyn`, `engines`,
+`pipeline`, `senses`, `pdf`, `purge`, `llm`, `web`, `gateway`,
+`pointcloud` and `capture` were all invisible to it. The stale figure
+understated the saving by 3.6 points; an unmanaged number is not
+biased toward its author, it is simply unread. Both callers now go
+through `cli.attach_all`, and `test_a77_one_server.py` fails if a
+lane ever reaches one and not the other.
+
+Re-measured 2026-09-08 by `run_surface_scenario`. The wire figure
 was **2,033** from A12 until `bd70096` (A68 P2), which gave the
 shared `adapter=` parameter a one-line description on eight tools:
 **+96 tokens**, and no lane has moved it before or since. It now

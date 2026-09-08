@@ -2415,8 +2415,10 @@ And it has already drifted. A real server serves 210 tools; the benchmark
 harness measures 141. **52 tools — 27 % of the long tail — are invisible to it**
 because `windtunnel`, `flightdyn` and `engines` are attached by `cmd_serve` and
 not by `run_benchmarks.py`. Its headline "89.6 % saved" is computed over the
-smaller corpus. `RESULTS.md` carries 85 tabled numbers and no test references
-the file.
+smaller corpus; measured through the real list it is **93.2 %**, so the stale
+figure understated TEE's own saving by 3.6 points rather than flattering it — an
+unmanaged metric is not biased toward its author, it is simply unread.
+`RESULTS.md` carries 85 tabled numbers and no test references the file.
 
 **Why this and not the alternatives.** Three other candidates were surveyed and
 put down with reasons. Closing the ~20 open questions across docs 72–77 is a

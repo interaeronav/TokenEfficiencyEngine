@@ -39,8 +39,9 @@ stop being true.
    `windtunnel` (A72), `flightdyn` (A75), `engines` (A76). Every campaign since
    A72 widened the gap and nothing failed.
 3. **`run_surface_scenario` reports 89.6 % saved** over that 141-tool corpus.
-   The true figure is unknown and is larger — a headline that drifts in TEE's
-   own favour is still one nobody has earned.
+   Measured through the real list it is **93.2 % over 197 tools** — the stale
+   number drifted AGAINST TEE by 3.6 points. An unmanaged metric is not biased
+   toward its author; it is simply unread.
 4. **`RESULTS.md` has 26 sections and 85 tabled numbers; no test references the
    file at all.** The surface COUNT has nine assertions; the surface token
    FIGURE has none, which is the shape of the recorded lesson *"a number quoted

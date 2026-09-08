@@ -363,6 +363,50 @@ def _lane(name: str, args: argparse.Namespace, blender_port: int) -> Lane:
     raise ValueError(name)  # unreachable: cmd_serve checks every name first
 
 
+#: Every lane a served TEE attaches, in order, after the three that need the
+#: extract store. THE list: `cmd_serve` and the benchmark harness both go
+#: through `attach_all`, so a lane cannot reach one and not the other.
+#:
+#: A77 P0 measured what happens without it - `run_benchmarks.py` hand-rolled
+#: its own registration list and had fallen seven lanes behind, so the headline
+#: saving was computed over 141 virtual tools where a real server serves 193.
+LANE_ATTACHMENTS: tuple[str, ...] = (
+    "pointcloud",
+    "windtunnel",
+    "flightdyn",
+    "engines",
+    "pipeline",
+    "pins",
+    "design",
+    "senses",
+    "pdf",
+    "purge",
+    "physical",
+    "uefn",
+    "kb",
+    "llm",
+    "web",
+    "gateway",
+)
+
+
+def attach_all(app, project: str, *, with_handoff: bool | None = None):
+    """Attach every lane a served TEE has, and return the extract store.
+
+    The single seam. Anything that wants to know what a TEE server IS - the
+    server itself, a benchmark, a test - builds it here rather than restating
+    the list, because a restated list is a list that goes stale.
+    """
+    if with_handoff is None:
+        with_handoff = "blender" in getattr(app, "adapters", {})
+    extract_store = _attach_extract(app, project, with_handoff=with_handoff)
+    _attach_assets(app, project, extract_store)
+    _attach_capture(app, project, extract_store)
+    for name in LANE_ATTACHMENTS:
+        globals()[f"_attach_{name}"](app, project)
+    return extract_store
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from tee.config import ProjectConfig
     from tee.server import build_server
@@ -406,25 +450,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     app = build_app(
         lanes, args.project, allow_code_exec=args.allow_code_exec, default_adapter=default
     )
-    extract_store = _attach_extract(app, args.project, with_handoff="blender" in app.adapters)
-    _attach_assets(app, args.project, extract_store)
-    _attach_capture(app, args.project, extract_store)
-    _attach_pointcloud(app, args.project)
-    _attach_windtunnel(app, args.project)
-    _attach_flightdyn(app, args.project)
-    _attach_engines(app, args.project)
-    _attach_pipeline(app, args.project)
-    _attach_pins(app, args.project)
-    _attach_design(app, args.project)
-    _attach_senses(app, args.project)
-    _attach_pdf(app, args.project)
-    _attach_purge(app, args.project)
-    _attach_physical(app, args.project)
-    _attach_uefn(app, args.project)
-    _attach_kb(app, args.project)
-    _attach_llm(app, args.project)
-    _attach_web(app, args.project)
-    _attach_gateway(app, args.project)
+    attach_all(app, args.project)
     pid_file = _pid_notice(args.project)
     server = build_server(app)
     try:

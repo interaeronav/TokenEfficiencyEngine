@@ -743,16 +743,10 @@ def run_surface_scenario() -> dict | None:
         import anyio
         from mcp.client import Client
 
+        from tee import cli
         from tee.app import TeeApp
-        from tee.assets.tools import register_asset_tools
-        from tee.design.tools import register_design_tools
-        from tee.extract.tools import register_extract_tools
-        from tee.kb.tools import register_kb_tools
         from tee.kernel.adapter import FakeAdapter
-        from tee.physical.tools import register_physical_tools
-        from tee.pins.tools import register_pin_tools
         from tee.server import build_server
-        from tee.uefn.tools import register_uefn_tools
     except ImportError as exc:
         print(f"surface scenario skipped ({exc})")
         return None
@@ -776,13 +770,11 @@ def run_surface_scenario() -> dict | None:
     bare.shutdown()
 
     app = TeeApp({"fake": FakeAdapter()}, project_root=root)
-    store, _ = register_extract_tools(app, root)
-    register_asset_tools(app, root, extract_store=store)
-    register_design_tools(app, root)
-    register_physical_tools(app, root)
-    register_pin_tools(app, root)
-    register_uefn_tools(app, root)
-    register_kb_tools(app, root, root=str(REPO / "knowledge-base"))
+    # A77 P1: through cli.attach_all, the ONE list, so this measures the server
+    # that ships. Hand-rolled here, it had fallen seven lanes behind and the
+    # saving below was computed over 141 virtual tools where a real server
+    # serves 197.
+    cli.attach_all(app, root)
     tools = listed(app)
     full_tokens = estimate_tokens([t.model_dump(**wire_kw) for t in tools])
     dump_tokens = estimate_tokens([t.model_dump(mode="json") for t in tools])

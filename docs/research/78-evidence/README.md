@@ -18,7 +18,9 @@ virtual). The benchmark harness measures **141 virtual tools** — **52 tools, 2
 per cent of the long tail, are invisible to it**, because `windtunnel` (A72),
 `flightdyn` (A75) and `engines` (A76) are attached by `cmd_serve` and not by
 `run_benchmarks.py`. Its headline "89.6 % saved" is computed over the corpus it
-can see rather than the one that ships.
+can see rather than the one that ships; through the real list it is **93.2 %
+over 197 virtual tools**, so the stale number understated the saving rather than
+flattering it.
 
 **And nothing would have caught it.** `RESULTS.md` carries 26 sections and 85
 tabled numbers; `grep -rl RESULTS.md server/tests` returns nothing.

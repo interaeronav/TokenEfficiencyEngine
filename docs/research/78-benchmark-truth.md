@@ -41,9 +41,13 @@ would cost 20545 tok flat (89.6% saved); reach one = 548 tok
 ```
 
 **89.6 % is computed over the corpus the harness can see, not the one that
-ships.** The saving progressive disclosure actually delivers is larger — and
-unknown, because nothing has measured it since A72. A headline number that
-drifts *in TEE's favour* is still a number nobody has earned.
+ships.** Measured through the real list (P1), it is **93.2 % over 197 virtual
+tools costing 31,283 tokens flat** — so the stale figure drifted *against* TEE
+by 3.6 points, understating the saving its own headline feature delivers.
+
+That direction is worth dwelling on. An unmanaged number is usually suspected of
+flattering its author; this one did the opposite, and still nobody noticed for
+four campaigns. A metric with no owner is not biased — it is simply unread.
 
 ## 3. Why this is a lane-shaped problem and not a chore
 
