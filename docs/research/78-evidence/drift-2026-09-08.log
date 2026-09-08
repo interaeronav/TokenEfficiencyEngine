@@ -1,0 +1,16 @@
+A77 P0 - what the benchmark cannot see
+
+  lanes cmd_serve attaches   : 14
+  lanes the harness attaches : 16
+  MISSING from the benchmark : windtunnel
+
+  a real server serves       : 199 tools (17 always-loaded + 182 virtual)
+surface: 17 always-loaded tools = 2129 tok on the wire (2596 by model_dump); 141 virtual tools would cost 20545 tok flat (89.6% saved); reach one = 548 tok
+  the benchmark measures     : 141 virtual tools
+  invisible to the benchmark : 41 tools (23% of the long tail)
+  its headline saving        : 89.6% - computed over the corpus it can see, not the one that ships
+
+  RESULTS.md                 : 24 sections, 81 tabled numbers
+  asserted by any test       : none found (grep for RESULTS.md in server/tests returns nothing)
+
+  A measurement nothing re-runs is a declaration with a date on it.

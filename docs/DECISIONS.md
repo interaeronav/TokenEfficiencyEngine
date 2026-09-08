@@ -2389,3 +2389,52 @@ every engine this machine serves, and the `q35b` token floor re-derived by
 sweep — can only be met for the engines that actually answer. Where it cannot,
 the row says `unmeasured` and why, the way A69 refused to claim anything live
 until the Mac smoke had run.
+
+## A77's subject, chosen by the session on evidence (2026-09-08)
+
+The owner said *"start A77 P0"* and then *"continue all phases without my
+input"*. No A77 existed — no script, no research doc — so P0's first act was to
+decide what the campaign is. Every campaign in this repo quotes an owner
+directive; this one quotes a directive to choose, and the choice is recorded
+here so it can be reversed as easily as it was made.
+
+**Ruled: A77 is the benchmark telling the truth.**
+
+`CLAUDE.md`'s opening paragraph says TEE's core metric is tokens per completed
+user task, and that every design decision is judged by that metric first. The
+survey found that metric is the one thing in the repo with no owner:
+
+| guarded by | |
+|---|---|
+| licences | a load-bearing gate per lane |
+| the tool surface | nine assertions across the suite |
+| trust | a table that refuses an untabled tool at startup |
+| **tokens per task** | **nothing** |
+
+And it has already drifted. A real server serves 210 tools; the benchmark
+harness measures 141. **52 tools — 27 % of the long tail — are invisible to it**
+because `windtunnel`, `flightdyn` and `engines` are attached by `cmd_serve` and
+not by `run_benchmarks.py`. Its headline "89.6 % saved" is computed over the
+smaller corpus. `RESULTS.md` carries 85 tabled numbers and no test references
+the file.
+
+**Why this and not the alternatives.** Three other candidates were surveyed and
+put down with reasons. Closing the ~20 open questions across docs 72–77 is a
+sweep, not a campaign, and several need hardware this machine lacks. Measuring
+non-MLX conformance (A76's own owed item) is a single afternoon behind a
+download gate. Auditioning every engine needs the model stack up, and it is
+down. This one recurs by construction — every lane since A72 widened the gap
+and nothing failed — which is what makes it lane-shaped rather than a chore.
+
+**What would make this the wrong call.** If the owner wants capability rather
+than confidence, A77 is the wrong campaign: it adds no tools and no features,
+and its whole product is that a number fails when it stops being true. Say so
+and it is dropped; the drift measurement in `78-evidence/` stands on its own
+either way.
+
+**A near-miss worth recording.** The premise was nearly abandoned mid-P0: a
+commit titled *"the always-loaded surface figure is measured, not remembered"*
+appeared in the log and looked like the parallel session already doing this
+work. It is historical, and the most recent commit touching `benchmarks/` is
+this session's own A76 P4. But the check cost one fetch and the alternative was
+proposing a campaign on top of someone else's — the A71 lesson, paid forward.
