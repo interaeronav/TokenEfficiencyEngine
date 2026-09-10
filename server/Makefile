@@ -1,4 +1,4 @@
-.PHONY: check lint test format dist mcpb
+.PHONY: check lint test format dist mcpb mcpb-local
 
 check: lint test
 
@@ -49,6 +49,23 @@ mcpb:
 	@echo "  windtunnel is wt_export format=vtu only; flightdyn and pointcloud are"
 	@echo "  what fd_* and pc_* need to run at all - all three were missing from"
 	@echo "  this line until A75/A77."
+
+# The LOCAL bundle: bundled source, borrowed dependency environment.
+#
+# The `mcpb` target above is the PORTABLE shape - it ships pyproject + uv.lock
+# and Desktop provisions a venv from them with `uv sync`, which is exactly the
+# wipe the reminder above describes. This shape ships no venv: `launch.py` puts
+# the bundle's own src first and runs it on an interpreter that already has the
+# dependencies. Measured 2026-09-10 on the A78 0.30.1 bundle of this shape: all
+# nine fleet extras intact after the install, because nothing was provisioned.
+#
+# The trade is a hard dependency on THIS checkout at THIS path - the bundle
+# says so in its own README. Rebuild after moving the repo or rebuilding its
+# venv. Override the interpreter with LOCAL_PYTHON=...
+LOCAL_PYTHON ?= $(abspath .venv/bin/python)
+
+mcpb-local:
+	uv run --no-sync python ../packaging/build_local_mcpb.py --python "$(LOCAL_PYTHON)"
 
 # SI-B20: ../benchmarks was NOT in this list, and `ruff check .` run from
 # server/ cannot reach it - so the code that produces the numbers this
