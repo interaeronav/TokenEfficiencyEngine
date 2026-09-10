@@ -352,6 +352,18 @@ numbers cited in README.
 **Acceptance:** clean-machine install rehearsal (or documented dry-run),
 README quickstart verified end-to-end, tag pushed.
 
+### Owner-requested Codex installation addendum (2026-09-10)
+
+Install the existing local TEE build as a personal Codex plugin, carrying its
+MCP launch configuration and usage skill. Use Codex's supported plugin CLI and
+personal marketplace; preserve other client settings. Reuse the repository's
+Python environment without syncing away installed extras, and serve the five
+adapters in the current desktop manifest with no declared default. Verify a
+real MCP initialization, tool listing and read-only status/discovery calls;
+validate the plugin and confirm Codex reports it installed and enabled. Record
+the local paths, evidence and new-task pickup requirement in `docs/PROGRESS.md`.
+This is a local installation, not a version cut or a rerun of completed builds.
+
 ---
 
 ## 10. Phase 7 — TEE Extract: the media extraction module

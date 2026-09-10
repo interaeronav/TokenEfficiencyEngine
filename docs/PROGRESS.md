@@ -15437,3 +15437,47 @@ clean. One flake seen once and not reproduced in three subsequent full runs:
 `test_windtunnel_tools.py::test_an_orphaned_solver_is_named_and_can_be_stopped`,
 which spawns a real subprocess and asserts a timed kill — unrelated to this
 change, and recorded here rather than explained away.
+
+---
+
+## Codex personal plugin installation (2026-09-10, owner's Mac)
+
+Owner requested TEE as an extension for Codex. Installed and enabled the
+personal plugin **`tee@personal`, 0.30.0**, using `codex plugin add`, following
+the local-installation addendum in `CLAUDE_EXECUTION_SCRIPT.md`.
+
+- Source: `/Users/john/plugins/tee`; marketplace:
+  `/Users/john/.agents/plugins/marketplace.json`; installed cache:
+  `/Users/john/.codex/plugins/cache/personal/tee/0.30.0`.
+- Plugin contains `.codex-plugin/plugin.json`, `.mcp.json`, the repository's
+  `tee-usage` skill, icon and a README explaining the machine-specific paths.
+  Codex's plugin validator passed; `codex plugin list --marketplace personal
+  --json` reports `installed: true`, `enabled: true`.
+- Launch: `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python -m
+  tee.cli serve`, with `--adapter` for blender, partkiln, seamkiln, fusion and
+  unreal, `--project /Users/john/TokenEfficiencyEngine`, and
+  `PYTHONDONTWRITEBYTECODE=1`. No default adapter or code-exec override. The
+  existing Python 3.11.15 environment has all nine optional-group witnesses;
+  no dependency sync was run. Partkiln discovers the existing sidecar under
+  `~/TEE/.tee/sidecars/partkiln/`.
+- Real MCP stdio evidence: initialization **0.302 s**, TEE **0.30.0**,
+  protocol **2025-11-25**, **17** listed tools, and successful `tee_status`
+  and tool-search calls. Status reports **238** virtual capabilities on this
+  machine. Whole connection closed cleanly in **0.832 s**. Blender **5.2.0
+  LTS**, Fusion **2705.1.11** and seamkiln reported connected; partkiln was
+  warming and Unreal reported disconnected. These are connectivity results,
+  not renewed acceptance of every lane's modelling operations.
+- Compared parsed Codex configuration before/after: the only change is
+  `plugins."tee@personal".enabled = true`. Backup:
+  `~/.codex/config.toml.before-tee-20260910T045751Z.bak`. Existing TEE grants
+  were preserved, no scene mutations ran, and the separate `~/TEE` server
+  was left running.
+
+**Pickup:** start a new Codex task to load the plugin's skills and MCP tools;
+the current task's tool catalog predates installation. Keep the repository
+and its virtual environment at the recorded paths. This personal plugin
+references that installation rather than carrying another copy of the engine.
+
+Repository publication is held: the existing branch was already three commits
+behind and one ahead of its tracked remote before this documentation change.
+The installation does not reconcile or publish that unrelated local history.
