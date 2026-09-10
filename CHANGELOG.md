@@ -3,7 +3,42 @@
 The `tee-engine` server versions here; the UE `TeeToolset` plugin and the
 Blender `tee_bridge` extension carry their own versions where noted.
 
-## Unreleased
+## 0.30.1 — guided lanes for smaller models (A78)
+
+Two virtual tools, no change to the always-loaded surface: it stays **17 tools
+/ 2,129 wire tokens**. `lane_guide` returns a lane's typed operations, units,
+properties, one worked example and a verification step — 182 tokens for the
+index, 201 for a topic, and it works offline. `lane_preflight` validates
+proposed ops before anything connects, answering an unknown property with the
+exact list of valid ones, and states its own limits in the reply rather than
+implying more: `live_state_checked: false`, and geometry, entity existence,
+permissions and output quality are explicitly not established by it.
+
+Measured on `mlx-community/Qwen3.8-27B-8bit`: **6/6 guided Blender/Fusion
+tasks against 0/6** on the generic contract, checked in the applications. The
+guides cost **more** tokens, not fewer — prompt 1,960 → 3,767, total 4,213 →
+5,536, with completion falling 2,253 → 1,769. The claim is completion, not
+economy. A harder design exercise passed native CAD and transfer checks and
+**failed** visual quality; full F1-scale parity is unproven. Method and the
+acceptance ladder: `docs/research/79-smaller-model-lane-control.md`; operating
+guide: `docs/small-model-workflows.md`.
+
+**`tee_call` now blames the envelope, not the tool.** Its payload goes in
+`args`; a caller using `arguments` (the MCP spec's own word), `params` or
+`input` had it dropped by signature binding, and the failure surfaced as the
+INNER tool reporting an argument the caller *did* supply, with a `fix` pointing
+at a schema that was never the problem. Hit on the first attempt at driving
+A78's own tools. The `fix` now names the envelope — the loop A78 exists to
+shorten, one level above where it was fixed.
+
+**The version is no longer a fourth opinion.** The installed extension declared
+0.30.1 while every tracked file said 0.30.0, because the bundle was built with
+the manifest edited out of tree — `make mcpb` could not reproduce what the
+owner was running, and two `tee-engine` distributions were visible at once with
+only `sys.path` order deciding which the server reported. `pyproject`, `uv.lock`,
+`server/Makefile` and `packaging/mcpb_manifest.json` now agree, and a test
+fails when the manifest and pyproject disagree.
+
 
 `tee doctor --emit opencode`. opencode is the owner's terminal host (research
 doc 66) and was the one client TEE could not emit a config for — and pasting

@@ -359,3 +359,45 @@ def test_adapter_omitted_with_two_adapters_reads_across_and_writes_loud():
         anyio.run(main)
     finally:
         app.shutdown()
+
+
+def test_arguments_under_the_wrong_envelope_key_blame_the_envelope():
+    """`tee_call` carries its payload in `args`. A caller that uses any other
+    key - `arguments` (the MCP spec's own word for it), `params`, `input` -
+    has it dropped by the SDK's signature binding, and the failure used to
+    surface as the INNER tool complaining about an argument the caller DID
+    supply, with a `fix` pointing at a schema that was never the problem.
+
+    Measured 2026-09-10 on the first attempt at driving A78's own tools:
+    tee_call(name='lane_guide', arguments={'adapter': 'blender'}) answered
+    "lane_guide: required argument 'adapter' is missing." Re-reading the
+    schema cannot fix that, which is the loop A78's guidance exists to
+    shorten - one level above where it was fixed."""
+
+    async def scenario(client):
+        wrong_key = payload(
+            await client.call_tool("tee_call", {"name": "bl_demo_tool", "arguments": {"n": 21}})
+        )
+        assert wrong_key["ok"] is False
+        fix = wrong_key["error"]["fix"]
+        assert "`args`" in fix and "arguments" in fix, fix
+
+        # the same message serves a caller who simply sent none
+        none_at_all = payload(await client.call_tool("tee_call", {"name": "bl_demo_tool"}))
+        assert none_at_all["error"]["fix"] == fix
+
+        # but a caller who DID send args and got a key wrong inside it has a
+        # real argument error, and the inner tool's message is the right one
+        inner = payload(
+            await client.call_tool("tee_call", {"name": "bl_demo_tool", "args": {"count": 21}})
+        )
+        assert inner["ok"] is False
+        assert "`args`" not in (inner["error"].get("fix") or "")
+
+        # and a correct call is untouched
+        good = payload(
+            await client.call_tool("tee_call", {"name": "bl_demo_tool", "args": {"n": 21}})
+        )
+        assert good == {"ok": True, "doubled": 42}
+
+    run_session(scenario)

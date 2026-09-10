@@ -121,6 +121,37 @@ _DESC = {
 }
 
 
+def _envelope_hint(exc: TeeError, name: str, args: dict[str, Any] | None) -> TeeError:
+    """Blame the envelope, not the tool, when the arguments never arrived.
+
+    `tee_call` carries its payload in `args`. A caller that uses any other key
+    - `arguments` (the MCP spec's own word for it), `params`, `input` - has it
+    dropped by the SDK's signature binding, and the failure then surfaces as
+    the INNER tool complaining about an argument the caller DID supply, with a
+    `fix` pointing at a schema that was never the problem.
+
+    Measured 2026-09-10, on the first attempt at driving A78's own tools:
+    `tee_call(name="lane_guide", arguments={"adapter": "blender"})` answered
+    "lane_guide: required argument 'adapter' is missing." Re-reading the schema
+    cannot fix that, so a model re-reads it and tries again - the exact loop
+    A78's guidance exists to shorten, one level above where it was fixed.
+
+    Only the no-arguments-at-all case is rewritten: a caller that sent `args`
+    and got the key wrong INSIDE it has a real argument error, and the inner
+    tool's message is already the right one.
+    """
+    if args or exc.code != "missing_argument":
+        return exc
+    return TeeError(
+        exc.code,
+        exc.message,
+        f"tee_call received no `args`. Arguments belong in the `args` object: "
+        f'tee_call(name="{name}", args={{...}}) - not `arguments`, `params` or '
+        f"`input`, which are dropped silently. Schema: "
+        f"tee_describe_tool(name='{name}').",
+    )
+
+
 def _tool(app: TeeApp, name: str) -> Callable:
     """Wrap a tool body: serialized on app.lock (the SDK dispatches tool
     calls on concurrent worker threads; kernel state and the DCC bridges are
@@ -465,7 +496,10 @@ def build_server(app: TeeApp) -> MCPServer:
     @mcp.tool(structured_output=False, description=_DESC["tee_call"])
     @_tool(app, "tee_call")
     def tee_call(name: str, args: dict[str, Any] | None = None):
-        result = app.registry.call(name, args or {})
+        try:
+            result = app.registry.call(name, args or {})
+        except TeeError as exc:
+            raise _envelope_hint(exc, name, args) from None
         if isinstance(result, dict) and "ok" not in result:
             result = {"ok": True, **result}
         if isinstance(result, dict):

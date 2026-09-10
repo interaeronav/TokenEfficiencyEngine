@@ -304,6 +304,32 @@ def test_the_lockfile_records_the_version_pyproject_declares():
     )
 
 
+def test_the_shipped_manifest_declares_the_version_pyproject_does():
+    """The store-facing manifest carries its own `version`, and nothing
+    compared it to pyproject - so it drifted. Measured 2026-09-10: the
+    INSTALLED Desktop extension declared 0.30.1 while every tracked file
+    still said 0.30.0, because the bundle had been built with the manifest
+    edited out of tree. `make mcpb` from that tree could not reproduce the
+    thing the owner was running, and two `tee-engine` distributions were
+    visible at once - only sys.path order deciding which version the server
+    reported about itself.
+
+    Same shape as A46's defect one level out: one question, two answers.
+    """
+    import json
+    import tomllib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    declared = tomllib.loads((root / "server" / "pyproject.toml").read_text())["project"]["version"]
+    manifest = json.loads((root / "packaging" / "mcpb_manifest.json").read_text())["version"]
+    assert manifest == declared, (
+        f"pyproject declares {declared} and the mcpb manifest declares {manifest}. "
+        "Bump both in the same commit, with `uv lock`, or the installed "
+        "extension reports a version no tracked file can rebuild."
+    )
+
+
 # --- which adapters the shipped manifest serves ------------------------------
 #
 # The manifest's `tools` list is checked above, but nothing checked its
