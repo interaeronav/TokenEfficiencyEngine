@@ -43,8 +43,8 @@ intermediate tool results never enter model context.
 
 | | Context tokens | Rounds | Saving |
 |---|---|---|---|
-| separate tool rounds | 332 | 5 | |
-| one tee_script call | 173 | 1 | 47.9% |
+| separate tool rounds | 337 | 5 | |
+| one tee_script call | 173 | 1 | 48.7% |
 
 The script's cost is flat in loop length while round-based
 cost grows linearly, so the saving widens with every extra
@@ -101,6 +101,88 @@ tool call is also serialized on the editor's game thread at
 ~0.37 s, so the round-trip reduction is wall-clock as well as
 tokens.
 
+## Flight dynamics: a polar becomes an aircraft that flies (A75)
+
+The lane's whole loop on a generated aircraft — probe, generate from an
+eight-point polar, trim, take the modes, then fly the trim for a minute — against
+what a model must otherwise read to reach the same answer.
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (the aircraft XML authored and read back, the property catalogue, 60 s of six states at 120 Hz, the raw A and B) | 131,179 | — |
+| TEE (`fd_probe` to `fd_fly`, digests only) | **835** | 5 |
+
+**Saving: 99.4%** — a factor of 157. Per call: `fd_probe` 128, `fd_aircraft` 90,
+`fd_trim` 128, `fd_modes` 334, `fd_fly` 155.
+
+_A77 P2 re-measured this: it read **898** and was taken by hand in a shell, with
+no scenario behind it. `run_flightdyn_scenario` now re-runs it like every other
+row. It holds rather than guesses when jsbsim is absent._
+
+The naive arm is dominated by one term: the time history is 125,206 of its
+131,179 tokens, and it grows linearly with every second flown and every state
+watched — sixty seconds of *six* states here, where the model has 656 properties
+available and a mission is not a minute. The TEE arm is flat: the reply is the
+trim state, the verdict and the mode table whatever the flight length, capped at
+64 elements per array and 2 KB per string, and a test asserts the whole reply
+stays under 4 KB.
+
+The mode table is why the lane is cheap rather than merely terse. A and B at a
+trim point are 950 tokens raw and 363 as a digest that has already named each
+mode by its modal participation — and they are where stability derivatives and
+handling qualities start, so the expensive part of a flight-dynamics answer is a
+small matrix rather than a trajectory.
+
+_(recorded 2026-09-07 on the owner's Mac against jsbsim 1.3.1, through
+`app.registry.call` with the real engine; token counts by the repo's own
+`estimate_tokens`.)_
+_Flight dynamics: re-measured this run at 835 tokens over 5 calls._
+
+
+## Engine lane: is the router's table still true? (A76)
+
+`eng_scan` then `eng_reconcile` on the owner's live stack, against what a model
+must otherwise read to answer "which local engines can this machine actually
+use, and are the router's numbers still true".
+
+| Arm | Tokens | Calls |
+|---|---|---|
+| naive (`machine.py`, `profiles.py`, `router.py`, `llm/tools.py`, `local_llm.py`, the head of `chores.py`, `.tee/config.toml`, the shim's `litellm.yaml`) | 21,979 | — |
+| TEE (`eng_scan` 57 + `eng_reconcile` 254) | **311** | 2 |
+
+**Saving: 98.6%** — a factor of 71, on a machine with **nothing running**.
+
+_A77 P2 re-measured this and found the row was not reproducible. It read **375**,
+taken against a live stack where `eng_scan` had endpoints to describe; the
+scenario pins every endpoint to a closed port, where the same call costs 57.
+Both are true and they answer different questions, which is why the row says
+which one it is._
+
+_And P3's canary immediately caught the same mistake again: the row moved
+**311 → 364** between two runs an hour apart, because `eng_scan` genuinely
+probes localhost and the owner's model stack had come back up — so the
+"hermetic" scenario was measuring the developer's machine. It is now pinned to a
+port nothing can answer and returns 311 on three consecutive runs with the stack
+up. **The cost scales with what is answering**: 57 tokens for `eng_scan` against
+nothing, 75 against four live endpoints. A benchmark number that omits the
+machine state it was taken in cannot be re-run — the campaign's own thesis,
+caught by the campaign's own gate, on the campaign's own row._
+
+**And the naive arm does not answer the question.** Four of the eight routes the
+shim advertises return HTTP 200 with empty content; that fact is in none of
+those eight files and costs a live probe. Reading everything TEE knows about its
+engines still leaves you unable to say which of them work.
+
+The larger cost is not the digest. A wrong `ENGINES` row is paid on every chore,
+for as long as it stands: the registry declares `q27b-bare` at 3.07–9.69 s and
+an audition measured 44–47 s on the same machine, so the ladder was sorting on a
+number five times off. Every chore routed on that order pays for it.
+
+_(recorded 2026-09-07 on the owner's Mac through `app.registry.call` against the
+live stack; token counts by the repo's own `estimate_tokens`.)_
+_Engine lane: re-measured this run at 311 tokens over 2 calls._
+
+
 ## Tool surface: progressive disclosure (P4/A6)
 
 The always-loaded MCP surface, measured as the wire actually
@@ -112,33 +194,13 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,129** |
 | same, by `model_dump()` | 17 | 2,596 |
-| flat server, one tool per capability | 214 | 31,283 |
+| flat server, one tool per capability | 216 | 31,464 |
 
 Attaching **every lane a served TEE has** adds **0 tokens** to the
-always-loaded surface - the **197** tools they contribute live
+always-loaded surface - the **199** tools they contribute live
 behind the meta-tools, a **93.2%** saving. Reaching one costs 544
 tokens (one search + one describe), so the flat design only pays
 off in a session that uses more than ~57 distinct long-tail tools.
-
-**A77 P1 corrected this row.** It read 141 tools and 89.6% because
-the harness hand-rolled its own list of seven lanes where
-`cmd_serve` attaches nineteen - `windtunnel`, `flightdyn`, `engines`,
-`pipeline`, `senses`, `pdf`, `purge`, `llm`, `web`, `gateway`,
-`pointcloud` and `capture` were all invisible to it. The stale figure
-understated the saving by 3.6 points; an unmanaged number is not
-biased toward its author, it is simply unread. Both callers now go
-through `cli.attach_all`, and `test_a77_one_server.py` fails if a
-lane ever reaches one and not the other.
-
-Re-measured 2026-09-08 by `run_surface_scenario`. The wire figure
-was **2,033** from A12 until `bd70096` (A68 P2), which gave the
-shared `adapter=` parameter a one-line description on eight tools:
-**+96 tokens**, and no lane has moved it before or since. It now
-has a test. `test_server_lint.py` pins both the number and the
-figure every `docs/*-lane.md` prints, because for four commits this
-table and those guides went on saying 2,033 while the server served
-2,129 - a count canary cannot catch that, since the count never
-changed.
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 
@@ -202,13 +264,12 @@ cited tee_web_lookup answer.
 | Question | Page text | tee_web_lookup | Saving |
 |---|---|---|---|
 | when must free() be called on a bmesh? | 22,752 | 589 | **97.4%** |
-| how thick should the bedding sand layer be? | 5,225 | 585 | **88.8%** |
+| how thick should the bedding sand layer be? | 5,164 | 585 | **88.7%** |
 | how do I test whether an address is private? | 9,569 | 604 | **93.7%** |
 | what is the maximum line length and its exceptions? | 13,008 | 589 | **95.5%** |
+| what does trimesh do and what are its core dependencies? | 12,022 | 578 | **95.2%** |
 
-Total 50,554 -> 2,367 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire - repaid by the first question of the session.
-
-- https://pypi.org/project/trimesh/ answered with its bot-challenge variant; excluded
+Total 62,515 -> 2,945 tokens (**95.3% saved**). The tool's one-time always-loaded cost is 180 tokens on the canonical wire - repaid by the first question of the session.
 
 ## Gateway: fronting a many-tool MCP backend (A37)
 
@@ -239,7 +300,7 @@ Frame `DJI_0100_0060.jpg` (3840x2160), one question, two hosts.
 | seeing | `tee_media`, default budget (1002x563) | 756 |
 | blind | `sense_describe` (local model reads it) | 65 |
 
-**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 15.1s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
+**11.6x** cheaper than a budgeted image, **165.6x** than the full frame. 14.5s wall, `off_machine_calls: 0`, provider claude-qwen-vl (local, 17.0 GB).
 
 This supersedes an informal *33x* quoted during A47, which compared the
 PROVIDER's input tokens against the answer rather than what a host pays.
@@ -267,25 +328,25 @@ model (dimension values read from the document - the research-52
 
 ## Garment lane: draft, sew, drape, fit (A53)
 
-One tee block - 4 panels, 10 seams, 5,076 particles - drafted, arranged on a body, draped and
+One tee block - 4 panels, 10 seams, 4,461 particles - drafted, arranged on a body, draped and
 measured. The naive arm reads what a model must read WITHOUT compact state:
 every panel outline, then the draped mesh. The TEE arm is one batch, its
 diff, and one `sk_fit` call.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (outlines + draped mesh) | 80,459 | 5 |
-| tee (batch + diff + sk_fit) | 597 | 2 |
-| **saved** | **99.3%** | |
+| naive (outlines + draped mesh) | 73,098 | 5 |
+| tee (batch + diff + sk_fit) | 669 | 2 |
+| **saved** | **99.1%** | |
 
-Drape took 12.3 s; seams closed to 0.35 mm mean; worn: True.
+Drape took 8.0 s; seams closed to 0.19 mm mean; worn: True.
 The always-loaded surface is unchanged at 17 tools - seamkiln joins through
 the Adapter protocol and fourteen `sk_*` virtual tools (six at A53; the A65
 audit added `sk_hardware`, `sk_avatar`, `sk_touch`, `sk_handoff` and friends).
 
 ## Garment lane: dress, zip, walk, hand off (A65)
 
-A zipped jacket - 5 panels, 12,487 particles - wrap-arranged and DRESSED on the
+A zipped jacket - 5 panels, 11,924 particles - wrap-arranged and DRESSED on the
 figure, zipped, walked 4 frames at the gait's own speed, and handed off to Blender.
 The naive arm reads what a model must read WITHOUT compact state: every panel
 outline, the dressed mesh, the mesh again for every frame of the walk, and the
@@ -294,13 +355,15 @@ call.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (outlines + dressed mesh + per-frame meshes + hardware) | 548,926 | 11 |
-| tee (batch + diff + sk_hardware) | 1,486 | 2 |
+| naive (outlines + dressed mesh + per-frame meshes + hardware) | 526,350 | 11 |
+| tee (batch + diff + sk_hardware) | 1,471 | 2 |
 | **saved** | **99.7%** | |
 
-The batch took 39.2 s end to end; 1 zipper fitted. Surface unchanged: 17 tools.
+The batch took 34.1 s end to end; 1 zipper fitted. Surface unchanged: 17 tools.
 
 ## Mechanical CAD: sketch -> features -> drawing -> STEP (A66)
+
+*(not re-run this pass - scenario skipped on this machine; last measured values kept)*
 
 One mounting bracket - 9 ops, 26 faces, 64 edges, 91,159.605 mm3 - sketched,
 extruded, filleted, drilled to ISO 273, slotted, chamfered, and read back. The
@@ -323,6 +386,8 @@ Surface unchanged: 17 tools.
 
 ## Mechanical CAD: one parameter moves (A66)
 
+*(not re-run this pass - scenario skipped on this machine; last measured values kept)*
+
 `param_set T=12mm` on the same bracket. TEE answers with the blast radius -
 changed: plate, f1, h, slot; unchanged: c1 - and the part's new volume
 (109,430.458 mm3). The naive arm has no such report, so it re-reads
@@ -343,9 +408,10 @@ A 279,352-point room scan taken from raw file to a scale-verified DXF the owner 
 | Arm | Tokens | Calls |
 |---|---|---|
 | naive (reads the cloud, every 40th point) | 91,820 | 2 |
-| TEE (`pc_open` to `pc_slice`, digests only) | 682 | 6 |
+| TEE (`pc_open` to `pc_slice`, digests only) | 697 | 6 |
 
-**Saving: 99.3%.** The naive arm is already being flattered - reading 1 point in 40 is far more generous than a real tool that returns what it holds. The lane's own cap (no array over 64 elements, no string over 2 KB) is what keeps the TEE arm flat as the cloud grows: the same five calls cost the same whether the scan is 280 K points or 15 M.
+**Saving: 99.2%.** The naive arm is already being flattered - reading 1 point in 40 is far more generous than a real tool that returns what it holds. The lane's own cap (no array over 64 elements, no string over 2 KB) is what keeps the TEE arm flat as the cloud grows: the same five calls cost the same whether the scan is 280 K points or 15 M.
+
 
 ## Lane routing: no lane is the hub (A68)
 
@@ -357,11 +423,12 @@ One server composed like the Desktop manifest (blender, partkiln, seamkiln; decl
 | seamkiln batch, adapter omitted | 1 | 91 | by kind; pass adapter= to pin |
 | tee_script calling kb_status | 1 | 564 | 0 Blender checkpoint(s) |
 | tee_scene_summary, adapter omitted | 1 | 103 | lanes overview |
-| render a partkiln part | 2 | 370 | pk_export into= then tee_capture |
+| render a partkiln part | 2 | 395 | pk_export into= then tee_capture |
 
-Always-loaded surface 17 tools / **2,129** wire tokens; instructions **1571 B**; 173 virtual tools registered; search recall over this composition limit 3: 35/38, limit 5: 38/38, limit 8: 38/38, limit 10: 38/38.
+Always-loaded surface 17 tools / **2,129** wire tokens; instructions **1702 B**; 176 virtual tools registered; search recall over this composition limit 3: 35/57, limit 5: 38/57, limit 8: 38/57, limit 10: 38/57.
 
 Before A68 (same scenario, same composition, declared default blender): partkiln batch 3 calls / 731 tok and seamkiln batch 3 / 562 (refused `blender_error`, no lane in the fix, asked tee_status, retried); tee_script calling kb_status 1 / 586 with 1 Blender checkpoint; tee_scene_summary 1 / 26 (one lane's rows, not the server's lanes); render a partkiln part 4 / 477 (pk_export, as_ingest, as_import, tee_capture); surface 17 tools / 2,033 tok; instructions 433 B; recall limit 3: 29/33, 5: 32/33, 8: 33/33, 10: 33/33.
+
 
 ## Fusion lane: sketch, extrude, fillet, measure (A69)
 
@@ -375,11 +442,11 @@ and one `fu_measure`.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (write the script, run it, read the design back) | 8,833 | 2 |
+| naive (write the script, run it, read the design back) | 9,840 | 2 |
 | tee (batch + diff + fu_measure) | 270 | 2 |
-| **saved** | **96.9%** | |
+| **saved** | **97.3%** | |
 
-The batch script the lane sends is 4,282 tokens the model never
+The batch script the lane sends is 4,872 tokens the model never
 reads; the diff it reads instead is 147 tokens. Read back:
 96,000 mm3, bbox [120.0, 80.0, 10.0] mm.
 
@@ -399,13 +466,13 @@ naive arm writes the script itself, runs it, and reads the design back.
 
 | arm | tokens | calls |
 | --- | ---: | ---: |
-| naive (write the script, run it, read the design back) | 12,168 | 2 |
-| tee (batch + diff + fu_measure) | 1,144 | 2 |
-| **saved** | **90.6%** | |
+| naive (write the script, run it, read the design back) | 13,196 | 2 |
+| tee (batch + diff + fu_measure) | 1,143 | 2 |
+| **saved** | **91.3%** | |
 
 12 ops made 19 entities. The batch script the lane sends is
-6,582 tokens the model never reads; the diff it reads instead is
-629 tokens. The plate reads back 95,315.8 mm3 (two
+7,192 tokens the model never reads; the diff it reads instead is
+628 tokens. The plate reads back 95,315.8 mm3 (two
 holes bored) in a [120.0, 80.0, 10.0] mm box - the dimensions drove the 100 x 50
 rectangle to 120 x 80 before the extrude. The always-loaded surface is unchanged at
 17 tools. Live numbers wait for the smoke in docs/fusion-lane.md (steps 7-11).
@@ -416,92 +483,10 @@ The script's W1 batch: a tapered wing built and swept through six angles by VSPA
 
 | Arm | Tokens | Calls |
 |---|---|---|
-| naive (dictionaries, three log tails, the coefficient file, checkMesh, the script, the polar and span loads) | 19,145 | 16 |
-| TEE (`wt_probe` to `wt_export`, digests only) | 2,796 | 15 |
+| naive (dictionaries, three log tails, the coefficient file, checkMesh, the script, the polar and span loads) | 19,174 | 16 |
+| TEE (`wt_probe` to `wt_export`, digests only) | 2,994 | 15 |
 
-**Saving: 85.4%.** The naive arm grows with every iteration the solver takes (736 bytes of log per simpleFoam step, measured on v2606) and with every point in the polar; the TEE arm is flat: no array over 64 elements, no string over 2 KB, a verdict and an uncertainty label on every number. On the real engines the same calls measured 55 / 181 / 162 / 97 / 21-87 / 163 / 88 / 33 tokens (probe, case, mesh, run, status, result, view, export; research doc 72 3.5).
-
-_(recorded 2026-09-06 by running `run_windtunnel_scenario()` directly in the Linux build container, which has no Blender for the full script; the section is the one `write_results` emits and is carried forward by header on machines that skip it)_
-
-
-## Flight dynamics: a polar becomes an aircraft that flies (A75)
-
-The lane's whole loop on a generated aircraft — probe, generate from an
-eight-point polar, trim, take the modes, then fly the trim for a minute — against
-what a model must otherwise read to reach the same answer.
-
-| Arm | Tokens | Calls |
-|---|---|---|
-| naive (the aircraft XML authored and read back, the property catalogue, 60 s of six states at 120 Hz, the raw A and B) | 131,179 | — |
-| TEE (`fd_probe` to `fd_fly`, digests only) | **835** | 5 |
-
-**Saving: 99.4%** — a factor of 157. Per call: `fd_probe` 128, `fd_aircraft` 90,
-`fd_trim` 128, `fd_modes` 334, `fd_fly` 155.
-
-_A77 P2 re-measured this: it read **898** and was taken by hand in a shell, with
-no scenario behind it. `run_flightdyn_scenario` now re-runs it like every other
-row. It holds rather than guesses when jsbsim is absent._
-
-The naive arm is dominated by one term: the time history is 125,206 of its
-131,179 tokens, and it grows linearly with every second flown and every state
-watched — sixty seconds of *six* states here, where the model has 656 properties
-available and a mission is not a minute. The TEE arm is flat: the reply is the
-trim state, the verdict and the mode table whatever the flight length, capped at
-64 elements per array and 2 KB per string, and a test asserts the whole reply
-stays under 4 KB.
-
-The mode table is why the lane is cheap rather than merely terse. A and B at a
-trim point are 950 tokens raw and 363 as a digest that has already named each
-mode by its modal participation — and they are where stability derivatives and
-handling qualities start, so the expensive part of a flight-dynamics answer is a
-small matrix rather than a trajectory.
-
-_(recorded 2026-09-07 on the owner's Mac against jsbsim 1.3.1, through
-`app.registry.call` with the real engine; token counts by the repo's own
-`estimate_tokens`.)_
-
-
-## Engine lane: is the router's table still true? (A76)
-
-`eng_scan` then `eng_reconcile` on the owner's live stack, against what a model
-must otherwise read to answer "which local engines can this machine actually
-use, and are the router's numbers still true".
-
-| Arm | Tokens | Calls |
-|---|---|---|
-| naive (`machine.py`, `profiles.py`, `router.py`, `llm/tools.py`, `local_llm.py`, the head of `chores.py`, `.tee/config.toml`, the shim's `litellm.yaml`) | 21,979 | — |
-| TEE (`eng_scan` 57 + `eng_reconcile` 254) | **311** | 2 |
-
-**Saving: 98.6%** — a factor of 71, on a machine with **nothing running**.
-
-_A77 P2 re-measured this and found the row was not reproducible. It read **375**,
-taken against a live stack where `eng_scan` had endpoints to describe; the
-scenario pins every endpoint to a closed port, where the same call costs 57.
-Both are true and they answer different questions, which is why the row says
-which one it is._
-
-_And P3's canary immediately caught the same mistake again: the row moved
-**311 → 364** between two runs an hour apart, because `eng_scan` genuinely
-probes localhost and the owner's model stack had come back up — so the
-"hermetic" scenario was measuring the developer's machine. It is now pinned to a
-port nothing can answer and returns 311 on three consecutive runs with the stack
-up. **The cost scales with what is answering**: 57 tokens for `eng_scan` against
-nothing, 75 against four live endpoints. A benchmark number that omits the
-machine state it was taken in cannot be re-run — the campaign's own thesis,
-caught by the campaign's own gate, on the campaign's own row._
-
-**And the naive arm does not answer the question.** Four of the eight routes the
-shim advertises return HTTP 200 with empty content; that fact is in none of
-those eight files and costs a live probe. Reading everything TEE knows about its
-engines still leaves you unable to say which of them work.
-
-The larger cost is not the digest. A wrong `ENGINES` row is paid on every chore,
-for as long as it stands: the registry declares `q27b-bare` at 3.07–9.69 s and
-an audition measured 44–47 s on the same machine, so the ladder was sorting on a
-number five times off. Every chore routed on that order pays for it.
-
-_(recorded 2026-09-07 on the owner's Mac through `app.registry.call` against the
-live stack; token counts by the repo's own `estimate_tokens`.)_
+**Saving: 84.4%.** The naive arm grows with every iteration the solver takes (736 bytes of log per simpleFoam step, measured on v2606) and with every point in the polar; the TEE arm is flat: no array over 64 elements, no string over 2 KB, a verdict and an uncertainty label on every number. On the real engines the same calls measured 55 / 181 / 162 / 97 / 21-87 / 163 / 88 / 33 tokens (probe, case, mesh, run, status, result, view, export; research doc 72 3.5).
 
 
 ## Scheduler: the mixed-load row (A42 K4, 2026-08-29)
@@ -608,5 +593,80 @@ less there than it does on a solver or a time series.
 The always-loaded surface is **unchanged at 17 tools / 2,028 tok** across
 the whole campaign: every fleet tool is virtual, reached through
 `tee_search_tools` → `tee_call`.
+
+## Local model lane control (A78, 2026-09-10)
+
+*(not re-run this pass - scenario skipped on this machine; last measured values kept)*
+
+**Six fresh tasks, actual application readback: 0/6 with the generic discovery
+contract, 6/6 with compact lane guides.** Exact local model:
+`mlx-community/Qwen3.8-27B-8bit`, explicit `http://127.0.0.1:8080/v1` route.
+One generation per task/arm, temperature 0, 1,800-token completion budget;
+unchanged raw model operations, no success through escalation. Fusion strict
+readback ran on 2705.1.11. These live-machine observations are not a
+deterministic compression canary or proof of AETHER-level quality.
+
+| Live task | Generic contract | Guided |
+| --- | ---: | ---: |
+| Blender world dimensions/location | Fail | Pass |
+| Blender existing camera lens/aim/active selection | Fail | Pass |
+| Blender material assignment and geometry preservation | Fail | Pass |
+| Fusion sketch/extrude dimensions, origin and volume | Fail | Pass |
+| Fusion driving parameter revision with explicit units | Fail | Pass |
+| Fusion real through-hole and removed volume | Fail | Pass |
+| **Completed tasks** | **0/6** | **6/6** |
+
+| Generation-only metric | Generic contract | Guided |
+| --- | ---: | ---: |
+| Provider prompt tokens | 1,960 | 3,767 |
+| Provider completion tokens | 2,253 | 1,769 |
+| Provider total tokens | 4,213 | 5,536 |
+| Cached prompt tokens, already included | 975 | 0 |
+| Sequential generation wall time | 156.03 s | 117.45 s |
+
+Guidance increased total tokens; the gain is completed work. These totals
+exclude supervising-client effort, guide retrieval and application transport.
+Baseline cost per completed task is undefined at zero completions. Both arms
+produced six parseable envelopes; that was not counted as geometry success.
+Protected fixture state was preserved in all twelve strict executions;
+Blender negative controls detect material, visibility and modifier changes.
+
+Method limit: the baseline is a frozen generic pre-A78 `tee_batch` description,
+without full old documentation; the candidate gets one relevant card. Both
+arms execute against the corrected current adapters, so guide and API changes
+are not isolated. One run per case, fixed arm order and different cache states
+do not establish a general latency improvement. Initial short-model-name
+addressing failures are retained separately and not scored as model quality.
+
+Surface before/after: **17 core tools / 2,129 wire tokens unchanged**;
+197 → 199 virtual tools; flat schema 31,283 → 31,464 estimated tokens;
+reach-one cost 544; rounded progressive-disclosure saving **93.2%**.
+
+Evidence: [frozen tasks](fixtures/a78_lane_quality.json),
+[generation summary](../output/tee-efficiency-audit/benchmark/generation-summary.json),
+[strict Blender baseline](../output/tee-efficiency-audit/live/baseline-strict/blender-grades.json),
+[strict Blender guided](../output/tee-efficiency-audit/live/guided-strict/blender-grades.json),
+[strict Fusion baseline](../output/tee-efficiency-audit/live/baseline-fusion-strict/fusion_manifest.json),
+[strict Fusion guided](../output/tee-efficiency-audit/live/guided-fusion-strict/fusion_manifest.json),
+[preservation controls](../output/tee-efficiency-audit/live/blender-strict-negative-controls.json).
+The [runner](run_a78_lane_quality.py) records prompts/hashes/raw answers and
+provider usage separately from estimates. See [research note 79](../docs/research/79-smaller-model-lane-control.md)
+for profile/budget fixes, scope limitations and the future quality ladder.
+
+The harder composed brief completed native Fusion modelling, a driving revision,
+real OBJ transfer and saved-file reopening, but **failed visual/design acceptance**
+after two Fusion and five Blender calls. It consumed 36,735 provider tokens
+across all attempts, with explicit host staging/diagnostic assistance. The final
+partial scene has a real hollow opening but an incorrect overall length,
+inward winding, faceting and poor framing/material realization. This is not
+AETHER parity. See the [full report](../output/tee-efficiency-audit/composed/blender/report.json)
+and [reviewed PDF](../output/tee-efficiency-audit/composed/A78_Qwen_Component_Partial.pdf).
+
+The experiment also led to bounded line/occurrence diagnostics for guarded
+Python, before its automatic scene checkpoint. The unchanged first failed
+program now identifies both lines 25 and 269; the next identifies line 268.
+[Replay](../output/tee-efficiency-audit/python-feedback-replay.json).
+Final default suite: **2,153 passed, 20 skipped, 141 deselected**, 153.93 s;
+changed-file Ruff clean. [Test log](../output/tee-efficiency-audit/regression-complete.log).
 
 *Generated by `benchmarks/run_benchmarks.py` against Blender 5.2.0 LTS (headless, TEE bridge).*
