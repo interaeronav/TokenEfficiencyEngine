@@ -1,0 +1,23 @@
+{
+  "verified_utc": "2026-09-11T07:12:45.903478+00:00",
+  "status": "isolated_development_fix_only",
+  "controller": "/usr/bin/true",
+  "controller_sha256": "875c7eea9c66c826091ede3cc44599311dc6818caf17f9e53d97c54c288842b2",
+  "controller_uid": 0,
+  "controller_mode": "0o755",
+  "tests": "37 passed in 0.33s; Ruff clean",
+  "actual_checks": [
+    "CPython webbrowser.open",
+    "CPython webbrowser.open_new_tab",
+    "installed Aider0.86.2 InputOutput.offer_url yes=True"
+  ],
+  "process_guard": "Only the resolved no-op controller may launch; GUI fallback fails before spawn",
+  "warnings": "retained, including credential diagnostics; no --no-show-model-warnings",
+  "paid_calls": 0,
+  "browser_processes": 0,
+  "served_source_changed": false,
+  "source_sha256": {
+    "development/server/src/tee/docagents/backends.py": "a9b11a5d226be0e01785f3d908300fde5346d1c1782cf809eb62759f989b8a73",
+    "development/server/tests/test_docagents_backends.py": "b849baac0fb577c5cea8dbf87372fcff5b989d3987fcbd22ff3a1310662a34c7"
+  }
+}

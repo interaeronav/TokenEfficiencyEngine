@@ -1,0 +1,244 @@
+--- a/server/src/tee/docagents/backends.py
++++ b/server/src/tee/docagents/backends.py
+@@ -13,6 +13,7 @@
+ import os
+ import re
+ import shutil
++import stat
+ from dataclasses import dataclass, field
+ from datetime import UTC, datetime
+ from pathlib import Path
+@@ -23,6 +24,8 @@
+ 
+ VERSIONS = {"aider": "0.86.2", "cline": "3.0.61"}
+ MAX_LOG_BYTES = 2_000_000
++_BROWSER_BLOCKER_PATHS = ("/usr/bin/true", "/bin/true")
++_POSIX_BROWSER_BLOCKER = os.name == "posix"
+ 
+ 
+ @dataclass(frozen=True)
+@@ -92,6 +95,37 @@
+         raise TeeError("docagent_state_path", "Worker state must not be a symlink.")
+     path.mkdir(mode=0o700, parents=True, exist_ok=True)
+     path.chmod(0o700)
++
++
++def _headless_browser() -> str:
++    """Resolve a trusted no-op for Aider's Python webbrowser offers.
++
++    Do not search PATH or disable model warnings: those warnings also expose
++    missing credentials. A successful no-op prevents webbrowser from trying a
++    GUI fallback. Unsupported platforms refuse rather than launch implicitly.
++    """
++    if _POSIX_BROWSER_BLOCKER:
++        for candidate in _BROWSER_BLOCKER_PATHS:
++            try:
++                executable = Path(candidate).resolve(strict=True)
++                info = executable.stat()
++            except OSError:
++                continue
++            if (
++                str(executable) in _BROWSER_BLOCKER_PATHS
++                and stat.S_ISREG(info.st_mode)
++                and info.st_uid == 0
++                and not info.st_mode & 0o022
++                and info.st_mode & 0o111
++                and os.access(executable, os.X_OK)
++            ):
++                return str(executable)
++    raise TeeError(
++        "docagent_headless_browser",
++        "Aider needs a verified system no-op browser controller for headless operation.",
++        fix="Use a supported POSIX installation with executable /usr/bin/true or /bin/true; "
++        "model and credential warnings remain enabled.",
++    )
+ 
+ 
+ def _private_write(path: Path, content: str) -> None:
+@@ -169,6 +203,11 @@
+     if type(timeout_s) is not int or not 1 <= timeout_s <= 3600:
+         raise TeeError("docagent_timeout", "Worker timeout must be 1-3600 seconds.")
+     route, model, key, paid = _route(profile)
++    metadata = None
++    if backend == "aider":
++        from .model_metadata import aider_metadata
++
++        metadata = aider_metadata(profile)
+     row = discover()[backend]
+     if not row["available"]:
+         raise TeeError("docagent_missing", f"The optional {backend} worker is not installed.")
+@@ -239,6 +278,10 @@
+     )
+     executable = str(row["executable"])
+     if backend == "aider":
++        # --yes-always also accepts offer_url(), including model metadata and
++        # credential warnings. Block browser side effects only in this child;
++        # keep those diagnostics and the caller's browser preferences intact.
++        env["BROWSER"] = _headless_browser()
+         prompt_file = state / "instruction.txt"
+         _private_write(prompt_file, prompt)
+         config = state / "aider.yml"
+@@ -287,6 +330,23 @@
+         ]
+         if authorized:
+             command.append("--yes-always")
++        if metadata is not None:
++            metadata_file = state / "model-metadata.json"
++            settings_file = state / "model-settings.yml"
++            _private_write(metadata_file, json.dumps({local_model: metadata["info"]}) + "\n")
++            # JSON is valid YAML; only the validated fixed settings reach Aider.
++            _private_write(
++                settings_file, json.dumps([{"name": local_model, **metadata["settings"]}]) + "\n"
++            )
++            _private_write(
++                state / "model-provenance.json", json.dumps(metadata["provenance"]) + "\n"
++            )
++            command += [
++                "--model-metadata-file",
++                str(metadata_file),
++                "--model-settings-file",
++                str(settings_file),
++            ]
+         for name in inputs:
+             if name not in outputs:
+                 command += ["--read", str(work_dir / name)]
+--- a/server/src/tee/docagents/tools.py
++++ b/server/src/tee/docagents/tools.py
+@@ -127,6 +127,9 @@
+             if state.get("active") not in profiles.profiles(llm):
+                 raise TeeError("doc_profile_invalid", "The selected model profile is unknown.")
+         result = profiles.resolve(llm)
++        specification = profiles.profiles(llm).get(result["profile"], {})
++        if "docagent_metadata" in specification:
++            result["docagent_metadata"] = specification["docagent_metadata"]
+         if os.environ.get("TEE_DOCAGENT_API_KEY"):
+             result["api_key"] = os.environ["TEE_DOCAGENT_API_KEY"]
+         if result.get("adapters"):
+--- a/server/src/tee/docagents/model_metadata.py
++++ b/server/src/tee/docagents/model_metadata.py
+@@ -0,0 +1,125 @@
++"""Explicit, dated worker metadata; aliases never imply provider capacity or cost."""
++
++from __future__ import annotations
++
++import math
++from datetime import date
++from typing import Any
++from urllib.parse import urlsplit
++
++from tee.kernel.errors import TeeError
++
++
++def _fail(message: str) -> None:
++    raise TeeError(
++        "docagent_model_metadata",
++        message,
++        fix="Review docagent_metadata against the selected route and provider source.",
++    )
++
++
++def _https(value: Any) -> bool:
++    if not isinstance(value, str) or not 1 <= len(value) <= 2048:
++        return False
++    try:
++        url = urlsplit(value)
++        return (
++            url.scheme == "https" and bool(url.hostname) and not url.username and not url.password
++        )
++    except ValueError:
++        return False
++
++
++def aider_metadata(profile: dict[str, Any], *, today: date | None = None) -> dict | None:
++    """Validate owner-configured facts without fetching URLs or changing a route."""
++    value = profile.get("docagent_metadata")
++    if value is None:
++        return None  # Ordinary Aider unknown-model diagnostics remain enabled.
++    required = {
++        "schema",
++        "model",
++        "url",
++        "upstream_model",
++        "upstream_url",
++        "verified_on",
++        "valid_until",
++        "capacity_source",
++        "price_source",
++        "currency",
++        "max_input_tokens",
++        "max_output_tokens",
++        "context_window",
++        "price_in_per_mtok",
++        "price_out_per_mtok",
++        "request_output_tokens",
++    }
++    if (
++        not isinstance(value, dict)
++        or set(value) != required
++        or type(value.get("schema")) is not int
++        or value["schema"] != 1
++    ):
++        _fail(
++            "Provide the complete docagent_metadata schema 1 contract; unknown fields are refused."
++        )
++    if value["model"] != profile.get("model") or value["url"] != profile.get("url"):
++        _fail("Model metadata belongs to a different model or endpoint.")
++    if not isinstance(value["upstream_model"], str) or not 1 <= len(value["upstream_model"]) <= 256:
++        _fail("Name the actual upstream model behind the alias.")
++    if not all(_https(value[name]) for name in ("upstream_url", "capacity_source", "price_source")):
++        _fail(
++            "Supply HTTPS provenance URLs without credentials; they are recorded, never fetched."
++        )
++    try:
++        checked = date.fromisoformat(value["verified_on"])
++        expires = date.fromisoformat(value["valid_until"])
++    except (TypeError, ValueError):
++        _fail("Metadata needs verified_on and valid_until ISO dates.")
++    current = today or date.today()
++    if not checked <= current <= expires or not 0 <= (expires - checked).days <= 30:
++        _fail("Model metadata is stale, future-dated or valid for more than 30 days.")
++    for name in (
++        "max_input_tokens",
++        "max_output_tokens",
++        "context_window",
++        "request_output_tokens",
++    ):
++        if type(value[name]) is not int or not 1 <= value[name] <= 10_000_000:
++            _fail("Model capacities and request output budget must be positive bounded integers.")
++    if max(value["max_input_tokens"], value["max_output_tokens"]) > value["context_window"]:
++        _fail("Individual model limits cannot exceed the documented context window.")
++    if not 128 <= value["request_output_tokens"] <= min(8192, value["max_output_tokens"]):
++        _fail(
++            "Documentation output budget must be 128-8192 tokens within the provider output limit."
++        )
++    if value["currency"] != "USD":
++        _fail(
++            "Aider displays USD; supply verified USD rates instead of relabelling another currency."
++        )
++    for name in ("price_in_per_mtok", "price_out_per_mtok"):
++        rate = value[name]
++        if type(rate) not in (int, float) or not math.isfinite(rate) or not 0 <= rate <= 1_000_000:
++            _fail("Token prices must be explicit finite nonnegative USD rates per million tokens.")
++        if profile.get("paid") and rate == 0:
++            _fail("Zero proxy defaults are not an acceptable paid-model price.")
++    return {
++        "info": {
++            "max_tokens": value["max_output_tokens"],
++            "max_input_tokens": value["max_input_tokens"],
++            "max_output_tokens": value["max_output_tokens"],
++            "input_cost_per_token": value["price_in_per_mtok"] / 1_000_000,
++            "output_cost_per_token": value["price_out_per_mtok"] / 1_000_000,
++            "litellm_provider": "openai",  # The unchanged wire route is OpenAI-compatible.
++            "mode": "chat",
++        },
++        "settings": {
++            "edit_format": "diff",
++            "extra_params": {"max_tokens": value["request_output_tokens"]},
++        },
++        "provenance": {
++            **value,
++            "price_basis": (
++                "published uncached list rates; excludes discounts, credits and invoice adjustments"
++            ),
++        },
++    }

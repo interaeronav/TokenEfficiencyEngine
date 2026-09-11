@@ -67,14 +67,16 @@ Remaining scope is explicit: a verified worldwide law corpus/adoption inventory,
 live calibrated Unreal export, broader construction systems and manufacturer/CNC
 or authority approval are not established by this first implementation. Passing
 IFC/schema or a supplied rule subset never certifies a building. The separate
-`run-doc-agent` owner decision remains pending, with execution unavailable in
-both accepted clients. Both now recognize the capability. The concrete proposed
-main-project change is in [the permission note](documentation-worker-permission.md).
+`run-doc-agent` was explicitly owner-approved and applied to the main project
+at 2026-09-11T06:29:12Z. Actual doc_status confirms execution_allowed=true with
+QMAX preserved; see [the applied permission record](worker-permission-approved-20260911T062912Z.md).
+The earlier pending proposal and acceptance receipts remain unchanged history.
 
 Closure delivery is verified: eight identical supplements per recipient under
 `post-release/20260911T062301Z/`, preserving all frozen release bytes. A convenient
 completion copy is `/Users/john/Downloads/TEE_A82_COMPLETION_20260911.md`, SHA-256
 `0cf88dc27d2ee0091a3e806d8ef537819aba7e5b2258ff5835c1a7424596fff6`.
 The verification record is output/updates/TEE-20260910-A82-01/acceptance/20260911-closure-delivery.json.
-Shared TEE memory now records both-client completion and the pending worker
-permission; prior claims that Claude still serves A79/A80 are superseded.
+Prior claims that Claude still serves A79/A80 are superseded. The owner later
+rejected A82's sample design/documentation quality; A83 develops corrections
+and deeper BIM/cabinet capability separately, preserving this accepted runtime.

@@ -1,0 +1,226 @@
+{
+  "observed_utc": "2026-09-11T07:38:02Z",
+  "scope": "Actual Codex TEE connector before HF1; no upgrade applied. Claude connection not observed.",
+  "results": {
+    "status": {
+      "ok": true,
+      "adapters": {
+        "blender": {
+          "id": "blender",
+          "product": "Blender",
+          "version": "5.2.0 LTS",
+          "connected": true,
+          "background": false,
+          "file": "/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/tee-blender-c92wqo1n/snap-9-1789078947.blend",
+          "objects": 13,
+          "scene": {
+            "epoch": 1,
+            "revision": 1
+          }
+        },
+        "partkiln": {
+          "id": "partkiln",
+          "product": "partkiln",
+          "version": "0.1.0",
+          "connected": true,
+          "mode": "sidecar",
+          "state": "warm",
+          "occt": "7.9.3",
+          "parts": 0,
+          "assemblies": 0,
+          "drawings": 0,
+          "commands": 0,
+          "warm_job": "job1",
+          "scene": {
+            "epoch": 1,
+            "revision": 1
+          }
+        },
+        "seamkiln": {
+          "id": "seamkiln",
+          "product": "seamkiln",
+          "version": "0.1.0.dev0",
+          "connected": true,
+          "pattern": null,
+          "panels": 0,
+          "seams": 0,
+          "draped": false,
+          "fabric": "cotton_jersey",
+          "scene": {
+            "epoch": 1,
+            "revision": 1
+          }
+        },
+        "fusion": {
+          "id": "fusion",
+          "product": "Autodesk Fusion",
+          "version": "2705.1.15",
+          "connected": true,
+          "document": null,
+          "design": null,
+          "ids": 0,
+          "scene": {
+            "epoch": 1,
+            "revision": 1
+          }
+        },
+        "unreal": {
+          "id": "unreal",
+          "product": "Unreal Engine",
+          "version": "5.8+",
+          "connected": false,
+          "endpoint": "http://127.0.0.1:8000/mcp",
+          "toolsets": 0,
+          "scene": {
+            "epoch": 0,
+            "revision": 0
+          }
+        }
+      },
+      "active_jobs": [],
+      "checkpoints": [],
+      "virtual_tools": 261,
+      "code_exec_enabled": false,
+      "llm_profile": "qmax",
+      "rooted_at": {
+        "project_root": "/Users/john/TokenEfficiencyEngine",
+        "grants_file": "/Users/john/TokenEfficiencyEngine/.tee/config.toml",
+        "granted": [
+          "call-paid-engine",
+          "run-doc-agent"
+        ],
+        "denied_tiers": {
+          "exec-code": "1 tool(s)",
+          "run-adhoc": "1 tool(s)",
+          "run-declared-step": "1 tool(s)"
+        },
+        "why": "reads and project memory work; these tiers need a grant in the project this session is rooted at",
+        "fix": "launch with --project <the granted project>, or add a [trust] grants line to /Users/john/TokenEfficiencyEngine/.tee/config.toml"
+      },
+      "lanes": {
+        "blender": "3D scene: model, materials, physics, render (pixels) · ops create, set, delete, assign_material, import_file, wall_with_openings +7 · kinds cube, plane, uv_sphere, ico_sphere, cylinder, cone +5 · tools bl_/hb_/sim_",
+        "partkiln": "mechanical CAD, headless: sketch->features->assembly->drawing->STEP · ops create, set, delete, param_set, export, check · kinds angle, axis, ball, chamfer, coil, combine +31 · tools pk_ · no pixels",
+        "seamkiln": "garment CAD + drape, headless: pattern->sew->body->drape->handoff · ops create, set, delete, arrange, load, sew +22 · kinds block, panel, seam · tools sk_",
+        "fusion": "Autodesk Fusion, live: parametric CAD in the open design; renders pixels · ops create, set, delete, param_set, import_file · kinds sketch, extrude, fillet, component, param, constraint +8 · tools fu_",
+        "unreal": "Unreal Editor level: actors, Blueprints, render (pixels) · ops create, set, delete · tools ue_/pin_"
+      },
+      "recap": {
+        "truncated": "response exceeded 500 tokens; dropped 5 from 'memory', 9 from 'adapters', 5 from 'savings', 1 from 'extract' - query the dropped area directly (tee_scene_summary, ex_sources, tee_recall)"
+      }
+    },
+    "doc_status": {
+      "ok": true,
+      "project": "/Users/john/TokenEfficiencyEngine",
+      "workers": {
+        "aider": {
+          "available": true,
+          "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+          "expected_version": "0.86.2",
+          "version": "0.86.2",
+          "version_verified": true,
+          "verification": "package_metadata"
+        },
+        "cline": {
+          "available": true,
+          "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+          "expected_version": "3.0.61",
+          "version": "3.0.61",
+          "version_verified": true,
+          "verification": "package_metadata"
+        }
+      },
+      "model": {
+        "profile": "qmax",
+        "model": "claude-qwen-max",
+        "paid": true,
+        "ready": true
+      },
+      "execution_allowed": true,
+      "execution_capability": "run-doc-agent",
+      "workflow": "doc_prepare → doc_run → tee_job → doc_diff → doc_apply",
+      "scope": "Selected documentation files; staged workers can execute host commands.",
+      "usage_scope": "External worker usage is separate from TEE's internal model meter."
+    },
+    "learn_status": {
+      "ok": true,
+      "enabled": true,
+      "auto_promote": true,
+      "health": "ok",
+      "event_limit": 2000,
+      "snapshot_limit": 6,
+      "paused": false,
+      "promotion_paused": false,
+      "events": 169,
+      "snapshots": 0,
+      "domains": {
+        "execution": {
+          "active_id": null,
+          "previous_id": null,
+          "active_since": 0,
+          "last_evaluated_seq": 160,
+          "trainable_count": 166,
+          "last_auto_count": 160,
+          "evaluation": {
+            "evaluated": true,
+            "promoted": false,
+            "reasons": [
+              "insufficient_coverage",
+              "no_reliability_gain"
+            ],
+            "train": 122,
+            "holdout": 16,
+            "train_through_seq": 144,
+            "holdout_from_seq": 145,
+            "holdout_through_seq": 160,
+            "candidate": {
+              "count": 16,
+              "brier": 0.0011150220279361122,
+              "cost_log_mae": 1.0403832649820242,
+              "token_count": 8,
+              "token_log_mae": 0.2089127918464493
+            },
+            "baseline": {
+              "count": 16,
+              "brier": 0.006718624025799513,
+              "cost_log_mae": 3.1275502422352086,
+              "token_count": 8,
+              "token_log_mae": 0.8994530564426462
+            },
+            "incumbent": null
+          },
+          "drift": null
+        },
+        "reported": {
+          "active_id": null,
+          "previous_id": null,
+          "active_since": 0,
+          "last_evaluated_seq": 0,
+          "trainable_count": 0,
+          "last_auto_count": 0,
+          "evaluation": null,
+          "drift": null
+        },
+        "verified": {
+          "active_id": null,
+          "previous_id": null,
+          "active_since": 0,
+          "last_evaluated_seq": 0,
+          "trainable_count": 0,
+          "last_auto_count": 0,
+          "evaluation": null,
+          "drift": null
+        }
+      }
+    },
+    "recall": {
+      "ok": true,
+      "fact_keys": [
+        "upgrade_protocol",
+        "documentation_agents_update",
+        "architecture_update"
+      ],
+      "truncated": true,
+      "note": "Values remain private in continuity backup; no full memory inventory asserted."
+    }
+  }
+}

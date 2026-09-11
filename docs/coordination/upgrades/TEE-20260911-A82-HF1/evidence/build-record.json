@@ -1,0 +1,64 @@
+{
+  "update_id": "TEE-20260911-A82-HF1",
+  "stage": "candidate built and tested; root review/freeze pending",
+  "prepared_utc": "2026-09-11T07:19:58.646389+00:00",
+  "source": {
+    "sha256": "6ad9a65703a826c8a9433295c8995ae010b343c3a446c28a83fef00c5dbf99d8",
+    "files": 293,
+    "bytes": 3429910
+  },
+  "claude": {
+    "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/artifacts/tee-engine-0.30.1-a82-hf1-local.mcpb",
+    "bytes": 1139122,
+    "sha256": "f0da258e4224cae8421d9e4515d77f521ed95fb4c31c98833b4f28ec18b5b68a"
+  },
+  "codex": {
+    "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/artifacts/tee-a82-hf1-codex-source-snapshot.zip",
+    "bytes": 1569940,
+    "sha256": "ebc850414600ffbcdf070b994d34aef4d778a4882273c98d2ee5e0f8f55cf9ea"
+  },
+  "archive_deltas": {
+    "claude": {
+      "member_count": 301,
+      "changed_members": [
+        "README.md",
+        "src/tee/docagents/backends.py"
+      ],
+      "added": [],
+      "removed": []
+    },
+    "codex": {
+      "member_count": 320,
+      "changed_members": [
+        "server/src/tee/docagents/backends.py"
+      ],
+      "added": [],
+      "removed": []
+    }
+  },
+  "tests": ".....................................                                    [100%]\n37 passed in 0.38s",
+  "test_source": {
+    "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/tests/test_docagents_backends.py",
+    "bytes": 15692,
+    "sha256": "b849baac0fb577c5cea8dbf87372fcff5b989d3987fcbd22ff3a1310662a34c7"
+  },
+  "served_source_unchanged": true,
+  "installed_bundle_unchanged": true,
+  "shared_dependencies_unchanged": true,
+  "payload_equal": true,
+  "paid_calls": 0,
+  "browser_processes": 0,
+  "rollback": {
+    "source": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "claude": {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-engine-0.30.1-a82-local.mcpb",
+      "bytes": 1138535,
+      "sha256": "98f5116fe1c51b62062571cdf81d4f0039d3bc34815aafcf7c951c0768c3c3e2"
+    },
+    "codex": {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-a82-codex-source-snapshot.zip",
+      "bytes": 1569353,
+      "sha256": "e908840f325f6e9e5366ead6cfcda7636fa1d5efa8650143b446670781de53e1"
+    }
+  }
+}

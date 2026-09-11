@@ -1,0 +1,22 @@
+{
+  "observed_utc": "2026-09-11T07:28:12.054835+00:00",
+  "shared_count": 148,
+  "sidecar_count": 10,
+  "aider_count": 108,
+  "shared_matches_full_accepted_metadata": true,
+  "sidecar_matches_full_accepted_metadata": true,
+  "prior_constraint_audit_reused": "prior/dependency-audit.json",
+  "editable_kernels": {
+    "partkiln": {
+      "files": 90,
+      "matches_accepted": true,
+      "identity_sha256": "83a7e01de0991339cf767a1188e812bd3c7be253d5a53db9933b3b53de5e6898"
+    },
+    "seamkiln": {
+      "files": 61,
+      "matches_accepted": true,
+      "identity_sha256": "9c273bf40e895a73b565e53d9b137bb70620f698db7e12335aadd56e9d393a94"
+    }
+  },
+  "limits": "Metadata and source identity; no new resolver, native ABI or solver claim."
+}

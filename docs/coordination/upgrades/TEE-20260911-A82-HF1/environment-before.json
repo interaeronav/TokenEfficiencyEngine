@@ -1,0 +1,203 @@
+{
+  "observed_utc": "2026-09-11T07:19:57.484794+00:00",
+  "observation": "Filesystem and package metadata only; no actual-client receipt claimed.",
+  "git": {
+    "head": "dfb5e40b2abf3e113cdb893c4d11dc963c151798",
+    "branch": "claude/token-efficiency-engine-5jv1dj",
+    "dirty_paths": 6848,
+    "untracked_paths": 6806,
+    "payload_covers_tracked_and_untracked_files": true
+  },
+  "python": {
+    "path": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+    "version": "3.11.15 (main, Jul 23 2026, 14:34:23) [Clang 22.1.3 ]",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "architecture": "arm64",
+    "shared_distribution_count": 148
+  },
+  "main": {
+    "project_root": "/Users/john/TokenEfficiencyEngine",
+    "namespace_present": true,
+    "config_present": true,
+    "grants": [
+      "call-paid-engine",
+      "run-doc-agent"
+    ],
+    "trust_profile": null,
+    "allow_code_exec": false,
+    "model_profile": {
+      "active": "qmax",
+      "pinned": true,
+      "ready": true
+    },
+    "learning": {
+      "present": true,
+      "events": 168,
+      "snapshots": 0,
+      "schema": 1
+    },
+    "state_categories": {
+      "generated": {
+        "kind": "directory"
+      },
+      "docagents": {
+        "kind": "directory"
+      },
+      "kb": {
+        "kind": "directory"
+      },
+      "learning": {
+        "kind": "directory"
+      },
+      "shadow": {
+        "kind": "directory"
+      },
+      "memory.json": {
+        "kind": "file",
+        "bytes": 7072
+      },
+      "kb-staging": {
+        "kind": "directory"
+      },
+      "extras-seen.json": {
+        "kind": "file",
+        "bytes": 234
+      },
+      "config.before-paid-engine-20260910T194955Z.toml": {
+        "kind": "file",
+        "bytes": 1285
+      },
+      "engine-scan.json": {
+        "kind": "file",
+        "bytes": 421
+      },
+      "partkiln": {
+        "kind": "directory"
+      },
+      "config.toml": {
+        "kind": "file",
+        "bytes": 1341
+      },
+      "server.pid": {
+        "kind": "file",
+        "bytes": 5
+      },
+      "llm-profile.json": {
+        "kind": "file",
+        "bytes": 83
+      },
+      "windtunnel": {
+        "kind": "directory"
+      }
+    },
+    "scope": "Filesystem metadata only; no state content or memory hashes published."
+  },
+  "a71": {
+    "project_root": "/Users/john/TokenEfficiencyEngine-a71",
+    "namespace_present": true,
+    "config_present": false,
+    "grants": [],
+    "trust_profile": null,
+    "allow_code_exec": false,
+    "model_profile": {
+      "active": null,
+      "pinned": null,
+      "ready": null
+    },
+    "learning": {
+      "present": true,
+      "events": 2,
+      "snapshots": 0,
+      "schema": 1
+    },
+    "state_categories": {
+      "learning": {
+        "kind": "directory"
+      },
+      "shadow": {
+        "kind": "directory"
+      },
+      "extras-seen.json": {
+        "kind": "file",
+        "bytes": 234
+      },
+      "partkiln": {
+        "kind": "directory"
+      },
+      "windtunnel": {
+        "kind": "directory"
+      }
+    },
+    "scope": "Filesystem metadata only; no state content or memory hashes published."
+  },
+  "codex": {
+    "source": "/Users/john/TokenEfficiencyEngine/server/src/tee",
+    "payload": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "wrapper": {
+      "source": "/Users/john/plugins/tee",
+      "cache": "/Users/john/.codex/plugins/cache/personal/tee/0.30.0",
+      "source_cache_equal": true,
+      "files": [
+        {
+          "path": ".codex-plugin/plugin.json",
+          "bytes": 1131,
+          "sha256": "39b69cf5fba6c9e89ca75a43baa0b025c7fc5119bee0612848abf0af6d784250"
+        },
+        {
+          "path": ".mcp.json",
+          "bytes": 525,
+          "sha256": "29dd1d209e6dd7e8c17905bae4da379f440fa487e3c289a0e7f2ac6376253c2f"
+        },
+        {
+          "path": "README.md",
+          "bytes": 783,
+          "sha256": "c2f020e9b774bd500005c62413c53fd90d2c79e29c7757c203adf3158cbb8987"
+        },
+        {
+          "path": "assets/icon.png",
+          "bytes": 3763,
+          "sha256": "db5e2e60b3c13ed77bf7013b8c930e4801e172905b28e993c060976cc1bbe93f"
+        },
+        {
+          "path": "skills/tee-usage/SKILL.md",
+          "bytes": 6916,
+          "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1"
+        }
+      ]
+    },
+    "actual_connection": "not observed by preparer"
+  },
+  "claude": {
+    "source": "/Users/john/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/src/tee",
+    "payload": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "manifest_server": {
+      "type": "python",
+      "entry_point": "launch.py",
+      "mcp_config": {
+        "command": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+        "args": [
+          "${__dirname}/launch.py",
+          "serve",
+          "--adapter",
+          "blender",
+          "--adapter",
+          "partkiln",
+          "--adapter",
+          "seamkiln",
+          "--adapter",
+          "fusion",
+          "--adapter",
+          "unreal",
+          "--project",
+          "${user_config.project_root}"
+        ],
+        "env": {
+          "PYTHONDONTWRITEBYTECODE": "1"
+        }
+      }
+    },
+    "actual_connection": "not observed by preparer"
+  },
+  "private_backup": "Not created during preparation; coordinator captures current state before rollout.",
+  "active_jobs": "Coordinator must check before reconnect; filesystem metadata is not job liveness."
+}

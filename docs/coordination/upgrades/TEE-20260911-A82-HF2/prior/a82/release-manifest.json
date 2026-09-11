@@ -1,0 +1,790 @@
+{
+  "protocol_version": "1.0.1",
+  "protocol_sha256": "ac74807ac0ce9ea29c070e8fe57cdd84c2952182234cd61337d0b1446f85fc9c",
+  "update_id": "TEE-20260910-A82-01",
+  "revision": 1,
+  "initiator": "GPT-6 / Codex",
+  "coordinator": "GPT-6 / Codex",
+  "stage_at_freeze": "built and prepared for recipient review; not installed or accepted",
+  "change": "Original headless architecture/cabinet/optional GUI, measured conversion and worldwide rule-pack framework; includes held A81 Cline/Aider documentation integration",
+  "authorization": {
+    "preparation": "Owner architecture/GUI/worldwide scope and quiet overnight continuation; prior any-project documentation integration",
+    "existing": "Main project QMAX and sole call-paid-engine grant persist",
+    "new_grant": "run-doc-agent awaits separate owner approval and both new runtimes"
+  },
+  "ownership": {
+    "builds_packet_ledger": "GPT-6",
+    "claude": "other-party candidate review and actual installed-client receipt",
+    "codex": "source wrapper verification and actual-client receipt",
+    "source": "A82 source/tests by Codex; prior dirty owner work retained; launcher/build ownership unchanged"
+  },
+  "source": {
+    "repository": "https://github.com/interaeronav/TokenEfficiencyEngine",
+    "commit": "4db0fb0962d91ed3844f69219546f40932a90816",
+    "branch": "claude/token-efficiency-engine-5jv1dj",
+    "remote_head_verified_now": false,
+    "dirty_untracked_included": true,
+    "coverage": "entire shipped server/src/tee runtime/resources, not unrelated dirty workspace",
+    "manifest": "source-manifest.json",
+    "payload_sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "files": 293,
+    "bytes": 3428263,
+    "exclusions": [
+      "__pycache__",
+      ".pyc",
+      ".pyo",
+      ".DS_Store"
+    ],
+    "package_version": "0.30.1"
+  },
+  "targets": {
+    "claude": {
+      "shape": "local python MCPB",
+      "runtime_origin": "installed bundle src/tee through launch.py",
+      "interpreter": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+      "bundle_manifest_version": "0.30.1",
+      "artifact": {
+        "source": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-engine-0.30.1-a82-local.mcpb",
+        "filename": "tee-engine-0.30.1-a82-local.mcpb",
+        "delivered_path": "/Users/john/Downloads/TEE_A82_ARCHITECTURE_UPDATE_20260911/claude/tee-engine-0.30.1-a82-local.mcpb",
+        "bytes": 1138535,
+        "sha256": "98f5116fe1c51b62062571cdf81d4f0039d3bc34815aafcf7c951c0768c3c3e2"
+      },
+      "intended_root": "/Users/john/TokenEfficiencyEngine",
+      "adapters": [
+        "blender",
+        "partkiln",
+        "seamkiln",
+        "fusion",
+        "unreal"
+      ],
+      "member_manifest": "evidence/claude-members.json",
+      "registration": "local.mcpb.interaeronav.token-efficiency-engine",
+      "resolved_launch": [
+        "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+        "/Users/john/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/launch.py",
+        "serve",
+        "--adapter",
+        "blender",
+        "--adapter",
+        "partkiln",
+        "--adapter",
+        "seamkiln",
+        "--adapter",
+        "fusion",
+        "--adapter",
+        "unreal",
+        "--project",
+        "/Users/john/TokenEfficiencyEngine"
+      ]
+    },
+    "codex": {
+      "shape": "existing tee@personal source plugin",
+      "runtime_origin": "/Users/john/TokenEfficiencyEngine/server/src/tee",
+      "wrapper_version": "0.30.0",
+      "wrapper_replacement_required": false,
+      "artifact": {
+        "source": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-a82-codex-source-snapshot.zip",
+        "filename": "tee-a82-codex-source-snapshot.zip",
+        "delivered_path": "/Users/john/Downloads/TEE_A82_ARCHITECTURE_UPDATE_20260911/codex/tee-a82-codex-source-snapshot.zip",
+        "bytes": 1569353,
+        "sha256": "e908840f325f6e9e5366ead6cfcda7636fa1d5efa8650143b446670781de53e1"
+      },
+      "intended_root": "/Users/john/TokenEfficiencyEngine",
+      "interpreter": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+      "adapters": [
+        "blender",
+        "partkiln",
+        "seamkiln",
+        "fusion",
+        "unreal"
+      ],
+      "member_manifest": "evidence/codex-members.json",
+      "resolved_launch": [
+        "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+        "-m",
+        "tee.cli",
+        "serve",
+        "--adapter",
+        "blender",
+        "--adapter",
+        "partkiln",
+        "--adapter",
+        "seamkiln",
+        "--adapter",
+        "fusion",
+        "--adapter",
+        "unreal",
+        "--project",
+        "/Users/john/TokenEfficiencyEngine"
+      ],
+      "registration": "/Users/john/plugins/tee"
+    }
+  },
+  "contract": {
+    "core_tools": 17,
+    "core_schema_sha256_expected": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+    "adapters": [
+      "blender",
+      "partkiln",
+      "seamkiln",
+      "fusion",
+      "unreal"
+    ],
+    "virtual_tools_with_main_corpus_expected": 261,
+    "virtual_tools_without_corpus_expected": 257,
+    "preserved_lesson_topics": [
+      "fusion/cadagent_enclosure",
+      "fusion/cadagent_flange",
+      "fusion/cadagent_joint",
+      "fusion/cadagent_f1_wing",
+      "fusion/cadagent_f1_brake",
+      "fusion/cadagent_f1_wishbone",
+      "blender/cadagent_enclosure",
+      "blender/cadagent_flange",
+      "blender/cadagent_joint",
+      "blender/cadagent_f1_wing",
+      "blender/cadagent_f1_brake",
+      "blender/cadagent_f1_wishbone",
+      "blender/house",
+      "blender/textures",
+      "blender/fabric"
+    ],
+    "preserved_learning_tools": [
+      "learn_status",
+      "learn_feedback",
+      "learn_recommend",
+      "learn_evaluate",
+      "learn_control"
+    ],
+    "new_tools": [
+      "doc_status",
+      "doc_prepare",
+      "doc_run",
+      "doc_diff",
+      "doc_apply",
+      "ak_status",
+      "ak_create",
+      "ak_edit",
+      "ak_query",
+      "ak_undo",
+      "ak_import",
+      "ak_candidates",
+      "ak_promote",
+      "ak_export",
+      "ak_check",
+      "ak_open"
+    ],
+    "shared_skill_sha256_expected": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1",
+    "project_root": "/Users/john/TokenEfficiencyEngine",
+    "model_profile": "qmax",
+    "model_pinned": true,
+    "code_exec_enabled": false,
+    "architecture": {
+      "units": "mm",
+      "schema": "tee-architecture/1",
+      "document_identity": "immutable UUID",
+      "global_law_coverage": "not_verified",
+      "gui": "optional authenticated loopback, same core",
+      "live_unreal_export_verified": false
+    }
+  },
+  "permissions": {
+    "existing_extra_grants": [
+      "call-paid-engine"
+    ],
+    "proposed_addition": "run-doc-agent",
+    "owner_decision": "pending",
+    "currently_added": false,
+    "application_precondition": "Both actual new clients recognize A82 and capability, then apply only if owner approved. Never add while old A79/A80 clients remain."
+  },
+  "external_workers": {
+    "cline": {
+      "version": "3.0.61",
+      "home": "/Users/john/.local/share/tee/docagents/cline-3.0.61"
+    },
+    "aider": {
+      "version": "0.86.2",
+      "home": "/Users/john/.local/share/tee/docagents/aider-0.86.2"
+    },
+    "vendored": false,
+    "new_shared_python_requirements": 0
+  },
+  "environment": {
+    "python": "3.11.15",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "distribution_count": 148,
+    "sidecar_count": 10,
+    "shared_dependencies_changed": false,
+    "full_metadata_equals_accepted_audit": true,
+    "prior_constraint_audit_reused": "evidence/prior-dependency-audit",
+    "configuration_before": "environment-before.json",
+    "external_aider_distributions": 108,
+    "limits": "Installed IFC/GLB/DXF/PDF readers and owned browser fixtures measured locally; no other-platform/native-solver claim. Workers remain separate."
+  },
+  "validation": {
+    "candidate_pass": true,
+    "fresh_isolated_probes": 4,
+    "candidate_evidence": "evidence/probes/candidate-smoke.json",
+    "all_guides_per_shape": 15,
+    "core_schema_equal": true,
+    "payload_equal": true,
+    "affected_tests_passed": 674,
+    "architecture_evidence": "evidence/architecture",
+    "worldwide_verified_law_coverage": false,
+    "live_unreal_verified": false,
+    "warnings_as_errors": true,
+    "ruff": "pass",
+    "a77_canaries_passed": 8,
+    "real_cli_fixture": "both passed; owned deterministic HTTP responses",
+    "actual_client_acceptance": false,
+    "paid_inference": false,
+    "limitations": "Global law corpus, live Unreal exporter, detailed construction systems and CNC/authority approval remain unverified. Model prose quality unmeasured; external usage not in internal meter. Actual client review/install/reconnect/permission/receipts pending."
+  },
+  "rollback": {
+    "update_id": "TEE-20260910-A79-A80-01",
+    "payload_sha256": "82e5bc7e57f5802dc8f2aea912d4a4d389272bb50a512e45768559c647ab4193",
+    "files": 274,
+    "artifacts": {
+      "claude": {
+        "path": "/Users/john/Downloads/TEE_A79_A80_UPDATE_20260910/claude/tee-engine-0.30.1-a79-a80-local.mcpb",
+        "sha256": "9e1df2d63cf9b90752318c747b579f83eca7af65a580d601d36bf887a112f0c0",
+        "bytes": 1039492,
+        "included_path": "rollback/tee-engine-0.30.1-a79-a80-local.mcpb"
+      },
+      "codex": {
+        "path": "/Users/john/Downloads/TEE_A79_A80_UPDATE_20260910/codex/tee-a79-a80-codex-source-snapshot.zip",
+        "sha256": "5f0383e651b69af42ef8b34f45d7440ce5a972dc8d2d14049de37209107cec9d",
+        "bytes": 1398599,
+        "included_path": "rollback/tee-a79-a80-codex-source-snapshot.zip"
+      }
+    },
+    "state": "Preserve newer project/learning/docagent state; reconcile new grant before restarting old parser. Stage reviewed Codex source recovery without overwriting owner edits.",
+    "retention": "Keep at least two accepted sets and unresolved predecessors; at least 30 days after replacement accepted by both; no automatic cleanup.",
+    "private_backup": "/Users/john/TokenEfficiencyEngine/.tee/update-backups/TEE-20260910-A82-01/20260910T231545486154Z"
+  },
+  "private_exclusions": [
+    "project state contents",
+    "private/",
+    "worker histories/configuration/logs",
+    "credentials",
+    "optional worker installations"
+  ],
+  "preserved_held_candidate": {
+    "update_id": "TEE-20260910-A81-01",
+    "manifest_sha256": "987886327a05cd6d0b10035c2ae9f52ffad9ae0818db2e1a9c4e00ad0085c93f",
+    "state": "immutable retained; rollout held and superseded by this combined candidate"
+  },
+  "shared_delivery_files": {
+    "CLAUDE_A81_SCRIPT.md": {
+      "bytes": 5031,
+      "sha256": "03d7f0d87a2794b42b4b118ccf9e0f567991c9ad337751f10ca8ebc7ddee634d"
+    },
+    "CLAUDE_A82_SCRIPT.md": {
+      "bytes": 11038,
+      "sha256": "fd520878cee45ab89ad1f642ccc4432b30f709acc4e8a4be4711d98db5d6d0ff"
+    },
+    "CLAUDE_READY.md": {
+      "bytes": 1427,
+      "sha256": "4c69ccc66cc7b031be5848e156681ea67b4b9f48b315cc299e7713f218bc9412"
+    },
+    "build-inputs.json": {
+      "bytes": 1436,
+      "sha256": "425b105141485ef6ec93aa78ab8e8fdbcdfc3f3fae84c354b043ad18840f781a"
+    },
+    "codex-wrapper-manifest.json": {
+      "bytes": 912,
+      "sha256": "385122f1deca3f07554bff3520382d720d6af8e333ab09a3777b505c8d2b66aa"
+    },
+    "docs/architecture-lane.md": {
+      "bytes": 9882,
+      "sha256": "b1a2bed447d15f572420dcc0d514097c756bd1bae3b5116b474a06ea39d3a2dc"
+    },
+    "docs/blender-lessons.md": {
+      "bytes": 14494,
+      "sha256": "43da4b6cf6269946788f4c3c35cef06263d09136799798b934ddcd05f23b3826"
+    },
+    "docs/cadagent-advanced-fusion.md": {
+      "bytes": 11098,
+      "sha256": "039966efab93a69e4bea76563110ad67b9b54b0ba0685a3764922c0582605cda"
+    },
+    "docs/cadagent-f1-fusion.md": {
+      "bytes": 17599,
+      "sha256": "d0546b26becac060cd26484b6d4dc2f2c784037bc226f1cb84c10fa128ca6006"
+    },
+    "docs/cadagent-integration.md": {
+      "bytes": 5991,
+      "sha256": "78cdb7d7d086cf3c05d4fb266a2743465d542a4e998073ce36dc891492ce8e7d"
+    },
+    "docs/continuous-learning.md": {
+      "bytes": 9002,
+      "sha256": "dc14c1d3dc687e4f1d400fede8c3f368277ac950aebf1b31f320402e92f1b87a"
+    },
+    "docs/documentation-agents.md": {
+      "bytes": 6681,
+      "sha256": "62b11a2f74227950068cf6fe16d98f6cfaef87a170b75fd9a804317044218b75"
+    },
+    "docs/research/82-documentation-agents.md": {
+      "bytes": 9589,
+      "sha256": "ac8217a068c5fa7e79a3b3f270025c9f536c6732ceeea76dc99671b7a34e7905"
+    },
+    "docs/research/83-existing-capabilities.md": {
+      "bytes": 11304,
+      "sha256": "c329d84982ef6943568dfd0311007825db11834e59e873db3103780200842ba8"
+    },
+    "docs/research/83-headless-architecture.md": {
+      "bytes": 27305,
+      "sha256": "17398801c108621d46e6470f9ddb54724d8c46aa5a7b1730ee96a75fc0a4e8aa"
+    },
+    "docs/upgrade-coordination-protocol.md": {
+      "bytes": 22959,
+      "sha256": "ac74807ac0ce9ea29c070e8fe57cdd84c2952182234cd61337d0b1446f85fc9c"
+    },
+    "environment-before.json": {
+      "bytes": 9235,
+      "sha256": "52c40d71ac4b4e27515779690d3387e039c0ae8a58e7a01bd7183ba23cadb88f"
+    },
+    "evidence/20260910T230529Z-draft-environment.json": {
+      "bytes": 9234,
+      "sha256": "cf7f311a80f70971b45fd4452195f637bfe5c4cb3ed39ce02fe6854f8c4b1519"
+    },
+    "evidence/20260910T231545486154Z-private-backup.json": {
+      "bytes": 4302,
+      "sha256": "4eccc0af8811131f884306b9c4066a8ccda3848e2731a052d33edea00ee07d8d"
+    },
+    "evidence/20260910T232816Z-draft-environment.json": {
+      "bytes": 9235,
+      "sha256": "52c40d71ac4b4e27515779690d3387e039c0ae8a58e7a01bd7183ba23cadb88f"
+    },
+    "evidence/actual-codex-before.json": {
+      "bytes": 4155,
+      "sha256": "01842e660528cf44959f981a1b0adf64a8a6381f4828b84be35f1e41d529ffc7"
+    },
+    "evidence/architecture/affected-tests-final.log": {
+      "bytes": 884,
+      "sha256": "9c325faca4f33b21671c134ae300be4d97094e6daeeb6f160b7078e90ced6268"
+    },
+    "evidence/architecture/affected-tests-pre-gui.log": {
+      "bytes": 815,
+      "sha256": "fdabca00baec2db9a9ac648f41dd28f4b671ada0ea1496e66ede8a0e5997f77e"
+    },
+    "evidence/architecture/annotated-plan.png": {
+      "bytes": 78299,
+      "sha256": "6392e9b8357bd5b8164da0867ec543696917a329581da8b68b29ea7261e015a9"
+    },
+    "evidence/architecture/drawing-review.json": {
+      "bytes": 2629,
+      "sha256": "98471575440e7806c8c0d4d8f3da3cbc3c1e47cc56ecb4496c124957f62771e5"
+    },
+    "evidence/architecture/gui/result.json": {
+      "bytes": 3508,
+      "sha256": "dcf8afb07d0c97ff212e91b3e6defd09efd5ad04804459800bd6c2c57b3b6ba8"
+    },
+    "evidence/architecture/gui/sources/cabinets.py": {
+      "bytes": 12363,
+      "sha256": "d7c5b4b7327e7bd9d3e63ecd0abe335ad2abb338c191f96f1826324446c304e4"
+    },
+    "evidence/architecture/gui/sources/gui.html": {
+      "bytes": 31475,
+      "sha256": "94db4274cc101642a1ccecbf3e6cb052198eeb06395b8f2b845e70fe30c0ed0c"
+    },
+    "evidence/architecture/gui/sources/gui.py": {
+      "bytes": 10594,
+      "sha256": "8d1dd0dae30c7946870a33c8bad0304976db031bd0cdc3e41c7f51b644b5980f"
+    },
+    "evidence/architecture/gui/sources/model.py": {
+      "bytes": 20491,
+      "sha256": "8fe2550bd9bad19d61339859625d7c874fac78418f1559b7a9b326333693141f"
+    },
+    "evidence/architecture/gui/sources/test_architecture_gui.py": {
+      "bytes": 21462,
+      "sha256": "8e39b3a1bcc9acb7c3424cc721a836c433f8409250952dbc6b361219a0c57f9e"
+    },
+    "evidence/architecture/gui/workbench.png": {
+      "bytes": 443313,
+      "sha256": "98a4dfe9e23abec6c64a8626ee1d1ac6e2ad4a50784c60aee6b55b2697e5787b"
+    },
+    "evidence/architecture/headless-smoke-final.log": {
+      "bytes": 274,
+      "sha256": "45c6c539b19e6473a2fca42ac75e4855bb9a26dc7038987f9164df419c085d4c"
+    },
+    "evidence/architecture/headless-smoke.json": {
+      "bytes": 341,
+      "sha256": "05c81a2e5ef4ab577619dc5ec8d148fc2a1590ec1390ad62beae425df689020c"
+    },
+    "evidence/architecture/headless-smoke.log": {
+      "bytes": 386,
+      "sha256": "043f7c04c6d79dc64ae92d20437288fcdb93aa758ccd6a1f5e11dd1859ea0894"
+    },
+    "evidence/architecture/house-evidence.json": {
+      "bytes": 29764,
+      "sha256": "99ed8347d456ec7b36f6c03dcb9f2a7a048ad63bf3361a13cfe5e2824004a135"
+    },
+    "evidence/architecture/house-example/building.glb": {
+      "bytes": 16348,
+      "sha256": "1ba6e6bbdeb00cc7fa5199d22b9fe30289d6fe5131c7fd714c4158d1f7308d3a"
+    },
+    "evidence/architecture/house-example/building.ifc": {
+      "bytes": 26740,
+      "sha256": "d87c01c882fd2594360a1eeef2492261de7a0f380e79937f7db3e62d627c28ba"
+    },
+    "evidence/architecture/house-example/cabinet-cutlist.csv": {
+      "bytes": 1371,
+      "sha256": "a8acc601af46cc0120d6a252b069c88a0163fc834ac50866d6a11afe58dc60ef"
+    },
+    "evidence/architecture/house-example/document.json": {
+      "bytes": 2657,
+      "sha256": "7ef820017ff309ce6fbabc79c4d0e37789e504eed7c08dcd47c8b9efd13940f2"
+    },
+    "evidence/architecture/house-example/drawing-manifest.json": {
+      "bytes": 17499,
+      "sha256": "65195ea2bdbec441fccb00df6bc3b2b43e8b55ba583e32c441f6727991d68a46"
+    },
+    "evidence/architecture/house-example/elevation.dxf": {
+      "bytes": 36321,
+      "sha256": "580e34357c1aa39979ae8e0cc4ae218fafa80d0a1b9325ccd19e343b36953933"
+    },
+    "evidence/architecture/house-example/elevation.svg": {
+      "bytes": 14819,
+      "sha256": "68e1d0bad8d5b99be17167bd907de4739873e47618926af17dd78fa8f8e40692"
+    },
+    "evidence/architecture/house-example/manifest.json": {
+      "bytes": 5867,
+      "sha256": "f0b1497f210ced51db690a273dabd67ef895af417ed575d3812f6e07ca03e1d6"
+    },
+    "evidence/architecture/house-example/panel-cabinet_back_1.dxf": {
+      "bytes": 20356,
+      "sha256": "8b809e29651f7d9ab1bfec1029043063a0c86e2beaa0843b7fa3bef51683ff51"
+    },
+    "evidence/architecture/house-example/panel-cabinet_back_1.svg": {
+      "bytes": 1869,
+      "sha256": "af258215606b09b2713597f7e1e5635001c6c655c7b251a362cd7773695c7fe2"
+    },
+    "evidence/architecture/house-example/panel-cabinet_bottom_1.dxf": {
+      "bytes": 20341,
+      "sha256": "a5acba7da9c6e25a67858a3984e57f1502c44ace06f0b0a1e06a7c701c83354a"
+    },
+    "evidence/architecture/house-example/panel-cabinet_bottom_1.svg": {
+      "bytes": 1882,
+      "sha256": "4d0ef1705262ec9fb5ce0d32097415ab4bba9353a452170a56cc65788febb83d"
+    },
+    "evidence/architecture/house-example/panel-cabinet_door_1.dxf": {
+      "bytes": 20711,
+      "sha256": "00532662d5dd0da40a917d602219611d4af98248ea35a25f8587631bd9274069"
+    },
+    "evidence/architecture/house-example/panel-cabinet_door_1.svg": {
+      "bytes": 1896,
+      "sha256": "8b0f6d3f89c7ebe443c59e4e050c2718e5be0d792fe290c71296bab0355a27c0"
+    },
+    "evidence/architecture/house-example/panel-cabinet_door_2.dxf": {
+      "bytes": 20711,
+      "sha256": "aed62ed1a01cf90b5caccc17804cb0ea103c87212ebc5e7b57507e7656e25785"
+    },
+    "evidence/architecture/house-example/panel-cabinet_door_2.svg": {
+      "bytes": 1896,
+      "sha256": "a62d26e4b8a3d0b9d755725a48d71e990e82c13a53ec3b7ada5a401c46ad2b8c"
+    },
+    "evidence/architecture/house-example/panel-cabinet_plinth_1.dxf": {
+      "bytes": 20377,
+      "sha256": "471a244ed4dda97369902f2448436e215271c8cf6f1159073a7f030afe6ac93c"
+    },
+    "evidence/architecture/house-example/panel-cabinet_plinth_1.svg": {
+      "bytes": 1886,
+      "sha256": "eac74ce4fb6740466a67b9b8a79b99d22a93b31e6df4a36e9f835c94bc4137a3"
+    },
+    "evidence/architecture/house-example/panel-cabinet_shelf_1.dxf": {
+      "bytes": 20349,
+      "sha256": "abd99a41ac63d55a7dcd4e33349cf5edaca2970a084ae17c133b2978d55e949c"
+    },
+    "evidence/architecture/house-example/panel-cabinet_shelf_1.svg": {
+      "bytes": 1954,
+      "sha256": "e09235bd61566c2a838271f22f7aec040344daf3c47ffd83b7821c85692f5088"
+    },
+    "evidence/architecture/house-example/panel-cabinet_side_1.dxf": {
+      "bytes": 20667,
+      "sha256": "35014946c5d2502c7b5bd8a0c9cc23eef624b301a8d05d1514f6b0375e4e99c6"
+    },
+    "evidence/architecture/house-example/panel-cabinet_side_1.svg": {
+      "bytes": 1909,
+      "sha256": "e02f0254ca80a1e890a53cf8dd563afbd6b7fcc3918772cdcf0938fb3bba6fc7"
+    },
+    "evidence/architecture/house-example/panel-cabinet_side_2.dxf": {
+      "bytes": 20667,
+      "sha256": "2ce71a720fa91cc889dd500ecbed5a67babc62e9781c4d0e67102a142145cf4d"
+    },
+    "evidence/architecture/house-example/panel-cabinet_side_2.svg": {
+      "bytes": 1909,
+      "sha256": "c81b5cf18552a08271c9608f3d44936442f1f4b97614233af9d661a653bed884"
+    },
+    "evidence/architecture/house-example/panel-cabinet_top_1.dxf": {
+      "bytes": 20326,
+      "sha256": "8ebdfcdd97e9cc3306e76dfc927c9a3fbcdc7dfd60dd478466c427be3ecea130"
+    },
+    "evidence/architecture/house-example/panel-cabinet_top_1.svg": {
+      "bytes": 1864,
+      "sha256": "2a4be29ce73c33cffe20291d1643700d5eacfce9c9c31d30dbeb3dc1ee092fdf"
+    },
+    "evidence/architecture/house-example/plan-ground.dxf": {
+      "bytes": 38063,
+      "sha256": "3c88af1bfaf13c30da0fbdaed1c45364cffb912842f7b18010336859511e0305"
+    },
+    "evidence/architecture/house-example/plan-ground.svg": {
+      "bytes": 18964,
+      "sha256": "2f4f79855edba5364e2a497d66716da5e3196513972b1fe8dc17cf6f9bd1a416"
+    },
+    "evidence/architecture/house-example/review-set.pdf": {
+      "bytes": 35998,
+      "sha256": "ec7e3d27273d1a24e32c53bcc926e71827a5c1d75491814bc5d8c6ee2f0eafe1"
+    },
+    "evidence/architecture/house-example/schedule.csv": {
+      "bytes": 772,
+      "sha256": "d919c07411d7a1e83d403c3e60f9cfa741fc8708feef527cc2e36f9afb404db0"
+    },
+    "evidence/architecture/house-example/section.dxf": {
+      "bytes": 31735,
+      "sha256": "9633915756daff8f967d5ec74205644636487b60a0ffa4903123b005a93c01ba"
+    },
+    "evidence/architecture/house-example/section.svg": {
+      "bytes": 10550,
+      "sha256": "aaa128fd4a3662d088a555af4a532c65c0f6fcccd172387c3a4081d1c4200648"
+    },
+    "evidence/architecture/independent-review.md": {
+      "bytes": 5497,
+      "sha256": "ce6ee106dd6428ca7e5708c16002f525d5f535d991f26ceb94ade1b1bec7b39f"
+    },
+    "evidence/architecture/ruff-final.log": {
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "evidence/architecture/run_a82_architecture_smoke.py": {
+      "bytes": 5062,
+      "sha256": "70a4fe7c3d01e346bf109b01201d3786877b9a57545baac8dd6f6d47e4524842"
+    },
+    "evidence/architecture/surface-after.json": {
+      "bytes": 210,
+      "sha256": "7b5bd4d789015d78cfa1083ae3b86b521bc208593d300172003a06777f76bd21"
+    },
+    "evidence/architecture/surface-before.json": {
+      "bytes": 210,
+      "sha256": "0d37aeb26d3c84e9605d9fe3a861a84ca8b48c5c9ed6cab57bd965cebfad8ade"
+    },
+    "evidence/build-record.json": {
+      "bytes": 850,
+      "sha256": "6d4cc59b1ab9cdefed429d784fba62a69254f8b10d57f2a5991908057cdc5332"
+    },
+    "evidence/claude-members.json": {
+      "bytes": 49248,
+      "sha256": "ad7084a876bf0cb627b11592375d003c871475a9d8e29f106f9366c955033e94"
+    },
+    "evidence/codex-members.json": {
+      "bytes": 54471,
+      "sha256": "5c50455f4a2339b2e446d0b9302e4bedde092df1f5acff4b8b1356046df2ccad"
+    },
+    "evidence/coordinator-build-approval.json": {
+      "bytes": 759,
+      "sha256": "4b3467b0b9f0d3e4d9903ea7678bc1d8adcd3956ae068979f5bbf58ee6fc0b7a"
+    },
+    "evidence/docagents/affected-tests-final.log": {
+      "bytes": 389,
+      "sha256": "c0a5650fae2f30abb6a3e2085a8006a04be03e30809f7069c1e888f4bd4c78b5"
+    },
+    "evidence/docagents/affected-tests-first.log": {
+      "bytes": 798,
+      "sha256": "820596382e78089b542d00c54fb12e02c3ca46bbd0388c3b1a0308e7af0dfc74"
+    },
+    "evidence/docagents/affected-tests-strict-attempt.log": {
+      "bytes": 5441,
+      "sha256": "a60e7585eb18fca015004e99735af65606d1cafc8b118ad531f279aeb4125bff"
+    },
+    "evidence/docagents/installation-and-contracts.json": {
+      "bytes": 6345,
+      "sha256": "7ec55fa9a8b5a3aefdf299a0bb5b0b6d51b6bd781e851118d283261ac64a8887"
+    },
+    "evidence/docagents/real-cli-final.json": {
+      "bytes": 3554,
+      "sha256": "97bd0947c1dbf5e03e9e970e5e0440c117d364caf6a2cf08e930578062f0ba57"
+    },
+    "evidence/docagents/real-cli-integration.json": {
+      "bytes": 3337,
+      "sha256": "c47fe28cc5753f6e75727a9c6458ba393c8a9452c8145898692c7e1a660ea4c0"
+    },
+    "evidence/docagents/surface-after.json": {
+      "bytes": 210,
+      "sha256": "0d37aeb26d3c84e9605d9fe3a861a84ca8b48c5c9ed6cab57bd965cebfad8ade"
+    },
+    "evidence/docagents/surface-before.json": {
+      "bytes": 210,
+      "sha256": "046c585f546fafbfb79bff5526e93bd79acdf76ae84ced299f0e2189d8cdde66"
+    },
+    "evidence/docagents/trust-fixture-leak-after.log": {
+      "bytes": 147,
+      "sha256": "b2cc93eab1187784be437561c73bf6c8f849628243741cbc8421c4463a587481"
+    },
+    "evidence/docagents/trust-fixture-leak-before.log": {
+      "bytes": 7034,
+      "sha256": "04d343eb09ee830de2d53aafbc1ea733fd5e83a962648568a8a86f14ced3872b"
+    },
+    "evidence/editable-kernels-reverified.json": {
+      "bytes": 335,
+      "sha256": "ca0609248a9eee12e70616c1a114fb52fe01ea316f95555b4a9fc87aeeb087a8"
+    },
+    "evidence/independent-review.json": {
+      "bytes": 5478,
+      "sha256": "c51cb2dc786082e19d9209bae001fbdace1df29b74808690811d201fc44acfec"
+    },
+    "evidence/prior-dependency-audit/dependency-audit.json": {
+      "bytes": 349663,
+      "sha256": "fa28f209748b27f4d5edce025ba4c1d3897741ca30cd7f1283e72473696b45d1"
+    },
+    "evidence/prior-dependency-audit/editable-kernel-sources.json": {
+      "bytes": 31447,
+      "sha256": "171b97d8e41f2f35034c2c9876fdb7efea9bbe3b5f9a8bbf94a78035c06ba609"
+    },
+    "evidence/prior-dependency-audit/headless-lane-dependencies.json": {
+      "bytes": 10725,
+      "sha256": "1a4115d875078836ecc8a6c9cd2d736914a0d45a55caa766ac27d1e9b18099eb"
+    },
+    "evidence/prior-dependency-audit/sidecar-pip-check.json": {
+      "bytes": 373,
+      "sha256": "d9b6d6536a2fd4ee1abb5cb41b33bd232b888fbe3d40b180137d46edefe7161f"
+    },
+    "evidence/prior-dependency-audit/uv-pip-check.json": {
+      "bytes": 355,
+      "sha256": "145471125d47dcf192e1e090e1c7284e2994165cc697a2bed0d98c99be891390"
+    },
+    "evidence/probes/20260910T232852Z-claude-corpus-core-schemas.json": {
+      "bytes": 10491,
+      "sha256": "60d31b76634865ea024a2d37d4e1e64c1297386c69bd28540bb5853a177f5e8c"
+    },
+    "evidence/probes/20260910T232852Z-claude-empty-core-schemas.json": {
+      "bytes": 10491,
+      "sha256": "60d31b76634865ea024a2d37d4e1e64c1297386c69bd28540bb5853a177f5e8c"
+    },
+    "evidence/probes/20260910T232852Z-codex-corpus-core-schemas.json": {
+      "bytes": 10491,
+      "sha256": "60d31b76634865ea024a2d37d4e1e64c1297386c69bd28540bb5853a177f5e8c"
+    },
+    "evidence/probes/20260910T232852Z-codex-empty-core-schemas.json": {
+      "bytes": 10491,
+      "sha256": "60d31b76634865ea024a2d37d4e1e64c1297386c69bd28540bb5853a177f5e8c"
+    },
+    "evidence/probes/candidate-smoke.json": {
+      "bytes": 135118,
+      "sha256": "567c6616005b4b58f3143e34294814c2fbe2b7de3db71447f18082c9440e38f8"
+    },
+    "evidence/probes/cline-native-runtime.json": {
+      "bytes": 617,
+      "sha256": "174315e69e510139718dafea18a9fb93b394adbec7039aa9c077ee1a3b89b436"
+    },
+    "evidence/probes/verify_candidate.py": {
+      "bytes": 24026,
+      "sha256": "bf05ddce3f5b7cd2760c50785b0ab93f1e5926fba82bd5ed37958bbfed2349d3"
+    },
+    "evidence/tests/fixtures_llm.py": {
+      "bytes": 5223,
+      "sha256": "cc74162d3510aeb42f7f7d64aaad5cdb7b846cda2aad7eb61116db92a1031b44"
+    },
+    "evidence/tests/test_architecture_cabinets.py": {
+      "bytes": 7189,
+      "sha256": "1eb2d5b991cc414f7a9b9cefaa8cbf0678e3c71d8abdb3c0082a795f92ed1980"
+    },
+    "evidence/tests/test_architecture_drawings.py": {
+      "bytes": 8272,
+      "sha256": "62e2591301ff38b523c6cebb4daa4de664e34b3420e70792a476e9f8733a3331"
+    },
+    "evidence/tests/test_architecture_exchange.py": {
+      "bytes": 17100,
+      "sha256": "f398d1675dd83914c75e362ce94a236a1a671c77faa5dbf64ec2a16259ae7522"
+    },
+    "evidence/tests/test_architecture_gui.py": {
+      "bytes": 21462,
+      "sha256": "8e39b3a1bcc9acb7c3424cc721a836c433f8409250952dbc6b361219a0c57f9e"
+    },
+    "evidence/tests/test_architecture_imports.py": {
+      "bytes": 16162,
+      "sha256": "8b952de4cd147f1b244dea4ca575c9184b64d45dd18ee8add5ff5f0cfe0aad9b"
+    },
+    "evidence/tests/test_architecture_model.py": {
+      "bytes": 8952,
+      "sha256": "d46f0c5a6c07d6b0b7bb978b3cde44bf7c200748e51805a4fc3b1f192d12951c"
+    },
+    "evidence/tests/test_architecture_rules.py": {
+      "bytes": 11415,
+      "sha256": "6ef57ab6e80c69a4d97b5a59ea016f00a22d9c1a6f70d8ff0dfe958af8c3ed7b"
+    },
+    "evidence/tests/test_architecture_service.py": {
+      "bytes": 7744,
+      "sha256": "8d2ab4f485193be572894e0db17557c5fadc186b6ca2a4314c4aafffbd732ead"
+    },
+    "evidence/tests/test_architecture_tools.py": {
+      "bytes": 6973,
+      "sha256": "7eb90a7abf42da6adf09a9e0b701dc290dfc9469e81d4e9205e8bd09c298f4bc"
+    },
+    "evidence/tests/test_docagents_backends.py": {
+      "bytes": 10933,
+      "sha256": "9c3ad60694be22635749fd244c02506afac8d4fb1498d72bd3097eb7c9fe7c9d"
+    },
+    "evidence/tests/test_docagents_runner.py": {
+      "bytes": 14044,
+      "sha256": "5122e9381bced9734eebb05e153a94296ebb9f177325e7848ed7f33ca1f4a2df"
+    },
+    "evidence/tests/test_docagents_tools.py": {
+      "bytes": 12253,
+      "sha256": "441367735e497b07553bd531738d2d1a89c17cc075da829d5a79c528a5b6dda5"
+    },
+    "evidence/tests/test_docagents_workspace.py": {
+      "bytes": 16871,
+      "sha256": "278eb4fd740082e38d605998a534f49d2812c7fcbd14abc451a991f52a89cdf8"
+    },
+    "execution.md": {
+      "bytes": 6672,
+      "sha256": "4199c97219212154cd9fec232d362ae33e22317ae1cb8e44979edac43e280e42"
+    },
+    "proposal.md": {
+      "bytes": 2625,
+      "sha256": "8ada0852c6c98f48ec76e157f91c9de41d3e9365376ba1ebd6ecfedb0297238c"
+    },
+    "receipt-template.md": {
+      "bytes": 1423,
+      "sha256": "32aec9af41af0e68721ba4d82a33f00ede32e42e264831013d7cb38a9ee9ca1e"
+    },
+    "rollback/accepted-release-manifest.json": {
+      "bytes": 12948,
+      "sha256": "1846119f418092dee3a3b76c39d9a920be21823c49bb3e1378a75773ccb5b469"
+    },
+    "rollback/accepted-release-manifest.sha256": {
+      "bytes": 88,
+      "sha256": "18b072f89056f1993d800b16a29d2c0cd5ac4069614dc6876620a4cc1af536d2"
+    },
+    "rollback/receipts/20260910T214057Z-codex-accepted.md": {
+      "bytes": 5909,
+      "sha256": "f549997e6ee3d2ee3d2f0d402ba463595a9bdfd596bc23d4917331ded312b935"
+    },
+    "rollback/receipts/20260910T214600Z-claude-accepted.md": {
+      "bytes": 5436,
+      "sha256": "2a81f3d6b05ef28a0336a0b753cccbe29ea0c1f704146d8db96078ababc09ab6"
+    },
+    "rollback/tee-a79-a80-codex-source-snapshot.zip": {
+      "bytes": 1398599,
+      "sha256": "5f0383e651b69af42ef8b34f45d7440ce5a972dc8d2d14049de37209107cec9d"
+    },
+    "rollback/tee-engine-0.30.1-a79-a80-local.mcpb": {
+      "bytes": 1039492,
+      "sha256": "9e1df2d63cf9b90752318c747b579f83eca7af65a580d601d36bf887a112f0c0"
+    },
+    "skills/tee-usage/SKILL.md": {
+      "bytes": 6916,
+      "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1"
+    },
+    "source-manifest.json": {
+      "bytes": 36914,
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52"
+    },
+    "upgrade-coordination-protocol.md": {
+      "bytes": 22959,
+      "sha256": "ac74807ac0ce9ea29c070e8fe57cdd84c2952182234cd61337d0b1446f85fc9c"
+    }
+  },
+  "frozen_utc": "2026-09-10T23:32:49.055714+00:00"
+}

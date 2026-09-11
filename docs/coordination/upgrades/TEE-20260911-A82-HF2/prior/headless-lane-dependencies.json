@@ -1,0 +1,291 @@
+{
+  "scope": "Read-only metadata for enabled headless lanes; no kernel worker launched, no dependency change.",
+  "sidecar_probe_exit_code": 0,
+  "partkiln": {
+    "interpreter": "/Users/john/TEE/.tee/sidecars/partkiln/bin/python",
+    "python": "3.11.15",
+    "package_origin": "/Users/john/TokenEfficiencyEngine/partkiln/src/partkiln/__init__.py",
+    "inventory": [
+      {
+        "name": "cadquery-ocp-novtk",
+        "version": "7.9.3.1.1",
+        "requires_dist": [
+          "cadquery-ocp-proxy==7.9.3.1.1"
+        ],
+        "requires_python": "<3.15,>=3.10"
+      },
+      {
+        "name": "cadquery-ocp-proxy",
+        "version": "7.9.3.1.1",
+        "requires_dist": [],
+        "requires_python": ">=3.10"
+      },
+      {
+        "name": "ezdxf",
+        "version": "1.4.4",
+        "requires_dist": [
+          "pyparsing>=3.0.0",
+          "typing_extensions>=4.6.0",
+          "numpy",
+          "fonttools",
+          "PySide6; extra == \"draw\"",
+          "matplotlib; extra == \"draw\"",
+          "PyMuPDF>=1.20.0; extra == \"draw\"",
+          "Pillow; extra == \"draw\"",
+          "PyQt5; extra == \"draw5\"",
+          "matplotlib; extra == \"draw5\"",
+          "PyMuPDF>=1.20.0; extra == \"draw5\"",
+          "Pillow; extra == \"draw5\"",
+          "PySide6; extra == \"dev\"",
+          "setuptools; extra == \"dev\"",
+          "wheel; extra == \"dev\"",
+          "Cython; extra == \"dev\"",
+          "pytest; extra == \"dev\"",
+          "Pillow; extra == \"dev\"",
+          "matplotlib; extra == \"dev\"",
+          "PyMuPDF>=1.20.0; extra == \"dev\"",
+          "PyQt5; extra == \"dev5\"",
+          "setuptools; extra == \"dev5\"",
+          "wheel; extra == \"dev5\"",
+          "Cython; extra == \"dev5\"",
+          "pytest; extra == \"dev5\"",
+          "Pillow; extra == \"dev5\"",
+          "matplotlib; extra == \"dev5\"",
+          "PyMuPDF>=1.20.0; extra == \"dev5\""
+        ],
+        "requires_python": ">=3.10"
+      },
+      {
+        "name": "fonttools",
+        "version": "4.64.0",
+        "requires_dist": [
+          "lxml>=4.0; extra == \"lxml\"",
+          "brotli>=1.0.1; platform_python_implementation == \"CPython\" and extra == \"woff\"",
+          "brotlicffi>=0.8.0; platform_python_implementation != \"CPython\" and extra == \"woff\"",
+          "zopfli>=0.1.4; extra == \"woff\"",
+          "unicodedata2>=17.0.0; python_version <= \"3.14\" and extra == \"unicode\"",
+          "lz4>=1.7.4.2; extra == \"graphite\"",
+          "scipy; platform_python_implementation != \"PyPy\" and extra == \"interpolatable\"",
+          "munkres; platform_python_implementation == \"PyPy\" and extra == \"interpolatable\"",
+          "pycairo; extra == \"interpolatable\"",
+          "matplotlib; extra == \"plot\"",
+          "sympy; extra == \"symfont\"",
+          "xattr; sys_platform == \"darwin\" and extra == \"type1\"",
+          "skia-pathops>=0.5.0; extra == \"pathops\"",
+          "uharfbuzz>=0.45.0; extra == \"repacker\"",
+          "lxml>=4.0; extra == \"all\"",
+          "brotli>=1.0.1; platform_python_implementation == \"CPython\" and extra == \"all\"",
+          "brotlicffi>=0.8.0; platform_python_implementation != \"CPython\" and extra == \"all\"",
+          "zopfli>=0.1.4; extra == \"all\"",
+          "unicodedata2>=17.0.0; python_version <= \"3.14\" and extra == \"all\"",
+          "lz4>=1.7.4.2; extra == \"all\"",
+          "scipy; platform_python_implementation != \"PyPy\" and extra == \"all\"",
+          "munkres; platform_python_implementation == \"PyPy\" and extra == \"all\"",
+          "pycairo; extra == \"all\"",
+          "matplotlib; extra == \"all\"",
+          "sympy; extra == \"all\"",
+          "xattr; sys_platform == \"darwin\" and extra == \"all\"",
+          "skia-pathops>=0.5.0; extra == \"all\"",
+          "uharfbuzz>=0.45.0; extra == \"all\""
+        ],
+        "requires_python": ">=3.10"
+      },
+      {
+        "name": "numpy",
+        "version": "2.4.6",
+        "requires_dist": [],
+        "requires_python": ">=3.11"
+      },
+      {
+        "name": "partkiln",
+        "version": "0.1.0.dev0",
+        "requires_dist": [
+          "ezdxf>=1.4",
+          "numpy>=2.0",
+          "scipy>=1.14",
+          "trimesh>=5.0",
+          "cadquery-ocp-novtk<8.0,>=7.9.3; extra == 'brep'",
+          "packaging>=24.0; extra == 'dev'",
+          "pytest-timeout>=2.3; extra == 'dev'",
+          "pytest>=8.0; extra == 'dev'",
+          "ruff>=0.9; extra == 'dev'",
+          "pyside6>=6.7; extra == 'gui'",
+          "rtree>=1.3; extra == 'mesh'",
+          "fpdf2>=2.8.8; extra == 'pdf'",
+          "lib3mf>=2.4; extra == 'threemf'"
+        ],
+        "requires_python": "<3.15,>=3.11"
+      },
+      {
+        "name": "pyparsing",
+        "version": "3.3.2",
+        "requires_dist": [
+          "railroad-diagrams ; extra == \"diagrams\"",
+          "jinja2 ; extra == \"diagrams\""
+        ],
+        "requires_python": ">=3.9"
+      },
+      {
+        "name": "scipy",
+        "version": "1.17.1",
+        "requires_dist": [
+          "numpy<2.7,>=1.26.4",
+          "pytest>=8.0.0; extra == \"test\"",
+          "pytest-cov; extra == \"test\"",
+          "pytest-timeout; extra == \"test\"",
+          "pytest-xdist; extra == \"test\"",
+          "asv; extra == \"test\"",
+          "mpmath; extra == \"test\"",
+          "gmpy2; extra == \"test\"",
+          "threadpoolctl; extra == \"test\"",
+          "scikit-umfpack; extra == \"test\"",
+          "pooch; extra == \"test\"",
+          "hypothesis>=6.30; extra == \"test\"",
+          "array-api-strict>=2.3.1; extra == \"test\"",
+          "Cython; extra == \"test\"",
+          "meson; extra == \"test\"",
+          "ninja; sys_platform != \"emscripten\" and extra == \"test\"",
+          "sphinx<8.2.0,>=5.0.0; extra == \"doc\"",
+          "intersphinx_registry; extra == \"doc\"",
+          "pydata-sphinx-theme>=0.15.2; extra == \"doc\"",
+          "sphinx-copybutton; extra == \"doc\"",
+          "sphinx-design>=0.4.0; extra == \"doc\"",
+          "matplotlib>=3.5; extra == \"doc\"",
+          "numpydoc; extra == \"doc\"",
+          "jupytext; extra == \"doc\"",
+          "myst-nb>=1.2.0; extra == \"doc\"",
+          "pooch; extra == \"doc\"",
+          "jupyterlite-sphinx>=0.19.1; extra == \"doc\"",
+          "jupyterlite-pyodide-kernel; extra == \"doc\"",
+          "linkify-it-py; extra == \"doc\"",
+          "tabulate; extra == \"doc\"",
+          "click<8.3.0; extra == \"dev\"",
+          "spin; extra == \"dev\"",
+          "mypy==1.10.0; extra == \"dev\"",
+          "typing_extensions; extra == \"dev\"",
+          "types-psutil; extra == \"dev\"",
+          "pycodestyle; extra == \"dev\"",
+          "ruff>=0.12.0; extra == \"dev\"",
+          "cython-lint>=0.12.2; extra == \"dev\""
+        ],
+        "requires_python": ">=3.11"
+      },
+      {
+        "name": "trimesh",
+        "version": "5.1.0",
+        "requires_dist": [
+          "numpy>=1.21",
+          "colorlog; extra == \"easy\"",
+          "manifold3d>=2.3.0; extra == \"easy\"",
+          "charset-normalizer; extra == \"easy\"",
+          "lxml; extra == \"easy\"",
+          "jsonschema; extra == \"easy\"",
+          "networkx; extra == \"easy\"",
+          "svg.path; extra == \"easy\"",
+          "pycollada; extra == \"easy\"",
+          "shapely; extra == \"easy\"",
+          "xxhash; extra == \"easy\"",
+          "rtree; extra == \"easy\"",
+          "httpx; extra == \"easy\"",
+          "scipy; extra == \"easy\"",
+          "embreex; platform_machine != \"aarch64\" and extra == \"easy\"",
+          "pillow; extra == \"easy\"",
+          "vhacdx; extra == \"easy\"",
+          "mapbox_earcut>=1.0.2; extra == \"easy\"",
+          "sympy; extra == \"recommend\"",
+          "pyglet<2; extra == \"recommend\"",
+          "scikit-image; extra == \"recommend\"",
+          "fast-simplification; extra == \"recommend\"",
+          "python-fcl; extra == \"recommend\"",
+          "cascadio; extra == \"recommend\"",
+          "pytest-cov; extra == \"test\"",
+          "pytest; extra == \"test\"",
+          "pyinstrument; extra == \"test\"",
+          "ruff; extra == \"test\"",
+          "ezdxf; extra == \"test-more\"",
+          "meshio; extra == \"test-more\"",
+          "xatlas; extra == \"test-more\"",
+          "pytest-beartype; extra == \"test-more\"",
+          "matplotlib; extra == \"test-more\"",
+          "pymeshlab; python_version < \"3.14\" and extra == \"test-more\"",
+          "triangle; python_version < \"3.14\" and extra == \"test-more\"",
+          "ipython; extra == \"test-more\"",
+          "marimo; extra == \"test-more\"",
+          "requests; extra == \"test-more\"",
+          "aiohttp; extra == \"test-more\"",
+          "DracoPy>=1.7.0; extra == \"test-more\"",
+          "trimesh[deprecated,easy,recommend,test,test_more]; extra == \"all\""
+        ],
+        "requires_python": ">=3.10"
+      },
+      {
+        "name": "typing_extensions",
+        "version": "4.16.0",
+        "requires_dist": [],
+        "requires_python": ">=3.9"
+      }
+    ],
+    "source_requirements": [
+      {
+        "requirement": "numpy>=2.0",
+        "installed": "2.4.6",
+        "satisfied": true
+      },
+      {
+        "requirement": "scipy>=1.14",
+        "installed": "1.17.1",
+        "satisfied": true
+      },
+      {
+        "requirement": "ezdxf>=1.4",
+        "installed": "1.4.4",
+        "satisfied": true
+      },
+      {
+        "requirement": "trimesh>=5.0",
+        "installed": "5.1.0",
+        "satisfied": true
+      },
+      {
+        "requirement": "cadquery-ocp-novtk>=7.9.3,<8.0",
+        "installed": "7.9.3.1.1",
+        "satisfied": true
+      }
+    ],
+    "python_satisfies_source": true,
+    "ocp_variants": {
+      "cadquery-ocp-novtk": "7.9.3.1.1"
+    }
+  },
+  "seamkiln": {
+    "origin": "/Users/john/TokenEfficiencyEngine/seamkiln/src/seamkiln/__init__.py",
+    "version": "0.1.0.dev0",
+    "requirements": [
+      {
+        "requirement": "numpy>=2.0",
+        "installed": "2.4.6",
+        "satisfied": true
+      },
+      {
+        "requirement": "shapely>=2.1",
+        "installed": "2.1.2",
+        "satisfied": true
+      },
+      {
+        "requirement": "ezdxf>=1.4",
+        "installed": "1.4.4",
+        "satisfied": true
+      },
+      {
+        "requirement": "trimesh>=5.0",
+        "installed": "5.1.0",
+        "satisfied": true
+      }
+    ]
+  },
+  "source_sha256": {
+    "partkiln/pyproject.toml": "95d63676fd6351a06b8af0e9ff7a9ff49924cbcfaf64a296f793ddb55d33d734",
+    "seamkiln/pyproject.toml": "7c121f61c72f5cd9639db0448d0623747fdac9437f4844bc59fa053e03d80011",
+    "server/src/tee/adapters/partkiln/wire.py": "1ef9202eab4770226983dc33bcedce47e1a4feec30c474eed3aab5634384b878"
+  }
+}

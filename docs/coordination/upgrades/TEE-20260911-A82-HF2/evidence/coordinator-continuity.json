@@ -1,0 +1,59 @@
+{
+  "observed_utc": "2026-09-11 08:14:11 UTC",
+  "scope": "actual Codex TEE connector continuity; no HF2 runtime acceptance",
+  "profile": "qmax",
+  "project": "/Users/john/TokenEfficiencyEngine",
+  "grants": [
+    "call-paid-engine",
+    "exec-code",
+    "run-adhoc",
+    "run-declared-step",
+    "run-doc-agent"
+  ],
+  "code_exec_enabled": true,
+  "active_jobs": [],
+  "checkpoints": [],
+  "virtual_tools": 261,
+  "lanes": {
+    "blender": {
+      "connected": true,
+      "scene": {
+        "epoch": 1,
+        "revision": 1
+      },
+      "version": "5.2.0 LTS"
+    },
+    "partkiln": {
+      "connected": true,
+      "scene": {
+        "epoch": 1,
+        "revision": 1
+      },
+      "version": "0.1.0"
+    },
+    "seamkiln": {
+      "connected": true,
+      "scene": {
+        "epoch": 1,
+        "revision": 1
+      },
+      "version": "0.1.0.dev0"
+    },
+    "fusion": {
+      "connected": true,
+      "scene": {
+        "epoch": 1,
+        "revision": 1
+      },
+      "version": "2705.1.15"
+    },
+    "unreal": {
+      "connected": false,
+      "scene": {
+        "epoch": 0,
+        "revision": 0
+      },
+      "version": "5.8+"
+    }
+  }
+}

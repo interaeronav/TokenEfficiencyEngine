@@ -8,6 +8,15 @@ recorded as a partial rollout.
 
 ## Current state
 
+- [A82 HF1 browser fix](upgrades/TEE-20260911-A82-HF1/execution-final.md) is frozen
+  and delivered to both recipient folders under
+  `/Users/john/Downloads/TEE_AIDER_BROWSER_FIX_20260911/`. Manifest
+  `40ff60fd7f9eef32cb1bea66b17cbc72ab06d0611129f3f1eef8b5d53398bfec`
+  binds the one-file fix, verified artifacts and 46 common files. Codex delivery
+  review passed; independent Claude review, installation/source cutover and both
+  actual runtime receipts remain pending. The owner requested Aider closed for
+  this session; cancelled/no process verified. No A83 code is in this hotfix.
+
 - [A82 combined architecture/documentation candidate](upgrades/TEE-20260910-A82-01/outcome.md)
   is implemented, tested, frozen and delivered. Manifest
   `961adc95f587a287e97ce09c5daeac51748398ad76e67a1df824acb7b7df6339`
@@ -20,8 +29,8 @@ recorded as a partial rollout.
   review 10 preceding installation. Both have 17 core / 261 virtual tools,
   lessons/features and main/QMAX/paid permission preserved. GPT-6
   [closed rollout](upgrades/TEE-20260910-A82-01/completion-20260911T062301Z.md)
-  at 2026-09-11T06:23:01Z. The separate documentation-worker permission remains
-  pending; installation and actual-client receipts are complete.
+  at 2026-09-11T06:23:01Z. The owner separately approved documentation-worker
+  execution, applied/observed true at 06:29:12Z. Installation and receipts are complete.
   Worldwide law coverage remains explicitly
   incomplete. No further source change belongs in this frozen revision.
 
@@ -34,8 +43,8 @@ recorded as a partial rollout.
   `987886327a05cd6d0b10035c2ae9f52ffad9ae0818db2e1a9c4e00ad0085c93f` binds
   the matching 279-file payload and all 60 common files. Source/tests and four
   isolated package probes pass. Its runtime delivery was completed through A82;
-  the separately scoped `run-doc-agent` grant awaits owner approval. QMAX and
-  existing paid permission are unchanged.
+  the separately scoped `run-doc-agent` grant is now owner-approved for main.
+  QMAX and existing paid permission are unchanged.
 - John requested quiet continuation while asleep. A82 now supplies the original
   headless architectural/cabinet core, optional GUI and global rule-pack framework.
   A81's frozen delivery remains retained. John resumed on 2026-09-11 and restarted
@@ -110,3 +119,11 @@ Future update packets use `upgrades/<update-id>/` as specified by the protocol.
 GPT-6 owns shared ledger edits; each reviewer writes a distinct timestamped
 receipt. Preserve earlier packets and link corrections rather than rewriting
 what a recipient previously received.
+
+Current pending hotfix: [QMAX/Aider HF2](upgrades/TEE-20260911-A82-HF2/CLAUDE_HANDOFF.md),
+revision 1, frozen manifest `68fe44947e9ff174678dbfed1d3b581171ef2e4bd56c4f9fd93e16413f507d26`.
+Both destination deliveries verified; Claude receipt 12 passed independent review
+and the reviewed source/configuration is now applied. Desktop installation,
+actual-client reconnects and runtime receipts remain pending. It supersedes the pending
+HF1 installation proposal while retaining HF1's immutable evidence. The latest
+owner selection is QMAX. No A83 architectural source is included in this hotfix.

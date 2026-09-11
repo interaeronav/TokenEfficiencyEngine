@@ -1,0 +1,32 @@
+{
+  "baseline": {
+    "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "files": 293,
+    "bytes": 3428263
+  },
+  "candidate": {
+    "sha256": "c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e",
+    "files": 294,
+    "bytes": 3435983
+  },
+  "added": [
+    {
+      "path": "tee/docagents/model_metadata.py",
+      "sha256": "034b663f32514aa33f8bb5a98d7a48f29bcda25ee21ae5252e8d3c7921de5453"
+    }
+  ],
+  "removed": [],
+  "changed": [
+    {
+      "path": "tee/docagents/backends.py",
+      "before_sha256": "531010665ca36b0d7f5545831266e61dbdea8d6e8083d72b57b953b856d621fb",
+      "after_sha256": "295e5cf7e0b323e3e1461909c2156dea2d8179d9178ff6159bae860c8cc81ca9"
+    },
+    {
+      "path": "tee/docagents/tools.py",
+      "before_sha256": "f2b2b6809d1fe21f9207cd569567dc117d8527e7c66d7a187b0bc73819ea4a74",
+      "after_sha256": "8729de3a771a8e43de0cc10e3153fbc25328788ba7bbc70cecf9fcbda6ae6596"
+    }
+  ],
+  "a83_features_included": false
+}

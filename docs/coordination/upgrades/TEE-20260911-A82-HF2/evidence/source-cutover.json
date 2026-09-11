@@ -1,0 +1,37 @@
+{
+  "utc": "2026-09-11T08:28:10.621302+00:00",
+  "update_id": "TEE-20260911-A82-HF2",
+  "frozen_manifest_sha256": "68fe44947e9ff174678dbfed1d3b581171ef2e4bd56c4f9fd93e16413f507d26",
+  "stage": "source and metadata applied; actual reconnect and Desktop install pending",
+  "source_before": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+  "source_after": "c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e",
+  "runtime_files": 294,
+  "bytes": 3435983,
+  "changed": [
+    "server/src/tee/docagents/backends.py",
+    "server/src/tee/docagents/tools.py",
+    "server/src/tee/docagents/model_metadata.py",
+    ".tee/config.toml"
+  ],
+  "configuration": {
+    "only_reviewed_table_added": true,
+    "prior_bytes_preserved_as_prefix": true,
+    "model_metadata_sha256": "d158cc6db0e378aa682078a543976df7172adc1efdd3391e1e5f9794667224e0",
+    "valid_until": "2026-09-25",
+    "proxy_mapping_rechecked": true
+  },
+  "profile_pin_unchanged": true,
+  "grants_unchanged": true,
+  "file_modes_preserved": true,
+  "private_backup": "/Users/john/TokenEfficiencyEngine/.tee/update-backups/TEE-20260911-A82-HF2/20260911T082810584769Z-source-cutover",
+  "blender_checkpoint": {
+    "id": "cp1",
+    "durable_copy": "/Users/john/TokenEfficiencyEngine/.tee/update-backups/TEE-20260911-A82-HF2/20260911T082810584769Z-source-cutover/blender-before-hf2.blend",
+    "bytes": 109896,
+    "sha256": "40c31610fe1dcd975890e574dc8c0cf2779d84b882a8bad1f19190c8b7cfea12"
+  },
+  "claude_installed_payload": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+  "dependencies_changed": false,
+  "paid_requests": 0,
+  "actual_client_acceptance": false
+}

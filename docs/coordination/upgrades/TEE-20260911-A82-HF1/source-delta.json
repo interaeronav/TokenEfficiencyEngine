@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "files": 293,
+    "bytes": 3428263
+  },
+  "candidate": {
+    "sha256": "6ad9a65703a826c8a9433295c8995ae010b343c3a446c28a83fef00c5dbf99d8",
+    "files": 293,
+    "bytes": 3429910
+  },
+  "added": [],
+  "removed": [],
+  "changed": [
+    {
+      "path": "tee/docagents/backends.py",
+      "before_sha256": "531010665ca36b0d7f5545831266e61dbdea8d6e8083d72b57b953b856d621fb",
+      "after_sha256": "a9b11a5d226be0e01785f3d908300fde5346d1c1782cf809eb62759f989b8a73"
+    }
+  ],
+  "a83_features_included": false
+}

@@ -1,0 +1,430 @@
+{
+  "protocol_version": "1.0.1",
+  "protocol_sha256": "ac74807ac0ce9ea29c070e8fe57cdd84c2952182234cd61337d0b1446f85fc9c",
+  "update_id": "TEE-20260911-A82-HF1",
+  "revision": 1,
+  "coordinator": "GPT-6 / Codex root",
+  "prepared_utc": "2026-09-11T07:28:12.075032+00:00",
+  "status": "FROZEN FOR DELIVERY; independent Claude review and actual-client rollout pending",
+  "initiator": "GPT-6 authorized delegated preparation",
+  "change": "One-file A82 hotfix: child-only verified no-op browser for Aider offers; diagnostics retained.",
+  "authorization": "Existing owner documentation automation and paid QMAX authorization; no new grants or publication.",
+  "ownership": {
+    "preparer": "new HF1 directories only",
+    "root": "review, freeze, cutover, ledgers",
+    "claude": "independent delivery review and actual-client receipt"
+  },
+  "source": {
+    "sha256": "6ad9a65703a826c8a9433295c8995ae010b343c3a446c28a83fef00c5dbf99d8",
+    "files": 293,
+    "bytes": 3429910,
+    "manifest": "source-manifest.json",
+    "git": {
+      "head": "dfb5e40b2abf3e113cdb893c4d11dc963c151798",
+      "branch": "claude/token-efficiency-engine-5jv1dj",
+      "dirty_paths": 6848,
+      "untracked_paths": 6806,
+      "payload_covers_tracked_and_untracked_files": true
+    },
+    "baseline": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "changed": [
+      "tee/docagents/backends.py"
+    ],
+    "distribution_version": "0.30.1",
+    "a83_included": false
+  },
+  "targets": {
+    "codex": {
+      "shape": "source-plugin",
+      "artifact": {
+        "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/artifacts/tee-a82-hf1-codex-source-snapshot.zip",
+        "bytes": 1569940,
+        "sha256": "ebc850414600ffbcdf070b994d34aef4d778a4882273c98d2ee5e0f8f55cf9ea"
+      },
+      "wrapper_source": "/Users/john/plugins/tee",
+      "wrapper_cache": "/Users/john/.codex/plugins/cache/personal/tee/0.30.0",
+      "wrapper_version": "0.30.0",
+      "source_origin": "/Users/john/TokenEfficiencyEngine/server/src/tee",
+      "command": [
+        "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+        "-m",
+        "tee.cli",
+        "serve",
+        "--adapter",
+        "blender",
+        "--adapter",
+        "partkiln",
+        "--adapter",
+        "seamkiln",
+        "--adapter",
+        "fusion",
+        "--adapter",
+        "unreal",
+        "--project",
+        "/Users/john/TokenEfficiencyEngine"
+      ],
+      "delivery_directory": "/Users/john/Downloads/TEE_AIDER_BROWSER_FIX_20260911/codex",
+      "delivery_artifact": "/Users/john/Downloads/TEE_AIDER_BROWSER_FIX_20260911/codex/tee-a82-hf1-codex-source-snapshot.zip"
+    },
+    "claude": {
+      "shape": "local-python-mcpb",
+      "artifact": {
+        "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/artifacts/tee-engine-0.30.1-a82-hf1-local.mcpb",
+        "bytes": 1139122,
+        "sha256": "f0da258e4224cae8421d9e4515d77f521ed95fb4c31c98833b4f28ec18b5b68a"
+      },
+      "source_origin": "/Users/john/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/src/tee",
+      "manifest_server": {
+        "type": "python",
+        "entry_point": "launch.py",
+        "mcp_config": {
+          "command": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+          "args": [
+            "${__dirname}/launch.py",
+            "serve",
+            "--adapter",
+            "blender",
+            "--adapter",
+            "partkiln",
+            "--adapter",
+            "seamkiln",
+            "--adapter",
+            "fusion",
+            "--adapter",
+            "unreal",
+            "--project",
+            "${user_config.project_root}"
+          ],
+          "env": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          }
+        }
+      },
+      "borrowed_interpreter": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+      "installer_required": "supported Desktop extension controls, then actual reconnect",
+      "delivery_directory": "/Users/john/Downloads/TEE_AIDER_BROWSER_FIX_20260911/claude",
+      "delivery_artifact": "/Users/john/Downloads/TEE_AIDER_BROWSER_FIX_20260911/claude/tee-engine-0.30.1-a82-hf1-local.mcpb"
+    }
+  },
+  "contract": {
+    "project": "/Users/john/TokenEfficiencyEngine",
+    "adapters": [
+      "blender",
+      "partkiln",
+      "seamkiln",
+      "fusion",
+      "unreal"
+    ],
+    "profile": {
+      "active": "qmax",
+      "pinned": true,
+      "ready": true
+    },
+    "grants": [
+      "call-paid-engine",
+      "run-doc-agent"
+    ],
+    "code_exec": false,
+    "core_tools": 17,
+    "virtual_tools_with_corpus": 261,
+    "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+    "skill_sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1",
+    "state_schema_changes": false
+  },
+  "environment": {
+    "before": "environment-before.json",
+    "python": {
+      "path": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+      "version": "3.11.15 (main, Jul 23 2026, 14:34:23) [Clang 22.1.3 ]",
+      "platform": "macOS-26.6.2-arm64-arm-64bit",
+      "architecture": "arm64",
+      "shared_distribution_count": 148
+    },
+    "dependencies": "evidence/dependency-preservation.json",
+    "shared_environment": true,
+    "dependency_changes": false,
+    "worker_versions": {
+      "aider": "0.86.2",
+      "cline": "3.0.61"
+    },
+    "external_workers_vendored": false
+  },
+  "validation": {
+    "backend_tests": ".....................................                                    [100%]\n37 passed in 0.38s",
+    "two_shape_mcp": true,
+    "core_schema_unchanged": true,
+    "complete_archive_deltas": {
+      "claude": {
+        "member_count": 301,
+        "changed_members": [
+          "README.md",
+          "src/tee/docagents/backends.py"
+        ],
+        "added": [],
+        "removed": []
+      },
+      "codex": {
+        "member_count": 320,
+        "changed_members": [
+          "server/src/tee/docagents/backends.py"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "browser_processes": 0,
+    "paid_calls": 0,
+    "actual_client_acceptance": "NOT OBSERVED for HF1; candidate harnesses only"
+  },
+  "rollback": {
+    "update": "TEE-20260910-A82-01",
+    "payload": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "frozen_manifest_sha256": "961adc95f587a287e97ce09c5daeac51748398ad76e67a1df824acb7b7df6339",
+    "artifacts": {
+      "claude": {
+        "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/rollback/claude/tee-engine-0.30.1-a82-local.mcpb",
+        "bytes": 1138535,
+        "sha256": "98f5116fe1c51b62062571cdf81d4f0039d3bc34815aafcf7c951c0768c3c3e2"
+      },
+      "codex": {
+        "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/rollback/codex/tee-a82-codex-source-snapshot.zip",
+        "bytes": 1569353,
+        "sha256": "e908840f325f6e9e5366ead6cfcda7636fa1d5efa8650143b446670781de53e1"
+      }
+    },
+    "policy": "Restore only reviewed code; retain current grants, QMAX, state and later user work. No migration.",
+    "private_backup": "/Users/john/TokenEfficiencyEngine/.tee/update-backups/TEE-20260911-A82-HF1/20260911T073825520863Z"
+  },
+  "remaining": [
+    "verified recipient receipt and independent Claude review",
+    "authorized source cutover and supported Claude installation",
+    "both actual-client reconnects and matching acceptance receipts"
+  ],
+  "common_files": [
+    {
+      "path": "CLAUDE_HANDOFF.md",
+      "bytes": 1665,
+      "sha256": "d418dba4e14a27ea2a9375459f57ed5220ef5f5d490b1477c13984eba4a95f16"
+    },
+    {
+      "path": "CLAUDE_READY.md",
+      "bytes": 2328,
+      "sha256": "13ef7879b5a28b30d8bb2ea51b4cc999b952c1182ff4980d7b3cd846c9b94d1b"
+    },
+    {
+      "path": "VERIFY_FROZEN.py",
+      "bytes": 2941,
+      "sha256": "7ab91a352bb01f521f638477eac6a4f3e0151cb5831209f8f72c1fb34f39b636"
+    },
+    {
+      "path": "build-inputs.json",
+      "bytes": 1436,
+      "sha256": "425b105141485ef6ec93aa78ab8e8fdbcdfc3f3fae84c354b043ad18840f781a"
+    },
+    {
+      "path": "codex-wrapper-manifest.json",
+      "bytes": 912,
+      "sha256": "385122f1deca3f07554bff3520382d720d6af8e333ab09a3777b505c8d2b66aa"
+    },
+    {
+      "path": "environment-before.json",
+      "bytes": 5537,
+      "sha256": "6f62e0675ab2b834df67a4350eb887e31d7eb019a72be3d53baf88b29c82b626"
+    },
+    {
+      "path": "evidence/20260911T073825520863Z-private-backup.json",
+      "bytes": 4783,
+      "sha256": "ca0a9372c17bbb822659a480ba6085529f9b920973944ad7ef35c2bcd6180f8a"
+    },
+    {
+      "path": "evidence/aider-dependencies.json",
+      "bytes": 62408,
+      "sha256": "5c3f4ebfb1ae66334f42bbc8b1ef908eb42c7737a9ed9ff27c5e615fd50bd196"
+    },
+    {
+      "path": "evidence/build-record.json",
+      "bytes": 2357,
+      "sha256": "726c0445245e961d399e366eccacb05c7a0c9842d77832134c10e7d5b7033633"
+    },
+    {
+      "path": "evidence/candidate-smoke.json",
+      "bytes": 8982,
+      "sha256": "103c835791b95e4c55d6606736c4cf6d77f27540bb440bf3b45688e5be6a6c0e"
+    },
+    {
+      "path": "evidence/claude-core-schemas.json",
+      "bytes": 10491,
+      "sha256": "60d31b76634865ea024a2d37d4e1e64c1297386c69bd28540bb5853a177f5e8c"
+    },
+    {
+      "path": "evidence/claude-members.json",
+      "bytes": 49248,
+      "sha256": "863e2747b123f37d2006857be7afb11f48c940d80ef2b0f6a7c80fff0a2ce26f"
+    },
+    {
+      "path": "evidence/codex-core-schemas.json",
+      "bytes": 10491,
+      "sha256": "60d31b76634865ea024a2d37d4e1e64c1297386c69bd28540bb5853a177f5e8c"
+    },
+    {
+      "path": "evidence/codex-members.json",
+      "bytes": 54471,
+      "sha256": "04ceea59e36e7dd10a847fca4127262fc12ec9c5f2146637b7d5066140d5abe8"
+    },
+    {
+      "path": "evidence/coordinator-continuity.json",
+      "bytes": 7675,
+      "sha256": "38a0ec9ed64e46510038b91efb8b4af751f8dc70b4df1e49dbf04e366f3e59d6"
+    },
+    {
+      "path": "evidence/dependency-preservation.json",
+      "bytes": 744,
+      "sha256": "3ecd3be0cf2223bcee21aa94a19b1c6359fd353a61e38a58b9085a06919399ed"
+    },
+    {
+      "path": "evidence/installed-aider-cause.json",
+      "bytes": 1304,
+      "sha256": "b1476b4a3c1a33d3fb5fb7fe155792e519a8cdc3311e93b087bb83336c31cd08"
+    },
+    {
+      "path": "evidence/original-guarded-browser-validation.json",
+      "bytes": 1024,
+      "sha256": "a60ee1e6074517b1f4d0448b2bc97dcd4d552d5ac62d5db2f895c3fc4e8fe29c"
+    },
+    {
+      "path": "evidence/shared-dependencies-before.json",
+      "bytes": 98345,
+      "sha256": "f88593e46a1c6da7360650e7482331826d59d2ae63b994b90b1cf05433d5b13e"
+    },
+    {
+      "path": "evidence/sidecar-dependencies.json",
+      "bytes": 8273,
+      "sha256": "4d244c8e8e4985e74bf3d37a3f67206b589d14b250b511c8d9e898d345f7c35f"
+    },
+    {
+      "path": "evidence/single-file.patch",
+      "bytes": 2530,
+      "sha256": "20c1ed4b41000580e83717b7bb92980ece5b5c073c35bf30e93c74ee4fd446c0"
+    },
+    {
+      "path": "evidence/test_docagents_backends.py",
+      "bytes": 15692,
+      "sha256": "b849baac0fb577c5cea8dbf87372fcff5b989d3987fcbd22ff3a1310662a34c7"
+    },
+    {
+      "path": "evidence/tests.log",
+      "bytes": 99,
+      "sha256": "bc3ccfa25decf36a5f93b78e8da1ae26ac0fb5b1312cb8711260a9c4900b4e7e"
+    },
+    {
+      "path": "execution-final.md",
+      "bytes": 2399,
+      "sha256": "7c69a154e39ccfaed59dc5c0a51141cdb9e8f0e4714979d84dec6ddaee66dfc3"
+    },
+    {
+      "path": "execution.md",
+      "bytes": 8340,
+      "sha256": "a371c2efb548626744f40af39f963c314277b3c82a06418f180ade68c9d2f5c1"
+    },
+    {
+      "path": "outcome.md",
+      "bytes": 779,
+      "sha256": "a8efb1ef844bc5ca13f155f8817f0df15e24791c2e993c74ac78619a61205e5c"
+    },
+    {
+      "path": "prior/a82/completion-20260911T062301Z.md",
+      "bytes": 5365,
+      "sha256": "0cf88dc27d2ee0091a3e806d8ef537819aba7e5b2258ff5835c1a7424596fff6"
+    },
+    {
+      "path": "prior/a82/receipts/20260911T060123Z-codex-accepted.md",
+      "bytes": 5244,
+      "sha256": "78fa88e0596347fce33c5465e1d1f1f1611f6346aaae7c5da0139838633063bf"
+    },
+    {
+      "path": "prior/a82/receipts/20260911T061956Z-claude-accepted.md",
+      "bytes": 5090,
+      "sha256": "a7305d5ede506c2a9fc7b2ef393eff67af45ac15331d4f88736063d64826b142"
+    },
+    {
+      "path": "prior/a82/release-manifest.json",
+      "bytes": 31734,
+      "sha256": "961adc95f587a287e97ce09c5daeac51748398ad76e67a1df824acb7b7df6339"
+    },
+    {
+      "path": "prior/a82/release-manifest.sha256",
+      "bytes": 88,
+      "sha256": "ba13109c76187a3b208aceb6c1b1d7cc444313aa2fa77b5f23923c9e66dcbaa6"
+    },
+    {
+      "path": "prior/a82/source-manifest.json",
+      "bytes": 36914,
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52"
+    },
+    {
+      "path": "prior/a82/worker-permission-approved-20260911T062912Z.md",
+      "bytes": 1213,
+      "sha256": "9b7ac7e102c7f310e42484f8c39481cdfd7e64b205750cb43b325a9a107b72d1"
+    },
+    {
+      "path": "prior/dependency-audit.json",
+      "bytes": 349663,
+      "sha256": "fa28f209748b27f4d5edce025ba4c1d3897741ca30cd7f1283e72473696b45d1"
+    },
+    {
+      "path": "prior/editable-kernel-sources.json",
+      "bytes": 31447,
+      "sha256": "171b97d8e41f2f35034c2c9876fdb7efea9bbe3b5f9a8bbf94a78035c06ba609"
+    },
+    {
+      "path": "prior/headless-lane-dependencies.json",
+      "bytes": 10725,
+      "sha256": "1a4115d875078836ecc8a6c9cd2d736914a0d45a55caa766ac27d1e9b18099eb"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 2427,
+      "sha256": "788e7be4a1966554a98ce72d2aa68bbddf5de446271e94712ec70f23831752d6"
+    },
+    {
+      "path": "receipt-template.md",
+      "bytes": 877,
+      "sha256": "2a61f7f62e6fcfa52ba3a410593da50bc0869a648365d8667eeccab9b6a93d04"
+    },
+    {
+      "path": "release-manifest.draft.json",
+      "bytes": 13030,
+      "sha256": "441f73e63a033485db1f3309f756edcf87b2053c6f94cf356caa6a8b91b0e379"
+    },
+    {
+      "path": "release-manifest.draft.sha256",
+      "bytes": 94,
+      "sha256": "6ebe3f926d0afdbcefb944feafcbe5ee0f8994efa4f1262c0d0939cba000809e"
+    },
+    {
+      "path": "root-review.md",
+      "bytes": 1666,
+      "sha256": "78c47e82ae5b7f98b293d1d13446c54e56b1f6b88a1441a70bdc378595b35bd2"
+    },
+    {
+      "path": "source-delta.json",
+      "bytes": 609,
+      "sha256": "3e97aed77630c4e37811d4d12b03f940ae27223f0cdc8269a1bf5e03dfe14070"
+    },
+    {
+      "path": "source-manifest.json",
+      "bytes": 36914,
+      "sha256": "6ad9a65703a826c8a9433295c8995ae010b343c3a446c28a83fef00c5dbf99d8"
+    },
+    {
+      "path": "upgrade-coordination-protocol.md",
+      "bytes": 22959,
+      "sha256": "ac74807ac0ce9ea29c070e8fe57cdd84c2952182234cd61337d0b1446f85fc9c"
+    }
+  ],
+  "frozen_utc": "2026-09-11T07:40:50.971220+00:00",
+  "preparation_manifest_sha256": "441f73e63a033485db1f3309f756edcf87b2053c6f94cf356caa6a8b91b0e379",
+  "execution": "execution-final.md",
+  "review": "root-review.md",
+  "continuity": "evidence/coordinator-continuity.json"
+}

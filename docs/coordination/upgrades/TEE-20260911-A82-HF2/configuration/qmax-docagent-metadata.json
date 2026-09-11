@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "model": "claude-qwen-max",
+  "url": "http://127.0.0.1:4000/v1",
+  "upstream_model": "qwen3.8-max",
+  "upstream_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+  "verified_on": "2026-09-11",
+  "valid_until": "2026-09-25",
+  "capacity_source": "https://www.alibabacloud.com/help/en/model-studio/qwen3-8-max",
+  "price_source": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+  "currency": "USD",
+  "max_input_tokens": 983616,
+  "max_output_tokens": 131072,
+  "context_window": 1000000,
+  "price_in_per_mtok": 2.0,
+  "price_out_per_mtok": 6.0,
+  "request_output_tokens": 2048
+}

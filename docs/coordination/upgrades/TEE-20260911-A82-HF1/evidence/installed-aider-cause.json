@@ -1,0 +1,28 @@
+{
+  "files": [
+    {
+      "path": "/Users/john/.local/share/tee/docagents/aider-0.86.2/lib/python3.11/site-packages/aider/main.py",
+      "bytes": 43965,
+      "sha256": "a93787156610c3f03cdcc0c9c096a7140dfa208986bd739b64a745533bee9c71"
+    },
+    {
+      "path": "/Users/john/.local/share/tee/docagents/aider-0.86.2/lib/python3.11/site-packages/aider/io.py",
+      "bytes": 42853,
+      "sha256": "7f62a79c8202f2a3793410bac4c983e417fb886513b90faf0e0579d5bb7d047b"
+    },
+    {
+      "path": "/Users/john/.local/share/tee/docagents/aider-0.86.2/lib/python3.11/site-packages/aider/models.py",
+      "bytes": 45957,
+      "sha256": "593cff096ba8e19ea4147f6e1e79e215f1d6c9c3978477aea7040b9dc2b5188b"
+    }
+  ],
+  "cause": "Unknown QMAX alias triggers main.py model sanity warning and io.offer_url; yes=True confirms and webbrowser.open follows.",
+  "warning_suppression_rejected": "--no-show-model-warnings also bypasses missing-key sanity diagnostics.",
+  "source_observation": "Read installed Aider 0.86.2 sources; no installed worker file changed.",
+  "controller": {
+    "path": "/usr/bin/true",
+    "bytes": 84032,
+    "sha256": "875c7eea9c66c826091ede3cc44599311dc6818caf17f9e53d97c54c288842b2"
+  },
+  "browser_guard": "Tests forbid process launch except verified no-op and deny network connects."
+}

@@ -1,0 +1,92 @@
+{
+  "update_id": "TEE-20260911-A82-HF2",
+  "stage": "candidate built and tested; root review/freeze pending",
+  "prepared_utc": "2026-09-11T08:10:57.870790+00:00",
+  "source": {
+    "sha256": "c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e",
+    "files": 294,
+    "bytes": 3435983
+  },
+  "claude": {
+    "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF2/artifacts/tee-engine-0.30.1-a82-hf2-local.mcpb",
+    "bytes": 1141293,
+    "sha256": "1bd87459cddd5e86641f806e8dae09236aef232322725bb853cd1ba4d2757ca9"
+  },
+  "codex": {
+    "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF2/artifacts/tee-a82-hf2-codex-source-snapshot.zip",
+    "bytes": 1572125,
+    "sha256": "1c08499fbfa2481d9064328eeb22b56ee1d28f0d74c5078eff5db768722257f1"
+  },
+  "archive_deltas": {
+    "claude": {
+      "member_count": 302,
+      "changed_members": [
+        "README.md",
+        "src/tee/docagents/backends.py",
+        "src/tee/docagents/tools.py"
+      ],
+      "added": [
+        "src/tee/docagents/model_metadata.py"
+      ],
+      "removed": []
+    },
+    "codex": {
+      "member_count": 321,
+      "changed_members": [
+        "server/src/tee/docagents/backends.py",
+        "server/src/tee/docagents/tools.py"
+      ],
+      "added": [
+        "server/src/tee/docagents/model_metadata.py"
+      ],
+      "removed": []
+    }
+  },
+  "tests": "........................................................................ [ 39%]\n........................................................................ [ 78%]\n........................................                                 [100%]\n184 passed in 4.74s",
+  "test_sources": [
+    {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF2/tests/test_docagents_backends.py",
+      "bytes": 15692,
+      "sha256": "b849baac0fb577c5cea8dbf87372fcff5b989d3987fcbd22ff3a1310662a34c7"
+    },
+    {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF2/tests/test_docagents_model_metadata.py",
+      "bytes": 7600,
+      "sha256": "bad3937696460478040a1dcd8621fb8eab6a6f3efd1cf9b2c6f564e8b9acf5b9"
+    },
+    {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF2/tests/test_docagents_runner.py",
+      "bytes": 14044,
+      "sha256": "5122e9381bced9734eebb05e153a94296ebb9f177325e7848ed7f33ca1f4a2df"
+    },
+    {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF2/tests/test_docagents_tools.py",
+      "bytes": 12253,
+      "sha256": "441367735e497b07553bd531738d2d1a89c17cc075da829d5a79c528a5b6dda5"
+    },
+    {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF2/tests/test_docagents_workspace.py",
+      "bytes": 16871,
+      "sha256": "278eb4fd740082e38d605998a534f49d2812c7fcbd14abc451a991f52a89cdf8"
+    }
+  ],
+  "served_source_unchanged": true,
+  "installed_bundle_unchanged": true,
+  "shared_dependencies_unchanged": true,
+  "payload_equal": true,
+  "paid_calls": 0,
+  "browser_processes": 0,
+  "rollback": {
+    "source": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+    "claude": {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-engine-0.30.1-a82-local.mcpb",
+      "bytes": 1138535,
+      "sha256": "98f5116fe1c51b62062571cdf81d4f0039d3bc34815aafcf7c951c0768c3c3e2"
+    },
+    "codex": {
+      "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-a82-codex-source-snapshot.zip",
+      "bytes": 1569353,
+      "sha256": "e908840f325f6e9e5366ead6cfcda7636fa1d5efa8650143b446670781de53e1"
+    }
+  }
+}

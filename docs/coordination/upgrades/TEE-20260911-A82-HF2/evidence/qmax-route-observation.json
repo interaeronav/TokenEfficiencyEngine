@@ -1,0 +1,34 @@
+{
+  "observed_utc": "2026-09-11T08:13:45.268711+00:00",
+  "method": "GET local /model/info; allowlisted fields only. Earlier read-only actual proxy config agrees.",
+  "routes": [
+    {
+      "alias": "claude-qwen-max",
+      "upstream_model": "hosted_vllm/qwen3.8-max",
+      "upstream_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "reported_metadata": {
+        "max_tokens": null,
+        "max_input_tokens": null,
+        "max_output_tokens": null,
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "mode": null
+      }
+    },
+    {
+      "alias": "claude-qwen-max[1m]",
+      "upstream_model": "hosted_vllm/qwen3.8-max",
+      "upstream_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "reported_metadata": {
+        "max_tokens": null,
+        "max_input_tokens": null,
+        "max_output_tokens": null,
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "mode": null
+      }
+    }
+  ],
+  "paid_generation_calls": 0,
+  "proxy_metadata_is_not_capacity_or_price_evidence": true
+}

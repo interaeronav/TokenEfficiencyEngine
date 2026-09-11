@@ -1,0 +1,20 @@
+{
+  "utc": "2026-09-11T08:28:57.372122+00:00",
+  "scope": "fresh process from cutover source and actual main configuration; not actual Codex reconnect",
+  "profile": "qmax",
+  "paid": true,
+  "source_origin": "/Users/john/TokenEfficiencyEngine/server/src/tee/docagents/backends.py",
+  "browser_controller": "/usr/bin/true",
+  "metadata_valid_until": "2026-09-25",
+  "aider": {
+    "recognized": true,
+    "model": "openai/claude-qwen-max",
+    "input_limit": 983616,
+    "requested_output": 2048,
+    "edit_format": "diff",
+    "warning_count": 0
+  },
+  "network_calls": 0,
+  "paid_requests": 0,
+  "gui_launches": 0
+}

@@ -1,0 +1,104 @@
+{
+  "utc": "2026-09-11T08:42:33.670342+00:00",
+  "scope": "filesystem, process corroboration and real worker artifacts; actual MCP observations recorded separately",
+  "source": {
+    "sha256": "c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e",
+    "files": 294,
+    "bytes": 3435983
+  },
+  "codex_source_origin": "/Users/john/TokenEfficiencyEngine/server/src/tee",
+  "interpreter": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+  "process_pid": 5935,
+  "parent_codex_app_pid": 5740,
+  "process_start_local": "2026-09-11 11:33:33 Asia/Qatar",
+  "process_start_utc": "2026-09-11T08:33:33Z",
+  "source_cutover_utc": "2026-09-11T08:28:10Z",
+  "wrapper_version": "0.30.0",
+  "runtime_version": "0.30.1",
+  "wrapper_files_verified": 5,
+  "shared_distribution_count": 148,
+  "shared_dependencies_unchanged": true,
+  "qmax_pinned": true,
+  "grants": [
+    "call-paid-engine",
+    "exec-code",
+    "run-adhoc",
+    "run-declared-step",
+    "run-doc-agent"
+  ],
+  "metadata_matches_reviewed": true,
+  "metadata_valid_until": "2026-09-25",
+  "claude_installed": {
+    "sha256": "c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e",
+    "files": 294,
+    "bytes": 3435983
+  },
+  "workers": [
+    {
+      "run_id": "doc_3dc2e939f0d94431b57f765927b9636d",
+      "result": {
+        "applied": false,
+        "backend": "aider",
+        "exit_code": 0,
+        "model": "claude-qwen-max",
+        "next": "Review worker.log; prepare a new task",
+        "ok": false,
+        "paid": true,
+        "profile": "qmax",
+        "reason": "docagent_unexpected_file",
+        "run_id": "doc_3dc2e939f0d94431b57f765927b9636d",
+        "usage": null,
+        "usage_scope": "worker-reported only; not included in TEE's internal model meter",
+        "wall_s": 86.896
+      },
+      "metadata_files": {
+        "model-metadata.json": "215a2727986d64792f91d42802877bc4414f72e8c9a97ab1dee2bb694dfcd6e8",
+        "model-provenance.json": "29af4ca5deda2154392e6a4c077e849794d625643f04cf66d7550a58151ec167",
+        "model-settings.yml": "0da239b689dbba64382914cda1b24962bf442065a95724ee570057c1c77459cf"
+      },
+      "startup_model": "openai/claude-qwen-max with diff edit format",
+      "unknown_model_warning": false,
+      "warning_help_url_printed": false,
+      "displayed_usage": [
+        "Tokens: 3.9k sent, 3.7k received. Cost: $0.03 message, $0.03 session."
+      ]
+    },
+    {
+      "run_id": "doc_7dd9dcc1054f4cd882b1e199361734fe",
+      "result": {
+        "applied": false,
+        "backend": "aider",
+        "changes": 1,
+        "exit_code": 0,
+        "model": "claude-qwen-max",
+        "next": "doc_diff",
+        "ok": true,
+        "paid": true,
+        "profile": "qmax",
+        "reason": "aider_exited_requires_document_validation",
+        "run_id": "doc_7dd9dcc1054f4cd882b1e199361734fe",
+        "usage": null,
+        "usage_scope": "worker-reported only; not included in TEE's internal model meter",
+        "wall_s": 67.799
+      },
+      "metadata_files": {
+        "model-metadata.json": "215a2727986d64792f91d42802877bc4414f72e8c9a97ab1dee2bb694dfcd6e8",
+        "model-provenance.json": "29af4ca5deda2154392e6a4c077e849794d625643f04cf66d7550a58151ec167",
+        "model-settings.yml": "0da239b689dbba64382914cda1b24962bf442065a95724ee570057c1c77459cf"
+      },
+      "startup_model": "openai/claude-qwen-max with diff edit format",
+      "unknown_model_warning": false,
+      "warning_help_url_printed": false,
+      "displayed_usage": [
+        "Tokens: 3.9k sent, 3.1k received. Cost: $0.03 message, $0.03 session."
+      ]
+    }
+  ],
+  "applied_document": {
+    "path": "/Users/john/TokenEfficiencyEngine/docs/a83-query-examples.md",
+    "bytes": 892,
+    "sha256": "5cb759cfc193918efd3bdbbbebc5cad4316374c83b7254372f1df3324c0f3715"
+  },
+  "generation_validation": "evidence/aider-document-validation.json",
+  "scene_decision": "Owner explicitly said keep the single C208Prop mesh; do not restore the saved 13-object scene."
+}

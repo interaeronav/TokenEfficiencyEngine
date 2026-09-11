@@ -1,0 +1,42 @@
+{
+  "document_sha256": "5cb759cfc193918efd3bdbbbebc5cad4316374c83b7254372f1df3324c0f3715",
+  "word_count": 119,
+  "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A83-01/development/server/src/tee/architecture/service.py",
+  "scope": "isolated development service; no live scene or main architecture model changed",
+  "example_results": [
+    {
+      "detail": "schedules",
+      "collection": "walls",
+      "page": {
+        "offset": 0,
+        "limit": 5,
+        "returned": 5,
+        "total": 5,
+        "next_offset": null
+      }
+    },
+    {
+      "detail": "bim",
+      "collection": "instances",
+      "page": {
+        "offset": 0,
+        "limit": 5,
+        "returned": 0,
+        "total": 0,
+        "next_offset": null
+      }
+    },
+    {
+      "detail": "quality",
+      "collection": "issues",
+      "page": {
+        "offset": 0,
+        "limit": 5,
+        "returned": 5,
+        "total": 8,
+        "next_offset": 5
+      }
+    }
+  ],
+  "passed": true
+}

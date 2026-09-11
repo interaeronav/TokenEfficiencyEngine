@@ -1,0 +1,247 @@
+{
+  "observed_utc": "2026-09-11T07:23:02.164586+00:00",
+  "scope": "two extracted-delivery isolated harnesses; actual receipts pending",
+  "passed": true,
+  "reports": [
+    {
+      "shape": "claude",
+      "scope": "isolated harness; not actual-client acceptance",
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/probes/extracted/claude/src/tee/__init__.py",
+      "payload_sha256": "6ad9a65703a826c8a9433295c8995ae010b343c3a446c28a83fef00c5dbf99d8",
+      "core_count": 17,
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "virtual_tools": 261,
+      "checks": {
+        "core_17": true,
+        "same_complete_core_schema": true,
+        "virtual_261_with_corpus": true,
+        "five_adapters": true,
+        "project_is_isolated": true,
+        "code_execution_disabled": true,
+        "workers_metadata": true,
+        "grant_gate_preserved": true,
+        "learning_responds": true,
+        "architecture_responds": true
+      },
+      "passed": true,
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/probes/projects/claude",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/probes/projects/claude/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 2,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 2,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "architecture_status": {
+        "ok": true,
+        "product": "archkiln",
+        "version": "0.1.0",
+        "models": [],
+        "units": "mm",
+        "gui": "optional; ak_open",
+        "jurisdiction_coverage": "explicit rule packs; unverified until assessed"
+      },
+      "paid_calls": 0,
+      "worker_runs": 0,
+      "gui_launches": 0,
+      "dcc_endpoints": "reserved non-listening fixture ports"
+    },
+    {
+      "shape": "codex",
+      "scope": "isolated harness; not actual-client acceptance",
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/probes/extracted/codex/server/src/tee/__init__.py",
+      "payload_sha256": "6ad9a65703a826c8a9433295c8995ae010b343c3a446c28a83fef00c5dbf99d8",
+      "core_count": 17,
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "virtual_tools": 261,
+      "checks": {
+        "core_17": true,
+        "same_complete_core_schema": true,
+        "virtual_261_with_corpus": true,
+        "five_adapters": true,
+        "project_is_isolated": true,
+        "code_execution_disabled": true,
+        "workers_metadata": true,
+        "grant_gate_preserved": true,
+        "learning_responds": true,
+        "architecture_responds": true
+      },
+      "passed": true,
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/probes/projects/codex",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A82-HF1/probes/projects/codex/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 2,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 2,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "architecture_status": {
+        "ok": true,
+        "product": "archkiln",
+        "version": "0.1.0",
+        "models": [],
+        "units": "mm",
+        "gui": "optional; ak_open",
+        "jurisdiction_coverage": "explicit rule packs; unverified until assessed"
+      },
+      "paid_calls": 0,
+      "worker_runs": 0,
+      "gui_launches": 0,
+      "dcc_endpoints": "reserved non-listening fixture ports"
+    }
+  ]
+}
