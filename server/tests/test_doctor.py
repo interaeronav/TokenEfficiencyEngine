@@ -291,3 +291,25 @@ def test_windtunnel_check_names_versions_or_the_install_lines(tmp_path, monkeypa
     assert absent.status == "warn" and absent.detail == "no engine found"
     assert "openfoam" in absent.fix.lower() or "apt-get" in absent.fix or "brew" in absent.fix
     assert any(c.name == "windtunnel" for c in doctor.run_checks())
+
+
+def test_dev_checkout_command_never_syncs():
+    """A bare `uv run` syncs the venv to uv.lock, which removes every package
+    installed on top of the locked set - the fleet extras, and on the owner's
+    Mac the seamkiln lane itself (112 packages measured, 2026-09-10). An
+    emitted config of that shape took opencode down. The dev-checkout form
+    must therefore carry --no-sync, and it must sit between `run` and `tee`
+    so uv parses it as run's own flag."""
+    if not doctor._dev_checkout():
+        pytest.skip("installed-package layout: no uv run form to check")
+    for cmd in (
+        doctor.serve_command(),
+        doctor.serve_command(adapters=["blender", "fusion"], project="/tmp/p"),
+    ):
+        assert cmd[0] == "uv"
+        run_at = cmd.index("run")
+        assert cmd[run_at + 1] == "--no-sync", cmd
+        assert cmd.index("tee") > run_at + 1, cmd
+    # and it reaches every emitter, not just the builder
+    for client in ("claude-code", "claude-desktop", "cursor", "qwen-code", "opencode"):
+        assert "--no-sync" in doctor.emit_config(client), client

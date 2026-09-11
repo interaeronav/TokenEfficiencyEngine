@@ -765,8 +765,8 @@ def serve_command(
     port: int = BRIDGE_PORT,
 ) -> list[str]:
     """The command a client config should launch: the installed `tee`
-    binary when this is an installed package, the uv-run form for a dev
-    checkout.
+    binary when this is an installed package, the uv-run form (with
+    `--no-sync`) for a dev checkout.
 
     `adapters` serves several lanes in one server (the Desktop manifest's
     shape); `adapter` stays for the single-lane callers. `project` writes
@@ -783,7 +783,13 @@ def serve_command(
     if project:
         tail += ["--project", project]
     if _dev_checkout():
-        return ["uv", "--directory", str(server_dir()), "run", "tee", *tail]
+        # --no-sync is load-bearing, not tidy: a bare `uv run` syncs the venv
+        # to uv.lock first, and that removes every package installed ON TOP
+        # of the locked set - which is where the fleet extras live by design
+        # (docs/setup-fleet.md). Measured on the owner's Mac 2026-09-10:
+        # 112 packages would go, seamkiln itself included; an emitted config
+        # of this shape took opencode down (docs/astra-script.md).
+        return ["uv", "--directory", str(server_dir()), "run", "--no-sync", "tee", *tail]
     # a plain `tee` on PATH is usually coreutils tee - only trust a
     # sibling of this interpreter (venv/pipx layout; no resolve(): the
     # venv python is a symlink out of the venv)
