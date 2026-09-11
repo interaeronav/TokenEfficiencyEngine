@@ -1,0 +1,1120 @@
+{
+  "scope": "owned headless workflow and real independent export readers",
+  "passed": true,
+  "seconds": 1.46,
+  "project": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z",
+  "house": {
+    "ok": true,
+    "model_id": "building_31243dbc9ee94077",
+    "schema": "tee-architecture/1",
+    "document_id": "52866cd9-5845-4789-84b4-a76e44e3266b",
+    "units": "mm",
+    "revision": 1,
+    "project": {
+      "name": "Compact modern house \u2014 review example",
+      "jurisdiction": {
+        "country": null,
+        "region": null,
+        "municipality": null
+      }
+    },
+    "fact_count": 1,
+    "entities": 15,
+    "counts": {
+      "cabinet": 1,
+      "opening": 4,
+      "roof": 1,
+      "slab": 1,
+      "space": 2,
+      "storey": 1,
+      "wall": 5
+    },
+    "undo_available": 1,
+    "preset": "compact-house",
+    "note": "Example geometry has no regulatory or fabrication approval."
+  },
+  "current_revision": 3,
+  "wall_volume_m3": 22.846000000000004,
+  "wall_junctions": {
+    "status": "no_wall_overlap_found",
+    "pairs_found": 0,
+    "overlaps": [],
+    "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+    "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+  },
+  "shop": {
+    "ok": true,
+    "model_id": "building_31243dbc9ee94077",
+    "revision": 3,
+    "entity": {
+      "id": "cabinet",
+      "kind": "cabinet",
+      "name": "Base cabinet",
+      "storey": "ground",
+      "origin": [
+        500,
+        500,
+        0
+      ],
+      "width": 900,
+      "depth": 600,
+      "height": 900,
+      "panel_thickness": 18,
+      "back_thickness": 6,
+      "shelves": 1,
+      "doors": 2,
+      "plinth_height": 100,
+      "grain": "height",
+      "edge_band_mm": 0,
+      "material": "Generic sheet; specify grade before manufacture",
+      "properties": {
+        "door_gap_mm": 2
+      }
+    },
+    "schedule": {
+      "cabinet": "cabinet",
+      "units": "mm",
+      "panels": [
+        {
+          "id": "cabinet_side_1",
+          "name": "Base cabinet side 1",
+          "role": "side",
+          "width": 582.0,
+          "height": 800.0,
+          "thickness": 18.0,
+          "finished_width": 582.0,
+          "finished_height": 800.0,
+          "origin": [
+            500.0,
+            518.0,
+            100.0
+          ],
+          "orientation": "YZ",
+          "size": [
+            18.0,
+            582.0,
+            800.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_side_2",
+          "name": "Base cabinet side 2",
+          "role": "side",
+          "width": 582.0,
+          "height": 800.0,
+          "thickness": 18.0,
+          "finished_width": 582.0,
+          "finished_height": 800.0,
+          "origin": [
+            1382.0,
+            518.0,
+            100.0
+          ],
+          "orientation": "YZ",
+          "size": [
+            18.0,
+            582.0,
+            800.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_bottom_1",
+          "name": "Base cabinet bottom 1",
+          "role": "bottom",
+          "width": 864.0,
+          "height": 582.0,
+          "thickness": 18.0,
+          "finished_width": 864.0,
+          "finished_height": 582.0,
+          "origin": [
+            518.0,
+            518.0,
+            100.0
+          ],
+          "orientation": "XY",
+          "size": [
+            864.0,
+            582.0,
+            18.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_top_1",
+          "name": "Base cabinet top 1",
+          "role": "top",
+          "width": 864.0,
+          "height": 582.0,
+          "thickness": 18.0,
+          "finished_width": 864.0,
+          "finished_height": 582.0,
+          "origin": [
+            518.0,
+            518.0,
+            882.0
+          ],
+          "orientation": "XY",
+          "size": [
+            864.0,
+            582.0,
+            18.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_back_1",
+          "name": "Base cabinet back 1",
+          "role": "back",
+          "width": 864.0,
+          "height": 764.0,
+          "thickness": 6.0,
+          "finished_width": 864.0,
+          "finished_height": 764.0,
+          "origin": [
+            518.0,
+            1094.0,
+            118.0
+          ],
+          "orientation": "XZ",
+          "size": [
+            864.0,
+            6.0,
+            764.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_shelf_1",
+          "name": "Base cabinet shelf 1",
+          "role": "shelf",
+          "width": 864.0,
+          "height": 576.0,
+          "thickness": 18.0,
+          "finished_width": 864.0,
+          "finished_height": 576.0,
+          "origin": [
+            518.0,
+            518.0,
+            491.0
+          ],
+          "orientation": "XY",
+          "size": [
+            864.0,
+            576.0,
+            18.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_door_1",
+          "name": "Base cabinet door 1",
+          "role": "door",
+          "width": 447.0,
+          "height": 796.0,
+          "thickness": 18.0,
+          "finished_width": 447.0,
+          "finished_height": 796.0,
+          "origin": [
+            502.0,
+            500.0,
+            102.0
+          ],
+          "orientation": "XZ",
+          "size": [
+            447.0,
+            18.0,
+            796.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_door_2",
+          "name": "Base cabinet door 2",
+          "role": "door",
+          "width": 447.0,
+          "height": 796.0,
+          "thickness": 18.0,
+          "finished_width": 447.0,
+          "finished_height": 796.0,
+          "origin": [
+            951.0,
+            500.0,
+            102.0
+          ],
+          "orientation": "XZ",
+          "size": [
+            447.0,
+            18.0,
+            796.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        },
+        {
+          "id": "cabinet_plinth_1",
+          "name": "Base cabinet plinth 1",
+          "role": "plinth",
+          "width": 900.0,
+          "height": 100.0,
+          "thickness": 18.0,
+          "finished_width": 900.0,
+          "finished_height": 100.0,
+          "origin": [
+            500.0,
+            518.0,
+            0.0
+          ],
+          "orientation": "XZ",
+          "size": [
+            900.0,
+            18.0,
+            100.0
+          ],
+          "grain": "height",
+          "edges": {
+            "left": 0.0,
+            "right": 0.0,
+            "top": 0.0,
+            "bottom": 0.0
+          },
+          "material": "Generic sheet; specify grade before manufacture"
+        }
+      ],
+      "panel_count": 9,
+      "cut_area_m2": 3.89628,
+      "finished_volume_m3": 0.062211888,
+      "edge_band_length_mm": 0,
+      "construction": "Frameless; sides full height above plinth; top/bottom between sides; back between sides/top/bottom at rear; shelves stop at back; overlay doors consume front thickness within overall depth. Cut blanks subtract edge bands. Solids represent finished envelopes, not separate core/band materials.",
+      "requirements": {
+        "hardware": "not_verified",
+        "machining": "not_verified",
+        "cnc": "not_verified",
+        "assembly": "Select joints/fixings, shelf support, door hinges and plinth supports; verify manufacturer clearances and loads before manufacture."
+      }
+    },
+    "nesting": {
+      "ok": true,
+      "units": "mm",
+      "sheet_count": 3,
+      "sheets": [
+        {
+          "index": 1,
+          "material": "Generic sheet; specify grade before manufacture",
+          "thickness": 18.0,
+          "grain": "height",
+          "width": 1220.0,
+          "height": 2440.0,
+          "placements": [
+            {
+              "id": "cabinet_plinth_1",
+              "x": 0.0,
+              "y": 0.0,
+              "width": 900.0,
+              "height": 100.0,
+              "rotated": false
+            },
+            {
+              "id": "cabinet_bottom_1",
+              "x": 0.0,
+              "y": 103.2,
+              "width": 864.0,
+              "height": 582.0,
+              "rotated": false
+            },
+            {
+              "id": "cabinet_top_1",
+              "x": 0.0,
+              "y": 688.4000000000001,
+              "width": 864.0,
+              "height": 582.0,
+              "rotated": false
+            },
+            {
+              "id": "cabinet_shelf_1",
+              "x": 0.0,
+              "y": 1273.6000000000001,
+              "width": 864.0,
+              "height": 576.0,
+              "rotated": false
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "material": "Generic sheet; specify grade before manufacture",
+          "thickness": 6.0,
+          "grain": "height",
+          "width": 1220.0,
+          "height": 2440.0,
+          "placements": [
+            {
+              "id": "cabinet_back_1",
+              "x": 0.0,
+              "y": 0.0,
+              "width": 864.0,
+              "height": 764.0,
+              "rotated": false
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "material": "Generic sheet; specify grade before manufacture",
+          "thickness": 18.0,
+          "grain": "height",
+          "width": 1220.0,
+          "height": 2440.0,
+          "placements": [
+            {
+              "id": "cabinet_side_1",
+              "x": 0.0,
+              "y": 0.0,
+              "width": 582.0,
+              "height": 800.0,
+              "rotated": false
+            },
+            {
+              "id": "cabinet_side_2",
+              "x": 585.2,
+              "y": 0.0,
+              "width": 582.0,
+              "height": 800.0,
+              "rotated": false
+            },
+            {
+              "id": "cabinet_door_1",
+              "x": 0.0,
+              "y": 803.2,
+              "width": 447.0,
+              "height": 796.0,
+              "rotated": false
+            },
+            {
+              "id": "cabinet_door_2",
+              "x": 450.2,
+              "y": 803.2,
+              "width": 447.0,
+              "height": 796.0,
+              "rotated": false
+            }
+          ]
+        }
+      ],
+      "kerf": 3.2,
+      "allow_rotate": false,
+      "utilization": 0.436294006987369,
+      "method": "deterministic row packing; no optimality claim",
+      "note": "Grained panels keep orientation; separate stock by material/thickness/grain. No edge trim or machining toolpath is assumed; CNC readiness not_verified."
+    }
+  },
+  "export": {
+    "ok": true,
+    "model_id": "building_31243dbc9ee94077",
+    "revision": 3,
+    "directory": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/output/archkiln/building_31243dbc9ee94077/20260910T232517Z-b34e42d5",
+    "regulatory_status": "not_verified",
+    "ifc": {
+      "path": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/output/archkiln/building_31243dbc9ee94077/20260910T232517Z-b34e42d5/building.ifc",
+      "schema": "IFC4",
+      "units": "mm",
+      "revision": 3,
+      "entities": 15,
+      "fillings": 4,
+      "sha256": "d87c01c882fd2594360a1eeef2492261de7a0f380e79937f7db3e62d627c28ba",
+      "wall_junctions": {
+        "status": "no_wall_overlap_found",
+        "pairs_found": 0,
+        "overlaps": [],
+        "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+        "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+      },
+      "wall_joins": {
+        "policy": "orthogonal_butt_v1",
+        "count": 6,
+        "joints": [
+          {
+            "walls": [
+              "east",
+              "north"
+            ],
+            "point": [
+              10000.0,
+              8000.0,
+              0
+            ],
+            "through": "east",
+            "type": "L"
+          },
+          {
+            "walls": [
+              "east",
+              "south"
+            ],
+            "point": [
+              10000.0,
+              0.0,
+              0
+            ],
+            "through": "east",
+            "type": "L"
+          },
+          {
+            "walls": [
+              "north",
+              "partition"
+            ],
+            "point": [
+              6000.0,
+              8000.0,
+              0
+            ],
+            "through": "north",
+            "type": "T"
+          },
+          {
+            "walls": [
+              "north",
+              "west"
+            ],
+            "point": [
+              0.0,
+              8000.0,
+              0
+            ],
+            "through": "north",
+            "type": "L"
+          },
+          {
+            "walls": [
+              "partition",
+              "south"
+            ],
+            "point": [
+              6000.0,
+              0.0,
+              0
+            ],
+            "through": "south",
+            "type": "T"
+          },
+          {
+            "walls": [
+              "south",
+              "west"
+            ],
+            "point": [
+              0.0,
+              0.0,
+              0
+            ],
+            "through": "south",
+            "type": "L"
+          }
+        ],
+        "details_limit": 128,
+        "source_centerlines_unchanged": true
+      },
+      "limitations": [
+        "Door/window fill geometry omitted: construction dimensions were not supplied.",
+        "Cabinet panels use finished envelopes; machining and separate edge bands omitted.",
+        "Schema, geometry, IDS and jurisdiction verification are separate checks.",
+        "Inspect wall_joins and wall_junctions; other-element intersections remain unverified."
+      ]
+    },
+    "ifc_validation": {
+      "schema": {
+        "status": "pass",
+        "ifc_schema": "IFC4",
+        "express_rules": true,
+        "findings_count": 0,
+        "findings": [],
+        "dependency_warnings": [
+          {
+            "category": "ResourceWarning",
+            "reason": "IfcOpenShell EXPRESS rule source file closed by finalization."
+          }
+        ]
+      },
+      "geometry": {
+        "status": "pass",
+        "products_measured": 10,
+        "measurements": [
+          {
+            "guid": "1pg76N4TnIfxYyS$pD3huk",
+            "id": "roof",
+            "class": "IfcRoof",
+            "volume_m3": 18.232,
+            "bounds_mm": {
+              "min": [
+                -300.0,
+                -300.0,
+                2800.0
+              ],
+              "max": [
+                10300.0,
+                8300.0,
+                3000.0
+              ]
+            }
+          },
+          {
+            "guid": "2w9Sndy4LGzgS2kYtNtprQ",
+            "id": "floor",
+            "class": "IfcSlab",
+            "volume_m3": 12.546,
+            "bounds_mm": {
+              "min": [
+                -100.0,
+                -100.0,
+                -150.0
+              ],
+              "max": [
+                10100.0,
+                8100.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "guid": "035OBeUTXVW84pc7kM9zhi",
+            "id": "south",
+            "class": "IfcWall",
+            "volume_m3": 5.16,
+            "bounds_mm": {
+              "min": [
+                -100.0,
+                -100.0,
+                0.0
+              ],
+              "max": [
+                9900.0,
+                100.0,
+                2800.0
+              ]
+            }
+          },
+          {
+            "guid": "1scx6slDfTexTijt8li$NB",
+            "id": "east",
+            "class": "IfcWall",
+            "volume_m3": 4.16,
+            "bounds_mm": {
+              "min": [
+                9900.0,
+                -100.0,
+                0.0
+              ],
+              "max": [
+                10100.0,
+                8100.0,
+                2800.0
+              ]
+            }
+          },
+          {
+            "guid": "0xEXIx5DbJvg4SoRYIRuJH",
+            "id": "north",
+            "class": "IfcWall",
+            "volume_m3": 5.6,
+            "bounds_mm": {
+              "min": [
+                -100.0,
+                7900.0,
+                0.0
+              ],
+              "max": [
+                9900.0,
+                8100.0,
+                2800.0
+              ]
+            }
+          },
+          {
+            "guid": "1W5n8lELzH68yRzLv_X1Ag",
+            "id": "west",
+            "class": "IfcWall",
+            "volume_m3": 3.936,
+            "bounds_mm": {
+              "min": [
+                -100.0,
+                100.0,
+                0.0
+              ],
+              "max": [
+                100.0,
+                7900.0,
+                2800.0
+              ]
+            }
+          },
+          {
+            "guid": "2edv4Ntj5LN8oUNlc4PnM4",
+            "id": "partition",
+            "class": "IfcWall",
+            "volume_m3": 3.99,
+            "bounds_mm": {
+              "min": [
+                5900.0,
+                100.0,
+                0.0
+              ],
+              "max": [
+                6100.0,
+                7900.0,
+                2800.0
+              ]
+            }
+          },
+          {
+            "guid": "2yZTxjQxfO5AvN8nJQXIZx",
+            "id": "cabinet",
+            "class": "IfcFurnishingElement",
+            "volume_m3": 0.062211888,
+            "bounds_mm": {
+              "min": [
+                500.0,
+                500.0,
+                0.0
+              ],
+              "max": [
+                1400.0,
+                1100.0,
+                900.0
+              ]
+            }
+          },
+          {
+            "guid": "2RCunkjpbOaRkOxAt_MQnF",
+            "id": "living",
+            "class": "IfcSpace",
+            "volume_m3": 126.672,
+            "bounds_mm": {
+              "min": [
+                100.0,
+                100.0,
+                0.0
+              ],
+              "max": [
+                5900.0,
+                7900.0,
+                2800.0
+              ]
+            }
+          },
+          {
+            "guid": "3D1OzYm81JheQ_k0b3zbC8",
+            "id": "room",
+            "class": "IfcSpace",
+            "volume_m3": 82.992,
+            "bounds_mm": {
+              "min": [
+                6100.0,
+                100.0,
+                0.0
+              ],
+              "max": [
+                9900.0,
+                7900.0,
+                2800.0
+              ]
+            }
+          }
+        ],
+        "failures": [],
+        "scope": "Represented products only; schema-only fillings are not construction solids.",
+        "quantity_policy": "Per-product volumes; overlaps prevent adding as net material.",
+        "junctions": "not_verified; inspect the authoring export's wall_junctions report",
+        "unrepresented_fillings": 4
+      },
+      "length_unit_metres": 0.001,
+      "classes": {
+        "IfcDoor": 2,
+        "IfcRoof": 1,
+        "IfcSlab": 1,
+        "IfcWall": 5,
+        "IfcWindow": 2,
+        "IfcOpeningElement": 4,
+        "IfcFurnishingElement": 1,
+        "IfcBuilding": 1,
+        "IfcBuildingStorey": 1,
+        "IfcSite": 1,
+        "IfcSpace": 2
+      },
+      "ids": {
+        "status": "not_verified",
+        "reason": "No IDS specification supplied to this check."
+      },
+      "regulatory": {
+        "status": "not_verified",
+        "reason": "IFC validity is not building approval."
+      }
+    },
+    "drawings": {
+      "directory": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/output/archkiln/building_31243dbc9ee94077/20260910T232517Z-b34e42d5",
+      "revision": 3,
+      "views": 12,
+      "panels": 9,
+      "manifest": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/output/archkiln/building_31243dbc9ee94077/20260910T232517Z-b34e42d5/drawing-manifest.json",
+      "files": 28,
+      "pdf": {
+        "status": "written",
+        "pages": 12,
+        "font_substitutions": 0
+      },
+      "limitations": [
+        "Initial review drawings; jurisdiction-specific sheet standards unverified.",
+        "Elevations are wire projections without hidden-line removal.",
+        "Door/window construction is unspecified; only authored opening voids are cut.",
+        "Panel blank schedules are not a manufacturer or CNC approval.",
+        "Inspect wall_joins/wall_junctions; other-element intersections remain unverified."
+      ]
+    },
+    "glb": {
+      "path": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/output/archkiln/building_31243dbc9ee94077/20260910T232517Z-b34e42d5/building.glb",
+      "units": "m",
+      "source_units": "mm",
+      "revision": 3,
+      "nodes": 28,
+      "sha256": "1ba6e6bbdeb00cc7fa5199d22b9fe30289d6fe5131c7fd714c4158d1f7308d3a",
+      "limitations": [
+        "Door/window construction is unspecified; voids are exact, fillings semantic-only.",
+        "Spaces are separate transparent volume candidates, not construction solids.",
+        "Cabinet edge bands share the finished panel envelope; machining is not represented.",
+        "Inspect wall_joins and wall_junctions; other-element intersections remain unverified."
+      ]
+    }
+  },
+  "check": {
+    "model_id": "building_31243dbc9ee94077",
+    "revision": 3,
+    "model_validation": {
+      "ok": true,
+      "revision": 3,
+      "entities": 15
+    },
+    "geometry": {
+      "status": "not_verified",
+      "wall_joins": {
+        "policy": "orthogonal_butt_v1",
+        "count": 6,
+        "joints": [
+          {
+            "walls": [
+              "east",
+              "north"
+            ],
+            "point": [
+              10000.0,
+              8000.0,
+              0
+            ],
+            "through": "east",
+            "type": "L"
+          },
+          {
+            "walls": [
+              "east",
+              "south"
+            ],
+            "point": [
+              10000.0,
+              0.0,
+              0
+            ],
+            "through": "east",
+            "type": "L"
+          },
+          {
+            "walls": [
+              "north",
+              "partition"
+            ],
+            "point": [
+              6000.0,
+              8000.0,
+              0
+            ],
+            "through": "north",
+            "type": "T"
+          },
+          {
+            "walls": [
+              "north",
+              "west"
+            ],
+            "point": [
+              0.0,
+              8000.0,
+              0
+            ],
+            "through": "north",
+            "type": "L"
+          },
+          {
+            "walls": [
+              "partition",
+              "south"
+            ],
+            "point": [
+              6000.0,
+              0.0,
+              0
+            ],
+            "through": "south",
+            "type": "T"
+          },
+          {
+            "walls": [
+              "south",
+              "west"
+            ],
+            "point": [
+              0.0,
+              0.0,
+              0
+            ],
+            "through": "south",
+            "type": "L"
+          }
+        ],
+        "details_limit": 128,
+        "source_centerlines_unchanged": true
+      },
+      "wall_junctions": {
+        "status": "no_wall_overlap_found",
+        "pairs_found": 0,
+        "overlaps": [],
+        "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+        "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+      },
+      "scope": "Selected wall junction policy and bounded wall-wall overlap checks only.",
+      "remaining": [
+        "room enclosure and other-element intersections",
+        "structural, service and construction-system design",
+        "regulatory and fabrication approval"
+      ]
+    },
+    "regulatory": {
+      "status": "not_verified",
+      "assessment_date": "2026-09-11",
+      "document_revision": 3,
+      "checks": [],
+      "counts": {
+        "pass": 0,
+        "fail": 0,
+        "not_applicable": 0,
+        "not_verified": 0
+      },
+      "coverage": {
+        "status": "not_verified",
+        "jurisdiction": {
+          "country": null,
+          "region": null,
+          "municipality": null
+        },
+        "packs": [],
+        "missing_location": [
+          "country",
+          "region",
+          "municipality"
+        ],
+        "reason": "complete_applicable_legislation_inventory_not_established",
+        "worldwide_framework": true,
+        "worldwide_verified_law_coverage": false,
+        "legal_approval": false
+      },
+      "schema_validation": "not_assessed",
+      "ids_validation": "not_assessed",
+      "geometry_validation": "not_assessed",
+      "legal_approval": false,
+      "threshold_policy": "versioned_source_interpretations_learning_cannot_modify",
+      "source_authentication": "supplied_review_records_not_independently_authenticated"
+    }
+  },
+  "scan": {
+    "source_sha256": "948f71172c12c87292ab9c798ff6423effa4711ec11afb27605f870abf1938a4",
+    "candidate": {
+      "id": "candidate_724c77c088f3957b",
+      "kind": "wall",
+      "units": "mm",
+      "classification": "vertical_surface",
+      "plane": {
+        "normal": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "point_mm": [
+          2000.0,
+          50.0,
+          1400.0
+        ]
+      },
+      "bounds_mm": [
+        [
+          0.0,
+          50.0,
+          0.0
+        ],
+        [
+          4000.0,
+          50.0,
+          2800.0
+        ]
+      ],
+      "dimensions": {
+        "observed_height_mm": 2800.0,
+        "observed_length_mm": 4000.0
+      },
+      "measurement": {
+        "support_points": 315,
+        "sample_points": 315,
+        "support_fraction": 1.0,
+        "rms_mm": 0.0,
+        "p95_mm": 0.0,
+        "max_mm": 0.0,
+        "tolerance_mm": 1.0
+      },
+      "uncertainty": [
+        "sampled_surface_only",
+        "concealed_thickness_unknown",
+        "construction_role_unknown",
+        "observed_extent_may_be_occluded",
+        "centreline_offset_requires_review"
+      ],
+      "provenance": {
+        "source_sha256": "948f71172c12c87292ab9c798ff6423effa4711ec11afb27605f870abf1938a4",
+        "source_path": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/wall.xyz",
+        "source_units": "mm",
+        "transform": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "method": "deterministic-ransac-svd/1",
+        "origin_shift_mm": [
+          2000.0,
+          50.0,
+          1400.0
+        ],
+        "source_precision": {
+          "encoding": "text",
+          "source_quantization": "unknown"
+        },
+        "source_sampling": "deterministic_even_row_sample",
+        "source_sample_budget": 200000,
+        "candidate_id": "candidate_724c77c088f3957b",
+        "status": "proposed_not_authored",
+        "dependency_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "surface_line_mm": [
+        [
+          4000.0,
+          50.0
+        ],
+        [
+          0.0,
+          50.0
+        ]
+      ],
+      "required_for_promotion": [
+        "storey",
+        "height",
+        "thickness",
+        "centreline_offset_mm"
+      ],
+      "declared_dimensions": {}
+    },
+    "promotion": {
+      "ok": true,
+      "model_id": "building_d3dca9fc70b24682",
+      "revision": 2,
+      "created": [
+        "measured_wall"
+      ],
+      "updated": [],
+      "deleted": []
+    }
+  },
+  "models_invoked": false,
+  "paid_inference": false,
+  "dcc_contact": false
+}

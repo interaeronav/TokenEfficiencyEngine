@@ -1,0 +1,12 @@
+{
+  "partkiln": {
+    "files": 90,
+    "all_files_equal_accepted": true,
+    "identity_sha256": "83a7e01de0991339cf767a1188e812bd3c7be253d5a53db9933b3b53de5e6898"
+  },
+  "seamkiln": {
+    "files": 61,
+    "all_files_equal_accepted": true,
+    "identity_sha256": "9c273bf40e895a73b565e53d9b137bb70620f698db7e12335aadd56e9d393a94"
+  }
+}

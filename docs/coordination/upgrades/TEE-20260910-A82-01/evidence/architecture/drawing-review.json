@@ -1,0 +1,93 @@
+{
+  "scope": "Independent reopening of exported drawing artifacts plus visual inspection of rendered first PDF page. This is a review set, not authority acceptance.",
+  "passed": true,
+  "evidence": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/evidence.json",
+  "evidence_sha256": "99ed8347d456ec7b36f6c03dcb9f2a7a048ad63bf3361a13cfe5e2824004a135",
+  "revision": 3,
+  "checks": {
+    "artifact_hashes": true,
+    "svg_metadata_exact": true,
+    "same_revision": true,
+    "svg_lines": true,
+    "dxf_lines": true,
+    "pdf_lines": true,
+    "dxf_millimetres": true,
+    "pdf_pages": true
+  },
+  "artifact_hashes_checked": 27,
+  "annotation_count": 7,
+  "annotations": [
+    {
+      "id": "room",
+      "kind": "space",
+      "revision": 3,
+      "lines": [
+        "Room",
+        "29.64 m\u00b2"
+      ]
+    },
+    {
+      "id": "living",
+      "kind": "space",
+      "revision": 3,
+      "lines": [
+        "Living room",
+        "45.24 m\u00b2"
+      ]
+    },
+    {
+      "id": "entrance",
+      "kind": "opening",
+      "revision": 3,
+      "lines": [
+        "Entrance [entrance]",
+        "Opening W 1000 x H 2200 mm"
+      ]
+    },
+    {
+      "id": "internal_door",
+      "kind": "opening",
+      "revision": 3,
+      "lines": [
+        "Internal door",
+        "[internal_door]",
+        "Opening W 900 x H 2100 mm"
+      ]
+    },
+    {
+      "id": "east_window",
+      "kind": "opening",
+      "revision": 3,
+      "lines": [
+        "East window [east_window]",
+        "Opening W 1800 x H 1200 mm",
+        "Sill 900 mm"
+      ]
+    },
+    {
+      "id": "west_window",
+      "kind": "opening",
+      "revision": 3,
+      "lines": [
+        "West window [west_window]",
+        "Opening W 1800 x H 1200 mm",
+        "Sill 900 mm"
+      ]
+    },
+    {
+      "id": "cabinet",
+      "kind": "cabinet",
+      "revision": 3,
+      "lines": [
+        "Base cabinet [cabinet]",
+        "Cabinet 900 x 600 x 900 mm"
+      ]
+    }
+  ],
+  "visual": {
+    "image": "/Users/john/TokenEfficiencyEngine/output/architecture/house-example/20260910T232517Z/annotated-plan.png",
+    "image_sha256": "6392e9b8357bd5b8164da0867ec543696917a329581da8b68b29ea7261e015a9",
+    "result": "Seven callouts readable and separated; room labels inside the rooms; opening leaders point to authored voids. Cabinet below the cut plane is indicated by its location callout. Overall dimensions and review-set note remain legible.",
+    "limitations": "One rendered plan page reviewed; cabinet/section/elevation pages retain their prior construction. No invented leaf/frame/swings or code-approval claims."
+  }
+}

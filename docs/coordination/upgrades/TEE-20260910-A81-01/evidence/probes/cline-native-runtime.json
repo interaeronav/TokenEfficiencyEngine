@@ -1,0 +1,14 @@
+{
+  "scope": "fresh managed binary --version probe; not an observed Claude client environment",
+  "selected_binary": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+  "resolved_binary": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/@cline/cli-darwin-arm64/bin/cline",
+  "first_four_bytes_hex": "cffaedfe",
+  "child_path": "/usr/bin:/bin:/usr/sbin:/sbin",
+  "node_available": null,
+  "exit_code": 0,
+  "stdout": "3.0.61",
+  "stderr": "",
+  "requires_node_for_selected_binary_runtime": false,
+  "actual_claude_client_path_observed": false,
+  "models_invoked": false
+}

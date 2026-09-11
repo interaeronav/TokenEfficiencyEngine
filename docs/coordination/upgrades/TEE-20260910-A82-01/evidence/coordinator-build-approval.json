@@ -1,0 +1,14 @@
+{
+  "coordinator": "GPT-6 / Codex",
+  "update_id": "TEE-20260910-A82-01",
+  "revision": 1,
+  "approved_payload_sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+  "runtime_resource_files": 293,
+  "bytes": 3428263,
+  "authorized_action": "Build both appropriate client artifacts from this isolated complete snapshot; verify and freeze matching local deliveries under protocol 1.0.1.",
+  "basis": "Owner integration, GUI/worldwide clarifications and quiet continuation; 674 strict affected tests, clean Ruff, real headless browser and independent IFC/GLB/drawing checks.",
+  "installation_authorized_by_this_record": false,
+  "new_permission_granted": false,
+  "external_messages": false,
+  "both_actual_client_receipts": "pending"
+}

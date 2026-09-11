@@ -1,0 +1,167 @@
+{
+  "observed_utc": "2026-09-10T21:00:15.465622+00:00",
+  "codex": {
+    "observer": "actual Codex MCP client before refresh",
+    "rooted_at": {
+      "project_root": "/Users/john/TokenEfficiencyEngine",
+      "grants_file": "/Users/john/TokenEfficiencyEngine/.tee/config.toml",
+      "granted": [
+        "call-paid-engine"
+      ],
+      "denied_tiers": {
+        "exec-code": "1 tool(s)",
+        "run-adhoc": "1 tool(s)",
+        "run-declared-step": "1 tool(s)"
+      },
+      "why": "reads and project memory work; these tiers need a grant in the project this session is rooted at",
+      "fix": "launch with --project <the granted project>, or add a [trust] grants line to /Users/john/TokenEfficiencyEngine/.tee/config.toml"
+    },
+    "profile": "qmax",
+    "active_jobs": [],
+    "checkpoints": [],
+    "virtual_tools": 240,
+    "code_exec_enabled": false,
+    "adapters": {
+      "blender": {
+        "id": "blender",
+        "product": "Blender",
+        "version": "5.2.0 LTS",
+        "connected": true,
+        "background": false,
+        "file": "(unsaved)",
+        "objects": 3,
+        "scene": {
+          "epoch": 1,
+          "revision": 1
+        }
+      },
+      "partkiln": {
+        "id": "partkiln",
+        "product": "partkiln",
+        "version": "0.1.0",
+        "connected": true,
+        "mode": "sidecar",
+        "state": "warm",
+        "occt": "7.9.3",
+        "parts": 0,
+        "assemblies": 0,
+        "drawings": 0,
+        "commands": 0,
+        "warm_job": "job1",
+        "scene": {
+          "epoch": 1,
+          "revision": 1
+        }
+      },
+      "seamkiln": {
+        "id": "seamkiln",
+        "product": "seamkiln",
+        "version": "0.1.0.dev0",
+        "connected": true,
+        "pattern": null,
+        "panels": 0,
+        "seams": 0,
+        "draped": false,
+        "fabric": "cotton_jersey",
+        "scene": {
+          "epoch": 1,
+          "revision": 1
+        }
+      },
+      "fusion": {
+        "id": "fusion",
+        "product": "Autodesk Fusion",
+        "version": "2705.1.15",
+        "connected": true,
+        "document": null,
+        "design": null,
+        "ids": 0,
+        "scene": {
+          "epoch": 1,
+          "revision": 1
+        }
+      },
+      "unreal": {
+        "id": "unreal",
+        "product": "Unreal Engine",
+        "version": "5.8+",
+        "connected": false,
+        "endpoint": "http://127.0.0.1:8000/mcp",
+        "toolsets": 0,
+        "scene": {
+          "epoch": 0,
+          "revision": 0
+        }
+      }
+    }
+  },
+  "claude": {
+    "evidence": "recipient-authored live receipt07, not a Codex observation of that session",
+    "receipt": "docs/coordination/2026-09-10T205119Z-claude-receipt-07.md",
+    "stage": "reconnected old bundle only",
+    "project_root": "/Users/john/TokenEfficiencyEngine-a71",
+    "enabled_setting": true,
+    "settings_sha256": "363ef94631840355d8b773cb4d036befac07aeab32e65c53ff716bfbb1ab7a87",
+    "profile": "q14b",
+    "granted": [],
+    "version": "0.30.1",
+    "core_tools": 17,
+    "virtual_tools": 240,
+    "payload_sha256": "8b6b58e0cafa4ea7e9ed2696b85b3979432bd849adf3ceac67c7a8a904be6aed",
+    "payload_files": 252,
+    "pid_reported": 53401,
+    "started_utc_reported": "2026-09-10T20:27:47Z"
+  },
+  "main_profile_file": {
+    "ready": true,
+    "pinned": true
+  },
+  "backup": {
+    "path": "/Users/john/TokenEfficiencyEngine/.tee/update-backups/TEE-20260910-A79-A80-01",
+    "method": "SQLite online backups and private ordinary-file copies; repeat at cutover if modified",
+    "restore_pid_files": false
+  },
+  "state_transition": {
+    "claude_from": "/Users/john/TokenEfficiencyEngine-a71",
+    "intended_both": "/Users/john/TokenEfficiencyEngine",
+    "mode": "select existing main namespace, preserve a71 in place; no merge or grant copy",
+    "jobs_checkpoints": "in-memory indexes reset on restart; quiesce first, no durable-id continuity claim",
+    "learning": "schema1 additive SQLite state retained; no synthetic data or forced promotion",
+    "memory": "single writer GPT-6 during cutover; avoid concurrent tee_remember writes"
+  },
+  "source_git": {
+    "repository": "https://github.com/interaeronav/TokenEfficiencyEngine",
+    "branch": "claude/token-efficiency-engine-5jv1dj",
+    "commit": "4db0fb0962d91ed3844f69219546f40932a90816",
+    "remote_head_verified_equal": true,
+    "dirty_source_status": [
+      " M server/src/tee/adapters/blender/adapter.py",
+      " M server/src/tee/adapters/blender/codegen.py",
+      " M server/src/tee/adapters/blender/shim.py",
+      " M server/src/tee/adapters/blender/tools.py",
+      " M server/src/tee/adapters/fusion/adapter.py",
+      " M server/src/tee/adapters/fusion/codegen.py",
+      " M server/src/tee/adapters/fusion/tools.py",
+      " M server/src/tee/app.py",
+      " M server/src/tee/config.py",
+      " M server/src/tee/engines/audition.py",
+      " M server/src/tee/engines/table.py",
+      " M server/src/tee/kernel/jobs.py",
+      " M server/src/tee/kernel/lanes.py",
+      " M server/src/tee/kernel/registry.py",
+      " M server/src/tee/kernel/trust.py",
+      " M server/src/tee/llm/chores.py",
+      " M server/src/tee/llm/router.py",
+      " M skills/tee-usage/SKILL.md",
+      "?? server/src/tee/adapters/blender/guidance.py",
+      "?? server/src/tee/adapters/blender/recipes/",
+      "?? server/src/tee/adapters/fusion/CADAgent-LICENSE.txt",
+      "?? server/src/tee/adapters/fusion/cadagent.py",
+      "?? server/src/tee/adapters/fusion/guidance.py",
+      "?? server/src/tee/adapters/fusion/recipes/",
+      "?? server/src/tee/kernel/guidance.py",
+      "?? server/src/tee/learning/"
+    ],
+    "manifest_covers": "every regular shipped runtime/resource file including untracked source; not entire dirty workspace"
+  }
+}

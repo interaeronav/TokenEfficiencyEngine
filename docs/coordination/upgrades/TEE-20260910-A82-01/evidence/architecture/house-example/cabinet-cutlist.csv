@@ -1,0 +1,10 @@
+revision,cabinet_id,panel_id,role,blank_width_mm,blank_height_mm,finished_width_mm,finished_height_mm,thickness_mm,grain,material,edge_left_mm,edge_right_mm,edge_top_mm,edge_bottom_mm
+3,cabinet,cabinet_side_1,side,582.0,800.0,582.0,800.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_side_2,side,582.0,800.0,582.0,800.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_bottom_1,bottom,864.0,582.0,864.0,582.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_top_1,top,864.0,582.0,864.0,582.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_back_1,back,864.0,764.0,864.0,764.0,6.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_shelf_1,shelf,864.0,576.0,864.0,576.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_door_1,door,447.0,796.0,447.0,796.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_door_2,door,447.0,796.0,447.0,796.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0
+3,cabinet,cabinet_plinth_1,plinth,900.0,100.0,900.0,100.0,18.0,height,Generic sheet; specify grade before manufacture,0.0,0.0,0.0,0.0

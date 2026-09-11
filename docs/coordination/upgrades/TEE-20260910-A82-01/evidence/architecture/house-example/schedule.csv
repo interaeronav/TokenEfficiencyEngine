@@ -1,0 +1,16 @@
+revision,id,kind,name,storey,width_mm,height_mm,thickness_mm,length_mm,area_m2
+3,ground,storey,Ground floor,,,2800,,,
+3,south,wall,South,ground,,2800,200,10000.0,
+3,east,wall,East,ground,,2800,200,8000.0,
+3,north,wall,North,ground,,2800,200,10000.0,
+3,west,wall,West,ground,,2800,200,8000.0,
+3,partition,wall,Partition,ground,,2800,200,8000.0,
+3,entrance,opening,Entrance,,1000,2200,,,
+3,internal_door,opening,Internal door,,900,2100,,,
+3,east_window,opening,East window,,1800,1200,,,
+3,west_window,opening,West window,,1800,1200,,,
+3,living,space,Living room,ground,,2800,,,45.24
+3,room,space,Room,ground,,2800,,,29.64
+3,floor,slab,Ground slab,ground,,,150,,83.64
+3,roof,roof,Flat roof,ground,,,200,,91.16
+3,cabinet,cabinet,Base cabinet,ground,900,900,,,

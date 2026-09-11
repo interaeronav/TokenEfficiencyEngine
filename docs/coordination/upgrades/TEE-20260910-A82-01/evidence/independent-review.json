@@ -1,0 +1,137 @@
+{
+  "reviewed_utc": "2026-09-10T23:31:14.102034+00:00",
+  "update_id": "TEE-20260910-A82-01",
+  "outcome": "PASS",
+  "approved_payload": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+  "scope": "Independent static source/snapshot/archive and release-helper review. No helper execution, installation, inference, grants, restarts or actual-client acceptance.",
+  "payloads": {
+    "checkout": {
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+      "files": 293,
+      "bytes": 3428263
+    },
+    "snapshot": {
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+      "files": 293,
+      "bytes": 3428263
+    },
+    "claude": {
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+      "files": 293,
+      "bytes": 3428263
+    },
+    "codex": {
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+      "files": 293,
+      "bytes": 3428263
+    }
+  },
+  "artifacts": {
+    "claude": {
+      "bytes": 1138535,
+      "sha256": "98f5116fe1c51b62062571cdf81d4f0039d3bc34815aafcf7c951c0768c3c3e2",
+      "members": 301
+    },
+    "codex": {
+      "bytes": 1569353,
+      "sha256": "e908840f325f6e9e5366ead6cfcda7636fa1d5efa8650143b446670781de53e1",
+      "members": 320
+    }
+  },
+  "delta_from_held_a81": {
+    "added": [
+      "tee/architecture/__init__.py",
+      "tee/architecture/cabinets.py",
+      "tee/architecture/data/README.md",
+      "tee/architecture/data/rule-pack.schema.json",
+      "tee/architecture/drawings.py",
+      "tee/architecture/exchange.py",
+      "tee/architecture/gui.html",
+      "tee/architecture/gui.py",
+      "tee/architecture/imports.py",
+      "tee/architecture/model.py",
+      "tee/architecture/rules.py",
+      "tee/architecture/service.py",
+      "tee/architecture/tools.py",
+      "tee/architecture/unreal_export.py"
+    ],
+    "modified": [
+      "tee/app.py",
+      "tee/cli.py",
+      "tee/extract/ifc.py",
+      "tee/kernel/trust.py"
+    ],
+    "removed": []
+  },
+  "accepted_a79_rollback": {
+    "manifest_sha256": "1846119f418092dee3a3b76c39d9a920be21823c49bb3e1378a75773ccb5b469",
+    "common_files_verified_in_both_deliveries": 34,
+    "common_files_also_present_and_verified_in_source_packet": 6,
+    "both_source_and_delivered_artifacts_unchanged": true
+  },
+  "held_a81_immutable": {
+    "manifest_sha256": "987886327a05cd6d0b10035c2ae9f52ffad9ae0818db2e1a9c4e00ad0085c93f",
+    "common_files_verified_in_both_deliveries": 60,
+    "common_files_also_present_and_verified_in_source_packet": 60,
+    "both_source_and_delivered_artifacts_unchanged": true
+  },
+  "editable_kernels": {
+    "partkiln": {
+      "files": 90,
+      "bytes": 1291030,
+      "identity_sha256": "83a7e01de0991339cf767a1188e812bd3c7be253d5a53db9933b3b53de5e6898",
+      "all_files_and_inventory_equal_accepted": true
+    },
+    "seamkiln": {
+      "files": 61,
+      "bytes": 814762,
+      "identity_sha256": "9c273bf40e895a73b565e53d9b137bb70620f698db7e12335aadd56e9d393a94",
+      "all_files_and_inventory_equal_accepted": true
+    }
+  },
+  "helpers": {
+    "prepare_packet.py": {
+      "bytes": 19741,
+      "sha256": "acae543c8c2ae137d1c1a21482fcd4bea8131d867090fd92af5a830a7b0ad635"
+    },
+    "assemble_release.py": {
+      "bytes": 14245,
+      "sha256": "bb62d59b7d35a1ec056b782986dce19ec49f8b2e010e3b518b68273e3fc50e4f"
+    },
+    "freeze_delivery.py": {
+      "bytes": 4797,
+      "sha256": "d7d776864e815df1d4263b55e2bc8d6aa1c1d5d20b231fafdfdddec30574e64b"
+    },
+    "probes/verify_candidate.py": {
+      "bytes": 24026,
+      "sha256": "bf05ddce3f5b7cd2760c50785b0ab93f1e5926fba82bd5ed37958bbfed2349d3"
+    }
+  },
+  "checks": {
+    "complete_source_snapshot_and_archive_bytes_equal": true,
+    "source_manifest_canonical_and_self_hash_verified": true,
+    "complete_archive_member_manifests_verified": true,
+    "all_archive_members_safe_unique_regular_and_allowlisted": true,
+    "claude_eight_nonpayload_files_and_launcher_unchanged": true,
+    "codex_five_wrapper_files_match_snapshot_source_cache_and_accepted": true,
+    "no_private_state_environments_or_worker_installations_in_archives": true,
+    "no_high_confidence_secret_patterns_found": true,
+    "complete_editable_kernel_inventories_90_and_61_unchanged": true
+  },
+  "helper_review": {
+    "material_findings": [],
+    "observations": [
+      "Capture/build uses an explicit approved complete payload, isolated snapshot, and exclusive records; no dependencies, clients or grants are changed.",
+      "Assembler and freezer require reviewed evidence; recipient artifacts and all named common files are rehashed during delivery.",
+      "The helpers use assertions: run with normal Python, without -O or PYTHONOPTIMIZE.",
+      "A mid-copy I/O failure may leave an incomplete frozen delivery requiring deliberate recovery; no successful delivery record is written until both copies match.",
+      "This audit precedes final assembly/freeze; final shared-path selection and copies remain the coordinator's responsibility."
+    ]
+  },
+  "limitations": [
+    "Member allowlists and known high-confidence key patterns are not proof against arbitrary secret-shaped data.",
+    "Runtime tests and four isolated MCP probes are separately recorded; this static audit is not an actual Claude/Codex recipient receipt.",
+    "No universal building-code compliance or live Unreal acceptance is asserted."
+  ],
+  "actual_client_receipt": false
+}

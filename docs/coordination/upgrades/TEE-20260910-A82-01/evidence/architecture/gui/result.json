@@ -1,0 +1,84 @@
+{
+  "recorded_utc": "2026-09-10T23:21:42.662456+00:00",
+  "mode": "owned headless Chrome, isolated disposable project/profile",
+  "command": "TEE_GUI_BROWSER_SMOKE=1 TEE_GUI_EVIDENCE_DIR=/Users/john/TokenEfficiencyEngine/output/architecture/gui-evidence server/.venv/bin/python -m pytest -q -s --tb=short -W error server/tests/test_architecture_model.py server/tests/test_architecture_cabinets.py server/tests/test_architecture_gui.py",
+  "result": {
+    "passed": 95,
+    "elapsed_s": 12.59,
+    "revision": 5,
+    "entity_count": 16,
+    "meshes": 29,
+    "canvas_physical_pixels": [
+      [
+        1732,
+        660
+      ],
+      [
+        1732,
+        600
+      ]
+    ],
+    "browser_exceptions": [],
+    "browser_cases": 2
+  },
+  "workflow": [
+    "GUI create two-room house",
+    "select cabinet and change width 900 to 1200 mm",
+    "undo to 900 mm and refresh schedule",
+    "calculate sheet nesting through shared query API",
+    "set location DE/BE/Berlin (test input, no law coverage assertion)",
+    "check missing regulatory coverage remains not_verified",
+    "inspect generated wall.xyz fixture wholly inside room",
+    "review candidate and promote with height 2800, thickness 200, centreline_offset 100 mm",
+    "export document JSON"
+  ],
+  "sources": [
+    {
+      "path": "server/src/tee/architecture/gui.py",
+      "sha256": "8d1dd0dae30c7946870a33c8bad0304976db031bd0cdc3e41c7f51b644b5980f",
+      "retained": "sources/gui.py"
+    },
+    {
+      "path": "server/src/tee/architecture/gui.html",
+      "sha256": "94db4274cc101642a1ccecbf3e6cb052198eeb06395b8f2b845e70fe30c0ed0c",
+      "retained": "sources/gui.html"
+    },
+    {
+      "path": "server/src/tee/architecture/model.py",
+      "sha256": "8fe2550bd9bad19d61339859625d7c874fac78418f1559b7a9b326333693141f",
+      "retained": "sources/model.py"
+    },
+    {
+      "path": "server/src/tee/architecture/cabinets.py",
+      "sha256": "d7c5b4b7327e7bd9d3e63ecd0abe335ad2abb338c191f96f1826324446c304e4",
+      "retained": "sources/cabinets.py"
+    },
+    {
+      "path": "server/tests/test_architecture_gui.py",
+      "sha256": "8e39b3a1bcc9acb7c3424cc721a836c433f8409250952dbc6b361219a0c57f9e",
+      "retained": "sources/test_architecture_gui.py"
+    }
+  ],
+  "image": {
+    "path": "workbench.png",
+    "sha256": "98a4dfe9e23abec6c64a8626ee1d1ac6e2ad4a50784c60aee6b55b2697e5787b"
+  },
+  "scope": "No owner browser/profile/model/grant or personal source file accessed by browser. Screenshot is Top view/XY and orthographic 3D; top view is not an architectural cut plan. No token URL retained. Development fixture, not client installation acceptance.",
+  "race_checks": [
+    "selector_guard",
+    "stale_state",
+    "state_preview_revision",
+    "stale_preview",
+    "stale_schedule",
+    "stale_candidates",
+    "stale_check_export",
+    "stale_index"
+  ],
+  "race_evidence": {
+    "delays": "Fetch responses held and released deterministically in an owned headless browser.",
+    "control": "Both models have the same entity IDs and initial revision; alternate model stayed revision 1 with cabinet width 900 mm.",
+    "mixed_revision": "External API edit after state response but before preview is refused; editing controls stay disabled until refresh.",
+    "scope": "Loaded model ID, immutable document UUID, request generation and revision; drafts/import candidates cleared synchronously when selection changes."
+  },
+  "lint": "Ruff checks passed with server/pyproject.toml for all three owned modules and their tests."
+}

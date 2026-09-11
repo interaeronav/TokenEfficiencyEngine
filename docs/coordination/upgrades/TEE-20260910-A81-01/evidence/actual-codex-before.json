@@ -1,0 +1,48 @@
+{
+  "observed_utc": "2026-09-10 22:21:02 UTC",
+  "source": "Actual current Codex MCP connection; still accepted A79/A80 process",
+  "virtual_tools": 245,
+  "project": "/Users/john/TokenEfficiencyEngine",
+  "grants": [
+    "call-paid-engine"
+  ],
+  "profile": "qmax",
+  "code_exec_enabled": false,
+  "jobs": [],
+  "checkpoints": [],
+  "scene_stamps": {
+    "blender": {
+      "epoch": 1,
+      "revision": 1
+    },
+    "partkiln": {
+      "epoch": 1,
+      "revision": 1
+    },
+    "seamkiln": {
+      "epoch": 1,
+      "revision": 1
+    },
+    "fusion": {
+      "epoch": 0,
+      "revision": 0
+    },
+    "unreal": {
+      "epoch": 0,
+      "revision": 0
+    }
+  },
+  "memory_recall_ok": true,
+  "learning": {
+    "healthy": "ok",
+    "enabled": true,
+    "events": 48,
+    "snapshots": 0,
+    "active": {
+      "execution": null,
+      "reported": null,
+      "verified": null
+    }
+  },
+  "limitations": "Actual Claude baseline is its accepted receipt09; this is not a new Claude probe. Scene paths, private memory and config contents omitted."
+}

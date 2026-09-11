@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect x="10" y="10" width="400" height="277" fill="white" stroke="#333" stroke-width="0.3"/>
+<metadata>{&quot;revision&quot;: 3, &quot;units&quot;: &quot;mm&quot;, &quot;view&quot;: &quot;elevation&quot;, &quot;dimensions&quot;: [{&quot;name&quot;: &quot;projected_width&quot;, &quot;value_mm&quot;: 10600.0}, {&quot;name&quot;: &quot;projected_height&quot;, &quot;value_mm&quot;: 3150.0}], &quot;annotations&quot;: []}</metadata>
+<g font-family="sans-serif" fill="#111">
+<text x="16" y="21" font-size="5">Compact modern house — review example / elevation</text>
+<text x="16" y="29" font-size="3.5">Revision 3 | model mm | scale 1:50 at A3</text>
+<text x="16" y="279" font-size="3">South wire elevation; all represented edges projected to XZ; no hidden-line removal.</text>
+<text x="16" y="284" font-size="3">REVIEW SET | Verify dimensions, construction and required approvals.</text></g>
+<line data-entity="south" x1="133.500000" y1="174.000000" x2="107.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="133.500000" y1="118.000000" x2="107.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="133.500000" y1="174.000000" x2="133.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="107.500000" y1="174.000000" x2="107.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="153.500000" y1="130.000000" x2="133.500000" y2="130.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="153.500000" y1="118.000000" x2="133.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="153.500000" y1="130.000000" x2="153.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="133.500000" y1="130.000000" x2="133.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="307.500000" y1="174.000000" x2="153.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="307.500000" y1="118.000000" x2="153.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="307.500000" y1="174.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="153.500000" y1="174.000000" x2="153.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="174.000000" x2="307.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="118.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="174.000000" x2="311.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="174.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="174.000000" x2="307.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="156.000000" x2="307.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="174.000000" x2="311.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="174.000000" x2="307.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="132.000000" x2="307.500000" y2="132.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="118.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="132.000000" x2="311.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="132.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="174.000000" x2="307.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="118.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="174.000000" x2="311.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="174.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="107.500000" y1="174.000000" x2="307.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="107.500000" y1="118.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="107.500000" y1="174.000000" x2="107.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="307.500000" y1="174.000000" x2="307.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="174.000000" x2="111.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="118.000000" x2="111.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="174.000000" x2="107.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="174.000000" x2="111.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="174.000000" x2="111.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="156.000000" x2="111.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="174.000000" x2="107.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="174.000000" x2="111.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="132.000000" x2="111.500000" y2="132.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="118.000000" x2="111.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="132.000000" x2="107.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="132.000000" x2="111.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="174.000000" x2="111.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="118.000000" x2="111.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="174.000000" x2="107.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="174.000000" x2="111.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="174.000000" x2="227.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="118.000000" x2="227.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="174.000000" x2="231.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="174.000000" x2="227.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="132.000000" x2="227.500000" y2="132.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="118.000000" x2="227.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="132.000000" x2="231.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="132.000000" x2="227.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="174.000000" x2="227.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="118.000000" x2="227.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="174.000000" x2="231.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="174.000000" x2="227.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="floor" x1="311.500000" y1="177.000000" x2="107.500000" y2="177.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="floor" x1="311.500000" y1="174.000000" x2="107.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="floor" x1="311.500000" y1="177.000000" x2="311.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="floor" x1="107.500000" y1="177.000000" x2="107.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="roof" x1="315.500000" y1="118.000000" x2="103.500000" y2="118.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="roof" x1="315.500000" y1="114.000000" x2="103.500000" y2="114.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="roof" x1="315.500000" y1="118.000000" x2="315.500000" y2="114.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="roof" x1="103.500000" y1="118.000000" x2="103.500000" y2="114.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.860000" y1="172.000000" x2="119.500000" y2="172.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.860000" y1="156.000000" x2="119.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.860000" y1="172.000000" x2="119.860000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.500000" y1="172.000000" x2="119.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.500000" y1="172.000000" x2="137.140000" y2="172.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.500000" y1="156.000000" x2="137.140000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.500000" y1="172.000000" x2="137.500000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="172.000000" x2="137.140000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="172.000000" x2="119.860000" y2="172.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="171.640000" x2="119.860000" y2="171.640000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="172.000000" x2="137.140000" y2="171.640000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.860000" y1="172.000000" x2="119.860000" y2="171.640000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="156.360000" x2="119.860000" y2="156.360000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="156.000000" x2="119.860000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="156.360000" x2="137.140000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.860000" y1="156.360000" x2="119.860000" y2="156.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="171.640000" x2="119.860000" y2="171.640000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="156.360000" x2="119.860000" y2="156.360000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="171.640000" x2="137.140000" y2="156.360000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.860000" y1="171.640000" x2="119.860000" y2="156.360000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="164.180000" x2="119.860000" y2="164.180000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="163.820000" x2="119.860000" y2="163.820000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.140000" y1="164.180000" x2="137.140000" y2="163.820000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.860000" y1="164.180000" x2="119.860000" y2="163.820000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="128.480000" y1="171.960000" x2="119.540000" y2="171.960000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="128.480000" y1="156.040000" x2="119.540000" y2="156.040000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="128.480000" y1="171.960000" x2="128.480000" y2="156.040000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.540000" y1="171.960000" x2="119.540000" y2="156.040000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.460000" y1="171.960000" x2="128.520000" y2="171.960000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.460000" y1="156.040000" x2="128.520000" y2="156.040000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.460000" y1="171.960000" x2="137.460000" y2="156.040000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="128.520000" y1="171.960000" x2="128.520000" y2="156.040000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.500000" y1="174.000000" x2="119.500000" y2="174.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.500000" y1="172.000000" x2="119.500000" y2="172.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="137.500000" y1="174.000000" x2="137.500000" y2="172.000000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="cabinet" x1="119.500000" y1="174.000000" x2="119.500000" y2="172.000000" stroke="#253543" stroke-width="0.25"/>
+<path d="M 103.5 181.0 V 188.0 M 315.5 181.0 V 188.0 M 103.5 185.0 H 315.5" fill="none" stroke="#53616a" stroke-width="0.2"/>
+<text x="209.5" y="184.0" text-anchor="middle" font-family="sans-serif" font-size="3.5">10600 mm</text>
+<text x="99.5" y="145.5" text-anchor="end" font-family="sans-serif" font-size="3.5">3150 mm</text>
+</svg>

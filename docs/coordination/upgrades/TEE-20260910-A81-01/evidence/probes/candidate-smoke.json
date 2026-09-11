@@ -1,0 +1,1880 @@
+{
+  "scope": "fresh isolated delivery harness, not actual recipient acceptance",
+  "passed": true,
+  "deliveries": [
+    {
+      "archive": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/artifacts/tee-engine-0.30.1-a81-local.mcpb",
+      "sha256": "9d5e3c95687dbedb39c1d74f7f8277d446b1da0e661e84599943b290b4d1bbc9",
+      "extracted": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/claude"
+    },
+    {
+      "archive": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/artifacts/tee-a81-codex-source-snapshot.zip",
+      "sha256": "12463feeabb16c17ed81c327528a2e5bfb542ee09810c5b4c2b0738d0a6dcb91",
+      "extracted": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/codex"
+    }
+  ],
+  "all_core_schemas_equal": true,
+  "reports": [
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "claude",
+      "corpus": false,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/claude/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 246,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-claude-empty",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-claude-empty/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_fb66227367414f1fb5bad360cc41089e",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "26fa0a84e1d794963d76a6fedafbb2c7d053592c38c4bf44beda2a97489c574e",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 40.111,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/20260910T222937Z-claude-empty-core-schemas.json"
+    },
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "codex",
+      "corpus": false,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/codex/server/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 246,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-codex-empty",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-codex-empty/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_d35db91bd62b40198fd96f21613d5f48",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "0f6bde38f1c8abce089ae5f2d97c16ebb26db782953b45e8965fbb136999de2c",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 40.092,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/20260910T222937Z-codex-empty-core-schemas.json"
+    },
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "claude",
+      "corpus": true,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/claude/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 250,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-claude-corpus",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-claude-corpus/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_3745f4da94e0494683fe0f6d6e8185c3",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "609aded9286e85d6ed9489c9909d985e03205d2033d49fac76b7a4c1fee19c54",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 39.92,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/20260910T222937Z-claude-corpus-core-schemas.json"
+    },
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "codex",
+      "corpus": true,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/codex/server/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 250,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-codex-corpus",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/projects/20260910T222937Z-codex-corpus/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_6ffdb11018044d18afb304f2f6c96b3c",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "021b96f332635edc3659fb3410413373b58a1aa47437f0f175411c5e1072c462",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 39.858,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/20260910T222937Z-codex-corpus-core-schemas.json"
+    }
+  ],
+  "extracted_payloads": [
+    {
+      "extracted_source": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/claude/src/tee",
+      "sha256": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+      "files": 279,
+      "bytes": 3166135
+    },
+    {
+      "extracted_source": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/probes/extracted/20260910T222937Z/codex/server/src/tee",
+      "sha256": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+      "files": 279,
+      "bytes": 3166135
+    }
+  ],
+  "all_learning_descriptors_unchanged": true,
+  "all_guide_responses_unchanged": true,
+  "all_doc_descriptors_equal": true
+}

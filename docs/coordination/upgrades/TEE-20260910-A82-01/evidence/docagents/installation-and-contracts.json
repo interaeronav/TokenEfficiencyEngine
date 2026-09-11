@@ -1,0 +1,200 @@
+{
+  "observed_utc": "2026-09-10T22:03:47.355001+00:00",
+  "inference_run": false,
+  "shared_runtime_modified": false,
+  "versions": {
+    "aider": "0.86.2",
+    "cline": "3.0.61"
+  },
+  "discovery": {
+    "aider": {
+      "available": true,
+      "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+      "expected_version": "0.86.2",
+      "version": "0.86.2",
+      "version_verified": true,
+      "verification": "package_metadata"
+    },
+    "cline": {
+      "available": true,
+      "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+      "expected_version": "3.0.61",
+      "version": "3.0.61",
+      "version_verified": true,
+      "verification": "package_metadata"
+    }
+  },
+  "flags": {
+    "aider": {
+      "flags": [
+        "--chat-history-file",
+        "--config",
+        "--editor-model",
+        "--env-file",
+        "--input-history-file",
+        "--map-tokens",
+        "--message-file",
+        "--model",
+        "--no-analytics",
+        "--no-auto-commits",
+        "--no-auto-lint",
+        "--no-auto-test",
+        "--no-check-update",
+        "--no-dirty-commits",
+        "--no-git",
+        "--no-notifications",
+        "--no-pretty",
+        "--no-restore-chat-history",
+        "--no-show-release-notes",
+        "--no-stream",
+        "--no-suggest-shell-commands",
+        "--openai-api-base",
+        "--read",
+        "--timeout",
+        "--weak-model",
+        "--yes-always"
+      ],
+      "all_in_installed_help": true,
+      "missing": [],
+      "paid_preserved": true,
+      "final_argv": [
+        "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+        "--model",
+        "openai/claude-qwen-max",
+        "--weak-model",
+        "openai/claude-qwen-max",
+        "--editor-model",
+        "openai/claude-qwen-max",
+        "--openai-api-base",
+        "http://127.0.0.1:4000/v1",
+        "--config",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/backend/aider/aider.yml",
+        "--env-file",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/backend/aider/empty.env",
+        "--message-file",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/backend/aider/instruction.txt",
+        "--map-tokens",
+        "0",
+        "--timeout",
+        "300",
+        "--no-git",
+        "--no-auto-commits",
+        "--no-dirty-commits",
+        "--no-auto-lint",
+        "--no-auto-test",
+        "--no-suggest-shell-commands",
+        "--no-check-update",
+        "--no-analytics",
+        "--no-stream",
+        "--no-pretty",
+        "--no-show-release-notes",
+        "--no-notifications",
+        "--no-restore-chat-history",
+        "--input-history-file",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/backend/aider/input.history",
+        "--chat-history-file",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/backend/aider/chat.history.md",
+        "--yes-always",
+        "--read",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/work/source.txt",
+        "--",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/work/guide.md"
+      ]
+    },
+    "cline": {
+      "flags": [
+        "--auto-approve",
+        "--config",
+        "--cwd",
+        "--data-dir",
+        "--json",
+        "--model",
+        "--provider",
+        "--timeout"
+      ],
+      "all_in_installed_help": true,
+      "missing": [],
+      "paid_preserved": true,
+      "final_argv": [
+        "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+        "--config",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/backend/cline",
+        "--data-dir",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/backend/cline/cline-data",
+        "--cwd",
+        "/Users/john/TokenEfficiencyEngine/output/docagents/plan-probes/work",
+        "--provider",
+        "openai-compatible",
+        "--model",
+        "claude-qwen-max",
+        "--json",
+        "--timeout",
+        "300",
+        "--auto-approve",
+        "true"
+      ]
+    }
+  },
+  "files": {
+    "cline-auth-help.txt": {
+      "bytes": 777,
+      "sha256": "ec722c967dc61efb6035cd65a9703a54ac09164590ec0bb1be642c0652f1d5ec"
+    },
+    "cline-help.txt": {
+      "bytes": 3768,
+      "sha256": "5eb3b0a80e8dd33501f32f4b4d8996390d21604e8719f39caee8e3ecb1c06242"
+    },
+    "cline-version.txt": {
+      "bytes": 7,
+      "sha256": "f740d7be50123251627e26aae91cebca657a631c5bc3f5d0fe20259810aa05bc"
+    },
+    "aider-version.txt": {
+      "bytes": 13,
+      "sha256": "c73edbc610856232e9ec515a615e2a5c60f138b9167f75a6ce7e1b7e233f215f"
+    },
+    "cline-auth-setup.txt": {
+      "bytes": 82,
+      "sha256": "816e34b7e40f53ae11dce86a6a15daf0fa3530762c3b0fcb94dbbc556b9f292b"
+    },
+    "aider-help.txt": {
+      "bytes": 29981,
+      "sha256": "127653a4eb3fb4b105206bc81417af78881706c2f9f5f4215378f462ed9f1df1"
+    }
+  },
+  "source_urls": [
+    "https://github.com/cline/cline/blob/31b0dd99003a3bf4bd6a4015feb76d44e657b321/apps/cli/src/commands/program.ts",
+    "https://github.com/cline/cline/blob/31b0dd99003a3bf4bd6a4015feb76d44e657b321/apps/cli/src/commands/auth.ts",
+    "https://github.com/cline/cline/blob/31b0dd99003a3bf4bd6a4015feb76d44e657b321/apps/cli/src/runtime/run-agent.ts",
+    "https://github.com/Aider-AI/aider/blob/v0.86.2/aider/args.py",
+    "https://github.com/Aider-AI/aider/blob/v0.86.2/aider/main.py"
+  ],
+  "cline_config_probe": {
+    "exit_code": 0,
+    "inference": false,
+    "relative_file": "data/settings/providers.json",
+    "top_keys": [
+      "lastUsedProvider",
+      "modes",
+      "providers",
+      "version"
+    ],
+    "provider_record_keys": [
+      "settings",
+      "tokenSource",
+      "updatedAt"
+    ],
+    "settings_keys": [
+      "apiKey",
+      "baseUrl",
+      "model",
+      "provider"
+    ],
+    "key_kind": "non-secret placeholder"
+  },
+  "aider_dependency_check": {
+    "exit_code": 0,
+    "message": "Using Python 3.11.15 environment at: /Users/john/.local/share/tee/docagents/aider-0.86.2\nChecked 108 packages in 1ms\nAll installed packages are compatible"
+  },
+  "aider_distribution_count": 108,
+  "cline_lock_sha256": "bd75194b720c7109c44c752d3c5056343a32c7cab84f14421b2073cc2b626034"
+}

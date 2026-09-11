@@ -1,0 +1,14 @@
+{
+  "command": [
+    "uv",
+    "pip",
+    "check",
+    "--offline",
+    "--python",
+    "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "Using Python 3.11.15 environment at: server/.venv\nChecked 148 packages in 1ms\nAll installed packages are compatible\n",
+  "environment_changed": false
+}

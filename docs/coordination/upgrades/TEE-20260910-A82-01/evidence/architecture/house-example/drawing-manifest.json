@@ -1,0 +1,778 @@
+{
+  "revision": 3,
+  "units": "mm",
+  "project": "Compact modern house \u2014 review example",
+  "views": [
+    {
+      "name": "plan-ground",
+      "bounds": {
+        "min": [
+          -100.0,
+          -100.0
+        ],
+        "max": [
+          10100.0,
+          8100.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 10200.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 8200.0
+        }
+      ],
+      "note": "Horizontal section at world Z=1400 mm (half storey height).",
+      "annotations": [
+        {
+          "id": "room",
+          "kind": "space",
+          "revision": 3,
+          "lines": [
+            "Room",
+            "29.64 m\u00b2"
+          ],
+          "font_mm": 3.0,
+          "line_widths_mm": [
+            9.600000000000001,
+            19.2
+          ],
+          "box_mm": [
+            258.9,
+            140.75,
+            280.1,
+            150.25
+          ],
+          "anchor_mm": [
+            8000.0,
+            4000.0
+          ],
+          "leader_mm": null
+        },
+        {
+          "id": "living",
+          "kind": "space",
+          "revision": 3,
+          "lines": [
+            "Living room",
+            "45.24 m\u00b2"
+          ],
+          "font_mm": 3.0,
+          "line_widths_mm": [
+            26.4,
+            19.2
+          ],
+          "box_mm": [
+            155.3,
+            140.75,
+            183.7,
+            150.25
+          ],
+          "anchor_mm": [
+            3000.0,
+            4000.0
+          ],
+          "leader_mm": null
+        },
+        {
+          "id": "entrance",
+          "kind": "opening",
+          "revision": 3,
+          "lines": [
+            "Entrance [entrance]",
+            "Opening W 1000 x H 2200 mm"
+          ],
+          "font_mm": 3.0,
+          "line_widths_mm": [
+            45.600000000000016,
+            63.00000000000003
+          ],
+          "box_mm": [
+            131.0,
+            206.75,
+            196.0,
+            216.25
+          ],
+          "anchor_mm": [
+            1700.0,
+            0.0
+          ],
+          "leader_mm": [
+            [
+              143.5,
+              225.5
+            ],
+            [
+              143.5,
+              216.25
+            ]
+          ]
+        },
+        {
+          "id": "internal_door",
+          "kind": "opening",
+          "revision": 3,
+          "lines": [
+            "Internal door",
+            "[internal_door]",
+            "Opening W 900 x H 2100 mm"
+          ],
+          "font_mm": 3.0,
+          "line_widths_mm": [
+            31.200000000000003,
+            36.00000000000001,
+            60.60000000000003
+          ],
+          "box_mm": [
+            236.2,
+            165.875,
+            298.8,
+            179.125
+          ],
+          "anchor_mm": [
+            6000.0,
+            3650.0
+          ],
+          "leader_mm": [
+            [
+              229.5,
+              152.5
+            ],
+            [
+              236.2,
+              165.875
+            ]
+          ]
+        },
+        {
+          "id": "east_window",
+          "kind": "opening",
+          "revision": 3,
+          "lines": [
+            "East window [east_window]",
+            "Opening W 1800 x H 1200 mm",
+            "Sill 900 mm"
+          ],
+          "font_mm": 3.0,
+          "line_widths_mm": [
+            60.00000000000002,
+            63.00000000000003,
+            26.4
+          ],
+          "box_mm": [
+            315.0,
+            152.875,
+            380.0,
+            166.125
+          ],
+          "anchor_mm": [
+            10000.0,
+            3300.0
+          ],
+          "leader_mm": [
+            [
+              309.5,
+              159.5
+            ],
+            [
+              315.0,
+              159.5
+            ]
+          ]
+        },
+        {
+          "id": "west_window",
+          "kind": "opening",
+          "revision": 3,
+          "lines": [
+            "West window [west_window]",
+            "Opening W 1800 x H 1200 mm",
+            "Sill 900 mm"
+          ],
+          "font_mm": 3.0,
+          "line_widths_mm": [
+            60.60000000000003,
+            63.00000000000003,
+            26.4
+          ],
+          "box_mm": [
+            38.999999999999986,
+            112.875,
+            104.00000000000001,
+            126.125
+          ],
+          "anchor_mm": [
+            0.0,
+            4300.0
+          ],
+          "leader_mm": [
+            [
+              109.5,
+              139.5
+            ],
+            [
+              104.00000000000001,
+              126.125
+            ]
+          ]
+        },
+        {
+          "id": "cabinet",
+          "kind": "cabinet",
+          "revision": 3,
+          "lines": [
+            "Base cabinet [cabinet]",
+            "Cabinet 900 x 600 x 900 mm"
+          ],
+          "font_mm": 3.0,
+          "line_widths_mm": [
+            52.80000000000001,
+            62.40000000000002
+          ],
+          "box_mm": [
+            36.29999999999999,
+            218.75,
+            100.70000000000002,
+            228.25
+          ],
+          "anchor_mm": [
+            950.0,
+            800.0
+          ],
+          "leader_mm": [
+            [
+              128.5,
+              209.5
+            ],
+            [
+              100.70000000000002,
+              218.75
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section",
+      "bounds": {
+        "min": [
+          -300.0,
+          -150.0
+        ],
+        "max": [
+          10300.0,
+          3000.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 10600.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 3150.0
+        }
+      ],
+      "note": "Vertical XZ section at world Y=4000 mm.",
+      "annotations": []
+    },
+    {
+      "name": "elevation",
+      "bounds": {
+        "min": [
+          -300.0,
+          -150.0
+        ],
+        "max": [
+          10300.0,
+          3000.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 10600.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 3150.0
+        }
+      ],
+      "note": "South wire elevation; all represented edges projected to XZ; no hidden-line removal.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_side_1",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          582.0,
+          800.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 582.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 800.0
+        }
+      ],
+      "note": "Cut blank 582 x 800 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_side_2",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          582.0,
+          800.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 582.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 800.0
+        }
+      ],
+      "note": "Cut blank 582 x 800 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_bottom_1",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          864.0,
+          582.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 864.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 582.0
+        }
+      ],
+      "note": "Cut blank 864 x 582 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_top_1",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          864.0,
+          582.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 864.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 582.0
+        }
+      ],
+      "note": "Cut blank 864 x 582 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_back_1",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          864.0,
+          764.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 864.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 764.0
+        }
+      ],
+      "note": "Cut blank 864 x 764 x 6 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_shelf_1",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          864.0,
+          576.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 864.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 576.0
+        }
+      ],
+      "note": "Cut blank 864 x 576 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_door_1",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          447.0,
+          796.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 447.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 796.0
+        }
+      ],
+      "note": "Cut blank 447 x 796 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_door_2",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          447.0,
+          796.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 447.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 796.0
+        }
+      ],
+      "note": "Cut blank 447 x 796 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    },
+    {
+      "name": "panel-cabinet_plinth_1",
+      "bounds": {
+        "min": [
+          0,
+          0
+        ],
+        "max": [
+          900.0,
+          100.0
+        ]
+      },
+      "dimensions": [
+        {
+          "name": "projected_width",
+          "value_mm": 900.0
+        },
+        {
+          "name": "projected_height",
+          "value_mm": 100.0
+        }
+      ],
+      "note": "Cut blank 900 x 100 x 18 mm; grain height; verify machining separately.",
+      "annotations": []
+    }
+  ],
+  "section_y_mm": 4000.0,
+  "panels": 9,
+  "pdf": {
+    "status": "written",
+    "pages": 12,
+    "font_substitutions": 0
+  },
+  "wall_junctions": {
+    "status": "no_wall_overlap_found",
+    "pairs_found": 0,
+    "overlaps": [],
+    "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+    "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+  },
+  "wall_joins": {
+    "policy": "orthogonal_butt_v1",
+    "count": 6,
+    "joints": [
+      {
+        "walls": [
+          "east",
+          "north"
+        ],
+        "point": [
+          10000.0,
+          8000.0,
+          0
+        ],
+        "through": "east",
+        "type": "L"
+      },
+      {
+        "walls": [
+          "east",
+          "south"
+        ],
+        "point": [
+          10000.0,
+          0.0,
+          0
+        ],
+        "through": "east",
+        "type": "L"
+      },
+      {
+        "walls": [
+          "north",
+          "partition"
+        ],
+        "point": [
+          6000.0,
+          8000.0,
+          0
+        ],
+        "through": "north",
+        "type": "T"
+      },
+      {
+        "walls": [
+          "north",
+          "west"
+        ],
+        "point": [
+          0.0,
+          8000.0,
+          0
+        ],
+        "through": "north",
+        "type": "L"
+      },
+      {
+        "walls": [
+          "partition",
+          "south"
+        ],
+        "point": [
+          6000.0,
+          0.0,
+          0
+        ],
+        "through": "south",
+        "type": "T"
+      },
+      {
+        "walls": [
+          "south",
+          "west"
+        ],
+        "point": [
+          0.0,
+          0.0,
+          0
+        ],
+        "through": "south",
+        "type": "L"
+      }
+    ],
+    "details_limit": 128,
+    "source_centerlines_unchanged": true
+  },
+  "files": [
+    {
+      "name": "plan-ground.svg",
+      "sha256": "2f4f79855edba5364e2a497d66716da5e3196513972b1fe8dc17cf6f9bd1a416",
+      "bytes": 18964
+    },
+    {
+      "name": "plan-ground.dxf",
+      "sha256": "3c88af1bfaf13c30da0fbdaed1c45364cffb912842f7b18010336859511e0305",
+      "bytes": 38063
+    },
+    {
+      "name": "section.svg",
+      "sha256": "aaa128fd4a3662d088a555af4a532c65c0f6fcccd172387c3a4081d1c4200648",
+      "bytes": 10550
+    },
+    {
+      "name": "section.dxf",
+      "sha256": "9633915756daff8f967d5ec74205644636487b60a0ffa4903123b005a93c01ba",
+      "bytes": 31735
+    },
+    {
+      "name": "elevation.svg",
+      "sha256": "68e1d0bad8d5b99be17167bd907de4739873e47618926af17dd78fa8f8e40692",
+      "bytes": 14819
+    },
+    {
+      "name": "elevation.dxf",
+      "sha256": "580e34357c1aa39979ae8e0cc4ae218fafa80d0a1b9325ccd19e343b36953933",
+      "bytes": 36321
+    },
+    {
+      "name": "panel-cabinet_side_1.svg",
+      "sha256": "e02f0254ca80a1e890a53cf8dd563afbd6b7fcc3918772cdcf0938fb3bba6fc7",
+      "bytes": 1909
+    },
+    {
+      "name": "panel-cabinet_side_1.dxf",
+      "sha256": "35014946c5d2502c7b5bd8a0c9cc23eef624b301a8d05d1514f6b0375e4e99c6",
+      "bytes": 20667
+    },
+    {
+      "name": "panel-cabinet_side_2.svg",
+      "sha256": "c81b5cf18552a08271c9608f3d44936442f1f4b97614233af9d661a653bed884",
+      "bytes": 1909
+    },
+    {
+      "name": "panel-cabinet_side_2.dxf",
+      "sha256": "2ce71a720fa91cc889dd500ecbed5a67babc62e9781c4d0e67102a142145cf4d",
+      "bytes": 20667
+    },
+    {
+      "name": "panel-cabinet_bottom_1.svg",
+      "sha256": "4d0ef1705262ec9fb5ce0d32097415ab4bba9353a452170a56cc65788febb83d",
+      "bytes": 1882
+    },
+    {
+      "name": "panel-cabinet_bottom_1.dxf",
+      "sha256": "a5acba7da9c6e25a67858a3984e57f1502c44ace06f0b0a1e06a7c701c83354a",
+      "bytes": 20341
+    },
+    {
+      "name": "panel-cabinet_top_1.svg",
+      "sha256": "2a4be29ce73c33cffe20291d1643700d5eacfce9c9c31d30dbeb3dc1ee092fdf",
+      "bytes": 1864
+    },
+    {
+      "name": "panel-cabinet_top_1.dxf",
+      "sha256": "8ebdfcdd97e9cc3306e76dfc927c9a3fbcdc7dfd60dd478466c427be3ecea130",
+      "bytes": 20326
+    },
+    {
+      "name": "panel-cabinet_back_1.svg",
+      "sha256": "af258215606b09b2713597f7e1e5635001c6c655c7b251a362cd7773695c7fe2",
+      "bytes": 1869
+    },
+    {
+      "name": "panel-cabinet_back_1.dxf",
+      "sha256": "8b809e29651f7d9ab1bfec1029043063a0c86e2beaa0843b7fa3bef51683ff51",
+      "bytes": 20356
+    },
+    {
+      "name": "panel-cabinet_shelf_1.svg",
+      "sha256": "e09235bd61566c2a838271f22f7aec040344daf3c47ffd83b7821c85692f5088",
+      "bytes": 1954
+    },
+    {
+      "name": "panel-cabinet_shelf_1.dxf",
+      "sha256": "abd99a41ac63d55a7dcd4e33349cf5edaca2970a084ae17c133b2978d55e949c",
+      "bytes": 20349
+    },
+    {
+      "name": "panel-cabinet_door_1.svg",
+      "sha256": "8b0f6d3f89c7ebe443c59e4e050c2718e5be0d792fe290c71296bab0355a27c0",
+      "bytes": 1896
+    },
+    {
+      "name": "panel-cabinet_door_1.dxf",
+      "sha256": "00532662d5dd0da40a917d602219611d4af98248ea35a25f8587631bd9274069",
+      "bytes": 20711
+    },
+    {
+      "name": "panel-cabinet_door_2.svg",
+      "sha256": "a62d26e4b8a3d0b9d755725a48d71e990e82c13a53ec3b7ada5a401c46ad2b8c",
+      "bytes": 1896
+    },
+    {
+      "name": "panel-cabinet_door_2.dxf",
+      "sha256": "aed62ed1a01cf90b5caccc17804cb0ea103c87212ebc5e7b57507e7656e25785",
+      "bytes": 20711
+    },
+    {
+      "name": "panel-cabinet_plinth_1.svg",
+      "sha256": "eac74ce4fb6740466a67b9b8a79b99d22a93b31e6df4a36e9f835c94bc4137a3",
+      "bytes": 1886
+    },
+    {
+      "name": "panel-cabinet_plinth_1.dxf",
+      "sha256": "471a244ed4dda97369902f2448436e215271c8cf6f1159073a7f030afe6ac93c",
+      "bytes": 20377
+    },
+    {
+      "name": "cabinet-cutlist.csv",
+      "sha256": "a8acc601af46cc0120d6a252b069c88a0163fc834ac50866d6a11afe58dc60ef",
+      "bytes": 1371
+    },
+    {
+      "name": "schedule.csv",
+      "sha256": "d919c07411d7a1e83d403c3e60f9cfa741fc8708feef527cc2e36f9afb404db0",
+      "bytes": 772
+    },
+    {
+      "name": "review-set.pdf",
+      "sha256": "ec7e3d27273d1a24e32c53bcc926e71827a5c1d75491814bc5d8c6ee2f0eafe1",
+      "bytes": 35998
+    }
+  ],
+  "limitations": [
+    "Initial review drawings; jurisdiction-specific sheet standards unverified.",
+    "Elevations are wire projections without hidden-line removal.",
+    "Door/window construction is unspecified; only authored opening voids are cut.",
+    "Panel blank schedules are not a manufacturer or CNC approval.",
+    "Inspect wall_joins/wall_junctions; other-element intersections remain unverified."
+  ]
+}

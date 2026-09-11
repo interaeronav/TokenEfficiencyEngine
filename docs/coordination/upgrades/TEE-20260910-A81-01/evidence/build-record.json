@@ -1,0 +1,23 @@
+{
+  "stage": "built; not release-frozen, installed or accepted",
+  "source": {
+    "sha256": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+    "files": 279,
+    "bytes": 3166135
+  },
+  "claude": {
+    "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/artifacts/tee-engine-0.30.1-a81-local.mcpb",
+    "bytes": 1060035,
+    "sha256": "9d5e3c95687dbedb39c1d74f7f8277d446b1da0e661e84599943b290b4d1bbc9"
+  },
+  "codex": {
+    "path": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A81-01/artifacts/tee-a81-codex-source-snapshot.zip",
+    "bytes": 1464252,
+    "sha256": "12463feeabb16c17ed81c327528a2e5bfb542ee09810c5b4c2b0738d0a6dcb91"
+  },
+  "payload_equal": true,
+  "version": "0.30.1",
+  "external_workers_vendored": false,
+  "dependencies_changed": false,
+  "paid_inference": false
+}

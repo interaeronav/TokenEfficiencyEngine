@@ -1,0 +1,14 @@
+{
+  "command": [
+    "uv",
+    "pip",
+    "check",
+    "--offline",
+    "--python",
+    "/Users/john/TEE/.tee/sidecars/partkiln/bin/python"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "Using Python 3.11.15 environment at: /Users/john/TEE/.tee/sidecars/partkiln\nChecked 10 packages in 20ms\nAll installed packages are compatible\n",
+  "environment_changed": false
+}

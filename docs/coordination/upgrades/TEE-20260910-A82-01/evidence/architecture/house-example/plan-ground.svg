@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect x="10" y="10" width="400" height="277" fill="white" stroke="#333" stroke-width="0.3"/>
+<metadata>{&quot;revision&quot;: 3, &quot;units&quot;: &quot;mm&quot;, &quot;view&quot;: &quot;plan-ground&quot;, &quot;dimensions&quot;: [{&quot;name&quot;: &quot;projected_width&quot;, &quot;value_mm&quot;: 10200.0}, {&quot;name&quot;: &quot;projected_height&quot;, &quot;value_mm&quot;: 8200.0}], &quot;annotations&quot;: [{&quot;id&quot;: &quot;room&quot;, &quot;kind&quot;: &quot;space&quot;, &quot;revision&quot;: 3, &quot;lines&quot;: [&quot;Room&quot;, &quot;29.64 m\u00b2&quot;], &quot;font_mm&quot;: 3.0, &quot;line_widths_mm&quot;: [9.600000000000001, 19.2], &quot;box_mm&quot;: [258.9, 140.75, 280.1, 150.25], &quot;anchor_mm&quot;: [8000.0, 4000.0], &quot;leader_mm&quot;: null}, {&quot;id&quot;: &quot;living&quot;, &quot;kind&quot;: &quot;space&quot;, &quot;revision&quot;: 3, &quot;lines&quot;: [&quot;Living room&quot;, &quot;45.24 m\u00b2&quot;], &quot;font_mm&quot;: 3.0, &quot;line_widths_mm&quot;: [26.4, 19.2], &quot;box_mm&quot;: [155.3, 140.75, 183.7, 150.25], &quot;anchor_mm&quot;: [3000.0, 4000.0], &quot;leader_mm&quot;: null}, {&quot;id&quot;: &quot;entrance&quot;, &quot;kind&quot;: &quot;opening&quot;, &quot;revision&quot;: 3, &quot;lines&quot;: [&quot;Entrance [entrance]&quot;, &quot;Opening W 1000 x H 2200 mm&quot;], &quot;font_mm&quot;: 3.0, &quot;line_widths_mm&quot;: [45.600000000000016, 63.00000000000003], &quot;box_mm&quot;: [131.0, 206.75, 196.0, 216.25], &quot;anchor_mm&quot;: [1700.0, 0.0], &quot;leader_mm&quot;: [[143.5, 225.5], [143.5, 216.25]]}, {&quot;id&quot;: &quot;internal_door&quot;, &quot;kind&quot;: &quot;opening&quot;, &quot;revision&quot;: 3, &quot;lines&quot;: [&quot;Internal door&quot;, &quot;[internal_door]&quot;, &quot;Opening W 900 x H 2100 mm&quot;], &quot;font_mm&quot;: 3.0, &quot;line_widths_mm&quot;: [31.200000000000003, 36.00000000000001, 60.60000000000003], &quot;box_mm&quot;: [236.2, 165.875, 298.8, 179.125], &quot;anchor_mm&quot;: [6000.0, 3650.0], &quot;leader_mm&quot;: [[229.5, 152.5], [236.2, 165.875]]}, {&quot;id&quot;: &quot;east_window&quot;, &quot;kind&quot;: &quot;opening&quot;, &quot;revision&quot;: 3, &quot;lines&quot;: [&quot;East window [east_window]&quot;, &quot;Opening W 1800 x H 1200 mm&quot;, &quot;Sill 900 mm&quot;], &quot;font_mm&quot;: 3.0, &quot;line_widths_mm&quot;: [60.00000000000002, 63.00000000000003, 26.4], &quot;box_mm&quot;: [315.0, 152.875, 380.0, 166.125], &quot;anchor_mm&quot;: [10000.0, 3300.0], &quot;leader_mm&quot;: [[309.5, 159.5], [315.0, 159.5]]}, {&quot;id&quot;: &quot;west_window&quot;, &quot;kind&quot;: &quot;opening&quot;, &quot;revision&quot;: 3, &quot;lines&quot;: [&quot;West window [west_window]&quot;, &quot;Opening W 1800 x H 1200 mm&quot;, &quot;Sill 900 mm&quot;], &quot;font_mm&quot;: 3.0, &quot;line_widths_mm&quot;: [60.60000000000003, 63.00000000000003, 26.4], &quot;box_mm&quot;: [38.999999999999986, 112.875, 104.00000000000001, 126.125], &quot;anchor_mm&quot;: [0.0, 4300.0], &quot;leader_mm&quot;: [[109.5, 139.5], [104.00000000000001, 126.125]]}, {&quot;id&quot;: &quot;cabinet&quot;, &quot;kind&quot;: &quot;cabinet&quot;, &quot;revision&quot;: 3, &quot;lines&quot;: [&quot;Base cabinet [cabinet]&quot;, &quot;Cabinet 900 x 600 x 900 mm&quot;], &quot;font_mm&quot;: 3.0, &quot;line_widths_mm&quot;: [52.80000000000001, 62.40000000000002], &quot;box_mm&quot;: [36.29999999999999, 218.75, 100.70000000000002, 228.25], &quot;anchor_mm&quot;: [950.0, 800.0], &quot;leader_mm&quot;: [[128.5, 209.5], [100.70000000000002, 218.75]]}]}</metadata>
+<g font-family="sans-serif" fill="#111">
+<text x="16" y="21" font-size="5">Compact modern house — review example / plan-ground</text>
+<text x="16" y="29" font-size="3.5">Revision 3 | model mm | scale 1:50 at A3</text>
+<text x="16" y="279" font-size="3">Horizontal section at world Z=1400 mm (half storey height).</text>
+<text x="16" y="284" font-size="3">REVIEW SET | Verify dimensions, construction and required approvals.</text></g>
+<line data-entity="south" x1="133.500000" y1="227.500000" x2="120.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="120.500000" y1="227.500000" x2="107.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="133.500000" y1="223.500000" x2="133.500000" y2="225.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="133.500000" y1="225.500000" x2="133.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="107.500000" y1="223.500000" x2="120.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="120.500000" y1="223.500000" x2="133.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="107.500000" y1="227.500000" x2="107.500000" y2="225.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="107.500000" y1="225.500000" x2="107.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="307.500000" y1="227.500000" x2="230.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="230.500000" y1="227.500000" x2="153.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="307.500000" y1="223.500000" x2="307.500000" y2="225.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="307.500000" y1="225.500000" x2="307.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="153.500000" y1="223.500000" x2="230.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="230.500000" y1="223.500000" x2="307.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="153.500000" y1="227.500000" x2="153.500000" y2="225.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="south" x1="153.500000" y1="225.500000" x2="153.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="177.500000" x2="311.500000" y2="202.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="202.500000" x2="311.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="177.500000" x2="309.500000" y2="177.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="309.500000" y1="177.500000" x2="311.500000" y2="177.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="227.500000" x2="307.500000" y2="202.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="202.500000" x2="307.500000" y2="177.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="227.500000" x2="309.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="309.500000" y1="227.500000" x2="307.500000" y2="227.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="63.500000" x2="311.500000" y2="102.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="102.500000" x2="311.500000" y2="141.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="63.500000" x2="309.500000" y2="63.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="309.500000" y1="63.500000" x2="311.500000" y2="63.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="141.500000" x2="307.500000" y2="102.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="307.500000" y1="102.500000" x2="307.500000" y2="63.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="311.500000" y1="141.500000" x2="309.500000" y2="141.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="east" x1="309.500000" y1="141.500000" x2="307.500000" y2="141.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="107.500000" y1="63.500000" x2="207.500000" y2="63.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="207.500000" y1="63.500000" x2="307.500000" y2="63.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="107.500000" y1="67.500000" x2="107.500000" y2="65.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="107.500000" y1="65.500000" x2="107.500000" y2="63.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="307.500000" y1="67.500000" x2="207.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="207.500000" y1="67.500000" x2="107.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="307.500000" y1="63.500000" x2="307.500000" y2="65.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="north" x1="307.500000" y1="65.500000" x2="307.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="121.500000" x2="107.500000" y2="94.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="94.500000" x2="107.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="121.500000" x2="109.500000" y2="121.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="109.500000" y1="121.500000" x2="107.500000" y2="121.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="67.500000" x2="111.500000" y2="94.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="94.500000" x2="111.500000" y2="121.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="67.500000" x2="109.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="109.500000" y1="67.500000" x2="111.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="223.500000" x2="107.500000" y2="190.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="190.500000" x2="107.500000" y2="157.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="223.500000" x2="109.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="109.500000" y1="223.500000" x2="107.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="157.500000" x2="111.500000" y2="190.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="111.500000" y1="190.500000" x2="111.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="107.500000" y1="157.500000" x2="109.500000" y2="157.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="west" x1="109.500000" y1="157.500000" x2="111.500000" y2="157.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="161.500000" x2="231.500000" y2="192.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="192.500000" x2="231.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="161.500000" x2="229.500000" y2="161.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="229.500000" y1="161.500000" x2="231.500000" y2="161.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="223.500000" x2="227.500000" y2="192.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="192.500000" x2="227.500000" y2="161.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="223.500000" x2="229.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="229.500000" y1="223.500000" x2="227.500000" y2="223.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="67.500000" x2="231.500000" y2="105.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="105.500000" x2="231.500000" y2="143.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="67.500000" x2="229.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="229.500000" y1="67.500000" x2="231.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="143.500000" x2="227.500000" y2="105.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="227.500000" y1="105.500000" x2="227.500000" y2="67.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="231.500000" y1="143.500000" x2="229.500000" y2="143.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="partition" x1="229.500000" y1="143.500000" x2="227.500000" y2="143.500000" stroke="#253543" stroke-width="0.25"/>
+<line data-entity="living" x1="227.500000" y1="223.500000" x2="169.500000" y2="223.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="living" x1="169.500000" y1="223.500000" x2="111.500000" y2="223.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="living" x1="227.500000" y1="67.500000" x2="227.500000" y2="145.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="living" x1="227.500000" y1="145.500000" x2="227.500000" y2="223.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="living" x1="111.500000" y1="67.500000" x2="169.500000" y2="67.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="living" x1="169.500000" y1="67.500000" x2="227.500000" y2="67.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="living" x1="111.500000" y1="223.500000" x2="111.500000" y2="145.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="living" x1="111.500000" y1="145.500000" x2="111.500000" y2="67.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="307.500000" y1="223.500000" x2="269.500000" y2="223.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="269.500000" y1="223.500000" x2="231.500000" y2="223.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="307.500000" y1="67.500000" x2="307.500000" y2="145.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="307.500000" y1="145.500000" x2="307.500000" y2="223.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="231.500000" y1="67.500000" x2="269.500000" y2="67.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="269.500000" y1="67.500000" x2="307.500000" y2="67.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="231.500000" y1="223.500000" x2="231.500000" y2="145.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<line data-entity="room" x1="231.500000" y1="145.500000" x2="231.500000" y2="67.500000" stroke="#9aa5ab" stroke-width="0.25"/>
+<path d="M 107.5 231.5 V 238.5 M 311.5 231.5 V 238.5 M 107.5 235.5 H 311.5" fill="none" stroke="#53616a" stroke-width="0.2"/>
+<text x="209.5" y="234.5" text-anchor="middle" font-family="sans-serif" font-size="3.5">10200 mm</text>
+<text x="103.5" y="145.5" text-anchor="end" font-family="sans-serif" font-size="3.5">8200 mm</text>
+<g data-label="room"><rect x="258.9" y="140.75" width="21.200000000000045" height="9.5" fill="white"/>
+<text x="259.9" y="144.75" font-family="sans-serif" font-size="3.0" fill="#16384c">Room</text>
+<text x="259.9" y="148.5" font-family="sans-serif" font-size="3.0" fill="#16384c">29.64 m²</text>
+</g>
+<g data-label="living"><rect x="155.3" y="140.75" width="28.399999999999977" height="9.5" fill="white"/>
+<text x="156.3" y="144.75" font-family="sans-serif" font-size="3.0" fill="#16384c">Living room</text>
+<text x="156.3" y="148.5" font-family="sans-serif" font-size="3.0" fill="#16384c">45.24 m²</text>
+</g>
+<line x1="143.5" y1="225.5" x2="143.5" y2="216.25" stroke="#36556b" stroke-width="0.2"/>
+<g data-label="entrance"><rect x="131.0" y="206.75" width="65.0" height="9.5" fill="white"/>
+<text x="132.0" y="210.75" font-family="sans-serif" font-size="3.0" fill="#16384c">Entrance [entrance]</text>
+<text x="132.0" y="214.5" font-family="sans-serif" font-size="3.0" fill="#16384c">Opening W 1000 x H 2200 mm</text>
+</g>
+<line x1="229.5" y1="152.5" x2="236.2" y2="165.875" stroke="#36556b" stroke-width="0.2"/>
+<g data-label="internal_door"><rect x="236.2" y="165.875" width="62.60000000000002" height="13.25" fill="white"/>
+<text x="237.2" y="169.875" font-family="sans-serif" font-size="3.0" fill="#16384c">Internal door</text>
+<text x="237.2" y="173.625" font-family="sans-serif" font-size="3.0" fill="#16384c">[internal_door]</text>
+<text x="237.2" y="177.375" font-family="sans-serif" font-size="3.0" fill="#16384c">Opening W 900 x H 2100 mm</text>
+</g>
+<line x1="309.5" y1="159.5" x2="315.0" y2="159.5" stroke="#36556b" stroke-width="0.2"/>
+<g data-label="east_window"><rect x="315.0" y="152.875" width="65.0" height="13.25" fill="white"/>
+<text x="316.0" y="156.875" font-family="sans-serif" font-size="3.0" fill="#16384c">East window [east_window]</text>
+<text x="316.0" y="160.625" font-family="sans-serif" font-size="3.0" fill="#16384c">Opening W 1800 x H 1200 mm</text>
+<text x="316.0" y="164.375" font-family="sans-serif" font-size="3.0" fill="#16384c">Sill 900 mm</text>
+</g>
+<line x1="109.5" y1="139.5" x2="104.00000000000001" y2="126.125" stroke="#36556b" stroke-width="0.2"/>
+<g data-label="west_window"><rect x="38.999999999999986" y="112.875" width="65.00000000000003" height="13.25" fill="white"/>
+<text x="39.999999999999986" y="116.875" font-family="sans-serif" font-size="3.0" fill="#16384c">West window [west_window]</text>
+<text x="39.999999999999986" y="120.625" font-family="sans-serif" font-size="3.0" fill="#16384c">Opening W 1800 x H 1200 mm</text>
+<text x="39.999999999999986" y="124.375" font-family="sans-serif" font-size="3.0" fill="#16384c">Sill 900 mm</text>
+</g>
+<line x1="128.5" y1="209.5" x2="100.70000000000002" y2="218.75" stroke="#36556b" stroke-width="0.2"/>
+<g data-label="cabinet"><rect x="36.29999999999999" y="218.75" width="64.40000000000003" height="9.5" fill="white"/>
+<text x="37.29999999999999" y="222.75" font-family="sans-serif" font-size="3.0" fill="#16384c">Base cabinet [cabinet]</text>
+<text x="37.29999999999999" y="226.5" font-family="sans-serif" font-size="3.0" fill="#16384c">Cabinet 900 x 600 x 900 mm</text>
+</g>
+</svg>

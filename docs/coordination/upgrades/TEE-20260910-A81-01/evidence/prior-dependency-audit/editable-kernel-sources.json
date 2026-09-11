@@ -1,0 +1,780 @@
+{
+  "scope": "External editable runtime dependencies, unchanged and not vendored into this TEE package",
+  "sources": {
+    "partkiln": {
+      "source_origin": "/Users/john/TokenEfficiencyEngine/partkiln/src/partkiln",
+      "files": 90,
+      "bytes": 1291030,
+      "identity_sha256": "83a7e01de0991339cf767a1188e812bd3c7be253d5a53db9933b3b53de5e6898",
+      "manifest": {
+        "files": [
+          {
+            "bytes": 395,
+            "path": "partkiln/src/partkiln/__init__.py",
+            "sha256": "38223d16fd053d9180bba369d898713eb8c61ff2dff61a2d32ac6a5d3760155d"
+          },
+          {
+            "bytes": 977,
+            "path": "partkiln/src/partkiln/_errors.py",
+            "sha256": "4060eed254f36fb7cf08ff6a900eb4d64c752dc569cf7bb9830c7f50a40d1db0"
+          },
+          {
+            "bytes": 17185,
+            "path": "partkiln/src/partkiln/_licences.py",
+            "sha256": "9aeca0273c84207ee31d6022f17352f495ec043aae7f51b78fdbf4862c331130"
+          },
+          {
+            "bytes": 1167,
+            "path": "partkiln/src/partkiln/assembly/__init__.py",
+            "sha256": "26739a62c8008c0a28898274a95bb2aedc06ef41a62b9e60c43354ff53fba214"
+          },
+          {
+            "bytes": 5518,
+            "path": "partkiln/src/partkiln/assembly/bom.py",
+            "sha256": "0c50cae9aa22f50453a334116921d189d803ecd51de064bcfc89f371c3365116"
+          },
+          {
+            "bytes": 7688,
+            "path": "partkiln/src/partkiln/assembly/interference.py",
+            "sha256": "141612f1327ea03564fa27770d42c80e398fad209f873ab2a39b62fd760db8d1"
+          },
+          {
+            "bytes": 24021,
+            "path": "partkiln/src/partkiln/assembly/model.py",
+            "sha256": "c952c402e6168af48548ac2a50557ebd902eee46019a2fd5bd18123fa767c132"
+          },
+          {
+            "bytes": 26820,
+            "path": "partkiln/src/partkiln/assembly/solver.py",
+            "sha256": "05d47cccf9f9fea563a71ca67f06e916a64a184c1aac478d0e8173b512dd9518"
+          },
+          {
+            "bytes": 46998,
+            "path": "partkiln/src/partkiln/assembly/verbs.py",
+            "sha256": "e14f4b2fd03f5953392321f1dd36bfbee853513344c6cb1a13664cd3548e4484"
+          },
+          {
+            "bytes": 2173,
+            "path": "partkiln/src/partkiln/brep/__init__.py",
+            "sha256": "b6ab0b6d9eadbe69e24a15dd6ceccc04ab08645269d9c0cbe1ebe8235edb8abf"
+          },
+          {
+            "bytes": 3480,
+            "path": "partkiln/src/partkiln/brep/fingerprint.py",
+            "sha256": "94d3f6423fac780c0a1f8ed48245ef6555df6555d1d4c9f2f1c2c2d607d7b922"
+          },
+          {
+            "bytes": 3166,
+            "path": "partkiln/src/partkiln/brep/fixtures.py",
+            "sha256": "b33c3d5a414fe24c5d29ff6e20cb5ac5be34957e3f9788f4fd483e205bc516f4"
+          },
+          {
+            "bytes": 6690,
+            "path": "partkiln/src/partkiln/brep/history.py",
+            "sha256": "82c51cbca8f2a1fe9650023a8997bcd71aa47d782df5ab180959a0bcbdbbae9c"
+          },
+          {
+            "bytes": 20112,
+            "path": "partkiln/src/partkiln/brep/holes.py",
+            "sha256": "cddd0f1090f2511a6998fc2912082c55faa84fea250d912600dea931bb5d428b"
+          },
+          {
+            "bytes": 5942,
+            "path": "partkiln/src/partkiln/brep/mesh.py",
+            "sha256": "12340741df59acf488b8cac497841f804f5c80c074b3ae8880ff2e7a1eea6c67"
+          },
+          {
+            "bytes": 13247,
+            "path": "partkiln/src/partkiln/brep/query.py",
+            "sha256": "55839b7b733ad424e9b297b0050f839df7e71904b18b6807188d7233b25f5538"
+          },
+          {
+            "bytes": 35014,
+            "path": "partkiln/src/partkiln/brep/shapes.py",
+            "sha256": "ccf3271fc761621e88f44b513e0f74eddfd252551ec812e8371d7a41b822b28a"
+          },
+          {
+            "bytes": 906,
+            "path": "partkiln/src/partkiln/checks/__init__.py",
+            "sha256": "cc49bcad1b887b2f2d036ddbb2b5dd912ee8ca25578642d3a82df09fa5632d2b"
+          },
+          {
+            "bytes": 4894,
+            "path": "partkiln/src/partkiln/checks/mass.py",
+            "sha256": "d2e47d6ec93d67ed3309f5e9e1c7862d0a5c3cf3b4d46f13abc4ad59f2c70a60"
+          },
+          {
+            "bytes": 3515,
+            "path": "partkiln/src/partkiln/checks/section.py",
+            "sha256": "441206f88a5f2806091b6ac795027e5d94c4f34d4e6f76f2bd4ecaf8cf105063"
+          },
+          {
+            "bytes": 21846,
+            "path": "partkiln/src/partkiln/checks/spec.py",
+            "sha256": "cd91ffe0d7b53f2d14fa376a48f47e1173138e2e80c3077fbc129bb4af7db95e"
+          },
+          {
+            "bytes": 5144,
+            "path": "partkiln/src/partkiln/checks/validity.py",
+            "sha256": "98f912527512ea7c3f4834c33eaf885a7add28cc0d50f365968ab1d70bc5770b"
+          },
+          {
+            "bytes": 17616,
+            "path": "partkiln/src/partkiln/checks/wall.py",
+            "sha256": "f5bc71949104fc83849905ba4c381590d39e043c6a6e7e6c4f94ffe6980bb6d6"
+          },
+          {
+            "bytes": 22844,
+            "path": "partkiln/src/partkiln/client.py",
+            "sha256": "fcf83844a7826c6e3130ef4cfbb88f298a352a95f11852655897ab1b50abd9d4"
+          },
+          {
+            "bytes": 5216,
+            "path": "partkiln/src/partkiln/data/__init__.py",
+            "sha256": "87df9a8f7a333bfa0a4c76cbf8b75fc1a671d26159bfadfcf47fa65b6bcd55eb"
+          },
+          {
+            "bytes": 1574,
+            "path": "partkiln/src/partkiln/data/clearance_holes.csv",
+            "sha256": "cfd1b513a3c82b7d83c2cd9a35ff282edc2e399840803dc513e09962c0bd4a68"
+          },
+          {
+            "bytes": 1122,
+            "path": "partkiln/src/partkiln/data/drill_sizes.csv",
+            "sha256": "516a0fb1c3c58320afb6884839d5dd1e13726b6e668cf29e1b3d3edb38aef14b"
+          },
+          {
+            "bytes": 11907,
+            "path": "partkiln/src/partkiln/data/iso261_pitch.csv",
+            "sha256": "cad9589225ae98cbb3c477ba97b018fc7052c38121412099ccee44e34d63a78f"
+          },
+          {
+            "bytes": 8067,
+            "path": "partkiln/src/partkiln/data/iso286.json",
+            "sha256": "710c63434e6ab2e9ededcf662254b047edb5b5ee54119fd1fe0ee551296e3a27"
+          },
+          {
+            "bytes": 1498,
+            "path": "partkiln/src/partkiln/data/iso4014_4017.csv",
+            "sha256": "0004b9d7f7dbf7ec054ddc88439e64c293330813915b6e5caf57c7340b501c1c"
+          },
+          {
+            "bytes": 795,
+            "path": "partkiln/src/partkiln/data/iso4032.csv",
+            "sha256": "d43fb52182ea302af0ac9e9ce102c2743abb84060e8f90a16c0e42d90c0388ea"
+          },
+          {
+            "bytes": 2563,
+            "path": "partkiln/src/partkiln/data/iso4762.csv",
+            "sha256": "3b98b4a4bc913ad25afdcef6d9937e2d45909deae8f0e5a68f800b1fc85579c6"
+          },
+          {
+            "bytes": 1210,
+            "path": "partkiln/src/partkiln/data/iso7089.csv",
+            "sha256": "d40ece8029ec2c64723bd42490dcbf6bf11090d4ecf6c746779e520ecbd1fb55"
+          },
+          {
+            "bytes": 7556,
+            "path": "partkiln/src/partkiln/data/manifest.json",
+            "sha256": "81ab152f69dc492e2c35dee18f2daec41f89a831eab0805476bc431ad9fa75e7"
+          },
+          {
+            "bytes": 59613,
+            "path": "partkiln/src/partkiln/data/materials.json",
+            "sha256": "a97c781a35ad646bafe524579835ca55d1eaafe95f684c74d1db331ee3ba29f1"
+          },
+          {
+            "bytes": 1610,
+            "path": "partkiln/src/partkiln/data/tap_holes.csv",
+            "sha256": "8972b5b7484e0b708d6c73c13faaa9a58d4fee40b45104e5de6dffa856fa69a1"
+          },
+          {
+            "bytes": 64518,
+            "path": "partkiln/src/partkiln/document.py",
+            "sha256": "fba5bcae802f07e0042786f08780abca9d124956202ad23b620f06ea23d64955"
+          },
+          {
+            "bytes": 2363,
+            "path": "partkiln/src/partkiln/drawing/__init__.py",
+            "sha256": "095ee9d58694b623e40dc5f7048c5794a25c91f981e645b081ec04ba83f130ac"
+          },
+          {
+            "bytes": 44167,
+            "path": "partkiln/src/partkiln/drawing/dims.py",
+            "sha256": "cd419fc23aa95a25a707e759fccabb88f76bed7304b1ca9abd89819e60c613d2"
+          },
+          {
+            "bytes": 11526,
+            "path": "partkiln/src/partkiln/drawing/dxf.py",
+            "sha256": "e6717e3a292b8a7d4739bf18ff4029eeab693345b954463f8cd1cb4b80ace689"
+          },
+          {
+            "bytes": 25172,
+            "path": "partkiln/src/partkiln/drawing/hlr.py",
+            "sha256": "d9967b3598e2a5441fe53ddd15ef1931f89bbf59190e09bf47a9ceafb49c46e7"
+          },
+          {
+            "bytes": 8792,
+            "path": "partkiln/src/partkiln/drawing/pdf.py",
+            "sha256": "0fafec664a49ea44f4c02fd5d2d1f0a171585615a0e636fa608227bdbb0c2580"
+          },
+          {
+            "bytes": 10057,
+            "path": "partkiln/src/partkiln/drawing/svg.py",
+            "sha256": "a91e8a76c88d36785d12e0fc32687d000e64cd64011e2720656433c6621c4ba9"
+          },
+          {
+            "bytes": 10638,
+            "path": "partkiln/src/partkiln/drawing/verbs.py",
+            "sha256": "2d5f3e9f53db31b722c2e7e2c4113ffcda1d8fed066a230a846f7f101a42e294"
+          },
+          {
+            "bytes": 30907,
+            "path": "partkiln/src/partkiln/drawing/views.py",
+            "sha256": "84892343c152a000c374c0ea92a831f798c931f5d081c44c4e3639add36b72fb"
+          },
+          {
+            "bytes": 9319,
+            "path": "partkiln/src/partkiln/exchange/__init__.py",
+            "sha256": "68c28746d3a0580360cfb823841208daad79b71329ebd59f9e5820a4222678f8"
+          },
+          {
+            "bytes": 2207,
+            "path": "partkiln/src/partkiln/exchange/brep_io.py",
+            "sha256": "527f614c0b1417fc5bec01810d70607049b45b459ff0b0440946f8e2e0f2eb88"
+          },
+          {
+            "bytes": 4395,
+            "path": "partkiln/src/partkiln/exchange/gltf.py",
+            "sha256": "962a6281208e1c78f26f09f80d8d8f82faa16fc6fd8202b29eba5e4e975ca15e"
+          },
+          {
+            "bytes": 4860,
+            "path": "partkiln/src/partkiln/exchange/iges.py",
+            "sha256": "6a0ddbc3fa8edad155397c09e8434473ff26de6a8a3c859fe9e1eca42565e8b1"
+          },
+          {
+            "bytes": 3155,
+            "path": "partkiln/src/partkiln/exchange/obj.py",
+            "sha256": "40285b2e90c604a90354decbc31d2fa6d2b6f63c66c9096102650f4f715f4677"
+          },
+          {
+            "bytes": 9368,
+            "path": "partkiln/src/partkiln/exchange/step.py",
+            "sha256": "074040f74b78075ad301ff2b3ff3587ff6949e3e4639e75d63b4123e5df9e237"
+          },
+          {
+            "bytes": 2378,
+            "path": "partkiln/src/partkiln/exchange/stl.py",
+            "sha256": "ec151414cc5052b0d0d35652d6869425bf4662bab2abe88d15010866d00d42f2"
+          },
+          {
+            "bytes": 7979,
+            "path": "partkiln/src/partkiln/exchange/threemf.py",
+            "sha256": "64fa825606bc556a8908475d2db550f9da69dda13dc78b61477ccc1d44c841a6"
+          },
+          {
+            "bytes": 19770,
+            "path": "partkiln/src/partkiln/features/__init__.py",
+            "sha256": "a700800e347379bf99425bb6bc7df3af3d20a9e065f892799fca1f60c2349b98"
+          },
+          {
+            "bytes": 18844,
+            "path": "partkiln/src/partkiln/features/base.py",
+            "sha256": "d5c34c108efda3013a156b433e429cc1bbd1632a509970f57274ca72caccd382"
+          },
+          {
+            "bytes": 12856,
+            "path": "partkiln/src/partkiln/features/coil.py",
+            "sha256": "48ee571d4d79290f883a9f130662ce01cd151ce22da2c43f336ed6c75dada621"
+          },
+          {
+            "bytes": 7575,
+            "path": "partkiln/src/partkiln/features/combine_split.py",
+            "sha256": "e922f132adcecf39901780b841faa30ae04d43818e3b00813f82c3a5d0f1a4b4"
+          },
+          {
+            "bytes": 7783,
+            "path": "partkiln/src/partkiln/features/edge.py",
+            "sha256": "da222dae845bfa6f5d21b20e0cccea67a3262f80a8218d315af647a238ea5397"
+          },
+          {
+            "bytes": 8918,
+            "path": "partkiln/src/partkiln/features/extrude.py",
+            "sha256": "49bea48dc85a20cc3aeba737e33b8fcf554ab87594e596fdb654feeb584788aa"
+          },
+          {
+            "bytes": 14170,
+            "path": "partkiln/src/partkiln/features/hole.py",
+            "sha256": "d314701439cb4724da5b9da146ed19f4591fd3bcc390fb9c80dca18bbe2f985a"
+          },
+          {
+            "bytes": 12013,
+            "path": "partkiln/src/partkiln/features/part.py",
+            "sha256": "61258646f638f5e975dbea142ef0f38dc5182b70ed37bbe33ccfb79ee605efac"
+          },
+          {
+            "bytes": 13175,
+            "path": "partkiln/src/partkiln/features/pattern.py",
+            "sha256": "79e81c3376de382a47bd4878ef18e6c6ef652453bc25685d41caa4642f8885e0"
+          },
+          {
+            "bytes": 6261,
+            "path": "partkiln/src/partkiln/features/revolve.py",
+            "sha256": "8785daedeeb8432b130d050e7255f27c2eacfbb59a2db1d9e41184551469e7f5"
+          },
+          {
+            "bytes": 4227,
+            "path": "partkiln/src/partkiln/features/shell_draft.py",
+            "sha256": "744657ef920412fd7df60a914a425cec2b8bfbdd088aea9dd4d8748b7c417289"
+          },
+          {
+            "bytes": 5408,
+            "path": "partkiln/src/partkiln/features/sweep_loft.py",
+            "sha256": "68f16229ab560ab057a9db8abb6c081b302deaf0f99b2d7fe1ae21adbbd3f069"
+          },
+          {
+            "bytes": 21748,
+            "path": "partkiln/src/partkiln/features/thread.py",
+            "sha256": "53a52c53ba5fd8dad2c83f5f6e320fe1d75bee8f7f20056199e8937d1537e0a7"
+          },
+          {
+            "bytes": 16928,
+            "path": "partkiln/src/partkiln/features/workplane.py",
+            "sha256": "c4fc950a549842d4df494ccdb8b981f221168b0d2bfe11081f57b416a7066583"
+          },
+          {
+            "bytes": 685,
+            "path": "partkiln/src/partkiln/gui/__init__.py",
+            "sha256": "d1a99c322bf9912dab375e1fabf36d076c5ae787853d5651dc0e75faa8ba4733"
+          },
+          {
+            "bytes": 16016,
+            "path": "partkiln/src/partkiln/gui/actions.py",
+            "sha256": "6b57d81628cbb9e9d6869864364f5151084f11856cf50d5ba53ee427b730bc3e"
+          },
+          {
+            "bytes": 7052,
+            "path": "partkiln/src/partkiln/gui/app.py",
+            "sha256": "1e76f3a710222723d49aa372abc7d57dec29b1abaf8546fca533a173a43a187f"
+          },
+          {
+            "bytes": 4967,
+            "path": "partkiln/src/partkiln/gui/preview.py",
+            "sha256": "311be14cd160834e74cd7ed7f74efef92ca9325e63eb6297d15cdcba7402f470"
+          },
+          {
+            "bytes": 15687,
+            "path": "partkiln/src/partkiln/gui/shell.py",
+            "sha256": "4fb1fc89fc76ea0c73ca29843a578b7eced2c580e8f6c9bdb7d8db59c840e4ca"
+          },
+          {
+            "bytes": 19540,
+            "path": "partkiln/src/partkiln/handoff.py",
+            "sha256": "f537a8cc545a5bbc4c48672701629055a52116dc9ad041fc93146c9b2a306cef"
+          },
+          {
+            "bytes": 12760,
+            "path": "partkiln/src/partkiln/materials.py",
+            "sha256": "b918f6943498f178f1d06865583053d740bc18fd8268bcaef1056a6e0fd13a65"
+          },
+          {
+            "bytes": 80283,
+            "path": "partkiln/src/partkiln/methods.py",
+            "sha256": "9c5820f4fb4b41a23350b47b8d158040e30553cb873dde61fb1ca751de72bb62"
+          },
+          {
+            "bytes": 36215,
+            "path": "partkiln/src/partkiln/naming.py",
+            "sha256": "e5f6f25e8a5c0179e7d96ad6dc0d87602f2341aff203379483ea6061c963907f"
+          },
+          {
+            "bytes": 18019,
+            "path": "partkiln/src/partkiln/params.py",
+            "sha256": "f8bb2f04514c185cb4c99dd67247b7b0f20d45a1af29c41612819274d454e28e"
+          },
+          {
+            "bytes": 2479,
+            "path": "partkiln/src/partkiln/sheetmetal/__init__.py",
+            "sha256": "0972c97cb486198a32737ffa9473a13f68e875992c0944b63dca617a16ac0575"
+          },
+          {
+            "bytes": 31223,
+            "path": "partkiln/src/partkiln/sheetmetal/flat.py",
+            "sha256": "f3bd3dee8123edd257e9a1d2a23c31e1c08ff886d67c069a182d621a144a43f8"
+          },
+          {
+            "bytes": 22379,
+            "path": "partkiln/src/partkiln/sheetmetal/fold.py",
+            "sha256": "75660af8d9884c436604450c3fd6d8b1bb5ed92cf75a69fbcfa3adc9f2448259"
+          },
+          {
+            "bytes": 14108,
+            "path": "partkiln/src/partkiln/sheetmetal/verbs.py",
+            "sha256": "50180897cdc2c1ca7724fefc76f2c88f9cb1431217b0651bcc709f8dbe6a8efc"
+          },
+          {
+            "bytes": 812,
+            "path": "partkiln/src/partkiln/sketch/__init__.py",
+            "sha256": "4540311a9f554375ebe18dec9b77b578f24bda35266f999ec7923472ad5cee09"
+          },
+          {
+            "bytes": 24750,
+            "path": "partkiln/src/partkiln/sketch/model.py",
+            "sha256": "9bb8e4e29138a889c96cfbe2dc471de4167d9345ea800ad39b1685d2956e8c84"
+          },
+          {
+            "bytes": 10828,
+            "path": "partkiln/src/partkiln/sketch/presets.py",
+            "sha256": "34f1b9a2fe33c418b7c3381418447addb0fce4d459e629c8991de2b55a3699a4"
+          },
+          {
+            "bytes": 36093,
+            "path": "partkiln/src/partkiln/sketch/profile.py",
+            "sha256": "bfcba4f1e6e0da811aa3b53d2b4b00aa3f81dacd05fbdabfafd1bce33e4f3353"
+          },
+          {
+            "bytes": 26449,
+            "path": "partkiln/src/partkiln/sketch/solver.py",
+            "sha256": "7fdc4cc8bfed3dbb0f067ec4bf5363336eeaf0a39555741c30ac49a6b2a40fca"
+          },
+          {
+            "bytes": 30802,
+            "path": "partkiln/src/partkiln/standards.py",
+            "sha256": "c2a9380cf7812c479f09c2c53bea363a1f04b5fd194eb3cd4c317e4ceb467f10"
+          },
+          {
+            "bytes": 39960,
+            "path": "partkiln/src/partkiln/tyre.py",
+            "sha256": "8b4aedf0e0e68864b95a72fc2dbf418bdad6e21b942f2da23583d897952366d1"
+          },
+          {
+            "bytes": 6882,
+            "path": "partkiln/src/partkiln/units.py",
+            "sha256": "31f579caa26a4dfa3bc29ea7ac15c9aef0817db65c906eb54696083d3a395536"
+          },
+          {
+            "bytes": 11475,
+            "path": "partkiln/src/partkiln/worker.py",
+            "sha256": "78d71796c7c473834cafccb6bd419855fe76e85bc9209d4e8261f9dfe325f153"
+          }
+        ]
+      }
+    },
+    "seamkiln": {
+      "source_origin": "/Users/john/TokenEfficiencyEngine/seamkiln/src/seamkiln",
+      "files": 61,
+      "bytes": 814762,
+      "identity_sha256": "9c273bf40e895a73b565e53d9b137bb70620f698db7e12335aadd56e9d393a94",
+      "manifest": {
+        "files": [
+          {
+            "bytes": 0,
+            "path": "seamkiln/src/seamkiln/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 15348,
+            "path": "seamkiln/src/seamkiln/animation.py",
+            "sha256": "8c989aff3b7b3654eccb4fbaa15e03ae0c59e40c8209a957c800cc84d9e6e581"
+          },
+          {
+            "bytes": 26972,
+            "path": "seamkiln/src/seamkiln/avatar.py",
+            "sha256": "3a600df029e44ec08ee0b6d014dc90b3a1c8c9902b5abc536059dce75a819da4"
+          },
+          {
+            "bytes": 0,
+            "path": "seamkiln/src/seamkiln/bench/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 10225,
+            "path": "seamkiln/src/seamkiln/bench/bakeoff.py",
+            "sha256": "58c91d347ca73f70511c598dbd092bce9a591acec49c6c37d4f2f34d8b28d905"
+          },
+          {
+            "bytes": 0,
+            "path": "seamkiln/src/seamkiln/drape/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 4942,
+            "path": "seamkiln/src/seamkiln/drape/anny_body.py",
+            "sha256": "5aef30dc693914bc8c9cea6836639f3e20ee76ad102e53f67cae13da0b10dbc7"
+          },
+          {
+            "bytes": 23837,
+            "path": "seamkiln/src/seamkiln/drape/body.py",
+            "sha256": "07e58cad1767350542e2be7ae6d377ce04513fb754620cbec8dc220b53aa6416"
+          },
+          {
+            "bytes": 6798,
+            "path": "seamkiln/src/seamkiln/drape/collision.py",
+            "sha256": "44283fb8c91791260effec68fa47ec23c54e6cd8bc324c9d242ad2367140f256"
+          },
+          {
+            "bytes": 7924,
+            "path": "seamkiln/src/seamkiln/drape/cusick.py",
+            "sha256": "d57aaf8c5138642a1813091dec8885611568058cab8feb7a58ba1f23dd68976f"
+          },
+          {
+            "bytes": 3084,
+            "path": "seamkiln/src/seamkiln/drape/cusick_run.py",
+            "sha256": "ffc7408ed1106df9511204d1fde70da93141e7b19c2c27a4d4eedbe07aef7871"
+          },
+          {
+            "bytes": 27223,
+            "path": "seamkiln/src/seamkiln/drape/dressing.py",
+            "sha256": "736447966ed91f45a929a90505ba0fb0923b403c041c18b6aff164f143cbfeea"
+          },
+          {
+            "bytes": 8787,
+            "path": "seamkiln/src/seamkiln/drape/environment.py",
+            "sha256": "733d9aeca1d567994afc9f179dc122fba8cc63047afa8758abf84b54aa0b0ad6"
+          },
+          {
+            "bytes": 42871,
+            "path": "seamkiln/src/seamkiln/drape/garment.py",
+            "sha256": "61deecd7ad5e4536160b0b4cbfb50486d0679d96ca709ffd80f761467701d8a6"
+          },
+          {
+            "bytes": 7622,
+            "path": "seamkiln/src/seamkiln/drape/lacing.py",
+            "sha256": "d56fa058dcebde3e27aa9fc8651437151cf579165e3a4f4670c94e876ad43092"
+          },
+          {
+            "bytes": 17787,
+            "path": "seamkiln/src/seamkiln/drape/measure.py",
+            "sha256": "287332f4de5e09cc0839936c845fcd0fcdc05a0b02d1ca2c1d6ef6bc31324907"
+          },
+          {
+            "bytes": 4365,
+            "path": "seamkiln/src/seamkiln/drape/pinching.py",
+            "sha256": "5bc75bdbabd7cb555c777f3a2b1bbbe5fc6d92ae4e07b4b16e4ab787960d80d7"
+          },
+          {
+            "bytes": 9052,
+            "path": "seamkiln/src/seamkiln/drape/preview.py",
+            "sha256": "062102c97195793331087f87f3368905ea93c41836585ab7f4ea1c1d0d5e5fda"
+          },
+          {
+            "bytes": 62723,
+            "path": "seamkiln/src/seamkiln/drape/solve.py",
+            "sha256": "1310d97f30335e65c057a1b91835f6676e0897c90a86a3171722c9e0abf34fa3"
+          },
+          {
+            "bytes": 10235,
+            "path": "seamkiln/src/seamkiln/drape/tearing.py",
+            "sha256": "b7d66d4c4a7466926bbb9b04b5ad7a4827e292d519e68f3e50ad1a7d78d5c261"
+          },
+          {
+            "bytes": 11719,
+            "path": "seamkiln/src/seamkiln/drape/triangulate.py",
+            "sha256": "7bb602f5262152a8439e94c54023ab5c2583aa82e7b2c703a5a17f31cfe383c3"
+          },
+          {
+            "bytes": 29346,
+            "path": "seamkiln/src/seamkiln/figure.py",
+            "sha256": "3637f6f9b40086f39bc74ad16db333302282dbd5901ed001ca8154d485a0ed10"
+          },
+          {
+            "bytes": 11634,
+            "path": "seamkiln/src/seamkiln/finishing.py",
+            "sha256": "1912a14138276c05e6067a7d5e8c739cc462e0bb332c5d9dca9f1e26f923c5a5"
+          },
+          {
+            "bytes": 0,
+            "path": "seamkiln/src/seamkiln/gui/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 12244,
+            "path": "seamkiln/src/seamkiln/gui/app.py",
+            "sha256": "21fd6cdc52e9515dd208439665ebe279308a2b1a2ec8f521a7c83f52d925bed1"
+          },
+          {
+            "bytes": 3644,
+            "path": "seamkiln/src/seamkiln/gui/scene.py",
+            "sha256": "4368dead669be5097613dcc080e12d8dec0409c579b54194e41a2d013d964c43"
+          },
+          {
+            "bytes": 12508,
+            "path": "seamkiln/src/seamkiln/handoff.py",
+            "sha256": "c799c1004d1c8ee13ff929ff20ea101283f1504c1557bf7384260c190041fd12"
+          },
+          {
+            "bytes": 502,
+            "path": "seamkiln/src/seamkiln/hardware/__init__.py",
+            "sha256": "377ac0828b9d38ef2c453f9f5272cd8bd6a9733308ce651d15547942bcff17f4"
+          },
+          {
+            "bytes": 16944,
+            "path": "seamkiln/src/seamkiln/hardware/buttons.py",
+            "sha256": "425243bfeff4f887de8d2490643768f562c03dc3406f5cdde2bf792da7282b46"
+          },
+          {
+            "bytes": 5388,
+            "path": "seamkiln/src/seamkiln/hardware/trim.py",
+            "sha256": "26fceaadc2de8a798529629ea11c7af8e5d56345cc1e668eb94fa2a96a392f0e"
+          },
+          {
+            "bytes": 16901,
+            "path": "seamkiln/src/seamkiln/hardware/zipper.py",
+            "sha256": "f9ba7c6c45acd71b315e0b7ae3f1e2749de7ddcbba35d960b197f851afb91344"
+          },
+          {
+            "bytes": 12774,
+            "path": "seamkiln/src/seamkiln/interact.py",
+            "sha256": "e2b90c2657042134dd58867ba6f6ea28f04d0b8b7764ea8abc74475648edfa70"
+          },
+          {
+            "bytes": 3192,
+            "path": "seamkiln/src/seamkiln/locking.py",
+            "sha256": "20882e86081adc2eac50ddae5edd8cc69dcf9598e875b17b1f3754a728d80ea3"
+          },
+          {
+            "bytes": 8498,
+            "path": "seamkiln/src/seamkiln/materials.py",
+            "sha256": "25e1ac463d4aac828e568debc0cf387de17e13aa05ee46eb891592a643ab8f6d"
+          },
+          {
+            "bytes": 653,
+            "path": "seamkiln/src/seamkiln/pattern/__init__.py",
+            "sha256": "cfb968c193c8bd7bc4eb4d167e2b78c41dfa29202c141d24032c6eb3e8fdb811"
+          },
+          {
+            "bytes": 6500,
+            "path": "seamkiln/src/seamkiln/pattern/allowance.py",
+            "sha256": "a77b0e69ee750d95774efbd82d88df32c0bfc91ae9efdbb01460365f28409945"
+          },
+          {
+            "bytes": 10080,
+            "path": "seamkiln/src/seamkiln/pattern/cutting.py",
+            "sha256": "fb05340f94161205416b2a04f6be0e68a488a9be8b0b383fd77afde4c5afe30d"
+          },
+          {
+            "bytes": 48122,
+            "path": "seamkiln/src/seamkiln/pattern/dxf.py",
+            "sha256": "56e4e31988f979b8a841a70d40ff15c908f5cb7d1afed2fbb8c26e1ab5a2ae3b"
+          },
+          {
+            "bytes": 10648,
+            "path": "seamkiln/src/seamkiln/pattern/fabric.py",
+            "sha256": "49b69c0c183484fb85d882803a08d65f074200d0ee242ce258e19bd2940a2e89"
+          },
+          {
+            "bytes": 16258,
+            "path": "seamkiln/src/seamkiln/pattern/fixtures.py",
+            "sha256": "77b221c4f2be12a2df3cd0e6ea9ae12601302784eefd5cf8499417944e68ae35"
+          },
+          {
+            "bytes": 9548,
+            "path": "seamkiln/src/seamkiln/pattern/geometry.py",
+            "sha256": "3428b8e850f7ca18ef39c1cd9a7e0cf611b88ed041e9a2be948484dac1dad115"
+          },
+          {
+            "bytes": 8404,
+            "path": "seamkiln/src/seamkiln/pattern/grading.py",
+            "sha256": "88304a4ec7403ccc0a3015afec2fc398e6105ce0e4f1bbf0045690a07f8c9e7f"
+          },
+          {
+            "bytes": 13464,
+            "path": "seamkiln/src/seamkiln/pattern/model.py",
+            "sha256": "cb44fabd5ee1281819e0dac252bd0103f9054d644ad7158429a4e61c4427486d"
+          },
+          {
+            "bytes": 10272,
+            "path": "seamkiln/src/seamkiln/pattern/plot.py",
+            "sha256": "5482cb099830833a52c55819263c688981a05a05572011c0f22cf956d5d0f2c6"
+          },
+          {
+            "bytes": 9397,
+            "path": "seamkiln/src/seamkiln/pattern/symmetry.py",
+            "sha256": "c8a335da1a0ecd17115aab586d65ab9be5eeb6eefd0567567c60a4ab8b0fc02b"
+          },
+          {
+            "bytes": 2184,
+            "path": "seamkiln/src/seamkiln/rig/__init__.py",
+            "sha256": "1168dc7e4cb212464bfae47ee73040bd6e45b9504aa7a796dae8a6882697481a"
+          },
+          {
+            "bytes": 38613,
+            "path": "seamkiln/src/seamkiln/rig/character.py",
+            "sha256": "7d94f4ed0f50ee674c2f123be3c9e954986c8a8acd2652339f7df97405b0e652"
+          },
+          {
+            "bytes": 28061,
+            "path": "seamkiln/src/seamkiln/rig/gltf_read.py",
+            "sha256": "7e1979d4643ff43fdc205f87bd7b982d841bef962143970c82d0132304ebf0be"
+          },
+          {
+            "bytes": 16893,
+            "path": "seamkiln/src/seamkiln/rig/gltf_write.py",
+            "sha256": "0b445d7472774581e1ca0d935a5d90c09848ccfc84d877db3130b28bfbed5bca"
+          },
+          {
+            "bytes": 13147,
+            "path": "seamkiln/src/seamkiln/rig/naming.py",
+            "sha256": "6b1153b398f3c67226064d2bbcf2ac07e3ab6fa5e39cb8dc92ee64eef7a6343e"
+          },
+          {
+            "bytes": 30011,
+            "path": "seamkiln/src/seamkiln/rig/skin.py",
+            "sha256": "a95627c234cdfa1e45bc4d7ed6c6c1c0d6182c1f096bf32d3b3624b104b904d3"
+          },
+          {
+            "bytes": 69207,
+            "path": "seamkiln/src/seamkiln/session.py",
+            "sha256": "8e933c27274c6ae8f20d669824c8011a3aabf68c0ddc8e2d22766b8f3aa2a879"
+          },
+          {
+            "bytes": 0,
+            "path": "seamkiln/src/seamkiln/solver/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 231,
+            "path": "seamkiln/src/seamkiln/solver/backends/__init__.py",
+            "sha256": "1595f19cda5b20fcf55c3924164fb34470d83cde725053037bcb4d34bcf50682"
+          },
+          {
+            "bytes": 4401,
+            "path": "seamkiln/src/seamkiln/solver/backends/blender_cloth.py",
+            "sha256": "939fc76fdda0220c7a2d8bd2b0b5419ac4a1e8831ac315a8a27a4f1e055655a8"
+          },
+          {
+            "bytes": 8382,
+            "path": "seamkiln/src/seamkiln/solver/backends/numba_xpbd.py",
+            "sha256": "88e9eae088b5e0d128d627ff42346504dccd09f977106c7b4b380fcea4f9e5c6"
+          },
+          {
+            "bytes": 3798,
+            "path": "seamkiln/src/seamkiln/solver/backends/torch_xpbd.py",
+            "sha256": "5104da073b0a8a1651a5bc8478d69d715df0f123ab302cd0e41d7fd3e7f6d070"
+          },
+          {
+            "bytes": 4261,
+            "path": "seamkiln/src/seamkiln/solver/backends/warp_xpbd.py",
+            "sha256": "020a373637fb319ab934652865a6a15e89924826dcb89867385e2828f3f31d7b"
+          },
+          {
+            "bytes": 7866,
+            "path": "seamkiln/src/seamkiln/solver/problem.py",
+            "sha256": "0c44724908119b68b17c60e53348aa50d1b43873608cfb4ad4fa6d4c52add63d"
+          },
+          {
+            "bytes": 1042,
+            "path": "seamkiln/src/seamkiln/solver/threads.py",
+            "sha256": "3b4f3502acf626cfbdba67cc7c9d0a574d57055bff07e1a65fe2ce9680bede9a"
+          },
+          {
+            "bytes": 8230,
+            "path": "seamkiln/src/seamkiln/techpack.py",
+            "sha256": "ab1d53562c9d24e0b21655bdd7561b21f828ad4ff328e86e4cb0720129b6dbde"
+          }
+        ]
+      }
+    }
+  }
+}

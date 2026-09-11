@@ -1,0 +1,307 @@
+{
+  "observed_utc": "2026-09-10T23:05:29.444717+00:00",
+  "stage": "draft; not frozen or built",
+  "source_draft": {
+    "sha256": "ee52d6a2280645749e699da8ec6857f83e4f37e6c48cc983deeb6d1fa91c6ea5",
+    "files": 293,
+    "bytes": 3394391
+  },
+  "installed_claude": {
+    "sha256": "82e5bc7e57f5802dc8f2aea912d4a4d389272bb50a512e45768559c647ab4193",
+    "files": 274,
+    "bytes": 3097672
+  },
+  "installed_matches_accepted_A79_A80": true,
+  "interpreter": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+  "python": "3.11.15",
+  "main": {
+    "project_root": "/Users/john/TokenEfficiencyEngine",
+    "namespace_present": true,
+    "config_present": true,
+    "grants": [
+      "call-paid-engine"
+    ],
+    "trust_profile": null,
+    "allow_code_exec": false,
+    "model_profile": {
+      "active": "qmax",
+      "pinned": true,
+      "ready": true
+    },
+    "learning": {
+      "present": true,
+      "events": 50,
+      "snapshots": 0,
+      "schema": 1
+    },
+    "state_categories": {
+      "generated": {
+        "kind": "directory"
+      },
+      "kb": {
+        "kind": "directory"
+      },
+      "learning": {
+        "kind": "directory"
+      },
+      "shadow": {
+        "kind": "directory"
+      },
+      "memory.json": {
+        "kind": "file",
+        "bytes": 6441
+      },
+      "kb-staging": {
+        "kind": "directory"
+      },
+      "extras-seen.json": {
+        "kind": "file",
+        "bytes": 234
+      },
+      "config.before-paid-engine-20260910T194955Z.toml": {
+        "kind": "file",
+        "bytes": 1285
+      },
+      "engine-scan.json": {
+        "kind": "file",
+        "bytes": 421
+      },
+      "partkiln": {
+        "kind": "directory"
+      },
+      "config.toml": {
+        "kind": "file",
+        "bytes": 1324
+      },
+      "server.pid": {
+        "kind": "file",
+        "bytes": 5
+      },
+      "llm-profile.json": {
+        "kind": "file",
+        "bytes": 83
+      },
+      "windtunnel": {
+        "kind": "directory"
+      }
+    },
+    "scope": "Filesystem metadata only; no state content or memory hashes published."
+  },
+  "a71": {
+    "project_root": "/Users/john/TokenEfficiencyEngine-a71",
+    "namespace_present": true,
+    "config_present": false,
+    "grants": [],
+    "trust_profile": null,
+    "allow_code_exec": false,
+    "model_profile": {
+      "active": null,
+      "pinned": null,
+      "ready": null
+    },
+    "learning": {
+      "present": true,
+      "events": 2,
+      "snapshots": 0,
+      "schema": 1
+    },
+    "state_categories": {
+      "learning": {
+        "kind": "directory"
+      },
+      "shadow": {
+        "kind": "directory"
+      },
+      "extras-seen.json": {
+        "kind": "file",
+        "bytes": 234
+      },
+      "partkiln": {
+        "kind": "directory"
+      },
+      "windtunnel": {
+        "kind": "directory"
+      }
+    },
+    "scope": "Filesystem metadata only; no state content or memory hashes published."
+  },
+  "shared_dependencies": {
+    "count": 148,
+    "matches_accepted_full_metadata": true,
+    "changed_names": [],
+    "baseline": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A79-A80-01/audit/dependency-audit.json",
+    "limits": "Unchanged metadata reuses completed constraint audit; no new ABI claim."
+  },
+  "sidecar_dependencies": {
+    "interpreter": "/Users/john/TEE/.tee/sidecars/partkiln/bin/python",
+    "count": 10,
+    "matches_accepted_full_metadata": true,
+    "scope": "Distribution metadata only; no native kernel imported or worker started."
+  },
+  "build_inputs": [
+    {
+      "path": "server/pyproject.toml",
+      "bytes": 9775,
+      "sha256": "45848ddecda43d4ebcefbe301aa3d2b9462fe67530401d79543799a375b31ab3"
+    },
+    {
+      "path": "server/uv.lock",
+      "bytes": 1108909,
+      "sha256": "3cfda3424606a35ce59489f559c5263a6d65e412c735d565acddf476e9878f51"
+    },
+    {
+      "path": "server/LICENSE",
+      "bytes": 1069,
+      "sha256": "f1c65fea14b8b5f0a8d2ced69588292ca94c6199cdee06099463b22c67bde4c4"
+    },
+    {
+      "path": "packaging/build_local_mcpb.py",
+      "bytes": 8661,
+      "sha256": "bc2ce1d19bbd67bb29574462f6cf7eea79e88ccacc865d93495937c90786f08f"
+    },
+    {
+      "path": "packaging/launch.py",
+      "bytes": 1267,
+      "sha256": "50748208baa897d6734b5faf453162b8bfa7d52736d8f21b8d7bd1c3541809cd"
+    },
+    {
+      "path": "packaging/mcpb_manifest.json",
+      "bytes": 5804,
+      "sha256": "fc2e80d4c3ab885219f073d4cfc63ccb9cfc7a475aedfc1abab23ad16221547f"
+    },
+    {
+      "path": "packaging/icon.png",
+      "bytes": 3763,
+      "sha256": "db5e2e60b3c13ed77bf7013b8c930e4801e172905b28e993c060976cc1bbe93f"
+    },
+    {
+      "path": "docs/small-model-workflows.md",
+      "bytes": 10602,
+      "sha256": "dd1d1776a5361a5f15e65111e7815add935c70048e6f401f6921b9eed7a2dab0"
+    },
+    {
+      "path": "skills/tee-usage/SKILL.md",
+      "bytes": 6916,
+      "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1"
+    }
+  ],
+  "codex_wrapper": {
+    "source": {
+      "root": "/Users/john/plugins/tee",
+      "files": [
+        {
+          "path": ".codex-plugin/plugin.json",
+          "bytes": 1131,
+          "sha256": "39b69cf5fba6c9e89ca75a43baa0b025c7fc5119bee0612848abf0af6d784250",
+          "matches_accepted": true
+        },
+        {
+          "path": ".mcp.json",
+          "bytes": 525,
+          "sha256": "29dd1d209e6dd7e8c17905bae4da379f440fa487e3c289a0e7f2ac6376253c2f",
+          "matches_accepted": true
+        },
+        {
+          "path": "README.md",
+          "bytes": 783,
+          "sha256": "c2f020e9b774bd500005c62413c53fd90d2c79e29c7757c203adf3158cbb8987",
+          "matches_accepted": true
+        },
+        {
+          "path": "assets/icon.png",
+          "bytes": 3763,
+          "sha256": "db5e2e60b3c13ed77bf7013b8c930e4801e172905b28e993c060976cc1bbe93f",
+          "matches_accepted": true
+        },
+        {
+          "path": "skills/tee-usage/SKILL.md",
+          "bytes": 6916,
+          "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1",
+          "matches_accepted": true
+        }
+      ]
+    },
+    "cache": {
+      "root": "/Users/john/.codex/plugins/cache/personal/tee/0.30.0",
+      "files": [
+        {
+          "path": ".codex-plugin/plugin.json",
+          "bytes": 1131,
+          "sha256": "39b69cf5fba6c9e89ca75a43baa0b025c7fc5119bee0612848abf0af6d784250",
+          "matches_accepted": true
+        },
+        {
+          "path": ".mcp.json",
+          "bytes": 525,
+          "sha256": "29dd1d209e6dd7e8c17905bae4da379f440fa487e3c289a0e7f2ac6376253c2f",
+          "matches_accepted": true
+        },
+        {
+          "path": "README.md",
+          "bytes": 783,
+          "sha256": "c2f020e9b774bd500005c62413c53fd90d2c79e29c7757c203adf3158cbb8987",
+          "matches_accepted": true
+        },
+        {
+          "path": "assets/icon.png",
+          "bytes": 3763,
+          "sha256": "db5e2e60b3c13ed77bf7013b8c930e4801e172905b28e993c060976cc1bbe93f",
+          "matches_accepted": true
+        },
+        {
+          "path": "skills/tee-usage/SKILL.md",
+          "bytes": 6916,
+          "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1",
+          "matches_accepted": true
+        }
+      ]
+    }
+  },
+  "optional_workers": {
+    "cline": {
+      "version": "3.0.61",
+      "metadata": {
+        "path": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/cline/package.json",
+        "bytes": 1231,
+        "sha256": "d269a244eb3a708bad8da597e9f49f0c0b6c994f0cc5944960d9f81fda702713"
+      },
+      "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+      "executable_exists": true
+    },
+    "aider": {
+      "version": "0.86.2",
+      "metadata": {
+        "path": "/Users/john/.local/share/tee/docagents/aider-0.86.2/lib/python3.11/site-packages/aider_chat-0.86.2.dist-info/METADATA",
+        "bytes": 26519,
+        "sha256": "44dc13f3417fa2da4140fec8e6935517bdd94a4e72aaf9ad83fe4a83e0b009d0"
+      },
+      "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+      "executable_exists": true
+    }
+  },
+  "optional_worker_policy": "Separate private installations, not vendored or shared-runtime requirements; no CLI/model execution during capture.",
+  "rollback_artifacts_verified": true,
+  "source_git": {
+    "commit": "4db0fb0962d91ed3844f69219546f40932a90816",
+    "branch": "claude/token-efficiency-engine-5jv1dj",
+    "remote_checked_now": false,
+    "dirty_work_preserved": true
+  },
+  "actual_client_baseline": {
+    "scope": "Accepted A79/A80 receipts; not a new client probe",
+    "core_tools": 17,
+    "virtual_tools_with_main_corpus": 245,
+    "receipts": [
+      "/Users/john/TokenEfficiencyEngine/docs/coordination/upgrades/TEE-20260910-A79-A80-01/receipts/20260910T214057Z-codex-accepted.md",
+      "/Users/john/TokenEfficiencyEngine/docs/coordination/upgrades/TEE-20260910-A79-A80-01/receipts/20260910T214600Z-claude-accepted.md"
+    ]
+  },
+  "pending": [
+    "final source/smoke/test approval",
+    "fresh cutover status and private backups",
+    "freeze/build/reviewer checks",
+    "both client reconnects",
+    "owner decision on new grant",
+    "actual acceptance receipts"
+  ]
+}

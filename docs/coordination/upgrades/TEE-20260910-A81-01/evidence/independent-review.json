@@ -1,0 +1,91 @@
+{
+  "reviewed_utc": "2026-09-10T22:29:28.514008+00:00",
+  "update_id": "TEE-20260910-A81-01",
+  "outcome": "PASS",
+  "scope": "Independent static artifact and freeze-helper review only. No helper execution, installation, inference, grant change or actual-client acceptance.",
+  "approved_payload": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+  "payloads": {
+    "checkout": {
+      "sha256": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+      "files": 279,
+      "bytes": 3166135
+    },
+    "snapshot": {
+      "sha256": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+      "files": 279,
+      "bytes": 3166135
+    },
+    "claude": {
+      "sha256": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+      "files": 279,
+      "bytes": 3166135
+    },
+    "codex": {
+      "sha256": "3d41e182129c82f62f8a6675685098a28d38061c6c232b9f894fe2667bc50e40",
+      "files": 279,
+      "bytes": 3166135
+    }
+  },
+  "prior_payload": {
+    "sha256": "82e5bc7e57f5802dc8f2aea912d4a4d389272bb50a512e45768559c647ab4193",
+    "files": 274,
+    "bytes": 3097672
+  },
+  "delta_from_accepted_a79_a80": {
+    "added": [
+      "tee/docagents/__init__.py",
+      "tee/docagents/backends.py",
+      "tee/docagents/runner.py",
+      "tee/docagents/tools.py",
+      "tee/docagents/workspace.py"
+    ],
+    "modified": [
+      "tee/cli.py",
+      "tee/kernel/trust.py"
+    ],
+    "removed": []
+  },
+  "artifacts": {
+    "claude": {
+      "sha256": "9d5e3c95687dbedb39c1d74f7f8277d446b1da0e661e84599943b290b4d1bbc9",
+      "bytes": 1060035,
+      "members": 287
+    },
+    "codex": {
+      "sha256": "12463feeabb16c17ed81c327528a2e5bfb542ee09810c5b4c2b0738d0a6dcb91",
+      "bytes": 1464252,
+      "members": 302
+    }
+  },
+  "checks": {
+    "complete_archive_members_match_recorded_manifests": true,
+    "archive_paths_unique_relative_and_no_symlinks": true,
+    "all_four_runtime_payloads_byte_identical": true,
+    "source_manifest_self_hash_matches": true,
+    "claude_nonpayload_eight_members_unchanged_from_a79_a80": true,
+    "codex_wrapper_five_files_match_source_cache_and_accepted_manifest": true,
+    "codex_nonpayload_members_exact_allowlist": true,
+    "no_private_state_dependency_environments_or_external_workers_bundled": true,
+    "no_high_confidence_private_key_or_provider_token_patterns_found": true
+  },
+  "secret_scan_scope": "Known high-confidence key patterns and member allowlist; not a claim that arbitrary data can be proved secret-free. New payload files and modified source were also reviewed during implementation.",
+  "launcher": {
+    "claude": "bundle launch.py prepends its own src and borrows declared existing server venv",
+    "codex": "unchanged thin wrapper invokes the declared source checkout through its server venv",
+    "tee_version": "0.30.1",
+    "wrapper_version": "0.30.0"
+  },
+  "freeze_helper_review": {
+    "sha256": "c761dd22bcc945fac0f82f2de7137e2baba027d05c233a3cbf16684e26e5d7f9",
+    "executed": false,
+    "findings": [],
+    "observations": [
+      "Performs identity and complete member checks before write_new freezes the release manifest.",
+      "Never installs, changes grants/dependencies, restarts clients or sends messages; copies only reviewed artifact/shared-path inputs to a new Downloads directory.",
+      "Refuses existing frozen manifest and delivery root; a mid-copy I/O failure can leave an incomplete frozen delivery requiring deliberate coordinator recovery, never a successful delivery record.",
+      "Uses Python assertions for preconditions; invoke without -O/PYTHONOPTIMIZE as the reviewed coordinator command.",
+      "release-manifest.prepared.json was not yet present during this review; its final content and shared-path selection remain coordinator responsibilities."
+    ]
+  },
+  "actual_client_receipt": false
+}

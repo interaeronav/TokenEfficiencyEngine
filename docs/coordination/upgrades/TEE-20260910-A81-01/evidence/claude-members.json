@@ -1,0 +1,1439 @@
+{
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 1069,
+      "sha256": "f1c65fea14b8b5f0a8d2ced69588292ca94c6199cdee06099463b22c67bde4c4"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1189,
+      "sha256": "0506d858a6a8e5247885cbf155adf2216be15768b594b9bad2b3e6255fa7827c"
+    },
+    {
+      "path": "docs/small-model-workflows.md",
+      "bytes": 10602,
+      "sha256": "dd1d1776a5361a5f15e65111e7815add935c70048e6f401f6921b9eed7a2dab0"
+    },
+    {
+      "path": "icon.png",
+      "bytes": 3763,
+      "sha256": "db5e2e60b3c13ed77bf7013b8c930e4801e172905b28e993c060976cc1bbe93f"
+    },
+    {
+      "path": "launch.py",
+      "bytes": 1267,
+      "sha256": "50748208baa897d6734b5faf453162b8bfa7d52736d8f21b8d7bd1c3541809cd"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 5899,
+      "sha256": "bb3929db3bc87c5cb94a95751da9a06a95eae8dd883e095c49928f9d79e873a3"
+    },
+    {
+      "path": "skills/tee-usage/SKILL.md",
+      "bytes": 6916,
+      "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1"
+    },
+    {
+      "path": "src/tee/__init__.py",
+      "bytes": 703,
+      "sha256": "6a17103a4fdec9825bda597aca89a17f51b3a5751d31cf387267106f998a05ed"
+    },
+    {
+      "path": "src/tee/adapters/__init__.py",
+      "bytes": 61,
+      "sha256": "36acac792fc0a459198fd64b78649f5f8e3856adae8abf848d755d60e68bd242"
+    },
+    {
+      "path": "src/tee/adapters/blender/__init__.py",
+      "bytes": 252,
+      "sha256": "6c2c85328baed5a8857b0bf997ef9f4b1da2fbff8bc94eb0d347b6a4fc0bde5f"
+    },
+    {
+      "path": "src/tee/adapters/blender/adapter.py",
+      "bytes": 11790,
+      "sha256": "dee656aa1c1e631b994c11f8f2c1bd868522aa72bcdfa905797d950c516cccc6"
+    },
+    {
+      "path": "src/tee/adapters/blender/codegen.py",
+      "bytes": 33274,
+      "sha256": "40a072bfe7186e6ece41112883000f632515ff7c295b26be103aa8e1e08a8683"
+    },
+    {
+      "path": "src/tee/adapters/blender/docs.py",
+      "bytes": 7350,
+      "sha256": "26d1cf0ccff2976e857d334c7289a3bcb92540829378e8024557dcb81723d0fe"
+    },
+    {
+      "path": "src/tee/adapters/blender/guidance.py",
+      "bytes": 9379,
+      "sha256": "1dea9d04537d7b4e974f2a1b70524fbf5b4974130c1a6ffe90eebdad0f2ccbf1"
+    },
+    {
+      "path": "src/tee/adapters/blender/homebuilder.py",
+      "bytes": 20422,
+      "sha256": "e2204d293191e41da6224b7a85b6d700fc8059d15b05d8b5dbce1373519dcdc8"
+    },
+    {
+      "path": "src/tee/adapters/blender/modeling_codegen.py",
+      "bytes": 13696,
+      "sha256": "46ce4a7168c682d48eb9c42730a51a42360466ae5721bf69e0b9008b7c71b823"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/enclosure.py",
+      "bytes": 11596,
+      "sha256": "d3518ea3195d5654fe2b99160ded4909a4a607155dc2ca55a97557e5e0991c8c"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/f1_brake.py",
+      "bytes": 12515,
+      "sha256": "53218ae973ea8bae261975ce8834c93707682d06dceef99cc5b0c8ef85f10d7d"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/f1_wing.py",
+      "bytes": 12269,
+      "sha256": "61ef9a122e7369fa19ad330fac870683cbc3e55c8a2fe0d099082f431368e6e7"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/f1_wishbone.py",
+      "bytes": 14071,
+      "sha256": "ac00e578d5414ca09224241be9af0361dd8950da7c865830907d7187e3edf4c8"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/fabric.py",
+      "bytes": 22386,
+      "sha256": "ccdf4ab0398cc87b6c9a0fdf83299645acc35e9262bc2d64291a36da8cb26ec1"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/flange.py",
+      "bytes": 11809,
+      "sha256": "bdb6204e8a61f3f8af1e3df1336d603a192b08e9a43fa486ed26f5a5fca71b02"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/house.py",
+      "bytes": 26941,
+      "sha256": "c30780d75495d67a6f46b82f69274d4666929995b37a5d837ff9a02166fc8c1f"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/joint.py",
+      "bytes": 9251,
+      "sha256": "2449848efc29276f55e12d90b7e5649730a09eb5ba62b70d65d76613c33158fc"
+    },
+    {
+      "path": "src/tee/adapters/blender/recipes/textures.py",
+      "bytes": 27257,
+      "sha256": "e54583aedfe233417da02c3a7bc6f1d1c1a2b6b3be94d3059b3b9d9b08655fdc"
+    },
+    {
+      "path": "src/tee/adapters/blender/shim.py",
+      "bytes": 9571,
+      "sha256": "0f00ccb77e21de875e752fa404324fa7a0cad1ac75ebd0e715faa7d1e3e10639"
+    },
+    {
+      "path": "src/tee/adapters/blender/tools.py",
+      "bytes": 10904,
+      "sha256": "482c6f7f057ee87da4abac9414459a5a39d9dc52cf8d2a6b47724ba763681fa6"
+    },
+    {
+      "path": "src/tee/adapters/blender/wire.py",
+      "bytes": 4641,
+      "sha256": "f5d93580dc1ace255d50e62b74af6cea447687c0eec46ffe3325d568e561d2ec"
+    },
+    {
+      "path": "src/tee/adapters/freecad/__init__.py",
+      "bytes": 486,
+      "sha256": "44a40f6cc153111ce14afbbd1cf1477798fdbaa64f37fb7681a8a8b1ced71b88"
+    },
+    {
+      "path": "src/tee/adapters/freecad/adapter.py",
+      "bytes": 8001,
+      "sha256": "cb8e9510c9849b5939c5e7bc43cd79226e1fb2b8c2b72e662ee7dd9d1a699a2e"
+    },
+    {
+      "path": "src/tee/adapters/freecad/codegen.py",
+      "bytes": 12087,
+      "sha256": "465fe3d4b786c3118545bf2a65813d8874676e33debf902826bff9a792abee31"
+    },
+    {
+      "path": "src/tee/adapters/freecad/tools.py",
+      "bytes": 12209,
+      "sha256": "1899903417261152163acb15a6dbf28dec27f8257fc858da79530b0d0e21ab3d"
+    },
+    {
+      "path": "src/tee/adapters/freecad/wire.py",
+      "bytes": 5355,
+      "sha256": "886bb8fb3a4c33e48876637f34fb9320878032dcd5cfcd8b3f1355e219b705cb"
+    },
+    {
+      "path": "src/tee/adapters/fusion/CADAgent-LICENSE.txt",
+      "bytes": 1070,
+      "sha256": "1cd5e525b3957718c918a35578b22ba06fe42bf29d7f80535936ca345730c1d2"
+    },
+    {
+      "path": "src/tee/adapters/fusion/__init__.py",
+      "bytes": 467,
+      "sha256": "cb2005b350f54f7e02e9dc560aa1889029eb412c1d21c1528d25b5b38f101964"
+    },
+    {
+      "path": "src/tee/adapters/fusion/adapter.py",
+      "bytes": 11040,
+      "sha256": "bc9d8bc127fe4de1b6a723267f9030aeabd7810928a84924ce1c9c6869119da5"
+    },
+    {
+      "path": "src/tee/adapters/fusion/cadagent.py",
+      "bytes": 12266,
+      "sha256": "389d2901b9888a5bff40f26d7c3f4864c580b6db371d9157da35cc198ab89042"
+    },
+    {
+      "path": "src/tee/adapters/fusion/codegen.py",
+      "bytes": 90157,
+      "sha256": "0d4d0e5052a08076cb88e56dea5a9cbc6147187d9d21017446cd9b4c9bdbe904"
+    },
+    {
+      "path": "src/tee/adapters/fusion/docs.py",
+      "bytes": 5299,
+      "sha256": "735c6caaf174757592875bbd0c1f04d005c7172e0f944110e217c6208d96086c"
+    },
+    {
+      "path": "src/tee/adapters/fusion/guidance.py",
+      "bytes": 9851,
+      "sha256": "74343f2ae391ae647375ce6d95f48014b9c235a86f4b00ade4ab5a5a3353689a"
+    },
+    {
+      "path": "src/tee/adapters/fusion/recipes/cadagent_enclosure.json",
+      "bytes": 8232,
+      "sha256": "0809c88058e451aecf07c356c4c3edcce63117b8017f6323ef26e27f96416314"
+    },
+    {
+      "path": "src/tee/adapters/fusion/recipes/cadagent_f1_brake.json",
+      "bytes": 19079,
+      "sha256": "4abb79c38854ebef36a01ebb4c94954c235c2c5a5b5361a30ed1c0f1875fe349"
+    },
+    {
+      "path": "src/tee/adapters/fusion/recipes/cadagent_f1_wing.json",
+      "bytes": 25274,
+      "sha256": "c3a74789cd11e8c4f99cb56eff77eaf84a5a57961015cc1dcf0f61b118945277"
+    },
+    {
+      "path": "src/tee/adapters/fusion/recipes/cadagent_f1_wishbone.json",
+      "bytes": 18200,
+      "sha256": "a8ad2fc9afe78d3426c6cb931f138e313dac59f0d91dad3ec82cfda8b4c78f0f"
+    },
+    {
+      "path": "src/tee/adapters/fusion/recipes/cadagent_flange.json",
+      "bytes": 9361,
+      "sha256": "1638499f812d59f54f4fc056266632a6d74c3e8d9bbd9e309ea651620b41f58e"
+    },
+    {
+      "path": "src/tee/adapters/fusion/recipes/cadagent_joint.json",
+      "bytes": 7396,
+      "sha256": "f5391bc05bcee60504209c08400c0723346cb515794cad04b30cea2ce17fbdc6"
+    },
+    {
+      "path": "src/tee/adapters/fusion/tools.py",
+      "bytes": 21284,
+      "sha256": "3b14806ff7405d9eadfa41c72e4903d774ac6623e5ea024f96329e44409a69f5"
+    },
+    {
+      "path": "src/tee/adapters/fusion/wire.py",
+      "bytes": 16253,
+      "sha256": "ca56832b728930c80f2b17c7348e2f33384c406fcd59757d4d4ec8d50ae034c0"
+    },
+    {
+      "path": "src/tee/adapters/godot/__init__.py",
+      "bytes": 216,
+      "sha256": "56f7d18d791cb8a09b461093214578d4f0731e704cd67b2fceb0592fefe6d4c9"
+    },
+    {
+      "path": "src/tee/adapters/godot/adapter.py",
+      "bytes": 17593,
+      "sha256": "cfad7bca39f6f634ebb0a291cbbc8a4e6be395072eb4d8a3a12dd9bf5e26c640"
+    },
+    {
+      "path": "src/tee/adapters/godot/wire.py",
+      "bytes": 3644,
+      "sha256": "001bafde1f1db298d199b89bafd8dc4bbefcd2ff87527044f4549f7cf5370ed8"
+    },
+    {
+      "path": "src/tee/adapters/partkiln/__init__.py",
+      "bytes": 563,
+      "sha256": "849e5db24bae8bb7a7f13449e9b0c1935f8c8f01d44a5bab3aef7b4ac512ff87"
+    },
+    {
+      "path": "src/tee/adapters/partkiln/adapter.py",
+      "bytes": 40318,
+      "sha256": "a33ea45d9dcc028c1769ac3baecf6121f3f29ea72635a1f0385ace8764848a8d"
+    },
+    {
+      "path": "src/tee/adapters/partkiln/tools.py",
+      "bytes": 41591,
+      "sha256": "9a791307b628156801c90028a19f25688a195d70e55fbf1bd33d3e239425440a"
+    },
+    {
+      "path": "src/tee/adapters/partkiln/wire.py",
+      "bytes": 14474,
+      "sha256": "1ef9202eab4770226983dc33bcedce47e1a4feec30c474eed3aab5634384b878"
+    },
+    {
+      "path": "src/tee/adapters/seamkiln/__init__.py",
+      "bytes": 170,
+      "sha256": "37c0c75d49d9db9c131465a3080eeb626735e9bf003e76bdf645eb87ed7542eb"
+    },
+    {
+      "path": "src/tee/adapters/seamkiln/adapter.py",
+      "bytes": 23444,
+      "sha256": "37c8d7b576d4bcb4300baa90887f6d9788ee1a41796c1f2dba84e62ce2d8ddad"
+    },
+    {
+      "path": "src/tee/adapters/seamkiln/tools.py",
+      "bytes": 39631,
+      "sha256": "951e857e7a81c529951da8b30ab1c157834c043a9e1ac4c6753e233ed698d0e7"
+    },
+    {
+      "path": "src/tee/adapters/unreal/__init__.py",
+      "bytes": 80,
+      "sha256": "c305db40a7b713bba9f8075df37be6cae251dbd9af8b32bf44ef4083601ff0b9"
+    },
+    {
+      "path": "src/tee/adapters/unreal/adapter.py",
+      "bytes": 22961,
+      "sha256": "8cf065ee00240d8b6c7353359c425cd5b357e78859513ceb062e752b98d24586"
+    },
+    {
+      "path": "src/tee/adapters/unreal/blueprint.py",
+      "bytes": 4911,
+      "sha256": "527340428ed3eb1b7752e4fb432b217c50d3e44f9bf57a3f9c27f4425baf7ba6"
+    },
+    {
+      "path": "src/tee/adapters/unreal/catalog.py",
+      "bytes": 6237,
+      "sha256": "ad0b975bf64adadc4e11d97c52f1bf1431f7be04a79f2863c76c6b9e013f12e7"
+    },
+    {
+      "path": "src/tee/adapters/unreal/codegen.py",
+      "bytes": 14620,
+      "sha256": "a3ecefb18b9841bd8592068dffcc3327716261878625b5ffa2a539f765f45e9b"
+    },
+    {
+      "path": "src/tee/adapters/unreal/simulate.py",
+      "bytes": 6847,
+      "sha256": "92bb9f80ba50bf70c036b02d0f5cb7d0d2b334eb954700ded08d6f2bb91748d5"
+    },
+    {
+      "path": "src/tee/adapters/unreal/summarize.py",
+      "bytes": 8447,
+      "sha256": "23d63f5619850f4e72dffc0a0df8b6b060605326333c73b1da7b479e28d5c67d"
+    },
+    {
+      "path": "src/tee/adapters/unreal/tools.py",
+      "bytes": 18261,
+      "sha256": "48fa749c22e667a04011141ef92654fe15de00e82db9056748ffc88d1555b5fd"
+    },
+    {
+      "path": "src/tee/adapters/unreal/vision.py",
+      "bytes": 4147,
+      "sha256": "ba505ddc41f6a18b7bee1b0d03de67941d2fab83753f676c5645d0ccbefe4f5f"
+    },
+    {
+      "path": "src/tee/adapters/unreal/wire.py",
+      "bytes": 9824,
+      "sha256": "b275dbbcf08441cc197b65f201bdcfe62b50db85af2c01d6e0e661d1ef11c3b0"
+    },
+    {
+      "path": "src/tee/app.py",
+      "bytes": 47690,
+      "sha256": "637a43ce85dbbb267efc70e9d409acb8b4aaf3ef6ec439d7aa42399cf441b469"
+    },
+    {
+      "path": "src/tee/assets/__init__.py",
+      "bytes": 271,
+      "sha256": "51fb8ec5bc7f76d2da6aac3e4bddbc33ff9f1ec99f8bf0d8d7d3c615d91a4a59"
+    },
+    {
+      "path": "src/tee/assets/color.py",
+      "bytes": 7328,
+      "sha256": "b3cbe13e7b6748424b091e129de8d33b65b8cac989bc249a95984ef82675d8dc"
+    },
+    {
+      "path": "src/tee/assets/context.py",
+      "bytes": 8381,
+      "sha256": "29d49646bd4aa1f6aa61130e505dde1acb195f77195826c0b1a8fa02c4b52c4b"
+    },
+    {
+      "path": "src/tee/assets/data/envelopes.json",
+      "bytes": 4565,
+      "sha256": "71f238fe66a34e7c7e5ac7fdea0c48aa5dc7286ed30ab5b399d6a1f5ae21939c"
+    },
+    {
+      "path": "src/tee/assets/data/pbr_materials.json",
+      "bytes": 69037,
+      "sha256": "3926e7f4ea4b2b6787dd18ca5d4d4778836462f7c96330576ee7d9925a7b1047"
+    },
+    {
+      "path": "src/tee/assets/data/placement_rules.json",
+      "bytes": 3019,
+      "sha256": "3cb04efaad67c6469999ddd9942ad31f74a7f0270301c2294f8ebb4dd83993ae"
+    },
+    {
+      "path": "src/tee/assets/embed.py",
+      "bytes": 8366,
+      "sha256": "bc2420c1af3872bb4163db7e557023cf01dee87c1243cd6f1738049f1a80fccf"
+    },
+    {
+      "path": "src/tee/assets/envelopes.py",
+      "bytes": 5948,
+      "sha256": "b1023b5f59a853d503f2a8ab4f5a5f9daf5033c1fda3004628679fe2766772be"
+    },
+    {
+      "path": "src/tee/assets/gen_hosted.py",
+      "bytes": 4501,
+      "sha256": "c5148a2709ff2f91f188f178458d6dde2dc7ef3962a6024187819c19454d0167"
+    },
+    {
+      "path": "src/tee/assets/gen_local.py",
+      "bytes": 6108,
+      "sha256": "81c732b01650ad6462f5b6b766046ffde2c886153bef411f92332a1d1f61467f"
+    },
+    {
+      "path": "src/tee/assets/gen_tileable.py",
+      "bytes": 7106,
+      "sha256": "ca5e4c3135b98692ab8af59ff666da626ebb026f24ed63cedabcc9d8b751b16a"
+    },
+    {
+      "path": "src/tee/assets/gen_voxkiln.py",
+      "bytes": 3417,
+      "sha256": "d0a7e2e4a40f5f5ecebe965e3a7cabbeb97fcebefede51e6b2d4e7a0ad337228"
+    },
+    {
+      "path": "src/tee/assets/generation.py",
+      "bytes": 10103,
+      "sha256": "e7d231384024bdd3019d435b587fcbb7fbd2985ae78f2bd1770318d1b9226ccc"
+    },
+    {
+      "path": "src/tee/assets/gltf.py",
+      "bytes": 6381,
+      "sha256": "9a8ca2ecae7cd0e44a9fa0756c2c0b6ff61f64a4ff6bf78f0720d2440cd83c32"
+    },
+    {
+      "path": "src/tee/assets/http.py",
+      "bytes": 6080,
+      "sha256": "8fdb89a2859fdd2b7b7f6e03911ca5bcf199fc6a291cc249f52986c7ab153492"
+    },
+    {
+      "path": "src/tee/assets/importer.py",
+      "bytes": 11376,
+      "sha256": "e327076d3499b5f4b2ca1c993447d591ad1923af1873244df6af4da1d5390cc4"
+    },
+    {
+      "path": "src/tee/assets/ingest.py",
+      "bytes": 5606,
+      "sha256": "a9560916f33b6ce0509b17f829c5bb2752aa14833bcc3e405aa433ea616212e8"
+    },
+    {
+      "path": "src/tee/assets/library.py",
+      "bytes": 6716,
+      "sha256": "2be70306ed8e268a74189e6cf294a80b1bce52d4dcadd1d73df175eda957320e"
+    },
+    {
+      "path": "src/tee/assets/license.py",
+      "bytes": 4334,
+      "sha256": "302360d2a17d7c27156a6d852111973c26806bd2520fc09ffd6b97573e2d4796"
+    },
+    {
+      "path": "src/tee/assets/materials.py",
+      "bytes": 4189,
+      "sha256": "d9d2ebcc156abdc2c4854a884c512154fc737ee2ce84819e5cc4241d7d063b90"
+    },
+    {
+      "path": "src/tee/assets/photo_pbr.py",
+      "bytes": 5442,
+      "sha256": "ab70bfceab1e0ae81680d76159cb6c5a67edab787ddf96731a9bba733ecefc9b"
+    },
+    {
+      "path": "src/tee/assets/photo_pbr_gpu.py",
+      "bytes": 4561,
+      "sha256": "0775ac1b38baa258c4921e7dcd4efc0b18b487a900e29b7989ac99291fcd91d8"
+    },
+    {
+      "path": "src/tee/assets/placement.py",
+      "bytes": 12111,
+      "sha256": "88188944c576b6989a96ce822655676b95a67f048414a8eb5a886d39f3a7518d"
+    },
+    {
+      "path": "src/tee/assets/search.py",
+      "bytes": 7096,
+      "sha256": "b41c066df5d800d5cda01945c088c36e9a0b5c8ec10efeb046857c38f7220865"
+    },
+    {
+      "path": "src/tee/assets/sources/__init__.py",
+      "bytes": 2007,
+      "sha256": "38193c439a855bb676b5c8c9f9d7ffd327a8ea6890bd1fa12d962cece2e18efd"
+    },
+    {
+      "path": "src/tee/assets/sources/ambientcg.py",
+      "bytes": 3438,
+      "sha256": "47920c82240d9d74eb6d844ba01738b51df574e9509cdaac5227dfdcac9efcea"
+    },
+    {
+      "path": "src/tee/assets/sources/base.py",
+      "bytes": 2927,
+      "sha256": "1a09bebca5159c8fc84b2fac08d8b263047860cde946ff9ebb0f192e77eb8044"
+    },
+    {
+      "path": "src/tee/assets/sources/polyhaven.py",
+      "bytes": 5003,
+      "sha256": "e623173086cf36a9a4d5595cbaec035dc5d56d6296f2206b4e4ad43063d17ad7"
+    },
+    {
+      "path": "src/tee/assets/sources/polypizza.py",
+      "bytes": 3249,
+      "sha256": "dc172857ab33b713a023fd5bc8ce8d3c006823c41cffe7832bd683150b37c252"
+    },
+    {
+      "path": "src/tee/assets/sources/sketchfab.py",
+      "bytes": 3899,
+      "sha256": "0e5ee53c8843ffc04975e5198b2ed2a04fc4a55be537de37b6aa081c0c30583e"
+    },
+    {
+      "path": "src/tee/assets/sources/smithsonian.py",
+      "bytes": 3615,
+      "sha256": "57755c7a531ec054bacc84891c17657124b8c88ac84bb9a7e5aa78394bfc3d98"
+    },
+    {
+      "path": "src/tee/assets/store.py",
+      "bytes": 9148,
+      "sha256": "77eb34aa06a28331ab85a72b2f4b03ec535668c17cb802049585cecee1df2a20"
+    },
+    {
+      "path": "src/tee/assets/tools.py",
+      "bytes": 25085,
+      "sha256": "0bba596f9726efb7688085ca80a436c215ca16254e6339dd54285db3d4e90574"
+    },
+    {
+      "path": "src/tee/assets/verify.py",
+      "bytes": 7361,
+      "sha256": "f41e7a93e88e3b48a5c668f25ca496df8499c2014e8c3cadd26c13a4805bc4dc"
+    },
+    {
+      "path": "src/tee/boards.py",
+      "bytes": 9172,
+      "sha256": "dc7d68a1ce760a2b8c75b74143f94b25a7fd1f8f716ddd20bb4f7c638053e062"
+    },
+    {
+      "path": "src/tee/capture/__init__.py",
+      "bytes": 282,
+      "sha256": "57d1920457975322f8090c0e8738d4f369021ad00d0b0d81424f66aa21c1c2b3"
+    },
+    {
+      "path": "src/tee/capture/align.py",
+      "bytes": 11289,
+      "sha256": "aef54108f07c6440194d3503763236387a301fa86bbed6167bca1e6fd4005d67"
+    },
+    {
+      "path": "src/tee/capture/apply.py",
+      "bytes": 3667,
+      "sha256": "60f44113c7688d9fd1c845d86ada9c232e179c44c0fd75adcc217f7c25a2e9f2"
+    },
+    {
+      "path": "src/tee/capture/deviate.py",
+      "bytes": 8052,
+      "sha256": "fbe2b1b615ace1be600779ca05e65a38d9465fcc94114939178d3a634a2f4c9f"
+    },
+    {
+      "path": "src/tee/capture/dji.py",
+      "bytes": 8031,
+      "sha256": "8bc6fac3f033dfbb3aa6e8c03e895cdd7a69798a1b86384213a4a0efdfe49094"
+    },
+    {
+      "path": "src/tee/capture/tools.py",
+      "bytes": 33792,
+      "sha256": "82a86368eb8340af8ae5530a611d90adb493a2016b50c331d82310c5380770a5"
+    },
+    {
+      "path": "src/tee/cli.py",
+      "bytes": 23112,
+      "sha256": "000b713bf3067febdfd481f1fa4276df2a735d0c611def30dd2980a1b031b67b"
+    },
+    {
+      "path": "src/tee/config.py",
+      "bytes": 9622,
+      "sha256": "73d67fc12beda0a81d1173e96eb7200841769bfe47c4afc2e4d3ee46efb613f0"
+    },
+    {
+      "path": "src/tee/design/__init__.py",
+      "bytes": 332,
+      "sha256": "0bde359a3eb9590128fb34473526401b91126399c26b4e1ec87e54be0c76de93"
+    },
+    {
+      "path": "src/tee/design/checks.py",
+      "bytes": 23561,
+      "sha256": "8519fc78f088f15e9581a827a665c7bb4e1fccba6ad48f9258d078a0acefe744"
+    },
+    {
+      "path": "src/tee/design/data/benchmarks.json",
+      "bytes": 3566,
+      "sha256": "c3612e1c3535e7a2028622857484f16050668cd2d897ff2ed732711592f75cfd"
+    },
+    {
+      "path": "src/tee/design/data/dark_patterns.json",
+      "bytes": 3729,
+      "sha256": "a61000caa3c84b6acdf7909e9b667b32964d5290c000299e3e02fe14dbc1f7d9"
+    },
+    {
+      "path": "src/tee/design/data/economy_archetypes.json",
+      "bytes": 2250,
+      "sha256": "939f9bb3bce87ec1b9cb3da87be4946a8438b34a0cfd72021ee78b5836998311"
+    },
+    {
+      "path": "src/tee/design/data/genres.json",
+      "bytes": 4000,
+      "sha256": "058578c221cbe39e4958d19e40bc97cc4aae9087f178257a8fda7f4feed8cf67"
+    },
+    {
+      "path": "src/tee/design/data/motivations.json",
+      "bytes": 4002,
+      "sha256": "a7fc697c21b20d711df74faece3cd8e76e9a1432afac77b1b27062bafbd65a38"
+    },
+    {
+      "path": "src/tee/design/data/ux_params.json",
+      "bytes": 2642,
+      "sha256": "57b2e749a38ce5a52b426909d57249d2664b8138eb9a9b37803d7df6bfbd885c"
+    },
+    {
+      "path": "src/tee/design/spec.py",
+      "bytes": 10808,
+      "sha256": "5bf26e556b0704a45a7a16cb184a8bc6f0df7a2d3a7dfffdb6de538c20db6a3b"
+    },
+    {
+      "path": "src/tee/design/tables.py",
+      "bytes": 4127,
+      "sha256": "c028ff0606707ac2423568b5f97e46d1a664f09c410938e2d2beafc3ce84e3b8"
+    },
+    {
+      "path": "src/tee/design/tools.py",
+      "bytes": 7268,
+      "sha256": "7c9d8816ffc955dbe87af8d7d18cca012daa6476d5a07b2cf8f54f1767573b8b"
+    },
+    {
+      "path": "src/tee/docagents/__init__.py",
+      "bytes": 75,
+      "sha256": "5e2ee51e20b575e13dd474e087e89cfdd266619059d62dea382b33f917ee9926"
+    },
+    {
+      "path": "src/tee/docagents/backends.py",
+      "bytes": 16412,
+      "sha256": "531010665ca36b0d7f5545831266e61dbdea8d6e8083d72b57b953b856d621fb"
+    },
+    {
+      "path": "src/tee/docagents/runner.py",
+      "bytes": 12418,
+      "sha256": "d824923efcff56001dab014bc90de88dd7f8b1562339e5b6963db44a389c3c00"
+    },
+    {
+      "path": "src/tee/docagents/tools.py",
+      "bytes": 16286,
+      "sha256": "f2b2b6809d1fe21f9207cd569567dc117d8527e7c66d7a187b0bc73819ea4a74"
+    },
+    {
+      "path": "src/tee/docagents/workspace.py",
+      "bytes": 22598,
+      "sha256": "51d230f897ba5b195ce8d2705ba8e85d6d8ea3b5b874d11862db085cf7b67de2"
+    },
+    {
+      "path": "src/tee/doctor.py",
+      "bytes": 32636,
+      "sha256": "1924258745addcb4835058c457bd38ee54134043c8b168e1f21797f6ff002113"
+    },
+    {
+      "path": "src/tee/engines/__init__.py",
+      "bytes": 1906,
+      "sha256": "2e7c9c5b5bf139759d51f5d87151365d099df432643b4434331ee9c1bd24f00e"
+    },
+    {
+      "path": "src/tee/engines/audition.py",
+      "bytes": 8157,
+      "sha256": "164b4f9b9c807d68b708c6ad7cf95d4e21bfda514c6383974a4a2098b26dd246"
+    },
+    {
+      "path": "src/tee/engines/discover.py",
+      "bytes": 4819,
+      "sha256": "3e1f49f3095378dc984bf421235aefd72a9dd9c76b560ca84417416d20758de0"
+    },
+    {
+      "path": "src/tee/engines/table.py",
+      "bytes": 8826,
+      "sha256": "258320db614af85f79b5fe3381e5623d1e081b15f6613fdb6c12e39c56c2e6e4"
+    },
+    {
+      "path": "src/tee/engines/tools.py",
+      "bytes": 14864,
+      "sha256": "bea400e18108fded584919f51fccd83279b21d168aa4848b6de0328cc58e0764"
+    },
+    {
+      "path": "src/tee/engines/weights.py",
+      "bytes": 4100,
+      "sha256": "3536d7451ccb544033a7604f9c57cd17d1308201ec94ee21a010836e205ad58a"
+    },
+    {
+      "path": "src/tee/extract/__init__.py",
+      "bytes": 180,
+      "sha256": "af339e35d191868bd046850f1dc6e6d577759569b07008cd00f7e446f18bb391"
+    },
+    {
+      "path": "src/tee/extract/audio.py",
+      "bytes": 5590,
+      "sha256": "d1d97b0d6d8031911568f2ef18078c6827c1944bef840b02fc0c0d3b2f3f9c02"
+    },
+    {
+      "path": "src/tee/extract/documents.py",
+      "bytes": 18111,
+      "sha256": "7c3d10034cedf6948cee6660e947d0e08cc2eea95e3a1aa67c6fd44a7c755bcb"
+    },
+    {
+      "path": "src/tee/extract/estimate.py",
+      "bytes": 8393,
+      "sha256": "7149797a2dbc16e0ab345c5e6ac63c9f048f92f2b4a3a51d815f57ed609fba0c"
+    },
+    {
+      "path": "src/tee/extract/frames.py",
+      "bytes": 9046,
+      "sha256": "7f21cf085d2b0b5846b073e5a8ef6f2e7d271ebab078e87caf5d446bfc7b19c4"
+    },
+    {
+      "path": "src/tee/extract/handoff.py",
+      "bytes": 11408,
+      "sha256": "201e259e053890ea404b72046ae7387c5657a6833f58a10a74c771683a699a66"
+    },
+    {
+      "path": "src/tee/extract/ifc.py",
+      "bytes": 4013,
+      "sha256": "66a5a9810f4d383412188d448ad148bde7c969da55ebde0d976ffe46470083df"
+    },
+    {
+      "path": "src/tee/extract/images.py",
+      "bytes": 6690,
+      "sha256": "2c260c57a81a0a65fb48228fffdb9cec3fdabd0089bd500e27a32d2ded11dba6"
+    },
+    {
+      "path": "src/tee/extract/plan.py",
+      "bytes": 5634,
+      "sha256": "70aadc3cdd08fede39752425f86cb057ff5953ca4753ef598b00a104300ae29e"
+    },
+    {
+      "path": "src/tee/extract/store.py",
+      "bytes": 9543,
+      "sha256": "684107785ffdbb039c862e0c4e7d6e4e9d034ae975858319805e4811c006fea6"
+    },
+    {
+      "path": "src/tee/extract/tools.py",
+      "bytes": 29949,
+      "sha256": "5e3ad19271e44a65527035df57e827a6bffd6de55044a596791862d0c3f1d77a"
+    },
+    {
+      "path": "src/tee/extract/video.py",
+      "bytes": 7546,
+      "sha256": "bc987f9280b914c484fc43d0cdc1e8afb341269d1903883cafa4ebfcc54f156b"
+    },
+    {
+      "path": "src/tee/extract/vlm.py",
+      "bytes": 10028,
+      "sha256": "8d1f622ad65012dab4f5c6434fe537278fbf33e4fb89a0a8fda8988e7e4f3fdc"
+    },
+    {
+      "path": "src/tee/fleet/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/tee/fleet/_cad_worker.py",
+      "bytes": 2639,
+      "sha256": "b754467b60d2c3b22c64e293397e1077c76d1eee173080bcb56bc00d2c322309"
+    },
+    {
+      "path": "src/tee/fleet/_cpsat_worker.py",
+      "bytes": 5691,
+      "sha256": "239cf05c4b31bea5294fd56a201f699981e2b6a032dc6ea3bcf97b55c543a585"
+    },
+    {
+      "path": "src/tee/fleet/bi.py",
+      "bytes": 7129,
+      "sha256": "4cb4b23bc6bdbf7639a44b623a35f5fba13315445c9e5767cb2467b8b5d77144"
+    },
+    {
+      "path": "src/tee/fleet/cad.py",
+      "bytes": 19434,
+      "sha256": "ec4eba97f0f5636fa6588b0f5b517e3a65813bebf586658d64b1e1355082d321"
+    },
+    {
+      "path": "src/tee/fleet/med.py",
+      "bytes": 16025,
+      "sha256": "201b132e725645b8200cb3eb1db0101ac581e1481d5b2233253e186961d8b571"
+    },
+    {
+      "path": "src/tee/fleet/probe.py",
+      "bytes": 4214,
+      "sha256": "a7762a224c12aecd38e11a78378d91cd9f50726a28dc7fb54456bb4a91a4e744"
+    },
+    {
+      "path": "src/tee/fleet/quant.py",
+      "bytes": 10718,
+      "sha256": "c4c87b3b876cb351cbde72eb5260669840f16e676aebf9f3c438c2d1424fde2c"
+    },
+    {
+      "path": "src/tee/fleet/quiet.py",
+      "bytes": 3068,
+      "sha256": "951aa4e8ec7d6d3b20ca22458ff337b0c90f9586d1d85a68b648a4e4ac428d67"
+    },
+    {
+      "path": "src/tee/fleet/solve.py",
+      "bytes": 17716,
+      "sha256": "54582a81582f5a1a6485278ab6590faf3c043370093d294d2961fe2da58f50ff"
+    },
+    {
+      "path": "src/tee/fleet/tools.py",
+      "bytes": 24093,
+      "sha256": "d5eb0f4bd78b207d367ae6340b7ada82fddf116459522b39f0b51b618135d5e2"
+    },
+    {
+      "path": "src/tee/fleet/trade.py",
+      "bytes": 10889,
+      "sha256": "b031675bd56e78965616bbb1b5b94dce00f63e714d04f06c477e32cc537786a6"
+    },
+    {
+      "path": "src/tee/flightdyn/__init__.py",
+      "bytes": 1738,
+      "sha256": "94b071a72150e4c808b98440da76e3cdfbf9816d66b9d410c6d443b945576f0f"
+    },
+    {
+      "path": "src/tee/flightdyn/aircraft.py",
+      "bytes": 12481,
+      "sha256": "aeadc6422da732e8b488a625ff1b712993cb2be2f38128d633b1122a6ecaad4a"
+    },
+    {
+      "path": "src/tee/flightdyn/probe.py",
+      "bytes": 2854,
+      "sha256": "21973690a4e01e37a7ee2c7ea660bab57228ee7370bfc496cfe45d695b25e5f8"
+    },
+    {
+      "path": "src/tee/flightdyn/store.py",
+      "bytes": 1880,
+      "sha256": "24e8f937fba69dbc6ada21872fa2ba909f169d753d04c630e8f983e2dc4c7a42"
+    },
+    {
+      "path": "src/tee/flightdyn/tools.py",
+      "bytes": 15207,
+      "sha256": "869d8f776e987bf899bf1b858235e3a1b23dca54bee46a3219c581fe10e1bc8a"
+    },
+    {
+      "path": "src/tee/flightdyn/worker.py",
+      "bytes": 9876,
+      "sha256": "f338b73be28090bde8ca292382489f772b773b0f86937ec313a5e36c09f2f033"
+    },
+    {
+      "path": "src/tee/gateway/__init__.py",
+      "bytes": 476,
+      "sha256": "185e4d4ce12d32df6610393575f1387c092b69240ae6abb9ab9f5d53601b592c"
+    },
+    {
+      "path": "src/tee/gateway/service.py",
+      "bytes": 18225,
+      "sha256": "6df515ee4a88cf558b05082504a9983857eda88935043742316884043d36b2c5"
+    },
+    {
+      "path": "src/tee/gateway/tools.py",
+      "bytes": 1898,
+      "sha256": "bb81ce4b9826f6c5f765fbfdb9de370274f083b0b71b7c8f1d94d9fb8d5ef7cc"
+    },
+    {
+      "path": "src/tee/gateway/wire.py",
+      "bytes": 8756,
+      "sha256": "1ebd66121987e6a75fb9e51fcf482e2064fb77d8042f3832cf6655294abc00c9"
+    },
+    {
+      "path": "src/tee/kb/__init__.py",
+      "bytes": 289,
+      "sha256": "02a0c71f325e0e638f847b4b0cdcf3f51b81ff26248ffec7ace9f5eb49597eae"
+    },
+    {
+      "path": "src/tee/kb/index.py",
+      "bytes": 10714,
+      "sha256": "7c16363632c5b5f19428df64b0dc895244a9cf668713a4a8b5138558f59323fe"
+    },
+    {
+      "path": "src/tee/kb/search.py",
+      "bytes": 8852,
+      "sha256": "3e2c7ba2ed23514c27699a4dfd2bb775461434ae3089e74cc811414d0246abd8"
+    },
+    {
+      "path": "src/tee/kb/tools.py",
+      "bytes": 18523,
+      "sha256": "709374e7b8babe5deb29db3ff02cca5aa4e519a859688ff5becbcb0996c8b29c"
+    },
+    {
+      "path": "src/tee/kernel/__init__.py",
+      "bytes": 96,
+      "sha256": "df90e1cd5ab86c5d168d52c9c3ecb496a1c5eb1532270afb59ee9ed0d0f65270"
+    },
+    {
+      "path": "src/tee/kernel/adapter.py",
+      "bytes": 10751,
+      "sha256": "004ca837338b6607bd0f625dd835ec2b0348b4300ec3539084100c6f91221b1d"
+    },
+    {
+      "path": "src/tee/kernel/budget.py",
+      "bytes": 9511,
+      "sha256": "e4db71fdcf152adf64df32723cf61dd85241c3bfb693f892d6f9d4d7f6749b74"
+    },
+    {
+      "path": "src/tee/kernel/checkpoints.py",
+      "bytes": 5760,
+      "sha256": "0f41150eb967f620f8ac56b1917ac1043d13e36b17bf6b2a924e14a3f6a3222d"
+    },
+    {
+      "path": "src/tee/kernel/contract.py",
+      "bytes": 7299,
+      "sha256": "bf7c8963c493a0c659523ffcf7b27389484814e83006c4e365c0aed8d116a0df"
+    },
+    {
+      "path": "src/tee/kernel/errors.py",
+      "bytes": 1647,
+      "sha256": "90ed8408317230ab33ee7bdfa7f1c2dad02af71d08769e1ba35259fa8702ada1"
+    },
+    {
+      "path": "src/tee/kernel/extras.py",
+      "bytes": 4130,
+      "sha256": "b3beb46a7491558c39e9577e983d3422ffc4b3e1e491d0e10bd406828e228a55"
+    },
+    {
+      "path": "src/tee/kernel/guidance.py",
+      "bytes": 4859,
+      "sha256": "15b0e89119364f14e52d9f696199d3592def8852cd4241036dd9a2e35ffa8178"
+    },
+    {
+      "path": "src/tee/kernel/handoff_import.py",
+      "bytes": 11352,
+      "sha256": "5b0fe4bff8fc89ca0cbd8fdfdc4cf9128e017a9cb993d30d143af20a1855834d"
+    },
+    {
+      "path": "src/tee/kernel/imaging.py",
+      "bytes": 4480,
+      "sha256": "f7228822110105497e3a91de1beecf4ab849b7fbab72b4c276e9ca5d9fe48115"
+    },
+    {
+      "path": "src/tee/kernel/jobs.py",
+      "bytes": 14409,
+      "sha256": "91c9fd99561a9af2c12f35e6901054646029c7a15e5f444fc7d8087da98ea2c8"
+    },
+    {
+      "path": "src/tee/kernel/lanes.py",
+      "bytes": 7709,
+      "sha256": "4ecbbddd3696a577f7c5c189daaffdc8f9e3105eb886c2c6d2e110b6c12431f6"
+    },
+    {
+      "path": "src/tee/kernel/local_llm.py",
+      "bytes": 7860,
+      "sha256": "48ae55b33eb0d5aacccc630093dfc7b177d685020ea2ecc7b01a5cd68b0f8d49"
+    },
+    {
+      "path": "src/tee/kernel/local_vlm.py",
+      "bytes": 3649,
+      "sha256": "496d4843eac0b85a5edaf34e057b33e89a107c9fe5d960cfaf13af94896bb47d"
+    },
+    {
+      "path": "src/tee/kernel/machine.py",
+      "bytes": 22627,
+      "sha256": "4154e3bdacdfe08a2ac2ac8fbeebf134d5ee780d82bb5a669b50926c629a9bbf"
+    },
+    {
+      "path": "src/tee/kernel/memory.py",
+      "bytes": 5757,
+      "sha256": "7834cbad7963709a870d573b3c3ce96673a53b0138737051bed9a14354b7eaf7"
+    },
+    {
+      "path": "src/tee/kernel/meter.py",
+      "bytes": 10107,
+      "sha256": "ab204b8b963a261541797f12c186a484b21d788fb0d743c8688811ae5f3a8850"
+    },
+    {
+      "path": "src/tee/kernel/registry.py",
+      "bytes": 18512,
+      "sha256": "55c5accccedae7b59d53a671c2756a87aaaf326d00f3f112e5a0aff4d5ee335f"
+    },
+    {
+      "path": "src/tee/kernel/scene_cache.py",
+      "bytes": 6344,
+      "sha256": "dce08c16650e7bd9dbf2c929da9f365f15ae55c9e11c11986b1414fd24fb6d3c"
+    },
+    {
+      "path": "src/tee/kernel/script.py",
+      "bytes": 19584,
+      "sha256": "8f32508e32be0140b58ea69d61192bea49ebece0cd4141ef60caa4c162876ee3"
+    },
+    {
+      "path": "src/tee/kernel/shadow.py",
+      "bytes": 9028,
+      "sha256": "fa891b7cebd5436ce26ee811c21c744b8638a61b47b148d4b9dcd3b8145420b1"
+    },
+    {
+      "path": "src/tee/kernel/spend.py",
+      "bytes": 7525,
+      "sha256": "3197a682824b8aae045eb86813164346a267c4840bdffb8f25f06a0aa131f79d"
+    },
+    {
+      "path": "src/tee/kernel/trust.py",
+      "bytes": 35717,
+      "sha256": "ec175ed086b22595c8ba9053da26f447d4225d7973945485fe1267a59d82499b"
+    },
+    {
+      "path": "src/tee/kernel/trust_tools.py",
+      "bytes": 3936,
+      "sha256": "7202ff8f0980e3c3b3dafa70e9e4ab790ec72b24b5ec9e40a7a053b9817304c1"
+    },
+    {
+      "path": "src/tee/kernel/trustctx.py",
+      "bytes": 4324,
+      "sha256": "c6ec053c6f863988fdf8a7582a6e391ca1bca28e19e72278c4602143fe1fb05e"
+    },
+    {
+      "path": "src/tee/kernel/waiting.py",
+      "bytes": 2051,
+      "sha256": "b63952e123ea09debc0e223e37f300026591eb31b9437dc483d979320211b6c3"
+    },
+    {
+      "path": "src/tee/learning/__init__.py",
+      "bytes": 171,
+      "sha256": "9fc4a61936152e59d7ff4deac740dad100b717de886251fa7abe29f64ef3dcd5"
+    },
+    {
+      "path": "src/tee/learning/hooks.py",
+      "bytes": 6317,
+      "sha256": "740abbf3b19445c7b333bdf9a522bf9e32b3f6d9c628a13a3c97236e8e2ea02a"
+    },
+    {
+      "path": "src/tee/learning/model.py",
+      "bytes": 13346,
+      "sha256": "d4bf94a181d10b46baf49c73be82031fb29095454e5457b37833f91172df2b5b"
+    },
+    {
+      "path": "src/tee/learning/service.py",
+      "bytes": 34679,
+      "sha256": "f82cde746ddbfb1b233dfc53220dd63d4fa8494052e92ae4f7077f542216561a"
+    },
+    {
+      "path": "src/tee/learning/tools.py",
+      "bytes": 5551,
+      "sha256": "10a75237b8b1bda16c32399a8a47eaf9fd4792867bc54a00f427a3ff7e89f523"
+    },
+    {
+      "path": "src/tee/llm/__init__.py",
+      "bytes": 536,
+      "sha256": "652474790b8558492821e1f2da276c0daa444449452fa8dd7cd3fbe0f5e7fa28"
+    },
+    {
+      "path": "src/tee/llm/chores.py",
+      "bytes": 19428,
+      "sha256": "bedb1280e2fcf878cbbb42f929395c958a164e0a01865d5ee08feb5fcb0ea02c"
+    },
+    {
+      "path": "src/tee/llm/profiles.py",
+      "bytes": 24535,
+      "sha256": "30b7ae5f231f213a5d32c3bfb8eaa2d6deba250fcfa93b8cfa5972d8bfe429ac"
+    },
+    {
+      "path": "src/tee/llm/router.py",
+      "bytes": 17876,
+      "sha256": "5521b431e1651e31cd8e6cc85b3b591875bea31d671b41201f628d59e772ae61"
+    },
+    {
+      "path": "src/tee/llm/tools.py",
+      "bytes": 7264,
+      "sha256": "29d129ed9d8208494fe688439390616a62232ec78a17f4afaf858ae01b2f1013"
+    },
+    {
+      "path": "src/tee/pdf.py",
+      "bytes": 53816,
+      "sha256": "55e2710a18f5283c7edbe45bbf553727759477d259eaaee1a852af5f999dfbfd"
+    },
+    {
+      "path": "src/tee/physical/__init__.py",
+      "bytes": 335,
+      "sha256": "e47d49145e335051b3e7b2f9b6d8c4f6dd7e8e9c0588d18badeadc1b5ba78e19"
+    },
+    {
+      "path": "src/tee/physical/data/materials_eng.json",
+      "bytes": 5469,
+      "sha256": "142947ad43e1c773fe96d3f246f9ec7896be8d648b520dbfb76f262493018da1"
+    },
+    {
+      "path": "src/tee/physical/data/plaus_rules.json",
+      "bytes": 14082,
+      "sha256": "15218070a6db0cff6d77d33025bfba72690bf4a03db2f596d401430784fb291b"
+    },
+    {
+      "path": "src/tee/physical/joinery.py",
+      "bytes": 11926,
+      "sha256": "f9a3515678ef8a52602144d2eae3374f0239be9adf242764f918bd893e110f53"
+    },
+    {
+      "path": "src/tee/physical/materials.py",
+      "bytes": 4885,
+      "sha256": "00d6c2bf463758b3eea7f3c67f4a1f27cab96a84cbb542f8e84685a0b116c3c5"
+    },
+    {
+      "path": "src/tee/physical/physics.py",
+      "bytes": 11658,
+      "sha256": "1205fc19aa9e9b458e845b33cd22cf5eae683fe3e2c4afd93a4a5e99668e3ff2"
+    },
+    {
+      "path": "src/tee/physical/plaus.py",
+      "bytes": 24678,
+      "sha256": "38b83d9542b1677d0712403177e47a889338de2d43d354cf6dc1f8206aa044cf"
+    },
+    {
+      "path": "src/tee/physical/proxy.py",
+      "bytes": 3632,
+      "sha256": "39366c9dc7626c2a4f9b03887ac2cbbbc73e600039ecd3eb1333ee6fa05470cb"
+    },
+    {
+      "path": "src/tee/physical/sketch.py",
+      "bytes": 8436,
+      "sha256": "113a1469c9627dbebfd7bebd1ca015804282bd0681e51a4c03efd14678886a5f"
+    },
+    {
+      "path": "src/tee/physical/tools.py",
+      "bytes": 21733,
+      "sha256": "b444a2bda542cc9b1e499d1d37c6e165826867f3f516899e9d73d2fce85601e8"
+    },
+    {
+      "path": "src/tee/physical/verify.py",
+      "bytes": 8227,
+      "sha256": "7fbcb8cf2848d7e3d7853d22e0fee855728d51be1f66692351f36646dbec86b2"
+    },
+    {
+      "path": "src/tee/pins/__init__.py",
+      "bytes": 448,
+      "sha256": "43f9e967c634c7f92650aa074bac3a07a4cd0b6e4b98d7baaa6d91c1050db368"
+    },
+    {
+      "path": "src/tee/pins/model.py",
+      "bytes": 4611,
+      "sha256": "16256b1288cb00a4d49ac771f8d27399b9ea6cfe61806460cd9c3c63e19caf50"
+    },
+    {
+      "path": "src/tee/pins/program.py",
+      "bytes": 9859,
+      "sha256": "6a970d35249637375aa389e965324bf8f9cb81f4557820aff45f50e2e77869fc"
+    },
+    {
+      "path": "src/tee/pins/tools.py",
+      "bytes": 24907,
+      "sha256": "591d070fc6d15e81f2b949c979ddcef0aa6c20e0b67e71472819ea10173e8a4a"
+    },
+    {
+      "path": "src/tee/pipeline/__init__.py",
+      "bytes": 334,
+      "sha256": "96458038a637e3e52e6432b9c6aeb74282bb4fb9ab6d7c6351db12736f21083d"
+    },
+    {
+      "path": "src/tee/pipeline/graph.py",
+      "bytes": 7376,
+      "sha256": "02f6cbdf60718c4099f5e8418ff28650c76893fa930403d84bd5c098fac7184e"
+    },
+    {
+      "path": "src/tee/pipeline/init.py",
+      "bytes": 9767,
+      "sha256": "0d17f6f7aef4d575125a9b3eaeafbee20f0c0f1718e6563555dd86e20943536b"
+    },
+    {
+      "path": "src/tee/pipeline/report.py",
+      "bytes": 5862,
+      "sha256": "998fbdcdd30ad4a6e2c68b8e5fab748ac2642031bcb688e67d6c6eb7bd1a98c8"
+    },
+    {
+      "path": "src/tee/pipeline/runner.py",
+      "bytes": 5431,
+      "sha256": "8de043834a57476cd4d4f155fd7cb0b4f22092ffc0e02f30c025e5ef1c572c50"
+    },
+    {
+      "path": "src/tee/pipeline/schema.py",
+      "bytes": 14553,
+      "sha256": "64aa4ae8f49f192639b0f0c0058374430d686ec69a6d7e02c59cd7447251879a"
+    },
+    {
+      "path": "src/tee/pipeline/tools.py",
+      "bytes": 20125,
+      "sha256": "fce27bdcedcce0d93d514652f783756c674d29734cbb4de4900c14ca7513e5fd"
+    },
+    {
+      "path": "src/tee/pointcloud/__init__.py",
+      "bytes": 444,
+      "sha256": "93d4f5b15b66b3d7ee635881d0ef8454484963d0ea3e419373098f11339a60d0"
+    },
+    {
+      "path": "src/tee/pointcloud/condition.py",
+      "bytes": 5760,
+      "sha256": "88976de79dd0e2e458568e6f54afe3db56df5b7e6d923b7c7a309be08922270b"
+    },
+    {
+      "path": "src/tee/pointcloud/control.py",
+      "bytes": 9508,
+      "sha256": "1430d66acb28f9a756e606dada2af48c25dca1797ac5daf5c343c5864cc489ee"
+    },
+    {
+      "path": "src/tee/pointcloud/io.py",
+      "bytes": 10172,
+      "sha256": "a0a2a61957bbc8b0098ed438a40ad7ff3d472fffca078a603b0081e78f65969f"
+    },
+    {
+      "path": "src/tee/pointcloud/level.py",
+      "bytes": 9330,
+      "sha256": "e84eb2d5b2479e7eb4957eeb7740bc76edaa443e0bb00208889825a5c3e13e5d"
+    },
+    {
+      "path": "src/tee/pointcloud/merge.py",
+      "bytes": 3755,
+      "sha256": "5eebdb3d674bbd1d6153cd2d1ae1dda52a7b092025699c53d0d665e078527a5d"
+    },
+    {
+      "path": "src/tee/pointcloud/ortho.py",
+      "bytes": 5188,
+      "sha256": "c41fedcd3c877a8fa725353d2e4b7a638e30f5f888748f75f5b78ccaf40cbf5a"
+    },
+    {
+      "path": "src/tee/pointcloud/report.py",
+      "bytes": 5162,
+      "sha256": "bbda5680b8f199f2d2a87cf2646f46831caa5038b86c77a7ecee0d4e38f58fb1"
+    },
+    {
+      "path": "src/tee/pointcloud/slice2d.py",
+      "bytes": 15945,
+      "sha256": "ee3cc40130e6f133ef2b237d8dc16ddf7e33248295aa553bfc43a1b02b336031"
+    },
+    {
+      "path": "src/tee/pointcloud/store.py",
+      "bytes": 6339,
+      "sha256": "ebd3b29a17f1735be1c59301ef51a25c7a79ecbae5b6085dcaed946c92a2fa0b"
+    },
+    {
+      "path": "src/tee/pointcloud/tools.py",
+      "bytes": 36545,
+      "sha256": "647153dffcaa05eb8da234c613cf9e81c2bc159445de99692aeab4e0cac4cc77"
+    },
+    {
+      "path": "src/tee/purge.py",
+      "bytes": 10320,
+      "sha256": "435390d2b04e6488f10700fa81516dd66f044da0567437d3929110358e3fc672"
+    },
+    {
+      "path": "src/tee/senses.py",
+      "bytes": 37777,
+      "sha256": "2013ddc1249b63b0b570cde7ce50ce4e1d312867dbcf54e3c96daaf4ff06aa61"
+    },
+    {
+      "path": "src/tee/server.py",
+      "bytes": 23772,
+      "sha256": "928a4e6a56d391c208bad57eab0eefb503fed7fbc6b57722a11636d4247a5081"
+    },
+    {
+      "path": "src/tee/uefn/__init__.py",
+      "bytes": 535,
+      "sha256": "265fd733b7999399ead0b2a92c5f98693a4592459970e6601eea8f22395da351"
+    },
+    {
+      "path": "src/tee/uefn/adapter.py",
+      "bytes": 9777,
+      "sha256": "4d204d32991b78e53f5e8f494d9140c9d6e4063c18b0fe95fba2df6af13e3ac3"
+    },
+    {
+      "path": "src/tee/uefn/data/budgets.json",
+      "bytes": 1243,
+      "sha256": "d43e9460887682c7fac80c183dfed1896d43822c55d8e0a618a1c03aeb93e1a9"
+    },
+    {
+      "path": "src/tee/uefn/digest.py",
+      "bytes": 8585,
+      "sha256": "f5f96e1322c583a9392dc11d5d8b1585358c3fa05dc6c2bf5a5b58129e3b46d4"
+    },
+    {
+      "path": "src/tee/uefn/export.py",
+      "bytes": 10512,
+      "sha256": "0e18e98d70abec11e08e2b22ca90737a48e85dc31f0f441aac2957f7310e1add"
+    },
+    {
+      "path": "src/tee/uefn/lint.py",
+      "bytes": 8135,
+      "sha256": "ae996cb2ae319deac09fd601bef919defb391fde38137bb9116cd49902ff8245"
+    },
+    {
+      "path": "src/tee/uefn/templates.py",
+      "bytes": 4171,
+      "sha256": "2a85c1589360fe0b31f80e6e66dbdabb4d6afc5e5759511c6f05c369b80059f1"
+    },
+    {
+      "path": "src/tee/uefn/tools.py",
+      "bytes": 14930,
+      "sha256": "36dd62a5c3a5f4e79bf5d66a2fbdb7db9421067aebf8dfa269cba127bea314bb"
+    },
+    {
+      "path": "src/tee/web/__init__.py",
+      "bytes": 377,
+      "sha256": "6bcdfbe0735c9e07e0f7b0b03f48e82eff2a6689003f5c052e78366faea8216f"
+    },
+    {
+      "path": "src/tee/web/extract.py",
+      "bytes": 7659,
+      "sha256": "a174513dacc3b51a832733df461c4c5a013903f003cbb88dc9b40a90623c2c2c"
+    },
+    {
+      "path": "src/tee/web/fetch.py",
+      "bytes": 16978,
+      "sha256": "7f990762d4f07791016ba21f43e575593ebed876b6d17cbc4478967962a5913e"
+    },
+    {
+      "path": "src/tee/web/guard.py",
+      "bytes": 4849,
+      "sha256": "cdb73b91d8a436d9ce4724afa08d7b074212e437b3a92ecd275c018376bef9d2"
+    },
+    {
+      "path": "src/tee/web/media.py",
+      "bytes": 9031,
+      "sha256": "1d0e83612b049bfbf8af15ab109124a4804a39a4f034e58f6ae47d1af0b2e7c4"
+    },
+    {
+      "path": "src/tee/web/search.py",
+      "bytes": 5917,
+      "sha256": "b302c6caa3461143c72514cfd4272a669fc48ea436c5a072d94a71c4a9d7465d"
+    },
+    {
+      "path": "src/tee/web/tools.py",
+      "bytes": 13423,
+      "sha256": "4bdac491814dec94ea405d4f2356210a6ba106bd1288ec36ad16b040e9c05902"
+    },
+    {
+      "path": "src/tee/windtunnel/__init__.py",
+      "bytes": 1318,
+      "sha256": "84393e1e8e0f8c12fd62846216ad5a4580cdf925187a8ce2ee714252770fe4ff"
+    },
+    {
+      "path": "src/tee/windtunnel/airfoil.py",
+      "bytes": 7322,
+      "sha256": "6af3e3042bc7142327db625d19aedfcd767281ce9ba9417f838e435e75ba7f42"
+    },
+    {
+      "path": "src/tee/windtunnel/atmosphere.py",
+      "bytes": 3685,
+      "sha256": "561f1063069db6a2ea0e7e1e72ce483990465c5cc8ce8328e72fc77e8dda06f8"
+    },
+    {
+      "path": "src/tee/windtunnel/case.py",
+      "bytes": 7525,
+      "sha256": "147ba72bf8b72a14e9dbb18bf4c4f6e85dd965ea513ed9491e647c4f799c5a8d"
+    },
+    {
+      "path": "src/tee/windtunnel/cfdof.py",
+      "bytes": 7808,
+      "sha256": "6d198d7b2c27b24879a809ccbfb65cac6bb0ab08b5c8aee04a3b2eed29c4e8c7"
+    },
+    {
+      "path": "src/tee/windtunnel/engines.py",
+      "bytes": 19658,
+      "sha256": "652c3b894e3894cb1b3938c14b64a296bc462e5bb461769672a9c982ad511352"
+    },
+    {
+      "path": "src/tee/windtunnel/fidelity.py",
+      "bytes": 5713,
+      "sha256": "e7ec93777b7f8805bebc6a8206d94779cf2e880c83a3ab03f858aa3e3429db87"
+    },
+    {
+      "path": "src/tee/windtunnel/foam.py",
+      "bytes": 43925,
+      "sha256": "779db6c6b51920d6620be6481c79ff6f4c63d453e6d2367ae04f313fa90ba2de"
+    },
+    {
+      "path": "src/tee/windtunnel/gui/__init__.py",
+      "bytes": 937,
+      "sha256": "ddb4942f4251a9d4e9b76d788050238d3f8487fb38957ec842d64e22bd99f264"
+    },
+    {
+      "path": "src/tee/windtunnel/gui/actions.py",
+      "bytes": 5817,
+      "sha256": "5dec7f5590826269e775eaa3accc6b89da2f7ac79c1bb2106aaeade21c39fb1b"
+    },
+    {
+      "path": "src/tee/windtunnel/gui/app.py",
+      "bytes": 5621,
+      "sha256": "a63538fc12791abbe42276832d01b5d61478bc3144f6a18ca1b46d3593659b31"
+    },
+    {
+      "path": "src/tee/windtunnel/gui/shell.py",
+      "bytes": 7703,
+      "sha256": "b52724c1d348ed12f0ab3b104b39edacefc9716ec3559af598497243b1689673"
+    },
+    {
+      "path": "src/tee/windtunnel/mesh2d.py",
+      "bytes": 15924,
+      "sha256": "816268fe6258182b9164b4863d36c291dfe80118e83218659f680677566f89ca"
+    },
+    {
+      "path": "src/tee/windtunnel/paraview.py",
+      "bytes": 11392,
+      "sha256": "97dd138b588cfd539a3ac54617b734c4f7eb64bc369f3c34a8400dc1aeadc1b3"
+    },
+    {
+      "path": "src/tee/windtunnel/physics.py",
+      "bytes": 14343,
+      "sha256": "c324c4fd053e9a029664b85a8d22c45dc7d6bcaaaa43f2f272e9e7f23f73701b"
+    },
+    {
+      "path": "src/tee/windtunnel/report.py",
+      "bytes": 6615,
+      "sha256": "8a5d435ffea7b0c728f722e47c661db96f98e59d8553c5b28eb988f4f9ac9c06"
+    },
+    {
+      "path": "src/tee/windtunnel/runner.py",
+      "bytes": 12214,
+      "sha256": "ec0edcf5154a6a7919f52922ab278f4f696c6ecaf980dc9835cf1972ab9c5dc1"
+    },
+    {
+      "path": "src/tee/windtunnel/runs.py",
+      "bytes": 42596,
+      "sha256": "fdf127a3d51e4677a15c280d5bbee2f587230844ce0140c2a2c8dc0fb9a466ea"
+    },
+    {
+      "path": "src/tee/windtunnel/state.py",
+      "bytes": 7585,
+      "sha256": "584e2bcfb638f5bb35ab9baebb36128ab46437e45a82dbe5879e1179abf3d396"
+    },
+    {
+      "path": "src/tee/windtunnel/su2.py",
+      "bytes": 8321,
+      "sha256": "23ea0ff22b0ef92b0c203475f635846f3b790df16593708d1ab6810f4bfeb6e0"
+    },
+    {
+      "path": "src/tee/windtunnel/tools.py",
+      "bytes": 108559,
+      "sha256": "3e483507d04939c3315e5f314503e90637dec7e47d913477dfbda027f942ce5a"
+    },
+    {
+      "path": "src/tee/windtunnel/verdict.py",
+      "bytes": 7965,
+      "sha256": "477a629ed0a8b3842bd8f60172395aa3ae0423aa1def52c6ebd07dbd88f12689"
+    },
+    {
+      "path": "src/tee/windtunnel/verify.py",
+      "bytes": 23157,
+      "sha256": "8bc4f21772b2f7fbb1c119c8c88f8a7fe7748a599847d5882e3e14805d2abbe5"
+    },
+    {
+      "path": "src/tee/windtunnel/vsp.py",
+      "bytes": 10551,
+      "sha256": "4882e34e57523f1a0cb33376aec443b044445b981fe7c1b10d28d12475af604d"
+    },
+    {
+      "path": "src/tee_engine-0.30.1.dist-info/METADATA",
+      "bytes": 405,
+      "sha256": "0609ab4538b262bcc1b72503d5d9e5649dec112b97596b847c82939536ee5d79"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "source": "/Users/john/plugins/tee",
+  "cache": "/Users/john/.codex/plugins/cache/personal/tee/0.30.0",
+  "source_cache_equal": true,
+  "files": [
+    {
+      "path": ".codex-plugin/plugin.json",
+      "bytes": 1131,
+      "sha256": "39b69cf5fba6c9e89ca75a43baa0b025c7fc5119bee0612848abf0af6d784250"
+    },
+    {
+      "path": ".mcp.json",
+      "bytes": 525,
+      "sha256": "29dd1d209e6dd7e8c17905bae4da379f440fa487e3c289a0e7f2ac6376253c2f"
+    },
+    {
+      "path": "README.md",
+      "bytes": 783,
+      "sha256": "c2f020e9b774bd500005c62413c53fd90d2c79e29c7757c203adf3158cbb8987"
+    },
+    {
+      "path": "assets/icon.png",
+      "bytes": 3763,
+      "sha256": "db5e2e60b3c13ed77bf7013b8c930e4801e172905b28e993c060976cc1bbe93f"
+    },
+    {
+      "path": "skills/tee-usage/SKILL.md",
+      "bytes": 6916,
+      "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1"
+    }
+  ]
+}

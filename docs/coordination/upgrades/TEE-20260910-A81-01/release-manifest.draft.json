@@ -1,0 +1,162 @@
+{
+  "stage": "DRAFT; not frozen, built, delivered, installed or accepted",
+  "update_id": "TEE-20260910-A81-01",
+  "revision_proposed": 1,
+  "protocol_version": "1.0.1",
+  "protocol_sha256": "ac74807ac0ce9ea29c070e8fe57cdd84c2952182234cd61337d0b1446f85fc9c",
+  "coordinator": "GPT-6 / Codex",
+  "both_builds_assigned_to": "GPT-6 by proposal.md",
+  "source": {
+    "repository": "https://github.com/interaeronav/TokenEfficiencyEngine",
+    "commit_recorded": "4db0fb0962d91ed3844f69219546f40932a90816",
+    "dirty_untracked_runtime_included": true,
+    "payload_sha256": null,
+    "files_expected": 279,
+    "package_version": "0.30.1",
+    "source_manifest_after_approval": "source-manifest.json"
+  },
+  "targets": {
+    "claude": {
+      "shape": "local python MCPB",
+      "artifact_filename": "tee-engine-0.30.1-a81-local.mcpb",
+      "artifact_sha256": null,
+      "planned_delivery": "/Users/john/Downloads/TEE_A81_DOCAGENTS_UPDATE_20260911/claude",
+      "runtime_origin": "installed bundle src/tee through launch.py",
+      "interpreter": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+      "bundle_manifest_version": "0.30.1"
+    },
+    "codex": {
+      "shape": "existing tee@personal source plugin",
+      "artifact_filename": "tee-a81-codex-source-snapshot.zip",
+      "artifact_sha256": null,
+      "planned_delivery": "/Users/john/Downloads/TEE_A81_DOCAGENTS_UPDATE_20260911/codex",
+      "runtime_origin": "/Users/john/TokenEfficiencyEngine/server/src/tee",
+      "wrapper_version": "0.30.0",
+      "wrapper_replacement_required": false
+    }
+  },
+  "contract_to_verify": {
+    "core_tools": 17,
+    "core_schema_sha256_expected": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+    "adapters": [
+      "blender",
+      "partkiln",
+      "seamkiln",
+      "fusion",
+      "unreal"
+    ],
+    "virtual_tools_with_main_corpus_expected": 250,
+    "virtual_tools_without_corpus_expected": 246,
+    "preserved_lesson_topics": [
+      "fusion/cadagent_enclosure",
+      "fusion/cadagent_flange",
+      "fusion/cadagent_joint",
+      "fusion/cadagent_f1_wing",
+      "fusion/cadagent_f1_brake",
+      "fusion/cadagent_f1_wishbone",
+      "blender/cadagent_enclosure",
+      "blender/cadagent_flange",
+      "blender/cadagent_joint",
+      "blender/cadagent_f1_wing",
+      "blender/cadagent_f1_brake",
+      "blender/cadagent_f1_wishbone",
+      "blender/house",
+      "blender/textures",
+      "blender/fabric"
+    ],
+    "preserved_learning_tools": [
+      "learn_status",
+      "learn_feedback",
+      "learn_recommend",
+      "learn_evaluate",
+      "learn_control"
+    ],
+    "new_tools": [
+      "doc_status",
+      "doc_prepare",
+      "doc_run",
+      "doc_diff",
+      "doc_apply"
+    ],
+    "shared_skill_sha256_expected": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1",
+    "project_root": "/Users/john/TokenEfficiencyEngine",
+    "model_profile": "qmax",
+    "model_pinned": true,
+    "code_exec_enabled": false
+  },
+  "permissions": {
+    "existing_extra_grants": [
+      "call-paid-engine"
+    ],
+    "proposed_addition": "run-doc-agent",
+    "owner_decision": "pending",
+    "currently_added": false,
+    "application_precondition": "Both actual new clients recognize A81 and capability, then apply only if owner approved. Never add while old A79/A80 clients remain."
+  },
+  "external_workers": {
+    "cline": {
+      "version": "3.0.61",
+      "home": "/Users/john/.local/share/tee/docagents/cline-3.0.61"
+    },
+    "aider": {
+      "version": "0.86.2",
+      "home": "/Users/john/.local/share/tee/docagents/aider-0.86.2"
+    },
+    "vendored": false,
+    "new_shared_python_requirements": 0
+  },
+  "rollback": {
+    "update_id": "TEE-20260910-A79-A80-01",
+    "payload_sha256": "82e5bc7e57f5802dc8f2aea912d4a4d389272bb50a512e45768559c647ab4193",
+    "files": 274,
+    "artifacts": {
+      "claude": {
+        "path": "/Users/john/Downloads/TEE_A79_A80_UPDATE_20260910/claude/tee-engine-0.30.1-a79-a80-local.mcpb",
+        "sha256": "9e1df2d63cf9b90752318c747b579f83eca7af65a580d601d36bf887a112f0c0",
+        "bytes": 1039492
+      },
+      "codex": {
+        "path": "/Users/john/Downloads/TEE_A79_A80_UPDATE_20260910/codex/tee-a79-a80-codex-source-snapshot.zip",
+        "sha256": "5f0383e651b69af42ef8b34f45d7440ce5a972dc8d2d14049de37209107cec9d",
+        "bytes": 1398599
+      }
+    },
+    "state": "Preserve newer project/learning/docagent state; reconcile new grant before restarting old parser. Stage reviewed Codex source recovery without overwriting owner edits.",
+    "retention": "Keep at least two accepted sets and unresolved predecessors; at least 30 days after replacement accepted by both; no automatic cleanup."
+  },
+  "common_delivery_plan": [
+    "proposal.md",
+    "execution.md",
+    "receipt-template.md",
+    "release-manifest.json",
+    "release-manifest.sha256",
+    "source-manifest.json",
+    "build-inputs.json",
+    "codex-wrapper-manifest.json",
+    "upgrade-coordination-protocol.md",
+    "docs/documentation-agents.md",
+    "docs/research/82-documentation-agents.md",
+    "CLAUDE_A81_SCRIPT.md",
+    "docs/blender-lessons.md",
+    "docs/cadagent-integration.md",
+    "docs/cadagent-advanced-fusion.md",
+    "docs/cadagent-f1-fusion.md",
+    "docs/continuous-learning.md",
+    "evidence/",
+    "rollback/"
+  ],
+  "validation_pending": [
+    "final source/test approval",
+    "both artifact builds and payload/member equality",
+    "fresh isolated candidate probes",
+    "Claude other-party review",
+    "actual both-client install/reconnect/permission readiness and receipts"
+  ],
+  "private_exclusions": [
+    "project state contents",
+    "private/",
+    "worker histories/configuration/logs",
+    "credentials",
+    "optional worker installations"
+  ]
+}

@@ -1,0 +1,4041 @@
+{
+  "scope": "fresh isolated delivery harness, not actual recipient acceptance",
+  "passed": true,
+  "deliveries": [
+    {
+      "archive": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-engine-0.30.1-a82-local.mcpb",
+      "sha256": "98f5116fe1c51b62062571cdf81d4f0039d3bc34815aafcf7c951c0768c3c3e2",
+      "extracted": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/claude"
+    },
+    {
+      "archive": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/artifacts/tee-a82-codex-source-snapshot.zip",
+      "sha256": "e908840f325f6e9e5366ead6cfcda7636fa1d5efa8650143b446670781de53e1",
+      "extracted": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/codex"
+    }
+  ],
+  "all_core_schemas_equal": true,
+  "reports": [
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "claude",
+      "corpus": false,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/claude/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 257,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "architecture": {
+        "status": {
+          "ok": true,
+          "product": "archkiln",
+          "version": "0.1.0",
+          "models": [],
+          "units": "mm",
+          "gui": "optional; ak_open",
+          "jurisdiction_coverage": "explicit rule packs; unverified until assessed"
+        },
+        "house": {
+          "ok": true,
+          "model_id": "building_aa92ac5b7f2b423b",
+          "schema": "tee-architecture/1",
+          "document_id": "90910454-9682-4675-af55-5d2f3ace9d0e",
+          "units": "mm",
+          "revision": 1,
+          "project": {
+            "name": "Isolated package house",
+            "jurisdiction": {
+              "country": null,
+              "region": null,
+              "municipality": null
+            }
+          },
+          "fact_count": 1,
+          "entities": 15,
+          "counts": {
+            "cabinet": 1,
+            "opening": 4,
+            "roof": 1,
+            "slab": 1,
+            "space": 2,
+            "storey": 1,
+            "wall": 5
+          },
+          "undo_available": 1,
+          "preset": "compact-house",
+          "note": "Example geometry has no regulatory or fabrication approval."
+        },
+        "check": {
+          "ok": true,
+          "model_id": "building_aa92ac5b7f2b423b",
+          "revision": 3,
+          "model_validation": {
+            "ok": true,
+            "revision": 3,
+            "entities": 15
+          },
+          "geometry": {
+            "status": "not_verified",
+            "wall_joins": {
+              "policy": "orthogonal_butt_v1",
+              "count": 6,
+              "joints": [
+                {
+                  "walls": [
+                    "east",
+                    "north"
+                  ],
+                  "point": [
+                    10000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "east",
+                    "south"
+                  ],
+                  "point": [
+                    10000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "partition"
+                  ],
+                  "point": [
+                    6000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "partition",
+                    "south"
+                  ],
+                  "point": [
+                    6000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "south",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "L"
+                }
+              ],
+              "details_limit": 128,
+              "source_centerlines_unchanged": true
+            },
+            "wall_junctions": {
+              "status": "no_wall_overlap_found",
+              "pairs_found": 0,
+              "overlaps": [],
+              "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+              "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+            },
+            "scope": "Selected wall junction policy and bounded wall-wall overlap checks only.",
+            "remaining": [
+              "room enclosure and other-element intersections",
+              "structural, service and construction-system design",
+              "regulatory and fabrication approval"
+            ]
+          },
+          "regulatory": {
+            "status": "not_verified",
+            "assessment_date": "2026-09-11",
+            "document_revision": 3,
+            "checks": [],
+            "counts": {
+              "pass": 0,
+              "fail": 0,
+              "not_applicable": 0,
+              "not_verified": 0
+            },
+            "coverage": {
+              "status": "not_verified",
+              "jurisdiction": {
+                "country": null,
+                "region": null,
+                "municipality": null
+              },
+              "packs": [],
+              "missing_location": [
+                "country",
+                "region",
+                "municipality"
+              ],
+              "reason": "complete_applicable_legislation_inventory_not_established",
+              "worldwide_framework": true,
+              "worldwide_verified_law_coverage": false,
+              "legal_approval": false
+            },
+            "schema_validation": "not_assessed",
+            "ids_validation": "not_assessed",
+            "geometry_validation": "not_assessed",
+            "legal_approval": false,
+            "threshold_policy": "versioned_source_interpretations_learning_cannot_modify",
+            "source_authentication": "supplied_review_records_not_independently_authenticated"
+          }
+        },
+        "gui": {
+          "ok": true,
+          "product": "archkiln",
+          "prepared": true,
+          "launched": false,
+          "next": "ak_open launch=true starts its local optional GUI; headless tools need no GUI."
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-claude-empty",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        },
+        "ak_status": {
+          "ok": true,
+          "name": "ak_status",
+          "description": "archkiln model index, explicit units and optional architectural GUI readiness.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "ak_create": {
+          "ok": true,
+          "name": "ak_create",
+          "description": "Create a headless architectural model. The compact-house example includes two rooms, hosted openings, a slab, flat roof and cabinet; it has no regulatory approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "empty",
+                  "compact-house"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_edit": {
+          "ok": true,
+          "name": "ak_edit",
+          "description": "Apply an atomic batch of architectural create/update/delete/project operations in explicit mm. Stable IDs, hosted-opening checks and undo; use expected_revision to reject stale edits.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 1,
+                "maxItems": 200
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "operations"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_query": {
+          "ok": true,
+          "name": "ak_query",
+          "description": "Compact architectural entity index; request one entity_id for its dimensions, relationships and provenance. Cabinet detail adds cutlist and optional sheet nesting with explicit stock size and kerf in mm.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "entity_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "detail": {
+                "type": "string",
+                "enum": [
+                  "entity",
+                  "cabinet"
+                ]
+              },
+              "stock": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sheet_width",
+                  "sheet_height",
+                  "kerf"
+                ],
+                "properties": {
+                  "sheet_width": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "sheet_height": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "kerf": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "allow_rotate": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_undo": {
+          "ok": true,
+          "name": "ak_undo",
+          "description": "Undo the latest architectural transaction while advancing its revision and preserving stable IDs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_import": {
+          "ok": true,
+          "name": "ak_import",
+          "description": "Inspect a project-relative mesh, LiDAR or Unreal geometry manifest and propose measured candidates as a job. Explicit source units and tolerance; no automatic authoring or concealed-property guesses.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "path": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "units": {
+                "type": "string",
+                "enum": [
+                  "mm",
+                  "cm",
+                  "m",
+                  "in",
+                  "ft"
+                ]
+              },
+              "tolerance_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "transform": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id",
+              "path",
+              "units",
+              "tolerance_mm"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_candidates": {
+          "ok": true,
+          "name": "ak_candidates",
+          "description": "Review retained source identity, measured fit and uncertain architectural candidates before promotion.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_promote": {
+          "ok": true,
+          "name": "ak_promote",
+          "description": "Promote one reviewed measured candidate using explicit construction height, thickness and centreline_offset_mm; no wall centreline is inferred from a visible face.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "candidate_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "storey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "overrides": {
+                "type": "object"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id",
+              "candidate_id",
+              "storey",
+              "overrides"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_export": {
+          "ok": true,
+          "name": "ak_export",
+          "description": "Generate revision-bound IFC, architectural/shop drawings and schedules as a job. Geometry/schema evidence is separate from legal compliance and fabrication approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "ifc",
+                  "drawings",
+                  "glb",
+                  "json"
+                ]
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_check": {
+          "ok": true,
+          "name": "ak_check",
+          "description": "Check model validity and explicit worldwide jurisdiction rule packs. Missing sources, facts or coverage remain not_verified; this does not certify a building.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "pack_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32
+              },
+              "assessment_date": {
+                "type": "string",
+                "maxLength": 10
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_open": {
+          "ok": true,
+          "name": "ak_open",
+          "description": "Prepare the optional archkiln GUI; launch=true starts an authenticated local interface using the same headless core. No browser window opens automatically.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "launch": {
+                "type": "boolean"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-claude-empty/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_5d30197803764077b0af70c7ec443066",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "c0a04246eca81fb072c163b8381537d03f86e235036b230b0114cd84fd997625",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "gui_resource_and_http": true,
+        "architecture_11_descriptors": true,
+        "architecture_house_and_cabinet": true,
+        "architecture_edit_and_undo": true,
+        "architecture_coverage_honest": true,
+        "architecture_gui_optional": true,
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 39.763,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/20260910T232852Z-claude-empty-core-schemas.json"
+    },
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "codex",
+      "corpus": false,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/codex/server/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 257,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "architecture": {
+        "status": {
+          "ok": true,
+          "product": "archkiln",
+          "version": "0.1.0",
+          "models": [],
+          "units": "mm",
+          "gui": "optional; ak_open",
+          "jurisdiction_coverage": "explicit rule packs; unverified until assessed"
+        },
+        "house": {
+          "ok": true,
+          "model_id": "building_6563d1572b7b4bd1",
+          "schema": "tee-architecture/1",
+          "document_id": "18b302fe-6e5a-415b-9a7c-d7c48112aa7e",
+          "units": "mm",
+          "revision": 1,
+          "project": {
+            "name": "Isolated package house",
+            "jurisdiction": {
+              "country": null,
+              "region": null,
+              "municipality": null
+            }
+          },
+          "fact_count": 1,
+          "entities": 15,
+          "counts": {
+            "cabinet": 1,
+            "opening": 4,
+            "roof": 1,
+            "slab": 1,
+            "space": 2,
+            "storey": 1,
+            "wall": 5
+          },
+          "undo_available": 1,
+          "preset": "compact-house",
+          "note": "Example geometry has no regulatory or fabrication approval."
+        },
+        "check": {
+          "ok": true,
+          "model_id": "building_6563d1572b7b4bd1",
+          "revision": 3,
+          "model_validation": {
+            "ok": true,
+            "revision": 3,
+            "entities": 15
+          },
+          "geometry": {
+            "status": "not_verified",
+            "wall_joins": {
+              "policy": "orthogonal_butt_v1",
+              "count": 6,
+              "joints": [
+                {
+                  "walls": [
+                    "east",
+                    "north"
+                  ],
+                  "point": [
+                    10000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "east",
+                    "south"
+                  ],
+                  "point": [
+                    10000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "partition"
+                  ],
+                  "point": [
+                    6000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "partition",
+                    "south"
+                  ],
+                  "point": [
+                    6000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "south",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "L"
+                }
+              ],
+              "details_limit": 128,
+              "source_centerlines_unchanged": true
+            },
+            "wall_junctions": {
+              "status": "no_wall_overlap_found",
+              "pairs_found": 0,
+              "overlaps": [],
+              "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+              "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+            },
+            "scope": "Selected wall junction policy and bounded wall-wall overlap checks only.",
+            "remaining": [
+              "room enclosure and other-element intersections",
+              "structural, service and construction-system design",
+              "regulatory and fabrication approval"
+            ]
+          },
+          "regulatory": {
+            "status": "not_verified",
+            "assessment_date": "2026-09-11",
+            "document_revision": 3,
+            "checks": [],
+            "counts": {
+              "pass": 0,
+              "fail": 0,
+              "not_applicable": 0,
+              "not_verified": 0
+            },
+            "coverage": {
+              "status": "not_verified",
+              "jurisdiction": {
+                "country": null,
+                "region": null,
+                "municipality": null
+              },
+              "packs": [],
+              "missing_location": [
+                "country",
+                "region",
+                "municipality"
+              ],
+              "reason": "complete_applicable_legislation_inventory_not_established",
+              "worldwide_framework": true,
+              "worldwide_verified_law_coverage": false,
+              "legal_approval": false
+            },
+            "schema_validation": "not_assessed",
+            "ids_validation": "not_assessed",
+            "geometry_validation": "not_assessed",
+            "legal_approval": false,
+            "threshold_policy": "versioned_source_interpretations_learning_cannot_modify",
+            "source_authentication": "supplied_review_records_not_independently_authenticated"
+          }
+        },
+        "gui": {
+          "ok": true,
+          "product": "archkiln",
+          "prepared": true,
+          "launched": false,
+          "next": "ak_open launch=true starts its local optional GUI; headless tools need no GUI."
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-codex-empty",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        },
+        "ak_status": {
+          "ok": true,
+          "name": "ak_status",
+          "description": "archkiln model index, explicit units and optional architectural GUI readiness.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "ak_create": {
+          "ok": true,
+          "name": "ak_create",
+          "description": "Create a headless architectural model. The compact-house example includes two rooms, hosted openings, a slab, flat roof and cabinet; it has no regulatory approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "empty",
+                  "compact-house"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_edit": {
+          "ok": true,
+          "name": "ak_edit",
+          "description": "Apply an atomic batch of architectural create/update/delete/project operations in explicit mm. Stable IDs, hosted-opening checks and undo; use expected_revision to reject stale edits.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 1,
+                "maxItems": 200
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "operations"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_query": {
+          "ok": true,
+          "name": "ak_query",
+          "description": "Compact architectural entity index; request one entity_id for its dimensions, relationships and provenance. Cabinet detail adds cutlist and optional sheet nesting with explicit stock size and kerf in mm.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "entity_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "detail": {
+                "type": "string",
+                "enum": [
+                  "entity",
+                  "cabinet"
+                ]
+              },
+              "stock": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sheet_width",
+                  "sheet_height",
+                  "kerf"
+                ],
+                "properties": {
+                  "sheet_width": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "sheet_height": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "kerf": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "allow_rotate": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_undo": {
+          "ok": true,
+          "name": "ak_undo",
+          "description": "Undo the latest architectural transaction while advancing its revision and preserving stable IDs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_import": {
+          "ok": true,
+          "name": "ak_import",
+          "description": "Inspect a project-relative mesh, LiDAR or Unreal geometry manifest and propose measured candidates as a job. Explicit source units and tolerance; no automatic authoring or concealed-property guesses.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "path": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "units": {
+                "type": "string",
+                "enum": [
+                  "mm",
+                  "cm",
+                  "m",
+                  "in",
+                  "ft"
+                ]
+              },
+              "tolerance_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "transform": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id",
+              "path",
+              "units",
+              "tolerance_mm"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_candidates": {
+          "ok": true,
+          "name": "ak_candidates",
+          "description": "Review retained source identity, measured fit and uncertain architectural candidates before promotion.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_promote": {
+          "ok": true,
+          "name": "ak_promote",
+          "description": "Promote one reviewed measured candidate using explicit construction height, thickness and centreline_offset_mm; no wall centreline is inferred from a visible face.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "candidate_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "storey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "overrides": {
+                "type": "object"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id",
+              "candidate_id",
+              "storey",
+              "overrides"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_export": {
+          "ok": true,
+          "name": "ak_export",
+          "description": "Generate revision-bound IFC, architectural/shop drawings and schedules as a job. Geometry/schema evidence is separate from legal compliance and fabrication approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "ifc",
+                  "drawings",
+                  "glb",
+                  "json"
+                ]
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_check": {
+          "ok": true,
+          "name": "ak_check",
+          "description": "Check model validity and explicit worldwide jurisdiction rule packs. Missing sources, facts or coverage remain not_verified; this does not certify a building.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "pack_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32
+              },
+              "assessment_date": {
+                "type": "string",
+                "maxLength": 10
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_open": {
+          "ok": true,
+          "name": "ak_open",
+          "description": "Prepare the optional archkiln GUI; launch=true starts an authenticated local interface using the same headless core. No browser window opens automatically.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "launch": {
+                "type": "boolean"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-codex-empty/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_5ee363c78d91480fb7f6cb4ade3b1ea5",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "ea6a00154adb379dfa2808efbe59142fdf6c28e3d7e68a2b4be11f4880091a83",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "gui_resource_and_http": true,
+        "architecture_11_descriptors": true,
+        "architecture_house_and_cabinet": true,
+        "architecture_edit_and_undo": true,
+        "architecture_coverage_honest": true,
+        "architecture_gui_optional": true,
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 39.81,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/20260910T232852Z-codex-empty-core-schemas.json"
+    },
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "claude",
+      "corpus": true,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/claude/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 261,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "architecture": {
+        "status": {
+          "ok": true,
+          "product": "archkiln",
+          "version": "0.1.0",
+          "models": [],
+          "units": "mm",
+          "gui": "optional; ak_open",
+          "jurisdiction_coverage": "explicit rule packs; unverified until assessed"
+        },
+        "house": {
+          "ok": true,
+          "model_id": "building_13b078a2fdd14ebb",
+          "schema": "tee-architecture/1",
+          "document_id": "d41c4720-213f-4ca7-88a1-ebbd4332c48a",
+          "units": "mm",
+          "revision": 1,
+          "project": {
+            "name": "Isolated package house",
+            "jurisdiction": {
+              "country": null,
+              "region": null,
+              "municipality": null
+            }
+          },
+          "fact_count": 1,
+          "entities": 15,
+          "counts": {
+            "cabinet": 1,
+            "opening": 4,
+            "roof": 1,
+            "slab": 1,
+            "space": 2,
+            "storey": 1,
+            "wall": 5
+          },
+          "undo_available": 1,
+          "preset": "compact-house",
+          "note": "Example geometry has no regulatory or fabrication approval."
+        },
+        "check": {
+          "ok": true,
+          "model_id": "building_13b078a2fdd14ebb",
+          "revision": 3,
+          "model_validation": {
+            "ok": true,
+            "revision": 3,
+            "entities": 15
+          },
+          "geometry": {
+            "status": "not_verified",
+            "wall_joins": {
+              "policy": "orthogonal_butt_v1",
+              "count": 6,
+              "joints": [
+                {
+                  "walls": [
+                    "east",
+                    "north"
+                  ],
+                  "point": [
+                    10000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "east",
+                    "south"
+                  ],
+                  "point": [
+                    10000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "partition"
+                  ],
+                  "point": [
+                    6000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "partition",
+                    "south"
+                  ],
+                  "point": [
+                    6000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "south",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "L"
+                }
+              ],
+              "details_limit": 128,
+              "source_centerlines_unchanged": true
+            },
+            "wall_junctions": {
+              "status": "no_wall_overlap_found",
+              "pairs_found": 0,
+              "overlaps": [],
+              "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+              "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+            },
+            "scope": "Selected wall junction policy and bounded wall-wall overlap checks only.",
+            "remaining": [
+              "room enclosure and other-element intersections",
+              "structural, service and construction-system design",
+              "regulatory and fabrication approval"
+            ]
+          },
+          "regulatory": {
+            "status": "not_verified",
+            "assessment_date": "2026-09-11",
+            "document_revision": 3,
+            "checks": [],
+            "counts": {
+              "pass": 0,
+              "fail": 0,
+              "not_applicable": 0,
+              "not_verified": 0
+            },
+            "coverage": {
+              "status": "not_verified",
+              "jurisdiction": {
+                "country": null,
+                "region": null,
+                "municipality": null
+              },
+              "packs": [],
+              "missing_location": [
+                "country",
+                "region",
+                "municipality"
+              ],
+              "reason": "complete_applicable_legislation_inventory_not_established",
+              "worldwide_framework": true,
+              "worldwide_verified_law_coverage": false,
+              "legal_approval": false
+            },
+            "schema_validation": "not_assessed",
+            "ids_validation": "not_assessed",
+            "geometry_validation": "not_assessed",
+            "legal_approval": false,
+            "threshold_policy": "versioned_source_interpretations_learning_cannot_modify",
+            "source_authentication": "supplied_review_records_not_independently_authenticated"
+          }
+        },
+        "gui": {
+          "ok": true,
+          "product": "archkiln",
+          "prepared": true,
+          "launched": false,
+          "next": "ak_open launch=true starts its local optional GUI; headless tools need no GUI."
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-claude-corpus",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        },
+        "ak_status": {
+          "ok": true,
+          "name": "ak_status",
+          "description": "archkiln model index, explicit units and optional architectural GUI readiness.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "ak_create": {
+          "ok": true,
+          "name": "ak_create",
+          "description": "Create a headless architectural model. The compact-house example includes two rooms, hosted openings, a slab, flat roof and cabinet; it has no regulatory approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "empty",
+                  "compact-house"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_edit": {
+          "ok": true,
+          "name": "ak_edit",
+          "description": "Apply an atomic batch of architectural create/update/delete/project operations in explicit mm. Stable IDs, hosted-opening checks and undo; use expected_revision to reject stale edits.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 1,
+                "maxItems": 200
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "operations"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_query": {
+          "ok": true,
+          "name": "ak_query",
+          "description": "Compact architectural entity index; request one entity_id for its dimensions, relationships and provenance. Cabinet detail adds cutlist and optional sheet nesting with explicit stock size and kerf in mm.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "entity_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "detail": {
+                "type": "string",
+                "enum": [
+                  "entity",
+                  "cabinet"
+                ]
+              },
+              "stock": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sheet_width",
+                  "sheet_height",
+                  "kerf"
+                ],
+                "properties": {
+                  "sheet_width": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "sheet_height": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "kerf": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "allow_rotate": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_undo": {
+          "ok": true,
+          "name": "ak_undo",
+          "description": "Undo the latest architectural transaction while advancing its revision and preserving stable IDs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_import": {
+          "ok": true,
+          "name": "ak_import",
+          "description": "Inspect a project-relative mesh, LiDAR or Unreal geometry manifest and propose measured candidates as a job. Explicit source units and tolerance; no automatic authoring or concealed-property guesses.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "path": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "units": {
+                "type": "string",
+                "enum": [
+                  "mm",
+                  "cm",
+                  "m",
+                  "in",
+                  "ft"
+                ]
+              },
+              "tolerance_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "transform": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id",
+              "path",
+              "units",
+              "tolerance_mm"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_candidates": {
+          "ok": true,
+          "name": "ak_candidates",
+          "description": "Review retained source identity, measured fit and uncertain architectural candidates before promotion.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_promote": {
+          "ok": true,
+          "name": "ak_promote",
+          "description": "Promote one reviewed measured candidate using explicit construction height, thickness and centreline_offset_mm; no wall centreline is inferred from a visible face.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "candidate_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "storey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "overrides": {
+                "type": "object"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id",
+              "candidate_id",
+              "storey",
+              "overrides"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_export": {
+          "ok": true,
+          "name": "ak_export",
+          "description": "Generate revision-bound IFC, architectural/shop drawings and schedules as a job. Geometry/schema evidence is separate from legal compliance and fabrication approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "ifc",
+                  "drawings",
+                  "glb",
+                  "json"
+                ]
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_check": {
+          "ok": true,
+          "name": "ak_check",
+          "description": "Check model validity and explicit worldwide jurisdiction rule packs. Missing sources, facts or coverage remain not_verified; this does not certify a building.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "pack_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32
+              },
+              "assessment_date": {
+                "type": "string",
+                "maxLength": 10
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_open": {
+          "ok": true,
+          "name": "ak_open",
+          "description": "Prepare the optional archkiln GUI; launch=true starts an authenticated local interface using the same headless core. No browser window opens automatically.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "launch": {
+                "type": "boolean"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-claude-corpus/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_638b301f9a0f4d8093dad07d4c5af6b9",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "0f83903cff85c5d44ec6ce83790b0533b99fcd02375c98d7aeb4ee86718c8325",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "gui_resource_and_http": true,
+        "architecture_11_descriptors": true,
+        "architecture_house_and_cabinet": true,
+        "architecture_edit_and_undo": true,
+        "architecture_coverage_honest": true,
+        "architecture_gui_optional": true,
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 39.756,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/20260910T232852Z-claude-corpus-core-schemas.json"
+    },
+    {
+      "scope": "fresh isolated harness; not actual Claude/Codex client acceptance",
+      "shape": "codex",
+      "corpus": true,
+      "source_origin": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/codex/server/src/tee/__init__.py",
+      "protocol": "2025-11-25",
+      "server": {
+        "name": "tee",
+        "title": null,
+        "version": "0.30.1",
+        "description": null,
+        "websiteUrl": null,
+        "icons": null
+      },
+      "core_schema_sha256": "95373e1c2d9e171476c90c475d7046772bdaaa345990a4e3c4cf605730e32963",
+      "core_count": 17,
+      "virtual_tools": 261,
+      "guide_checks": {
+        "fusion/cadagent_enclosure": {
+          "response_sha256": "eb1ade2cab4ccde925530170669a8ee5ba9eda635d2de8a284434227027e610a",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "fusion/cadagent_flange": {
+          "response_sha256": "e54411d4a639db8ebc09538abac6fc5c6174ac8d5ba53ec3b09e59def986c2fe",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "fusion/cadagent_joint": {
+          "response_sha256": "042b39593ab28767dd1e88f2ed9b5aaff164a740291496d13f1ed6842af34f95",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "fusion/cadagent_f1_wing": {
+          "response_sha256": "75248530a7f720d5c6ed3f0f34d2e4159b6bebf9559841d4702dd48e1cdcbc82",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "fusion/cadagent_f1_brake": {
+          "response_sha256": "a55e9ce88f57f9c5e19f1d861431f3564c79c0e9d1375b68eea027cf84889e8f",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "fusion/cadagent_f1_wishbone": {
+          "response_sha256": "7c6da299b10fe34cdd4fab230c7003f4eaea64f8e77306a2438ad415f771ff8a",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/cadagent_enclosure": {
+          "response_sha256": "44ce14c95f1f60fcd58b0163073dab5402ceec821f4948f9e34911d8b874afba",
+          "offline": true,
+          "topic": "cadagent_enclosure"
+        },
+        "blender/cadagent_flange": {
+          "response_sha256": "35f08bbe54b7669af7eb183462405bf04a3205d609986704682a2c99610b94b2",
+          "offline": true,
+          "topic": "cadagent_flange"
+        },
+        "blender/cadagent_joint": {
+          "response_sha256": "b288633a53fc6647e1e1ddad2ffe091758447775e0b3b6af738ba43f4d19524b",
+          "offline": true,
+          "topic": "cadagent_joint"
+        },
+        "blender/cadagent_f1_wing": {
+          "response_sha256": "5cf1d3532bfaabc9b428701f55a780b1c7ec99b351e6f1654b9e6daf02874e7b",
+          "offline": true,
+          "topic": "cadagent_f1_wing"
+        },
+        "blender/cadagent_f1_brake": {
+          "response_sha256": "bb688cc7cfd9933d8d5c531c4b930a858706e5362a8fd6ba59d101dc990a3b22",
+          "offline": true,
+          "topic": "cadagent_f1_brake"
+        },
+        "blender/cadagent_f1_wishbone": {
+          "response_sha256": "327e43fd65e3273ba9124b1473fc30af9658617a73c24cac41ea2b57257bee9c",
+          "offline": true,
+          "topic": "cadagent_f1_wishbone"
+        },
+        "blender/house": {
+          "response_sha256": "5aa1286ada934d104a0d406aeef9b8466bbe9490f19dae808e793cd32c7c444a",
+          "offline": true,
+          "topic": "house"
+        },
+        "blender/textures": {
+          "response_sha256": "6db82396db90ffbdf4a31c32bc8f1f3bbb2d6f12bb49ab9cc72c101592086368",
+          "offline": true,
+          "topic": "textures"
+        },
+        "blender/fabric": {
+          "response_sha256": "a4fc61f31b4ee6d15f0fbb7ff9825ab95fd62a44892c001ca9390b598ab395d5",
+          "offline": true,
+          "topic": "fabric"
+        }
+      },
+      "architecture": {
+        "status": {
+          "ok": true,
+          "product": "archkiln",
+          "version": "0.1.0",
+          "models": [],
+          "units": "mm",
+          "gui": "optional; ak_open",
+          "jurisdiction_coverage": "explicit rule packs; unverified until assessed"
+        },
+        "house": {
+          "ok": true,
+          "model_id": "building_43a75d6ce55f47dc",
+          "schema": "tee-architecture/1",
+          "document_id": "c3e977b6-efd9-449d-8ebe-b69c983d56ee",
+          "units": "mm",
+          "revision": 1,
+          "project": {
+            "name": "Isolated package house",
+            "jurisdiction": {
+              "country": null,
+              "region": null,
+              "municipality": null
+            }
+          },
+          "fact_count": 1,
+          "entities": 15,
+          "counts": {
+            "cabinet": 1,
+            "opening": 4,
+            "roof": 1,
+            "slab": 1,
+            "space": 2,
+            "storey": 1,
+            "wall": 5
+          },
+          "undo_available": 1,
+          "preset": "compact-house",
+          "note": "Example geometry has no regulatory or fabrication approval."
+        },
+        "check": {
+          "ok": true,
+          "model_id": "building_43a75d6ce55f47dc",
+          "revision": 3,
+          "model_validation": {
+            "ok": true,
+            "revision": 3,
+            "entities": 15
+          },
+          "geometry": {
+            "status": "not_verified",
+            "wall_joins": {
+              "policy": "orthogonal_butt_v1",
+              "count": 6,
+              "joints": [
+                {
+                  "walls": [
+                    "east",
+                    "north"
+                  ],
+                  "point": [
+                    10000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "east",
+                    "south"
+                  ],
+                  "point": [
+                    10000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "east",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "partition"
+                  ],
+                  "point": [
+                    6000.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "north",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    8000.0,
+                    0
+                  ],
+                  "through": "north",
+                  "type": "L"
+                },
+                {
+                  "walls": [
+                    "partition",
+                    "south"
+                  ],
+                  "point": [
+                    6000.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "T"
+                },
+                {
+                  "walls": [
+                    "south",
+                    "west"
+                  ],
+                  "point": [
+                    0.0,
+                    0.0,
+                    0
+                  ],
+                  "through": "south",
+                  "type": "L"
+                }
+              ],
+              "details_limit": 128,
+              "source_centerlines_unchanged": true
+            },
+            "wall_junctions": {
+              "status": "no_wall_overlap_found",
+              "pairs_found": 0,
+              "overlaps": [],
+              "policy": "Volumes are not additive across classes; this checks wall-wall overlap only.",
+              "scope": "Wall-wall material only, after hosted voids; other element clashes not checked."
+            },
+            "scope": "Selected wall junction policy and bounded wall-wall overlap checks only.",
+            "remaining": [
+              "room enclosure and other-element intersections",
+              "structural, service and construction-system design",
+              "regulatory and fabrication approval"
+            ]
+          },
+          "regulatory": {
+            "status": "not_verified",
+            "assessment_date": "2026-09-11",
+            "document_revision": 3,
+            "checks": [],
+            "counts": {
+              "pass": 0,
+              "fail": 0,
+              "not_applicable": 0,
+              "not_verified": 0
+            },
+            "coverage": {
+              "status": "not_verified",
+              "jurisdiction": {
+                "country": null,
+                "region": null,
+                "municipality": null
+              },
+              "packs": [],
+              "missing_location": [
+                "country",
+                "region",
+                "municipality"
+              ],
+              "reason": "complete_applicable_legislation_inventory_not_established",
+              "worldwide_framework": true,
+              "worldwide_verified_law_coverage": false,
+              "legal_approval": false
+            },
+            "schema_validation": "not_assessed",
+            "ids_validation": "not_assessed",
+            "geometry_validation": "not_assessed",
+            "legal_approval": false,
+            "threshold_policy": "versioned_source_interpretations_learning_cannot_modify",
+            "source_authentication": "supplied_review_records_not_independently_authenticated"
+          }
+        },
+        "gui": {
+          "ok": true,
+          "product": "archkiln",
+          "prepared": true,
+          "launched": false,
+          "next": "ak_open launch=true starts its local optional GUI; headless tools need no GUI."
+        }
+      },
+      "learning_status": {
+        "ok": true,
+        "enabled": true,
+        "auto_promote": true,
+        "health": "ok",
+        "event_limit": 2000,
+        "snapshot_limit": 6,
+        "paused": false,
+        "promotion_paused": false,
+        "events": 1,
+        "snapshots": 0,
+        "domains": {
+          "execution": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 1,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "reported": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          },
+          "verified": {
+            "active_id": null,
+            "previous_id": null,
+            "active_since": 0,
+            "last_evaluated_seq": 0,
+            "trainable_count": 0,
+            "last_auto_count": 0,
+            "evaluation": null,
+            "drift": null
+          }
+        }
+      },
+      "doc_status": {
+        "ok": true,
+        "project": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-codex-corpus",
+        "workers": {
+          "aider": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/aider-0.86.2/bin/aider",
+            "expected_version": "0.86.2",
+            "version": "0.86.2",
+            "version_verified": true,
+            "verification": "package_metadata"
+          },
+          "cline": {
+            "available": true,
+            "executable": "/Users/john/.local/share/tee/docagents/cline-3.0.61/node_modules/.bin/cline",
+            "expected_version": "3.0.61",
+            "version": "3.0.61",
+            "version_verified": true,
+            "verification": "package_metadata"
+          }
+        },
+        "model": {
+          "profile": "fixture",
+          "model": "fixture-no-inference",
+          "paid": false,
+          "ready": true
+        },
+        "execution_allowed": false,
+        "execution_capability": "run-doc-agent",
+        "workflow": "doc_prepare \u2192 doc_run \u2192 tee_job \u2192 doc_diff \u2192 doc_apply",
+        "scope": "Selected documentation files; staged workers can execute host commands.",
+        "usage_scope": "External worker usage is separate from TEE's internal model meter."
+      },
+      "descriptions": {
+        "learn_status": {
+          "ok": true,
+          "name": "learn_status",
+          "description": "Local learning health, trained models and evaluation evidence. Optional recent observations supply IDs for quality feedback; no prompts or outputs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "recent": {
+                "type": "integer"
+              }
+            }
+          },
+          "examples": [
+            {
+              "recent": 5
+            }
+          ]
+        },
+        "learn_feedback": {
+          "ok": true,
+          "name": "learn_feedback",
+          "description": "Attach one caller-reported quality label to an observed attempt. It remains separate from deterministic verifier labels and cannot approve execution.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "event_id",
+              "success"
+            ]
+          }
+        },
+        "learn_recommend": {
+          "ok": true,
+          "name": "learn_recommend",
+          "description": "Rank already-relevant tool alternatives using a validated local model. Sparse or stale evidence preserves your order. Predictions are advisory.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "execution",
+                  "reported"
+                ]
+              }
+            },
+            "required": [
+              "candidates"
+            ]
+          }
+        },
+        "learn_evaluate": {
+          "ok": true,
+          "name": "learn_evaluate",
+          "description": "Fit local candidates and compare with baseline/incumbent on later held-out task groups. Promote only when the gates pass; never calls a model API.",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "learn_control": {
+          "ok": true,
+          "name": "learn_control",
+          "description": "Pause, resume or roll back local learning. Changes learning state only; owner grants, model pins, code and project configuration stay separate.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "pause",
+                  "resume",
+                  "rollback"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        "doc_status": {
+          "ok": true,
+          "name": "doc_status",
+          "description": "Cline/Aider availability, selected model and documentation workflow permissions.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
+        "doc_prepare": {
+          "ok": true,
+          "name": "doc_prepare",
+          "description": "Stage explicit source inputs and documentation outputs for Cline or Aider. Returns a task ID; changes no original documents.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "minItems": 1
+              },
+              "instruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "inputs",
+              "outputs",
+              "instruction"
+            ]
+          }
+        },
+        "doc_run": {
+          "ok": true,
+          "name": "doc_run",
+          "description": "Run Cline or Aider on staged documentation as a cancellable job. Requires run-doc-agent and any paid-engine grant; preserves the selected model. Produces reviewable changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "backend": {
+                "type": "string",
+                "enum": [
+                  "cline",
+                  "aider"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "run_id",
+              "backend"
+            ]
+          }
+        },
+        "doc_diff": {
+          "ok": true,
+          "name": "doc_diff",
+          "description": "Review a bounded documentation diff and its exact review checksum. Generated prose is untrusted data; verify its claims before applying.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "max_chars": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 16000
+              }
+            },
+            "required": [
+              "run_id"
+            ]
+          }
+        },
+        "doc_apply": {
+          "ok": true,
+          "name": "doc_apply",
+          "description": "Apply reviewed documentation only if inputs and targets have not changed. Retains rollback copies; no source, policy or Git changes.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "run_id",
+              "review_sha256"
+            ]
+          }
+        },
+        "ak_status": {
+          "ok": true,
+          "name": "ak_status",
+          "description": "archkiln model index, explicit units and optional architectural GUI readiness.",
+          "schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "ak_create": {
+          "ok": true,
+          "name": "ak_create",
+          "description": "Create a headless architectural model. The compact-house example includes two rooms, hosted openings, a slab, flat roof and cabinet; it has no regulatory approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "empty",
+                  "compact-house"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_edit": {
+          "ok": true,
+          "name": "ak_edit",
+          "description": "Apply an atomic batch of architectural create/update/delete/project operations in explicit mm. Stable IDs, hosted-opening checks and undo; use expected_revision to reject stale edits.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 1,
+                "maxItems": 200
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "operations"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_query": {
+          "ok": true,
+          "name": "ak_query",
+          "description": "Compact architectural entity index; request one entity_id for its dimensions, relationships and provenance. Cabinet detail adds cutlist and optional sheet nesting with explicit stock size and kerf in mm.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "entity_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "detail": {
+                "type": "string",
+                "enum": [
+                  "entity",
+                  "cabinet"
+                ]
+              },
+              "stock": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sheet_width",
+                  "sheet_height",
+                  "kerf"
+                ],
+                "properties": {
+                  "sheet_width": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "sheet_height": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "kerf": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "allow_rotate": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_undo": {
+          "ok": true,
+          "name": "ak_undo",
+          "description": "Undo the latest architectural transaction while advancing its revision and preserving stable IDs.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_import": {
+          "ok": true,
+          "name": "ak_import",
+          "description": "Inspect a project-relative mesh, LiDAR or Unreal geometry manifest and propose measured candidates as a job. Explicit source units and tolerance; no automatic authoring or concealed-property guesses.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "path": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "units": {
+                "type": "string",
+                "enum": [
+                  "mm",
+                  "cm",
+                  "m",
+                  "in",
+                  "ft"
+                ]
+              },
+              "tolerance_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "transform": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "required": [
+              "model_id",
+              "path",
+              "units",
+              "tolerance_mm"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_candidates": {
+          "ok": true,
+          "name": "ak_candidates",
+          "description": "Review retained source identity, measured fit and uncertain architectural candidates before promotion.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_promote": {
+          "ok": true,
+          "name": "ak_promote",
+          "description": "Promote one reviewed measured candidate using explicit construction height, thickness and centreline_offset_mm; no wall centreline is inferred from a visible face.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "import_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "candidate_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "storey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "overrides": {
+                "type": "object"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "model_id",
+              "import_id",
+              "candidate_id",
+              "storey",
+              "overrides"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_export": {
+          "ok": true,
+          "name": "ak_export",
+          "description": "Generate revision-bound IFC, architectural/shop drawings and schedules as a job. Geometry/schema evidence is separate from legal compliance and fabrication approval.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "ifc",
+                  "drawings",
+                  "glb",
+                  "json"
+                ]
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_check": {
+          "ok": true,
+          "name": "ak_check",
+          "description": "Check model validity and explicit worldwide jurisdiction rule packs. Missing sources, facts or coverage remain not_verified; this does not certify a building.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "pattern": "^building_[a-f0-9]{16}$"
+              },
+              "pack_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32
+              },
+              "assessment_date": {
+                "type": "string",
+                "maxLength": 10
+              }
+            },
+            "required": [
+              "model_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ak_open": {
+          "ok": true,
+          "name": "ak_open",
+          "description": "Prepare the optional archkiln GUI; launch=true starts an authenticated local interface using the same headless core. No browser window opens automatically.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "launch": {
+                "type": "boolean"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        }
+      },
+      "grant_refusal": {
+        "ok": false,
+        "error": {
+          "code": "trust_denied",
+          "message": "doc_run: 'run-doc-agent' is not granted for this project (default deny)",
+          "fix": "Add grants = [\"run-doc-agent\"] under [trust] in /Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/projects/20260910T232852Z-codex-corpus/.tee/config.toml - that is the config file this server actually loaded (SI-B17). It takes effect on the next call; no restart (A45 P0a)."
+        }
+      },
+      "apply_refusal": {
+        "ok": false,
+        "error": {
+          "code": "doc_not_completed",
+          "message": "A completed worker result is required before applying.",
+          "fix": "Run the prepared task and review its successful result."
+        }
+      },
+      "diff": {
+        "ok": true,
+        "run_id": "doc_817298bbd2d54168954e8c064ce34b00",
+        "changes": [
+          {
+            "path": "README.md",
+            "change": "modified",
+            "before_sha256": "c9bf8b6924086946b631e40cbe28b5b0e189fec26c7fd765feea0f79a5955116",
+            "sha256": "a47edff32cf834eaffd29ae2a0335dfbd61204ac4c2a9d4474212d19445918f2",
+            "bytes": 54
+          }
+        ],
+        "review_sha256": "b51367b07437a350100f088c1f9d6589a248c00a2ce4e5801e5d89c71bd8424f",
+        "patch": "--- README.md\n+++ README.md\n@@ -1 +1,3 @@\n # Isolated documentation fixture\n+\n+`greet` adds Hello.\n",
+        "truncated": false
+      },
+      "checks": {
+        "gui_resource_and_http": true,
+        "architecture_11_descriptors": true,
+        "architecture_house_and_cabinet": true,
+        "architecture_edit_and_undo": true,
+        "architecture_coverage_honest": true,
+        "architecture_gui_optional": true,
+        "core_count_17": true,
+        "complete_core_schemas_unchanged": true,
+        "virtual_count_expected": true,
+        "five_adapters": true,
+        "all15_old_guides_unchanged": true,
+        "five_learning_descriptors": true,
+        "five_doc_descriptors": true,
+        "execution_disabled_without_grant": true,
+        "worker_versions": true,
+        "grant_refusal": true,
+        "prepare_and_diff": true,
+        "apply_requires_worker_completion": true,
+        "fixture_original_unchanged": true,
+        "code_exec_disabled": true,
+        "root_is_disposable_fixture": true,
+        "five_learning_descriptors_unchanged": true
+      },
+      "passed": true,
+      "gui_bridge_endpoints": "reserved non-listening local fixture ports",
+      "models_invoked": false,
+      "actual_gui_dcc_contact": false,
+      "seconds": 39.748,
+      "learning_descriptor_sha256": {
+        "learn_status": "2dde4eb873a09d757e46cdcba808fd92f3adaeb2644c947e05bee7234056d847",
+        "learn_feedback": "0b9829c37897045f49fe3f176bdacf490c8cb74bd745e6131421afadd0c4b67a",
+        "learn_recommend": "33576e15df735e329b322f48877ef68ebcd200c914e83127b9e6c9e6995cadd1",
+        "learn_evaluate": "b3b38d789bb74c2a7f256598c041db27f19ef9bd89dc01c1a177252237c250cc",
+        "learn_control": "cbf1ba7ff679b88d42eea1cfe9a8f689be01364e74c1f194df4f30e9c45fa578"
+      },
+      "learning_descriptor_comparisons": {
+        "learn_status": true,
+        "learn_feedback": true,
+        "learn_recommend": true,
+        "learn_evaluate": true,
+        "learn_control": true
+      },
+      "raw_core_schemas_file": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/20260910T232852Z-codex-corpus-core-schemas.json"
+    }
+  ],
+  "extracted_payloads": [
+    {
+      "extracted_source": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/claude/src/tee",
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+      "files": 293,
+      "bytes": 3428263
+    },
+    {
+      "extracted_source": "/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260910-A82-01/probes/extracted/20260910T232852Z/codex/server/src/tee",
+      "sha256": "ac6474bab36e1c52e6b92276a97af060f3ca37db85645a5d55b5aac0a687ea52",
+      "files": 293,
+      "bytes": 3428263
+    }
+  ],
+  "all_learning_descriptors_unchanged": true,
+  "all_guide_responses_unchanged": true,
+  "all_doc_descriptors_equal": true,
+  "all_architecture_descriptors_equal": true
+}

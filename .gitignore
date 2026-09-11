@@ -50,3 +50,12 @@ benchmarks/rung1/adapters/*
 !benchmarks/rung1/adapters/tee-triage-a2/
 !benchmarks/rung1/adapters/tee-triage-b1/
 benchmarks/rung1/adapters/tee-triage-*/0000*
+
+# docs/coordination/ holds coordination RECORDS (receipts, manifests, protocol).
+# Upgrade packets copied there also carry installers, source zips and private
+# backup inventories, which protocol 1.0.1 §3 keeps local. Measured 2026-09-11:
+# a blanket `git add docs/coordination` would have published 8.6 MB including
+# two .mcpb installers and two source zips.
+docs/coordination/**/*.mcpb
+docs/coordination/**/*.zip
+docs/coordination/**/*private-backup*.json

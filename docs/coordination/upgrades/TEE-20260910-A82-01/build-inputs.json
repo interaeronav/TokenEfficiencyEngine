@@ -1,0 +1,49 @@
+{
+  "files": [
+    {
+      "path": "server/pyproject.toml",
+      "bytes": 9775,
+      "sha256": "45848ddecda43d4ebcefbe301aa3d2b9462fe67530401d79543799a375b31ab3"
+    },
+    {
+      "path": "server/uv.lock",
+      "bytes": 1108909,
+      "sha256": "3cfda3424606a35ce59489f559c5263a6d65e412c735d565acddf476e9878f51"
+    },
+    {
+      "path": "server/LICENSE",
+      "bytes": 1069,
+      "sha256": "f1c65fea14b8b5f0a8d2ced69588292ca94c6199cdee06099463b22c67bde4c4"
+    },
+    {
+      "path": "packaging/build_local_mcpb.py",
+      "bytes": 8661,
+      "sha256": "bc2ce1d19bbd67bb29574462f6cf7eea79e88ccacc865d93495937c90786f08f"
+    },
+    {
+      "path": "packaging/launch.py",
+      "bytes": 1267,
+      "sha256": "50748208baa897d6734b5faf453162b8bfa7d52736d8f21b8d7bd1c3541809cd"
+    },
+    {
+      "path": "packaging/mcpb_manifest.json",
+      "bytes": 5804,
+      "sha256": "fc2e80d4c3ab885219f073d4cfc63ccb9cfc7a475aedfc1abab23ad16221547f"
+    },
+    {
+      "path": "packaging/icon.png",
+      "bytes": 3763,
+      "sha256": "db5e2e60b3c13ed77bf7013b8c930e4801e172905b28e993c060976cc1bbe93f"
+    },
+    {
+      "path": "docs/small-model-workflows.md",
+      "bytes": 10602,
+      "sha256": "dd1d1776a5361a5f15e65111e7815add935c70048e6f401f6921b9eed7a2dab0"
+    },
+    {
+      "path": "skills/tee-usage/SKILL.md",
+      "bytes": 6916,
+      "sha256": "a98fe56be28cf135b14d2a783a51f5880a93505b72ebd474b8e44a45d56dcbd1"
+    }
+  ]
+}
