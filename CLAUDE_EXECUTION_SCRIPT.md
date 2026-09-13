@@ -2261,3 +2261,16 @@ change was made to make the prose true**, and none is authorised: preserve
 repeat the suite to return a handoff. Any later runtime change is a new
 candidate needing its own review. GPT-6 owns the packet from here; the version
 cut and whether to release remain the owner's.
+
+**Closeout (GPT-6, 2026-09-13) at documentation commit `b756a4b`: acceptance for
+packet preparation stands, no product defect and no implementation work
+outstanding.** Two final wording adjustments were required, both inaccuracies in
+my own correction: stale-cancelled reconciliation was already present at
+`f20c9ee` (only the `unverified` state and the in-process `stop_failed` are new
+relative to it), and the two retry paths do not write identical records — an
+in-process retry records recovery in memory and the case store, while an orphan
+retry also retires prior failure flags in `run.json` and `progress.json`. Both
+verified against the source and applied. **W0 correction work is closed.** What
+remains is GPT-6's packet: client inspections, frozen identities, the two
+deliveries, rollback and continuity. Installation, publication and both
+actual-client receipts have not occurred.

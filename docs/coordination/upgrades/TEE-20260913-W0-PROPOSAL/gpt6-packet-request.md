@@ -186,21 +186,24 @@ back 35 registered tools the earlier candidate had lost.
 
 ### Tool-response contract
 
-`wt_status` gains a new **`unverified`** state, surfaces **`stop_failed`** for a
-run this process still owns, and reconciles a stale `cancelled` record against a
-verified live process — state `orphan`, with a note. `wt_case action=stop` may
-raise **`wt_stop_failed`** or **`wt_identity_unknown`**. No new tool, nothing
-removed, the 17 always-loaded schemas unchanged.
+Relative to `f20c9ee`, the later corrections introduce the **`unverified`** state
+and surface **`stop_failed`** for an in-process run. Stale-cancelled
+reconciliation and the associated note were already present in `f20c9ee` and are
+preserved. `wt_case action=stop` may raise **`wt_stop_failed`** or
+**`wt_identity_unknown`**. No new tool, nothing removed, the 17 always-loaded
+schemas unchanged.
 
 Two things this section previously got wrong, both narrowing the claim:
 
-- **`identity`, `pid` and `note` are not new.** `f20c9ee` already emitted all
-  three; only the `unverified` state, the live-run `stop_failed` and the
-  stale-cancelled reconciliation are.
-- **`stop_recovered` is not a status field.** It is persisted recovery metadata
-  — written into the run record and the progress file so a confirmed exit
-  historicizes its earlier failure rather than erasing it. `_Lane.status` does
-  not read it, and no runtime change is proposed to make it do so.
+- **`identity`, `pid` and `note` are not new** — `f20c9ee` already emitted all
+  three — **and neither is the stale-cancelled reconciliation.** That landed in
+  the round-five fix, which is *at* `f20c9ee`, not after it. Only the
+  `unverified` state and the in-process `stop_failed` are new.
+- **`stop_recovered` is recovery metadata, not a `wt_status` response field.** An
+  in-process retry records recovery in memory and the case store; an orphan retry
+  also retires prior failure flags in `run.json` and `progress.json`. These paths
+  should not be described as writing identical records. `_Lane.status` does not
+  read the field, and no runtime change is proposed to make it do so.
 
 **Revision 7's table was withdrawn: it was hand-written, not measured.** Its
 "before" side was composed by hand and omitted a note and a pid that the

@@ -835,10 +835,10 @@ termination calls, so no signal is ever sent to an unrelated process.
 ### New error codes for the contract summary
 
 `wt_stop_failed` and `wt_identity_unknown`, plus the `unverified` status state
-and `stop_failed` surfaced for a live run. No new tool; the 17 always-loaded are
-unchanged. (Corrected in §4i: `identity` was already emitted at `f20c9ee`, and
-`stop_recovered` is persisted recovery metadata that `_Lane.status` never
-reads.)
+and `stop_failed` surfaced for an in-process run. No new tool; the 17
+always-loaded are unchanged. (Corrected in §4i: `identity` and the
+stale-cancelled reconciliation were already present at `f20c9ee`, and
+`stop_recovered` is recovery metadata that `_Lane.status` never reads.)
 
 ## 4h. Round eight — real argument boundaries, and my own measurement withdrawn
 
@@ -878,10 +878,12 @@ Round seven retired the flag on the orphan branch only. `_stop()`'s in-process
 branch returned straight after `live.terminate()`, and `SolverRun.terminate` set
 `stop_failed` and never cleared it, so the store's merge carried it through
 finalization into `wt_status`. A confirmed exit now retires it in memory **and**
-in the persisted record status reads, and writes `stop_recovered` into that
-record and the progress file — persisted recovery metadata, so the history is
-kept rather than erased. `_Lane.status` does not emit that field, and nothing
-here asks it to. The integration test runs the whole
+in the persisted record status reads, and writes `stop_recovered` as recovery
+metadata so the history is kept rather than erased. **The two retry paths do not
+write identical records:** an in-process retry records recovery in memory and the
+case store; an orphan retry also retires prior failure flags in `run.json` and
+`progress.json`. `_Lane.status` does not emit the field, and nothing here asks it
+to. The integration test runs the whole
 public sequence — failed cancel → `wt_case action=stop` → confirmed exit →
 worker finished → persisted record, public status and released capacity.
 
@@ -963,20 +965,37 @@ outran the evidence:
    directory expressed as `/var/…` on one side and `/private/var/…` on the other.
    Paths already in the same form matched correctly. The `realpath` fix stands;
    the sweeping claim about it does not.
-3. **`stop_recovered` is not a status field.** I listed it in the response
-   contract as something `wt_status` may return. It is not: it is written into
-   the run record and the progress file, and `_Lane.status` never reads it —
-   verified in the source, not taken on report. It is persisted recovery
-   metadata. The contract now says the true set: a new `unverified` state,
-   `stop_failed` surfaced for a live run, and stale-cancelled reconciliation.
-   **No runtime change was made to bring the code up to the prose** — the prose
-   came down to the code.
+3. **`stop_recovered` is recovery metadata, not a `wt_status` response field.**
+   I listed it in the response contract as something `wt_status` may return. It
+   is not — `_Lane.status` never reads it, verified in the source rather than
+   taken on report. **No runtime change was made to bring the code up to the
+   prose**; the prose came down to the code.
 
 Correcting (3) turned up a fourth thing I had over-claimed, unprompted: the same
 contract line presented `identity`, `pid` and `note` as new. Checking the
-`f20c9ee` export directly, `status` already emitted all three. Only the
-`unverified` state, the live-run `stop_failed` and the stale-cancelled
-reconciliation are new. That is now stated in the proposal.
+`f20c9ee` export directly, `status` already emitted all three.
+
+### The closeout caught two more of mine, in the correction itself
+
+GPT-6's final pass found that my §4i had two of its own inaccuracies — a
+correction is not exempt from the standard it applies:
+
+- **I named the wrong baseline for stale-cancelled reconciliation.** I called it
+  new relative to `f20c9ee`. It is not: that implementation already gated on
+  both `running` and `cancelled`, returned `orphan` for a verified live process,
+  and supplied the corrective note. I confirmed this by reading the `f20c9ee`
+  export's `status` directly. The reconciliation landed in the **round-five**
+  fix, which *is* `f20c9ee`. Relative to that baseline, only the `unverified`
+  state and the in-process `stop_failed` are new.
+- **I described the two retry paths as writing the same records.** They do not.
+  The in-process branch records recovery in memory (`SolverRun.terminate`) and
+  in the case store; only the orphan path, through `kill_orphan`, also retires
+  prior failure flags in `run.json` and `progress.json`. Both documents now say
+  which path writes what.
+
+The pattern across the last two rounds is one thing, not two: the code was
+right and my description of it was generous to itself. Withdrawing a claim
+costs nothing next to a packet built on it.
 
 ### Readiness
 
