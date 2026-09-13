@@ -1,10 +1,17 @@
 # GPT-6 — compose the execution packet for the W0 candidate
 
-**Revision 7, 2026-09-13.** Rewritten, not patched: revisions 1 and 2
+**Revision 8, 2026-09-13.** Rewritten, not patched: revisions 1 and 2
 accumulated conflicting identities and two disproved explanations. This
 document describes **one** candidate. The correction history lives in
 `claude-packet-review-corrections.md`; nothing historical is repeated here as
 current.
+
+Revision 8 carries the round-eight corrections: process identity is now decided
+from **real argument vectors** on both platforms rather than a flattened command
+string that had lost the argument boundaries, a successful stop retires its
+earlier failure everywhere status reads, and §4's response-size table is
+**re-measured** — the previous one was hand-written, not measured, and is
+withdrawn.
 
 Revision 4 carries a P1 product fix: `tee_purge` was deleting `tee-*`
 directories by NAME, with no proof of ownership or that the owner had exited,
@@ -19,16 +26,18 @@ Protocol: `docs/upgrade-coordination-protocol.md`, version 1.0.1.
 
 | | value |
 |---|---|
-| **candidate commit** | `36453a0a63e115aa7f4e424d67cfa509882b125a` |
-| **runtime payload fingerprint** | `cb2e51210decb659911fd4d0eca33a9b3abdd54dc07befe03efebe8d222b3ca8` |
+| **candidate commit** | `e6f95663274bcd74c754bf2aa1028ef4650bbca4` |
+| **runtime payload fingerprint** | `df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7` |
 | runtime files | 325 |
 | accepted A84 baseline | `0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f`, 324 files |
 | delta vs accepted | **0 removed, 1 added, 19 changed** |
 | declared version | `0.30.1` (`server/pyproject.toml:4`) |
 | branch | `claude/token-efficiency-engine-5jv1dj`, **not pushed** |
 
-`36453a0` is the commit everything below was **tested at**. Commits after it in
-this directory are documentation only and do not touch the payload.
+`e6f9566` is the commit everything below was **tested at**, superseding
+`36453a0`. Commits after it in this directory are documentation only and do not
+touch the payload — verified by recomputing the fingerprint after the docs
+commit.
 
 The one addition is `tee/kernel/workdirs.py`, the ownership and liveness check
 the purge fix needs. The **nineteen** changed files are: eleven from the
@@ -37,11 +46,13 @@ correction; six from the purge fix — `tee/purge.py` and the five producers tha
 now mark the scratch directory they own (`adapters/blender`, `adapters/fusion`,
 `adapters/godot`, `adapters/freecad`, `assets/library`); and **two from the
 wind-tunnel process-lifecycle fix**, `windtunnel/runner.py` and
-`windtunnel/tools.py`, which revision 6 omitted from this explanation.
+`windtunnel/tools.py`, which revision 6 omitted from this explanation. Round
+eight changed those same two files again; the file *count* is unchanged and the
+fingerprint is not.
 
 ## 2. Current results, each bound to the source tested
 
-Every row is a `git archive` of **`36453a0a63e115aa7f4e424d67cfa509882b125a`** into a clean directory,
+Every row is a `git archive` of **`e6f95663274bcd74c754bf2aa1028ef4650bbca4`** into a clean directory,
 `server/.venv` symlinked to the prepared repository venv **without provisioning
 it**, `PYTHONPATH` pinned to that export's `server/src`, and that venv's
 explicit interpreter. The export is not inside a git checkout — verified with
@@ -50,8 +61,8 @@ enclosing HEAD can be attributed to it.
 
 | check | command | result |
 |---|---|---|
-| targeted | `pytest` over the **six named files** below | **111 passed, 22 skipped** — log `scratchpad/targeted_36453a0.log` |
-| canonical suite | `pytest -q` (project defaults) | **3,062 passed**, 45 skipped, 141 deselected, **0 failed** |
+| targeted | `pytest` over the **six named files** below | **119 passed, 22 skipped** — log `scratchpad/targeted_e6f9566.log` |
+| canonical suite | `pytest -q` (project defaults) | **3,070 passed**, 45 skipped, 141 deselected, **0 failed** — 212.85 s, log `scratchpad/suite_e6f9566.log` |
 | lint | `ruff check src tests ../benchmarks` | **clean** |
 | format | `ruff format --check src tests` | **clean**, 516 files |
 | real workdirs deleted | namespace diffed before/after the suite | **0** |
@@ -105,16 +116,16 @@ unreviewed source.
 | | value |
 |---|---|
 | artifact | `tee-engine-0.30.1-local.mcpb` |
-| absolute path | `/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/66bb34fa-ea68-4af7-9b78-9a82a2737fc4/scratchpad/cand-36453a0/verification-artifacts/tee-engine-0.30.1-local.mcpb` |
-| bytes | 1,326,506 |
-| sha256 | `19fd77764b4c138241df40cfb4a3634d56ec3576fdcbc80fc972ccf4e6d05e96` |
+| absolute path | `/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/66bb34fa-ea68-4af7-9b78-9a82a2737fc4/scratchpad/cand-e6f9566/verification-artifacts/tee-engine-0.30.1-local.mcpb` |
+| bytes | 1,327,902 |
+| sha256 | `59de72c626590aa326309d386eff3230478c2cca119c7cb7312c17bec8e0cbb6` |
 | manifest `command` | `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python` |
 | temporary export path in launch command | **none** |
 
 Payload comparison, which is the point rather than the ZIP write:
 
 - artifact runtime **== candidate source**, complete set and byte equality,
-  325 files, fingerprint `cb2e5121…b3ca8`;
+  325 files, fingerprint `df974f78…a90b7`;
 - artifact vs accepted: 0 removed, 1 added, 19 changed.
 
 Resources, usage skill and wrapper inputs checked separately against the
@@ -134,9 +145,16 @@ Its hash is recorded so a packet can bind to it or supersede it.
 - **`response_format` is negotiated per endpoint.** The two local backends are
   inverted on it — MLX accepts and ignores it, vLLM refuses with HTTP 400 unless
   `llguidance` is present — so TEE could not reach the better backend at all.
-- **Four new error codes** may reach a client, measured by diffing the code sets
-  at `73a76e1^` and the candidate: `llm_no_answer`, `vlm_no_answer`,
-  `llm_widening_refused`, `llm_widening_unproven`.
+- **Six new error codes** may reach a client, and they come from **two different
+  comparisons** — the earlier revisions said "four" without naming which:
+  - against **`73a76e1^`**, the pre-W0 baseline, the whole W0 change adds
+    `llm_no_answer`, `vlm_no_answer`, `llm_widening_refused` and
+    `llm_widening_unproven`;
+  - against **`f20c9ee`**, the start of this correction sequence, the wind-tunnel
+    fixes add `wt_stop_failed` and `wt_identity_unknown`.
+
+  Six in total against the pre-W0 baseline; two of them are new since the
+  correction sequence began.
 - **Reasoning never reaches a client.** Read from whichever field the backend
   uses (`reasoning` on MLX, `reasoning_content` on vLLM), recorded, stripped.
 - **Thinking is off for every chore.** `THINKING_ALLOWED` ships empty.
@@ -165,20 +183,26 @@ back 35 registered tools the earlier candidate had lost.
 **`wt_stop_failed`** or **`wt_identity_unknown`**. No new tool, nothing removed,
 the 17 always-loaded schemas unchanged.
 
-**Revision 6 claimed "no measurable token change". That was wrong.** Measured
-with `json.dumps(..., sort_keys=True)` and TEE's own `estimate_tokens`, over one
-`wt_status` payload with fixed ids and no adapter attached:
+**Revision 7's table was withdrawn: it was hand-written, not measured.** Its
+"before" side was composed by hand and omitted a note and a pid that the
+baseline already emitted, which is the whole of its "+30 / +53". Re-measured by
+invoking the real `_Lane.status` from an isolated export of each named commit,
+with identical controlled fixtures, fixed ids, no MCP envelope and no native
+solver, scored with TEE's own `estimate_tokens` over the payload dict serialized
+as compact JSON:
 
-| response | before | after | delta |
-|---|---|---:|---:|
-| normal running run | unchanged | 30 → 30 | **0** |
-| failed stop | new field | 21 → 26 | **+5** |
-| unknown identity | `dead` → `unverified` + reason | 20 → 50 | **+30** |
-| stale cancelled / live orphan | `cancelled` → `orphan` + note | 21 → 74 | **+53** |
+| response | `f20c9ee` | `36453a0` | round 8 | delta |
+|---|---:|---:|---:|---:|
+| normal running run | 30 | 30 | 30 | **0** |
+| failed in-process stop | 21 | 26 | 26 | **+5** |
+| unknown identity | 49 | 50 | 50 | **+1** |
+| stale cancelled / live orphan | 61 | 74 | 74 | **+13** |
 
-The ordinary path is unchanged; the cost falls only where the old answer was
-wrong. **That is a justified price for truthful information, not a free one** —
-a bounded response is not an unchanged one.
+This reproduces the coordinator's independent measurement exactly. The ordinary
+path is unchanged; the cost falls only where the old answer was wrong, and it is
+an order of magnitude smaller than revision 7 claimed. **Still a real price for
+truthful information, not a free one** — a bounded response is not an unchanged
+one.
 
 ## 5. Machine-local state, which no package carries
 
@@ -205,7 +229,7 @@ that different shape is selected.
 ## 6. Reproducing this exactly
 
 ```sh
-git archive 36453a0 | tar -x -C /tmp/cand
+git archive e6f9566 | tar -x -C /tmp/cand
 ln -s /Users/john/TokenEfficiencyEngine/server/.venv /tmp/cand/server/.venv
 cd /tmp/cand/server
 PYTHONPATH=/tmp/cand/server/src /Users/john/TokenEfficiencyEngine/server/.venv/bin/python \
@@ -238,6 +262,12 @@ imports the dirty checkout and falsely validates the export.
    test isolation plus a status detector gated by the state it corrects; both
    fixed, and it now passes because the mechanism is gone rather than because a
    rerun landed well.
+   **And a related caution, from round eight:** exact-cwd matching had never
+   worked on this Mac — `_norm` used `normpath`, so `/var` never equalled
+   `/private/var` — and the suite missed it because pytest hands out an
+   already-resolved `tmp_path`. It is `realpath` now, with a regression that
+   builds an unresolved path on purpose. A test can pass because the harness
+   handed it the easy shape.
 5. **Version cut.** Currently `0.30.1`. Patch, minor, or not a release.
 6. **Whether to release at all.** The client-visible change is small; the case
    for shipping is that chores currently point at a dead endpoint.

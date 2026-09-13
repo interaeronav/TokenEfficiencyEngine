@@ -838,6 +838,98 @@ termination calls, so no signal is ever sent to an unrelated process.
 and the `stop_failed` / `identity` / `stop_recovered` fields. No new tool; the
 17 always-loaded are unchanged.
 
+## 4h. Round eight — real argument boundaries, and my own measurement withdrawn
+
+### [P1] Flattened command text was the deployment path, and it was not identity
+
+`pid_argv` returned None on this Mac, so the flattened-string fallback was what
+actually ran — and it accepted whitespace or `/` after the target. GPT-6 defeated
+it three ways, each reaching the intercepted kill: a path inside a `python -c`
+source comment, an argument `<run>/../different-run`, and an argument
+`<run> copy`. Normalizing only the searched-for directory never normalized the
+candidate.
+
+**The fix is not merely conservative, because the premise was wrong.** macOS
+*does* expose real argv, through `sysctl KERN_PROCARGS2` — stdlib `ctypes`, no
+new dependency. That is the "other inspection mechanism" the review declined to
+let me assume away. Identity by command line now requires real tokens (Linux
+`/proc`, macOS sysctl), each normalized and compared whole; the flattened string
+is carried as `observed_cmd` for reporting and **never consulted**.
+
+### And a latent defect the probe exposed, in a fix that had been ACCEPTED
+
+`_norm` used `normpath`, not `realpath`. On macOS `/var` **is** `/private/var`,
+and `lsof` reports the resolved form while the lane holds the unresolved one —
+so **exact-cwd matching could not match anything on this machine.** The previous
+review had accepted exact cwd as a verified improvement; it was verified against
+`tmp_path`, which pytest hands out already resolved, while the lane uses
+unresolved paths. Now `realpath`, with a regression that builds an unresolved
+directory on purpose.
+
+That is the sharper lesson of this round: **a test can pass because the harness
+hands it the easy shape.**
+
+### [P2] A successful in-process retry kept the failure
+
+Round seven retired the flag on the orphan branch only. `_stop()`'s in-process
+branch returned straight after `live.terminate()`, and `SolverRun.terminate` set
+`stop_failed` and never cleared it, so the store's merge carried it through
+finalization into `wt_status`. A confirmed exit now retires it in memory **and**
+in the persisted record status reads, recording `stop_recovered` rather than
+pretending the failure never happened. The integration test runs the whole
+public sequence — failed cancel → `wt_case action=stop` → confirmed exit →
+worker finished → persisted record, public status and released capacity.
+
+### The response-size evidence: withdrawn and re-measured
+
+**My §4g table was not a measurement.** `tokens.py` hand-wrote both sides and
+never called `wt_status`; its "before" omitted the note and pid that `f20c9ee`
+already emitted, which is the whole of the "+30 / +53". Re-measured by invoking
+the real `_Lane.status` from each named export, using GPT-6's own helper:
+
+| scenario | `f20c9ee` | `36453a0` | round 8 | delta |
+|---|---:|---:|---:|---:|
+| normal running | 30 | 30 | 30 | **0** |
+| failed in-process stop | 21 | 26 | 26 | **+5** |
+| unknown identity | 49 | 50 | 50 | **+1** |
+| stale cancelled, live orphan | 61 | 74 | 74 | **+13** |
+
+Method: `estimate_tokens` over the payload dict, compact JSON, controlled
+fixtures with fixed ids, no MCP envelope and no native solver. This reproduces
+GPT-6's table exactly.
+
+**I also withdraw the claim that their probe "modelled a shorter note".** It
+called the real implementation and the note is byte-identical on both sides. The
+error was entirely mine, and it was the kind that flatters its author — a
+hand-built baseline that made my change look more consequential than it is.
+
+### Error codes, with their baselines named
+
+- **Four new LLM/VLM codes** — `llm_no_answer`, `vlm_no_answer`,
+  `llm_widening_refused`, `llm_widening_unproven` — measured against
+  **`73a76e1^`**, i.e. the whole W0 change.
+- **Two new wind-tunnel codes** — `wt_stop_failed`, `wt_identity_unknown` —
+  added in **this correction sequence**, measured against `f20c9ee`.
+
+Six in total against the pre-W0 baseline. The overview previously said "four"
+without naming which comparison it meant.
+
+### Validation at the corrected identity
+
+| | value |
+|---|---|
+| candidate | `e6f95663274bcd74c754bf2aa1028ef4650bbca4` |
+| payload fingerprint | `df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7` |
+| files / delta vs accepted | 325 — 0 removed, 1 added, 19 changed |
+| six focused files | **119 passed, 22 skipped** — log `scratchpad/targeted_e6f9566.log` |
+| canonical suite | **3,070 passed, 45 skipped, 141 deselected, 0 failed** |
+| real workdirs deleted | **0**, namespace diffed before and after |
+| lint / format | clean / clean (516 files) |
+| artifact | 1,327,902 bytes, `59de72c6…0cbb6`, payload byte-equal to source, resources identical to installed |
+
+All five new tests **fail on `36453a0`**. Every negative identity case
+intercepts `kill_process_group` and asserts zero calls.
+
 ## 5. Remaining limitations
 
 - ~~Tests for the restored capabilities are still untracked.~~ **RESOLVED** —
@@ -868,9 +960,9 @@ and the `stop_failed` / `identity` / `stop_recovered` fields. No new tool; the
 |---|---|
 | branch | `claude/token-efficiency-engine-5jv1dj` |
 | baseline | accepted A84, `0e172448…fb252f`, 324 files |
-| final candidate | `36453a0a63e115aa7f4e424d67cfa509882b125a` (supersedes `f20c9ee`) |
-| candidate payload | `cb2e51210decb659911fd4d0eca33a9b3abdd54dc07befe03efebe8d222b3ca8`, 325 files — 0 removed, **1 added**, **19 changed** vs accepted |
-| verification artifact | `19fd77764b4c138241df40cfb4a3634d56ec3576fdcbc80fc972ccf4e6d05e96`, 1,326,506 bytes, absolute path in proposal §3 — **not a deliverable** |
+| final candidate | `e6f95663274bcd74c754bf2aa1028ef4650bbca4` (supersedes `36453a0`) |
+| candidate payload | `df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7`, 325 files — 0 removed, **1 added**, **19 changed** vs accepted |
+| verification artifact | `59de72c626590aa326309d386eff3230478c2cca119c7cb7312c17bec8e0cbb6`, 1,327,902 bytes, absolute path in proposal §3 — **not a deliverable** |
 | declared version | `0.30.1` |
 | pushed | no |
 | working tree | still shared; other sessions' non-runtime work untouched |
