@@ -21,6 +21,7 @@ def export_ifc(
     try:
         import ifcopenshell
         import ifcopenshell.api
+        import ifcopenshell.util.unit
         import numpy as np
     except ImportError as exc:
         raise TeeError(
@@ -33,6 +34,7 @@ def export_ifc(
     file = run("project.create_file", version="IFC4")
     project = run("root.create_entity", file, ifc_class="IfcProject", name=project_name)
     run("unit.assign_unit", file)
+    length_scale = ifcopenshell.util.unit.calculate_unit_scale(file)
     ctx = run("context.add_context", file, context_type="Model")
     body = run(
         "context.add_context",
@@ -55,7 +57,7 @@ def export_ifc(
             ifc_class="IfcBuildingStorey",
             name=level.get("name") or f"Level {level['index']}",
         )
-        storey.Elevation = float(level.get("elevation_z") or 0.0)
+        storey.Elevation = float(level.get("elevation_z") or 0.0) / length_scale
         storeys[level["index"]] = storey
     run(
         "aggregate.assign_object",
