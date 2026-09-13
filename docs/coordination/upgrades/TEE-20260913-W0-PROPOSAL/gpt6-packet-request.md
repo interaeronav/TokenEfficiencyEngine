@@ -13,9 +13,10 @@ earlier failure everywhere status reads, and §4's response-size table is
 **re-measured** — the previous one was hand-written, not measured, and is
 withdrawn.
 
-**GPT-6 reviewed this revision and closed both findings and the measurement
-correction**, finding no further blocking issue and asking that this candidate be
-preserved for the packet. Three prose corrections it required are folded in
+**GPT-6 reviewed this revision, closed both findings and the measurement
+correction, and has since ACCEPTED this candidate for coordinated packet
+preparation** — the correction review is closed and no further correction round,
+rebuild or repeat suite is assigned for it. Three prose corrections it required are folded in
 below — the withdrawn ratio claim, the over-broad cwd claim, and `stop_recovered`
 described as what it actually is. **That acceptance is for packet preparation
 only**: it is not an installation, not a release approval, and not a receipt from

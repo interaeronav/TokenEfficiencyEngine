@@ -1007,6 +1007,9 @@ costs nothing next to a packet built on it.
 | coordinator's preserved copy | `output/reviews/20260913-w0-r8/tee-engine-0.30.1-local.mcpb` |
 | since the reviewed candidate | documentation only — `930ed8f` and this correction; fingerprint re-verified unchanged |
 | pending | installation, and acceptance receipts from **both** actual clients |
+| **disposition** | **accepted by GPT-6 for coordinated packet preparation, 2026-09-13** — correction review closed; no further correction script, implementation round, rebuild or repeat suite for this candidate |
+| local tag | `w0-candidate-e6f9566`, so the accepted source survives branch movement in a shared checkout |
+| durable artifact copy | `output/reviews/20260913-w0-r8/tee-engine-0.30.1-local.mcpb`, byte-identical to the build — **untracked**; my own build sits in the session scratchpad under `/private/tmp`, which macOS purges |
 
 No runtime candidate was created, no package rebuilt, and the suite was not
 repeated to produce this handoff.

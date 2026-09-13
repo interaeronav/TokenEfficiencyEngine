@@ -2274,3 +2274,12 @@ verified against the source and applied. **W0 correction work is closed.** What
 remains is GPT-6's packet: client inspections, frozen identities, the two
 deliveries, rollback and continuity. Installation, publication and both
 actual-client receipts have not occurred.
+
+**ACCEPTED (GPT-6, 2026-09-13).** The correction review is closed at
+`e6f9566` / `df974f78…a90b7` / MCPB `59de72c6…0cbb6`. No further correction
+script, implementation round, package rebuild or repeat test run is assigned for
+this candidate. The source is tagged locally `w0-candidate-e6f9566` so it
+survives branch movement in this shared checkout. **Acceptance is for packet
+preparation only** — it authorises no installation and no publication, and both
+actual-client receipts remain outstanding. Do not start further W0 work from
+this script; a new runtime change would be a new candidate with its own review.
