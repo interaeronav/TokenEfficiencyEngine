@@ -20,8 +20,10 @@ schema here changes, so benchmark rows stay attributable.
 
 from __future__ import annotations
 
+import ast
 import re
 import time
+from collections import deque
 from typing import Any
 
 from tee.kernel import local_llm
@@ -33,6 +35,21 @@ REVISION = "r4"
 STAMP = f"tee-coder@{REVISION}"
 
 _PROBE_TTL_S = 30.0
+
+# W0: the last few reasoning traces, in memory, never on the wire. Bounded
+# because deliberation is verbose by nature - the 27B produced 1,021 chars
+# for a one-line diagnosis. This is the audit trail and the seed corpus for
+# training an agent policy; it is deliberately NOT a client-facing surface.
+_REASONING_LOG: deque[tuple[str, int, str]] = deque(maxlen=32)
+
+
+def record_reasoning(profile: str | None, text: str) -> None:
+    _REASONING_LOG.append((str(profile or "?"), len(text), text))
+
+
+def reasoning_log() -> list[tuple[str, int, str]]:
+    """Read the local reasoning trace (profile, chars, text)."""
+    return list(_REASONING_LOG)
 _probe_cache: dict[str, tuple[float, bool]] = {}
 
 _BOUNDARY = (
@@ -156,8 +173,35 @@ def _run(
     cfg: dict[str, Any] | None,
     max_tokens: int,
     validate,
+    chore: str | None = None,
+    thinking: bool | None = None,
+    _measure_exact_budget: bool = False,
 ) -> dict[str, Any] | None:
     """Shared chore body: gate, complete, validate, stamp - or None."""
+    if thinking:
+        # Two independent conditions, and the first is a proof rather than a
+        # policy: at eps = 1 the verifier sees none of this chore's errors, so
+        # P(fail) = q for every N and widening cannot help by any amount of
+        # budget. The second is evidential - a ceiling is permission to
+        # measure, and no measurement has yet found a benefit.
+        ceiling = widening_ceiling(chore or "")
+        if ceiling <= 0.0:
+            raise TeeError(
+                "llm_widening_refused",
+                f"{chore or 'this chore'} has a widening ceiling of 0% - its verifier "
+                f"accepts every seeded wrong answer, so a thinking retry cannot "
+                f"improve it at any budget.",
+                fix="Strengthen the verifier first; re-measure with "
+                "test_a85_verifier_coverage.py.",
+            )
+        if chore not in THINKING_ALLOWED:
+            raise TeeError(
+                "llm_widening_unproven",
+                f"{chore} may reach {ceiling:.0%} of its errors by widening, but no "
+                f"measurement shows thinking helps it.",
+                fix="Commit a before/after row, then add the chore to "
+                "chores.THINKING_ALLOWED.",
+            )
     if refine not in ("auto", "local", "off"):
         raise TeeError(
             "llm_bad_arg", f"refine='{refine}' is not a mode.", fix="Use auto, local, or off."
@@ -231,7 +275,19 @@ def _run(
     # Per-engine, not global: Qwen3.6-35B needs 1024 where dsflash needs
     # 256, because its reasoning pass alone is ~974 tokens. A shared floor
     # would have handed the 35B an empty answer on every chore.
-    budget = max(int(max_tokens), machine.min_chore_tokens(resolved.get("profile")))
+    from tee.engines.table import matching_floors
+
+    measured = matching_floors((cfg or {}).get("_state_dir"), resolved)
+    budget = max(int(max_tokens), machine.min_chore_tokens(resolved.get("profile"), measured))
+    if _measure_exact_budget:
+        # Only eng_audition's internal sweep requests this. Public chores keep
+        # the floor; a floor measurement must send the rung it says it tested.
+        budget = int(max_tokens)
+
+    # W0: reasoning is a SIDE CHANNEL. It is recorded for audit and as the
+    # training corpus, and never travels back to the client - which is what
+    # makes a thinking engine free in tokens-per-task.
+    thought: list[str] = []
 
     try:
         with profiles.REQUEST_LOCK:  # a managed stop waits for this chore
@@ -242,7 +298,19 @@ def _run(
                 model=model,
                 max_tokens=budget,
                 adapters=adapters,
+                # Chores default thinking OFF and must OPT IN, even on a
+                # profile that declares thinking. Inheriting the profile's
+                # flag was the wrong way round: measured 2026-09-13, thinking
+                # costs 2.8-4.0x, is indistinguishable on the three chores
+                # with real verifiers (8/8 either way), and is WORSE on the
+                # one calibration chore (6/6 -> 5/6). Zero chores are
+                # measured to benefit, so zero chores get it by default. The
+                # profile's flag still declares the ENGINE's capability, for
+                # callers outside the chore layer.
+                thinking=bool(thinking),
+                json_mode=str(resolved.get("json_mode") or "auto"),
                 on_usage=_meter,
+                on_reasoning=thought.append,
             )
     except TeeError:
         if refine == "local":
@@ -257,12 +325,50 @@ def _run(
     if result is None and refine == "local":
         raise TeeError(
             "llm_bad_shape",
-            "The local model answered outside the chore schema twice.",
+            "The local model returned JSON outside the chore schema.",
             fix="A stronger TEE_LOCAL_LLM_MODEL helps; the deterministic path still works.",
         )
     if result is not None:
         result["model"] = STAMP
+        if thought:
+            # The TEXT goes to the local ring buffer; only its LENGTH rides
+            # the wire. Putting the reasoning in `result` would ship it to
+            # the client and undo the entire point of a thinking engine.
+            record_reasoning(resolved.get("profile"), thought[0])
+            result["reasoning_chars"] = len(thought[0])
     return result
+
+
+# A short string constant in tee_script source is an op field or an entity
+# name - "op", "create", "rotation", "Plate" - not prose. Intent lives in
+# those as much as in identifiers, because the lane vocabulary is expressed as
+# dict keys rather than kwargs. Longer strings are content and are ignored.
+_TOKEN_STR_MAX = 40
+
+
+def _identifiers(tree: ast.AST) -> set[str]:
+    """Intent-bearing tokens: names, attributes, kwarg labels, short strings.
+
+    Short string constants are included because tee_script writes its
+    operations as dicts - `{'op': 'create', 'rotation': 0}` - so dropping a
+    field is invisible to a check that only walks identifiers. That is exactly
+    how a deletion-based repair slipped through the first version of this.
+    """
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            found.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            found.add(node.attr)
+        elif isinstance(node, ast.keyword) and node.arg:
+            found.add(node.arg)
+        elif (
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and 0 < len(node.value) <= _TOKEN_STR_MAX
+        ):
+            found.add(node.value)
+    return found
 
 
 def _line(value: Any, limit: int) -> str | None:
@@ -295,7 +401,23 @@ def triage(
     evidence = f"Failure evidence:\n{failure[:6000]}"
     if context:
         evidence += f"\n\nContext (source/op):\n{context[:2000]}"
-    return _run(_TRIAGE_SYSTEM, evidence, refine=refine, cfg=cfg, max_tokens=220, validate=validate)
+    # MEASURED 2026-09-13, 27B on :8087 with this exact system prompt:
+    # thinking ON scores 5/6, thinking OFF scores 6/6. The one failure is
+    # kwarg_drift answered 'grounded' - an API fact asserted from weights,
+    # the precise thing the A30 boundary forbids and the trap exists to
+    # catch. Room to reason turned appropriate uncertainty into rationalised
+    # certainty, and deferral IS the calibration this chore is for. So
+    # triage pins thinking off whatever the profile says: the boundary
+    # outranks the engine's default.
+    return _run(
+        _TRIAGE_SYSTEM,
+        evidence,
+        refine=refine,
+        cfg=cfg,
+        max_tokens=220,
+        validate=validate,
+        thinking=False,
+    )
 
 
 # -- chore 2: script repair draft --------------------------------------------
@@ -315,6 +437,34 @@ def repair_script(
             return None
         if len(repaired) > 4 * max(len(code), 200):  # a draft, not an essay
             return None
+        # Measured 2026-09-13: with only the checks above this validator had a
+        # false-accept rate of 100% - it waved through a deletion-based repair,
+        # a bare `pass`, and wholly unrelated code. Its own system prompt names
+        # "deleting an argument to silence the error" as the failure mode, and
+        # nothing stopped it. Three deterministic checks, no execution:
+        from tee.kernel.script import validate_script
+
+        try:
+            tree = validate_script(repaired)
+        except TeeError:
+            return None  # must parse and stay inside the script subset
+        if not any(
+            isinstance(n, (ast.Call, ast.Assign, ast.AugAssign)) for n in ast.walk(tree)
+        ):
+            return None  # a stub that does nothing is not a repair
+        # INTENT PRESERVATION. A correct repair may RENAME what broke
+        # (rotation= becomes rotation_euler), but it may not simply drop it.
+        # So every identifier the original had and the draft lost must still
+        # be echoed by some identifier in the draft. Deleting the argument
+        # leaves nothing containing "rotation"; re-expressing it does.
+        try:
+            before = _identifiers(ast.parse(code))
+        except SyntaxError:
+            before = set()  # the input was not parseable; nothing to preserve
+        after = _identifiers(tree)
+        for lost in before - after:
+            if not any(lost in keep or keep in lost for keep in after):
+                return None
         return {"repaired_code": repaired, "note": note}
 
     prompt = f"Failing script:\n```\n{code[:4000]}\n```\nValidation error:\n{error[:1000]}"
@@ -411,6 +561,84 @@ def refine_extract(
 
 _FACT_KINDS = {"dimension", "material", "constraint", "preference", "note"}
 
+# -- verifier coverage, and the threshold it implies ------------------------
+#
+# MEASURED 2026-09-13 by fault injection (tests/test_a85_verifier_coverage.py):
+# seeded plausible-but-wrong answers fed through each real chore, counting how
+# many its validator ACCEPTS. Every chore also passes a true-accept control, so
+# a low number means "catches errors", not "rejects everything".
+#
+# eps = false-accept rate = the fraction of wrong answers the verifier waves
+# through. Detector coverage is c = 1 - eps.
+#
+# THE THRESHOLD. For per-attempt error q and N attempts, standby redundancy with
+# imperfect detection gives
+#
+#     P(fail after N) = eps*q + (1 - eps)*q**N
+#
+# The first term is a FLOOR that no N ever crosses: errors the verifier cannot
+# see are never retried, because nothing knows to retry them. This is the
+# quantum threshold theorem's shape - concatenation buys nothing above the
+# threshold - and it yields a hard, quantitative gate:
+#
+#     WIDENING CEILING = 1 - eps
+#       the largest fraction of this chore's errors that ANY widening
+#       mechanism (a thinking retry, best-of-N, more sampling) could ever
+#       remove, with unlimited budget.
+#
+# At eps = 1.0 the ceiling is ZERO: P(fail) = q for every N. For those chores
+# widening is not merely unproven, it is provably useless, and _run refuses it.
+# A ceiling above zero is PERMISSION TO MEASURE, never evidence of benefit -
+# and it is void if the widening itself raises q, which thinking was measured
+# to do on triage (traps 6/6 bare, 5/6 thinking).
+#
+# eps is a LOWER BOUND: more seeds can only find more false accepts, never
+# fewer. So a ceiling is an optimistic cap on an unproven benefit.
+VERIFIER_COVERAGE: dict[str, float] = {
+    # eps      chore              what the validator actually binds
+    "phrase_deviation": 0.25,  # numerals survive per line; not their attachment
+    "refine_extract": 0.33,  # sentences appear in the source; not relevance
+    "structure_facts": 0.67,  # kind is in the enum; text is unchecked
+    "rerank": 0.67,  # a permutation of the ids; not the ORDER, which is the job
+    "triage": 1.00,  # non-empty strings + a legal enum
+    # Was 1.00 until 2026-09-13, when its only correctness-adjacent gate was an
+    # UPPER length bound and a deletion-based repair - the exact degenerate fix
+    # its own system prompt warns about - shipped to the client. Now: must
+    # parse under validate_script, must contain a call or assignment, and every
+    # intent-bearing token the original had must survive or be echoed by a
+    # rename. What remains uncaught is a repair that keeps every token and
+    # changes a VALUE, which is why this is 0.25 and not 0.
+    "repair_script": 0.25,
+    "explain_lint": 1.00,  # one non-empty line
+    "compress_recap": 1.00,  # one non-empty line
+}
+
+
+# Chores permitted to opt into thinking. SHIPS EMPTY, on purpose.
+#
+# A ceiling above zero is permission to MEASURE, not evidence of benefit, and
+# nothing has yet measured a benefit: across every chore tested on 2026-09-13,
+# thinking was one measured harm, three measured no-ops at 2.8-4.0x cost, and
+# zero measured gains. Adding a name here requires a committed before/after row
+# AND a ceiling above zero; test_a85_verifier_coverage.py enforces the second
+# and will fail on a name that cannot pass the first.
+THINKING_ALLOWED: frozenset[str] = frozenset()
+
+
+def widening_ceiling(chore: str) -> float:
+    """1 - eps: the most any retry/thinking/sampling could ever buy here.
+
+    Unknown chores return 0.0 - an unmeasured verifier is treated as blind,
+    so a new chore cannot inherit permission it never earned.
+    """
+    return max(0.0, 1.0 - VERIFIER_COVERAGE.get(chore, 1.0))
+
+
+# rerank ranks at most this many candidates. The prompt listing and the
+# permutation the validator demands MUST derive from the same slice - see
+# rerank's docstring for the bug that taught this.
+RERANK_MAX = 20
+
 
 def structure_facts(
     text: str,
@@ -470,8 +698,17 @@ def rerank(
     cfg: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """candidates: [{id, title}] -> {"order": [ids]} - a permutation or
-    nothing (a rerank that loses or invents ids is worse than none)."""
-    ids = [c["id"] for c in candidates]
+    nothing (a rerank that loses or invents ids is worse than none).
+
+    Only the first RERANK_MAX candidates are ranked, and the contract is over
+    exactly those. Before 2026-09-13 `ids` was built from ALL candidates while
+    the prompt listed only the first 20, so with 21+ inputs the model was
+    required to return ids it had never been shown and failed deterministically
+    with llm_bad_shape - a truncation bug wearing a capability limit's clothes.
+    The output budget agrees with the cap: 64 ids do not fit in max_tokens=160.
+    """
+    considered = candidates[:RERANK_MAX]
+    ids = [c["id"] for c in considered]
 
     def validate(raw: dict[str, Any]) -> dict[str, Any] | None:
         order = raw.get("order")
@@ -479,7 +716,7 @@ def rerank(
             return None
         return {"order": [str(i) for i in order]}
 
-    listing = "\n".join(f"- {c['id']}: {c.get('title', '')}" for c in candidates[:20])
+    listing = "\n".join(f"- {c['id']}: {c.get('title', '')}" for c in considered)
     return _run(
         _RERANK_SYSTEM,
         f"Query: {query}\nCandidates:\n{listing}",

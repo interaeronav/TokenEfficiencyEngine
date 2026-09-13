@@ -15019,6 +15019,14 @@ just rejected before being trusted.
 
 ### Addendum — `make` was re-syncing the venv (2026-09-08)
 
+**Interpretation corrected 2026-09-10:** the text below records the original
+reasoning. Installed uv 0.12.5 and Astral's documented defaults distinguish
+inexact `uv run` from exact `uv sync`; a bare run does not normally remove
+extraneous packages. The measured run below installed one package and removed
+none. Claims that this observation proved future extra removal were an
+inference, now withdrawn. `--no-sync` still avoids environment reconciliation.
+See the Claude receipt review appended on 2026-09-10 and `docs/astra-script.md`.
+
 Found while running `make lint` to validate A74 P5, and fixed in the same
 session. All four `uv run` invocations in `server/Makefile` — lint (×2),
 format, test — were **bare**, and a bare `uv run` syncs the venv to the lock
@@ -15323,6 +15331,13 @@ parallel session's `--no-sync` fix landed in the same pull that surfaced it. 12
 failures and 33 errors were checked against the pre-change tip before being
 blamed on anything of this campaign's.
 
+**Causal attribution corrected 2026-09-10:** the missing packages and test
+failures above remain the recorded observations. Their attribution to an
+ordinary `uv run` is not established by an exact `uv sync --dry-run` or by the
+default behavior of uv 0.12.5. Without the original command/configuration trace,
+the removal mechanism remains unresolved; retain `--no-sync` for predictable
+use of the prepared environment. This correction does not revise the test counts.
+
 **Held, and named as held:** the DCC scenarios (donut, hundred-objects,
 material-pass, verify) need a live headless Blender and were not re-run; the
 Fusion, Unreal and windtunnel rows likewise need their engines. They keep their
@@ -15481,3 +15496,2570 @@ references that installation rather than carrying another copy of the engine.
 Repository publication is held: the existing branch was already three commits
 behind and one ahead of its tracked remote before this documentation change.
 The installation does not reconcile or publish that unrelated local history.
+
+## Owner task — AETHER 26 concept, structural CAD and 300 km/h study (2026-09-10)
+
+The local TEE plugin installation above was used for the owner's original
+Formula One design task, including the later structural-CAD, streamlined
+carbon-fibre halo and detailed-downforce requests. Output and pickup:
+`output/f1-2026/README.md`. This is an artifact task, not a TEE version cut.
+
+- Original graphite/silver/electric-blue car: editable Blender 5.2 scene,
+  249-object cockpit, separate aerodynamic halo fairing and structural core,
+  plus 11 actual Cycles/Metal views at 3200 x 2000. Camera mutations and
+  rendering used real TEE MCP batches and jobs on isolated bridge port 9896.
+  The owner's live Blender 9876 and Fusion documents were not mutated.
+- Current official source retained: FIA 2026 Section C Technical Issue 20,
+  05 August 2026. Wheelbase 3350 mm; visual overall width 1898 mm;
+  front and rear profile checks sampled 17,220 vertices with none outside
+  the selected Appendix C2 volumes. These are selected checks, **not full
+  FIA compliance or homologation**. RV-HALO / PL-HALO, approved supplier
+  geometry and the remaining mandated geometry/safety work are unverified.
+- Exact structure: 62 named single-solid OCCT BREP components, AP242 STEP
+  assembly plus individual STEP files, editable construction script, DXF
+  sections and structural Blender model. TEE partkiln wrote the STEP and
+  measured individual delivered parts. Read-back retained all 62 products,
+  all valid, with relative summed-volume error 2.463e-10. The cockpit
+  aperture was corrected after section inspection so each laminate/core
+  layer remains one connected solid. Engine/gearbox are mounting envelopes;
+  joint, laminate, load, crash, fatigue and manufacturing release remain open.
+- Actual OpenFOAM v2606 study through TEE: 1,591,937 cells; checkMesh passed
+  without failed checks; mesh hash `17a9aa9f64b6982b`; moving road; stationary
+  sealed wheels; k-omega SST; 8 processes; 1800 iterations; 1266.02 s.
+  **TEE verdict: insufficient / not-predictive**, not validated performance.
+  Face y+ percentiles approximately 140 / 328 / 763 expose coarse wall
+  resolution. No mesh independence or physical correlation is claimed.
+- At 300 km/h and rho 1.225 kg/m3, q = 4253.472 Pa. With Sref 1.5 m2,
+  iterations 1501-1800 give Cd 0.518834, Cl -0.183577, drag 3310.272 N,
+  downforce 1171.258 N (119.435 kgf), downforce/drag 0.353825 and drag power
+  275.856 kW. Downforce numerical scatter is 34.707 N standard deviation;
+  it is not a physical uncertainty estimate. No competitive-F1 claim follows.
+- ParaView 6.1.1 extracted actual Cp, velocity, pressure, shear and y+ fields
+  in a separate process with PYTHONDONTWRITEBYTECODE=1. At iteration 1800,
+  selected lower-floor pressure gives 1411.410 N down, other pressure gives
+  179.983 N up, viscous traction gives 9.471 N up, and the numerical balance
+  closes within 0.255 N of the solver's 1222.211 N downforce. This final-field
+  balance is explicitly separated from the 300-iteration average.
+- The visual halo fairing is omitted by the simplified CFD proxy; no drag
+  benefit is claimed for the owner's carbon-fibre revision. The earlier
+  development case used different geometry and is not a grid-convergence test.
+- Documents: combined 43-page PDF, 15-page view book, 14-page structural book,
+  10-page aero/downforce report, regulatory review and a two-page record
+  composed by TEE pdf_compose. The combined PDF embeds the actual STEP,
+  section DXF and parameter/component JSON. PDF checks verify nonempty text,
+  no out-of-page text, and a byte-matching embedded STEP. Images and layouts
+  were visually reviewed. Compact checks are in `documents/`.
+- Delivery archives include editable models, individual CAD parts, renders,
+  scripts, measurements and reports; a separate portable premeshed CFD case
+  retains final fields and numerical history. TEE project memory records the
+  package and its limits. The existing repository divergence was not touched.
+
+**Engineering pickup:** use the README and evidence, not the renders as proof.
+The design package is a concept handoff. The next validation work is full FIA
+reference-CAD review, driver fit/egress, connected and load-rated interfaces,
+laminate/impact engineering, rotating-wheel/cooling geometry, refined floor
+and wing meshing, and correlated aerodynamic testing.
+
+### AETHER 26 extension — live Fusion and rules film (2026-09-10)
+
+- Owner requested Autodesk Fusion delivery and a video demonstrating the new
+  2026 rules, with autonomous completion. The execution script was extended.
+- Live Fusion 2705.1.11: separate AETHER document, original user documents
+  preserved. Imported 62 structural BREP solids and complete visual geometry:
+  422,960 triangles from 636 source objects, grouped into 43 visual mesh bodies;
+  108 components and five explicitly non-driving reference parameters.
+  All structural bodies report solid. The imported visual bounding box is
+  [-2910, -949, 0] to [2303, 949, 1055.508] mm. Fusion very-high-accuracy
+  structural volume differs from OCCT by 0.006295%; exact cross-kernel identity
+  is not asserted. This is a hybrid assembly, not a fully native parametric
+  manufacturing model. Native mesh display overrides were verified locally
+  and used to show appearances without triangle/face-group colours.
+- TEE `fu_export` produced the actual local F3D. Reopening it in Fusion retained
+  62 solids, 422,960 triangles and all five reference parameters. Evidence,
+  source OBJ groups, the import script and viewport image are in `fusion/`.
+- Video completed: `video/AETHER_26_2026_Rules_Explained.mp4`, 154.667 seconds,
+  1920x1080 at 24 fps, H.264/AAC; local Daniel speech, 31 measured caption
+  intervals, separate SRT and source-linked transcript. Eleven chapters cover
+  dimensions, moving front/rear wings, floor, tyres, power unit, energy controls,
+  sustainable fuel and clearly separated concept halo/CFD sections. Actual
+  Blender wing meshes supply 25 transition frames; 10-degree motion is labelled
+  illustrative, with no certified actuation or aerodynamic improvement claim.
+- Grounding: FIA Section C Issue 20 (05 August 2026) plus official FIA/F1
+  December 2025 generation explanations. Peak ERS-K 350 kW is explicitly
+  conditional on speed/sector deployment limits; narrower front tyres use
+  the later official 25 mm comparison, not the initial draft's 30 mm.
+- Verification decoded all 3712 frames, confirmed AAC audio, measured nonzero
+  audio RMS and checked samples from all 11 chapters. Decoded storyboard was
+  visually inspected. The PDF package is now 46 pages, with a three-page
+  Fusion/video supplement and byte-matching embedded F3D and STEP files.
+  Layout checks found no out-of-page text. The delivery ZIP is regenerated
+  with Fusion assets, video, captions, source transcript and verification.
+
+## A78 — smaller-model lane control (owner, 2026-09-10)
+
+Plan of record: `CLAUDE_A78_SCRIPT.md`. The owner requested autonomous TEE
+improvements for local models/ChatGPT, with AETHER-quality output as the target.
+
+- [x] P0: freeze six new lane tasks and record actual installed local model:
+  `mlx-community/Qwen3.8-27B-8bit` at localhost:8080. Preserve the active paid
+  qmax pin and all existing app documents. Baseline and candidate prompts,
+  raw answers and provider usage are immutable in the audit output.
+- [x] P1: compact Blender/Fusion `lane_guide`, explicit units and verification;
+  Fusion request-local aliases, actual camera lens/target/active handling,
+  strict consumed-property validation and dependency examples. Unknown
+  properties fail before a checkpoint rather than disappearing silently.
+- [x] P2: optional host-only lane preflight before app warm/checkpoint; two
+  virtual read-only tools, 17 core tools unchanged. Recursive declared-argument
+  validation names exact enum/array/property errors. Local audition selects
+  its explicit candidate independently of a paid active pin; floor sweeps send
+  the claimed token limit; adopted floors require matching fresh exact-wire
+  model/URL/adapter provenance. No owner configuration was changed.
+- [x] P3 small live pilot: **0/6 baseline -> 6/6 guided**, strict rerun on real
+  Blender 5.2 and Fusion 2705.1.11. World geometry, materials, camera aiming,
+  hole removal, plate origin and parameter dependency read back independently.
+  Protected Blender semantics/Fusion body visibility are hashed. Original
+  Fusion documents were guarded against writes and their metadata/active
+  document restored; full original geometry hashes were not collected.
+  `output/tee-efficiency-audit/strict-live-grades.json` is the aggregate.
+- [x] P3 composed pilot/final regression completed as a measurement, with an
+  explicit **failed overall design result**: the native Fusion plate passed in
+  two unchanged Qwen answers, including four through-holes and a driving
+  6 -> 7.5 mm revision; STEP/F3D/OBJ were written and archives reopened.
+  Independent OCCT readback verified the STEP solid and holes. The real Blender
+  transfer has one revised plate and 0.008% tessellation-volume error. The five
+  Blender attempts failed full design/visual acceptance: 95 mm instead of 94 mm
+  housing length, inward winding, unrealized materials, faceting and cropped
+  views. The failed fifth attempt was preserved and the last successful raw
+  program restored unchanged. Both actual images were reviewed. A one-page PDF
+  and editable partial scene accurately label the result. No AETHER parity or
+  autonomous local success is claimed.
+- [x] P4 reusable operating guide and installed skill: `docs/small-model-workflows.md`;
+  repo/source/cache skill copies updated consistently. Actual installed stdio
+  MCP smoke passed 17 core tools/eight read-only calls in 0.912 s; config unchanged.
+- [x] P4 final report, partial composed artifact, reproducible evidence and
+  final tests: `output/tee-efficiency-audit/REPORT.md`, research doc 79 and
+  `benchmarks/RESULTS.md`. Final suite **2,153 passed, 20 skipped, 141
+  deselected**, 153.93 s; all changed Python passes Ruff.
+
+Generation totals: baseline 4,213 provider tokens; guided 5,536. Guidance improved
+measured completion but did NOT reduce raw total tokens in this experiment.
+Baseline has zero completed cases, so its tokens/completed-case ratio is
+undefined. There is no defensible finite savings multiple or general timing
+claim from this six-case, fixed-order discovery pilot.
+
+Earlier integrated regression passed 2,141 tests before the 12 Python-location
+regressions were added; the final 2,153-test run above includes them.
+
+A78 measured follow-up: the local model fixed one stale `use_nodes` write but
+missed another. The existing Blender firewall now supplies bounded occurrence
+lines/counts, and checks before its automatic scene checkpoint. Cached-version
+refusals touch no wire; unknown-version discovery may read app info. All prior
+rules remain. Replay of the original programs identifies lines 25/269, then 268.
+Twelve new regressions include valid checkpoint/execute/readback and multiple
+source locations. No owner grants, paid pin or running model server changed.
+
+**A78 remaining quality debt:** full AETHER-equivalent creation by the installed
+27B model is unproven, and the composed visual benchmark failed. The next work
+is reliable procedural geometry, material/readback checks, camera framing,
+smaller model-authored repairs and a complete unseen deliverable. Research 79
+records the acceptance ladder and the older R4 harness's assumed client-success
+pitfall; do not count that assumption, escalation or replay as local success.
+The seven composed model calls consumed 36,735 provider tokens in 833.163 s;
+those totals exclude host supervision, transport, rendering and documentation.
+Delivery: `output/tee-efficiency-audit/TEE_A78_Evidence_and_Source.zip` contains
+the evidence, editable partial artifacts, harnesses and affected source snapshot
+with SHA-256 manifest. Only the A78 scratch Blender process was stopped; the
+owner's existing Blender, Fusion and local model servers remain running.
+
+A78 distribution follow-up (2026-09-10): prepared `output/claude-code-mcp/mcp.json`
+for the owner to replace `~/.claude/qwen-local/mcp.json`. It uses the verified
+TEE Python installation and Blender/partkiln/seamkiln/Fusion/Unreal adapters;
+all 11 other MCP entries are preserved. JSON round-trip and preservation checks
+passed. The active configuration remains unchanged; no restart was performed.
+Owner-requested `.mcp` copy: `output/claude-code-mcp/tee-update.mcp`,
+byte-identical to the verified JSON configuration. Claude Code CLI help confirms
+`--mcp-config` accepts JSON files; this is a configuration file, not an extension
+installer. Existing client configuration remains unchanged.
+
+Desktop installer follow-up (2026-09-10): built the actual owner-requested
+`output/claude-desktop-package/tee-engine-0.30.1-a78-macos.mcpb` (959,226 bytes,
+260 files). It retains the installed extension identity and advances the local
+artifact to 0.30.1; the repository release remains 0.30.0. The Mac-specific
+Python launcher uses the existing repository venv and bundled source, avoiding
+uv sync and loss of optional dependencies. Official MCPB 2.1.2 schema validation,
+archive CRC, full source comparison and eight read-only MCP calls from an
+extracted copy passed (17 core tools, version 0.30.1, 0.738 s). The installed
+Desktop manifest remains unchanged. UI installation is for the owner and has
+not been claimed tested. Evidence: `output/claude-desktop-package/verification.json`.
+
+Owner-requested Okongo familiarization (2026-09-10): reviewed the locally synced
+Dropbox project's core records, drawings, planning manuals and representative
+site evidence. Kept a source-linked working brief in this Codex task's artifact
+directory; no Dropbox documents or TEE implementation changed.
+
+OkongoSim research and owner-requested MCP connections (2026-09-10): inspected
+the simulator's source, generated data and retained validation, then opened the
+requested applications. Live TEE readback verifies OkongoSite (2,276 actors,
+56 Unreal toolsets), Blender 5.2.0 LTS GUI on :9876, and Fusion 2705.1.11 via
+its existing :8766 bridge (connected, no design open). Existing AETHER Blender
+on :9896 was preserved. No MCP configuration or trust grants changed. Research
+and connection evidence are in this Codex task's artifact directory.
+
+OkongoSim bug and capture audit (2026-09-10): reproduced five defects without
+changing the simulator: texture-role collisions explain all 23 live Metal SM6
+material failures; catalog validation crashes before its 66 accumulated errors
+are printed; furniture clashes can exit success; circulation has both overhead
+false positives and an axis-swap false pass. Live forced texture residency and
+full imports of 473 prototypes versus 269 placed model IDs are measured
+optimization candidates; no packaged-game FPS or savings is claimed. Four
+offline checks took 0.238 s; 21 protected input hashes stayed unchanged.
+
+Capture audit found 93 DJI exposure brackets, including two off-site vehicle
+brackets, leaving 91 site candidates; Polycam's 37,020 PLY points coincide with
+its OBJ surfaces to rounding precision, so export agreement is not independent
+LiDAR accuracy. The phone's local measurement overlays are useful separately
+from its weak GPS. All 91 JPEGs received local OCR (16.13 s), with metric
+candidates in 38 images and four source images visually transcribed. A detailed
+source-linked audit, measurement inventory and proposed geometry/performance
+gates are saved under this task's `okongo-audit/` artifact directory. Proposed
+fixes and capture integration remain advice, not applied changes.
+
+
+## Owner OkongoSim reliability and texture implementation — 2026-09-10
+
+The owner accepted the audited implementation order and requested fewer unnecessary
+textures. Work was in `/Users/john/OkongoSim`; existing unrelated changes were
+preserved. Native registered Unreal MCP tools repaired 40 materials/78 sample
+bindings with 72 role variants, applied 227 per-texture budgets (211 mip repairs and
+32 targeted caps), and folded 36 visible scalar connections across 31 materials while
+retaining original sample nodes and uninspectable hidden links. No source images
+or texture assets were deleted. Cold reload checked the bindings/settings,
+32 semantic constant uses and both relocated actors; four data gates and 61 offline
+tests pass. The scene is saved and reopened on `/Game/Maps/OkongoSite`.
+
+Seven real native CSV game runs retain all timing outcomes. Project resident mip
+estimates dropped from 5808–5924 MiB to 705–716 MiB (~88%, approximately 5 GiB). FPS
+attribution remains inconclusive: the restored old-settings control also slowed
+substantially. Its 258 scoped packages were restored to optimized bytes with hash
+verification. No selective FPS gain is claimed. Incremental import is implemented
+and tested offline (269 active prototypes, changed_model_ids for scoped material
+follow-ups); a full live reimport remains unverified. The bounded drone/Polycam/
+iPhone pilot records source-linked measurements and room/gable discrepancies
+without adopting uncertain geometry.
+
+Machine facts from native UE 5.8.1: location-only ActorTools.set_actor_transform
+reset yaw to 0 despite its optional-field description; full transforms restored
+yaw 180 and were verified after reload. Hidden MaterialProperty enum members
+(including MP_Displacement) cannot pass through Python-backed native wrappers;
+scalar edits therefore preserved every original sample and hidden connection.
+The temporary editor background-throttle change was restored to its original
+true value. TEE exec-code grants/policy and owner manifest/release decisions
+were not changed.
+
+Evidence: [implementation report](/Users/john/.codex/visualizations/2026/09/10/01a08b9c-482f-7de0-beee-ea33db775021/okongo-implementation/implementation-report.md),
+[all native runtime measurements](/Users/john/.codex/visualizations/2026/09/10/01a08b9c-482f-7de0-beee-ea33db775021/okongo-implementation/native-runtime-results.md),
+and OkongoSim BUILD-PLAN.md / D-201–D-204.
+
+
+### Owner Okongo geometry, finishes and open glazing — 2026-09-10
+
+Worked in /Users/john/OkongoSim using native Unreal MCP (no engine-Python escape).
+Corrected pergola axes (760 mm penetration → 190 mm clearance), removed three
+duplicate gable masonry panels, restored invoiced 600 mm tile rendering and
+paint-in-progress state, raised seven blinds and moved the curtain stack clear.
+Repaired 30 material-instance parents, including clear/frosted glass and insect
+screens; restored missing frosted opacity. Source/cached-import guards added.
+66 tests + 13 subtests; house/catalog/clash/circulation gates pass with retained
+advisories. Fresh editor verified parents, 2100–2250 roller bounds, absence of
+duplicates, clearance and clean saved map. TEE core unchanged. Conditional
+phone/Polycam room dimensions and master gable aperture not adopted as ground
+truth. Report: current task artifacts/okongo-geometry/geometry-finish-report.md.
+## A79 — CADAgent integration (owner, 2026-09-10)
+
+Plan: `CLAUDE_A79_SCRIPT.md`; design/research: doc 80; usage:
+`docs/cadagent-integration.md`. Existing unrelated working changes preserved.
+
+- [x] P0: audited Downloads/CADAgent 1.1.2 and archive. Eleven local helper
+  modules byte-match upstream MIT commit 42e5348eea5ea0d4c8383608bfa7974e6bff1abc;
+  full licence retained. Official repository says hosted backend shut down.
+  Actual API signatures grounded in installed Autodesk docs, doc 71 rows 55–61.
+- [x] P1: CADAgent-derived shell and rectangular/circular feature patterns
+  integrated into existing Fusion `tee_batch`, no new tools/dependencies or
+  backend. Strict units, finite/count validation, root-native targets, existing
+  IDs/diffs/checkpoints, feature-only pattern aliases and discoverable guide.
+  New checkpoints reject a different document; legacy payloads keep prior
+  behavior. No downloaded controller, credentials or bundled libraries loaded.
+- [x] P2: six real cases passed on Fusion 2705.1.15 in 9.411 s including
+  exports, independent OCCT STEP volumes, six F3D reopens and cleanup. Geometry
+  checks include actual hole centres and negative spacing. All six foreign
+  checkpoint attempts refused; impossible shell rolled its entire batch back.
+  Before/after document lists both empty; Fusion remains open without a model.
+- [x] P2: 315 affected tests passed in 8.48 s, including 82 focused tests;
+  seven touched Python files pass Ruff. Fresh stdio MCP: six read-only calls,
+  17 core tools / 2129 wire-schema tokens, 0.671 s, code exec disabled.
+- [x] P3: research, provenance, usage guide, script amendments and benchmark
+  evidence recorded. No general token-saving or model-quality claim. The
+  integration is in this checkout; existing servers need restarting, and the
+  earlier Desktop MCPB does not contain A79. No release/configuration change.
+
+Two defects found and fixed: six-significant-digit formatting turned 359.9999
+degrees into a full 360-degree pattern; and a one-direction rectangular input
+with unset direction two created nine overlapping cubes instead of three,
+without a Fusion warning. Explicit secondary quantity 1 / distance 0 fixes the
+latter. The probe does not establish a sticky UI cause. Three failed/partial
+harness runs remain in output/cadagent-integration; final evidence is copied to
+docs/research/80-evidence. Open/closed/outside shells measured 11712/15744/19584
+mm³; plate and disc actual holes and all STEP volumes agree independently.
+
+Source remains uncommitted: A79 hooks depend on existing uncommitted A78
+validation/alias/guidance work. Committing a partial A79 would omit dependencies;
+including A78 would publish work outside this task. This limitation is recorded
+in the plan, with no unrelated changes staged or pushed. Standalone CADAgent
+chat/backend and threads/tapped holes are outside this local modelling scope.
+
+
+### A79 P4 — advanced CADAgent Fusion instruction (owner, 2026-09-10)
+
+- [x] Amended A79 before work; added three opt-in, complete recipes through
+  existing `lane_guide`: `cadagent_enclosure`, `cadagent_flange`, `cadagent_joint`.
+  Typed creation, driven revision, geometry checks, ID binding and STEP/F3D
+  exports. No new runtime modelling APIs, tools or cloud/model calls.
+- [x] Live replay on Fusion 2705.1.15: all three passed, 11.503 s including
+  three STEP exports / three F3D reopens; 3.065 s creation+revision+readback.
+  Enclosure fully constrained; fifteen actual vents; all seven flange bores
+  follow two parameters; native joint motion 0/45/90/0/45° with 2 mm gap.
+- [x] Independent OCCT STEP check verifies every solid's volume, dimensions and
+  placement, including the lever at z=10–14 mm. Archive reopens retain feature
+  dependencies and joint. Negative controls reject redistributed volumes,
+  duplicate hole centres and misplaced exports.
+- [x] Measured corrections, with failed attempts retained: widening enclosure
+  120→140 moves face-positioned vents +10 mm x (centred grid); `flip:true` is
+  required for the chosen joint faces or the lever lies inside the base despite
+  healthy status. Fixed instructions/expectations, no modelling emitter change.
+- [x] 331 affected tests pass (3 deselected), 7.85 s; new source/harness/tests
+  lint clean. Fresh stdio MCP returns complete lessons/preflights. Always-loaded
+  surface unchanged at 17 tools / 2129 estimated wire tokens; guide index
+  198→272, full lessons opt-in. Built wheel contains all three JSON resources.
+- [x] Three named demonstration documents remain open in Fusion (final lever
+  at 45°); local editable F3D + STEP + viewport previews in
+  `output/cadagent-advanced/live-20260910T174242220376Z/`. No original docs were
+  open, no cloud save. Guide: `docs/cadagent-advanced-fusion.md`; measurements:
+  `docs/research/80-evidence/advanced-*.json`. Failed runs closed only their docs.
+
+These are authored instructions replayed and verified live, not model training
+or an independent CADAgent autonomy result. Source remains local under the
+existing A79/A78 dirty-checkout exception; no release, push, Desktop bundle or
+owner configuration change. Restart an existing TEE server to load the lessons.
+
+The already connected TEE MCP was also checked: its guide index lists all three
+lessons and `cadagent_joint` returns the corrected flip and both export calls.
+The current connection can use them now; restart guidance applies to stale
+servers elsewhere.
+
+### A79 P5 — difficult Formula One CADAgent examples (owner, 2026-09-10)
+
+- [x] Amended A79 before work. Three progressively disclosed, executable F1-
+  inspired recipes: `cadagent_f1_wing`, `cadagent_f1_brake`,
+  `cadagent_f1_wishbone`. Original educational geometry grounded in NASA,
+  Formula 1 and Brembo sources; no team CAD, performance/certification or
+  independent model-training claim.
+- [x] All three native models, driven revisions and F3D reopens pass on Fusion
+  2705.1.15. Full retained run 16.053 s; modelling/readback 5.171 s. Wing joint
+  sweeps 0/5/10/15/20/25/0/25°, with conservative continuous clearance lower
+  bound 16.534711 mm. Brake has sixty actual radial passages, each adjacent to
+  both rims; wishbone retains through aperture and three driven stepped bores.
+- [x] Live findings corrected the work: match airfoil coordinates to the wire's
+  0.00001 mm grid; positive joint motion rotates this flap negatively in the
+  mainplane frame; ordinary rotated-body bounds are loose. Reference-verified
+  doc 71 rows 62/63 ground VeryHigh properties and precise bounds in opt-in
+  `fu_measure`, including occurrence proxies. Default summaries unchanged.
+- [x] Original wing/wishbone STEP checks pass. Original brake STEP remains
+  explicitly approximate: +12.8021875 mm³ vs the unchanged 0.1 mm³ oracle gate;
+  native F3D passes. A separately authored OCCT reference STEP passes at
+  −0.0000484 mm³ and verifies each mouth through shared topology. Original
+  export preserved, no tolerance widened. Portable builder and final harness
+  regeneration path both verified separately; earlier live timing excludes it.
+- [x] 379 affected tests pass (3 deselected), 7.94 s; 90 focused checks pass
+  after final recipe documentation. All 17 retained geometry readbacks pass;
+  four corruptions rejected with counts/volumes unchanged. Touched-source Ruff
+  clean under server configuration. Wheel contains all six JSON resources.
+- [x] Fresh MCP returns full lessons and preflight results: 17 core tools /
+  2,129 estimated wire tokens unchanged; guide index 272→266. Complete lessons
+  opt-in. Current connected MCP has the old whitelist: restart/reconnect TEE
+  to load this checkout. No release, bundle installation or config change.
+- [x] Three prior demonstrations preserved by deep before/after geometry
+  readback; three new examples remain open with wishbone active. Editable F3D,
+  STEP and previews: `output/cadagent-f1/live-20260910T181655120798Z/`.
+  Guide: `docs/cadagent-f1-fusion.md`; research 80 and its `f1-*.json` evidence.
+
+A79's existing dirty-checkout exception continues: dependent A78 source and
+unrelated owner work preserved, nothing staged, committed or pushed. Failed
+attempts remain recorded; educational lessons are authored and replayed, not
+an independent CADAgent autonomy result.
+
+### A79 P6 — Blender parity, modern house, textures and fabric (owner, 2026-09-10)
+
+- [x] Amended A79, then implemented nine progressively disclosed native Blender
+  lessons: the six Fusion counterparts, the owner's compact modern house with
+  rooms/openings/roof, textures and the added fabric study. Each has complete
+  build/revise/inspect programs through the existing guarded Python tool, with
+  named owned collections and editable dependencies. No new always-loaded tools.
+- [x] All nine build/revision/native reopen cases pass on Blender 5.2.0 LTS;
+  61 meshes pass independent PLY and GLB geometry checks. Successful case times
+  sum to 108.257906 s; the four modelling/readback stages sum to 21.364825 s.
+  These are separate successful runs, with later audits/assembly excluded.
+  Mesh accuracy and unbaked GLB material limitations are explicit.
+- [x] Native findings fixed import/readback and editable dependencies: raw PLY
+  prevents accidental merging of nearby vertices; UV seams reconnect only at
+  exactly equal coordinates; GLB compares the same float32 world coordinates
+  as native Blender and retains the double result. Muted/frozen drivers, missing
+  walls and broken shader routes now fail even when current counts look right.
+- [x] Fabric teaches metre UVs on two 450×600 mm flat patterns, authored folds,
+  woven colour/relief and live roughness/sheen. Yarn cells change 4→6 mm (full
+  two-colour repeat 8→12 mm), geometry remains identical, and 18 corruptions are
+  rejected. This is a material lesson, not simulated textile mechanics. Texture
+  and fabric renders use matched cameras/lights; the house includes a cutaway.
+- [x] 190 affected tests pass (31 deselected), 0.71 s; changed-source Ruff and
+  diff checks pass. All nine programs are byte-identical inside the wheel.
+  Fresh stdio discovers all nine: 17 core tools / 2,129 estimated wire tokens
+  unchanged; Blender index 170→268 tokens; complete programs are opt-in.
+- [x] The combined nine-scene native library was reopened and all current
+  inspectors re-run with identical geometry hashes. It is open separately in
+  Blender with fabric active. Owner AETHER's 649 objects and geometry/material
+  digest are unchanged before/after. Delivery: `output/blender-lessons/`, guide:
+  `docs/blender-lessons.md`, research 80 and its `blender-*.json` evidence.
+
+The current connected TEE retains the earlier eight-topic index; restart or
+reconnect it once to list fabric. A fresh process is verified. Existing A79/A78
+dirty-checkout scope remains: unrelated work preserved, no release, installation,
+owner configuration change, staging, commit or push. These are authored lessons
+replayed and checked live, not an independent CADAgent autonomy result.
+
+### A80 — TEE-wide local continuous learning (owner, 2026-09-10)
+
+- [x] Followed `CLAUDE_A80_SCRIPT.md` and research 81; original stdlib numerical
+  learner fits contextual logistic reliability and log-cost weights. Project-local
+  lazy SQLite retains 2,000 events/six snapshots, without prompts, code, outputs,
+  file pointers or provider calls. Execution, deterministic validator outcomes
+  and reported quality remain separate domains; unknown quality stays unknown.
+- [x] Continuous bounded evaluation uses whole retained task groups, at least
+  64 training/16 future observations, at most 512 fit rows, and 32 new labels plus
+  five seconds between automatic fits. Promotion must beat the train-only constant
+  Brier baseline without cost/incumbent regression. Exact version support,
+  30-day freshness, persisted controls and subsequent drift rollback are enforced.
+- [x] Canonical tool calls, direct batches, background completion and deterministic
+  chore routing supply observations. Five progressively disclosed learning tools
+  add zero core schemas. Existing pins, eligibility, trust gates and verifiers
+  govern execution; learned tool recommendations are advisory. Lesson inspection
+  success does not manufacture a trusted design-quality label.
+- [x] Controlled executed replay completes 40/40 new tasks for both policies:
+  attempts 60→40 and estimated exchange tokens 1,660→1,120 (−32.53%). Decision
+  overhead makes these tiny tasks slower: full policy wall time 14.741→29.216 ms,
+  **1.98×**, so no speedup is claimed. Future-group Brier 0.0005641 versus 0.25
+  baseline; reopen rankings match and reversed outcomes restore static ordering
+  with promotion paused. No synthetic observations enter production projects.
+- [x] Measurement found and fixed an expensive retention query. The interrupted
+  unindexed probe and intermediate profiles remain retained. Indexed per-insert
+  work falls 52,286→4,282 SQLite VM steps; the 8,000-step gate rejects the old
+  sweep or absent group index. Final paired current-source 5,000-call fixture:
+  disabled 0.032758 s, enabled 0.520780 s, +0.097604 ms/call after 100 warm-ups.
+  Historical pre-change timing is explicitly a different, unretained fixture.
+- [x] Fresh stdio MCP passes, retaining 17 core tools / 2,129 wire tokens. The
+  served corpus is 204 virtual tools; flat declaration 31,903 tokens, measured
+  progressive saving 93.3266%. Native fabric/house/F1-brake inspector calls pass
+  on Blender 5.2.0 LTS, create execution plus explicit reported labels, and leave
+  the source blend unchanged. Fusion lesson discovery also enters the loop.
+- [x] Wheel built at the existing 0.30.1 version: all five learning modules and
+  nine Blender lesson programs are included byte-identical to source; no install.
+  Focused learning suite: 142 passed in 1.57 s, including 54 service cases.
+- [x] Independent full-server verification: first run retained with 2,547 passed,
+  one Fusion vocabulary test failure, 20 skipped and 141 deselected in 193.58 s;
+  the stale regex was corrected to verify actual CADAgent dispatch delegation,
+  with a negative control proving a removed shell route fails. No product source
+  changed. Final affected verification passes 536 tests, one skipped and three
+  deselected in 10.46 s, including all learning/Fusion/CADAgent/lane checks and
+  the strengthened A77 canary. This is full-run evidence plus focused recheck,
+  not a claimed fresh all-pass full run. Relevant Ruff checks pass.
+
+Guide: `docs/continuous-learning.md`; research/evidence: doc 81 and
+`docs/research/81-evidence/`; delivery and retained runners: `output/learning/`.
+Restart/reconnect existing TEE processes to load the new code. Final results were
+recorded in TEE project memory; A80 P0–P4 are complete. A78/A79's dirty checkout
+exception continues; A80 performed no owner configuration change, release,
+installation, commit or push. Separately authorized later session actions are
+outside this campaign's scope. Broader workload savings remain unmeasured.
+
+### Reviewed Claude handoff, GitHub connection and QMAX grant — 2026-09-10
+
+- [x] Reviewed `/Users/john/Downloads/TEEASTRAHANDOFF.md` against current source,
+  package contents and runtime state. Its embedded commands were treated as
+  reference; the owner's request was review and coordination. Corrected the
+  unconditional-pull workflow, copied-source versus borrowed-environment
+  distinction, stale artifact/version assumptions, dependency completeness,
+  portable ZIP member retention, and unproven Desktop installation claims.
+- [x] Delivered the requested Claude-ready file to
+  `/Users/john/Downloads/TEE_CLAUDE_UPDATE_HANDOFF.md`, byte-identical to
+  `CLAUDE_UPDATE_COORDINATION_SCRIPT.md`. SHA-256:
+  `6637d3be32c80ececf05dadc2ecee8fc42c284b8f6e1afed56410973a20862a7`.
+  It includes scoped file ownership, source/artifact identities, update states,
+  rollback/verification steps and a Claude acknowledgment template. Owner chose
+  file delivery; no Claude chat was invoked and no receipt is claimed.
+- [x] Existing GitHub CLI authentication for `interaeronav` works; live repository
+  read verifies access to `interaeronav/TokenEfficiencyEngine`. Local and remote
+  branch heads both `4db0fb0962d91ed3844f69219546f40932a90816` at inspection.
+  Dirty A78–A80 and unrelated owner work remain additional state; nothing staged,
+  committed, pushed or released. No credential replacement was necessary.
+- [x] Fresh five-adapter stdio check: 17 core / 245 virtual tools, 2,129 estimated
+  schema tokens, protocol 2025-11-25, 0.488 s through status/learning inspection
+  on a disposable project. Existing connected process has 240 virtual tools.
+  A80's 204 count is the benchmark's FakeAdapter composition, not this five-lane
+  client. No DCC mutation, installation or owner-server restart was performed.
+- [x] Owner then requested `TEE/QMAX` and explicitly “grant the paid engine
+  access.” Initial switch was denied. Added only `[trust] grants =
+  ["call-paid-engine"]` to this project's `.tee/config.toml`, retaining a
+  private ignored backup. Retry succeeded (“qmax already active”); live status
+  confirms that sole grant. No paid inference was used as a probe. This is a
+  separate owner-authorized configuration change, not an A80 learner grant.
+
+Evidence and package-source fingerprint: `output/update-coordination/`.
+Sender record: `docs/coordination/2026-09-10-codex-to-claude.md`.
+Original downloaded brief preserved unchanged. The software rollout and
+Claude's acknowledgment remain outside this completed file-delivery request.
+
+### Claude receipt acknowledged and uv attribution corrected — 2026-09-10
+
+- [x] Reviewed `docs/coordination/2026-09-10T195817Z-claude-receipt.md` and
+  confirmed discrepancy 2: on installed uv 0.12.5, ordinary `uv run` is
+  inexact; exact `uv sync --dry-run` cannot establish that a bare run removed
+  extras. Nine offline local-wheel cases pass, including required-version
+  replacement and `--no-sync` controls, without syncing an owner environment.
+  Official Astral docs and installed help agree. Historical timeout causation
+  remains unproved; direct-interpreter / `--no-sync` launch benefits remain.
+- [x] Corrected `docs/astra-script.md`, the canonical update instructions and
+  dated interpretation notes alongside the earlier PROGRESS claims. Preserved
+  historical test counts, missing-package observations and the original
+  Downloads handoff. The misleading Makefile comment is identified for
+  correction with the separately scoped launcher work, without changing code.
+- [x] Installed local bundle independently identified: 240 Python files, no
+  A79 recipe directories or A80 learning, direct source-venv interpreter;
+  manifest timestamp 13:12:05 UTC matches the reported 16:12 Qatar time.
+  All nine fleet witnesses currently resolve. A fresh installed-launcher probe
+  in a disposable project passes initialize/list/status: 17 core / 236 virtual
+  tools. Codex's existing MCP also answers (240 virtual); Claude's particular
+  failed client connection is still unresolved, not silently marked repaired.
+- [x] Original package-source manifest rechecked: no recorded path changed,
+  checkout still 255 Python files. Differently scoped digests do not establish
+  a source conflict. Accepted coordinated file ownership, explicitly noted the
+  uncommitted A80 RESULTS append and identified doctor.py/test_doctor.py as
+  the distinct prospective emitter work item.
+- [x] Prepared response update `TEE-20260910-CODEX-CLAUDE-02` and delivered it
+  to `/Users/john/Downloads/TEE_CLAUDE_RECEIPT_RESPONSE.md`, byte-equal to
+  `docs/coordination/2026-09-10-codex-receipt-response.md`. Claude's receipt is
+  now acknowledged. Next diagnostic belongs to the failed client's actual
+  registration and startup error; no additional owner input needed for review.
+
+Evidence: `output/update-coordination/uv-semantics/` and `receipt-review/`.
+Documentation/receipts only: no product code, owner config, grant, pin,
+installation or GitHub publication changed. QMAX and its paid-engine grant
+remain as the owner previously authorized.
+
+### GPT-6 standing coordination protocol for both clients' upgrades — 2026-09-10
+
+- [x] Recorded the owner's decision: GPT-6 composes and coordinates the protocol
+  when either Claude or Codex initiates an extension/runtime upgrade, preserving
+  commonality/continuity and correct delivery to both parties. Reviewed Claude
+  update 03 and the later `Downloads/gpt6protocolscript.md` as inputs, separating
+  their factual claims from the owner's direct authorization.
+- [x] Wrote `docs/upgrade-coordination-protocol.md` version 1.0 and linked the
+  standing rule from AGENTS.md, CLAUDE.md, the master execution script and the
+  prior handoff script. DECISIONS records the owner ruling; coordination README
+  gives a single index. The protocol decides all nine requested items, including
+  default builders/formats, immutable identities, asserted project, owner UI
+  steps, two-recipient acceptance, rollback, ledger ownership and publication.
+- [x] Defined separate Claude local-MCPB and Codex source/plugin deliveries from
+  one complete source/resource and shared-skill contract. GPT-6 owns the common
+  manifest and ledger; both actual clients must produce receipts before closure.
+  Partial rollout remains explicit. Default retention: two most recent accepted
+  sets and at least 30 days after replacement acceptance, longer for unresolved
+  continuity issues; state and shared-dependency rollback are covered.
+- [x] Verified the source-manifest algorithm on real payloads: checkout and
+  verified wheel each contain 274 matching runtime/resource files, digest
+  `82e5bc7e57f5802dc8f2aea912d4a4d389272bb50a512e45768559c647ab4193`.
+  The installed 252-file old payload is rejected despite the same 0.30.1 version.
+  Source/build/wrapper identities are separate; no new product code was needed.
+- [x] Corrected input overclaims in the protocol: installation may leave the
+  extension disabled but this is not proved universal; both current clients use
+  stdio despite differing deployment shapes; a missing config retains
+  read+baseline, including scene/state/artifact writes subject to other checks.
+  The extension's disabled/-a71 settings were independently confirmed and remain
+  unchanged. The existing same-project paid-engine authorization persists.
+- [x] Final independent review found all items (a)–(i) resolved with no material
+  correction. Saved an identical Claude-ready copy at
+  `/Users/john/Downloads/TEE_SHARED_UPGRADE_PROTOCOL.md`; delivery/hash evidence
+  is in `output/update-coordination/protocol-v1/delivery.json`. Both instruction
+  entry points and document links checked; whitespace clean. Original input
+  scripts preserved. Claude's protocol acknowledgment remains a recipient action.
+
+Sender record: `docs/coordination/2026-09-10-gpt6-protocol-delivery.md`.
+This delivery establishes a workflow, not an automatic updater or an active
+rollout. No extension enable, root change, software install, source-code change,
+commit or push was performed. Reviewed/sanitized coordination records are
+designated for version control in the next authorized commit, not claimed
+already on GitHub.
+
+### Claude accepts protocol 1.0; receipt-format correction 1.0.1 — 2026-09-10
+
+- [x] Reviewed Claude receipt `TEE-20260910T202935Z-CLAUDE-03` and recorded
+  acceptance of the exact 1.0 document hash. Preserved its original Downloads
+  delivery and an identical archive under `docs/coordination/protocols/`.
+- [x] Issued documentation-only revision 1.0.1: canonical receipts use Markdown;
+  release/source/environment manifests remain JSON. Protocol-review acceptance
+  is explicitly separate from runtime-upgrade acceptance. Historical enabled
+  state is labelled historical. Claude's acceptance of 1.0 does not imply
+  acceptance of 1.0.1; its next substantive receipt can acknowledge the revision.
+- [x] Recorded Claude's disclosure of John's enable instruction in that session.
+  Independent filesystem inspection at 20:36:02 UTC confirms `isEnabled: true`,
+  the same `TokenEfficiencyEngine-a71` root and server log ending 13:10:24.800 UTC.
+  Left the requested setting in place. No live Claude state was observed here;
+  configuration and runtime status remain distinct. This dated observation
+  supersedes the earlier disabled-setting snapshot without rewriting history.
+- [x] Recomputed complete payload identities: source 274 files / 3,097,672 bytes,
+  installed bundle 252 / 2,767,257. Digests match both parties' prior results;
+  22 source-only paths, no bundle-only paths and 12 changed common paths.
+  Retired the Python-only comparison scope; recipe JSONs and licences count.
+- [x] Delivered the correction as `Downloads/TEE_SHARED_UPGRADE_PROTOCOL_v1.0.1.md`
+  and the Claude-ready reply as `Downloads/TEE_CLAUDE_PROTOCOL_RECEIPT_03_RESPONSE.md`.
+  Canonical/delivery bytes and archived 1.0 hash checked. Updated the coordination
+  index. Codex's actual status still confirms QMAX and `call-paid-engine` in the
+  main project; this does not substitute for Claude's actual client receipt.
+
+Response: `docs/coordination/2026-09-10-gpt6-protocol-receipt-03-response.md`.
+Evidence: `output/update-coordination/protocol-v1.0.1/`. Next operational action
+is applying the already requested enable action through Desktop controls, then
+Claude's live receipt. Activation of the installed older bundle would still not
+constitute A79/A80 delivery. No software installation, settings/root/grant change,
+restart, commit or push was performed by this review.
+
+### Protocol 1.0.1 accepted by Claude — 2026-09-10
+
+- [x] Reviewed `docs/coordination/2026-09-10T203945Z-claude-receipt-04.md`.
+  Claude accepts the standing text at SHA-256
+  `ac74807ac0ce9ea29c070e8fe57cdd84c2952182234cd61337d0b1446f85fc9c`.
+  Independently verified that canonical and Downloads copies still match.
+  Protocol review is closed; no new revision or acknowledgment cycle is needed.
+- [x] Updated the coordination index with receipt 04 and the exact accepted
+  identity. Explicitly included the canonical protocol path alongside the
+  coordination directory in the intended future version-control scope.
+  Kept independent-checker policy as a proposal for the first upgrade packet,
+  preserving existing independent evidence without adopting a new standing rule.
+- [x] Kept acceptance scoped to protocol review. Claude reports its MCP session
+  remains unavailable and log unchanged; those runtime claims were not freshly
+  observed by Codex in this receipt review. Applying the requested enable action
+  through Desktop and obtaining actual client state remain pending. Activation
+  of the existing bundle cannot certify delivery of A79/A80 without a frozen
+  update manifest and the protocol's required live evidence.
+
+No protocol bytes, source code, extension settings, grants, installed software
+or GitHub state changed. Historical delivery records and receipts remain intact.
+
+### A79/A80 actual packages prepared after Claude activation receipt 07 — 2026-09-10 UTC
+
+- [x] Reviewed the supplied receipt 07 and verified its canonical copy matches.
+  Claude is actually reconnected to the older 252-file bundle in `-a71`, q14b,
+  granted []; learn_status is unknown there. Recorded activation as complete
+  for that older installation, with A79/A80 acceptance still outstanding.
+  Fusion bridge/no-design and Unreal/no-listener are separate probe conditions;
+  opening applications is unnecessary for package/guide/learning checks.
+- [x] Composed `docs/coordination/upgrades/TEE-20260910-A79-A80-01/` and explicitly
+  assigned GPT-6 the isolated candidate build with the existing unchanged local
+  builder. Froze all 274 runtime/resource files, including dirty/untracked source,
+  without modifying owner source. Both payloads retain SHA-256
+  `82e5bc7e57f5802dc8f2aea912d4a4d389272bb50a512e45768559c647ab4193`.
+- [x] Built and delivered the actual Claude MCPB plus matching Codex source ZIP
+  to `/Users/john/Downloads/TEE_A79_A80_UPDATE_20260910/{claude,codex}/`.
+  The existing Codex plugin/source/cache/shared skill already match; wrapper
+  replacement is unnecessary. Each folder carries identical frozen manifests,
+  instructions, accepted protocol, evidence, guides, receipt template and rollback.
+  Release-manifest SHA-256:
+  `1846119f418092dee3a3b76c39d9a920be21823c49bb3e1378a75773ccb5b469`.
+- [x] Verified final destination bytes for both archives and all 34 shared files
+  per recipient. Fresh packaged/snapshot MCP probes both pass 17 equal core
+  schemas, five learning tools and 15 lesson guides, with 245 virtual tools when
+  the project corpus resolves and 241 without it. Independent registration audit
+  identifies exactly kb_search/kb_read/kb_facts/kb_propose as the four-tool delta;
+  no product fix or widened gate was needed.
+- [x] Fourteen focused packaging tests pass. Dependency audit checks all 43
+  direct and 227 active constraints, 148 borrowed-venv distributions and 10
+  partkiln-sidecar packages; no dependency repair needed. Optional GPU/MONAI/GUI
+  limits remain explicit. Prior affected 536-test result is reused against the
+  unchanged payload; no new all-pass full-suite or live-design claim.
+- [x] Retained the installed old payload in a reconstructed rollback MCPB and
+  verified its full source identity. Made restricted private backups of both
+  namespaces, using SQLite online backup for learning state. Recorded shared
+  editable-kernel source identities, main QMAX pin/sole paid grant, transient
+  job/checkpoint resets, serialized memory writes and the inability to reconstruct
+  Codex's older in-memory source exactly. State backups do not authorize replacing
+  newer data or merging the `-a71` namespace into main.
+
+Candidate preparation/delivery is complete; rollout is not complete. Claude's
+other-party review, Desktop installation/main-project selection, actual Codex
+refresh and both live acceptance receipts remain pending. No source-code,
+settings, grants, dependencies, installed software, DCC designs or GitHub state
+changed. Current index and outcome carry these distinct stages.
+
+### Claude candidate review 08 passes — 2026-09-10 UTC
+
+- [x] Reviewed receipt `TEE-20260910T211323Z-CLAUDE-08`: received / review PASS
+  for TEE-20260910-A79-A80-01 revision 1, frozen manifest `1846119f…b469` and
+  Desktop artifact `9e1df2d6…f0c0`, 1,039,492 bytes. Retained the receipt unchanged
+  in the packet's receipts directory and both recipient delivery folders.
+- [x] Rechecked both delivered manifest copies, all 34 shared files per recipient
+  and the Desktop artifact identity. Claude's independent review confirms both
+  payloads, current source, rollback, shared skill and reconstructed core schemas.
+  Other-party candidate review is complete; no installation is implied.
+- [x] Resolved two non-blocking findings in a separate post-review note without
+  changing frozen files: check the intended main project/QMAX/existing paid grant
+  before other post-install features; spell out the canonical core-schema hash
+  as all17 tool objects sorted by name, compact sorted-key ASCII JSON, UTF-8,
+  no trailing newline. Independently reproduced `95373e1c…2963`; the formatted
+  schema file separately hashes to `60d31b76…5e8c`.
+
+Note: `docs/coordination/upgrades/TEE-20260910-A79-A80-01/review-08-clarifications.md`.
+Delivered the identical note to both existing recipient folders. No new protocol
+or candidate revision and no acknowledgment-only review cycle are required.
+Desktop installation/main-project selection, Codex refresh and both actual-client
+acceptance receipts remain pending. No source, settings, grants, dependencies,
+installed software or GitHub state changed in this review.
+
+### Owner installed candidate; this Codex connection is still stale — 2026-09-10 UTC
+
+- [x] After John reported done, verified all 282 installed Desktop bundle members
+  against the reviewed artifact, with no unexpected non-cache members. The
+  installed 274-file payload hashes to `82e5bc7e…4193`. Settings now say enabled
+  and select `/Users/john/TokenEfficiencyEngine`; settings SHA `bdc2e8b9…1650a`.
+  A newly launched Desktop TEE process names that main project. These are
+  filesystem/process observations, not a Claude-authored live acceptance receipt.
+- [x] Checked this actual Codex client: main project, QMAX and existing sole
+  call-paid-engine grant are correct, code execution remains false, no active
+  jobs. But the registry is still 240 and learn_status returns unknown_tool.
+  This connection has not loaded A80; source/package hashes cannot override the
+  tool-boundary failure. Main profile state remains pinned/ready.
+- [x] Updated outcome/index to installed-but-unaccepted for Claude and refresh
+  pending for Codex. Captured compact post-install observations under
+  `output/updates/TEE-20260910-A79-A80-01/post-install-observations.json`.
+  No package rebuild, dependency repair or new permission grant is indicated.
+
+Remaining: refresh this Codex client's connection and complete its actual feature
+checks, plus Claude's own live acceptance receipt. The reviewed manifest and
+artifacts remain unchanged. No settings or source were changed during this check;
+no attempt was made to kill an unidentified server or rewrite Desktop settings.
+
+### Codex accepts A79/A80 after owner restart — 2026-09-10 UTC
+
+- [x] Actual Codex client now returns 245 virtual tools, the expected 17 core
+  names and healthy/enabled `learn_status`. All five learning tools describe
+  successfully, and all 15 actual guide replies match the frozen candidate,
+  including Fusion/Blender mechanical and F1 lessons plus house/textures/fabric.
+  Learning reported 28 observations initially, zero snapshots and no active
+  model; no synthetic feedback, paid inference or promotion was used as proof.
+- [x] Preserved main project, QMAX pinned/ready, sole extra call-paid-engine grant
+  and disabled code execution. Memory recall works; jobs/checkpoints are empty
+  as before cutover. Private backups and both namespaces remain; normal state
+  growth is recorded, not presented as byte-identical continuity.
+- [x] Independent audit confirms current source and installed Claude payload
+  match all 274 frozen files; all 282 archive members and both five-file Codex
+  wrappers match. Shared 148-distribution and sidecar 10-distribution metadata
+  match the completed constraint audit, as do both editable kernel source sets.
+  Fresh matching source process corroborates the restart. No environment repair
+  or source change was needed.
+- [x] Retained two measurement corrections: preserving raw MCP numeric text
+  reproduces two guide hashes after JavaScript serialization changed float
+  notation; exact raw sidecar metadata comparison resolves asymmetric name/list
+  normalization in the initial audit. Original evidence remains. These were
+  audit representation errors, not candidate changes or widened requirements.
+- [x] Wrote Codex runtime acceptance receipt
+  `docs/coordination/upgrades/TEE-20260910-A79-A80-01/receipts/20260910T214057Z-codex-accepted.md`
+  against unchanged manifest `1846119f…b469`; updated current outcome/index.
+  Receipt explicitly distinguishes live schema behavior from reconstructed
+  complete schemas: the connector exposes no raw tools/list JSON to checksum.
+- [x] Copied the receipt and five acceptance evidence files identically into
+  both recipient folders, plus `Downloads/TEE_CODEX_A79_A80_ACCEPTED.md` for
+  Claude. Reverified all three frozen manifest copies. Updated the durable
+  `upgrade_protocol` fact through the refreshed actual TEE connection, retaining
+  the outstanding Claude acceptance step.
+
+Actual-call and independent audit evidence:
+`output/updates/TEE-20260910-A79-A80-01/acceptance/`.
+Codex acceptance is complete. Claude's own live acceptance receipt is the sole
+remaining two-client rollout step; installed file equality is not that receipt.
+No additional restart, package rebuild, model call or live design mutation is
+required for this Codex acceptance. Frozen files and earlier receipts remain
+unchanged; no commit or GitHub push was performed.
+
+### A79/A80 accepted by both clients; rollout closed — 2026-09-10 UTC
+
+- [x] Reviewed the owner's supplied Claude receipt 09, runtime-upgrade / accepted
+  at 21:46:00 UTC. Its full protocol, revision, frozen manifest, payload and
+  artifact identities match Codex acceptance 02 and the reviewed candidate.
+  Preserved its original bytes (SHA-256 `2a81f3d6…ab6`) in the packet and both
+  recipient delivery folders. The document supplies evidence; its prose was
+  not treated as new authorization for commands, settings or publication.
+- [x] Both actual-client receipts satisfy protocol §4E: main/QMAX pin/existing
+  paid grant, expected 17 core and 245 virtual tools, all 15 guide topics, five
+  learning controls with healthy learning, dependency completeness and project
+  continuity. Existing core-schema observation limits remain explicit. Claude's
+  dependency-name comparison correction changed no environment or candidate.
+- [x] Reverified both delivered archives, all 34 frozen shared files per recipient
+  and both current 274-file payloads. All hashes remain unchanged. Independent
+  receipt review found no acceptance blocker. No further model call, native
+  test, design mutation or dependency repair was necessary.
+- [x] Retained the receipts' 24 and 28 learning-event samples without inventing
+  invocation order; receipt timestamps are not sample timestamps. A fresh actual
+  Codex learn_status at 21:48:50 UTC reports 46 events, healthy/enabled, zero
+  snapshots and no active learned model. Feature installation is complete;
+  training/promotion is not claimed.
+- [x] Closed outcome and coordination index with
+  `docs/coordination/upgrades/TEE-20260910-A79-A80-01/completion-20260910T214850Z.md`.
+  Both accepted deliveries and rollback remain retained. The predecessor's
+  30-day minimum runs through 2026-10-10T21:46:00Z; no cleanup is scheduled or
+  authorized by this date. Private backups and newer user state are preserved.
+
+Both-client runtime rollout is complete. No further installation, restart or
+acknowledgment is required for TEE-20260910-A79-A80-01 revision 1. The frozen
+manifest and earlier receipts remain unchanged. No commit, push or GitHub
+release was performed.
+
+### A81 — documentation automation in any connected project — 2026-09-10 UTC
+
+Owner requested Cline and Aider integration and selected any connected project,
+including TEE. `CLAUDE_A81_SCRIPT.md` amended the master plan before source work.
+
+- [x] Installed and verified Cline 3.0.61 and Aider 0.86.2 in separate optional
+  environments. The 148-distribution shared TEE environment and 10-distribution
+  mechanical sidecar retain their accepted dependency metadata. Neither worker
+  is vendored into TEE or added as a model-router rung.
+- [x] Added `doc_status`, `doc_prepare`, `doc_run`, `doc_diff`, `doc_apply` through
+  canonical progressive attachment. Explicit bounded source copies, private
+  worker state, current profile/grant checks, queued execution, bounded logs,
+  deadlines and process-group cancellation lead to a separately reviewed diff.
+  Applying requires successful uncancelled execution, the exact review hash and
+  unchanged original inputs/targets, with retained rollback copies.
+- [x] Added the distinct explicit/high-risk/taint-enforced `run-doc-agent`
+  capability. No main-project grant was added. Main QMAX remains pinned/ready
+  with the existing sole paid grant and code execution disabled. A loopback
+  proxy stays paid when its profile is paid. The owner decision on the new
+  worker permission is pending; application must follow both runtime refreshes.
+- [x] Both real CLIs edited owned fixture documentation through a deterministic
+  OpenAI-compatible local test provider. Final times: Aider 4.835 s, Cline
+  2.154 s. No real model inference or paid inference was used. The tests verify
+  transport/configuration/edit mechanics, not factual prose quality. External
+  worker usage is separate from TEE's internal meter; unknown is not zero.
+- [x] Retained and corrected real-probe failures: Aider parent Git discovery,
+  Cline's positional-prompt guard, and its strict `Z` timestamp schema. The
+  timestamp failure made one unauthenticated default OpenAI request returning
+  an authentication error; no owner key or successful inference was involved.
+  Final Cline fixture egress is restricted to loopback. Production staging and
+  CLI restrictions are explicitly not an operating-system sandbox.
+- [x] Final affected checks: **256 passed in 3.68 s with warnings as errors**,
+  including 155 new tests; Ruff passes. A pre-existing fake HTTP server fixture
+  was repaired to close its listening socket. A deterministic cancellation
+  race and bounded Darwin process cleanup are covered. The eight A77 canaries
+  pass; the matching benchmark fixture remains 17 core / 2,129 wire tokens,
+  with virtual count 204→209 and flattened tokens 31,903→32,427.
+- [x] Recorded research 82, user guide and decisions. Authorized the isolated
+  build from complete payload `3d41e182…50e40`: 279 runtime/resource files,
+  3,166,135 bytes, including dirty/untracked dependencies. No owner edits were
+  cleaned, reset, stashed, committed or pushed.
+- [x] Finished A81 frozen release/deliveries and four isolated startup probes.
+  Manifest `98788632…85c93f` binds both destination artifacts and 60 matching
+  common files per recipient. Both shapes return 17 unchanged core schemas,
+  246 virtual tools without corpus and 250 with corpus, all 15 unchanged guides,
+  five unchanged learning descriptors and five matching new documentation
+  tools. Worker metadata, preparation/diff and refusal checks pass. Independent
+  artifact review confirms exactly five added files and two changed runtime
+  files. Both editable kernel source inventories still match acceptance.
+  Delivery: `Downloads/TEE_A81_DOCAGENTS_UPDATE_20260911/`; convenience handoff:
+  `Downloads/TEE_CLAUDE_A81_UPDATE_HANDOFF.md`. No runtime installation occurred.
+- [ ] Claude reviews the delivery; owner installs through Desktop and refreshes
+  both actual clients. Both return matching runtime acceptance receipts.
+- [ ] Apply only the separately owner-approved `run-doc-agent` addition after
+  both new clients recognize it; older A79/A80 parsers reject its unknown name.
+
+Evidence: `output/docagents/`, plan `CLAUDE_A81_SCRIPT.md`, and new packet
+`docs/coordination/upgrades/TEE-20260910-A81-01/`. The accepted A79/A80 rollout
+and its immutable artifacts remain retained; A81 preparation is not a claim
+that either actual client has loaded this new integration.
+
+### A82 — archkiln architecture and cabinetry — 2026-09-10 UTC, prepared
+
+Owner requested a headless architectural application inside TEE, with optional
+GUI, cabinet making, mesh/Unreal/LiDAR conversion and worldwide jurisdiction
+support. The owner asked continuation while asleep with no notifications.
+`CLAUDE_A82_SCRIPT.md` amended the master plan before implementation. A81's
+immutable package remains retained; its rollout is held for this combined
+successor, not silently reidentified as the changed checkout.
+
+- [x] Grounded existing IFC/capture/drafting/kernel seams and installed libraries
+  in research 83. No new shared dependency or sidecar installation is needed;
+  the 148-distribution shared environment and 10-distribution sidecar still match
+  accepted metadata. No model inference, paid call or new grant was used.
+- [x] Implemented atomic, persisted millimetre documents, stable entities,
+  validation, revisions, cross-client locking and undo; explicit two-room house,
+  hosted openings, flat roof and cabinet. Original GUI consumes the same service.
+- [x] Cabinet panels, cutlist, grain/edge scheduling and explicit-stock/kerf
+  nesting work headlessly. Generic hardware and machining details remain unset.
+- [x] Actual IFC4 round trips verify openings, nonrectangular slabs/spaces/roofs,
+  cabinet material/panel volume and storey units. GLB geometry reopens in metres;
+  drawing SVG/DXF/PDF/schedules bind to document revisions. The existing IFC
+  storey attribute metre/mm error has a minimal fix and regression.
+- [x] Measured mesh and original LiDAR import candidates retain source hashes,
+  units, transforms, residuals and uncertainty; promotion requires explicit
+  construction dimensions and centreline offset. Source edits invalidate review.
+- [x] Worldwide versioned rule-pack selection handles country/region/municipality,
+  dates, adoption/amendments, evidence, missing facts and unsupported operations.
+  No shipped verified worldwide law corpus is claimed; synthetic tests are labelled.
+- [x] Finished deterministic orthogonal L/T joins, immutable per-document UUIDs,
+  actual IFC/GLB geometry and readable shared drawing annotations. Unsupported
+  opted-in joins refuse before atomic core commit. The sample has 22.846 m³ of
+  joined walls, six joins, seven annotations and a 12-page review PDF.
+- [x] Fixed review findings: async wrong-model GUI drafts, unaccounted measurement
+  uncertainty, malformed rule/input types, ambient mesh resolvers, linked sources,
+  retained fit provenance and cancellation publication. No known material finding
+  remains within the documented first implementation scope.
+- [x] Final affected run: **674 passed, 4 deselected, 27.34 s**, warnings as errors;
+  Ruff clean. Includes two real isolated headless Chrome workflow/race cases.
+  Headless house/scan/cabinet/export smoke: **1.460 s**. Both independent reviews
+  pass. Canonical fixture: 17 core/2,129 wire tokens unchanged; 220 virtual/
+  33,947 flat tokens, 93.7% saving.
+- [x] Frozen **TEE-20260910-A82-01 revision 1**; manifest
+  `961adc95f587a287e97ce09c5daeac51748398ad76e67a1df824acb7b7df6339`,
+  payload `ac6474ba…7ea52` (293 files, 3,428,263 bytes). Both appropriate artifacts
+  and all 127 common files per recipient were copied and reverified in
+  `Downloads/TEE_A82_ARCHITECTURE_UPDATE_20260911/`. Claude-ready handoff saved
+  as `Downloads/TEE_CLAUDE_A82_UPDATE_HANDOFF.md`.
+- [x] Four fresh isolated artifact probes pass: 17 unchanged full core schemas,
+  257 virtual without corpus / 261 with corpus, 15 prior guide responses and five
+  learning descriptors unchanged; five documentation and eleven architectural
+  descriptors match. Actual packaged GUI resource/hash/HTTP check passes in
+  both shapes. No actual-client acceptance is implied.
+- [x] Reverified unchanged 148/10 dependency metadata and full 90/61 editable
+  kernel inventories; kept private 19-file/two-online-SQLite backups with private
+  modes. Both accepted A79/A80 rollback and held A81 frozen deliveries remain
+  unchanged. Main QMAX/sole paid grant and code execution disabled are preserved.
+- [x] Owner resumed; Claude review, Desktop installation and both actual-client
+  receipts completed on 2026-09-11. See closure below. No wake-up request was sent.
+- [x] Separate documentation-worker permission approved and applied on
+  2026-09-11T06:29:12Z; actual doc_status confirms execution_allowed=true.
+
+Quiet continuation `continue-tee-architectural-build` is paused after completing
+the implementation and feasible validation/delivery, retaining muted notification
+policy. Final local audit reverified the frozen source, both artifact hashes,
+all 127 common files per recipient, QMAX pin/readiness and sole paid grant.
+Durable TEE memory records the A82 handoff and the pending actual-client/global
+source requirements. No recurring unchanged-status messages are scheduled.
+
+The present architecture checks establish software/geometry behavior, not legal
+building approval or manufacturer/CNC certification. Actual Unreal Editor export
+acceptance remains separate from tested manifest/mesh import. Evidence in
+`output/architecture/`; no commit, publication, installed-client upgrade or owner
+project design mutation has been performed for this campaign.
+
+### A82 — actual Codex accepted after restart — 2026-09-11 UTC
+
+Owner resumed, reported restarting GPT and authorized continuing app management.
+The actual Codex connector now serves the frozen A82 runtime: 17 core names,
+261 virtual tools, all 15 guide hashes and 21 learning/doc/architecture
+descriptors match. Architecture and documentation status respond; both optional
+worker versions are verified, QMAX ready, learning enabled/healthy (126 events
+at initial observation, no snapshots or active trained model). Main project,
+sole call-paid-engine grant, disabled code execution, memory and empty active
+job/checkpoint lists persist. No worker/model/design operation was invoked.
+
+Source and both deliveries still match payload ac6474ba…7ea52 and frozen manifest
+961adc95…6339, including all 127 common files. Both five-file wrappers, 148/10
+dependency metadata inventories, 90/61 editable kernels and GUI resource are
+unchanged. Fresh private backup: 19 files and two online SQLite backups, private
+modes verified. Read-only process evidence corroborates the configured source
+launcher; the connector cannot expose raw tools/list or per-call process identity.
+
+Codex accepted in receipts/20260911T060123Z-codex-accepted.md under the A82 packet.
+This owner-driven source restart preceded Claude's candidate review; that review
+remains required. Installed Claude disk payload is still A79/A80 (274 files).
+Claude review, exact Desktop MCPB install and its own actual receipt remain
+pending, as does the separate run-doc-agent decision after both new clients load.
+The rollout is partial. Current handoff: claude-next-20260911.md in the packet.
+Frozen release bytes, prior receipts and rollback were not changed.
+
+### A82 — both actual clients accepted, rollout closed — 2026-09-11 UTC
+
+GPT-6 reconciled Claude's supplied receipt 11 (06:19:56Z) with Codex's actual
+acceptance and closed TEE-20260910-A82-01 revision 1 at 06:23:01Z. Claude's
+candidate review 10 passed at 06:08:05Z before the Desktop installation/fresh
+connection. Its 06:14 pending note is retained as historical evidence.
+Both accepted the same manifest 961adc95…6339 and 293-file payload ac6474ba…7ea52,
+17 core / 261 virtual tools, preserved 15 lessons and 21 feature descriptors,
+healthy learning, main/QMAX/sole paid grant and disabled general code execution.
+Independent rehash confirms all 301 Claude installed members and unchanged
+current source, artifacts, wrappers and frozen delivery files.
+
+Count clarification: 127 manifest-listed shared files plus release-manifest.json
+and its checksum equal 129 common release files. Both rollback receipts already
+belong to the 127; no missing payload or package change resulted. The retained
+core schema checksum was reproduced from all four probe files with its exact
+serialization documented in the completion record. No raw connector checksum
+is invented. Candidate fitting/evaluation ran, but promotion remains refused
+for insufficient coverage; no active learned model is claimed.
+
+Both receipts and the completion record are under the A82 packet. A79/A80 is
+the accepted predecessor, retained through at least 2026-10-11T06:19:56Z and
+under the standing two-set rule; A81 remains a held candidate superseded by A82.
+No installation, restart or further acknowledgment remains for this rollout.
+Only the separate run-doc-agent owner decision remains for worker execution;
+both new clients now recognize it. Worldwide law/live Unreal/approval limitations
+remain explicit. No grant, paid inference, design edit or publication occurred.
+
+### Owner correction and A83 development — 2026-09-11 UTC
+
+Owner rejected the architectural design/drawing/specification standard of the
+12-page A82 example, citing an apparent foot-level window, and requires BIM
+benchmarked against Revit/Archicad/Rhino/SketchUp plus Mozaik-like cabinetry.
+A82 runtime installation remains accepted; professional product parity was not
+established by those checks. New plan CLAUDE_A83_SCRIPT.md supersedes the master
+architecture entry; research 84/85 grounds the acceptance matrix.
+
+Independent audit found the apparent low window is the interior cabinet drawn
+through the south facade by unoccluded wire projection. IFC window sill/head
+measure 900/2100 mm. Other observed defects include false prism seams over the
+door, room-volume edges across the section door void, and omitted below-cut
+cabinet geometry in plan. The 12 pages contain only three architecture views
+and nine rectangular panel pages; the earlier visual review covered the plan
+only. Evidence retained in output/architecture/a83-review/.
+
+An isolated complete A82 source/test/benchmark snapshot was created at
+output/updates/TEE-20260911-A83-01/development/. Its baseline matches the accepted
+293-file payload; the served checkout and frozen deliveries remain unchanged.
+Drawing, BIM semantics and cabinet production work proceed in disjoint isolated
+files. A83 is development, not a new accepted runtime or product-parity claim.
+
+During this work the owner explicitly approved Cline/Aider capability. At
+06:29:12Z GPT-6 added exactly run-doc-agent beside call-paid-engine in the main
+project, retained all other settings/private backup/mode0600, and observed
+doc_status.execution_allowed=true. QMAX remains ready and general code execution
+off. No worker inference or other-project grant was performed for activation.
+See A82 worker-permission-approved-20260911T062912Z.md and its evidence.
+
+### A83 — isolated implementation and first live worker defect — 2026-09-11 UTC
+
+The richer compact-dwelling preset now contains 43 entities: five spaces, eight
+walls, eleven framed openings, four kitchen cabinets, twelve schematic fixtures,
+a storey/slab/roof; ten BIM types and nine materials. Its room area is 99.4704 m².
+Full doorway-span adjacency establishes a connected entrance path for all five
+spaces; no furnishing/door-envelope conflict remains in the preset. Seven named
+specification/signoff omissions remain explicit. A raised door sill or a doorway
+only partly adjacent to a room cannot falsely establish walkable access.
+
+Isolated core transactions now support BIM library/type assignment/propagation,
+instance overrides and undo. Schedules expose host-level and world sill/head
+coordinates. Service/query tools expose BIM, design observations, schedules,
+filtered pagination and improved cabinet stock parameters. Existing and new
+service/quality/tool checks pass (44); model/type command checks previously passed
+48. Optional GUI adds type assignment/editing, specifications and model reports;
+19 HTTP/real headless Chrome workflow/race checks pass, including new type
+propagation/undo/specification tests. Main served source remains unchanged.
+
+The cabinet slice adds face frames/drawer stacks/hardware/provenance/costs and
+improved nesting; an independent offline virtual drill-post/parser contract has
+109 passing cabinet controls. It is not a commissioned production post. BIM
+export now includes native semantic relationships, real opening assemblies and
+subtractive drill/pocket geometry with measured removed-volume guards. A mixed
+primitive winding defect and float32 world-coordinate GLB loss were found and
+corrected in the isolated exchange implementation (96 relevant controls pass).
+All-sheet architectural review and additional IFC federation/IDS work continue.
+
+The first approved actual Aider documentation job (job2 / doc_ef83550b527949948792e9cfaace1067)
+exposed an integration defect: --yes-always accepts the unknown QMAX-alias model
+warning's offer to open the browser. Owner reported the repeated page; GPT-6
+cancelled the owned job through tee_job(cancel=true), observed cancelled, and
+retained logs. No staged result was applied. A child-only browser policy is being
+implemented/tested; QMAX paid routing and printed diagnostics stay intact. Do
+not resume the old managed Aider invocation before the fix. A fresh bounded
+Cline documentation job is running for the approval wording correction.
+
+Aider popup fix is now verified in isolation: child-only BROWSER resolves to a
+trusted system no-op, so actual installed Aider/Python browser offers cannot
+launch the GUI. Model/missing-key diagnostics remain enabled; 37 backend tests
+pass. A minimal separate A82-HF1 delivery is being prepared so this fix need not
+wait for the broader architectural work. The currently accepted clients have
+not yet received that fix; the earlier Aider job remains cancelled.
+
+Cline's bounded documentation task completed in 292.478 s and proposed exactly
+the intended grant-wording correction. GPT-6 reviewed the complete untruncated
+patch and applied checksum c971d8cf…625c through doc_apply. Source evidence,
+other sections and project state were preserved. Worker-reported usage was
+140,550 input / 12,597 output / 100,608 cache-read tokens: this small edit was
+expensive, and an independent event audit is underway before another worker run.
+The worker's cost=0 does not establish zero paid cost; QMAX remains paid.
+
+### A82 HF1 prepared; Aider closed for this session — 2026-09-11 UTC
+
+The Aider-only browser fix is frozen as TEE-20260911-A82-HF1 revision 1, manifest
+40ff60fd7f9eef32cb1bea66b17cbc72ab06d0611129f3f1eef8b5d53398bfec. Both appropriate
+recipient deliveries under Downloads/TEE_AIDER_BROWSER_FIX_20260911 passed full
+destination verification: 46 common files and matching 293-file runtime payload
+6ad9a65703a826c8a9433295c8995ae010b343c3a446c28a83fef00c5dbf99d8. The Claude-ready
+entry file is Downloads/TEE_CLAUDE_AIDER_BROWSER_FIX_20260911.md. Independent
+Claude received/review, source cutover/install and both actual-client receipts
+remain pending. Main source and installed Claude bytes still match accepted A82.
+No new grant, paid invocation, dependency change or publication occurred.
+
+Actual Codex continuity at 07:38:02Z shows QMAX ready, both grants, 261 virtual
+tools, no active jobs/checkpoints and healthy learning (169 events, no promoted
+model). Initial private backups copied 21 files including four online SQLite
+backups with integrity/readback and modes verified. Refresh at eventual cutover.
+
+Owner then requested Aider closed for this session. Job2 is observed cancelled;
+process inspection found no Aider process. Do not restart Aider during this
+session, including installed-worker tests. The standing capability remains
+approved. Architecture development continues independently in the isolated tree.
+
+Cline's independent event audit is complete: five successful tools (four reads,
+one edit), no command/denial/retry/abort, with one authorized document also read
+from its live path. Staging is not an OS sandbox. One reasoning iteration took
+220.032 seconds and reported 9,649 output tokens before the small correction;
+the large usage was not repeated successful edits. No paid tuning rerun occurred.
+The pinned CLI exposes thinking controls, but provider compliance is unmeasured.
+Evidence: output/updates/TEE-20260911-A83-01/evidence/doc-worker-audit.md.
+
+A83's drawing slice now has a corrected 26-page A3 review set: all sheets were
+rendered and inspected, with per-page identities and analytic visibility tests.
+Four facades exclude all interior cabinet/furnishing segments; plan retains the
+four cabinets and twelve fixtures. Drawing visibility/export/issue checks pass64.
+The IFC interoperability slice has 47 focused strict checks passing: exact retained
+bytes, GUID namespaces, explicit rigid federation frames, schema/unit/placement
+inspection, measured simple-wall candidates and real isolated IDS evaluation.
+No automatic native promotion, regulatory approval or full product parity is claimed.
+
+Independent root integration review caught stale CNC draft scope, unpageable
+large reports and batch type/update ordering. Those are being fixed and retested
+before any A83 release. A 473-entity synthetic repeated-storey fixture measured
+type propagation/undo/reopen and upper-storey drawing, with the existing 512-entity
+cap retained. The extra IFC long-tail tools require a fresh final surface measure.
+
+### A83 verified development checkpoint — 2026-09-11 07:49 UTC
+
+The three integration corrections now pass: effective type propagation preserves
+command order (907 valid differential sequences matched); full reports use small
+collection pages (all 500 wall schedules/BIM instances retrieved through real MCP,
+671 quality issues retrievable beyond the previous cap); CNC drafts/exports are
+bound to selected model/cabinet/revision. IFC attachment metadata must match exact
+retained source, and stale federation fails before writing. Nine IFC service
+controls include real IDS assessment after the original source was replaced.
+
+Combined isolated architecture/cabinet verification: 525 passed, two gated real
+Chrome tests skipped, 58.80 seconds, warnings treated as errors. Both Chrome
+workflows separately passed in 15.51 seconds, including delayed selection/revision
+races, real IFC/IDS/federation, report paging and stale/current CNC exports.
+GUI section/plan canvases were visually reviewed; overall dimensions and dash
+styles agree with the shared plotting data. Ruff passes all relevant sources and
+tests after seven inherited import-spacing findings were corrected in DEV tests.
+
+Matched-corpus FakeAdapter surface: 17 core tools and 2,129 schema tokens,
+unchanged full schema SHA95373e1c…e32963; 224 virtual tools against A82's220,
+with four new IFC tools. Flat-equivalent cost34,943tokens; this is a controlled
+benchmark, not the actual five-adapter runtime count. Main and installed Claude
+filesystem payloads still match accepted A82. No dependency or paid-worker run
+was needed for this checkpoint.
+
+Evidence: output/updates/TEE-20260911-A83-01/evidence/development-checkpoint-20260911.json
+retains the complete 300-file isolated payload manifest, SHA
+c881e9c47ec893552d5c1612f5f72573b63906cfd84c4031dc69f9ac8ff1be7f.
+This is a development observation, not a frozen A83 release or installed claim.
+Remaining full-BIM/Mozaik matrix work and coordinated A83 release remain open.
+Aider stays closed for this session; the separate HF1 handoff is prepared only.
+
+### Owner resumed Aider; QMAX metadata fix delivered — 2026-09-11 08:17 UTC
+
+Later owner direction supersedes that session stop. TEE switched to q14b and a
+bounded Aider guide task ran with a child-only browser guard in an owned runner.
+Run doc_eb55d47cff3844059040c53e13871b8f timed out after 180 seconds with no document
+applied; a separate tiny local content probe also timed out after 20 seconds.
+Listing readiness did not establish generation. The shared model server was not
+restarted. The owner then selected TEE/QMAX again; llm_switch and actual doc_status
+confirm qmax/claude-qwen-max, paid, active and pinned.
+
+HF2 extends the browser fix with explicit, route-bound, dated Aider model metadata.
+Read-only proxy facts map the alias to qwen3.8-max at DashScope International;
+official model/pricing sources ground limits and list rates. Proxy null limits
+and zero prices were not treated as verified facts. The actual installed Aider
+recognizes its exact alias with private metadata files; missing-key diagnostics
+remain. No paid request or browser launch was needed for the fix's validation.
+Generation quality remains a post-cutover check.
+
+The accepted-A82-based candidate changes two documentation files and adds one
+metadata module: 294 files, 3,435,983 bytes, complete runtime payload
+c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e.
+All 184 documentation checks pass (4.74 seconds, warnings as errors). Both extracted
+MCP shapes pass with the unchanged complete 17-tool schema and 261 virtual tools
+for the five-adapter/corpus composition. Dependency inventories and accepted
+editable kernel sources are unchanged. No incomplete A83 architecture is included.
+
+TEE-20260911-A82-HF2 revision 1 is frozen, manifest SHA-256
+68fe44947e9ff174678dbfed1d3b581171ef2e4bd56c4f9fd93e16413f507d26.
+Both recipient folders under Downloads/TEE_QMAX_AIDER_FIX_20260911 were copied and
+fully verified: 51 common files, matching payloads and exact rollback artifacts.
+Claude entry: Downloads/TEE_CLAUDE_QMAX_AIDER_FIX_20260911.md. HF1's installation
+proposal is superseded; its frozen evidence remains unchanged. Main source and
+installed Claude filesystem bytes still match accepted A82. No runtime/config
+cutover, package installation, dependency update or publication occurred.
+
+Current actual continuity reports five existing grants: call-paid-engine, exec-code,
+run-adhoc, run-declared-step and run-doc-agent; effective code execution is enabled.
+The older helper's allow_code_exec=false is a legacy config field, not current
+grant-derived permission. This work changed no grants. No active jobs/checkpoints.
+Twenty-one private files including four online SQLite backups passed readback,
+integrity and permission checks. Refresh at eventual quiet cutover.
+
+Next required step is Claude's independent received/review receipt under protocol
+section 1, then coordinated source/config/package deployment and actual receipts
+from both clients. The small Aider generation task and broader A83 capability
+matrix/release remain open; package preparation is not their completion.
+
+### HF2 review 12 passed; source/configuration applied — 2026-09-11 08:28 UTC
+
+Claude receipt TEE-20260911T082148Z-CLAUDE-12 independently verified both artifacts,
+the frozen manifest and payload, and reproduced all 184 documentation checks.
+Review PASS, no blocking defect; original bytes are retained in HF2/receipts.
+GPT-6 reverified both recipient folders, captured actual continuity, refreshed
+21 private backups/four online SQLite databases, and took Blender checkpoint cp1.
+That compressed .blend is copied durably outside disposable checkpoint storage.
+
+Applied only the two reviewed documentation source files, the new metadata module,
+and the exact reviewed QMAX metadata table. Main source now equals frozen HF2:
+c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e,
+294 files / 3,435,983 bytes. Existing config bytes, file modes, all five grants,
+and the complete QMAX pin file are preserved. No dependency change or paid call.
+A fresh process using main source and real main configuration confirmed actual
+installed Aider recognizes QMAX without warnings; network was blocked.
+
+Two preflight assumptions were corrected before any source/config writes:
+the selection file also has switched_at, which must be retained, and Blender's
+compress=True snapshot uses Zstandard rather than a raw BLENDER header. Earlier
+private backup attempts remain intact. Source-cutover evidence names the durable
+109,896-byte scene copy, SHA40c31610…fea12, and selective rollback preimages.
+
+The verified Claude MCPB was opened via macOS. Its installation is NOT observed;
+at cutover the installed Claude bytes remained accepted A82. The current Codex
+process also needs reconnect/restart to load changed code. No hot reload, process
+kill or settings rewrite was used to manufacture an acceptance receipt.
+Next-stage Claude file: Downloads/TEE_CLAUDE_HF2_AFTER_INSTALL_20260911.md.
+John must complete the supported Desktop install/enable step using the main
+project and restart/reconnect the actual clients; then actual runtime receipts
+and the bounded Aider generation check can close the remaining work.
+
+Review notes: QMAX supersedes the early historical q14b sentence in the frozen
+proposal. Metadata expires after 2026-09-25; surfacing that date in doc_status is
+a recorded later improvement, not an unreviewed amendment to HF2. No full A83
+release, professional product parity or successful generated document is claimed.
+
+### HF2 accepted by both clients; real Aider task applied — 2026-09-11 08:45 UTC
+
+The owner restarted Codex. Actual MCP calls expose the 17 core names, 261 virtual
+tools, main project, QMAX paid/ready and all five grants. The new source process
+started at 08:33:33Z after the source cutover; its complete filesystem payload
+matches frozen HF2. All five wrapper files and the shared 148-distribution
+inventory are unchanged. Raw tools/list is not exposed by this connector; its
+full schema fingerprint remains exact-payload harness evidence, stated honestly.
+
+Actual QMAX/Aider run doc_3dc2e939f0d94431b57f765927b9636d recognized the new model
+metadata and returned after 86.896 seconds with no unknown-model warning or help
+URL. It created docs/docs/a83-query-examples.md because Aider computes its no-Git
+edit root from writable file paths; TEE rejected the unexpected output and applied
+nothing. One fresh task gave Aider its displayed basename explicitly. Run
+doc_7dd9dcc1054f4cd882b1e199361734fe succeeded in 67.799 seconds with one document.
+
+Reviewed the complete 119-word result and executed its three JSON examples against
+isolated A83 service state: schedules/walls, BIM/instances and quality/issues all
+passed paging/count checks. Applied exact review checksum77fc46af…460ff through
+actual doc_apply. docs/a83-query-examples.md SHA5cb759cf…f3715 is accurately labelled
+development-only. Structured worker usage remains null; the logs displayed rounded
+list-rate estimates of $0.03 per run, not invoice-verified costs. No more paid tuning
+run. Both raw failed/successful jobs remain in private worker state.
+
+Claude's 08:34 pending note was preserved and superseded by receipt13 at 08:40:10Z:
+actual newly installed Claude accepted HF2. GPT-6 independently compared every
+installed non-cache member: all 302 names, sizes and hashes match the exact MCPB;
+both installed/source runtime trees match c0f95e83…811e (294 files /3,435,983 bytes).
+Actual Codex receipt20260911T084541Z and Claude receipt13 now close HF2 revision1
+under frozen manifest68fe4494…7d26. Completion:
+docs/coordination/upgrades/TEE-20260911-A82-HF2/completion-20260911T084541Z.md.
+Downloads/TEE_HF2_COMPLETE_20260911.md is the Claude-ready closure copy.
+
+The owner explicitly confirmed Yes, keep C208Prop. Current one-mesh Blender scene
+is intentional; no restore was performed. The previous scene remains privately
+backed up. Fusion, QMAX pin, grants, main memory/learning and rollback are preserved.
+Stale pending-install/session-stop memory facts were superseded. HF1 and the two
+accepted predecessors remain retained; nothing was deleted, committed or published.
+
+Due by 2026-09-25: reverify QMAX route/capacity/pricing before the metadata expires.
+Public expiry reporting is still a later improvement. Deterministic project-path
+to Aider-edit-name mapping is now implemented only in A83 development, with three
+tests against installed Aider and 187 documentation tests passing in4.76s, Ruff
+clean. Frozen/live HF2 is unchanged; that automatic path correction requires its
+own later coordinated release. Broader A83 BIM/cabinet acceptance remains open.
+
+Status reconciliation after HF2 closure: A83 P5's real documentation-guide item
+is now checked against the actual reviewed QMAX/Aider output. The A83 development
+review no longer carries the superseded Aider session-stop/HF1-pending status.
+Live status confirms QMAX, five grants, 261 virtual tools and no active jobs.
+No additional architectural implementation or A83 release occurred during this
+status review; roof/stair/MEP/structure, collaboration/freeform and production
+cabinet/CNC acceptance remain open as recorded in the benchmark matrices.
+
+### A83 roof/stair slice integrated with CADAgent — 2026-09-11
+
+Owner requested continued work on the outstanding items, then integration with
+CADAgent. Amended the A83 plan and implemented this slice only in its isolated
+development source. Added rectangular mono-pitch/gable roof solids with normal
+thickness and mitered ridge geometry, and straight monolithic stairs whose rise
+derives from two storey elevations, with optional upper landings. Level edits
+report dependent roof/stair geometry; typed edits and undo use existing guards.
+Legacy flat-roof mesh part identity is preserved.
+
+One new progressively disclosed read-state tool, ak_guide, returns executable
+CADAgent build/revise/inspect cards for these systems and existing BIM/cabinet
+capabilities. Both Fusion and Blender guide indexes link to it. Actual returned
+calls ran through the MCP boundary, including stale revision refusal, export job
+completion and undo. Existing learning recorded ordinary tool outcomes; no paid
+model call, extra agent backend, training run or dependency install was introduced.
+
+The retained initial/revised studies under output/architecture/a83-roof-stair/
+have 3000→3600 mm rise, 16→20 risers, 187.5→180 mm riser height, 4160→5200 mm flight
+run and 30→45 degree roof pitch. Actual IFC4 schema/geometry and GLB readback agree
+with quantities and bounds; product GUIDs remain identical across revisions.
+IfcStair aggregates its native flight/landing and references both levels. The
+optional GUI edits the same objects, including roof type overrides and staircase
+creation. Neither DCC nor the existing compact dwelling was used as scratch state.
+
+Visual review found and corrected an incomplete lower-plan dimension: the
+above-cut stair extent is now dashed in SVG/DXF/PDF/GUI, so the revised plan shows
+the complete 6200 mm flight-plus-landing length. Explicit sections intersect the
+stair and roof. Level marks now derive wall heads from actual walls and omit them
+when none exist. These nine-sheet studies are not complete construction sets.
+
+Evidence: roof-stair-cadagent-checkpoint.json in A83/evidence. Combined regression
+786 passed /2 browser-gated skips in47.65s; both actual Chrome workflows passed
+separately in11.29s, final focused system/card smoke44 passed in5.22s; Ruff clean.
+There are40 focused system checks. Earlier failed runs are retained: two stale
+expectations for new collections/topics, a guide-helper argument collision, and
+the GUI's original flat-only roof selector. All were resolved and rerun.
+
+Matched FakeAdapter/main-corpus comparison: 224→225 virtual tools and
+34943→35056 flat-schema tokens; 17 core tools remain2129 tokens with identical
+schema fingerprint. Isolated runtime identity f75f4623c6b7b816966584bfb13059c15619566104b5deda4337e1bea7db5a67,
+303 files /3,745,443 bytes. Main and installed Claude runtime filesystem payloads
+still exactly match accepted HF2 c0f95e83…6811e,294 files /3,435,983 bytes.
+No A83 package frozen/installed, restart, grants/pin/scene change, commit or push.
+
+Guide: docs/cadagent-architecture.md. Claude-ready development update saved in
+Downloads/TEE_CADAGENT_ARCHITECTURE_UPDATE_20260911.md. Complete roof/stair systems,
+layered pitched construction, drainage/junctions, winders/railings/headroom/slab
+voids, structure/MEP, collaboration/freeform, cabinet room fit and commissioned
+CNC remain open. No full competitor parity or worldwide code approval is claimed;
+A83 release still requires the coordinated packet and both actual-client receipts.
+
+Status check, 2026-09-11: development and installed payload identities above were
+recomputed and remain unchanged. Actual TEE status reports QMAX, 261 virtual
+tools, code execution enabled, the same five grants, and no active jobs. Fusion
+and Blender are connected; Blender currently reports six objects, so the earlier
+one-object C208Prop observation is historical, not a current scene assertion.
+This read-only status check did not inspect or alter scene contents. No new
+implementation, package freeze, installation or A83 acceptance occurred.
+
+### A83 hosted floor openings and stair headroom — 2026-09-11
+
+Owner asked to continue the outstanding items. Amended the A83 plan and completed
+the next bounded slice in isolated development: native slab_opening polygons,
+net slab solids/quantities and analytic stair clearance against authored slabs
+and roofs. Full-width nosing/landing geometry is clipped against obstacle planes;
+no centreline/grid samples or inferred jurisdiction threshold are used. Optional
+headroom_target_mm can be unset/null; absent overhead is not a pass. Solid
+penetration has an interior witness, separate from top-face support contact.
+
+Openings follow host level/thickness; invalid host references, touching/overlapping
+holes, outside/notched polygons and dangling host deletion fail atomically.
+Preview/GLB/drawings share the net slab mesh. Actual IFC4 schema/solid readback
+verifies IfcOpeningElement/IfcRelVoidsElement and unchanged existing GUIDs. Paged
+slabs/slab_openings schedules distinguish gross/removed/net quantities; the
+drawing CSV now identifies net slab area explicitly. Floor voids use compact
+F-series marks, schedule references and measured boundary dimensions in all
+drawing formats, including the optional GUI.
+
+CADAgent block/open/inspect cards executed through the actual MCP boundary in an
+owned isolated project, including export job completion, stale refusal and undo.
+Retained output/architecture/a83-stair-clearance/blocked and corrected show
+0→2107.692 mm headroom against the explicit 2100 mm study design target. Final
+4460×1100 mm opening removes4.906 m² /0.9812 m³; actual IFC/GLB and schedules agree
+on8.6188 m³ remaining slab. Opening ends at the landing face; bearing design is
+unverified. This is a system study, not a complete house or construction set.
+
+Evidence: output/updates/TEE-20260911-A83-01/evidence/stair-clearance-checkpoint.json.
+Final combined regression807 passed /2 browser-gated skips in36.16s; two actual
+Chrome workflows separately passed in11.00s, each with9 A83 checks. New focused
+opening/clearance suite21 passed in2.69s; Ruff clean. All ten corrected PDF sheets
+were inspected; the final export renders byte-identically to inspected images.
+Earlier logs/studies retain failures and fixes: expanded collection expectations,
+a browser-test collection-field mismatch, a generated-ID label collision, a
+40 mm landing-end gap found visually, and an unnecessarily changed legacy
+schedule title. The original title now remains for drawings without floor voids.
+
+Matched FakeAdapter/main-KB surface:225 virtual tools unchanged,17 core tools /
+2129 tokens with the same core fingerprint; flat schemas35056→35063 tokens (+7).
+Development runtime identity9f0ad8935a40d22ee8c2dee6d52b2500ed4aaae231c20d473b15fd30c2782da1,
+305 files /3,769,023 bytes. Main and installed Claude filesystem runtime still
+match accepted HF2 c0f95e83…6811e,294 files /3,435,983 bytes. No new frozen package,
+installation, grant/pin change, dependency install, paid worker, DCC operation,
+commit or push. The older C208Prop observation remains historical; this work
+made no assertion about current live scene contents.
+
+Guide updated: docs/cadagent-architecture.md. Claude-ready continuation saved to
+Downloads/TEE_CADAGENT_STAIR_CLEARANCE_UPDATE_20260911.md, identical to
+docs/coordination/upgrades/TEE-20260911-A83-01/stair-clearance-development-update.md.
+Complete roof/stair systems, railings, other obstacle classes, structure/MEP,
+collaboration/freeform/scale, cabinet room fit and production/CNC acceptance,
+worldwide jurisdiction coverage and coordinated A83 delivery remain open.
+
+### A83 Okongo benchmark and concurrent architectural research — 2026-09-11
+
+Owner selected the actual Okongo build as the test/benchmark and requested
+concurrent online research into architectural knowledge, standards, practice and
+real applications. Amended CLAUDE_A83_SCRIPT.md and added two repeatable runners:
+benchmarks/run_okongo_a83.py and benchmarks/audit_okongo_joinery.py. Both preserve
+OkongoSim and refuse existing/in-project output destinations. No original build,
+Unreal import or fabrication-manual generator was executed as a module.
+
+Final shell evidence is output/architecture/okongo-benchmark/baseline-04. It freezes
+37 selected source files, hashes nine cached USDs separately and fingerprints
+isolated runtime Python before/after. Forty actual semantic MCP calls create and
+inspect 244 entities. Twenty-five source room footprint areas, 125 specified wall
+volumes independently reopened in IFC/GLB, and 42 rectangular aperture positions
+agree. Wall height_mm is an absolute top in this source; native heights subtract
+the base. Nineteen nominal/gap-width differences remain visible. Lowering copied
+w03_1 from a 1050 mm sill to zero is detected; actual undo restores the record.
+Intentionally full-height glazing is preserved.
+
+Eleven of thirteen measured checks pass. Full drawings fail at passage_12 label
+crowding; IFC EXPRESS/schema passes but one fully consumed gap host has no solid.
+Two multipart rooms become 27 spaces, and three positioning datums become storeys
+in the actual single-storey house. Five of fifteen roof records are represented
+only as nominal concrete cores; zero complete roof systems. Generated wall
+corrections/closures, full opening/screen assemblies and other building systems
+remain excluded. Complete-build acceptance is false; strict runner exit 2 is
+expected. No complete house, construction set or competitor performance is claimed.
+
+The shell workflow takes 2.99 s, with 38,397 estimated semantic request/response
+tokens and 10,475 additional polling tokens (chars/3.5; input geometry included).
+These are partial-workflow numbers, not tokens per completed house. The cached
+2026-08-27 build names a different source hash; its USD geometry was not read back.
+The existing 135 mm capture/model and gable-border discrepancies remain unresolved.
+No house rescale, coordinate reanchor or live-editor reconciliation was invented.
+
+Current kitchen source review found that the shell's two whole-run cabinet
+comparators are older records. Supplemental joinery-audit-05 freezes the current
+nine-strip specification, cutting list, generator sources and actual OKG-KFB-001
+Rev C PDF. A reviewed pure arithmetic function is extracted with its actual source
+constants, without module I/O. The PDF claims 119 panels; the manual function
+totals 130 row quantities; the separate cutting list totals 137 panels. The north
+peninsula drawer bank and bin pull-out differ. Ambiguous back/base-pair wording
+does not supply two dimensioned parts or reconcile the totals.
+
+The supplemental audit exercises the native kernel directly: 14 of 16 modules
+generate, with full-back, drawer-bottom and continuous-plinth differences. Fridge
+topbox2 and pullout recipes remain unsupported; fabrication_accepted is false.
+Rev C's matt-white/1 mm white ABS decision is retained separately from older oak
+and edge records. An actual MCP probe against the older drawer run preserves its
+255 mm fronts and verifies atomic refusal of the unallocated 7 mm channel.
+No Okongo source/cutting list/PDF was repaired or fabrication order issued.
+
+Concurrent research completed docs/research/86-architectural-knowledge-and-bim-cases.md,
+87-building-practice-and-fabrication-cases.md and 88-global-code-source-map.md.
+Six original project cases cover Crossrail, Sydney Opera House, NUS SDE4, Gando,
+Eastgate and Namibia's Habitat Research and Development Centre. Primary BIM,
+professional/public building guidance, manufacturer and original technical
+sources support 12 proposed BIM gates and 24 proposed building/fabrication checks.
+Guidance, licensed normative text, measured/claimed outcomes and legal adoption
+remain distinct. Global source routes are an initial map, not rule-pack coverage.
+Okongo's municipal boundary must be established from documentary evidence; the
+benchmark keeps municipality null. No standards library or model training was added.
+
+Sixteen focused benchmark tests pass with warnings as errors in 0.14 s; Ruff is
+clean for both runners and the test module. This is separate from the earlier
+807-pass architecture campaign, which was not rerun. Final checkpoint:
+output/updates/TEE-20260911-A83-01/evidence/okongo-benchmark-checkpoint.json.
+The benchmark guide, A83 script/review and CADAgent architecture guide record the
+next corrections and their independent acceptance checks.
+
+Development runtime remains 9f0ad893…82da1 (305 files /3,769,023 bytes); main and
+installed Claude filesystem runtime remain accepted HF2 c0f95e83…6811e (294 files
+/3,435,983 bytes). No runtime source/schema, dependency, grant/pin or DCC change,
+paid call, package freeze/install, restart, commit or push occurred in this slice.
+Claude-ready development coordination is saved in
+Downloads/TEE_OKONGO_BENCHMARK_AND_RESEARCH_20260911.md and the matching repository
+coordination note. Full A83 BIM/cabinet acceptance and two-client delivery remain
+open; research proposals and a completed benchmark run do not close those gates.
+
+Status check 2026-09-11T12:12:40.302509+00:00: owner requested a progress
+update. Latest implementation/evidence remains the Okongo checkpoint above; no
+additional implementation or A83 installation occurred during this status turn.
+Actual TEE status confirms QMAX, 261 virtual tools, the same five grants and no
+active jobs. Fusion and Blender are connected; Unreal is disconnected. No scene
+mutation was performed. Next implementation remains drawing scopes/spatial
+identity and wall/opening topology, followed by current-kitchen reconciliation.
+
+### A83 owner-directed Okongo corrections — 2026-09-11
+
+Owner said DO Next. Completed the three named corrections in isolated A83:
+drawing scopes/spatial identity, fully consumed host topology, and current-kitchen
+definition reconciliation. CLAUDE_A83_SCRIPT.md was amended before implementation.
+Original OkongoSim files, installed HF2 and live DCC state remain untouched.
+
+One actual storey now contains 25 native/IFC spaces, including two multipart
+rooms. Explicit signed base offsets preserve wall, room and slab placement;
+shared promotion, GUI, schedules, penetrations and stair-clearance paths use them.
+The fully consumed host is a nonphysical reference for the unmodelled specialist
+frosted-glass partition, not a walkable passage or physical glass assembly.
+Virtual references carry no inferred accessibility. Source promotion records
+its offset basis rather than deriving a building datum from scan bounds.
+
+Final benchmark: output/architecture/okongo-benchmark/corrected-03. Fourteen of
+fourteen measured checks pass. Independent IFC/source verification preserves
+25 room identities/footprints/world-Z/prism volumes, 125 specified wall footprints,
+world-Z and volumes, 41 physical aperture spans plus one virtual reference span.
+IFC schema/physical-solid/virtual-surface checks pass; GLB preserves specified
+wall volumes. The deliberately lowered 1050 mm sill is detected and undo restores
+it. Complete-build acceptance remains false; strict exit 2 is expected.
+
+The shared renderer produces 36 review sheets with 67 unique annotation IDs,
+readable room scopes, exact clipped context and crop locators. Every page was
+visually inspected, with byte-identical page transfer between retained iterations.
+Review found and fixed overlapping levels and ambiguous schedule dimension wording.
+Broad regression then caught two roof/stair exports with globally requested FFLs
+outside a view: exact values now appear as Outside view references, with no
+fabricated in-view tick. PDF/SVG/DXF/GUI share level placement and reference styling.
+The final 36 pages remain shell-review drawings; setting-out/clearance dimensions,
+local context opening marks, operational details and full construction data remain
+incomplete. One source room overlap, 0.111818 m², is reported without source repair.
+Room volume checks cover constant-height envelopes, not finished raked ceilings.
+
+Current kitchen reconciliation independently identifies 137 board panels and
+2 separate stone worktops from source solid roles and cutting lists. The 130-row
+manual arithmetic lacks six drawer members and one bin bottom; the PDF119 claim
+is unsupported. Six drawer bottom/end intersections total 648,192 mm³. Alternatives
+are explicit and unselected; no manufacturing blank or joint was invented.
+Rev C matt-white/1 mm white ABS intent is retained. Fourteen of sixteen native
+modules are supported; topbox2/pullout and remaining back/plinth/hardware/joint/CNC
+work remain unaccepted. The shell's older whole-run comparisons are labelled
+historical, separate from the current nine-strip candidate.
+
+Final combined regression: 912 passed, 2 browser-gated skips, 41.23 s. Both real
+Chrome workflows then pass separately in 12.76 s; 12 A83 checks per workflow and
+8 delayed-response checks on the delayed run. Ruff passes. No inflated sum of
+overlapping focused suites. Final benchmark performance: 4.85 s, 43 semantic MCP
+calls, 40,768 estimated semantic tokens plus 11,924 polling tokens. This is one
+incomplete-shell observation, not completed-house efficiency or competitor parity.
+Matched composition retains 17 core tools /2,129 core tokens and the same core
+schema hash; 225 virtual tools, flattened estimate 35,063→35,069 (+6 schema tokens).
+The matched fixture composition is distinct from the installed client's 261 tools.
+
+Development payload a7493681f4f46d61be403b6c7b45efe3b5464cd93edca691a5022dcf792a0300
+(307 files /3,812,915 bytes). Before-correction payload 9f0ad893…82da1
+is retained under evidence/okongo-corrections-before. Main and installed Claude
+filesystem payloads remain HF2 c0f95e83…6811e,294 files /3,435,983 bytes.
+Checkpoint: output/updates/TEE-20260911-A83-01/evidence/okongo-corrections-checkpoint.json
+SHA-256 434463528f59487f9b0c710917e718833066dbd42041c81899fc1df7b78117f5.
+
+Claude-ready development review packet saved to
+Downloads/TEE_OKONGO_CORRECTIONS_20260911.md and identical repository coordination
+note. No A83 release freeze/install, restart, dependency/grant/model-pin change,
+paid worker, DCC operation, commit or push. Full roof/envelope/opening systems,
+construction documentation, usable-space/performance, remaining cabinet production,
+independent BIM delivery and jurisdiction gates remain open. A83 deployment still
+requires the coordinated packet and receipts from both actual clients.
+
+### A83 Okongo visible-roof correction — 2026-09-11
+
+The missing roof correction is complete in isolated A83 development.
+[Roof-visible 03](/Users/john/TokenEfficiencyEngine/output/architecture/okongo-benchmark/roof-visible-03/REPORT.md) passes **17 of 17 measured checks**.
+The native model now contains 14 roofs: three gables, six sheet roofs and five
+concrete cores, exported as 17 independently verified physical roof bodies.
+The central gable keeps its off-centre ridge and unequal eaves. The 248 native
+entities retain the earlier one-storey/25-room correction and source opening levels.
+
+The [40-page review set](/Users/john/TokenEfficiencyEngine/output/architecture/okongo-benchmark/roof-visible-03/project/output/archkiln/building_d692fa24855144b4/20260911T135357Z-76430a72/review-set.pdf) adds a roof plan, a
+[3D roof view](/Users/john/TokenEfficiencyEngine/output/architecture/okongo-benchmark/roof-visible-03/visual-review/page-05.png) and two roof-register pages. All 81 annotation IDs are
+covered with no font substitutions. Thirteen changed/new pages were directly
+inspected; the other 27 drawing bodies match previously inspected pixels after
+normalizing only changed sheet/drawing-reference glyphs. Additional spot checks
+cover eight unchanged pages. The measured height-number/level-leader collision
+is fixed through shared PDF/SVG/DXF/GUI text placement; dimension endpoints and
+physical level ticks remain exact. These remain scoped review drawings, with
+construction setting-out and full operating details still incomplete.
+
+Independent source-to-IFC/GLB checks verify all top/bottom vertices, footprints,
+normal thicknesses and signed volumes, plus 14 IFC roof identities and 12
+aggregated plane children. The largest GLB corner error is 0.000364 mm or less.
+An initial benchmark bug ignored GLB node transforms; its failed evidence is
+retained and the reader now measures positioned mesh instances.
+
+Validation: **963 regression tests pass**, two browser-gated skips; both actual
+Chrome workflows pass separately with 14 A83 checks each and eight delayed-response
+checks on the delayed run. Ruff passes. The final run used 43 semantic MCP calls,
+45,301 estimated semantic tokens and 13,732 polling tokens in 6.40 s. This is one
+incomplete-shell observation during concurrent validation, not completed-house
+performance or competitor parity. Matched tool composition remains 17 core tools,
+2,129 core tokens, 225 discoverable tools and 35,069 flattened tokens, unchanged.
+Actual installed TEE status separately confirms Q14B active and 261 virtual tools.
+
+The source generator's 60 mm sheet shell is a nominal preview envelope. The three
+gable covering records specify 0.47 mm metal; flat-sheet gauges are unknown. Level
+source surfaces remain level because falls are assumptions. The open pergola is
+not converted to a closed roof and its member geometry remains unimplemented.
+Source weather-coverage gaps remain explicit: passage_8 2.886822 m² and master
+bedroom 0.103050 m². Gable closures, structural framing, insulation, drainage,
+flashings and full opening assemblies remain incomplete. Cabinet production,
+independent BIM/jurisdiction and full-building acceptance remain open.
+
+Development payload: `c7e17f018040718b87ead9c1d1e7bef10620d1c95bdd70911c1bd2efa435bea0` (307 files / 3,837,644 bytes).
+Installed Claude filesystem remains HF2 `c0f95e836b4207f3fa8bfe45f3d9c8781e622025d8027841d0b27bcac096811e`. During this slice
+the separate checkout advanced to commit `eb711465fab08d4e8179ee183090402d470e6354`
+(doctor --emit launch fix); main payload is now `12bff7832f62da51e3ef3f0431a8861a591c84ece8799cca691614aaec9292a2`. Only doctor.py
+differs between current main and installed HF2. That concurrent change has not
+been ported into isolated A83 and must be reconciled before a release freeze.
+These are filesystem identities, not new two-client runtime acceptance receipts.
+
+[Machine checkpoint](/Users/john/TokenEfficiencyEngine/output/updates/TEE-20260911-A83-01/evidence/okongo-roof-checkpoint.json), SHA-256 `00bc7edd6c843e8dc590bee490be20091dd5ff041b3ae5fa4eaa5c1707ef5552`. Original OkongoSim inputs and cached
+build files are unchanged. No A83 package was frozen or installed and no DCC
+scene was modified. The owner-requested TEE/Q14B selection is active separately.
+
+Next-step confirmation, 2026-09-11: resume the recorded remaining-work order
+after the visible-roof correction. The immediate pass is working drawings:
+setting-out/clear dimensions, complete room/opening references and coordinated
+details, checked against Okongo and the plotted output. Wall/opening construction,
+cabinet production, full roof/envelope systems and performance/BIM/jurisdiction
+acceptance follow. Reconcile the concurrent doctor.py change before any release
+freeze and collect both actual-client receipts for deployment completion. This
+confirmation made no runtime or installation change; the benchmark guide's stale
+current check count was corrected from 14 to 17.
+
+### A83 autonomous remaining phases — 2026-09-11 (in progress)
+
+Owner authorizes all remaining phases without routine input; the A83 script now
+records the six-phase sequence. Exact c7e17f01 runtime and 36 affected inputs are
+preserved under evidence/okongo-completion-before. Phase ledger:
+output/updates/TEE-20260911-A83-01/evidence/okongo-completion-ledger.json.
+Working drawings now include real boundary witnesses, coordinate tables and
+separate aperture-setting-out data. Completion-drawings-02 passes 18/18 measured
+checks, including reopened DXF/SVG/CSV verification of 25 spaces and 117 boundary
+edges. The focused combined drawing suite passes 57 tests. Visual inspection found
+a point/void mark collision; point marks now use Pxx. Final combined validation
+and plotted inspection remain pending as the other phases continue.
+
+Owner additionally corrects Passage 12: it is outside the house. The source JSON
+has is_outdoor=false and is_conditioned=true; original bytes are preserved and an
+explicit owner correction is applied to the benchmark's effective specification.
+Native spaces now carry interior/exterior/unclassified and optional conditioning,
+with legacy flag conflict validation, distinct area totals, exterior plan labels,
+IFC Pset_SpaceCommon.IsExternal and GLB semantics. Exterior reference prism height
+is not an enclosed ceiling or conditioned volume, and exterior classification is
+not evidence of a safe site exit. Nine focused environment tests pass. The first
+test launch used a relative pytest pythonpath and loaded main; this failed
+collection is retained, and the passing launch explicitly uses isolated A83.
+No package freeze/install or live DCC mutation has occurred in this slice.
+
+Autonomous completion checkpoint (continuing): completion-exterior-01 passes
+18/18 checks with Passage 12 explicitly outside. Interior footprint is now
+303.451470 m²; exterior footprint 112.560249 m². Original source geometry unchanged.
+Passage 12's corrected plot and master en-suite plot were directly inspected;
+final full plotted review remains pending. NumPy boolean serialization caused
+the first construction benchmark to stop after export; failure retained and
+comparison scalars normalized. Completion-construction-02 passes 20/20 checks,
+including all 36 added profile members through independently reopened IFC/GLB:
+six gable infills, three shaped frame/pane pairs and 24 open pergola slats.
+Nineteen member tests pass across nine IFC roles, rotated/holed geometry and type
+assignment. Source frame/pane placeholders, unresolved rebate overlap and
+contradictory eaves-band/prose sections remain explicit specification gates.
+
+Cabinet recipes now support applied/between/no backs, independent plinth omission,
+fridge top boxes with actual void and asymmetric door gaps, pull-out cradles,
+chosen applied/between drawer bottoms, and explicit panel sets through the same
+BOM/labels/machining/costing path. Forty-five cabinet family/production tests pass.
+Kitchen-production-01 reproduces all 16 source modules plus seven continuous
+strip plinths: 137 board panels, with 23 independent source-bound comparisons
+passing. Three drawer bottoms use the documented between-four-walls alternative
+in a separate design variant; 32 mm is removed along depth to eliminate the six
+source intersections. Original candidate/alternatives remain unchanged. The native
+overall depth includes the source's 16 mm projecting fronts. The exported kitchen
+passes IFC schema/geometry and writes IFC, GLB and a 78-page assembly/part review
+set. Manufacturing remains unaccepted: stock, edge allowance, joint support,
+hardware, appliance fit and actual machine evidence are not established.
+Phases 2–3 continue; usable-space/performance, BIM delivery, final combined/browser/
+plotted verification and coordinated deployment remain open. No installation or
+live scene change, paid worker or source-project mutation occurred.
+
+
+A83 autonomous checkpoint — RC1 prepared, owner says continue (2026-09-11).
+Passage 12 is exterior throughout native state, plans, area schedules and IFC;
+BIM type/occurrence IsExternal cannot contradict that classification. The final
+Okongo replay completion-final-01 passes 22 checks. It retains 25 spaces, 117
+working-dimension edges, 14 roofs and 36 source profile members. It adds an
+explicit 114-reference furniture scenario; three 900 x 2000 mm design-target
+routes pass whole-path geometric checks. This is not legal egress or full asset
+coverage. Current kitchen final replay passes 16 modules plus seven continuous
+plinths / 137 panels / 23 source comparisons. Source files remain unchanged.
+
+1054 combined tests pass in 62.56 s, two browser-gated skips. Both actual Chrome
+workflows pass separately, 15 A83 checks per workflow. Earlier retained failures:
+furniture facts exceeded the existing 32 kB limit (repeated provenance shortened,
+no references dropped); browser fixture's space datum was below its raised floor
+(aligned explicitly); expected UI and collection counts were stale. PDF text
+bounds pass for all 40 house and 78 kitchen pages; corrected Passage 12, concave/
+small rooms and selected cabinet sheets were visually inspected. Full plotted
+construction review remains incomplete. No construction/manufacturing issue.
+
+Concurrent root doctor.py --no-sync fix was reconciled by exact three-way source
+comparison; it was the only root runtime change from HF2 and A83 had not changed
+it. Root remains untouched. RC1 common payload is
+4e9ce7b2754bbb181a82cc46fb0fb7a0f38624500f75258f180c34243566b76c,
+312 files / 3,899,619 bytes. Frozen manifest:
+1cb1c5af4bb4457edcb9439fe9131534898b3f8b21f5861163067bf022977f61.
+Both extracted delivery harnesses pass with 17 core tools and 266 progressive
+tools under the full five-lane/shared-corpus configuration. The first harness's
+old 261 assertion failed; independent before/after registry comparison found
+exactly the five A83 IFC/CADAgent additions and no removed tools. In matched fake
+composition, current-turn core remains 2129 tokens and progressive count 225;
+flattened surface grows only 15 estimated tokens from 35069 to 35084.
+
+Both delivery folders are under /Users/john/Downloads/TEE_A83_RC1_20260911.
+Claude-ready file: /Users/john/Downloads/TEE_CLAUDE_A83_RC1_20260911.md.
+Independent Claude review and both actual-client acceptance receipts remain
+pending under protocol 1.0.1. Neither actual client was upgraded. Dependencies,
+grants, Q14B selection, original project and DCC scenes were not changed. Actual
+Codex status/recall was captured privately; Claude runtime remained unobserved,
+with its installed filesystem still HF2. Private configuration/SQLite backups
+and both predecessor runtime artifacts are retained; refresh at quiet cutover.
+New documents must not be silently downgraded or overwritten during rollback.
+
+The owner again says continue. Preserve frozen RC1 and its artifacts; work the
+remaining assembly/connected-service and environmental capability separately.
+Complete opening operation assemblies, drainage/weathering/support design,
+physical environmental analysis, manufacturer/machine evidence, applicable
+jurisdiction coverage and commercial-product parity remain unfinished. Do not
+turn source/IFC geometric success into full-building acceptance.
+
+A83-02 continuation — connected services (2026-09-11).
+Isolated development now has pipe/duct systems, named fixed endpoint ports,
+measured gap/normal/profile/service/flow checks and truthful connected-component
+reports. Failed declared links remain editable but refuse IFC connectivity export.
+IFC4 ports nest under real member placements; sink axes point inward and source
+axes outward, verified after reopening horizontal, vertical and rotated exports.
+No Okongo service layout was inferred. Terminal equipment, fittings, seals,
+supports, hydraulic/thermal/electrical sizing and local approval remain open.
+
+Three CADAgent cards build a synthetic 25 mm-gap duct study, inspect it, and repair
+it through normal revision/grant boundaries. Actual MCP replay verifies IFC
+system/nesting/port coordinates, stale edits and undo. Focused + cards: 21 passed
+(9.71 s); combined affected model/service/export suite: 167 passed (25.77 s).
+Both actual Chrome workflows pass with 16 A83 checks each (16.85 s). Ruff passes.
+Initial lint failures and one readback test's incorrect dictionary/path assumption
+are retained. Matched core surface stays 17 / 2129 tokens; progressive count225,
+flat schema35102 (+18 from RC1). RC1 remains frozen and neither client upgraded.
+
+A83-02 environmental and delivery checkpoint — RC2 prepared (2026-09-11).
+Thermal scenarios use explicit sourced SI continuous-layer resistances or a
+declared whole-product U-value, temperatures, interior/conditioned zone membership
+and selected surfaces. Wall area subtracts apertures; roof area uses slope; slab
+area subtracts voids. Missing inputs remain unknown. Positive heat flow is outward;
+zone values are selected-surface subtotals, never a whole-building load. Exterior
+and unclassified zones refuse atomically; no climate or source product was invented.
+The optional GUI and cadagent_thermal.inspect share the same report/revision path.
+
+Thermal focused: 17 tests pass. Combined final regression: 1088 passed, two
+browser-gated skips, 77.95 s. Both actual Chrome workflows pass separately with
+17 A83 checks each, 16.93 s. Ruff passes. Core remains 17 / 2129 tokens with the
+same schema; matched progressive count225 / flattened35104 (+20 from RC1).
+The separately copied Okongo thermal study passes 11/11 checks: independently
+reopened IFC aperture1.68 m², illustrative U2.8→1.4 at24/35°C gives outward flow
+-51.744→-25.872W. The selected wall stays unknown; all source entities remain
+unchanged, including exterior Passage12. Initial GUID lookup and CDP temporary
+variable failures are retained beside their corrections. Research90–91 records
+primary grounding, precise scope and unresolved physical/authority inputs.
+
+RC2 supersedes RC1 as the proposed installation candidate; RC1 remains immutable.
+RC2 payload33768a788dd7be4b1eb901542bd18ff792179db7e0afeaf0f46473236e4566de,
+315 files /3,939,679 bytes. Frozen manifest:
+9b0909e1f647fb4c821f572fbfa4bde7ab855f8d0a8449f36362b922a88a1caa.
+Claude MCPB5377afff9fa4d82e8ad2b56d135e19b082098442d0a647eb1031ae69a7a0428b;
+Codex source archiveb2223251be184ac41cd1734f4b50141782bb3b7bc105b0557a888968f4025221.
+Both extracted actual-MCP harnesses pass with17core/266progressive, service gap
+repair, thermal signed flow, existing circulation and grant/learning boundaries.
+Both delivered artifacts and every coordination file rehashed successfully.
+Delivery:/Users/john/Downloads/TEE_A83_RC2_20260911;
+Claude file:/Users/john/Downloads/TEE_CLAUDE_A83_RC2_20260911.md.
+
+Actual Codex still observes Q14B, five grants,261progressive and nojobs/checkpoints;
+root payload12bff783… remains unchanged. Claude actual runtime NOT OBSERVED,
+installed filesystem HF2. Private state backups and predecessor artifacts retained.
+Shared corpus inventory is fingerprinted as an external resource, not endorsed
+architecture knowledge. No client cutover, paid generation, DCC/source-project
+mutation, dependency change or Git publication. Independent Claude RC2 review,
+quiet installation and both actual-client acceptance receipts remain pending.
+
+Further implementation continues from RC2 in a fresh development copy, preserving
+this snapshot. Remaining independent work: source-manufactured opening/motion
+assemblies (Okongo top-hung/sliding and specialist glazing), roof weathering and
+drainage/support details, full MEP fittings/terminals and design, realistic dynamic
+environmental analysis and application exchange acceptance. Manufacturer/hardware/
+stock/machine and jurisdiction evidence remain required; commercial parity,
+full-building construction and CNC release remain unaccepted.
+
+Post-freeze RC2 check: the Okongo thermal comparison was replayed against the
+immutable RC2 snapshot and again passed all 11 controls. Both frozen and development
+runtime fingerprints still match the RC2 payload. Post-freeze evidence is stored
+outside the immutable packet in RC2/postfreeze-validation.json; no manifest or
+actual-client receipt was altered. Both probe/benchmark processes exited cleanly.
+
+A84 structural integration and Okongo native demonstration (2026-09-11).
+Fresh development was seeded from frozen A83 RC2. Nine structural runtime files
+plus cli/config/trust and orderly app-shutdown seams implement seven progressive
+tools: explicit linear elastic planar Timoshenko studies, sourced load cases,
+uniform member/thermal loads, combinations, state/revision checks, native solver
+processes, BIM centroid-axis candidates and a sourced harsh-environment catalogue.
+No always-loaded schema change. Shared interpreter and actual clients unchanged.
+
+OpenSeesPy 3.8.0.0 runs in an isolated owner-internal environment; OOFEM v3.0 is
+built from commit214b161ed3acb471f2d0104b004c37fd73bafaa2, structural mechanics
+only. Full external identity/licence evidence is retained. Code_Aster generated
+decks and launchers remain native-unverified; neither launcher nor a working
+Docker daemon was available. No solver library is vendored into the MIT runtime.
+
+Final affected regression:1156passed,2browser-gated skips,92.46s. Ruff passes.
+Independent review corrected a fast-exit output-limit bypass, bounded result
+reads, streaming hashes, orderly solver shutdown/descendant cleanup and nodal-only
+extrema names. Actual OOFEM text precision is propagated into mechanics checks.
+Original numerical, canary and columnar-response interpretation failures remain
+beside corrected evidence. Matched shared-corpus fake composition:225→232virtual,
+flat35104→36155tokens;17core/2129tokens and schema95373e1c… unchanged. Canonical
+fixture without main-corpus override is228virtual/35531flat; both contexts labelled.
+
+The separate Okongo roof-strip demonstration passed10native runs over5scenarios
+with both OpenSeesPy and OOFEM;24pergola centroid candidates were independently
+checked. Source untouched,14roofs present,Passage12 exterior/unconditioned retained,
+and a deliberate copied-source revision refuses a linked solve. A real Chrome
+report check passes desktop/mobile390px, all10selectors, noJavaScript errors.
+Its original1801mm strip is explicitly a plan-width hypothesis with material,
+support and load assumptions. No building capacity or degradation prediction.
+
+A84 matching artifacts built and both extracted MCP harnesses pass30checks each:
+17core/273progressive, same payload, prior A83 grant/learning/circulation/service/
+thermal checks and both native solver controls. Candidate runtime
+0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f,
+324files/4,017,735bytes. Not yet frozen or installed. Actual Codex root remains
+12bff7832f62da51e3ef3f0431a8861a591c84ece8799cca691614aaec9292a2,
+Q14B,five grants,261progressive,nojobs/checkpoints. Final live observation has
+Blender/Fusion/Unreal disconnected and headless partkiln/seamkiln connected.
+Claude actual NOTOBSERVED; installed filesystem HF2. Private backups stay local.
+
+Owner extended the active task to structural studies of BOTH roof and wall
+structures. Per-roof, per-wall and original-source provenance audits underway;
+166walls include41derived opening hosts. Conditional bearing-centre spans replace
+clear widths where appropriate (Passage12:2021mmcentres vs1801mmclear).
+Original drawings contain structural sizes but defer reinforcement to engineering
+details, and drawn timber roofs conflict with later steel evidence. Unit-response
+studies will expose assumptions and measured geometry without claiming as-built
+adequacy. Frozen A83 packets, original Okongo source and all DCC scenes remain intact.
+
+A84 expanded roof/wall study (2026-09-11): all14roofs/17planes and166wall entities
+are now audited.117full-height source-wall strips form34geometry groups, excluding
+41opening hosts,6posts and2glass screens. Wall audit covers41openings,6extra infills,
+170gross contact candidates and2duplicate solid pairs. Eleven wall/provenance
+controls pass; its own Chrome check exercises all166selections andmobile390px.
+Roof projected sum520.229487m², union489.119065m²;31.110422m²overlap is explicitly
+not a whole-building load. Allroof plans and sourcehashes checked.
+
+Native282unit-response calculations pass in both engines:5conditional slab
+centre-span studies plus136wall case/restraint combinations perengine. Source
+files unchanged. Firstdriver attempt correctly refused raw-vs-canonical BIMhash;
+using ArchitectureService's canonical identity repaired the harness without
+changing runtime checks. Structural material/support/code acceptance stays open.
+The44-entry provenance register includes all17full-design pages visually reviewed;
+they are architectural renders and supply no additional engineering schedule.
+NorthernPassage12's9.07704m²concrete extent is disputed source reconstruction;
+newconditionalstrip is in southern paired-wall interval. The earlier1801mmexample
+is a numerical control, not as-built engineering acceptance. Fullcombinedreport:
+output/architecture/okongo-benchmark/roof-wall-structural-study-01/index.html.
+
+A84 final review delivery checkpoint (2026-09-11).
+Frozen update TEE-20260911-A84-01 rev1 (builddirectory A84-RC1) has manifest
+2cdc5052781a08488fd4cf946e9b4aef47c24bdb10879d38b699ad2bc340cced.
+Common runtime0e172448…b252f remains324files/4,017,735bytes. Claude localMCPB:
+61d3429fbd66215ebca9beea622e385ab85d78a138b0db28cf94381da8b44f79,
+1,393,477bytes. Codex source archive:
+3399da61e696954c38a4b30ca9175d1c683e9da85140a6e2560cdb1b28ef0cd5,
+1,604,800bytes. Both99-file common coordination copies and both delivered archives
+were rehashed successfully. A83 predecessors remain immutable; actual root unchanged.
+
+The owner added roof/wall study scope after the runtime archives were built.
+Current study scripts, current A84plan, updated guides, complete roof/wall report,
+audits and native evidence inventory are identical companion files in BOTH
+coordination deliveries. study-addendum.md makes these current instructions
+explicit; older embedded guide prose is not silently relabelled as the new study.
+No runtime change or invalid reuse of an actual-client receipt occurred.
+
+Combined report final browser check passes180selections,239displayedpressurecases,
+478nativevaluecomparisons,correct58no-modelstates,pressure/E/zero/invalid/overflow
+controls,fourcoordinateplanclicks,nojserrors,mobile390px. All114localreferences
+across8linkedHTML/MDdocuments exist. Priorhidden-controls/overflow and copied-link
+failures remain beside corrected evidence. Source/material/engineering limits
+remain visible. OriginalOkongo source and allDCCscenes remain intact.
+
+Downloads report:
+/Users/john/Downloads/Okongo_Roof_Wall_Structural_Study_20260911/index.html
+Both deliveries:/Users/john/Downloads/TEE_A84_20260911
+Claude-ready file:/Users/john/Downloads/TEE_CLAUDE_A84_20260911.md
+Independent Claude review, quiet coordinated installation and both actual-client
+accepted receipts remain pending under the owner's protocol1.0.1. Code_Aster
+native verification, physical/material/restraint/reinforcement/foundation and
+jurisdiction acceptance remain open; no whole-building capacity, service life,
+construction release or commercial product parity is claimed.
+
+### A84 3D colour-gradient reports — 2026-09-11
+
+Owner requested structural reports as colour gradients over the 3D house.
+Completed an offline, self-contained WebGL report using the retained Okongo GLB
+with exact source entity identities: 166 walls, 14 roofs (17 planes), 36 members.
+Native displacement and bending-moment magnitudes are painted on 117 audited
+wall strips and five conditional roof sections; 13 recorded stations per model.
+The displayed pressure subset is 146 native results / 73 models from the full
+282-run study, switchable between OpenSeesPy and OOFEM. Element-maximum summaries
+are separately labelled, and coverage is categorical. Unanalysed areas remain
+neutral. A world-coordinate shader mask keeps Passage 12 north of y=9,972 mm
+neutral on top and side faces, with magenta hatching; Passage 12 remains exterior.
+Roof ribbons have a diagrammatic 100 mm display width, representing the 1 m
+reference-width section without inventing a continuous bearing band.
+
+Independent mapping and browser reviews passed. Browser evidence covers 40
+report/support/placement/solver combinations, 216 entity selections (94 without
+models), numerical ceilings, three physical picks, orbit/zoom/focus, roof
+visibility, mobile layout and projected whole-house bounds. An initial mobile
+framing defect was found and fixed. No JS/WebGL errors or external HTTP requests.
+Seven PNG sheets and a seven-page A3 landscape PDF were visually/readback checked.
+HTML SHA-256: 450b073b8e805423d7d89387c152671c7830763cac14f123018bc5defefb379f.
+PDF SHA-256: bd9ef6e2b15008562f4cbc6f24bde90213d452e333381b21603028a1608032eb.
+
+Report/evidence: output/architecture/okongo-benchmark/structural-3d-gradients-01.
+Delivery: /Users/john/Downloads/Okongo_Structural_3D_Reports_20260911/index.html
+and Okongo_3D_Structural_Reports.pdf in the same folder. Reproducible generators
+and browser checker are benchmarks/report_okongo_structural_3d_a84.py,
+benchmarks/check_okongo_structural_3d_browser.py and
+benchmarks/package_okongo_structural_3d_a84.py. Ruff passes for all three.
+This was artifact-only work. The original building, original house_spec, DCC
+scenes, installed runtimes and frozen A84 revision 1 packets remain unchanged.
+Actual support/material/reinforcement, design loads, strength, degradation and
+code acceptance remain unverified; no full-building FEM field is claimed.
+
+### Claude 3D report handoff — 2026-09-11
+
+Owner requested a packet for Claude, then a separate Claude file in Downloads.
+Prepared TEE-20260911-A84-3D-REPORTS-01 revision 1 as an artifact-review addendum.
+The ZIP includes 329 manifested payload files: all 21 report/evidence files,
+three Python scripts and both viewer templates, source geometry/audits, all 146
+pressure input/result pairs, protocol/current plan context and a receipt template.
+The standard-library verifier passed in both the source packet and a fresh ZIP
+extraction; archive member sets and bytes match. No runtime installation occurred.
+
+Standalone Claude file:
+/Users/john/Downloads/TEE_CLAUDE_A84_3D_REPORTS_20260911.md
+Packet: /Users/john/Downloads/TEE-20260911-A84-3D-REPORTS-01.zip
+ZIP SHA-256: a12533e42a696d089550dc6c582342911e7ffede04b2bbee863505678fb56c45.
+Manifest SHA-256: 9268cbb5ad24049a17c0f46f3868a27d364503676848dc5bf1bfb061d98ba024.
+Source-identical unpacked packet: output/coordination/TEE-20260911-A84-3D-REPORTS-01.
+The packet explicitly retains intermediate audit lineage and final report hashes,
+states repository-dependent regeneration, distinguishes 146 pressure runs from
+the complete 282-run register, and preserves the frozen A84 runtime manifest.
+Delivered to the owner's Downloads for forwarding; no external send or Claude
+receipt is claimed. Claude artifact review remains pending. Actual runtime/project/
+model/grants were not re-observed in this handoff, and report review cannot satisfy
+the separate two-client runtime-upgrade acceptance requirement.
+
+### Claude A84 3D artifact receipt reconciled — 2026-09-12 (Asia/Qatar)
+
+Received CLAUDE-A84-3D-REPORTS-REVIEW-01, issued 2026-09-11T21:06:13Z,
+from /Users/john/Downloads/CLAUDE_RECEIPT_A84_3D_REPORTS_20260911T210613Z.md.
+Claude's stage is received, review outcome PASS with no discrepancies. Original
+10,813-byte receipt SHA-256 ead44bbd37c95837d127585c80d38680425bf3288ac7fdc8bcb206522227a2b5
+is archived unchanged under docs/coordination/reports/TEE-20260911-A84-3D-REPORTS-01/receipts/.
+ZIP, manifest, final HTML and PDF match the receipt; all 329 payload files and
+146 pressure-result records reverify. An independent receipt audit reproduced
+the stated 1,713-component cross-solver residual statistics under an explicit
+relative-error method and found no material discrepancy. Its cutoff/formula are
+documented as the coordinator's reproducing method, not attributed to Claude.
+
+Independent Claude artifact review is now COMPLETE. The coordination index and
+report outcome record the scope and distinguish Claude's checks from retained
+Codex source-mapping/full browser-matrix evidence. Seven report PNGs plus two
+browser previews are consistent with seven PDF pages. No frozen report/runtime
+packet or source building was changed; no installation or current-runtime
+observation was performed. A84 runtime review and both actual-client accepted
+receipts remain pending, as do physical structural adequacy and code acceptance.
+This report receipt cannot satisfy the upgrade protocol's actual-client checks.
+
+### A84 runtime review and Codex source cutover — 2026-09-12 (Asia/Qatar)
+
+Claude runtime-review receipt CLAUDE-A84-RUNTIME-REVIEW-01, issued
+2026-09-11T21:37:26Z, is PASS with five nonblocking observations. The original
+12,875 bytes are archived unchanged under the A84 coordination receipts, SHA-256
+7773b1f9041a2cbbb8d441d8fe81c87e23dd7ba284c472e5b810c28b610a0c5c.
+Independent review is complete. The installed-HF2 delta is 30 additions/17 changes,
+one extra doctor.py --no-sync change compared with Codex's 30/16 baseline. Eight
+isolated probes correct the receipt's tool-count cause: shared KB adds four rows;
+zero versus five grants does not change registration in the tested configuration.
+Candidate is 269 without KB/273 with KB; 17-core schema unchanged. Metadata is
+whole-archive covered, and 41 architecture/structural imports pass in shared Python.
+
+Exact reviewed runtime/source/test inputs are now preserved in local Git commit
+18666b3ac2f31891467d116f7660aa2e3d6648aa on codex/a84-reviewed-runtime. All 324
+committed runtime blobs reproduce the frozen payload. An alternate index preserved
+main HEAD/branch/index/working tree at commit creation; no GitHub push occurred.
+After John stopped OpenCode, process checks found all TEE/structural processes gone.
+No coordinator process termination or DCC action was needed.
+
+At 2026-09-11T22:01:05.504030Z the guarded source cutover applied only the reviewed
+30 additions/16 modifications to the actual main server/src/tee. Complete runtime
+is 324 files/4,017,735 bytes, SHA-256
+0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f.
+All runtime rows reverify; main Git index and both frozen deliveries' 99 common
+files remain unchanged. Installer temporary-copy tests pass10, including partial
+rollback, concurrent-edit preservation, process aliases and FIFO refusal. Two
+independent-review issues were corrected before apply. Retained recovery files
+support caught-failure rollback; no power-loss atomicity is claimed.
+
+Fresh private backup is .tee/update-backups/TEE-20260911-A84-01/20260911T220103678830Z:
+24 files/4 online databases, restricted modes verified. Post-cutover all20 ordinary
+settings/memory/wrapper files match byte-for-byte, all4 database logical dumps
+match and integrity checks pass. Shared interpreter/configuration/private state
+were not installed or restored. Evidence is under output/updates/TEE-20260911-A84-RC1/
+review-reconciliation-20260912, including post-cutover-verification.json and the
+cutover-20260911T220103892022Z transaction with source preimages.
+
+Actual Codex tee_status(recap=true) now returns Transport closed: restart required,
+new runtime NOT OBSERVED. Claude still has installed predecessor c0f95e836... and
+must install the exact61d3429f... local MCPB. The package was opened in Claude's
+normal controls; macOS denied automated assistive access, so owner UI completion
+is needed. Both actual-client accepted receipts remain pending. No harness or
+source-on-disk receipt is counted as acceptance. Source cutover is complete; do
+not run apply again against the new baseline.
+
+Separate Claude instructions: /Users/john/Downloads/TEE_CLAUDE_A84_INSTALL_20260912.md.
+Post-review addenda/evidence/checklist are delivered identically under both
+/Users/john/Downloads/TEE_A84_20260911/{claude,codex}/post-review-20260912/.
+Frozen manifest2cdc5052... and runtime/report artifacts remain unchanged. Report
+artifact review is complete. Code_Aster native verification, engineering adequacy,
+actual materials/supports/loads and worldwide code/product-parity acceptance
+remain open. Restarted clients must execute the prepared actual-client checklist.
+
+### A84 Claude actual acceptance — 2026-09-12 (Asia/Qatar)
+
+Received CLAUDE-A84-RUNTIME-ACCEPT-01 at2026-09-11T22:21:12Z. Original15,175bytes
+are archived unchanged under A84 coordination receipts, SHA-256
+ac98a6418218594a31c150b571a5458839d2e45d18b5630a8a36afb543664fed.
+Claude is installed, reconnected and ACCEPTED against frozen manifest2cdc5052...
+and complete324-file payload0e172448.... All required actual-client continuity
+and capability checks are reported passed: main/Q14B/fivegrants,17core/273withKB,
+memory/learning healthy, no outstanding jobs/checkpoints, unchanged DCC stamps,
+CADAgent exterior circulation/service repair/selected thermal and both native
+structural engines. Four owned studies and two native runs are retained. These
+are synthetic software checks, not Okongo structural adequacy/code acceptance.
+
+Independent audit confirms both actual installed/source trees and all artifact
+hashes,99frozencommonfiles,410sharedcorpusrows,sharedskill,fiveexternalfileidentities,
+ClaudePID37463→helper37446→Claude1239 ancestry and exact launcher. Both retained
+native run model/result hashes, deck/output checksums, executable identities and
+2.328mm analytical tolerances pass. No discrepancy. Evidence:
+output/updates/TEE-20260911-A84-RC1/acceptance-20260912/claude-independent-audit.json.
+No actualClaude calls were replayed by this audit; transcript/learning causality
+remain attributed to Claude. Legacyallow_code_exec independently adds4adapter
+registrations; sourceconfirms separationfromexec-codegrant. Claude's269/273/277
+matrix is recorded with attribution. Current273 is correct; no flagchange needed.
+
+This Codex task's actual tee_status,tee_recall and tee_describe_tool(st_status)
+still fail Transportclosed. Another app-managed source process does not establish
+this task's runtime acceptance. No new featurechecks were executed here; no source,
+settings,dependencies,studies or DCCstate was changed. Codex source remains correctly
+installed; fully quit/reopen GPT/Codex, then run runtime-acceptance-checks.md and
+produce its own actual receipt. Claude needs no further installation or receipt
+for this unchanged payload. Rollout remains explicitly open: Claudeaccepted,
+Codexpending. Code_Aster/engineering/globalcode/productparity limits remain.
+
+Standalone acknowledgment: /Users/john/Downloads/TEE_CODEX_ACK_A84_CLAUDE_ACCEPTANCE_20260912.md.
+Identical receipt/acknowledgment/status/audit copies delivered to both A84 recipient
+folders in acceptance-20260912/. Original runtime/report/supplement packets remain
+immutable. No external message or GitHub publication was performed.
+
+### A84 rollout COMPLETE on both actual clients — 2026-09-12 (Asia/Qatar)
+
+After the owner's full app restart, the actual root Codex MCP connection works.
+TEE PID 40183 → backend 39144 → app 38773 and startup logs naming this root task
+connect it to the reviewed source. Both installed/source trees match all 324 files
+and 4,017,735 bytes, payload 0e172448.... Frozen manifest 2cdc5052... is unchanged.
+All 99 common files in all three locations, 148 dependency versions, wrappers,
+410 corpus rows, the shared skill and pinned external resources match. No harness
+or another task's responses supplied this root client's acceptance.
+
+All 23 live assertions pass. Fresh Codex studies are:
+- Circulation: building_3c17f8149fa24b4a; route avoids the real column.
+- Services: building_d02b2783a46544f6; the 25 mm gap is repaired to zero.
+- Thermal: building_d247b6c71ebe487d; selected outward flow is -33 W and the
+  whole-building load remains unknown.
+- Structure: structure_0127ef2f377f4946, revision 1. OpenSeesPy run_9e9caba18aaa493d
+  and OOFEM run_b7bd3f09dda14ff2 both return -2.328 mm tip displacement, a fixed
+  base of zero and maximum rotation 0.001125 rad. Numerical checks, current
+  identity and complete pagination pass. Independent integrity checks verify
+  both model/results and all 11 native/deck files.
+
+Main project, Q14B, five grants, 17 core/273 progressive tools with KB and all
+DCC stamps are preserved; no jobs or checkpoints remain. Main configuration,
+profile and memory matched the quiet backups before the completion note. All
+four databases pass integrity checks; three inactive databases remain logically
+equal. Main learning retains new observations: events 300→332, trainable records
+290→320 and automatic evaluation through sequence 298→332. It remains healthy
+and unpaused, with zero snapshots, no active model and no promotion. No explicit
+learning evaluation or reset was invoked. Claude's two changed settings files
+contain only the installation identity/date and enabled=true changes. OpenCode
+remains stopped. Aider and Cline were discovered, not run.
+
+Partkiln's displayed fallback 0.1.0 differs from actual sidecar metadata 0.1.0.dev0
+because of a repository namespace lookup. This nonblocking reporting quirk is
+recorded for a later release; the frozen source was not changed during acceptance.
+
+Actual Codex receipt TEE-20260911T223922Z-CODEX-ACCEPT-01 is accepted, SHA-256
+580d22a2770e5ae8f53a94fb0208fccc8ef06ed20bf8946459c889a93562a238.
+Claude accepted at 22:21:12Z in CLAUDE-A84-RUNTIME-ACCEPT-01, SHA-256
+ac98a6418218594a31c150b571a5458839d2e45d18b5630a8a36afb543664fed.
+Both bind the same frozen manifest. GPT-6 closed rollout in
+ docs/coordination/upgrades/TEE-20260911-A84-01/completion-20260911T223922Z.md.
+The authorized a84_runtime_upgrade completion fact was stored through actual TEE
+and read back from persistent memory. The private 38-call evidence remains
+restricted under .tee/update-backups. Sanitized live, identity, continuity and
+native evidence is in output/updates/TEE-20260911-A84-RC1/codex-acceptance-20260912.
+
+Both recipient completion-20260912 folders contain 11 identical files. Their
+completion manifest SHA-256 is
+fa377bcd226fc6aad0db995bdc28137661efbd1d4520d706a1ccf1ffdce38383.
+Standalone Claude file: /Users/john/Downloads/TEE_A84_ROLLOUT_COMPLETE_20260912.md.
+Frozen packets and rollback remain intact; the main Git index is unchanged.
+Local source commit 18666b3 has not been pushed. No external message was sent.
+
+No A84 installation, restart or acceptance remains pending. This closes software
+rollout, including cumulative A83 functionality. Code_Aster native verification,
+physical engineering, worldwide jurisdiction coverage and full commercial BIM,
+cabinet and CNC parity remain open under the current plans. The synthetic checks
+do not approve construction or establish actual Okongo capacity.
+
+## 2026-09-13 — Adversarial review of the proposed draft-only local batch pilot
+
+Owner requested a plan review, not implementation. Reviewed the pasted proposal
+against A78/research 79, the A34 triage adoption evidence, current guidance,
+adapter validators, MCP response wrapper and trust/mutation paths. No build,
+training, model call, application execution or installation was undertaken.
+
+Read-only offline probes using `server/.venv/bin/python` and
+`PYTHONDONTWRITEBYTECODE=1` established:
+- Both adapter `check_batch([])` calls return without error; the public
+  `validate_shape([])` correctly refuses with `bad_batch`.
+- Fusion syntax accepts an omitted requested hole, a requested 10 mm plate
+  drafted at 100 mm thickness, and a hole referencing `body:missing`.
+  These are syntax observations, not live execution/geometry measurements.
+- A lane without a preflight hook returns False from the internal preflight
+  helper; public guidance labels this `outer shape only` with `ok:true`.
+- Replaying the MCP wrapper's `columnarize` then `enforce_budget` on 20 valid
+  Blender create operations changes `ops` from a list into a cols/rows object.
+  On 3,000 longer valid operations, budget enforcement removes its rows while
+  retaining `ok:true` and a truncation notice. No operation was executed.
+
+Review recommendations: first measure an ideal-draft lower-cost bound using
+actual client accounting, then compare the best guided-client workflow with
+local single-shot and capped repair on completed live tasks. Keep independent,
+intent-derived semantic grading and held-out structural families; do not train
+syntax acceptance as task success. Require full validation on final wire output,
+explicit supported lanes, bounded latency outside the global tool lock, and
+preserved draft provenance. LoRA remains an unproven follow-on. These are review
+findings and proposed gates, not an adopted campaign or measured savings claim.
+
+### 2026-09-13 — Claude pilot-review script delivered
+
+At the owner's request, converted the review into the standalone phased script
+`/Users/john/Downloads/CLAUDE_LOCAL_BATCH_PILOT_REVIEW_SCRIPT_20260913.md`.
+It carries the measured offline findings, ideal-draft economic gate, independent
+semantic grading, matched experiment, MCP/concurrency acceptance and separate
+LoRA decision. Its immediate deliverable is an amended plan; authoring the
+handoff does not execute or approve a new build, training run or release.
+
+## 2026-09-13 — W0: TEE becomes thinking-native on the 27B
+
+Owner directive: "ensure that the nature of TEE becomes a thinking LLM that
+takes advantage of the 27B model and its advantages." Plan of record is the
+approved W0 amendment. Codex/GPT-6 reviewed the preceding draft and its
+central correction is carried: a syntax-passing batch is an intermediate
+artifact; the product metric stays client tokens per completed user task.
+
+**The engine exists and is wired.** `q27b-think` (profile + `ENGINES` row,
+both - the q35b lesson) reaches Qwen3.8-27B through the shim on the vLLM
+backend. Local, free, `TEE/Q27B-THINK`. Reasoning is read from whichever
+field the backend uses, kept in a bounded in-memory log, and NEVER returned
+to the client: only `reasoning_chars` rides the wire. That is what makes
+deliberation free in tokens-per-task.
+
+**Four measurements, all on the owner's Mac, all live:**
+
+1. **The same weights are a different engine per backend.** On the MLX
+   server: 11.9 tok/s and a reasoning stream that never terminates (26,608
+   chars, `finish=length`, zero content, reproduced at two budgets). Behind
+   the shim on vLLM: ~50 tok/s, terminates cleanly, valid JSON. Four
+   thinking runs across two models, two sizes, two publishers and two
+   prompt shapes failed identically - every one on MLX. `response_format`
+   changed nothing (two 9B arms byte-identical at 12,217 chars), which
+   excluded prompt shape. So `ENGINES` rows now name the ENDPOINT: A76's law
+   one level down.
+
+2. **The backends disagree about `response_format`, and TEE could not reach
+   the good one.** MLX accepts it and silently ignores it - so TEE has never
+   actually had enforced JSON; its JSON comes from the prompt plus the
+   retry-nudge. vLLM refuses outright: *"requires the optional llguidance
+   dependency; refusing to silently return unconstrained output."* TEE sent
+   it unconditionally, so every chore against that backend was HTTP 400. The
+   field is now negotiated per endpoint and the refusal is remembered.
+
+3. **The 27B is not slow - thinking is.** Real TEE chores, same backend:
+   `triage` 7.66 s ON / **2.43 s OFF**, `explain_lint` 4.07 / **1.03**,
+   `compress_recap` 2.29 / **0.82**. Thinking-off the 27B sits in the same
+   band as the 14B+a2 (0.76-1.77 s). **The latency rejection that kept the
+   27B out of TEE was an artifact of the MLX stack, not the model.**
+
+4. **THINKING MAKES THE MODEL WORSE ON THE A30 BOUNDARY.** Real
+   `_TRIAGE_SYSTEM`, same model, same backend: **6/6 thinking off, 5/6
+   thinking on.** The single failure is `kwarg_drift` answered `grounded` -
+   an API fact asserted from weights, the exact class A34 blocked triage
+   for. Given room to reason the model rationalises its way into
+   confidence, and deferral is a calibration judgement. `triage` now pins
+   `thinking=False` regardless of profile, with the measurement at the call
+   site. Ruled in DECISIONS: thinking is a per-CHORE dial with a per-chore
+   gate, never an engine default chores inherit.
+
+**End-to-end through the real chore layer on `q27b-think`: 6/6, 1.88-2.53 s
+per chore**, stamped `tee-coder@r4`, zero reasoning entries (triage pins
+thinking off, which is the correct observation, not an absence of evidence).
+
+**Also found, not yet fixed:** `[llm] url` points at `:8080`, which is not
+answering, while the best backend on this machine is behind the shim. Every
+chore is degrading to its deterministic path until that config line moves.
+
+New contracts pinned in `tests/test_w0_thinking_engine.py` (9 tests): the
+negotiation and its memory, `json_mode` on/off/auto, both reasoning field
+names, inline `<think>` capture, the thinking flag on the wire, and
+`llm_no_answer` for a model that reasons without answering. Not adopted:
+no chore other than triage has been gated for thinking yet, so no other
+chore turns it on.
+
+### 2026-09-13 — the switch research, and two defects it found
+
+Owner asked for dynamic context-driven switching between thinking and no
+thinking, then for the question to be mined against microchip and quantum
+design. Three parallel design studies ran. They converged, and both the
+converged answer and two live defects are recorded here.
+
+**Measured first, because the switch turns on it.** A benchmark over the three
+chores whose validators are GENUINE deterministic verifiers - refine_extract
+(every sentence must appear in the source), rerank (exact permutation),
+phrase_deviation (numbers verbatim) - same endpoint, same weights, only the
+flag differing: **thinking OFF 8/8 passed at 0.86 s avg; thinking ON 8/8 at
+3.44 s avg (4.0x).** Zero quality change. Stated limit: the baseline was
+already perfect, so this shows thinking does not BREAK these chores and what
+it costs - it cannot show benefit where the cheap path already solves
+everything. With the triage result (6/6 off, 5/6 on) the tally is **one
+measured harm, three measured no-ops at 4x, zero measured benefits.**
+
+**Sampling works; the earlier suspicion was wrong.** An identical-output run at
+temperature 0.8 looked like the backend ignoring sampling parameters. It is
+not: on a high-entropy prompt both the shim and the direct backend give 1
+distinct answer of 4 at temp 0 and **4 of 4 at temp 1.0**. The constrained
+extraction task simply has one answer. Diversity is available; TEE hardcodes
+temperature 0.
+
+**DEFECT 1, introduced by W0 and now fixed.** Only `triage` pinned thinking
+off, so on the q27b-think profile the other SEVEN chores silently inherited
+`thinking: True` - 4x cost, no benefit, and four of them have shape-only
+validators that cannot tell a differently-wrong retry from a right one.
+Inverted: chores default thinking OFF and must OPT IN with a measurement; the
+profile flag now declares only the ENGINE's capability. Pinned by a test.
+
+**DEFECT 2, pre-existing, and a benchmark was scoring it as a capability
+limit.** `rerank` built `ids` from ALL candidates while the prompt listed only
+`candidates[:20]`, so with 21+ candidates the validator demanded ids the model
+had never been shown - a deterministic `llm_bad_shape`. `run_r0_routing.py`'s
+rerank rungs are n = 8/16/32/64 with the gold answer at index n//2, so **rung L
+(32) and rung XL (64) were measuring this bug**, and at XL the correct answer
+sits at index 32, outside the prompt entirely. Fixed: listing and demanded
+permutation now derive from one slice, `RERANK_MAX = 20`, and the output budget
+agrees (64 ids do not fit in max_tokens=160). Consequence to face rather than
+paper over: the XL rung now fails HONESTLY - the answer is out of scope - so
+that rung tests something TEE deliberately does not do and needs rethinking or
+retiring, not a new number.
+
+**Three further prerequisite gaps, verified and fixed:** `eng_audition` dropped
+`thinking`/`json_mode` when building its candidate profile, so auditioning a
+thinking engine measured it thinking-off; `matching_floors` keyed on adapters
+but not thinking, so a bare-measured token floor would be handed to a thinking
+hop; and `_learning_version` omitted thinking, so evidence gathered under one
+mode would be silently reused under the other.
+
+**The converged design, NOT yet built.** Thinking is not a predictive switch
+over inputs; it is a verifier-gated retry, and it is admissible only where
+something independent can tell a better answer from a differently-wrong one.
+The strongest formulation: default off everywhere, one door - a retry inside
+the existing `except TeeError` arm on `llm_bad_shape`/`llm_bad_json` only - and
+an explicit allow-set that **ships empty**, because no chore today satisfies
+all three admission tests (a verifier that binds output to input by identity;
+no abstention value in the schema; no human consumer behind a sampling check).
+`triage` is a permanent veto. This is a decision about a static property of a
+chore's validator, not about the input.
+
+**The hardware study, and the one law worth keeping.** Mining chip design and
+quantum computing for switch logic produced one genuinely structural result and
+a pile of discarded metaphor. The keeper, arrived at independently from
+k-out-of-N standby redundancy with imperfect detection, from the quantum
+threshold theorem, and from branch retirement: with detector coverage c and
+per-attempt error q, **P(fail) = (1-c)q + c*q^N** - a floor of (1-c)q that no N
+ever crosses. **Detector coverage, not cost per attempt, decides whether any
+widening mechanism is allowed.** Thinking, best-of-N and retry are the same
+move - enlarge the candidate set - and none of them changes coverage.
+
+That explains the measurements rather than merely accompanying them: on a
+shape-only validator, best-of-N with early exit returns the first sample that
+validates and so reduces identically to N=1; add temperature and it becomes
+strictly HARMFUL, because the new diversity arrives as well-formed-but-wrong
+answers the validator waves through. And the chore that measurably got worse
+under thinking is the one whose validator is a pure function of the model's own
+output.
+
+`repair_script` is named the live trap: its only correctness-adjacent gate is an
+UPPER length bound (`len(repaired) > 4*max(len(code),200)`), so a deletion-based
+repair always passes - while its own system prompt names "deleting an argument
+to silence the error" as the failure mode. Under N=1 that is a tilt; under
+best-of-N it is selection pressure toward the degenerate fix. Note this
+CONTRADICTS the first study, which proposed repair_script as the one admissible
+chore; the two are reconcilable only if the oracle used is run_script's external
+grammar check, never the chore's own validator.
+
+**A pricing inconsistency introduced earlier the same day, now corrected in
+prose rather than in the number.** The q27b-think row was ordered on the
+thinking band and justified with "this profile defaults thinking ON" - true when
+written, false hours later once chores were inverted to opt-in. Nothing in
+production passes `thinking=True`, so every chore executes that rung BARE at
+[0.82, 2.43] while it is priced at 3.15x that. Ordering on the bare band alone
+would be wrong in the other direction: `cost()` (router.py:61) reads latency
+only and cannot see `eta_s`, and this engine costs 45.6 s to load. The correct
+function already exists at `shadow.py:74` and the live ladder does not use it.
+Both terms or neither - and threading residency into `_ladder` would break the
+five modules pinning `LADDER` for a prize of zero, since `router.route` has
+exactly ONE production caller (`capture/tools.py:571`). The row now states this
+instead of asserting a false reason.
+
+**Suite: 24 failures -> 11, 2,977 passed.** All thirteen attributable to this
+session are fixed. The remaining eleven are against committed code in
+directories with no uncommitted changes - four cfMesh windtunnel tests (cfMesh
+ships unbuilt on this Mac; A74's numbers are Linux-only), two needing model
+weights, three A82/A83 drawing tests, one A79 lessons index and one A84
+structural file tripping the AGPL scan.
+
+### 2026-09-13 — the suite was being measured with the wrong selector
+
+Root-causing eleven failures found that most of them were not failures. The
+biggest finding is the INVOCATION, not any test.
+
+**`-m` REPLACES pyproject's `addopts`, it does not narrow it.**
+`server/pyproject.toml:235` declares
+`addopts = "-m 'not dcc and not ml and not network and not llm and not cfd and not fdm'"`,
+and pytest's `-m` is last-wins. So `pytest -m "not dcc"` re-selects every `ml`,
+`network`, `llm`, `cfd` and `fdm` test the project deliberately excludes:
+**3,042 tests collected against the repo default's 3,001**, and six of the
+eleven failures lived in those 41. It also runs five times slower - 16m48s
+against 3m25s - because it drags in real CFD solves. The canonical command is
+`server/Makefile:91`, `uv run --no-sync pytest`, with no `-m` at all.
+CLAUDE.md's "-m 'not dcc' in CI" is what led here; the addopts line is the
+real contract.
+
+**Disposition of the eleven.** Six ENVIRONMENTAL and never in the default
+suite: four cfMesh (verified absent first-hand - `command -v cartesianMesh`
+returns rc=1, the plugin exists only as .C sources, and the lane's own probe
+reports `cfmesh: False`, so `auto` falls back to snappy exactly as research 74
+specifies), two `assets_ml`. Five STALE-TEST, all now fixed. **Zero real
+product bugs. Zero other-session defects** - the in-flight A82/A83/A84 code was
+green against its own tests; the architecture failures were tests trailing
+their source, the mirror image of an in-flight defect.
+
+**Two inherited explanations were wrong and are corrected here.** The
+`assets_ml` weights are NOT missing - siglip2 (1.4 GB) and Z-Image-Turbo
+(31 GB) are both cached; what is absent is torch/transformers/diffusers, and
+neither test reaches a weight lookup. And the lessons mismatch was INVERTED:
+the product index had MORE topics than the test, and the extra one
+(`cadagent_architecture`) is A82/archkiln, not A79.
+
+**Three corrections to work done earlier in this same session:**
+1. A comment claimed torch is "BANNED from the serving interpreter by the A46
+   no-heavy-imports law, so it can never be" in the venv. That overstates the
+   law: `test_a46_no_heavy_imports` imports the fleet in a FRESH interpreter and
+   asserts no heavyweight landed in `sys.modules`. It forbids EAGER IMPORTS, not
+   presence. Corrected, and the test now also uses `pytest.importorskip`, the
+   idiom its own file already uses eleven lines below - because a marker alone
+   is not enough when `-m` can re-select it.
+2. The rewritten AGPL gate missed `# SPDX-License-Identifier: AGPL-3.0-only` -
+   the most machine-readable form of a grant - while claiming to be stricter
+   than the substring scan it replaced. SPDX headers now count; a `"licence":`
+   catalogue value naming AGPL still does not, because that is a package being
+   excluded.
+3. `ml` is the only capability marker in this repo with no runtime guard behind
+   it. That is an oversight rather than policy.
+
+### 2026-09-13 — rho measured: the cascade's independence precondition fails
+
+The cascade simulation rested on two assumed inputs. Both are now measured
+(`benchmarks/measure_rung_correlation.py`, rows in RESULTS.md).
+
+**rho(q27b-think, q27b-bare) = 1.00.** The same Qwen3.8-27B weights on two
+backends failed on the IDENTICAL task. A cascade rung only pays for itself on
+failures the rung above did NOT make; at rho = 1 there are none. The prediction
+made from the mechanism - identical weights, temperature 0, identical prompt -
+is confirmed by observation. **It rests on one failure each and must always be
+quoted with that:** with a single failure per rung, phi can only be 1.00 or
+negative, so this is a directional confirmation, not a tight estimate.
+
+**The robust figures are cross-family**, on 17 and 22 failures: rho(14B, 9B) =
+**0.53**, and the 27B near-independent of the small rungs at 0.13-0.18. Even
+different model families are far from the independent failures a cascade
+assumes; the depth that earns its keep is the one that crosses a capability
+gap, not the one that adds another rung.
+
+**q was assumed at a uniform 0.30 and is nothing like it:** 14.3 / 31.4 / 0.0 /
+0.0 percent on generated tasks. Feeding the measured values back moves the
+simulation's headline from 90.3% right / 9.6% wrong to **95.6% / 4.4%** - the
+assumption had overstated silent errors by more than double. Rung credit under
+measured q: q14b+a2 86%, dsflash 7%, q27b-think 3%, **q27b-bare 0%, q35b 0%**.
+
+**A ceiling had to be broken first, and the harness said so rather than
+guessing.** On the generated families both 27B rungs scored 35/35, so there was
+no variance and rho was reported `n/a` - not 0. `hard_triage_tasks.py` attacks
+the two shortcuts a model can take instead of weighing evidence: seductive-but-
+insufficient context (a signature for the wrong function, a deprecation with no
+installed version, a near-miss symbol) and sufficient-but-buried (a valid enum
+under noise, a chained traceback whose root cause is the first exception). Both
+directions, so a model cannot score well by always deferring. It discriminates:
+the small rungs tripled their error (14.3 -> 47.2%, 31.4 -> 61.1%) while the
+27B went 0 -> 2.8%, which makes that near-perfect score a real capability gap
+rather than an artefact of easy tasks.
+
+**Real data found a defect in the simulator**: q = 0.0 drove
+`_norm_cdf_inv(1.0)` into `log(0)`, so the model could not represent a rung
+that never fails - exactly what both 27B rungs did. Fixed.
+
+**Not acted on.** `q27b-bare` answers 0% of traffic under measured q, costs 18 s
+cold, and at rho = 1.00 with the rung above it can fix nothing that rung did
+not. Dropping it from the ladder is the indicated change and is a product
+decision, not a measurement, so it is recorded here rather than made.
+
+**Acted on (owner, 2026-09-13): q27b-bare is no longer a ladder rung.** It
+carries a new `ladder: False` field; the ENGINE is not deleted, the weights are
+real, the q27b profile stays hand-switchable as TEE/Q27B and `eng_*` still
+reports it. Restore `ladder: True` if a measurement ever shows it failing
+independently of q27b-think.
+
+The first attempt expressed this by emptying `capability`, and the registry
+schema caught it: every row must declare one, and rightly - a row with no
+capability is a row that does nothing. The mistake was conflating two
+questions. `capability: ["chores"]` is TRUE of this engine; it runs chores
+perfectly well when the owner pins TEE/Q27B. Whether the CASCADE should try it
+is separate, so it gets a separate field. The ladder is now
+`q14b+a2 -> dsflash -> q27b-think -> q35b -> client`.
+
+Three tests moved with it, and one exposed a defect in the finish-time fix
+made earlier the same day. `test_ladder_escalates_on_verifier_kill` derived the
+winner's expected position from `router.LADDER.index(winner)`; LADDER is the
+IMPORT-TIME order, which cannot know what is resident, and route() now orders
+the tail by finish time - so a rung's live position is no longer its position
+in LADDER. The assertion now checks the SHAPE (every hop before the last is
+`llm_bad_shape`, the last is `verified`, and it belongs to the winning engine)
+rather than a computed index that silently encoded the old ordering. The
+memory-skip test moved from q27b-bare (55 GB) to q35b (65 GB), which is now the
+engine that cannot fit a 32 GB ledger.
+
+Separately: `test_windtunnel_tools.py::test_an_orphaned_solver_is_named_and_can_be_stopped`
+failed once under full-suite load and passes in isolation. Not this session's
+file, and consistent with a process-detection race in a test about orphaned
+processes. Recorded as flaky rather than fixed.
+
+### 2026-09-13 — model consolidation: one engine, and two reverts
+
+Owner directive: keep one engine (the 27B), delete the rest, make it the
+default. Consolidated state, audited:
+
+**Disk.** Deleted `mlx-community/Qwen2.5-Coder-14B-Instruct-4bit` (7.7 GB) and
+`mlx-community/Qwen3.5-9B-MLX-4bit` (5.6 GB); 844 -> 857 GiB free. Nothing else
+was touched - the non-LLM lane models (whisper, siglip2, SDXL, Z-Image,
+TRELLIS, marigold, dinov3, BiRefNet, MONAI, pyannote) all remain, because they
+serve extract/assets/voxkiln/photo/med and are not engines. `Youssofal/
+Qwen3.8-27B-MTPLX-Optimized-Quality` (28 GB, 8 shards, Qwen3_5ForConditional-
+Generation) is intact and serving on :8087. Flash-Next is still downloading and
+was verified healthy after the deletion (63 MB / 25 s) - an earlier reading of
+its `.incomplete` blobs as "abandoned retries" was WRONG; they are concurrent
+chunks of a live download.
+
+**Default.** This machine now resolves to `q27b-think` -> :4000 -> :8087. The
+trap suite scores **6/6 on it in 13.4 s**, and chores now RUN: the previous
+default pointed at `:8080`, which is dead, so every chore had been degrading to
+its deterministic path.
+
+**REVERT 1 - the phantom ladder rungs.** Three of four rungs point at models
+this machine does not serve (q14b+a2's weights just deleted, dsflash has no
+profile declared anywhere, q35b never on this disk). Marking them
+`ladder: False` collapsed the ladder to one rung and broke twelve cascade
+tests, which then needed an autouse fixture to undo the change so they could
+keep testing. That fixture was the tell: **if the suite must systematically
+undo a change to keep testing the product, the change is in the wrong layer.**
+A46 P3b already says central registration must not encode machine-local
+absence, and the runtime skips an unreachable engine correctly without
+defaming it. Reverted. `q27b-bare` KEEPS its `ladder: False`, because that
+exclusion is a measured product decision (rho = 1.00 with q27b-think) rather
+than an inventory fact.
+
+**REVERT 2 - the product default.** Setting `DEFAULT_ACTIVE = "q27b-think"`
+broke 24 tests across chores, profiles, trust and web. The tests were right:
+DEFAULT_ACTIVE is the fallback for a FRESH install with no state, and claiming
+every install should default to a 28 GB model it will not have is a
+product-wide assertion the measurement does not support. The measurement (27B
+2.8% error vs 14B 47.2% on hard triage) argues for the 27B wherever it is
+SERVED. Reverted to q14b; the per-machine choice lives in
+`.tee/llm-profile.json`, which is where it belongs and which alone achieves the
+directive.
+
+**One test hardening kept from the episode.** `test_llm_router._cfg` now writes
+`{"active": "q14b"}` into its temp state dir instead of inheriting
+DEFAULT_ACTIVE, so a future default move cannot silently change what twenty
+cascade assertions are measuring.
+
+**Continuity notes, not defects.** `tee-triage-a2` is stranded - it is
+14B-trained and the 14B is gone; the 27B passes the traps 6/6 bare, so nothing
+depends on it. The `q14b` profile and the `[llm] url = :8080` line both now
+point at things that are not there; the runtime degrades honestly and the
+active profile overrides both, so neither was rewritten. Transferring the
+triage LoRA to the 27B was considered and declined by the owner: mlx_lm loads
+the model fine (28.9 GB peak, 23 tok/s, so it is feasible), but the adapter
+exists to fix a 14B failure the 27B does not have, and its data is r2 against a
+r4 prompt.

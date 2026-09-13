@@ -42,6 +42,17 @@ from typing import Any
 from tee.kernel import local_llm
 from tee.kernel.errors import TeeError
 
+# The fallback for a FRESH install with no state file, and it stays q14b: a
+# new machine has no 28 GB 27B on disk, and q14b names the documented
+# reference model. THIS machine's default is the 27B, set where a per-machine
+# choice belongs - .tee/llm-profile.json, active = q27b-think.
+#
+# Setting DEFAULT_ACTIVE to q27b-think was tried on 2026-09-13 and reverted: it
+# is a product-wide claim, not a local one, and it broke 24 tests across
+# chores, profiles, trust and web that reasonably treat the shipped default as
+# ground truth. The measurement behind the switch (27B 2.8% error vs 14B 47.2%
+# on hard triage) argues for the 27B wherever it is SERVED; it does not argue
+# that every install has one.
 DEFAULT_ACTIVE = "q14b"
 STATE_FILE = "llm-profile.json"
 # The owner's chat stack; a managed profile may USE an endpoint here but
@@ -75,6 +86,26 @@ BUILTIN_PROFILES: dict[str, dict[str, Any]] = {
     # skipped it with "profile not declared here" while :8080 was serving the
     # weights - registered centrally and unreachable for want of these six
     # lines. eng_reconcile called that `served-not-reachable`.
+    # W0 (2026-09-13): THE THINKING ENGINE. Measured on the owner's Mac -
+    # the same weights give 11.9 tok/s with a reasoning stream that never
+    # terminates on the MLX server :8082, and 50 tok/s with clean
+    # termination on the vLLM backend :8087 behind the shim. The endpoint
+    # is part of this engine's identity, not a deployment detail, so the
+    # url is pinned here rather than inherited from [llm].
+    #
+    # Local and free: only qmax on :4000 bills. Reasoning comes back in
+    # its own field and is stripped before the client sees it, so the
+    # 2.8-4.0x thinking cost is free in tokens-per-task.
+    "q27b-think": {
+        "url": "http://127.0.0.1:4000/v1",
+        "model": "claude-qwen-27b",
+        "adapters": "",  # bare on purpose: tee-triage-a2 is 14B-trained
+        "thinking": True,
+        "json_mode": "auto",  # :8087 refuses response_format; negotiated once
+        "note": "thinking engine: 27B via vLLM, 0.82-2.43 s/chore bare, ~3x with thinking",
+        "rss_gb": 28.0,  # measured on disk 2026-09-13
+        "eta_s": 46,  # 45.6 s cold load measured 2026-09-13
+    },
     "q35b": {
         "model": "mlx-community/Qwen3.6-35B-A3B-bf16",
         "adapters": "",  # bare, for the same reason as q27b
@@ -191,6 +222,15 @@ def resolve(cfg: dict[str, Any] | None) -> dict[str, Any]:
         # lets one check at the chore seam gate spend and disclosure, rather
         # than every call site remembering (SI-B16's teeth).
         "paid": bool(spec.get("paid", False)),
+        # W0: thinking and JSON-mode are per-PROFILE, not global constants.
+        # The chore layer wants thinking off for latency (A34, measured);
+        # the agent profile wants it on. And the two local backends
+        # disagree about response_format - MLX accepts and ignores it,
+        # vLLM refuses rather than return unconstrained output - so the
+        # field is negotiated per endpoint. 'auto' discovers; a declared
+        # value outranks discovery.
+        "thinking": bool(spec.get("thinking", False)),
+        "json_mode": str(spec.get("json_mode") or "auto"),
     }
     # A45 P1: the owner's declared rate travels with the profile so the
     # meter can price the call. TEE ships no price table - see kernel/spend.

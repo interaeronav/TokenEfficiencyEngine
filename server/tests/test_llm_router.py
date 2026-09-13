@@ -7,6 +7,7 @@ suspending roaming, and the budgeted pointer-only client brief."""
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 from fixtures_llm import fake_llm_server
@@ -27,6 +28,16 @@ GOOD = json.dumps(
 
 
 def _cfg(url: str, state_dir) -> dict:
+    # Pin the active profile EXPLICITLY. These tests used to inherit
+    # profiles.DEFAULT_ACTIVE through an empty state dir, so the moment the
+    # product default moved from q14b to q27b-think the resident changed under
+    # them and twenty cascade assertions failed for a reason none of them was
+    # about. A test that exercises escalation should say which rung it starts
+    # from. Written only when the caller has not already staged its own state
+    # (the pin and switch tests write theirs first).
+    state = Path(state_dir) / "llm-profile.json"
+    if not state.exists():
+        state.write_text(json.dumps({"active": "q14b", "ready": True}))
     return {
         "url": url,
         "_state_dir": str(state_dir),
@@ -39,6 +50,12 @@ def _cfg(url: str, state_dir) -> dict:
             "q27b": {"model": "fake-27b", "adapters": ""},
             "dsflash": {"model": "fake-dsflash", "adapters": ""},
             "q35b": {"model": "fake-35b", "adapters": ""},
+            # W0: the thinking rung. Its BUILTIN spec pins a real url
+            # (the vLLM backend is part of that engine's identity), and a
+            # spec key outranks cfg in profiles.resolve - so the fake url
+            # must be declared HERE or this rung answers from the owner's
+            # live endpoint while every other rung talks to the fixture.
+            "q27b-think": {"model": "fake-27b", "adapters": "", "url": url},
         },
     }
 
@@ -77,17 +94,23 @@ def test_first_engine_verified_no_roaming(tmp_path):
 def test_ladder_escalates_on_verifier_kill(tmp_path):
     with fake_llm_server(_by_model({"fake-27b"})) as (url, _calls):
         routed = _route(url, tmp_path)
-    assert routed["ok"] and routed["engine"] == "q27b-bare"
-    # Every rung ABOVE the winner fails and is escalated past - derived from
-    # where the winner sits, not from the ladder's length. The A46 version
-    # assumed the winner was always last; adding q35b put a fourth rung
-    # BELOW q27b-bare and the assumption broke.
-    winner = routed["engine"]
-    above = router.LADDER.index(winner)
-    assert [h.get("verdict") for h in routed["hops"]] == [
-        *["llm_bad_shape"] * above,
-        "verified",
-    ]
+    # q27b-think, because q27b-bare is no longer a ladder rung at all: it was
+    # measured to fail on the identical task as q27b-think (rho = 1.00, same
+    # weights, two backends), so it could recover nothing and was dropped. The
+    # subject of this test is the escalation, not which rung catches it, and
+    # the hop assertion below derives from the winner's position.
+    assert routed["ok"] and routed["engine"] == "q27b-think"
+    # Every rung ABOVE the winner fails and is escalated past. Assert the
+    # SHAPE rather than a computed index: this used to read
+    # `router.LADDER.index(winner)`, and that proxy broke when route() began
+    # ordering the tail by finish time (latency + load). LADDER is the
+    # import-time order, which cannot know what is resident, so the live
+    # position of a rung is no longer its position in LADDER - q27b-think sits
+    # at index 2 there and is reached fourth here.
+    verdicts = [h.get("verdict") for h in routed["hops"]]
+    assert verdicts[-1] == "verified", verdicts
+    assert set(verdicts[:-1]) == {"llm_bad_shape"}, verdicts
+    assert routed["hops"][-1]["engine"] == routed["engine"]
 
 
 def test_guard_seam_swap_refused_during_registered_job(tmp_path):
@@ -105,12 +128,15 @@ def test_guard_seam_swap_refused_during_registered_job(tmp_path):
 
 
 def test_never_swap_when_memory_cannot_fit(tmp_path):
-    ledger = MachineLedger(total_gb=32)  # 27B (55 GB) can never fit
+    # q35b (65 GB) is the engine that can never fit now. This used to name
+    # q27b-bare (55 GB), which left the ladder when it was measured to fail on
+    # the identical tasks as q27b-think.
+    ledger = MachineLedger(total_gb=32)
     with fake_llm_server(_by_model(set())) as (url, _calls):
         routed = _route(url, tmp_path, ledger=ledger)
     skips = [h for h in routed["hops"] if "skipped" in h]
-    skip = next(h for h in skips if h["engine"] == "q27b-bare")
-    assert "55 GB" in skip["skipped"]
+    skip = next(h for h in skips if h["engine"] == "q35b")
+    assert "65 GB" in skip["skipped"]
 
 
 def test_owner_pin_suspends_roaming(tmp_path):

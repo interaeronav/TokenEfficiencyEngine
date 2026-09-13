@@ -4,9 +4,17 @@ The sibling of `local_vlm.py`, same contract: stdlib-only OpenAI
 chat/completions against any local endpoint (`TEE_LOCAL_LLM_URL`, default
 the machine's LiteLLM shim; `TEE_LOCAL_LLM_MODEL` names the served model -
 the reference setup is Qwen2.5-Coder-14B-Instruct-4bit per research 50
-§M0). Thinking is disabled for chores (latency; the request says so and
-any leaked <think> block is stripped defensively), temperature 0, and
+§M0). Thinking is PER-PROFILE (W0): chores default off for latency, the
+27B agent profile turns it on, and reasoning is captured out of whichever
+field the backend uses rather than discarded. temperature 0, and
 `complete_json` guarantees parsed JSON or one loud error.
+
+Backends disagree about `response_format` and the disagreement is not
+cosmetic: the MLX server accepts `json_object` and silently ignores it,
+while vLLM refuses it outright (HTTP 400, "requires the optional
+llguidance dependency") rather than return unconstrained output. So the
+field is negotiated per endpoint, not sent unconditionally - measured
+2026-09-13 on :8082 and :8087.
 
 The token story: chores run server-side at zero client cost; the client
 only ever sees the chore's budgeted, provenance-stamped result. The A30
@@ -43,8 +51,33 @@ _UNREACHABLE_FIX = (
     "path meanwhile."
 )
 
-_THINK_BLOCK = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
+_THINK_BLOCK = re.compile(r"<think>(.*?)</think>\s*", re.DOTALL)
 _JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
+
+# Backends name the same thing differently: mlx_lm.server returns
+# "reasoning", vLLM returns "reasoning_content". Read either; a name is
+# not a capability (two probes read as false negatives on this alone).
+_REASONING_FIELDS = ("reasoning", "reasoning_content")
+
+# (url, model) pairs measured to REFUSE response_format. Populated by the
+# 400 handler in complete_json so the cost is paid once per process, not
+# per chore. A declaration in config still wins - this is the fallback for
+# an endpoint nobody declared.
+_NO_JSON_MODE: set[tuple[str, str]] = set()
+_JSON_MODE_REFUSAL = "response_format"
+
+
+def json_mode_unsupported(url: str, model: str) -> bool:
+    """True when this endpoint has been measured to refuse response_format."""
+    return (url, model) in _NO_JSON_MODE
+
+
+def _reasoning_of(message: dict) -> str:
+    for field in _REASONING_FIELDS:
+        value = message.get(field)
+        if isinstance(value, str) and value.strip():
+            return value
+    return ""
 
 
 def available(
@@ -83,13 +116,20 @@ def complete(
     timeout: float = 120.0,
     response_format: dict | None = None,
     adapters: str | None = DEFAULT_ADAPTERS,
+    thinking: bool = False,
     on_usage: Callable[[dict, int, float], None] | None = None,
+    on_reasoning: Callable[[str], None] | None = None,
 ) -> str:
-    """One chore completion: deterministic, thinking-off, budgeted.
+    """One chore completion: deterministic, budgeted, thinking per-profile.
 
     `on_usage(payload, bytes_sent, seconds)` is called after a successful
     reply so the caller can meter it (A45 P1). The client stays ignorant of
-    money: it reports what the provider said and what went on the wire."""
+    money: it reports what the provider said and what went on the wire.
+
+    `on_reasoning(text)` receives the model's deliberation when the backend
+    returns any. It is deliberately a side channel: reasoning is recorded
+    for audit and training, and NEVER returned to the client - that is what
+    makes thinking free in the metric TEE is judged by."""
     messages: list[dict] = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -99,9 +139,9 @@ def complete(
         "max_tokens": max_tokens,
         "temperature": temperature,
         "messages": messages,
-        # Chores never think out loud: honored by servers that know the
-        # flag, enforced by the strip below for ones that don't.
-        "chat_template_kwargs": {"enable_thinking": False},
+        # Per-profile (W0). Servers that don't know the flag are covered
+        # by the inline-<think> capture below.
+        "chat_template_kwargs": {"enable_thinking": bool(thinking)},
     }
     if response_format:
         body["response_format"] = response_format
@@ -133,14 +173,34 @@ def complete(
         with contextlib.suppress(Exception):
             on_usage(payload, len(encoded), time.monotonic() - started)
     try:
-        text = payload["choices"][0]["message"]["content"] or ""
+        message = payload["choices"][0]["message"]
+        text = message.get("content") or ""
     except (KeyError, IndexError, TypeError) as exc:
         raise TeeError(
             "llm_bad_response",
             "The local model returned no text content.",
             fix="Check the endpoint log (a wrong --model name answers empty on some servers).",
         ) from exc
-    return _THINK_BLOCK.sub("", text).strip()
+    reasoning = _reasoning_of(message)
+    inline = _THINK_BLOCK.search(text)
+    if inline:  # a backend that leaves the block in content, not a field
+        reasoning = reasoning or inline.group(1).strip()
+        text = _THINK_BLOCK.sub("", text)
+    text = text.strip()
+    if reasoning and on_reasoning is not None:
+        with contextlib.suppress(Exception):
+            on_reasoning(reasoning)
+    if not text and reasoning:
+        # Measured 2026-09-13: a thinking model can spend its entire budget
+        # reasoning and answer nothing (25k chars, finish=length, twice).
+        # Empty-content-with-usage is the A76 trap; name it instead of
+        # returning "" and letting a validator call it a bad shape.
+        raise TeeError(
+            "llm_no_answer",
+            f"The model reasoned for {len(reasoning)} characters and produced no answer.",
+            fix="Raise max_tokens for this chore, or turn thinking off for this profile.",
+        )
+    return text
 
 
 def complete_json(
@@ -152,22 +212,61 @@ def complete_json(
     max_tokens: int = 500,
     timeout: float = 120.0,
     adapters: str | None = DEFAULT_ADAPTERS,
+    json_mode: str = "auto",
+    thinking: bool = False,
     on_usage: Callable[[dict, int, float], None] | None = None,
+    on_reasoning: Callable[[str], None] | None = None,
 ) -> dict:
     """A completion that must parse as a JSON object - retried once with a
     corrective nudge, then failed loud. Schema validation stays with the
-    caller (each chore owns its shape)."""
-    kwargs = dict(
-        system=system,
-        url=url,
-        model=model,
-        max_tokens=max_tokens,
-        timeout=timeout,
-        response_format={"type": "json_object"},
-        adapters=adapters,
-        on_usage=on_usage,
+    caller (each chore owns its shape).
+
+    `json_mode` is 'on' (always send response_format), 'off' (never), or
+    'auto' (send until this endpoint is measured to refuse it). Auto exists
+    because the two local backends disagree and neither is wrong: MLX
+    accepts the field and ignores it, vLLM refuses rather than pretend. A
+    declared profile setting outranks discovery."""
+    if json_mode not in ("auto", "on", "off"):
+        raise TeeError(
+            "llm_bad_arg",
+            f"json_mode={json_mode!r} is not a mode.",
+            fix="Use auto, on, or off.",
+        )
+    send_json = json_mode == "on" or (
+        json_mode == "auto" and not json_mode_unsupported(url, model)
     )
-    text = complete(prompt, **kwargs)
+
+    def _kwargs(response_format: dict | None) -> dict:
+        return dict(
+            system=system,
+            url=url,
+            model=model,
+            max_tokens=max_tokens,
+            timeout=timeout,
+            response_format=response_format,
+            adapters=adapters,
+            thinking=thinking,
+            on_usage=on_usage,
+            on_reasoning=on_reasoning,
+        )
+
+    kwargs = _kwargs({"type": "json_object"} if send_json else None)
+    try:
+        text = complete(prompt, **kwargs)
+    except TeeError as exc:
+        refused = (
+            send_json
+            and json_mode == "auto"
+            and exc.code == "llm_failed"
+            and _JSON_MODE_REFUSAL in exc.message
+        )
+        if not refused:
+            raise
+        # Measured, not assumed: this endpoint answered 400 naming the
+        # field. Remember it so the next chore pays no round trip.
+        _NO_JSON_MODE.add((url, model))
+        kwargs = _kwargs(None)
+        text = complete(prompt, **kwargs)
     parsed = _parse_json_object(text)
     if parsed is None:
         text = complete(

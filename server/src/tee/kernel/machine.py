@@ -77,7 +77,31 @@ ENGINES: dict[str, dict[str, Any]] = {
     "q27b-bare": {
         "kind": "llm",
         "profile": "q27b",
+        # NOT a ladder rung, by measurement (W0, 2026-09-13,
+        # benchmarks/measure_rung_correlation.py). This is the same
+        # Qwen3.8-27B as q27b-think on a different backend, and the two
+        # were measured to fail on the IDENTICAL task: rho = 1.00. A
+        # cascade rung only pays for itself on failures the rung above did
+        # NOT make, and at rho = 1 there are none - so this rung could
+        # recover nothing while costing 9.69 s to answer and 18 s to load.
+        # Under measured per-rung error rates it already answered 0% of
+        # traffic. The caveat travels with the number: that rho rests on
+        # one failure each, so it is a confirmed prediction rather than a
+        # tight estimate - but the decision also stands on the 0% and the
+        # 18 s independently.
+        #
+        # The ENGINE is not deleted. The weights are real, the q27b profile
+        # stays switchable by hand (TEE/Q27B) and eng_* still reports it.
+        # `capability` still says ["chores"], because that is TRUE - the engine
+        # can run a chore, and does when the owner pins TEE/Q27B. Whether the
+        # CASCADE should try it is a different question, so it gets its own
+        # field. Emptying capability to express this was the first attempt and
+        # was wrong: the registry schema requires every row to declare one, and
+        # rightly - a row with no capability is a row that does nothing.
+        # Restore `"ladder": True` if a measurement ever shows it failing
+        # independently of q27b-think.
         "capability": ["chores"],
+        "ladder": False,
         # A49 P0 correction. A47 declared this blind. It is not: the model's
         # own config.json on disk says architectures
         # ["Qwen3_5ForConditionalGeneration"] and carries a `vision_config`
@@ -105,6 +129,57 @@ ENGINES: dict[str, dict[str, Any]] = {
             # path, so the two are not comparable and averaging them would
             # invent a number neither run produced.
             "a46_shim_observation_s": 27.78,
+        },
+    },
+    # W0 (2026-09-13): the THINKING engine, and the first row in this table
+    # to name its ENDPOINT. That is not bookkeeping. The same weights on two
+    # local servers are two different engines: on the MLX server :8082 this
+    # model runs 11.9 tok/s and its reasoning stream never terminates (26,608
+    # chars, finish=length, zero content); behind the shim on the vLLM
+    # backend :8087 it runs ~50 tok/s and terminates cleanly. A row naming
+    # only the model would be predicting something it cannot see - A76's law
+    # one level down.
+    "q27b-think": {
+        "kind": "llm",
+        "profile": "q27b-think",
+        "capability": ["chores"],
+        "endpoint": "http://127.0.0.1:4000/v1 -> hosted_vllm :8087",
+        "senses": ["vision"],
+        "senses_source": (
+            "config.json architectures Qwen3_5ForConditionalGeneration + vision_config, "
+            "read 2026-09-13 (Youssofal requant snapshot 35ec534d)"
+        ),
+        "footprint_gb": 28.0,  # measured on disk 2026-09-13
+        "eta_s": 46.0,  # 45.6 s cold load measured 2026-09-13
+        "qos_default": "interactive",
+        # Two bands, because this engine has two modes and averaging them
+        # would invent a number neither produced. Real TEE chores, measured
+        # 2026-09-13: triage / explain_lint / compress_recap.
+        # ORDERING BAND: deliberately the pessimistic one, and the reason is
+        # not the one first written here. That comment said "this profile
+        # defaults thinking ON" - true when written, false hours later once
+        # chores were inverted to opt-in. Nothing in production passes
+        # thinking=True today, so every chore executes this rung BARE at
+        # [0.82, 2.43].
+        #
+        # Ordering on the bare band anyway would be wrong in the other
+        # direction: cost() (router.py:61) reads latency only and cannot see
+        # eta_s, so it would sort a 2.43 s rung ahead of engines it beats only
+        # once warm - and this one costs 45.6 s to load. The correct function
+        # already exists in the tree, at shadow.py:74:
+        #     finish = latency + (0.0 if name == resident else eta_s)
+        # but the live ladder does not use it, and threading residency into
+        # _ladder would break the five modules that pin LADDER for a prize of
+        # zero: router.route has exactly ONE production caller today
+        # (capture/tools.py:571, phrase_deviation).
+        #
+        # So: both terms or neither. Until cost() reads eta_s, this rung is
+        # ordered on the band that keeps it from being chosen cold, and the
+        # bare band - what actually executes - is recorded beside it.
+        "cost": {
+            "latency_s": [2.29, 7.66],  # ordering band; see above
+            "latency_bare_s": [0.82, 2.43],  # what chores ACTUALLY execute
+            "measured": "W0 2026-09-13 on :8087",
         },
     },
     # -- A46 P3a: the engines this machine ACTUALLY serves ---------------

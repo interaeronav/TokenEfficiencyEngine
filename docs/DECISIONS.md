@@ -2390,6 +2390,15 @@ sweep — can only be met for the engines that actually answer. Where it cannot,
 the row says `unmeasured` and why, the way A69 refused to claim anything live
 until the Mac smoke had run.
 
+## A79 CADAgent integration boundary (2026-09-10)
+
+Owner requested research/integration of the downloaded CADAgent. Its official
+MIT source supplies reusable local geometry helpers; its hosted backend has
+shut down. Adapt shell and rectangular/circular patterns into existing Fusion
+typed batches with attribution, document-scoped IDs, validation and checkpoints.
+Do not embed its separate cloud-calling agent loop in TEE. Plan A79 and research
+80 record scope and evidence; this decision does not modify owner trust grants.
+
 ## A77's subject, chosen by the session on evidence (2026-09-08)
 
 The owner said *"start A77 P0"* and then *"continue all phases without my
@@ -2440,3 +2449,204 @@ appeared in the log and looked like the parallel session already doing this
 work. It is historical, and the most recent commit touching `benchmarks/` is
 this session's own A76 P4. But the check cost one fetch and the alternative was
 proposing a campaign on top of someone else's — the A71 lesson, paid forward.
+
+## GPT-6 coordinates both clients' upgrades (owner, 2026-09-10)
+
+Owner decision: GPT-6 will compose a coordination protocol when either party
+upgrades the extension, ensuring commonality and continuity for all stakeholders
+and delivery of the right package to both parties. Claude relayed the same
+decision in `docs/coordination/2026-09-10T201415Z-claude-to-codex-03.md` and
+reserved protocol authorship for Codex.
+
+Adopt `docs/upgrade-coordination-protocol.md` as the standing rule, referenced by
+AGENTS.md, CLAUDE.md and the execution script. GPT-6 prepares a per-update packet;
+either model can initiate. Freeze one complete source/resource identity, produce
+client-appropriate deliveries, preserve project state and existing permissions,
+and close only after both actual clients provide matching acceptance receipts.
+Keep partial rollout and owner-approved exceptions visible; never infer live
+installation from a file copy or a same-version label.
+
+This machine needs distinct deliveries: the current Codex personal plugin is a
+thin wrapper over the checkout; Claude Desktop runs copied source in a local
+MCPB using the borrowed interpreter. The shared runtime payload and usage-skill
+contract must agree even when wrappers and archive hashes differ. A dependency
+change to the borrowed environment affects both clients. Versioned manifests,
+source/artifact hashes, complete resource checks, private configuration backup
+and state-aware rollback preserve continuity.
+
+This decision establishes the workflow; it does not itself enable the currently
+disabled Claude extension, select another project, install an update or publish
+to GitHub. The prior owner-authorized QMAX pin and this project's
+`call-paid-engine` grant persist without another confirmation. Missing config
+means `read+baseline`, not a blanket loss of scene mutation capability; the
+protocol checks actual required capabilities and the intended state namespace.
+
+## A81: Cline and Aider automate documentation through staged workers
+
+Owner request, 2026-09-11 local / 2026-09-10 UTC: integrate Cline and Aider into
+TEE for documentation. Owner selected any connected project, including TEE.
+`CLAUDE_A81_SCRIPT.md` is the plan; research 82 records verified interfaces.
+
+Implement external optional workers behind five virtual tools, preserving the
+17-core contract and the selected TEE profile. Explicit source/target copies
+bound context. A completed worker proposes documentation; a separate reviewed
+checksum and unchanged-source check control application. The adapters are not
+model-router rungs. Existing learning observes execution, not factual quality.
+
+Use a purpose-specific `run-doc-agent` capability, explicit/high-risk/taint-
+enforced and absent from the baseline. Coding agents can execute host commands;
+staging and CLI restrictions are not a sandbox. The paid-engine grant remains
+independent, including when a loopback proxy represents QMAX. No new grant is
+applied by implementation. External worker accounting is labelled separately
+from TEE's internal model meter, with unknown usage left unknown.
+
+Keep the two pinned CLI environments separate from TEE's shared interpreter.
+The next runtime update requires a new common-payload packet and both actual-
+client receipts. Existing A79/A80 deliveries and rollback remain retained.
+Grant sequencing is load-bearing: older runtimes reject an unknown capability,
+so an approved run-doc-agent addition is applied only after both clients have
+loaded the new runtime. The existing QMAX/paid grant remains unchanged meanwhile.
+
+### 2026-09-10 — A82 original architectural application and worldwide framework
+
+Owner scope is headless architecture inside TEE, cabinet making, conversion from
+Unreal/meshes/LiDAR, an optional GUI, and worldwide jurisdiction support. The
+owner asked autonomous quiet continuation while asleep. The A82 plan supersedes
+A81's rollout timing only: preserve that frozen candidate and prepare a new
+combined successor; do not overwrite its identity or install a mismatched source.
+
+`archkiln` uses original document/service/GUI code and already installed optional
+IfcOpenShell, geometry and document libraries. It copies no Archicad/Bonsai
+implementation. The project document is in explicit millimetres and has its own
+immutable UUID; IFC identities must derive from document and entity identity,
+never just reusable names. Authoring edits are atomic and revisions advance on
+undo. The optional authenticated loopback GUI uses exactly the same service.
+
+Measured centreline wall prisms overlap at junctions. The opt-in
+`orthogonal_butt_v1` policy defines supported equal-height L/T joins, preserves
+source centrelines and opening offsets, and refuses ambiguous/unsupported joins.
+Without a selected join policy, exports must disclose overlap and non-additive
+quantities. Flat roofs are explicitly flat. Filling records preserve semantic
+opening intent without inventing door/window construction. Review drawings use
+true cuts and labelled wire elevations; manufacturer hardware/CNC and authority
+sheet approval remain unverified.
+
+Worldwide support means versioned country/region/municipality rule selection,
+source/adoption/amendment dependencies and explicit coverage. No available code
+corpus establishes all worldwide laws. Unsupported or missing applicable law,
+evidence, facts or source rights remains `not_verified`; schema/IDS/geometry is
+not legal certification. Learned recommendations cannot alter legal thresholds.
+Source imports preserve measurements, units, transforms, hashes and uncertainty;
+visible planes do not establish concealed thickness or structural function.
+
+Architecture adds eleven individually tabled virtual tools and no always-loaded
+tools or new capabilities. Import/export jobs support cooperative cancellation
+between bounded native steps; already written partial export files may remain,
+without a success manifest when cancellation is observed before publication.
+No engine/model inference or new permission was used. Runtime installation,
+actual-client acceptance and any newly approved documentation-worker grant
+remain separate steps under protocol 1.0.1 while the owner sleeps.
+
+## Thinking is per-CHORE, not per-engine (2026-09-13, W0)
+
+The owner asked that TEE become a thinking LLM on the 27B. It is, and the
+engine is wired: `q27b-think` reaches Qwen3.8-27B through the shim on the
+vLLM backend, local and free, with reasoning returned in its own field and
+stripped before the client sees it - so deliberation costs zero client
+tokens, which is the strongest form of TEE's own thesis rather than a
+compromise with it.
+
+But thinking is NOT uniformly better, and the measurement says so. On the
+A34 trap suite with the real `_TRIAGE_SYSTEM`, the same model on the same
+backend scores **6/6 with thinking off and 5/6 with thinking on**. The one
+failure is `kwarg_drift` answered `grounded`: given room to reason, the
+model constructs a plausible derivation and asserts an API fact from
+weights - precisely what the A30 boundary forbids and what the trap exists
+to catch. Deferral is a CALIBRATION judgement, and more reasoning tokens
+push toward commitment.
+
+Ruling: thinking is a per-chore dial with a per-chore gate, not an engine
+default that chores inherit. `triage` pins `thinking=False` whatever the
+profile says. Any chore that turns thinking ON must show its own
+before/after measurement, and the trap suite must not regress. Supersedes
+the plan's "thinking on for judgment work", which was written before this
+was measured.
+
+Two supporting facts, both measured the same day and both load-bearing:
+the same weights are a DIFFERENT ENGINE per backend (11.9 tok/s with a
+non-terminating reasoning stream on the MLX server, ~50 tok/s and clean
+termination on vLLM), so an `ENGINES` row now names its endpoint; and the
+backends disagree about `response_format` - MLX accepts and ignores it,
+vLLM refuses rather than return unconstrained output - so the field is
+negotiated per endpoint instead of sent unconditionally. TEE could not
+reach the better backend at all until that changed.
+
+Licensing, at the owner's direction: personal use, Apache-2.0 declared,
+and TEE distributes no weights, so no weights gate is built. Recorded as an
+assumption to revisit if TEE ships weights, goes commercial on a different
+engine, or trains an adapter on these weights.
+
+## The widening ceiling: verifier coverage gates extra effort (2026-09-13, W0)
+
+The owner asked for dynamic context-driven switching between thinking and no
+thinking. The answer, after measurement, is that the switch does not key on
+context at all. It keys on a static, measurable property of the chore's own
+verifier, and for four of eight chores it is not a policy but a proof.
+
+**The measurement.** `tests/test_a85_verifier_coverage.py` feeds seeded
+plausible-but-wrong answers through each real chore and counts how many its
+`validate()` closure ACCEPTS. Every chore also passes a true-accept control, so
+a low false-accept rate means "catches errors" rather than "rejects
+everything". Measured eps: phrase_deviation 25%, repair_script 25%,
+refine_extract 33%, structure_facts 67%, rerank 67%, and triage / explain_lint
+/ compress_recap all **100%**.
+
+**The rule.** For per-attempt error q over N attempts, standby redundancy with
+imperfect detection gives `P(fail after N) = eps*q + (1 - eps)*q**N`. The first
+term is a floor no N crosses: errors the verifier cannot see are never retried,
+because nothing knows to retry them. So
+
+    widening ceiling = 1 - eps
+
+is the most that ANY widening mechanism - a thinking pass, best-of-N, more
+sampling - could ever remove, at unlimited budget. This is the quantum
+threshold theorem's shape: below threshold concatenation buys you squaring,
+above it you are amplifying noise. At eps = 1 the ceiling is zero and
+`P(fail) = q` for every N.
+
+**Consequences, enforced in code.** `chores._run` refuses `thinking=True` on a
+chore whose ceiling is zero (`llm_widening_refused`) - triage, explain_lint and
+compress_recap, plus any unmeasured chore, which is treated as blind so a new
+chore cannot inherit permission it never earned. Where the
+ceiling is positive the answer is still no (`llm_widening_unproven`): a ceiling
+is permission to MEASURE, never evidence of benefit. `THINKING_ALLOWED` ships
+EMPTY, because across everything tested thinking was one measured harm, three
+measured no-ops at 2.8-4.0x, and zero gains.
+
+**Two corrections to earlier reasoning, both from measurement.** rerank was
+classified a sound verifier because its output must be a permutation of the
+input ids - but a permutation in the WRONG ORDER passes, and ordering is the
+entire job, so eps is 67% and not 0. And phrase_deviation catches numerals
+swapped ACROSS lines while accepting them swapped WITHIN one line, which is the
+repo's own min_wall law again: a check that samples is not a check.
+
+**Supersedes** the plan's "thinking on for judgment work". Judgement is exactly
+where it was measured to hurt.
+
+**repair_script was fixed rather than merely classified.** It measured 100% -
+its only correctness-adjacent gate was an UPPER length bound, so a
+deletion-based repair, the exact degenerate fix its own system prompt warns
+about, was accepted and shipped to the client. It now must parse under
+`validate_script`, must contain a call or an assignment, and must preserve
+every intent-bearing token or echo it through a rename. **100% -> 25%**, with
+the true-accept control still passing. Two things that fix taught: the oracle
+had to be `validate_script` because this chore is reached ONLY from the
+tee_script failure handler and repairs that restricted subset - a first pass
+seeded it with bpy code it never receives; and intent in tee_script lives in
+dict STRING KEYS rather than kwargs, so a token check that walks only
+identifiers cannot see a dropped field.
+
+**eps is a lower bound** - more seeds can only find more false accepts - so
+every ceiling is an optimistic cap on an unproven benefit. repair_script's 25%
+is the honest residue: a repair that keeps every token and changes a VALUE
+still passes.

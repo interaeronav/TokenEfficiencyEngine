@@ -294,6 +294,39 @@ def test_pack_channels(tmp_path, app):
 # -- license hygiene (acceptance) -------------------------------------------
 
 
+# The AGPL check greps for a GRANT, not a mention.
+#
+# It used to flag any file containing "AGPL" unless that file also happened to
+# contain "never" or "reference-only". That is both too broad and too narrow,
+# and on 2026-09-13 it fired on structural/environment.py for the line
+#
+#     "licence": "honeybee-energy AGPL-3.0; not an MIT dependency"
+#
+# - a catalogue entry doing precisely what this gate exists to enforce: naming
+# an AGPL package and recording that it is excluded and not installed. A gate
+# that fails the behaviour it is protecting teaches people to route around it.
+#
+# What actually matters is whether a file is LICENSED under the AGPL, which
+# shows up as grant language, not as the acronym.
+_AGPL_GRANT = (
+    "gnu affero general public license",
+    "licensed under the agpl",
+    "under the terms of the gnu affero",
+    "this program is free software",
+    # SPDX is the most machine-readable way to declare a file's licence, and
+    # the first version of this predicate missed it entirely while claiming to
+    # be stricter than the substring scan it replaced. A `"licence":` catalogue
+    # value naming AGPL is still NOT a grant - that is a package being
+    # excluded - but an SPDX header is this file declaring its own terms.
+    "spdx-license-identifier: agpl",
+)
+
+
+def _looks_agpl_licensed(text: str) -> bool:
+    low = text.lower()
+    return any(phrase in low for phrase in _AGPL_GRANT)
+
+
 def test_no_agpl_and_no_epic_digest_text_in_repo():
     """Acceptance: license lint - no AGPL-derived code, no Epic digest
     text. The fixtures declare themselves synthetic."""
@@ -303,7 +336,7 @@ def test_no_agpl_and_no_epic_digest_text_in_repo():
     suspects = []
     for path in (root / "server" / "src").rglob("*.py"):
         text = path.read_text(errors="ignore")
-        if "AGPL" in text and "reference-only" not in text and "never" not in text:
+        if _looks_agpl_licensed(text):
             suspects.append(str(path))
         # Epic digest text would carry these signature paths verbatim
         if "/Fortnite.com/Devices}" in text.replace(" ", "") and "digest" in path.name:
@@ -324,3 +357,26 @@ def test_uefn_analytics_live_contract(tmp_path, app, network):
     with pytest.raises(Exception) as err:
         app.registry.call("uefn_analytics", {"island": "0000-0000-0000", "interval": "day"})
     assert "404" in str(err.value) or "not" in str(err.value).lower()
+
+
+def test_the_agpl_gate_actually_fires():
+    """A gate nobody has seen fail is a gate nobody knows is wired up.
+
+    Both directions matter here: real grant text must be caught, and a
+    catalogue entry EXCLUDING an AGPL package must not be - that false
+    positive is what made this check unreliable in the first place.
+    """
+    assert _looks_agpl_licensed("# This program is free software: you can redistribute it\n"), (
+        "grant language must be caught"
+    )
+    assert _looks_agpl_licensed("Licensed under the GNU Affero General Public License v3")
+    assert not _looks_agpl_licensed(
+        '"licence": "honeybee-energy AGPL-3.0; not an MIT dependency",'
+    ), "naming an AGPL package in order to EXCLUDE it is the correct behaviour"
+    assert not _looks_agpl_licensed("# AGPL dependencies are listed in docs/licences.md")
+    assert _looks_agpl_licensed("# SPDX-License-Identifier: AGPL-3.0-only"), (
+        "an SPDX header declares THIS file's terms and must be caught"
+    )
+    assert not _looks_agpl_licensed('"licence": "AGPL-3.0-only",  # not a dependency'), (
+        "a catalogue value naming AGPL is a package being excluded, not a grant"
+    )

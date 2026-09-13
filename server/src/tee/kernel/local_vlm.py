@@ -57,6 +57,14 @@ def describe(
         {
             "model": model,
             "max_tokens": max_tokens,
+            # W0 (2026-09-13): the shim now routes claude-qwen-vl to a
+            # THINKING model, and this call sent no flag at all - so the
+            # model reasoned by default, sometimes spent the whole budget
+            # doing it, and returned empty content that this function
+            # handed back as "". Reading a value off an image is a
+            # TRANSFORMATION, the class where thinking was measured to add
+            # nothing at 2.8-4.0x the cost. Off, explicitly.
+            "chat_template_kwargs": {"enable_thinking": False},
             "messages": [
                 {
                     "role": "user",
@@ -89,11 +97,22 @@ def describe(
             "vlm_unreachable", f"No local vision model at {url} ({exc}).", fix=_UNREACHABLE_FIX
         ) from exc
     try:
-        text = payload["choices"][0]["message"]["content"] or ""
+        message = payload["choices"][0]["message"]
+        text = message.get("content") or ""
     except (KeyError, IndexError, TypeError) as exc:
         raise TeeError(
             "vlm_bad_response",
             "The local vision model returned no text content.",
             fix="Check the vision server log (~/.claude/qwen-local/vlm-server.log).",
         ) from exc
+    reasoning = message.get("reasoning_content") or message.get("reasoning") or ""
+    if not text.strip() and reasoning:
+        # A thinking model that never reached an answer. Silently returning
+        # "" made this look like a blind model rather than an exhausted
+        # budget - the same trap as llm_no_answer on the text seam.
+        raise TeeError(
+            "vlm_no_answer",
+            f"The vision model reasoned for {len(reasoning)} characters and gave no answer.",
+            fix=f"Raise max_tokens (currently {max_tokens}) or serve a non-thinking vision model.",
+        )
     return text.strip()

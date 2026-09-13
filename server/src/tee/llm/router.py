@@ -17,8 +17,14 @@ a LABEL here (seam 3); K1 makes it law.
 
 from __future__ import annotations
 
+import hashlib
+import json
+import marshal
 import time
+import uuid
 from collections.abc import Callable
+from contextlib import suppress
+from functools import lru_cache
 from typing import Any
 
 from tee.kernel import shadow
@@ -66,7 +72,17 @@ def _ladder(measured: dict[str, Any] | None = None) -> tuple[str, ...]:
     chore_engines = [
         n
         for n, spec in ENGINES.items()
-        if spec.get("kind") == "llm" and "chores" in (spec.get("capability") or [])
+        # `ladder: False` opts a row OUT of the cascade without denying what it
+        # can do. q27b-bare is the case: it runs chores perfectly well when the
+        # owner pins TEE/Q27B, but it was measured to fail on the identical
+        # tasks as q27b-think (rho = 1.00, same weights on two backends), so as
+        # a RUNG it could recover nothing the rung above it had not already got
+        # wrong. Capability and cascade membership are different questions.
+        if (
+            spec.get("kind") == "llm"
+            and "chores" in (spec.get("capability") or [])
+            and spec.get("ladder", True)
+        )
     ]
     return tuple(sorted(chore_engines, key=cost))
 
@@ -87,14 +103,200 @@ BRIEF_TOKEN_CAP = 200
 #: Codes meaning the engine was never reached, so nothing about the MODEL was
 #: learned. Anything else from the call is a verdict on what it answered.
 UNREACHABLE_CODES = frozenset({"llm_unreachable"})
+# A80 labels only the EXISTING chore validator's acceptance. For triage this
+# is a schema check; it is never evidence that a diagnosis or CAD model is right.
+VERIFIER_FAILURE_CODES = frozenset({"llm_bad_shape", "llm_bad_json"})
+_CHORE_NAMES = frozenset(
+    {
+        "triage",
+        "repair_script",
+        "explain_lint",
+        "refine_extract",
+        "structure_facts",
+        "compress_recap",
+        "rerank",
+        "phrase_deviation",
+    }
+)
 
 _PROFILE_TO_ENGINE = {
     spec["profile"]: name for name, spec in ENGINES.items() if spec.get("profile")
 }
 
 
+def _finish_s(engine: str, measured: dict[str, Any] | None = None) -> float:
+    """When a NON-RESIDENT rung would finish: its latency plus its load cost.
+
+    A cold model is not free. `cost()` in `_ladder` compares latency only,
+    which is the right question for a table that cannot know what is resident
+    and the wrong one for a live ladder that can.
+    """
+    row = ENGINES.get(engine, {})
+    warm = (measured or {}).get(engine, {}).get("latency_warm_s")
+    if isinstance(warm, list) and len(warm) > 1:
+        latency = float(warm[1])
+    elif isinstance(warm, (int, float)):
+        latency = float(warm)
+    else:
+        band = (row.get("cost") or {}).get("latency_s")
+        latency = float(band[1]) if isinstance(band, list) and len(band) > 1 else 1e6
+    try:
+        return latency + float(row.get("eta_s") or 0.0)
+    except (TypeError, ValueError):
+        return latency
+
+
 def _hop_cfg(cfg: dict[str, Any], engine: str) -> dict[str, Any]:
     return dict(cfg, _profile=ENGINES.get(engine, {}).get("profile"))
+
+
+@lru_cache(maxsize=128)
+def _code_version(codes: tuple[Any, ...]) -> str:
+    return hashlib.sha256(marshal.dumps(codes)).hexdigest()
+
+
+def _learning_context(chore: str) -> str:
+    # Only fixed built-in identifiers are retained; unknown caller text does
+    # not enter the store or model even as a hash of that text.
+    return "chore:" + (chore if chore in _CHORE_NAMES else "unknown")
+
+
+def _learning_version(chore: str, call: Callable, cfg: dict[str, Any], engine: str) -> str:
+    from tee.kernel import local_llm
+    from tee.llm import chores
+
+    # Hash the compiled validator (including nested validate), shared runner,
+    # string normalizer, and actual callback. Neither source nor URLs leave here.
+    functions = (
+        getattr(chores, chore, None) if chore in _CHORE_NAMES else None,
+        chores._run,
+        chores._line,
+        local_llm.complete_json,
+        local_llm._parse_json_object,
+        call,
+    )
+    codes = tuple(getattr(fn, "__code__", None) for fn in functions)
+    code = _code_version((chores.REVISION, *codes))
+    profile = ENGINES.get(engine, {}).get("profile")
+    if profile in profiles.profiles(cfg):
+        resolved = profiles.resolve(_hop_cfg(cfg, engine))
+        # `thinking` is part of the engine's identity for learning: the same
+        # weights with reasoning on and off are two different behaviours -
+        # measured 6/6 vs 5/6 on the trap suite - so evidence gathered under
+        # one must not be reused under the other.
+        identity = {
+            k: resolved.get(k)
+            for k in ("profile", "model", "url", "adapters", "paid", "thinking")
+        }
+    else:
+        identity = {"profile": profile, "undeclared": True}
+    payload = json.dumps(["route_v1", code, identity], sort_keys=True, separators=(",", ":"))
+    return "route_v1:" + hashlib.sha256(payload.encode()).hexdigest()
+
+
+def _local_candidate(cfg: dict[str, Any], engine: str) -> bool:
+    spec = ENGINES.get(engine, {})
+    if spec.get("kind") != "llm" or "chores" not in spec.get("capability", []):
+        return False
+    declared = profiles.profiles(cfg)
+    if spec.get("profile") not in declared or declared[spec["profile"]].get("enabled") is False:
+        return False
+    resolved = profiles.resolve(_hop_cfg(cfg, engine))
+    return bool(resolved.get("ready")) and not resolved.get("paid", False)
+
+
+def _learned_order(
+    service: Any,
+    context: str,
+    chore: str,
+    call: Callable,
+    cfg: dict[str, Any],
+    ladder: list[str],
+    resident: str,
+    ledger: MachineLedger,
+) -> tuple[list[str], bool]:
+    """A recommendation can only permute the current eligible local choices."""
+    try:
+        candidates = [
+            {"choice": engine, "version": _learning_version(chore, call, cfg, engine)}
+            for engine in ladder
+            if _local_candidate(cfg, engine) and (engine == resident or ledger.may_swap(engine)[0])
+        ]
+        if len(candidates) < 2:
+            return ladder, False
+        expected = {row["choice"]: row["version"] for row in candidates}
+        result = service.recommend(domain="verified", context=context, candidates=candidates)
+        if not isinstance(result, dict) or result.get("applied") is not True:
+            return ladder, False
+        items = result.get("items")
+        if not isinstance(items, list) or len(items) != len(candidates):
+            return ladder, False
+        choices = [row["choice"] for row in items]
+        if len(set(choices)) != len(choices) or set(choices) != set(expected):
+            return ladder, False
+        if any(row.get("version") != expected[row["choice"]] for row in items):
+            return ladder, False
+        if any(
+            _learning_version(chore, call, cfg, e) != version for e, version in expected.items()
+        ):
+            return ladder, False  # The resolved model changed during recommendation.
+        ranked = iter(choices)
+        return [next(ranked) if engine in expected else engine for engine in ladder], True
+    except Exception:
+        # Learning is optional; damaged state/service output cannot stop a chore.
+        return ladder, False
+
+
+def _observe_hop(
+    service: Any,
+    context: str,
+    chore: str,
+    call: Callable,
+    cfg: dict[str, Any],
+    engine: str,
+    group_id: str,
+    success: bool | None,
+    elapsed_ms: float,
+    category: str = "completed",
+    version: str | None = None,
+) -> None:
+    if service is None:
+        return
+    # A "verified" label is only worth learning from if the verifier that
+    # produced it can actually tell right from wrong. `verified=True` means
+    # nothing more than "this chore's validate() accepted", and we MEASURED
+    # (chores.VERIFIER_COVERAGE, 2026-09-13) that triage, explain_lint and
+    # compress_recap accept 100% of seeded wrong answers. For those, the label
+    # is uncorrelated with correctness - and a learner fed labels that are
+    # uncorrelated with correctness does not merely fail to improve, it
+    # acquires confident wrong orderings. Same threshold argument as the
+    # widening ceiling: below the coverage threshold, more evidence amplifies
+    # the error instead of averaging it out.
+    #
+    # So the observation is still RECORDED - latency and coverage are real -
+    # but its success label is withheld. A80 already has this idiom: an
+    # unlabelled row carries a category and a NULL success (the A76 lesson
+    # that an unreachable engine supplies no quality label).
+    from tee.llm.chores import widening_ceiling
+
+    # ASYMMETRY, and the tests taught it: eps counts FALSE ACCEPTS. A blind
+    # verifier's acceptance is uninformative, but its REJECTION is a true
+    # rejection - it caught something so malformed that even a shape check
+    # saw it. So negative labels survive; only the positive one is withheld.
+    if success is True and widening_ceiling(chore) <= 0.0:
+        success, category = None, "unverifiable"
+    # Telemetry failures never change a result, refusal, or fallback.
+    with suppress(Exception):
+        service.observe(
+            domain="verified",
+            context=context,
+            choice=engine,
+            version=version or _learning_version(chore, call, cfg, engine),
+            success=success,
+            elapsed_ms=elapsed_ms,
+            group_id=group_id,
+            category=category,
+        )
 
 
 def route(
@@ -116,10 +318,14 @@ def route(
     The owner's pin outranks both."""
     cfg = dict(cfg or {})
     started = time.monotonic()
+    learning = cfg.get("_learning")
+    context = _learning_context(chore) if learning is not None else ""
+    group_id = uuid.uuid4().hex if learning is not None else ""
     state = profiles.load_state(cfg)
     # Ordered at CALL time so a row written since boot is honoured; LADDER
     # stays the import-time fallback and the name five test modules import.
-    order = _ladder(measured_rows(cfg)) or LADDER
+    measured = measured_rows(cfg)
+    order = _ladder(measured) or LADDER
     resident = _PROFILE_TO_ENGINE.get(state["active"], order[0])
     pinned = bool(state.get("pinned"))
     if pinned:
@@ -131,8 +337,31 @@ def route(
         ladder = [first, *[e for e in order if e != first]]
         reason = f"greedy: {first} est {choice.get('estimate_s')}s ({choice.get('reason')})"
     else:
-        ladder = [resident, *[e for e in order if e != resident]]
+        # The resident goes first because it costs no swap. The TAIL, though,
+        # was ordered on latency alone - so a rung measured cheap per token
+        # could be tried ahead of one that finishes sooner, because a cold load
+        # is not in the comparison. q27b-think is the live example: a [2.29,
+        # 7.66] s band and a measured 46 s to load. Order the tail by when it
+        # would actually FINISH, which is shadow.greedy_choice's formula
+        # (shadow.py:74) finally applied on the live path rather than only in
+        # the shadow scheduler.
+        #
+        # Deliberately not pushed into _ladder(): that function's import-time
+        # result is LADDER, which five test modules pin, and residency is not
+        # knowable there. Ordering is a property of THIS call, not of the table.
+        tail = sorted(
+            (engine for engine in order if engine != resident),
+            key=lambda engine: _finish_s(engine, measured),
+        )
+        ladder = [resident, *tail]
         reason = f"static: resident-first {resident}"
+    learned = False
+    if learning is not None and not pinned:
+        ladder, learned = _learned_order(
+            learning, context, chore, call, cfg, ladder, resident, ledger
+        )
+        if learned:
+            reason += "; learned: evaluated validator reliability/cost prediction"
     ledger.record_dispatch("pinned" if pinned else policy, reason)
     ledger.record_task()
     hops: list[dict[str, Any]] = []
@@ -147,14 +376,29 @@ def route(
         # that do not serve it.
         if ENGINES.get(engine, {}).get("profile") not in declared:
             hops.append({"engine": engine, "skipped": "profile not declared here"})
+            _observe_hop(learning, context, chore, call, cfg, engine, group_id, None, 0, "skipped")
+            continue
+        # A profile/capability may change after recommendation or between hops.
+        # An applied model never carries authorization past this live boundary.
+        if learned and not _local_candidate(cfg, engine):
+            hops.append({"engine": engine, "skipped": "not an eligible local learning candidate"})
+            _observe_hop(learning, context, chore, call, cfg, engine, group_id, None, 0, "skipped")
             continue
         if engine != resident:
-            capable, reason = ledger.may_swap(engine)
+            capable, swap_reason = ledger.may_swap(engine)
             if not capable:
-                hops.append({"engine": engine, "skipped": reason})
-                ledger.record_swap(refused=reason)
+                hops.append({"engine": engine, "skipped": swap_reason})
+                ledger.record_swap(refused=swap_reason)
+                _observe_hop(
+                    learning, context, chore, call, cfg, engine, group_id, None, 0, "skipped"
+                )
                 continue
             ledger.record_swap(implicit=True)  # mlx loads the model per request
+        hop_version = None
+        if learning is not None:
+            with suppress(Exception):
+                hop_version = _learning_version(chore, call, cfg, engine)
+        hop_started = time.perf_counter()
         try:
             result = call(_hop_cfg(cfg, engine))
         except TeeError as exc:
@@ -170,13 +414,52 @@ def route(
                 }
             )
             ledger.record_route(engine, verified=False, unreachable=unreachable)
+            _observe_hop(
+                learning,
+                context,
+                chore,
+                call,
+                cfg,
+                engine,
+                group_id,
+                False if exc.code in VERIFIER_FAILURE_CODES else None,
+                (time.perf_counter() - hop_started) * 1000,
+                "unreachable"
+                if unreachable
+                else ("completed" if exc.code in VERIFIER_FAILURE_CODES else "unknown"),
+                version=hop_version,
+            )
             continue
         if result is None:
             hops.append({"engine": engine, "verdict": "empty_result"})
             ledger.record_route(engine, verified=False)
+            _observe_hop(
+                learning,
+                context,
+                chore,
+                call,
+                cfg,
+                engine,
+                group_id,
+                False,
+                (time.perf_counter() - hop_started) * 1000,
+                version=hop_version,
+            )
             continue
         hops.append({"engine": engine, "verdict": "verified"})
         ledger.record_route(engine, verified=True)
+        _observe_hop(
+            learning,
+            context,
+            chore,
+            call,
+            cfg,
+            engine,
+            group_id,
+            True,
+            (time.perf_counter() - hop_started) * 1000,
+            version=hop_version,
+        )
         _record(chore, input_pointer, engine, hops, resident, started, "verified", reason)
         return {
             "ok": True,

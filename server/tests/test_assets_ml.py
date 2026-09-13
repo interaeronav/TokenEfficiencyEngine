@@ -149,8 +149,27 @@ def test_siglip_beats_keyword_ranking_on_synonym_queries(tmp_path):
 @pytest.mark.ml
 # 25 s alone, and the recorded v0.13.0 flake: under full-suite load the
 # default 60 s timeout trips. Real local diffusion earns a real timeout.
+# Marked `ml` like its siblings, AND guarded at runtime. It runs a real local
+# diffusion pass; the weights are cached but torch/diffusers are not installed
+# in the server venv.
+#
+# An earlier version of this comment said torch is "BANNED from the serving
+# interpreter by the A46 no-heavy-imports law, so it can never be" here. That
+# overstates the law: test_a46_no_heavy_imports imports the fleet modules in a
+# FRESH interpreter and asserts no heavyweight landed in sys.modules. It forbids
+# EAGER IMPORTS, not presence in the venv - installing torch would not break it.
+#
+# The marker alone was not enough either: `-m` on the command line REPLACES
+# pyproject's addopts rather than narrowing it, so any invocation passing its
+# own `-m` re-selects this test. `ml` is the only capability marker in this repo
+# with no runtime guard behind it, and the proof that is an oversight is in this
+# same file - test_asset_embedding_is_local_and_free uses importorskip. Same
+# idiom here, so the test skips honestly under any invocation.
+@pytest.mark.ml
 @pytest.mark.timeout(240)
 def test_local_diffusion_generates_a_real_image(tmp_path):
+    pytest.importorskip("torch")
+    pytest.importorskip("diffusers")
     from PIL import Image
 
     from tee.assets.gen_local import LocalDiffusionDriver

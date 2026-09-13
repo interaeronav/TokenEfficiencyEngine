@@ -57,6 +57,49 @@ def save_measured(state_dir: str | Path | None, rows: dict[str, Any]) -> Path | 
     return p
 
 
+def matching_floors(state_dir: str | Path | None, resolved: dict[str, Any]) -> dict[str, Any]:
+    """Only current floor measurements for this actual model/endpoint/adapter.
+
+    A76's old sweep silently raised sub-256 budgets before sending them. Its
+    low-floor claims therefore cannot lower a production chore's budget; A78
+    records the exact-wire marker only on the corrected measurement path.
+    """
+    if resolved.get("paid"):
+        return {}
+    now = time.time()
+    matching = {}
+    for engine, row in load_measured(state_dir).items():
+        if not isinstance(row, dict) or row.get("paid"):
+            continue
+        if ENGINES.get(engine, {}).get("profile") != resolved.get("profile"):
+            continue
+        floor = row.get("floor")
+        if not isinstance(floor, dict) or floor.get("budget_mode") != "exact-wire":
+            continue
+        if row.get("model") != resolved.get("model"):
+            continue
+        if str(row.get("url") or "").rstrip("/") != str(resolved.get("url") or "").rstrip("/"):
+            continue
+        # A floor measured with thinking off does not describe the same
+        # engine with thinking on - reasoning consumes the budget the floor
+        # is about. Same reasoning as the adapters key below it.
+        if bool(row.get("thinking")) != bool(resolved.get("thinking")):
+            continue
+        if (row.get("adapters") or None) != (resolved.get("adapters") or None):
+            continue
+        count = row.get("min_chore_tokens")
+        if type(count) is not int or count < 1 or floor.get("min_chore_tokens") != count:
+            continue
+        try:
+            age = now - float(row.get("measured_at") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not 0 <= age <= STALE_DAYS * 86400:
+            continue
+        matching[engine] = row
+    return matching
+
+
 def _verdict(
     engine: str,
     spec: dict[str, Any],

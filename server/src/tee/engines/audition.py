@@ -44,7 +44,16 @@ def _chore(cfg: dict[str, Any], max_tokens: int | None = None):
     fixes it at 220 - the sweep needs to vary exactly that. The system prompt
     and the validator are the chore's, so a pass here is a pass at the real bar.
     """
-    from tee.llm import chores
+    from tee.llm import chores, profiles
+
+    # The helper is also used by direct-module floor probes. The engine lane
+    # never spends, even when a caller's ordinary chore grants permit it.
+    if profiles.resolve(cfg).get("paid"):
+        raise TeeError(
+            "eng_paid_refused",
+            "The engine lane cannot probe a paid profile.",
+            fix="Select an explicit local candidate for this measurement.",
+        )
 
     if max_tokens is None:
         return chores.triage(FAILURE, CONTEXT, refine="local", cfg=cfg)
@@ -66,6 +75,7 @@ def _chore(cfg: dict[str, Any], max_tokens: int | None = None):
         cfg=cfg,
         max_tokens=max_tokens,
         validate=validate,
+        _measure_exact_budget=True,
     )
 
 
@@ -97,6 +107,7 @@ def token_floor(cfg: dict[str, Any]) -> dict[str, Any]:
     lowest = min(passed) if passed else None
     out = {
         "min_chore_tokens": lowest,
+        "budget_mode": "exact-wire",
         "passed": passed,
         "first_failure": failed[0] if failed else None,
         "method": f"descending sweep over {list(TOKEN_RUNGS)}, chore's own validator",
@@ -115,15 +126,68 @@ def token_floor(cfg: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _candidate_cfg(cfg: dict[str, Any], *, engine: str, url: str, model: str) -> dict[str, Any]:
+    """Resolve the requested candidate independently of the owner's live pin.
+
+    Top-level url/model lose to a named profile. Copy an explicit candidate
+    profile instead, after preserving the lane's refusal of paid models. No
+    persisted profile, loading state, adopted floor or model lifecycle changes
+    belong to this measurement.
+    """
+    from tee.kernel import local_llm, machine
+    from tee.llm import profiles
+
+    url, model = url.strip().rstrip("/"), model.strip()
+    if not url or not model:
+        raise TeeError(
+            "eng_needs_endpoint",
+            "An audition needs an explicit nonempty endpoint and model.",
+            fix="Use eng_scan to identify the local candidate to measure.",
+        )
+    declared = profiles.profiles(cfg)
+    for spec in declared.values():
+        named = spec.get("model") or cfg.get("model") or local_llm.DEFAULT_MODEL
+        if spec.get("paid") and named == model:
+            raise TeeError(
+                "eng_paid_refused",
+                f"{model!r} is declared paid; the engine lane never measures it.",
+                fix="Audition a local model that is not marked paid.",
+            )
+
+    profile = machine.ENGINES.get(engine, {}).get("profile") or "__tee_audition__"
+    old = declared.get(profile, {})
+    # Never attach the owner's 14B LoRA to an unrelated candidate model.
+    adapters = ""
+    if old.get("model") == model:
+        adapters = old.get("adapters") or ""
+    elif cfg.get("model") == model:
+        adapters = cfg.get("adapters") or ""
+    candidate = {"url": url, "model": model, "adapters": adapters, "paid": False}
+    # Carry the engine's own thinking / json_mode, or the audition measures a
+    # DIFFERENT engine than the one the router will use: a thinking profile
+    # auditioned thinking-off yields a token floor and a latency band that
+    # nothing in production will ever reproduce.
+    for key in ("thinking", "json_mode"):
+        if key in old:
+            candidate[key] = old[key]
+    hop = dict(cfg, _profile=profile, profiles={**declared, profile: candidate})
+    hop.pop("_state_dir", None)
+    return hop
+
+
 def audition(
     cfg: dict[str, Any], *, engine: str, url: str, model: str, samples: int = WARM_SAMPLES
 ) -> dict[str, Any]:
     """A candidate engine row, measured. Never called for a paid profile."""
-    hop = dict(cfg, url=url, model=model)
+    from tee.llm import profiles
+
+    hop = _candidate_cfg(cfg, engine=engine, url=url, model=model)
+    resolved = profiles.resolve(hop)
     row: dict[str, Any] = {
         "engine": engine,
-        "url": url,
-        "model": model,
+        "url": resolved["url"],
+        "model": resolved["model"],
+        "adapters": resolved["adapters"],
         "measured_at": time.time(),
     }
 
