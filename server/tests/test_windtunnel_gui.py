@@ -205,5 +205,7 @@ def test_the_panel_adds_no_tool_to_the_surface(tmp_path):
     from tee.kernel import trust
 
     app = make_app(tmp_path)
-    assert not [n for n in app.registry.names() if "gui" in n or "panel" in n]
-    assert not [k for k in trust._EXPLICIT if "gui" in k or "panel" in k]
+    # Match capability words; A78's offline lane_guide contains the substring
+    # 'gui' but neither opens a GUI nor adds a wind-tunnel panel tool.
+    assert not [n for n in app.registry.names() if {"gui", "panel"} & set(n.split("_"))]
+    assert not [k for k in trust._EXPLICIT if {"gui", "panel"} & set(k.split("_"))]
