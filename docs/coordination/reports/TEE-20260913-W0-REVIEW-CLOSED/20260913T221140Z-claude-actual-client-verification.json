@@ -1,0 +1,57 @@
+{
+  "receipt_id": "TEE-W0-CLAUDE-VERIFICATION-20260913T221140Z",
+  "recorded_utc": "2026-09-13T22:11:40Z",
+  "client": "Claude Desktop (Claude Code session)",
+  "method": "actual-client MCP tool calls over the installed extension's live server",
+  "origin": "/Users/john/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/src/tee",
+  "runtime": {
+    "files": 325,
+    "fingerprint": "df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7",
+    "source_commit": "e6f95663274bcd74c754bf2aa1028ef4650bbca4",
+    "manifest_version": "0.30.1",
+    "server_type": "python",
+    "interpreter": "/Users/john/TokenEfficiencyEngine/server/.venv/bin/python",
+    "env": {"PYTHONDONTWRITEBYTECODE": "1"}
+  },
+  "process": {
+    "pids": [89902, 90007],
+    "started_local": "2026-09-13T17:05:01-05:00",
+    "payload_mtime_local": "2026-09-13T17:00:36-05:00",
+    "starts_after_payload_write": true,
+    "stale_bytecode_possible": false,
+    "stale_bytecode_basis": "manifest sets PYTHONDONTWRITEBYTECODE=1; no __pycache__ present in the installed tree"
+  },
+  "checks": [
+    {"check": "tee_status", "result": "ok:true", "project_root": "/Users/john/TokenEfficiencyEngine"},
+    {"check": "tool_surface", "core_tools": 17, "progressive_tools": 273, "composition": "actual client, real adapters"},
+    {"check": "tool_discovery", "query": "run a wind tunnel case and check solver status", "returned": 6, "more": 202},
+    {"check": "tee_describe_tool", "tool": "wt_status", "result": "schema returned; required case_id, optional run_id"},
+    {"check": "fail_loud_contract", "call": "wt_status case_id=no-such-case-verify-probe", "code": "wt_unknown_case", "shape": "one-line message plus exact fix"},
+    {"check": "lanes", "blender": {"connected": true, "version": "5.2.0 LTS", "entities": 3},
+      "partkiln": {"connected": true, "mode": "sidecar", "state": "warm", "occt": "7.9.3"},
+      "seamkiln": {"connected": true},
+      "fusion": {"connected": true, "version": "2705.1.15", "entities": 159},
+      "unreal": {"connected": false, "note": "endpoint 127.0.0.1:8000 not running; offline before the install too"}},
+    {"check": "scene_summary_all_lanes", "result": "ok:true; four connected lanes answered with entity counts"},
+    {"check": "active_jobs", "result": []},
+    {"check": "checkpoints", "result": []},
+    {"check": "llm_profile", "result": "q27b-think"},
+    {"check": "grants", "result": ["call-paid-engine", "exec-code", "run-adhoc", "run-declared-step", "run-doc-agent"]},
+    {"check": "eng_scan", "scanned": 2, "answering": 1,
+      "endpoints": [{"url": "http://127.0.0.1:8080/v1", "answers": false, "reason": "URLError"},
+                    {"url": "http://127.0.0.1:4000/v1", "answers": true, "http": 200, "model_count": 7, "software": "litellm"}]},
+    {"check": "eng_ask", "url": "http://127.0.0.1:4000/v1", "model": "claude-qwen-27b",
+      "http": 200, "produced": true, "verdict": "answers", "finish_reason": "stop",
+      "completion_tokens": 21, "wall_s": 0.662,
+      "conformance": {"think_leaked": false, "usage_present": true, "usage_claims_tokens_but_produced_nothing": false}}
+  ],
+  "not_claimed": [
+    "in-memory module fingerprint of the running server",
+    "independently captured MCP initialization version string",
+    "suite rerun (the review asked that it not be repeated)",
+    "native structural-engine coverage; the recorded 22 skips stand",
+    "two-party protocol completion",
+    "a frozen W0 release-manifest checksum, which does not exist yet"
+  ],
+  "mutations_performed": "none: no source, package or configuration edit, no install, no restart, no DCC mutation, no dependency sync, no push, no release. eng_scan refreshed its ordinary local cache and eng_ask made one small completion request to the local gateway."
+}
