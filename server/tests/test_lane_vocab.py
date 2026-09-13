@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import pytest
+
 from tee.adapters.blender import codegen
 from tee.adapters.blender.adapter import BlenderAdapter
 from tee.adapters.freecad import codegen as freecad_codegen
