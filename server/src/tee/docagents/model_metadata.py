@@ -67,9 +67,7 @@ def aider_metadata(profile: dict[str, Any], *, today: date | None = None) -> dic
     if not isinstance(value["upstream_model"], str) or not 1 <= len(value["upstream_model"]) <= 256:
         _fail("Name the actual upstream model behind the alias.")
     if not all(_https(value[name]) for name in ("upstream_url", "capacity_source", "price_source")):
-        _fail(
-            "Supply HTTPS provenance URLs without credentials; they are recorded, never fetched."
-        )
+        _fail("Supply HTTPS provenance URLs without credentials; they are recorded, never fetched.")
     try:
         checked = date.fromisoformat(value["verified_on"])
         expires = date.fromisoformat(value["valid_until"])
