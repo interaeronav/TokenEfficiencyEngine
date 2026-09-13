@@ -58,6 +58,16 @@ def find_godot() -> str | None:
     return None
 
 
+def _claim(path: str) -> str:
+    """Mark this scratch dir as ours and alive, so `tee_purge` can tell an
+    abandoned workdir from one a running server is still using. A52's sweep
+    went by name alone and deleted live directories (2026-09-13)."""
+    from tee.kernel.workdirs import claim
+
+    claim(path)
+    return path
+
+
 class GodotAdapter:
     """Talks to a headless Godot over the bridge socket."""
 
@@ -69,7 +79,7 @@ class GodotAdapter:
     ):
         self.wire = wire or GodotWire()
         self.project = Path(project).expanduser() if project else None
-        self.workdir = workdir or tempfile.mkdtemp(prefix="tee-godot-")
+        self.workdir = workdir or _claim(tempfile.mkdtemp(prefix="tee-godot-"))
         self._proc: subprocess.Popen | None = None
         self._version: str | None = None
 

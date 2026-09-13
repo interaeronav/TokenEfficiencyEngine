@@ -1967,3 +1967,62 @@ Scope unchanged: authorized reversible preparation only. No install, client
 restart, launch-target change, dependency sync, model download, push or release.
 Existing model selection, grants, project state and other sessions' work stay
 protected. No client receipt is required or may be invented.
+
+### W0 round four — the test suite was deleting live workdirs (Codex, 2026-09-13)
+
+The most serious finding of the campaign, and it is a PRODUCT defect with a test
+amplifier. Work it before any further full-suite run.
+
+**What happens.** `server/tests/test_purge.py` calls `purge(confirm=True)` in
+three tests. The `state` fixture isolates the project `.tee` tree via `tmp_path`,
+but `workdirs` discovery ignores `project_root` entirely: `purge._temp_workdirs()`
+globs `tee-*` directories in BOTH `tempfile.gettempdir()` and a hard-coded
+`/tmp`. `workdirs` is in `DEFAULT_CATEGORIES` and `older_than_days` defaults to
+**0.0**, so every matching directory qualifies however new it is. Codex's review
+run lost its own export, log and verification build this way.
+
+**The product's claim is false, in its own words.** The category description says
+these directories cost "nothing - these belong to processes that have exited",
+and `_temp_workdirs`'s docstring says "the processes that made them are gone, so
+there is no registry to consult". Nothing establishes either. The long-lived
+producers - the blender, fusion, godot and freecad adapters and
+`assets/library.py` - hold their `mkdtemp` directory open for the life of a
+running server.
+
+1. **[P1] Make validation safe first.** Give the fixture ownership of discovery:
+   substitute fixture-owned roots so no test can enumerate a real temp directory
+   (patching `TMPDIR` alone is not enough - `/tmp` is hard-coded). Add a
+   regression with a sentinel in a separate test-owned directory that must
+   survive a confirmed sweep, and instrument the destructive path to fail before
+   touching anything outside the allowed set. Keep the dry-run, protected-record
+   and capability-preservation checks meaningful: do not delete the purge tests,
+   exclude them, or merely rename the review export.
+2. **[P1] Make the policy match the claim.** Ownership and inactivity must be
+   established, not inferred from a prefix. Active workdirs are preserved,
+   including other processes'. Unknown directories are preserved and reported as
+   **unverified**, never called orphaned, and are never retroactively marked
+   owned to make them removable - leaving legacy directories unreclaimed is
+   acceptable. Identity checks must survive PID reuse; missing, unreadable or
+   ambiguous evidence fails closed. Validate containment and symlinks, and
+   re-check ownership and liveness AT DELETION TIME rather than trusting the
+   dry-run listing. Do not widen purge into arbitrary path deletion. Smallest
+   design the existing code supports.
+3. **[P2] Structural tests exist; my claim that they do not was false.** They are
+   committed on the local branch `codex/a84-reviewed-runtime` at `18666b3` -
+   `test_structural.py`, `test_structural_runner_limits.py`,
+   `test_structural_shutdown.py`. Recover the appropriate ones with their
+   provenance, without merging that branch or overwriting current source, and
+   scope native-engine checks honestly. Correct both documents: absent from this
+   branch's candidate, not absent from the repository.
+4. **Re-validate.** A purge source change moves the payload fingerprint: compute
+   and report the new one and the new delta rather than reusing
+   `397261a2…7ed22`. Focused purge and structural regressions first, then the
+   canonical suite on isolated source with the prepared interpreter and pinned
+   PYTHONPATH, then lint. Rebuild the verification artifact isolated with
+   `--python` naming the permanent interpreter. Keep the wind-tunnel orphan race
+   visible until disposed.
+
+Never reproduce the failure by confirming a sweep of a real temp root. Every
+destructive reproduction uses freshly created, fixture-owned directories only.
+Do not attempt to reconstruct or remove unknown temp contents, and do not claim
+recovery that has not been verified.

@@ -87,6 +87,9 @@ def publish_library(
     # The authoring script must NOT live in the library folder - the indexer
     # walks it, and a stray .py is pollution in something the user may serve.
     scratch = Path(tempfile.mkdtemp(prefix="tee-library-"))
+    from tee.kernel.workdirs import claim
+
+    claim(scratch)  # a live scratch dir is not an orphan
     program = scratch / "author.py"
     program.write_text(AUTHOR_PROGRAM)
 

@@ -150,6 +150,9 @@ class FreeCADAdapter:
     def _spill(self) -> Path:
         if self._spill_dir is None:
             self._spill_dir = Path(tempfile.mkdtemp(prefix="tee-freecad-cp-"))
+            from tee.kernel.workdirs import claim
+
+            claim(self._spill_dir)  # a live spill dir is not an orphan
         return self._spill_dir
 
     def snapshot(self, label: str) -> dict[str, Any]:

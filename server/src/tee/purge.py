@@ -36,6 +36,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from tee.kernel import workdirs as workdirs_mod
 from tee.kernel.errors import TeeError
 
 # Never removed, whatever the caller asks for. These are records and
@@ -111,56 +112,106 @@ def _age_days(path: Path) -> float:
         return 0.0
 
 
-def _temp_workdirs() -> list[Path]:
-    """`tee-*` directories left by `tempfile.mkdtemp` in adapters.
+def _workdir_roots() -> set[Path]:
+    """Where `tee-*` scratch directories can live.
 
-    Deliberately globbed rather than tracked: the processes that made them
-    are gone, so there is no registry to consult - only the naming
-    convention TEE itself uses.
+    A seam, not a constant: the test suite substitutes fixture-owned roots so
+    that no test can enumerate - let alone delete - a real system temp
+    directory. Patching TMPDIR was not enough, because `/tmp` is named here
+    too. Measured 2026-09-13: a confirmed purge from the suite deleted a live
+    export, its log and a build in progress.
     """
     import tempfile
 
-    roots = {Path(tempfile.gettempdir()), Path("/tmp")}
-    found: list[Path] = []
-    for root in roots:
+    return {Path(tempfile.gettempdir()), Path("/tmp")}
+
+
+def _temp_workdirs() -> list[tuple[Path, dict[str, Any]]]:
+    """Every `tee-*` directory under the roots, each with its ownership state.
+
+    The old version returned bare paths and the caller deleted them, on the
+    stated grounds that "these belong to processes that have exited". Nothing
+    established that, and the long-lived adapters hold their `mkdtemp`
+    directory open for the life of a running server. Now each candidate
+    carries proof or is refused - see kernel/workdirs.py for the three states.
+    """
+    from tee.kernel import workdirs
+
+    found: list[tuple[Path, dict[str, Any]]] = []
+    seen: set[Path] = set()
+    for root in _workdir_roots():
         if not root.is_dir():
             continue
         try:
-            found.extend(p for p in root.glob("tee-*") if p.is_dir())
+            entries = sorted(root.glob("tee-*"))
         except OSError:
             continue
-    return sorted(set(found))
+        for path in entries:
+            if path in seen or not _contained(path, root):
+                continue
+            seen.add(path)
+            found.append((path, workdirs.state_of(path)))
+    return sorted(found, key=lambda pair: str(pair[0]))
+
+
+def _contained(path: Path, root: Path) -> bool:
+    """A candidate must be a real directory sitting DIRECTLY in `root`.
+
+    Refuses symlinks (following one would delete whatever it points at) and
+    anything whose resolved parent is not the root it was globbed from, so a
+    crafted name cannot walk out of the temp namespace.
+    """
+    try:
+        if path.is_symlink() or not path.is_dir():
+            return False
+        return path.resolve(strict=True).parent == root.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return False
 
 
 def _candidates(state: Path, categories: tuple[str, ...], older_than_days: float):
     out: list[dict[str, Any]] = []
+    withheld: list[dict[str, Any]] = []
     for name in categories:
         paths, what, cost = CATEGORIES[name]
-        targets: list[Path] = []
+        targets: list[tuple[Path, dict[str, Any] | None]] = []
         if name == "workdirs":
-            targets = _temp_workdirs()
+            targets = list(_temp_workdirs())
         else:
             for rel in paths:
                 target = state / rel
                 if target.exists():
-                    targets.append(target)
-        for target in targets:
+                    targets.append((target, None))
+        for target, owner in targets:
             if target.name in PROTECTED:
+                continue
+            # A workdir is a candidate ONLY with proof of ownership and of the
+            # owner's death. Everything else is reported and kept.
+            if owner is not None and owner["state"] != workdirs_mod.RECLAIMABLE:
+                withheld.append(
+                    {
+                        "category": name,
+                        "path": str(target),
+                        "state": owner["state"],
+                        "why_kept": owner["reason"],
+                    }
+                )
                 continue
             age = _age_days(target)
             if age < older_than_days:
                 continue
-            out.append(
-                {
-                    "category": name,
-                    "path": str(target),
-                    "bytes": _size(target),
-                    "age_days": round(age, 1),
-                    "what": what,
-                    "losing_it_costs": cost,
-                }
-            )
-    return out
+            item = {
+                "category": name,
+                "path": str(target),
+                "bytes": _size(target),
+                "age_days": round(age, 1),
+                "what": what,
+                "losing_it_costs": cost,
+            }
+            if owner is not None:
+                item["owner"] = owner.get("reason", "")
+            out.append(item)
+    return out, withheld
 
 
 def purge(spec: dict[str, Any], *, project_root: str | Path) -> dict[str, Any]:
@@ -181,7 +232,7 @@ def purge(spec: dict[str, Any], *, project_root: str | Path) -> dict[str, Any]:
     older = max(0.0, float(spec.get("older_than_days") or 0.0))
     confirm = bool(spec.get("confirm"))
 
-    found = _candidates(state, tuple(asked), older)
+    found, withheld = _candidates(state, tuple(asked), older)
     total = sum(item["bytes"] for item in found)
 
     if not confirm:
@@ -194,15 +245,44 @@ def purge(spec: dict[str, Any], *, project_root: str | Path) -> dict[str, Any]:
             "would_reclaim_mb": round(total / 1_048_576, 1),
             "items": sorted(found, key=lambda i: -i["bytes"])[:40],
             "protected": sorted(PROTECTED),
+            "kept": withheld[:40],
+            "kept_count": len(withheld),
             "note": "Nothing was deleted. This is what a purge WOULD remove. "
-            "Pass confirm: true to do it, after reading the list.",
+            "Pass confirm: true to do it, after reading the list."
+            + (
+                f" {len(withheld)} matching director"
+                + ("y is" if len(withheld) == 1 else "ies are")
+                + " KEPT: TEE cannot prove it owns "
+                + ("it" if len(withheld) == 1 else "them")
+                + " or that the owner has exited. See `kept`. "
+                + ("It is not an orphan" if len(withheld) == 1 else "They are not orphans")
+                + ", only unverified."
+                if withheld
+                else ""
+            ),
         }
 
-    removed, failed = [], []
+    removed, failed, raced = [], [], []
     for item in found:
         target = Path(item["path"])
         if target.name in PROTECTED:  # belt and braces
             continue
+        # RE-CHECK at deletion time. The listing above is a snapshot, and a
+        # workdir can be claimed by a new owner between the two - a dry run is
+        # evidence for a decision, never a licence to delete later.
+        if item["category"] == "workdirs":
+            root_ok = any(_contained(target, root) for root in _workdir_roots())
+            now = workdirs_mod.state_of(target)
+            if not root_ok or now["state"] != workdirs_mod.RECLAIMABLE:
+                raced.append(
+                    {
+                        "path": str(target),
+                        "why_kept": now["reason"]
+                        if root_ok
+                        else "no longer contained in a workdir root",
+                    }
+                )
+                continue
         try:
             if target.is_dir():
                 shutil.rmtree(target)
@@ -219,6 +299,8 @@ def purge(spec: dict[str, Any], *, project_root: str | Path) -> dict[str, Any]:
         "reclaimed_bytes": reclaimed,
         "reclaimed_mb": round(reclaimed / 1_048_576, 1),
         "failed": failed,
+        "kept": withheld[:40] + raced,
+        "kept_count": len(withheld) + len(raced),
         "categories": asked,
         "note": "Removed only TEE's own artefacts. Project files, model "
         "caches and Docker were not touched.",

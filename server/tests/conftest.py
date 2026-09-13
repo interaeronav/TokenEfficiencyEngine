@@ -238,3 +238,27 @@ def pytest_sessionfinish(session, exitstatus):
         print(f"\n[trust] shadow-band denials across the suite: {len(denials)} {kinds}")
     else:
         print("\n[trust] shadow-band denials across the suite: 0")
+
+
+@pytest.fixture(autouse=True)
+def _never_enumerate_real_workdirs(tmp_path_factory, monkeypatch):
+    """A global floor under the purge lane: no test may see a real temp root.
+
+    `purge._workdir_roots()` names `tempfile.gettempdir()` AND a hard-coded
+    `/tmp`, and `workdirs` is in the DEFAULT categories with `older_than_days`
+    defaulting to 0 - so one `confirm=True` call sweeps every `tee-*`
+    directory on the machine however new it is. On 2026-09-13 a suite run did
+    exactly that and destroyed a live review export, its pytest log and a
+    build in progress.
+
+    `test_purge.py` has its own fixture that substitutes a root it owns and
+    fills. This one exists for every OTHER test, present and future: it points
+    discovery at an empty directory this test owns, so a test that never
+    thought about purge finds nothing to delete. A new test cannot forget it.
+    """
+    empty = tmp_path_factory.mktemp("no-real-workdirs")
+    try:
+        from tee import purge as _purge
+    except Exception:  # pragma: no cover - purge unavailable in this env
+        return
+    monkeypatch.setattr(_purge, "_workdir_roots", lambda: {empty}, raising=False)
