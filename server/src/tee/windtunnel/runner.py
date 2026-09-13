@@ -87,6 +87,7 @@ class SolverRun:
         self._thread: threading.Thread | None = None
         self._log: Any = None
         self.cancelled = False
+        self.stop_failed = False  # a stop was attempted and the process survived
 
     # -- paths ---------------------------------------------------------------
     @property
@@ -219,8 +220,14 @@ class SolverRun:
             return True
         self.cancelled = reason == "cancelled"
         gone = kill_process_group(self.proc.pid)
-        if reason == "cancelled":
+        # Only a confirmed exit is a cancellation. The same false-completion
+        # shape as kill_orphan's: this used to set `cancelled` whatever
+        # `kill_process_group` returned, so a surviving solver reported a state
+        # it had not reached.
+        if reason == "cancelled" and gone:
             self.state = "cancelled"
+        elif not gone:
+            self.stop_failed = True
         return gone
 
 
@@ -297,24 +304,82 @@ def pid_cmdline(pid: int) -> str:
 # ---------------------------------------------------------------------------
 
 
+def pid_cwd(pid: int) -> Path | None:
+    """The working directory of a RUNNING process, or None if it cannot be read.
+
+    Live evidence, unlike the saved argv. The lane launches every solver with
+    `cwd=run_dir`, so this identifies the run even for the argv shapes that do
+    not carry `-case` - and None means "cannot tell", which callers must treat
+    as no evidence rather than as a match.
+    """
+    try:  # Linux
+        return Path(os.readlink(f"/proc/{pid}/cwd"))
+    except OSError:
+        pass
+    try:  # macOS/BSD: lsof is the only portable route to another process's cwd
+        out = subprocess.run(
+            ["lsof", "-a", "-d", "cwd", "-p", str(pid), "-Fn"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.stdout.splitlines():
+        if line.startswith("n"):
+            return Path(line[1:])
+    return None
+
+
 def orphan_check(run_dir: Path) -> dict[str, Any]:
-    """What `run.json` says versus what the OS says. `alive` means the pid
-    exists AND its command line still names this run directory (a reused
-    pid would fail that check, which is why it is made before any signal)."""
+    """What `run.json` says versus what the OS says.
+
+    `alive` means the pid exists AND the RUNNING process is identifiably this
+    run - never that a saved record says so. The previous version also accepted
+    a match against `run.json`'s own argv, which names the run directory in
+    every record ever written, so any live process occupying that pid passed
+    identity and `kill_orphan` would hand it to `kill_process_group`. The
+    docstring claimed "a reused pid would fail that check"; the fallback it sat
+    next to defeated exactly that. Found by GPT-6, 2026-09-13.
+
+    Two independent pieces of LIVE evidence, because the lane has two launch
+    shapes: OpenFOAM passes `-case <run_dir>` so the run directory appears in
+    the command line (through the wrapper and through `mpirun` alike), while
+    every RunSpec also sets `cwd=run_dir`. Either proves identity. Neither
+    readable means we cannot tell, and cannot-tell never authorises a signal.
+    """
     rj = read_json(run_dir / "run.json")
     if not rj or "pid" not in rj:
         return {"known": False, "alive": False}
-    pid = int(rj["pid"])
-    alive = pid_alive(pid)
-    cmd = pid_cmdline(pid) if alive else ""
-    matches = bool(cmd) and (
-        str(run_dir) in cmd or any(str(run_dir) in a for a in rj.get("argv", []))
-    )
+    try:
+        pid = int(rj["pid"])
+    except (TypeError, ValueError):
+        return {"known": False, "alive": False, "identity": "run.json names no usable pid"}
+    running = pid_alive(pid)
+    cmd = pid_cmdline(pid) if running else ""
+    cwd = pid_cwd(pid) if running else None
+    target = str(run_dir)
+    by_cmd = bool(cmd) and target in cmd
+    by_cwd = cwd is not None and (str(cwd) == target or target in str(cwd))
+    evidence_readable = bool(cmd) or cwd is not None
+    matches = by_cmd or by_cwd
+    if not running:
+        identity = "the pid is gone"
+    elif matches:
+        identity = (
+            "live command line names this run" if by_cmd else "live working directory is this run"
+        )
+    elif not evidence_readable:
+        identity = "the process exists but no live evidence could be read; identity unconfirmed"
+    else:
+        identity = "a live process holds this pid but is not this run"
     return {
         "known": True,
         "pid": pid,
-        "alive": alive and matches,
-        "pid_reused": alive and not matches,
+        "alive": running and matches,
+        "pid_reused": running and evidence_readable and not matches,
+        "identity_unknown": running and not evidence_readable,
+        "identity": identity,
         "state": rj.get("state", "running"),
         "started_at": rj.get("started_at"),
         "argv": rj.get("argv", [])[:6],
@@ -322,17 +387,53 @@ def orphan_check(run_dir: Path) -> dict[str, Any]:
 
 
 def kill_orphan(run_dir: Path) -> dict[str, Any]:
+    """Stop a verified orphan, and record only what actually happened.
+
+    Two corrections, both found by GPT-6 on 2026-09-13:
+
+    Identity is revalidated IMMEDIATELY before the signal. The first check
+    decides whether to try at all; between the two the pid can be recycled, and
+    a stale decision is not a licence to signal.
+
+    A failed stop is no longer written as a completed cancellation. The previous
+    version stamped `state: cancelled`, `finished_at` and
+    `killed_as_orphan: true` whatever `kill_process_group` returned, so a solver
+    that survived was recorded as cancelled - the run then LOOKED finished while
+    it was still burning CPU, and `wt_status` believed the record.
+    """
     info = orphan_check(run_dir)
     if not info.get("alive"):
-        return {**info, "killed": False}
-    gone = kill_process_group(int(info["pid"]))
+        return {**info, "killed": False, "signalled": False}
+
+    # Revalidate at the signal boundary, not from the decision above.
+    now = orphan_check(run_dir)
+    if not now.get("alive") or now.get("pid") != info.get("pid"):
+        return {
+            **now,
+            "killed": False,
+            "signalled": False,
+            "why": "identity changed between the check and the signal; nothing was sent",
+        }
+
+    gone = kill_process_group(int(now["pid"]))
     rj = read_json(run_dir / "run.json") or {}
-    rj.update({"state": "cancelled", "finished_at": time.time(), "killed_as_orphan": True})
+    if gone:
+        rj.update({"state": "cancelled", "finished_at": time.time(), "killed_as_orphan": True})
+    else:
+        # An attempt, not an outcome. The process is still there.
+        rj.update(
+            {
+                "state": "running",
+                "stop_attempted_at": time.time(),
+                "stop_failed": True,
+                "killed_as_orphan": False,
+            }
+        )
     atomic_write_json(run_dir / "run.json", rj)
     prog = read_json(run_dir / "progress.json") or {}
-    prog.update({"state": "cancelled"})
+    prog.update({"state": "cancelled"} if gone else {"state": "running", "stop_failed": True})
     atomic_write_json(run_dir / "progress.json", prog)
-    return {**info, "killed": gone}
+    return {**now, "killed": gone, "signalled": True}
 
 
 # ---------------------------------------------------------------------------

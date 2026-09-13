@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 import pytest
-from fixtures_windtunnel import make_app, wait_job
+from fixtures_windtunnel import make_app, wait_job, wait_worker_done
 
 from tee.kernel.budget import estimate_tokens
 from tee.kernel.errors import TeeError
@@ -356,6 +356,10 @@ def test_one_live_run_per_case_and_cancel_kills_the_solver_within_two_seconds(
             time.sleep(0.05)
         assert not pid_alive(pid) and time.time() - t0 < 2.5
         wait_job(app, started["job"])
+        # `cancelled` is the public state, not quiescence: the worker still has
+        # a harvest and a store write to do, and whatever reuses this case next
+        # would race that finalizer.
+        wait_worker_done(foam_case)
     finally:
         app.jobs.cancel(started["job"]) if app.jobs.status(started["job"])[
             "state"
@@ -367,15 +371,34 @@ def test_one_live_run_per_case_and_cancel_kills_the_solver_within_two_seconds(
     monkeypatch.setenv("TEE_FAKE_FOAM_MODE", "converge")
 
 
-def test_an_orphaned_solver_is_named_and_can_be_stopped(app, foam_case):
+def test_an_orphaned_solver_is_named_and_can_be_stopped(app):
     """A server restart leaves run.json behind and a solver still running:
-    wt_status says orphan (pid + command line verified), wt_case stop kills
-    it, and stop with nothing to stop refuses by name."""
-    rec = app._wt_store.load(foam_case)
+    wt_status says orphan (pid + live identity verified), wt_case stop kills
+    it, and stop with nothing to stop refuses by name.
+
+    Its OWN case, deliberately. This used to share the module-scoped
+    `foam_case` and its last run directory with the cancellation test above,
+    whose worker could still be finalising - so that finalizer would overwrite
+    `progress.json` with `cancelled` after this test had written `running`, and
+    the status assertion failed with `cancelled` where `orphan` was expected.
+    Intermittent, load-dependent, and reproduced deterministically by GPT-6.
+    """
+    os.environ["TEE_FAKE_FOAM_MODE"] = "converge"
+    created = call(app, "wt_case", action="create", naca="0015", V_mps=25, aoa_deg=3)
+    case_id = created["case_id"]
+    call(app, "wt_mesh", case_id=case_id, nj=20, n_surface=30)
+    started = call(app, "wt_run", case_id=case_id, iters=200)
+    assert wait_job(app, started["job"])["state"] == "done"
+    wait_worker_done(case_id)  # nobody else may still be writing this case
+
+    rec = app._wt_store.load(case_id)
     run = rec["runs"][-1]
     run_dir = Path(run["run_dir"])
+    foam_case = case_id  # the assertions below all name this case
     proc = subprocess.Popen(
-        [sys.executable, "-c", f"import time; time.sleep(30)  # {run_dir}"], start_new_session=True
+        [sys.executable, "-c", f"import time; time.sleep(30)  # {run_dir}"],
+        cwd=str(run_dir),
+        start_new_session=True,
     )
     try:
         atomic_write_json(

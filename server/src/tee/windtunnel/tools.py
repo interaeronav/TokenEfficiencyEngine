@@ -2099,22 +2099,39 @@ class _Lane:
                     out["error"] = str(st["error"])[:300]
             elif st.get("state") == "queued":
                 out["note"] = "queued behind other work; tee_job shows the queue"
-        if out["state"] == "running":
+        # The process check used to run ONLY when the record already said
+        # `running`, so a stale `cancelled` - written by a failed stop, or by a
+        # previous run's finalizer landing late - hid a solver that was still
+        # alive. The detector was gated by the state it exists to correct.
+        # Reconcile whenever this process does not own a live run for the case.
+        if out["state"] in ("running", "cancelled"):
             live = live_run_for_case(case_id)
             if live is None:
                 info = orphan_check(run_dir)
-                out["state"] = (
-                    "orphan"
-                    if info.get("alive")
-                    else ("dead" if info.get("known") else out["state"])
-                )
+                stale_cancel = out["state"] == "cancelled"
+                if info.get("alive"):
+                    # A verified live process outranks any recorded state.
+                    out["state"] = "orphan"
+                    if stale_cancel:
+                        out["note"] = (
+                            "the record says cancelled, but this run's process is alive "
+                            "and identified as this run; stop it with wt_case action=stop"
+                        )
+                elif out["state"] == "running":
+                    out["state"] = "dead" if info.get("known") else out["state"]
+                if info.get("identity_unknown"):
+                    out["identity"] = info.get("identity")
                 if info.get("pid"):
                     out["pid"] = info["pid"]
-            iters_cap = run.get("iters") or DEFAULT_ITERS.get(rec["engine"], 2000)
-            it = out.get("iter")
-            el = out.get("elapsed_s")
-            if it and el and it > 5:
-                out["eta_s"] = round(el * (iters_cap - it) / it, 1)
+                if run.get("stop_failed") or prog.get("stop_failed"):
+                    out["stop_failed"] = True
+            # An ETA only means something while work is actually progressing.
+            if out["state"] == "running":
+                iters_cap = run.get("iters") or DEFAULT_ITERS.get(rec["engine"], 2000)
+                it = out.get("iter")
+                el = out.get("elapsed_s")
+                if it and el and it > 5:
+                    out["eta_s"] = round(el * (iters_cap - it) / it, 1)
         if run.get("result") and "verdict" in run["result"]:
             out["verdict"] = run["result"]["verdict"].get("state")
         return digest(out)

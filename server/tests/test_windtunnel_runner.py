@@ -10,6 +10,7 @@ and `progress.json` say so, and a solver whose server died is found again
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -245,3 +246,175 @@ def test_terminate_reason_decides_the_state_word(tmp_path, reason):
     run.terminate(reason=reason)
     run.wait()
     assert run.state == ("cancelled" if reason == "cancelled" else "error")
+
+
+# -- process identity: saved metadata is not evidence about a live pid -------
+
+
+def test_a_reused_pid_is_never_signalled_even_when_saved_argv_names_the_run(tmp_path, monkeypatch):
+    """The realistic PID-reuse shape, and the one the old negative test missed.
+
+    `orphan_check` used to accept a live process when its command line named the
+    run directory OR the SAVED `run.json` argv did - and the saved argv names it
+    in every record ever written. So any live process occupying that pid passed
+    identity and `kill_orphan` handed it to `kill_process_group`. The earlier
+    negative test replaced the saved argv with `something-else`, which cannot
+    catch this: here the saved argv still names the original run, exactly as a
+    real record would, while the live process is somebody else entirely.
+    """
+    from tee.windtunnel import runner
+
+    run_dir = tmp_path / "identity-run"
+    run_dir.mkdir()
+
+    # an owned child whose own identity has nothing to do with run_dir
+    child = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(tmp_path),
+        start_new_session=True,
+    )
+    signalled: list[int] = []
+    monkeypatch.setattr(
+        runner, "kill_process_group", lambda pid, **kw: (signalled.append(pid), False)[1]
+    )
+    try:
+        runner.atomic_write_json(
+            run_dir / "run.json",
+            {
+                "pid": child.pid,
+                # the saved record still names the ORIGINAL run, as a real one does
+                "argv": ["simpleFoam", "-case", str(run_dir)],
+                "state": "running",
+            },
+        )
+        info = runner.orphan_check(run_dir)
+        assert info["alive"] is False, "saved argv must not establish a live process's identity"
+        assert info["pid_reused"] is True
+        assert "not this run" in info["identity"]
+
+        result = runner.kill_orphan(run_dir)
+        assert result["killed"] is False
+        assert result["signalled"] is False
+        assert signalled == [], "no signal may be sent on a mismatched identity"
+        assert child.poll() is None, "the unrelated child must be untouched"
+    finally:
+        child.kill()
+        child.wait()
+
+
+def test_a_failed_stop_is_not_recorded_as_a_completed_cancellation(tmp_path, monkeypatch):
+    """`kill_orphan` used to stamp `state: cancelled`, `finished_at` and
+    `killed_as_orphan: true` whatever `kill_process_group` returned, so a solver
+    that survived the stop was recorded as finished - and `wt_status` believed
+    the record."""
+    from tee.windtunnel import runner
+
+    run_dir = tmp_path / "survivor-run"
+    run_dir.mkdir()
+    child = subprocess.Popen(
+        [sys.executable, "-c", f"import time; time.sleep(30)  # {run_dir}"],
+        cwd=str(run_dir),
+        start_new_session=True,
+    )
+    monkeypatch.setattr(runner, "kill_process_group", lambda pid, **kw: False)  # the stop fails
+    try:
+        runner.atomic_write_json(
+            run_dir / "run.json",
+            {"pid": child.pid, "argv": ["simpleFoam", "-case", str(run_dir)], "state": "running"},
+        )
+        assert runner.orphan_check(run_dir)["alive"] is True, "an owned live orphan is verifiable"
+
+        result = runner.kill_orphan(run_dir)
+        assert result["killed"] is False
+        assert result["signalled"] is True
+
+        rj = json.loads((run_dir / "run.json").read_text())
+        assert rj["state"] != "cancelled", "a failed stop is not a cancellation"
+        assert rj.get("killed_as_orphan") is False
+        assert rj.get("stop_failed") is True
+        assert "finished_at" not in rj, "nothing finished"
+        assert child.poll() is None
+    finally:
+        child.kill()
+        child.wait()
+
+
+def test_a_verified_owned_orphan_can_still_be_stopped(tmp_path, monkeypatch):
+    """The fix must not work by refusing every stop."""
+    from tee.windtunnel import runner
+
+    run_dir = tmp_path / "stoppable-run"
+    run_dir.mkdir()
+    child = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(run_dir),  # cwd is the live evidence here, not the argv
+        start_new_session=True,
+    )
+    try:
+        runner.atomic_write_json(
+            run_dir / "run.json",
+            {"pid": child.pid, "argv": ["simpleFoam"], "state": "running"},
+        )
+        info = runner.orphan_check(run_dir)
+        assert info["alive"] is True, f"cwd should identify the run: {info.get('identity')}"
+
+        result = runner.kill_orphan(run_dir)
+        assert result["killed"] is True and result["signalled"] is True
+        rj = json.loads((run_dir / "run.json").read_text())
+        assert rj["state"] == "cancelled" and rj["killed_as_orphan"] is True
+        assert child.poll() is not None
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait()
+
+
+def test_public_cancelled_state_is_not_worker_quiescence(tmp_path):
+    """The mechanism behind the intermittent orphan failure, pinned deterministically.
+
+    A worker's `finally` calls `runner.forget(case_id, run_id)` after its LAST
+    write. Public job state reaches `cancelled` from `on_cancel`, well before
+    that. Anything reusing the case in between races a finalizer that is still
+    holding the pen - which is exactly how a `running` progress file became
+    `cancelled` under this test's feet.
+
+    A barrier, not a sleep: the registry entry is released only when this test
+    says so, and `wait_worker_done` must not return until it does.
+    """
+    import threading
+
+    from fixtures_windtunnel import wait_worker_done
+
+    from tee.windtunnel import runner
+
+    case_id = "wt_barrier_case"
+    spec = runner.RunSpec(
+        run_id="run_001",
+        case_id=case_id,
+        engine="openfoam",
+        argv=["true"],
+        cwd=tmp_path,
+        log_name="log.x",
+    )
+    still_working = runner.SolverRun(spec)
+    runner.register(still_working)
+    try:
+        assert any(k.startswith(f"{case_id}/") for k in runner.RUNS)
+
+        returned = threading.Event()
+
+        def waiter():
+            wait_worker_done(case_id, timeout_s=10)
+            returned.set()
+
+        t = threading.Thread(target=waiter, daemon=True)
+        t.start()
+        # The public state can say whatever it likes; the worker still holds the
+        # registry, so quiescence has not been reached.
+        assert not returned.wait(0.4), "wait_worker_done returned while the worker was registered"
+
+        runner.forget(case_id, "run_001")  # the worker's finally, at last
+        assert returned.wait(5), "wait_worker_done must return once the worker lets go"
+        t.join(timeout=5)
+    finally:
+        runner.forget(case_id, "run_001")

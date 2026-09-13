@@ -887,6 +887,15 @@ def make_app(tmp_path: Path, *, fakes: bool = True, extra_cfg: dict[str, Any] | 
 
 
 def wait_job(app, job_id: str, timeout_s: float = 60.0) -> dict[str, Any]:
+    """Wait for the job's PUBLIC state to settle.
+
+    This is not quiescence. A cancelled job reports `cancelled` from
+    `on_cancel`, while its worker still has a harvest, a store write and a
+    `forget()` to do - so anything that reuses the run directory afterwards can
+    be overwritten by the finalizer landing late. Use `wait_worker_done` when
+    the next step touches that state. Measured 2026-09-13: this is what made
+    the orphan test intermittent.
+    """
     from tee.kernel.waiting import wait_until
 
     wait_until(
@@ -895,3 +904,20 @@ def wait_job(app, job_id: str, timeout_s: float = 60.0) -> dict[str, Any]:
         max_delay_s=0.1,
     )
     return app.jobs.status(job_id)
+
+
+def wait_worker_done(case_id: str, timeout_s: float = 30.0) -> None:
+    """Wait until the worker has actually finished with this case.
+
+    The worker's `finally` calls `runner.forget(case_id, run_id)` after its last
+    write, so an empty registry for the case is the real completion signal -
+    the one public job state cannot give you.
+    """
+    from tee.kernel.waiting import wait_until
+    from tee.windtunnel import runner
+
+    wait_until(
+        lambda: not any(k.startswith(f"{case_id}/") for k in list(runner.RUNS)),
+        timeout_s,
+        max_delay_s=0.05,
+    )

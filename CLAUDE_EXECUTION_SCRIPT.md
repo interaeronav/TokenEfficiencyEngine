@@ -2070,3 +2070,59 @@ commit id and fingerprint in the current identity table, replace the stale
 "structural has no tests" limitation with the native-engine one, and attribute
 each skip to the command that produced it. Propose a PROGRESS entry rather than
 writing one: GPT-6 owns the shared ledger.
+
+### W0 round six — the wind-tunnel process lifecycle (GPT-6, 2026-09-13)
+
+The purge corrections are **accepted** at `7c55183`. Investigating the suite
+failure I had left as an unresolved risk established three defects, all
+**inherited** — the runner and status code is byte-identical to accepted A84
+`18666b3`, so none is a regression from the purge work. GPT-6 reproduced each
+with fixture-only, owned-child probes retained under
+`output/reviews/20260913-w0-r5/`.
+
+1. **[P1] The orphan guard can authorize signalling the wrong process.**
+   `runner.orphan_check()` accepts a live process when its observed command line
+   names the run directory **OR the saved `run.json` argv does** — and the saved
+   argv always does. So a reused pid passes identity, and `kill_orphan()` will
+   hand that unrelated pid to `kill_process_group`. The docstring claims "a
+   reused pid would fail that check"; the saved-argv fallback defeats it.
+   Saved arguments describe the EXPECTED process and cannot identify whoever now
+   occupies a pid. Require **live** evidence — the running process's own command
+   line or working directory — covering the wrapper and MPI launch shapes the
+   lane really uses (`-case <run_dir>` in argv, `cwd=run_dir`), refuse to signal
+   on mismatched or unreadable evidence, and revalidate at the signal boundary.
+   Keep stopping a verified owned orphan working. The regression must keep the
+   saved argv naming the original run while the live identity differs, and
+   assert the termination function is never called.
+2. **[P2] A failed stop is persisted as a completed cancellation.**
+   `kill_orphan()` writes `state: cancelled`, `finished_at` and
+   `killed_as_orphan: true` even when `kill_process_group` returned False, and
+   stamps cancelled progress too. `SolverRun.terminate()` has the same shape: it
+   sets `self.state = "cancelled"` regardless of whether the process went.
+   Record an attempt or a failure distinctly from a confirmed exit, and have
+   `wt_status` reconcile live process evidence even when a stale cancellation
+   record would otherwise bypass the check (`tools.py:2102` gates the orphan
+   probe on the record already saying `running`). Status stays read-only.
+3. **[P2] A test treats cancellation state as worker completion.**
+   `wait_job()` returns as soon as the public job state is cancelled, which does
+   not mean the worker has stopped writing. The orphan test then reuses the same
+   module-scoped case and run directory, so the previous run's finalizer can
+   overwrite `progress.json` with `cancelled` after the orphan fixture is in
+   place — producing exactly the `cancelled` vs `orphan` failure I reported and
+   could not explain. Give the orphan scenario its own case and run directory,
+   wait on real finalization rather than public state, and keep a deterministic
+   barrier regression: no longer sleeps, no retries, no weakened assertion.
+
+Also required: prove the new tests fail on the old behaviour; run targeted
+regressions before the canonical suite; preserve any failure rather than
+disposing of it with a later pass; use only newly created fixture directories
+and owned children, with intercepted signal functions for mismatched-pid cases,
+and never probe termination against the owner's real solver or session. A source
+change supersedes `77bbac85…`: recompute manifest, delta, artifact and resource
+comparisons, and record any tool-response or token-budget change caused by
+status telling the truth.
+
+Accepted and to be carried forward as stated limits, not re-litigated: the
+marker-tampering trust assumption (ownership tracking relies on the marker
+staying intact; no `lsof` dependency required) and the adapter test-directory
+leak.
