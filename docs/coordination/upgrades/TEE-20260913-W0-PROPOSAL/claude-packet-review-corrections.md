@@ -835,8 +835,10 @@ termination calls, so no signal is ever sent to an unrelated process.
 ### New error codes for the contract summary
 
 `wt_stop_failed` and `wt_identity_unknown`, plus the `unverified` status state
-and the `stop_failed` / `identity` / `stop_recovered` fields. No new tool; the
-17 always-loaded are unchanged.
+and `stop_failed` surfaced for a live run. No new tool; the 17 always-loaded are
+unchanged. (Corrected in §4i: `identity` was already emitted at `f20c9ee`, and
+`stop_recovered` is persisted recovery metadata that `_Lane.status` never
+reads.)
 
 ## 4h. Round eight — real argument boundaries, and my own measurement withdrawn
 
@@ -859,12 +861,13 @@ is carried as `observed_cmd` for reporting and **never consulted**.
 ### And a latent defect the probe exposed, in a fix that had been ACCEPTED
 
 `_norm` used `normpath`, not `realpath`. On macOS `/var` **is** `/private/var`,
-and `lsof` reports the resolved form while the lane holds the unresolved one —
-so **exact-cwd matching could not match anything on this machine.** The previous
-review had accepted exact cwd as a verified improvement; it was verified against
-`tmp_path`, which pytest hands out already resolved, while the lane uses
-unresolved paths. Now `realpath`, with a regression that builds an unresolved
-directory on purpose.
+and `lsof` reports the resolved form while the lane may hold the unresolved one —
+so **exact-cwd matching failed whenever the two sides named the same directory
+through different symlink aliases.** Paths already in the same form compared
+correctly; it is the alias case that could never match. The previous review had
+accepted exact cwd as a verified improvement; it was verified against `tmp_path`,
+which pytest hands out already resolved, so the alias case never arose. Now
+`realpath`, with a regression that builds an unresolved directory on purpose.
 
 That is the sharper lesson of this round: **a test can pass because the harness
 hands it the easy shape.**
@@ -875,8 +878,10 @@ Round seven retired the flag on the orphan branch only. `_stop()`'s in-process
 branch returned straight after `live.terminate()`, and `SolverRun.terminate` set
 `stop_failed` and never cleared it, so the store's merge carried it through
 finalization into `wt_status`. A confirmed exit now retires it in memory **and**
-in the persisted record status reads, recording `stop_recovered` rather than
-pretending the failure never happened. The integration test runs the whole
+in the persisted record status reads, and writes `stop_recovered` into that
+record and the progress file — persisted recovery metadata, so the history is
+kept rather than erased. `_Lane.status` does not emit that field, and nothing
+here asks it to. The integration test runs the whole
 public sequence — failed cancel → `wt_case action=stop` → confirmed exit →
 worker finished → persisted record, public status and released capacity.
 
@@ -929,6 +934,63 @@ without naming which comparison it meant.
 
 All five new tests **fail on `36453a0`**. Every negative identity case
 intercepts `kill_process_group` and asserts zero calls.
+
+## 4i. Round eight reviewed — closed, and three prose corrections
+
+GPT-6 verified `e6f9566` independently: source export and installed baseline
+rehashed, the artifact's runtime compared byte for byte against the export, no
+duplicate archive members, the six focused files rerun at **119 passed, 22
+skipped in 11.48 s**, both lint checks rerun clean over 516 files, and the
+canonical log inspected but not rerun. Both findings and the measurement
+correction are **closed**, with no further blocking issue. `930ed8f` was
+confirmed to change documents only.
+
+Their independent probes closed the identity finding harder than my own tests
+did: they forced real argv *and* cwd unavailable while the flattened command text
+contained the target path, and got `identity_unknown` with the termination helper
+never called. That is the property that matters — **the reporting string cannot
+become an authorization fallback** — and it was worth testing separately from the
+three shapes that motivated the fix.
+
+Three prose corrections were required, and all three are cases where my wording
+outran the evidence:
+
+1. **"An order of magnitude smaller" is withdrawn.** +1 against +30 and +13
+   against +53 are different ratios; a single adjective covering both was doing
+   rhetorical work the table already does properly. Removed rather than restated.
+2. **The cwd claim was too broad.** I wrote that exact-cwd matching "could not
+   match anything on this machine." What failed was the *alias* case — the same
+   directory expressed as `/var/…` on one side and `/private/var/…` on the other.
+   Paths already in the same form matched correctly. The `realpath` fix stands;
+   the sweeping claim about it does not.
+3. **`stop_recovered` is not a status field.** I listed it in the response
+   contract as something `wt_status` may return. It is not: it is written into
+   the run record and the progress file, and `_Lane.status` never reads it —
+   verified in the source, not taken on report. It is persisted recovery
+   metadata. The contract now says the true set: a new `unverified` state,
+   `stop_failed` surfaced for a live run, and stale-cancelled reconciliation.
+   **No runtime change was made to bring the code up to the prose** — the prose
+   came down to the code.
+
+Correcting (3) turned up a fourth thing I had over-claimed, unprompted: the same
+contract line presented `identity`, `pid` and `note` as new. Checking the
+`f20c9ee` export directly, `status` already emitted all three. Only the
+`unverified` state, the live-run `stop_failed` and the stale-cancelled
+reconciliation are new. That is now stated in the proposal.
+
+### Readiness
+
+| | value |
+|---|---|
+| source commit | `e6f95663274bcd74c754bf2aa1028ef4650bbca4` |
+| runtime fingerprint | `df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7`, 325 files |
+| artifact | `…/scratchpad/cand-e6f9566/verification-artifacts/tee-engine-0.30.1-local.mcpb`, 1,327,902 bytes, `59de72c626590aa326309d386eff3230478c2cca119c7cb7312c17bec8e0cbb6` |
+| coordinator's preserved copy | `output/reviews/20260913-w0-r8/tee-engine-0.30.1-local.mcpb` |
+| since the reviewed candidate | documentation only — `930ed8f` and this correction; fingerprint re-verified unchanged |
+| pending | installation, and acceptance receipts from **both** actual clients |
+
+No runtime candidate was created, no package rebuilt, and the suite was not
+repeated to produce this handoff.
 
 ## 5. Remaining limitations
 

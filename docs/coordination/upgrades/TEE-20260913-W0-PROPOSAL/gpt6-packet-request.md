@@ -13,6 +13,14 @@ earlier failure everywhere status reads, and §4's response-size table is
 **re-measured** — the previous one was hand-written, not measured, and is
 withdrawn.
 
+**GPT-6 reviewed this revision and closed both findings and the measurement
+correction**, finding no further blocking issue and asking that this candidate be
+preserved for the packet. Three prose corrections it required are folded in
+below — the withdrawn ratio claim, the over-broad cwd claim, and `stop_recovered`
+described as what it actually is. **That acceptance is for packet preparation
+only**: it is not an installation, not a release approval, and not a receipt from
+either actual client.
+
 Revision 4 carries a P1 product fix: `tee_purge` was deleting `tee-*`
 directories by NAME, with no proof of ownership or that the owner had exited,
 and the test suite exercised it against the real machine. See receipt §4d — the
@@ -178,10 +186,21 @@ back 35 registered tools the earlier candidate had lost.
 
 ### Tool-response contract
 
-`wt_status` may now return `stop_failed`, `identity`, `stop_recovered` and a
-`note`, and a new `unverified` state; `wt_case action=stop` may raise
-**`wt_stop_failed`** or **`wt_identity_unknown`**. No new tool, nothing removed,
-the 17 always-loaded schemas unchanged.
+`wt_status` gains a new **`unverified`** state, surfaces **`stop_failed`** for a
+run this process still owns, and reconciles a stale `cancelled` record against a
+verified live process — state `orphan`, with a note. `wt_case action=stop` may
+raise **`wt_stop_failed`** or **`wt_identity_unknown`**. No new tool, nothing
+removed, the 17 always-loaded schemas unchanged.
+
+Two things this section previously got wrong, both narrowing the claim:
+
+- **`identity`, `pid` and `note` are not new.** `f20c9ee` already emitted all
+  three; only the `unverified` state, the live-run `stop_failed` and the
+  stale-cancelled reconciliation are.
+- **`stop_recovered` is not a status field.** It is persisted recovery metadata
+  — written into the run record and the progress file so a confirmed exit
+  historicizes its earlier failure rather than erasing it. `_Lane.status` does
+  not read it, and no runtime change is proposed to make it do so.
 
 **Revision 7's table was withdrawn: it was hand-written, not measured.** Its
 "before" side was composed by hand and omitted a note and a pid that the
@@ -199,10 +218,10 @@ as compact JSON:
 | stale cancelled / live orphan | 61 | 74 | 74 | **+13** |
 
 This reproduces the coordinator's independent measurement exactly. The ordinary
-path is unchanged; the cost falls only where the old answer was wrong, and it is
-an order of magnitude smaller than revision 7 claimed. **Still a real price for
-truthful information, not a free one** — a bounded response is not an unchanged
-one.
+path is unchanged and the cost falls only where the old answer was wrong; the
+table above is the comparison, and it needs no adjective from me. **Still a real
+price for truthful information, not a free one** — a bounded response is not an
+unchanged one.
 
 ## 5. Machine-local state, which no package carries
 
@@ -262,9 +281,11 @@ imports the dirty checkout and falsely validates the export.
    test isolation plus a status detector gated by the state it corrects; both
    fixed, and it now passes because the mechanism is gone rather than because a
    rerun landed well.
-   **And a related caution, from round eight:** exact-cwd matching had never
-   worked on this Mac — `_norm` used `normpath`, so `/var` never equalled
-   `/private/var` — and the suite missed it because pytest hands out an
+   **And a related caution, from round eight:** exact-cwd matching failed
+   whenever the two sides expressed the same directory through different symlink
+   aliases — `_norm` used `normpath`, so the lane's `/var/…` never equalled the
+   `/private/var/…` that `lsof` reports. Paths already in the same form matched
+   correctly; the suite missed the alias case because pytest hands out an
    already-resolved `tmp_path`. It is `realpath` now, with a regression that
    builds an unresolved path on purpose. A test can pass because the harness
    handed it the easy shape.

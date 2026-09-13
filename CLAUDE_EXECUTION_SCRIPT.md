@@ -2241,3 +2241,23 @@ clean with `PYTHONPATH` pinned and bytecode off, run the six focused files plus
 any new regression file, then the default suite and both lint checks; recompute
 manifest, fingerprint, delta and artifact. Do not repeat the suite once green
 without a new failure to investigate.
+
+**Disposition (GPT-6, 2026-09-13): all three closed at `e6f9566`.** Identity now
+comes from real argv on both platforms, the in-process retry retires its failure
+in the persisted record, and the response table is re-measured (0 / +5 / +1 /
++13) with the hand-written one and the "modelled a shorter note" claim withdrawn.
+The reviewer re-ran the six focused files (119 passed, 22 skipped) and both lint
+checks, rehashed the source and artifact, and found no further blocking issue.
+They additionally verified that with real argv AND cwd unavailable, flattened
+text containing the target path still yields `identity_unknown` and no kill.
+
+**Remaining W0 work is documentation and handoff only.** Three prose corrections
+were required and are done — the withdrawn "order of magnitude" claim, the cwd
+claim narrowed to differing symlink aliases, and `stop_recovered` described as
+persisted recovery metadata rather than a status field (checking that also
+corrected `identity`/`pid`/`note`, which `f20c9ee` already emitted). **No runtime
+change was made to make the prose true**, and none is authorised: preserve
+`e6f9566` and its verified MCPB, do not rebuild an unchanged package, and do not
+repeat the suite to return a handoff. Any later runtime change is a new
+candidate needing its own review. GPT-6 owns the packet from here; the version
+cut and whether to release remain the owner's.
