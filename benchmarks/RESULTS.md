@@ -201,13 +201,21 @@ fields no client ever sees, so it overstates the surface by ~20%.
 |---|---|---|
 | TEE always-loaded (wire) | 17 | **2,129** |
 | same, by `model_dump()` | 17 | 2,596 |
-| flat server, one tool per capability | 216 | 31,464 |
+| flat server, one tool per capability | 249 | 36,159 |
 
 Attaching **every lane a served TEE has** adds **0 tokens** to the
-always-loaded surface - the **199** tools they contribute live
-behind the meta-tools, a **93.2%** saving. Reaching one costs 544
+always-loaded surface - the **232** tools they contribute live
+behind the meta-tools, a **94.1%** saving. Reaching one costs 525
 tokens (one search + one describe), so the flat design only pays
-off in a session that uses more than ~57 distinct long-tail tools.
+off in a session that uses more than ~68 distinct long-tail tools.
+
+_Re-measured 2026-09-13 against the settled candidate composition (the accepted
+A84 runtime plus the reviewed W0 changes), and this block is now consistent with
+the current-corpus table further down, which had recorded 232 / 36,159 / 94.1%
+while this prose still said 199 / 93.2%. The canary reads THIS block, so the
+document disagreed with itself in the one place a gate was looking. Nothing was
+removed to reach the number: the candidate that measured 197 was missing 35
+registered tools, and restoring the accepted payload brought them back._
 
 ## Jurisdiction: legal force per regime (Phase 15.2)
 
