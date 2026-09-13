@@ -288,7 +288,9 @@ def test_missing_profile_and_swap_refusal_are_unknown_labels(tmp_path, monkeypat
     monkeypatch.setattr(router.profiles, "profiles", lambda _cfg: specs)
     run(cfg, lambda _cfg: None, MachineLedger(total_gb=32))
     skipped = [r for r in learning.observations if r["category"] == "skipped"]
-    assert {r["choice"] for r in skipped} >= {"dsflash", "q27b-bare"}
+    # q27b-bare left the ladder (rho = 1.00 with q27b-think, so it could
+    # recover nothing); q35b is the other skipped rung now.
+    assert {r["choice"] for r in skipped} >= {"dsflash", "q35b"}
     assert all(r["success"] is None for r in skipped)
 
 
