@@ -12,6 +12,7 @@ test_windtunnel_live.py repeats the loop on the real binaries.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import subprocess
@@ -396,8 +397,8 @@ def test_an_orphaned_solver_is_named_and_can_be_stopped(app):
     run_dir = Path(run["run_dir"])
     foam_case = case_id  # the assertions below all name this case
     proc = subprocess.Popen(
-        [sys.executable, "-c", f"import time; time.sleep(30)  # {run_dir}"],
-        cwd=str(run_dir),
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(run_dir),  # cwd is the live evidence, not a comment
         start_new_session=True,
     )
     try:
@@ -874,3 +875,137 @@ def test_an_adopted_case_without_force_coefficients_gets_a_residual_verdict_or_f
     with pytest.raises(TeeError) as err:  # an empty patches list falls back to the walls; a
         call(app, "wt_run", case_id=cid, iters=200, forces={"U": [0, 0, 0]})  # zero U cannot
     assert err.value.code == "wt_refs_needed"
+
+
+# -- the caller-level state table: a failed stop, seen through the tools -----
+
+
+def test_a_failed_cancel_keeps_the_run_the_reservation_and_tells_the_truth(app, monkeypatch):
+    """The acceptance criterion for round seven, because a helper-only fix left
+    every one of these wrong downstream.
+
+    `on_cancel` ignored `terminate()`'s return: it wrote the run `cancelled` and
+    released the machine reservation whatever happened. So a solver that
+    survived kept burning cores while the ledger said that capacity was free,
+    and `wt_status` showed no failure at all.
+    """
+    from tee.windtunnel import runner
+
+    os.environ["TEE_FAKE_FOAM_MODE"] = "slow"
+    created = call(app, "wt_case", action="create", naca="0012", V_mps=20, aoa_deg=2)
+    case_id = created["case_id"]
+    call(app, "wt_mesh", case_id=case_id, nj=20, n_surface=30)
+    started = call(app, "wt_run", case_id=case_id, iters=4000)
+
+    from tee.kernel.waiting import wait_until
+
+    wait_until(lambda: runner.live_run_for_case(case_id) is not None, 20, max_delay_s=0.05)
+    live = runner.live_run_for_case(case_id)
+    assert live is not None and live.proc is not None
+    pid = live.proc.pid
+    assert app.machine.active_jobs(), "the reservation must exist before we cancel"
+
+    # the stop fails: intercept termination, never signalling the real child
+    monkeypatch.setattr(runner, "kill_process_group", lambda p, **kw: False)
+    try:
+        app.jobs.cancel(started["job"])
+
+        assert pid_alive(pid), "the solver is still running - that is the premise"
+        status = call(app, "wt_status", case_id=case_id)
+        assert status.get("stop_failed") is True, "status must expose the failed stop"
+        assert status["state"] != "cancelled", "nothing was cancelled"
+        stored = app._wt_store.load(case_id)["runs"][-1]
+        assert stored["state"] != "cancelled"
+        assert app.machine.active_jobs(), (
+            "capacity must NOT be released while the solver is still running"
+        )
+    finally:
+        monkeypatch.undo()
+        # a real stop now succeeds, and the record must stop claiming failure
+        if pid_alive(pid):
+            runner.kill_process_group(pid)
+        wait_until(lambda: not pid_alive(pid), 10, max_delay_s=0.05)
+        with contextlib.suppress(Exception):
+            wait_worker_done(case_id, timeout_s=20)
+    assert not pid_alive(pid)
+    assert app.machine.active_jobs() == [], "the worker's finally releases the reservation"
+    os.environ["TEE_FAKE_FOAM_MODE"] = "converge"
+
+
+def test_a_stop_that_fails_says_so_instead_of_nothing_to_stop(app, tmp_path, monkeypatch):
+    """`_stop()` raised `wt_no_orphan` - "pid gone", "Nothing to stop" - whenever
+    `killed` was false, contradicting the helper's own record of a verified
+    solver that was still running."""
+    from tee.windtunnel import runner
+
+    created = call(app, "wt_case", action="create", naca="0012", V_mps=20, aoa_deg=2)
+    case_id = created["case_id"]
+    run_dir = Path(app._wt_store.run_dir(case_id, "run_001"))
+    run_dir.mkdir(parents=True, exist_ok=True)
+    child = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(run_dir),
+        start_new_session=True,
+    )
+    monkeypatch.setattr(runner, "kill_process_group", lambda p, **kw: False)
+    try:
+        atomic_write_json(
+            run_dir / "run.json",
+            {"pid": child.pid, "argv": ["simpleFoam", "-case", str(run_dir)], "state": "running"},
+        )
+        app._wt_store.add_run(case_id, {"run_id": "run_001", "state": "running"})
+
+        with pytest.raises(TeeError) as err:
+            call(app, "wt_case", action="stop", case_id=case_id)
+        assert err.value.code == "wt_stop_failed", "a live survivor is not 'nothing to stop'"
+        assert "STILL RUNNING" in err.value.message
+        assert child.poll() is None
+
+        # the retry succeeds, and the failure must not persist afterwards
+        monkeypatch.undo()
+        stopped = call(app, "wt_case", action="stop", case_id=case_id)
+        assert stopped["stopped"] is True
+        run = app._wt_store.load(case_id)["runs"][-1]
+        assert not run.get("stop_failed"), "a confirmed stop retires the failure"
+        assert call(app, "wt_status", case_id=case_id).get("stop_failed") is not True
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait()
+
+
+def test_an_unidentifiable_process_is_not_reported_dead(app, monkeypatch):
+    """Status said `dead` whenever the record was known and ownership was not
+    verified - inventing a fact about a process it could not read."""
+    from tee.windtunnel import runner
+
+    created = call(app, "wt_case", action="create", naca="0012", V_mps=20, aoa_deg=2)
+    case_id = created["case_id"]
+    run_dir = Path(app._wt_store.run_dir(case_id, "run_001"))
+    run_dir.mkdir(parents=True, exist_ok=True)
+    child = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(run_dir),
+        start_new_session=True,
+    )
+    monkeypatch.setattr(runner, "pid_cmdline", lambda pid: "")
+    monkeypatch.setattr(runner, "pid_cwd", lambda pid: None)
+    monkeypatch.setattr(runner, "pid_argv", lambda pid: None)
+    try:
+        atomic_write_json(
+            run_dir / "run.json",
+            {"pid": child.pid, "argv": ["simpleFoam", "-case", str(run_dir)], "state": "running"},
+        )
+        app._wt_store.add_run(case_id, {"run_id": "run_001", "state": "running"})
+
+        status = call(app, "wt_status", case_id=case_id)
+        assert status["state"] != "dead", "an unreadable process is not a dead one"
+        assert status["state"] == "unverified"
+        assert "identity" in status
+
+        with pytest.raises(TeeError) as err:
+            call(app, "wt_case", action="stop", case_id=case_id)
+        assert err.value.code == "wt_identity_unknown"
+    finally:
+        child.kill()
+        child.wait()

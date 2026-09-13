@@ -1213,18 +1213,45 @@ class _Lane:
             raise TeeError("wt_no_orphan", f"Case {case_id} has no runs.", fix="Nothing to stop.")
         run_dir = self.store.run_dir(case_id, runs_[-1]["run_id"])
         info = kill_orphan(run_dir)
+        rid = runs_[-1]["run_id"]
         if not info.get("killed"):
+            # Four different outcomes used to collapse into "pid gone, nothing
+            # to stop" - including a VERIFIED live solver that simply refused to
+            # die, which the helper had correctly recorded as still running.
+            if info.get("signalled"):
+                raise TeeError(
+                    "wt_stop_failed",
+                    f"{case_id}/{rid}: pid {info.get('pid')} was signalled and is STILL "
+                    f"RUNNING. The run is not cancelled and its capacity is not free.",
+                    fix="Retry wt_case action=stop; if it keeps surviving, stop the "
+                    "process group by hand and check the machine for a wedged solver.",
+                )
+            if info.get("identity_unknown"):
+                raise TeeError(
+                    "wt_identity_unknown",
+                    f"{case_id}/{rid}: pid {info.get('pid')} exists but TEE cannot read "
+                    f"enough of it to prove it is this run, so it will not signal it.",
+                    fix="Check that pid by hand. Known metadata is not proof of exit, "
+                    "and TEE will not kill a process it cannot identify.",
+                )
             raise TeeError(
                 "wt_no_orphan",
-                f"No live solver for {case_id}/{runs_[-1]['run_id']} (pid {info.get('pid')} "
+                f"No live solver for {case_id}/{rid} (pid {info.get('pid')} "
                 f"{'reused' if info.get('pid_reused') else 'gone'}).",
                 fix="Nothing to stop.",
             )
         runs_[-1]["state"] = "cancelled"
+        # A confirmed stop retires any earlier failure. Keeping the flag made a
+        # successful retry still report stop_failed forever; historicise it
+        # instead of pretending the failure never happened.
+        if runs_[-1].pop("stop_failed", None):
+            runs_[-1]["stop_recovered"] = True
+        # the store merges, so the key must be overwritten, not just dropped
+        runs_[-1]["stop_failed"] = False
         self.store.add_run(case_id, runs_[-1])
         return {
             "case_id": case_id,
-            "run_id": runs_[-1]["run_id"],
+            "run_id": rid,
             "stopped": True,
             "how": "orphan",
             "pid": info.get("pid"),
@@ -1825,8 +1852,10 @@ class _Lane:
         def on_cancel() -> None:
             cancelled["flag"] = True
             r = current["run"]
-            if r is not None:
-                r.terminate()
+            if r is None:
+                return
+            gone = r.terminate()
+            if gone:
                 # The worker still has a harvest to finish before its own
                 # write and release; a reader right after cancel must not
                 # see `running`, and a dead solver must stop deferring LLM
@@ -1835,6 +1864,17 @@ class _Lane:
                 # both races where Linux happened to win them.)
                 self.store.add_run(case_id, {"run_id": r.spec.run_id, "state": "cancelled"})
                 self.app.machine.release_job(ledger_key)
+                return
+            # The stop FAILED and the solver is still running. Announcing
+            # `cancelled` here told every reader the work had finished, and
+            # releasing the reservation told the machine ledger those cores
+            # were free while the solver kept burning them. Record the attempt,
+            # keep the run and the reservation, and leave it stoppable; the
+            # worker's own finally still releases when the process really goes.
+            self.store.add_run(
+                case_id,
+                {"run_id": r.spec.run_id, "state": "running", "stop_failed": True},
+            )
 
         try:
             job = self.app.jobs.submit(
@@ -2106,6 +2146,11 @@ class _Lane:
         # Reconcile whenever this process does not own a live run for the case.
         if out["state"] in ("running", "cancelled"):
             live = live_run_for_case(case_id)
+            if live is not None and getattr(live, "stop_failed", False):
+                # A stop was attempted on a run this process still owns and the
+                # solver survived. The flag lives in memory, so the persisted
+                # record alone would never show it.
+                out["stop_failed"] = True
             if live is None:
                 info = orphan_check(run_dir)
                 stale_cancel = out["state"] == "cancelled"
@@ -2117,9 +2162,14 @@ class _Lane:
                             "the record says cancelled, but this run's process is alive "
                             "and identified as this run; stop it with wt_case action=stop"
                         )
+                elif info.get("identity_unknown"):
+                    # Known metadata is not proof of exit. A process exists and
+                    # TEE cannot read enough of it to say whose it is; calling
+                    # that `dead` invented a fact.
+                    out["state"] = "unverified"
                 elif out["state"] == "running":
                     out["state"] = "dead" if info.get("known") else out["state"]
-                if info.get("identity_unknown"):
+                if info.get("identity"):
                     out["identity"] = info.get("identity")
                 if info.get("pid"):
                     out["pid"] = info["pid"]

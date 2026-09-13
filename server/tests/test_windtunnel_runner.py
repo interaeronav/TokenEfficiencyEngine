@@ -126,7 +126,9 @@ def test_orphan_check_matches_pid_and_command_line_before_any_signal(tmp_path):
     assert runner.orphan_check(run_dir) == {"known": False, "alive": False}
     # a live process whose command line names the run directory
     proc = subprocess.Popen(
-        [sys.executable, "-c", f"import time; time.sleep(30)  # {run_dir}"], start_new_session=True
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(run_dir),  # a REAL launch shape; a path in a comment proves nothing
+        start_new_session=True,
     )
     try:
         runner.atomic_write_json(
@@ -312,8 +314,8 @@ def test_a_failed_stop_is_not_recorded_as_a_completed_cancellation(tmp_path, mon
     run_dir = tmp_path / "survivor-run"
     run_dir.mkdir()
     child = subprocess.Popen(
-        [sys.executable, "-c", f"import time; time.sleep(30)  # {run_dir}"],
-        cwd=str(run_dir),
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(run_dir),  # cwd is the live evidence
         start_new_session=True,
     )
     monkeypatch.setattr(runner, "kill_process_group", lambda pid, **kw: False)  # the stop fails
@@ -416,5 +418,136 @@ def test_public_cancelled_state_is_not_worker_quiescence(tmp_path):
         runner.forget(case_id, "run_001")  # the worker's finally, at last
         assert returned.wait(5), "wait_worker_done must return once the worker lets go"
         t.join(timeout=5)
+    finally:
+        runner.forget(case_id, "run_001")
+
+
+# -- identity at PATH BOUNDARIES, not substrings -----------------------------
+
+
+@pytest.mark.parametrize(
+    ("label", "evidence"),
+    [
+        ("sibling directory by cwd", "cwd-sibling"),
+        ("sibling directory by command line", "cmd-sibling"),
+        ("numeric prefix run_100 vs run_1000", "cmd-numeric"),
+    ],
+)
+def test_a_similarly_named_run_is_never_signalled(tmp_path, monkeypatch, label, evidence):
+    """`run_001` used to match `run_001-copy`, and `run_100` matched `run_1000`,
+    because both identity paths used unrestricted substring matching - and both
+    reached the termination call. Rechecking the same wrong predicate twice does
+    not make it right."""
+    from tee.windtunnel import runner
+
+    run_dir = tmp_path / ("run_100" if evidence == "cmd-numeric" else "run_001")
+    run_dir.mkdir()
+    decoy = tmp_path / ("run_1000" if evidence == "cmd-numeric" else "run_001-copy")
+    decoy.mkdir()
+
+    if evidence == "cwd-sibling":
+        child = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            cwd=str(decoy),
+            start_new_session=True,
+        )
+    else:
+        child = subprocess.Popen(
+            [sys.executable, "-c", f"import time; time.sleep(30)  # -case {decoy}"],
+            cwd=str(tmp_path),
+            start_new_session=True,
+        )
+    signalled: list[int] = []
+    monkeypatch.setattr(
+        runner, "kill_process_group", lambda pid, **kw: (signalled.append(pid), False)[1]
+    )
+    try:
+        runner.atomic_write_json(
+            run_dir / "run.json",
+            {"pid": child.pid, "argv": ["simpleFoam", "-case", str(run_dir)], "state": "running"},
+        )
+        info = runner.orphan_check(run_dir)
+        assert info["alive"] is False, f"{label}: a neighbouring path is not this run"
+
+        result = runner.kill_orphan(run_dir)
+        assert result["killed"] is False
+        assert signalled == [], f"{label}: zero termination calls allowed"
+        assert child.poll() is None
+    finally:
+        child.kill()
+        child.wait()
+
+
+def test_a_supported_file_beneath_the_run_still_identifies_it(tmp_path):
+    """The boundary rule must not reject the real thing: a command naming a file
+    INSIDE the run directory is still that run."""
+    from tee.windtunnel.runner import _cmd_names_run
+
+    run_dir = tmp_path / "run_001"
+    run_dir.mkdir()
+    assert _cmd_names_run(f"simpleFoam -case {run_dir}", run_dir)
+    assert _cmd_names_run(f"openfoam2606 simpleFoam -case {run_dir}", run_dir)
+    assert _cmd_names_run(f"mpirun -np 4 simpleFoam -parallel -case {run_dir}", run_dir)
+    assert _cmd_names_run(f"tail -f {run_dir}/log.simpleFoam", run_dir)
+    assert not _cmd_names_run(f"simpleFoam -case {tmp_path}/run_001-copy", run_dir)
+
+
+def test_identity_that_cannot_be_read_is_never_called_dead(tmp_path, monkeypatch):
+    """Known metadata is not proof of exit. With both live readers unavailable,
+    a live process must read as unverified - not as gone, and not as killable."""
+    from tee.windtunnel import runner
+
+    run_dir = tmp_path / "run_001"
+    run_dir.mkdir()
+    child = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        cwd=str(run_dir),
+        start_new_session=True,
+    )
+    signalled: list[int] = []
+    monkeypatch.setattr(runner, "pid_cmdline", lambda pid: "")
+    monkeypatch.setattr(runner, "pid_cwd", lambda pid: None)
+    monkeypatch.setattr(runner, "pid_argv", lambda pid: None)
+    monkeypatch.setattr(
+        runner, "kill_process_group", lambda pid, **kw: (signalled.append(pid), True)[1]
+    )
+    try:
+        runner.atomic_write_json(
+            run_dir / "run.json",
+            {"pid": child.pid, "argv": ["simpleFoam", "-case", str(run_dir)], "state": "running"},
+        )
+        info = runner.orphan_check(run_dir)
+        assert info["alive"] is False
+        assert info["identity_unknown"] is True
+        assert runner.kill_orphan(run_dir)["killed"] is False
+        assert signalled == [], "an unidentifiable process must never be signalled"
+    finally:
+        child.kill()
+        child.wait()
+
+
+def test_wait_worker_done_fails_loudly_on_timeout(tmp_path):
+    """`wait_until` returns None on timeout; ignoring that made this helper
+    return as though the wait had succeeded, so a caller would reuse the run
+    directory while the worker still held the pen."""
+    from fixtures_windtunnel import wait_worker_done
+
+    from tee.windtunnel import runner
+
+    case_id = "wt_timeout_case"
+    spec = runner.RunSpec(
+        run_id="run_001",
+        case_id=case_id,
+        engine="openfoam",
+        argv=["true"],
+        cwd=tmp_path,
+        log_name="log.x",
+    )
+    runner.register(runner.SolverRun(spec))
+    try:
+        with pytest.raises(AssertionError) as err:
+            wait_worker_done(case_id, timeout_s=0.01)
+        assert "still registered" in str(err.value)
+        assert f"{case_id}/run_001" in str(err.value), "it must name the pending worker"
     finally:
         runner.forget(case_id, "run_001")

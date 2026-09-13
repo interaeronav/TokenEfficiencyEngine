@@ -907,17 +907,33 @@ def wait_job(app, job_id: str, timeout_s: float = 60.0) -> dict[str, Any]:
 
 
 def wait_worker_done(case_id: str, timeout_s: float = 30.0) -> None:
-    """Wait until the worker has actually finished with this case.
+    """Wait until the worker has actually finished with this case, or FAIL.
 
     The worker's `finally` calls `runner.forget(case_id, run_id)` after its last
-    write, so an empty registry for the case is the real completion signal -
-    the one public job state cannot give you.
+    write, so an empty registry for the case is the real completion signal - the
+    one public job state cannot give you.
+
+    SUPPORTED LIFECYCLE POINT, and its limit: this waits for a worker that has
+    ALREADY registered to let go. An empty registry is not a universal
+    completion signal - call it after the run is submitted and registered, never
+    as a general "is anything happening" probe, or it returns instantly on work
+    that has not started.
+
+    A timeout RAISES. `wait_until` returns None rather than raising, and
+    ignoring that made this helper return as though the wait had succeeded -
+    so a caller would reuse the run directory while the worker still held the
+    pen, which is the very race this helper exists to close.
     """
     from tee.kernel.waiting import wait_until
     from tee.windtunnel import runner
 
-    wait_until(
-        lambda: not any(k.startswith(f"{case_id}/") for k in list(runner.RUNS)),
-        timeout_s,
-        max_delay_s=0.05,
-    )
+    def done() -> bool:
+        return not any(k.startswith(f"{case_id}/") for k in list(runner.RUNS))
+
+    wait_until(done, timeout_s, max_delay_s=0.05)
+    if not done():
+        pending = sorted(k for k in list(runner.RUNS) if k.startswith(f"{case_id}/"))
+        raise AssertionError(
+            f"wait_worker_done({case_id}) timed out after {timeout_s}s; still registered: "
+            f"{pending}. The worker has not finished writing - do not reuse its files."
+        )

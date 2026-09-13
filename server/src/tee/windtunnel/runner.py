@@ -331,6 +331,68 @@ def pid_cwd(pid: int) -> Path | None:
     return None
 
 
+def _norm(path: str | Path) -> str:
+    """A comparable absolute path, without requiring the target to exist."""
+    return os.path.normpath(os.path.abspath(os.path.expanduser(str(path))))
+
+
+def pid_argv(pid: int) -> list[str] | None:
+    """The RUNNING process's argv as a list, or None where the OS will not say.
+
+    Linux gives NUL-separated argv, which survives paths containing spaces.
+    macOS `ps` only offers one flattened string, so `_cmd_names_run` does the
+    boundary work there instead.
+    """
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as fh:
+            raw = fh.read()
+    except OSError:
+        return None
+    parts = [p.decode("utf-8", "replace") for p in raw.split(b"\0") if p]
+    return parts or None
+
+
+def _cmd_names_run(cmd: str, run_dir: Path) -> bool:
+    """Does this command line name THIS run directory, at path boundaries?
+
+    Plain `in` is what let `run_001` match its sibling `run_001-copy` and
+    `run_100` match `run_1000` - both reached the termination call. A path only
+    counts when the character after it ends the component: nothing, a
+    separator (a supported file BENEATH the run, like `log.simpleFoam`), or
+    whitespace. The character before must likewise start a token, so a longer
+    path merely ending in ours does not count.
+    """
+    target = _norm(run_dir)
+    start = 0
+    while True:
+        i = cmd.find(target, start)
+        if i < 0:
+            return False
+        start = i + 1
+        before = cmd[i - 1] if i else " "
+        after = cmd[i + len(target) :]
+        if before not in " \t=\"'":
+            continue
+        if after == "" or after[0] in " \t\"'" or after.startswith(os.sep):
+            return True
+
+
+def _argv_names_run(argv: list[str], run_dir: Path) -> bool:
+    """Exact per-token comparison, where the OS gave us real tokens."""
+    target = _norm(run_dir)
+    for token in argv:
+        if not token:
+            continue
+        # a bare path, or the value half of `--flag=/path`
+        for candidate in (token, token.split("=", 1)[1] if "=" in token else ""):
+            if not candidate:
+                continue
+            norm = _norm(candidate)
+            if norm == target or norm.startswith(target + os.sep):
+                return True
+    return False
+
+
 def orphan_check(run_dir: Path) -> dict[str, Any]:
     """What `run.json` says versus what the OS says.
 
@@ -356,12 +418,17 @@ def orphan_check(run_dir: Path) -> dict[str, Any]:
     except (TypeError, ValueError):
         return {"known": False, "alive": False, "identity": "run.json names no usable pid"}
     running = pid_alive(pid)
+    argv = pid_argv(pid) if running else None
     cmd = pid_cmdline(pid) if running else ""
     cwd = pid_cwd(pid) if running else None
-    target = str(run_dir)
-    by_cmd = bool(cmd) and target in cmd
-    by_cwd = cwd is not None and (str(cwd) == target or target in str(cwd))
-    evidence_readable = bool(cmd) or cwd is not None
+    # Component boundaries, not substrings. `run_001` used to match the sibling
+    # `run_001-copy` and `run_100` matched `run_1000`, by cwd and by command
+    # line alike, and both reached the kill.
+    by_cmd = (
+        _argv_names_run(argv, run_dir) if argv else (bool(cmd) and _cmd_names_run(cmd, run_dir))
+    )
+    by_cwd = cwd is not None and _norm(cwd) == _norm(run_dir)
+    evidence_readable = bool(cmd) or cwd is not None or argv is not None
     matches = by_cmd or by_cwd
     if not running:
         identity = "the pid is gone"
@@ -419,6 +486,9 @@ def kill_orphan(run_dir: Path) -> dict[str, Any]:
     rj = read_json(run_dir / "run.json") or {}
     if gone:
         rj.update({"state": "cancelled", "finished_at": time.time(), "killed_as_orphan": True})
+        # A confirmed stop retires an earlier failed attempt on the same run.
+        if rj.pop("stop_failed", None):
+            rj["stop_recovered"] = True
     else:
         # An attempt, not an outcome. The process is still there.
         rj.update(
@@ -431,7 +501,12 @@ def kill_orphan(run_dir: Path) -> dict[str, Any]:
         )
     atomic_write_json(run_dir / "run.json", rj)
     prog = read_json(run_dir / "progress.json") or {}
-    prog.update({"state": "cancelled"} if gone else {"state": "running", "stop_failed": True})
+    if gone:
+        prog.update({"state": "cancelled"})
+        if prog.pop("stop_failed", None):
+            prog["stop_recovered"] = True
+    else:
+        prog.update({"state": "running", "stop_failed": True})
     atomic_write_json(run_dir / "progress.json", prog)
     return {**now, "killed": gone, "signalled": True}
 

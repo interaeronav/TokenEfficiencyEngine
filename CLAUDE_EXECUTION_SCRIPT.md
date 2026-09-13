@@ -2126,3 +2126,65 @@ Accepted and to be carried forward as stated limits, not re-litigated: the
 marker-tampering trust assumption (ownership tracking relies on the marker
 staying intact; no `lsof` dependency required) and the adapter test-directory
 leak.
+
+### W0 round seven — finish the wind-tunnel corrections through the PUBLIC CALLERS
+
+GPT-6 accepted the saved-argv removal, the orphan test's own case and the purge
+work at `f20c9ee`, and then showed that a helper-level fix does not reach the
+tools that call it. The caller-level state table is the acceptance criterion, so
+another helper-only patch cannot leave the same failure downstream.
+
+1. **[P1] Substring matching still authorises the wrong run.** Both live
+   evidence paths use unrestricted `in`. `run_001` therefore matches its sibling
+   `run_001-copy`, by cwd and by command line, and both reach the intercepted
+   termination function. Rechecking the same wrong predicate twice does not make
+   it right. Compare NORMALIZED paths at component boundaries: cwd must EQUAL
+   the declared run directory, and command evidence must name that exact
+   directory or a file beneath it. Handle the real wrapper and `mpirun` shapes
+   and paths containing spaces. Keep unreadable evidence fail-closed and keep
+   the recheck before signalling. Matrix: exact cwd, exact supported command
+   argument, sibling prefix, `run_100` vs `run_1000`, mismatch, unreadable, and
+   identity changing between decision and signal — **zero termination calls** on
+   every negative. Positive fixtures must look like real launch arguments or a
+   real cwd: **a path inside a source comment must not establish ownership**,
+   which is what my own positive fixture relied on.
+2. **[P2] The cancellation hook announces completion and frees capacity.**
+   `tools.py:1825` ignores `r.terminate()`'s return, writes the run cancelled
+   and releases the machine reservation unconditionally — so a surviving solver
+   keeps burning cores while the ledger says the capacity is free, and status
+   shows no failure. Keep the asynchronous-request/confirmed-exit distinction:
+   a failed stop keeps its run state and its reservation, surfaces through
+   status, and stays stoppable; capacity is released once the owned process has
+   actually gone, with the worker's finalization as backstop. Integration test
+   through `app.jobs.cancel()` and `wt_status`, then a successful retry.
+3. **[P2] Stop and status callers turn uncertainty or failure into "gone".**
+   `_Lane._stop()` raises `wt_no_orphan` "pid … gone / Nothing to stop" whenever
+   `killed` is false, contradicting the helper's own persisted
+   running/stop_failed record; and status reports `dead` for
+   `identity_unknown`, when known metadata is not proof of exit. Distinguish
+   confirmed exit, verified survivor after a failed stop, identity mismatch and
+   identity unknown. Refuse unsafe signalling without calling an unidentified
+   process dead, and give the public stop response an actionable next step.
+   Also **clear or historicise `stop_failed` on a confirmed later success** —
+   it currently persists through a successful retry.
+4. **[P2] The worker wait returns as if it succeeded on timeout.**
+   `wait_worker_done()` ignores `wait_until()`, which returns `None` on timeout.
+   Make a timeout raise, naming the pending worker; add a negative timeout test
+   beside the barrier one; and document the lifecycle point it supports — an
+   empty registry is not a completion signal for work that has not registered.
+5. **Evidence corrections.** The proposal explains **seventeen** changed files
+   where the total is **nineteen** (`windtunnel/runner.py`, `windtunnel/tools.py`).
+   The quoted wildcard command is not the 102-pass selection — record the six
+   files that produced it, and the log path. And "no measurable token change" is
+   wrong: the stale-cancelled/live-orphan status goes **19 → 59 estimated tokens
+   (+40)**. Measure representative normal, failed-stop and unknown-identity
+   responses against the predecessor, state serialization/estimator/composition,
+   and keep the truthful status even though it costs more.
+
+Rules unchanged: fresh fixture paths and owned children, termination intercepted
+on every mismatched-identity case, never a kill against the owner's real
+processes, both purge isolation layers kept. Focused regressions first with
+their negatives proven failing on `f20c9ee`, then the canonical isolated suite
+and both lint checks; preserve and explain failures rather than rerunning.
+Rebuild the artifact from the corrected isolated source with the permanent
+interpreter and recompute everything — `11bb1615…` must not be reused.
