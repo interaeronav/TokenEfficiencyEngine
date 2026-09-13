@@ -2188,3 +2188,56 @@ their negatives proven failing on `f20c9ee`, then the canonical isolated suite
 and both lint checks; preserve and explain failures rather than rerunning.
 Rebuild the artifact from the corrected isolated source with the permanent
 interpreter and recompute everything — `11bb1615…` must not be reused.
+
+### W0 round eight — real argument boundaries, and a retry that truly retires
+
+GPT-6 accepted the packaging identity, the failed-cancel reservation fix, the
+orphan stop errors, the `unverified` status, the exact-cwd comparison and the
+worker-wait timeout at `36453a0`. Three corrections remain.
+
+1. **[P1] Flattened command text still authorises termination on this Mac.**
+   `pid_argv` returns None here, so the flattened-string fallback IS the
+   deployment path — and it accepts whitespace or `/` after the target, which
+   three probes defeat: a path inside a `python -c` source comment, an argument
+   `/…/run_001/../different-run`, and an argument `/…/run_001 copy`. Each reached
+   the intercepted kill. Normalizing only the SEARCHED-FOR directory does not
+   normalize a candidate containing `..`, and flattened text has lost the
+   argument boundaries the decision needs.
+   The fix is not merely conservative: **macOS does expose real argv**, via
+   `sysctl KERN_PROCARGS2`, stdlib `ctypes` only and no new dependency —
+   verified on this machine. So identification by command line now requires
+   REAL argv tokens (Linux `/proc`, macOS sysctl), each candidate normalized
+   before comparison; the flattened string is reporting only and never identity.
+   No evidence at all stays `identity_unknown` and refuses the signal, and
+   `run.json` argv is never restored as evidence. Regressions for all three
+   shapes must exercise the fallback path and assert **zero** termination calls,
+   keeping positive cover for exact cwd, genuine solver/wrapper arguments and
+   paths with spaces.
+2. **[P2] A successful IN-PROCESS retry keeps the failure.** §4g fixed the
+   orphan branch only. `_stop()`'s in-process branch returns straight after
+   `live.terminate()`, and `SolverRun.terminate` sets `stop_failed` on failure
+   and never clears it on a later success, so the store's merge carries it
+   through finalization into `wt_status`. Retire it on CONFIRMED exit, in memory
+   and in every persisted record status reads, and make sure worker finalization
+   cannot reintroduce it through a merge. Never clear before exit is confirmed.
+   The integration test must run the whole public sequence — failed cancel →
+   `wt_case action=stop` retry → confirmed exit → worker finished → persisted
+   and public status and released capacity — keeping the failed-stop reservation
+   assertion. Killing the child in teardown and checking the ledger proves
+   nothing about the retry contract.
+3. **Withdraw and re-measure the response-size evidence.** My `tokens.py`
+   hand-wrote both sides and never called `wt_status`, so its "+30/+53" are not
+   measurements, and my claim that GPT-6 had "modelled a shorter note" is
+   unsupported — their probe called the real implementation. Re-measure by
+   invoking the actual `_Lane.status` from each named source export under
+   identical fixtures, state the serialization and estimator honestly, and label
+   any hand-written example illustrative. Also reconcile "four new error codes"
+   (the W0-wide LLM/VLM set) with the two new wind-tunnel codes, naming the
+   baseline for each comparison.
+
+Scope: the two wind-tunnel source files, their tests and fixtures, and the
+proposal/receipt. Prove the new regressions fail on `36453a0`. Freeze, export
+clean with `PYTHONPATH` pinned and bytecode off, run the six focused files plus
+any new regression file, then the default suite and both lint checks; recompute
+manifest, fingerprint, delta and artifact. Do not repeat the suite once green
+without a new failure to investigate.

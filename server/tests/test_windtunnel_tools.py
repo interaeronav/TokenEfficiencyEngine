@@ -1009,3 +1009,59 @@ def test_an_unidentifiable_process_is_not_reported_dead(app, monkeypatch):
     finally:
         child.kill()
         child.wait()
+
+
+def test_a_successful_in_process_retry_actually_retires_the_failure(app, monkeypatch):
+    """The whole public sequence, because a teardown kill proves nothing.
+
+    failed cancel -> `wt_case action=stop` retry -> confirmed exit -> worker
+    finished -> persisted record, public status and released capacity.
+
+    §4g retired the failure on the ORPHAN branch only. `_stop()`'s in-process
+    branch returned straight after `live.terminate()`, and `SolverRun.terminate`
+    set `stop_failed` on failure and never cleared it, so the store's merge
+    carried it through finalization and `wt_status` still said the stop had
+    failed long after the solver had exited.
+    """
+    from tee.kernel.waiting import wait_until
+    from tee.windtunnel import runner
+
+    os.environ["TEE_FAKE_FOAM_MODE"] = "slow"
+    created = call(app, "wt_case", action="create", naca="0012", V_mps=20, aoa_deg=2)
+    case_id = created["case_id"]
+    call(app, "wt_mesh", case_id=case_id, nj=20, n_surface=30)
+    started = call(app, "wt_run", case_id=case_id, iters=4000)
+    wait_until(lambda: runner.live_run_for_case(case_id) is not None, 20, max_delay_s=0.05)
+    live = runner.live_run_for_case(case_id)
+    assert live is not None and live.proc is not None
+    pid = live.proc.pid
+    assert app.machine.active_jobs(), "reserved before we start"
+
+    real_kill = runner.kill_process_group
+    monkeypatch.setattr(runner, "kill_process_group", lambda p, **kw: False)
+    try:
+        # 1. the cancellation fails
+        app.jobs.cancel(started["job"])
+        assert pid_alive(pid)
+        assert call(app, "wt_status", case_id=case_id).get("stop_failed") is True
+        assert app.machine.active_jobs(), "capacity stays reserved while it runs"
+
+        # 2. the public retry succeeds
+        monkeypatch.setattr(runner, "kill_process_group", real_kill)
+        stopped = call(app, "wt_case", action="stop", case_id=case_id)
+        assert stopped["stopped"] is True and stopped["how"] == "in-process"
+
+        # 3. the process is really gone and the worker has really finished
+        wait_until(lambda: not pid_alive(pid), 10, max_delay_s=0.05)
+        wait_worker_done(case_id, timeout_s=30)
+    finally:
+        if pid_alive(pid):
+            real_kill(pid)
+        os.environ["TEE_FAKE_FOAM_MODE"] = "converge"
+
+    # 4. nothing anywhere may still claim the stop failed
+    stored = app._wt_store.load(case_id)["runs"][-1]
+    assert not stored.get("stop_failed"), f"persisted record still claims failure: {stored}"
+    status = call(app, "wt_status", case_id=case_id)
+    assert status.get("stop_failed") is not True, f"status still claims failure: {status}"
+    assert app.machine.active_jobs() == [], "capacity released once the solver had gone"

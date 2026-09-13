@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -551,3 +552,113 @@ def test_wait_worker_done_fails_loudly_on_timeout(tmp_path):
         assert f"{case_id}/run_001" in str(err.value), "it must name the pending worker"
     finally:
         runner.forget(case_id, "run_001")
+
+
+# -- flattened command text is not identity ----------------------------------
+
+
+@pytest.mark.parametrize(
+    ("label", "shape"),
+    [
+        ("path inside a -c source comment", "comment"),
+        ("an argument containing ..", "dotdot"),
+        ("an argument that is <run> copy", "space"),
+    ],
+)
+def test_ambiguous_command_text_never_authorises_termination(tmp_path, monkeypatch, label, shape):
+    """The three shapes GPT-6 defeated at 36453a0, each of which reached the kill.
+
+    A flattened command string has lost the argument boundaries this decision
+    needs, and normalizing only the SEARCHED-FOR directory does not normalize a
+    candidate containing `..`. Identity now needs real argv tokens or an exact
+    cwd; ambiguous text is not evidence.
+    """
+    from tee.windtunnel import runner
+
+    run_dir = tmp_path / "run_001"
+    run_dir.mkdir()
+    (tmp_path / "different-run").mkdir()
+    spacey = tmp_path / "run_001 copy"
+    spacey.mkdir()
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+
+    if shape == "comment":
+        argv = [sys.executable, "-c", f"import time; time.sleep(30)  # {run_dir}"]
+    elif shape == "dotdot":
+        argv = [sys.executable, "-c", "import time; time.sleep(30)", f"{run_dir}/../different-run"]
+    else:
+        argv = [sys.executable, "-c", "import time; time.sleep(30)", str(spacey)]
+
+    child = subprocess.Popen(argv, cwd=str(outside), start_new_session=True)
+    signalled: list[int] = []
+    monkeypatch.setattr(
+        runner, "kill_process_group", lambda pid, **kw: (signalled.append(pid), False)[1]
+    )
+    try:
+        runner.atomic_write_json(
+            run_dir / "run.json",
+            {"pid": child.pid, "argv": ["simpleFoam", "-case", str(run_dir)], "state": "running"},
+        )
+        info = runner.orphan_check(run_dir)
+        assert info["alive"] is False, f"{label}: this is not that run"
+        runner.kill_orphan(run_dir)
+        assert signalled == [], f"{label}: zero termination calls allowed"
+        assert child.poll() is None
+    finally:
+        child.kill()
+        child.wait()
+
+
+@pytest.mark.parametrize(
+    ("label", "by"),
+    [("exact cwd", "cwd"), ("a real -case argument", "arg"), ("cwd with a space", "space")],
+)
+def test_genuine_launch_shapes_are_still_identified(tmp_path, label, by):
+    """The fix must not work by refusing everything. These are the shapes the
+    lane really produces."""
+    from tee.windtunnel import runner
+
+    run_dir = tmp_path / ("run 001 spaced" if by == "space" else "run_001")
+    run_dir.mkdir()
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    if by == "arg":
+        child = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(30)", "-case", str(run_dir)],
+            cwd=str(outside),
+            start_new_session=True,
+        )
+    else:
+        child = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            cwd=str(run_dir),
+            start_new_session=True,
+        )
+    try:
+        runner.atomic_write_json(
+            run_dir / "run.json", {"pid": child.pid, "argv": ["simpleFoam"], "state": "running"}
+        )
+        info = runner.orphan_check(run_dir)
+        assert info["alive"] is True, f"{label} must identify the run: {info.get('identity')}"
+    finally:
+        child.kill()
+        child.wait()
+
+
+def test_paths_are_compared_with_symlinks_resolved(tmp_path):
+    """`/var` IS `/private/var` on macOS, and `lsof` reports the resolved form
+    while the lane holds the unresolved one. Comparing the raw strings made
+    every exact-cwd match fail on the machine this ships to - and the suite did
+    not catch it, because pytest hands out already-resolved tmp_path."""
+    import os
+    import tempfile
+
+    from tee.windtunnel.runner import _norm
+
+    unresolved = Path(tempfile.mkdtemp(prefix="symlink-check-"))
+    try:
+        assert _norm(unresolved) == _norm(os.path.realpath(unresolved))
+        assert _norm(f"{unresolved}/a/../b") == _norm(f"{unresolved}/b"), "`..` must collapse"
+    finally:
+        shutil.rmtree(unresolved, ignore_errors=True)

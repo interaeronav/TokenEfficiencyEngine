@@ -1202,11 +1202,31 @@ class _Lane:
         live = live_run_for_case(case_id)
         if live is not None:
             gone = live.terminate()
+            if gone:
+                # Persist the retirement, not just the in-memory flag: the
+                # store merges, so a stale stop_failed written by the failed
+                # attempt would otherwise survive finalization and keep
+                # appearing in wt_status long after the solver had exited.
+                self.store.add_run(
+                    case_id,
+                    {
+                        "run_id": live.spec.run_id,
+                        "state": "cancelled",
+                        "stop_failed": False,
+                        **({"stop_recovered": True} if live.stop_recovered else {}),
+                    },
+                )
+            else:
+                self.store.add_run(
+                    case_id,
+                    {"run_id": live.spec.run_id, "state": "running", "stop_failed": True},
+                )
             return {
                 "case_id": case_id,
                 "run_id": live.spec.run_id,
                 "stopped": gone,
                 "how": "in-process",
+                **({"stop_failed": True} if not gone else {}),
             }
         runs_ = rec.get("runs", [])
         if not runs_:

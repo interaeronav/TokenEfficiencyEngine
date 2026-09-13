@@ -21,6 +21,7 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
 from collections.abc import Callable
@@ -88,6 +89,7 @@ class SolverRun:
         self._log: Any = None
         self.cancelled = False
         self.stop_failed = False  # a stop was attempted and the process survived
+        self.stop_recovered = False  # ...and a later stop confirmed the exit
 
     # -- paths ---------------------------------------------------------------
     @property
@@ -224,9 +226,17 @@ class SolverRun:
         # shape as kill_orphan's: this used to set `cancelled` whatever
         # `kill_process_group` returned, so a surviving solver reported a state
         # it had not reached.
-        if reason == "cancelled" and gone:
-            self.state = "cancelled"
-        elif not gone:
+        if gone:
+            # A confirmed exit RETIRES an earlier failed attempt. Setting the
+            # flag and never clearing it meant a successful retry still
+            # reported stop_failed, in memory and through every merge that
+            # carried it into the store.
+            if self.stop_failed:
+                self.stop_failed = False
+                self.stop_recovered = True
+            if reason == "cancelled":
+                self.state = "cancelled"
+        else:
             self.stop_failed = True
         return gone
 
@@ -332,24 +342,79 @@ def pid_cwd(pid: int) -> Path | None:
 
 
 def _norm(path: str | Path) -> str:
-    """A comparable absolute path, without requiring the target to exist."""
-    return os.path.normpath(os.path.abspath(os.path.expanduser(str(path))))
+    """A comparable absolute path, with symlinks resolved.
+
+    `realpath`, not just `normpath`: on macOS `/var` IS `/private/var` and
+    `/tmp` IS `/private/tmp`, so `lsof` reports a cwd of
+    `/private/var/folders/.../run_001` for a directory the lane knows as
+    `/var/folders/.../run_001`. Comparing the unresolved forms made every
+    exact-cwd match fail here - which would have silently disabled orphan
+    stopping on the machine this ships to. It also collapses `..`, so an
+    argument like `<run>/../different-run` cannot masquerade as the run.
+    """
+    return os.path.realpath(os.path.abspath(os.path.expanduser(str(path))))
+
+
+def _argv_macos(pid: int) -> list[str] | None:
+    """Real, NUL-separated argv on macOS via `sysctl KERN_PROCARGS2`.
+
+    Assuming macOS could only offer a flattened string is what left this lane
+    unsafe: `ps -o args=` loses the argument boundaries the identity decision
+    needs. The kernel keeps the real vector and reading it costs nothing but
+    stdlib ctypes - no new dependency.
+
+    Layout: 4-byte argc, the exec path, NUL padding, then argc arguments.
+    """
+    import ctypes
+    import ctypes.util
+
+    ctl_kern, kern_procargs2, kern_argmax = 1, 49, 8
+    try:
+        libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+        cap = ctypes.c_int(0)
+        cap_size = ctypes.c_size_t(ctypes.sizeof(cap))
+        mib2 = (ctypes.c_int * 2)(ctl_kern, kern_argmax)
+        if libc.sysctl(mib2, 2, ctypes.byref(cap), ctypes.byref(cap_size), None, 0) != 0:
+            return None
+        buf = ctypes.create_string_buffer(cap.value)
+        size = ctypes.c_size_t(cap.value)
+        mib3 = (ctypes.c_int * 3)(ctl_kern, kern_procargs2, pid)
+        if libc.sysctl(mib3, 3, buf, ctypes.byref(size), None, 0) != 0:
+            return None
+        raw = buf.raw[: size.value]
+        if len(raw) < 4:
+            return None
+        argc = int.from_bytes(raw[:4], sys.byteorder)
+        parts = raw[4:].split(b"\0")
+        i = 1  # skip the exec path
+        while i < len(parts) and parts[i] == b"":
+            i += 1  # skip NUL padding
+        return [q.decode("utf-8", "replace") for q in parts[i : i + argc]] or None
+    except (OSError, ValueError, AttributeError):
+        return None
 
 
 def pid_argv(pid: int) -> list[str] | None:
-    """The RUNNING process's argv as a list, or None where the OS will not say.
+    """The RUNNING process's argv as REAL TOKENS, or None if they cannot be had.
 
-    Linux gives NUL-separated argv, which survives paths containing spaces.
-    macOS `ps` only offers one flattened string, so `_cmd_names_run` does the
-    boundary work there instead.
+    Tokens are the whole point. A flattened command string cannot say where one
+    argument ends, so `<run>/../different-run`, `<run> copy` and a path sitting
+    inside a `python -c` source comment all looked like the run they are not -
+    and each reached the kill. With real tokens every candidate is normalized
+    and compared whole.
+
+    None means "cannot tell", never "no match".
     """
     try:
         with open(f"/proc/{pid}/cmdline", "rb") as fh:
-            raw = fh.read()
+            parts = [q.decode("utf-8", "replace") for q in fh.read().split(b"\0") if q]
+        if parts:
+            return parts
     except OSError:
-        return None
-    parts = [p.decode("utf-8", "replace") for p in raw.split(b"\0") if p]
-    return parts or None
+        pass
+    if sys.platform == "darwin":
+        return _argv_macos(pid)
+    return None
 
 
 def _cmd_names_run(cmd: str, run_dir: Path) -> bool:
@@ -424,11 +489,12 @@ def orphan_check(run_dir: Path) -> dict[str, Any]:
     # Component boundaries, not substrings. `run_001` used to match the sibling
     # `run_001-copy` and `run_100` matched `run_1000`, by cwd and by command
     # line alike, and both reached the kill.
-    by_cmd = (
-        _argv_names_run(argv, run_dir) if argv else (bool(cmd) and _cmd_names_run(cmd, run_dir))
-    )
+    # Identity comes from REAL argv tokens or an exact cwd. The flattened
+    # command string is reporting only: it cannot establish ownership, and
+    # treating it as though it could is what authorised three wrong kills.
+    by_cmd = bool(argv) and _argv_names_run(argv, run_dir)
     by_cwd = cwd is not None and _norm(cwd) == _norm(run_dir)
-    evidence_readable = bool(cmd) or cwd is not None or argv is not None
+    evidence_readable = argv is not None or cwd is not None
     matches = by_cmd or by_cwd
     if not running:
         identity = "the pid is gone"
@@ -447,6 +513,10 @@ def orphan_check(run_dir: Path) -> dict[str, Any]:
         "pid_reused": running and evidence_readable and not matches,
         "identity_unknown": running and not evidence_readable,
         "identity": identity,
+        # Reporting only. Deliberately NOT consulted for identity: a flattened
+        # command string has no argument boundaries, which is what let three
+        # wrong processes look like this run.
+        "observed_cmd": cmd[:200] if cmd else "",
         "state": rj.get("state", "running"),
         "started_at": rj.get("started_at"),
         "argv": rj.get("argv", [])[:6],
