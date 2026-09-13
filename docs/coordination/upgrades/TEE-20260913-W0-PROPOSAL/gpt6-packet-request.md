@@ -1,5 +1,12 @@
 # GPT-6 — compose the execution packet for the W0 thinking-engine candidate
 
+**REVISION 2, 2026-09-13.** Revision 1 was reviewed and corrected; see
+`claude-packet-review-corrections.md` for the full receipt. Three things in
+revision 1 were wrong and are fixed below: it proposed a candidate that
+**deleted 37 files and 35 registered tools from the accepted runtime**, it
+**could not be built at all**, and it described the **wrong bundle shape's**
+dependency behaviour. Sections 2, 3 and 5 are materially rewritten.
+
 Prepared by Claude, 2026-09-13, for the owner to hand to GPT-6 / Codex.
 Repository: `/Users/john/TokenEfficiencyEngine`.
 Protocol: `docs/upgrade-coordination-protocol.md`, version 1.0.1.
@@ -40,8 +47,10 @@ fix it, because the correct value depends on what ships together.
 | | value |
 |---|---|
 | branch | `claude/token-efficiency-engine-5jv1dj` |
-| HEAD | `5d188e08c5773cd501c825fe87c727e3c1c3613a` |
-| ahead of origin | 11 commits, **not pushed** |
+| HEAD | see the corrections receipt's identity table (revision 2) |
+| accepted baseline | A84 payload, `0e172448…fb252f`, 324 files |
+| candidate payload | `e6efecb5…5b928`, 324 files — 0 removed, 0 added, 10 changed vs accepted |
+| ahead of origin | **not pushed** |
 | declared package version | `0.30.1` (`server/pyproject.toml:4`) |
 | working tree | **NOT clean — 149 dirty paths** |
 
@@ -180,29 +189,30 @@ can depend on uncommitted work through **at least four** routes — a plain
 import, a lazy import inside a function, a data file read by path, and a
 registry row in a shared file. Only the first fails collection.
 
-## 5. The blocking decision — yours
+## 5. The blocking decision of revision 1 has dissolved
 
-The candidate fails exactly one test:
+Revision 1 asked you to choose between 197 and 199 virtual tools. That question
+was an artifact of a broken candidate and no longer exists.
 
-```
-test_a77_benchmark_canary.py::test_the_saving_is_computed_over_the_corpus_that_ships
-AssertionError: RESULTS.md says 199 virtual tools; a served TEE now has 197.
-```
+The candidate was missing **35 registered tools**, not 2: all 16 `ak_*`, 7
+`st_*`, 5 `doc_*`, 5 `learn_*` and 2 `lane_*`. Restoring the accepted runtime
+brings the settled composition to **232 virtual tools**, measured, and the
+always-loaded contract is unchanged at 17 / 2,129 wire tokens. RESULTS.md's
+current-corpus table already recorded 232; only its prose block, which the
+canary reads, still said 199. Both now agree.
 
-- **Inherited, not introduced.** It fails identically against an isolated export
-  of `73a76e1`, the head you reviewed.
-- **Cause.** `eb7c898` recorded 199 in the tracked `RESULTS.md`, but the lane
-  contributing those two tools reaches the server only through *uncommitted*
-  edits to `app.py` plus untracked `learning/tools.py`. Committed code serves
-  197. The canary cannot fire in this working tree, because here the number is
-  true.
-- **Why I left it.** 197 is right if this candidate ships alone; 199 is right if
-  the learning-tools lane ships with it. That is a question about what goes into
-  one release, which §1 makes yours, not mine. Changing another session's row
-  unilaterally would either make the doc wrong for them or hide the conflict.
+Nothing was removed to reach that number — the count moved **up** past the
+stale claim because capability came back. There is no deployment-scope removal
+for you to resolve.
 
-**Resolve it one of two ways in the packet:** land the learning-tools lane in
-the same candidate, or correct the row to 197 and let that lane restore it.
+**What remains for you instead**, both smaller:
+
+- `tee/docagents/model_metadata.py` fails `ruff format --check`. I verified the
+  **accepted, installed payload fails the identical check**, so it is
+  pre-existing rather than introduced. One line. I did not fix it because it is
+  shipped payload byte-identical to what is accepted, and changing accepted
+  payload is your scope decision.
+- Tests for several restored capabilities remain untracked (§7).
 
 ## 6. Other open decisions, none taken
 
@@ -222,6 +232,14 @@ release, no packet. No live-model measurement was taken in the correction round
 — all of its evidence is offline: fake endpoints, seeded faults, deterministic
 validators.
 
+**Not done, and flagged rather than decided:** tests for several restored
+capabilities are still untracked — `test_docagents_*`, `test_learning_*`,
+`test_cadagent*`, `test_a78_guidance`, `test_blender_lessons` and the
+`structural` lane's. The candidate ships those modules and verifies them by
+registration and payload equality, not by their own tests. Committing them is
+the obvious next step; I have not taken it unilaterally, having just been
+corrected for a judgement call in exactly this area.
+
 ## 8. What the packet needs from §3 that I cannot supply
 
 Listed so nothing is assumed already done:
@@ -231,10 +249,15 @@ Listed so nothing is assumed already done:
 - Each target's actual registration, wrapper version, interpreter, resolved
   launch command and selected lanes, **re-inspected now** rather than taken from
   the 2026-09-10 record.
-- The dependency inventory and required extras. Note the standing hazard: an
-  `.mcpb` install rebuilds the venv from the lock and silently deletes the fleet
-  extras, so the restore set must be derived from the current venv **before**
-  any install, not from a remembered list.
+- The dependency inventory and required extras. **Corrected in revision 2:** the
+  "an `.mcpb` install rebuilds the venv and deletes the fleet extras" hazard is
+  the PORTABLE (`server.type: uv`) shape. This Mac has the LOCAL (`python`)
+  shape, which borrows `/Users/john/TokenEfficiencyEngine/server/.venv`,
+  provisions nothing and runs no `uv sync` — `packaging/build_local_mcpb.py:62-66`
+  says so, and the build printed it again unprompted. **No dependency change is
+  required by this candidate**; the restored files are pure-Python modules and
+  data the accepted runtime already imports on that same interpreter. Keep the
+  portable hazard conditional on selecting that shape.
 - `skills/tee-usage/SKILL.md`'s hash and verification of each client's copy —
   it is modified in this working tree and therefore differs from HEAD.
 - Rollback artifacts per target, plus the machine-local restoration in §2, which

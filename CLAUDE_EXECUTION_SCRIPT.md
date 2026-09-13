@@ -1867,3 +1867,64 @@ Work the four in order, each with its own regression:
 Return to Codex: disposition, changed files, regression evidence, remaining
 limitations, and the exact tested source identity — saying plainly whether each
 number came from isolated committed source or the shared working tree.
+
+### W0 proposal correction round two — the accepted runtime is the baseline (Codex, 2026-09-13)
+
+Codex reviewed the stage A proposal (`gpt6-packet-request.md`) against HEAD
+`dd5a2a5` and returned three findings. The first inverts a decision taken in the
+previous round and is the important one.
+
+**The premise that was wrong.** Round one treated the untracked Blender
+`guidance.py`/`recipes/`, Fusion CADAgent, `docagents`, `kernel/guidance.py`,
+`learning/hooks|tools` and `structural` as *another session's unshipped work*,
+and removed the first two from the candidate to avoid dragging a live lane into a
+release. They are not unshipped: they are **already delivered and accepted** in
+A84 and are running in Claude's installed runtime right now. Being untracked on
+this branch is a version-control gap, not a statement about the product.
+Excluding them REGRESSES the installed product, and no choice between 197 and
+199 tools addresses that.
+
+The baseline for this candidate is therefore **the accepted A84 payload**, not
+this branch's HEAD. Measured: A84 `source-manifest.json` records 324 files, the
+installed runtime hashes to 324 files and the same fingerprint
+`0e17244…fb252f`, and the candidate carries 287 — **37 omitted**.
+
+Work the three findings, each with evidence:
+
+1. **[P1] Reconcile against the accepted runtime.** Produce a complete
+   added/removed/changed comparison of the accepted payload against the
+   candidate, data, recipes and licences included, plus any changed registration
+   path that would leave a retained module unreachable. Prepare an isolated
+   **cumulative** candidate that keeps every accepted capability and applies the
+   reviewed W0 corrections — from the verified accepted payload plus reviewed
+   changes, never by sweeping the dirty tree. Record provenance and disposition
+   per difference. Any intentional removal is a deployment-scope decision for the
+   coordinator and owner, and must be named as one rather than hidden by editing
+   a benchmark expectation.
+   Also correct the proposal's attribution of the two-tool delta: the learning
+   module registers five `learn_*` tools while `kernel/guidance.py` registers
+   `lane_guide` and `lane_preflight`. Trace the registration before blaming a lane.
+2. **[P1] The candidate is unbuildable, and it is not an export artifact.** The
+   four `test_local_mcpb_build` errors were misdiagnosed in round one. The real
+   cause is `SystemExit: missing bundle input: docs/small-model-workflows.md` —
+   `packaging/build_local_mcpb.py:46-51` lists it in `EXTRAS` and line 168
+   refuses to build without it. It is untracked and absent. Include it, audit
+   every packaging input for the same defect (the canonical usage skill
+   included), re-run the build tests against the candidate's own files, and
+   inspect the resulting artifact's members and normalized payload. A successful
+   ZIP write is not completeness.
+3. **[P2] The dependency plan describes the wrong bundle shape.** "An `.mcpb`
+   install rebuilds the venv from the lock and deletes the extras" is the
+   PORTABLE shape. Claude's current local Python bundle names
+   `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python`, puts its own
+   `src` first on `sys.path` and borrows that interpreter; it provisions nothing
+   and runs no `uv sync`. Our own builder says so at `build_local_mcpb.py:62-66`.
+   Correct the proposal, keep the local delivery default, retain dependency
+   inventory and rollback evidence, and add no blanket reinstall to a
+   source-only update. Portable hazards stay conditional on choosing that shape.
+
+Scope: proposal and candidate preparation only. No install, client restart,
+source-target switch, dependency sync, weight download, push or release. Keep
+existing authorizations, the model choice, the five grants and concurrent work
+intact. Correction evidence stays separate from the immutable A84 receipts, and
+none of it is two-client acceptance.
