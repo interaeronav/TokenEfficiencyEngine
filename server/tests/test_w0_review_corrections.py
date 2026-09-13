@@ -67,8 +67,11 @@ def test_committed_source_imports_only_committed_source() -> None:
 
     broken: list[str] = []
     for rel in sorted(tracked):
-        if not rel.endswith(".py") or not rel.startswith("server/"):
-            continue  # archived evidence under docs/ is a copy, never imported
+        # server/ and benchmarks/ are what `make lint` covers and what ships;
+        # archived evidence under docs/ and output/ is a copy of a past run,
+        # never imported and deliberately frozen.
+        if not rel.endswith(".py") or not rel.startswith(("server/", "benchmarks/")):
+            continue
         source = _git("show", f"HEAD:{rel}") if rel in dirty else (REPO / rel).read_text()
         try:
             tree = ast.parse(source)
