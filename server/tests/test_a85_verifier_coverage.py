@@ -12,17 +12,33 @@ This suite turns that judgement into a number. For each chore it feeds seeded
 plausible-but-wrong answers through the real chore path and counts how many the
 validator ACCEPTS - the false-accept rate, eps. Detector coverage is 1 - eps.
 
-Why it is a gate and not a report. With per-attempt error q over N attempts,
-standby redundancy with imperfect detection gives
+Why it is a gate and not a report. Under standby redundancy with imperfect
+detection, an often-quoted form is
 
     P(fail after N) = eps*q + (1 - eps)*q**N
 
-whose first term is a floor no N crosses: errors the verifier cannot see are
-never retried, because nothing knows to retry them. At eps = 1 that is
-P(fail) = q for every N - widening is provably useless, not merely unproven.
-So `1 - eps` is the WIDENING CEILING: the most any amount of extra effort could
-ever buy. It is the quantum threshold theorem's shape, and it is why four of
-these eight chores are refused outright.
+whose first term is a floor: errors the verifier cannot see are never retried,
+because nothing knows to retry them. At eps = 1 a retry driven by THIS
+validator has nothing to trigger on, so `1 - eps` is a diagnostic of how much
+seeded error such a retry might remove, and it is why four of these eight
+chores are refused outright.
+
+CORRECTED 2026-09-13 (external review). That expression is one model with
+unstated assumptions, and it is NOT conservative: read as "retry while the
+verifier rejects, up to N attempts", the recurrence F_N = q*eps + q*(1-eps)*
+F_(N-1) gives 0.34375 at q = eps = 0.5, N = 3 where the expression gives
+0.3125. Three claims this suite no longer makes:
+
+  - eps is not a population property. It is the false-accept fraction over the
+    fault set seeded BELOW. Adding wrong answers the validator rejects lowers
+    it, and that is not a measurement getting better - repair_script moved
+    0.25 -> 0.20 when this round added a fifth seed.
+  - a blind validator does not prove thinking cannot lower per-attempt error q.
+    A retry policy and a generation policy are different interventions.
+  - a ceiling is permission to measure, never evidence of benefit.
+
+The refusal is therefore an EMPIRICAL ADOPTION GATE resting on what was
+measured here, not a proof of impossibility. See chores.COVERAGE_SEEDS.
 
 Every chore also gets a TRUE-ACCEPT control. Without it a validator that
 rejects everything would score a perfect eps of 0 and look ideal.
@@ -151,6 +167,17 @@ CASES: dict[str, tuple[dict, list[str], str]] = {
             ),
             J({"repaired_code": "pass", "note": "simplified"}),
             J({"repaired_code": "summary()", "note": "fixed"}),
+            # discards an argument the error never complained about - a
+            # different failure from deleting the field it DID name
+            J(
+                {
+                    "repaired_code": (
+                        "batch([{'op': 'create', 'kind': 'cube',"
+                        " 'props': {'rotation_euler': [0, 0, 0]}}])"
+                    ),
+                    "note": "dropped the name",
+                }
+            ),
             # preserves every token and changes the VALUE - the case a
             # token-preservation check cannot see, kept so eps stays honest
             J(
@@ -260,8 +287,24 @@ def test_every_chore_is_measured():
     )
 
 
+@pytest.mark.parametrize("chore", sorted(CASES))
+def test_the_declared_seed_count_is_the_fault_set_actually_measured(chore):
+    """eps without its denominator reads as a population property. It is not.
+
+    COVERAGE_SEEDS is quoted in the refusal messages, so it has to be the
+    number of seeded faults this file really ran.
+    """
+    _, wrong, _ = CASES[chore]
+    assert chores.COVERAGE_SEEDS.get(chore) == len(wrong), (
+        f"{chore}: chores.COVERAGE_SEEDS says {chores.COVERAGE_SEEDS.get(chore)}, "
+        f"this file seeds {len(wrong)}"
+    )
+
+
 def test_widening_is_refused_where_the_ceiling_is_zero():
-    """eps = 1 means P(fail) = q for every N. Not unproven — impossible."""
+    """eps = 1: the validator accepted every seeded fault, so a retry it drives
+    has nothing to trigger on. Measured, on the seeds below - not impossible.
+    """
     blind = [c for c, e in chores.VERIFIER_COVERAGE.items() if e >= 1.0]
     assert blind, "the gate is pointless if nothing is blind"
     for chore in blind:

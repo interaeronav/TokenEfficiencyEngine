@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+
 from tee.architecture.gui import MAX_BODY, ArchitectureGui
 from tee.architecture.service import ArchitectureService
 

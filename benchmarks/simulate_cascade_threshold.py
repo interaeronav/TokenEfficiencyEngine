@@ -33,6 +33,21 @@ Two consequences fall straight out, and the simulation quantifies both:
     rung i failed, the second rung contributes nothing to the cases that
     actually reached it - which are, by construction, exactly the hard ones.
 
+NOTE, 2026-09-13 review. An external review corrected a claim made ELSEWHERE -
+`chores.py` summarised all this as `P(fail) = eps*q + (1 - eps)*q**N`, which is
+a different and more optimistic model. THIS FILE IS NOT AFFECTED. The recurrence
+above is the correct one and agrees with the reviewer's to the digit: at
+q = eps = 0.5 over three rungs it gives 0.328125 shipped wrong plus 0.015625
+exhausted = 0.34375, where the summarising form gives 0.3125. Every number this
+script produced stands; the prose in chores.py, test_a85 and DECISIONS was
+corrected to match what this model already did.
+
+What DOES need saying here: eps is coverage of the seeded fault set in
+test_a85_verifier_coverage.py at the sample counts in chores.COVERAGE_SEEDS,
+not a population rate, so these curves are conditional on that fault set. And
+a cascade result says nothing about whether a different GENERATION policy
+lowers q - only about what retrying on this verifier's rejections can do.
+
 Failures are drawn through a one-factor Gaussian copula so correlation is a
 parameter rather than an assumption: each rung fails when
 `sqrt(rho)*Z + sqrt(1-rho)*E_i` exceeds that rung's threshold, with Z shared.
@@ -51,7 +66,7 @@ SEED = 20260913
 # Measured 2026-09-13, server/tests/test_a85_verifier_coverage.py
 EPS = {
     "phrase_deviation": 0.25,
-    "repair_script": 0.25,
+    "repair_script": 0.20,
     "refine_extract": 0.33,
     "structure_facts": 0.67,
     "rerank": 0.67,
@@ -216,27 +231,38 @@ def main() -> None:
     print("   P(ship wrong) = q1 and no rung below the first is ever reached on a")
     print("   failure. Depth is unreachable, not merely unhelpful.\n")
 
+    # DERIVED, never typed: this used to name phrase_deviation in a string
+    # literal, and when repair_script's verifier was strengthened and
+    # re-measured (0.25 -> 0.20 over 5 seeds) the prose kept crediting the
+    # wrong chore. A number quoted in prose needs a test; a number quoted in
+    # prose next to the table it came from needs to be read from the table.
+    best_chore, best_eps = min(EPS.items(), key=lambda kv: kv[1])
     print("B. INDEPENDENCE decides whether depth buys anything")
-    print("   (eps = 0.25, phrase_deviation - the best verifier measured)\n")
+    print(f"   (eps = {best_eps:.2f}, {best_chore} - the best verifier measured)\n")
     cols = f"   {'rho':>5}  {'ship WRONG':>11}  {'to client':>10}  rung credit (share answered)"
     print(cols)
     for rho in (0.0, 0.5, 0.9, 0.99):
-        r = simulate(q, 0.25, rho=rho)
+        r = simulate(q, best_eps, rho=rho)
         cr = "  ".join(f"{c:.0%}" for c in r["credit"])
         print(f"   {rho:>5.2f}  {r['wrong']:>10.1%}  {r['escalated']:>9.1%}  {cr:<38}")
     print("\n   q27b-think and q27b-bare are the same base weights, so their pair sits")
     print("   near rho = 1: the second contributes almost nothing to the cases that")
     print("   reached it, because those are exactly the ones the first could not do.\n")
 
-    print("C. WHAT DEPTH ACTUALLY TRADES (eps = 0.25, the best verifier measured)")
+    print(
+        f"C. WHAT DEPTH ACTUALLY TRADES (eps = {best_eps:.2f}, {best_chore}, "
+        "the best verifier measured)"
+    )
     print("   Truncating the ladder to k rungs. Watch all three columns, not one:\n")
     head = (
         f"   {'k':>2}  {'RIGHT':>7}  {'ship WRONG':>11}  {'to client':>10}   net effect of rung k"
     )
     print(head)
     prev = None
+    depth: list[dict] = []
     for k in range(1, len(LADDER) + 1):
-        r = simulate(q[:k], 0.25, rho=0.0)
+        r = simulate(q[:k], best_eps, rho=0.0)
+        depth.append(r)
         if prev is None:
             note = "baseline"
         else:
@@ -250,8 +276,14 @@ def main() -> None:
         )
         prev = r
     print("\n   THE COUNTERINTUITIVE RESULT, and it is the threshold theorem's:")
-    print("   depth raises RIGHT answers (70% -> 90%) but ALSO raises silently-WRONG")
-    print("   ones (7.7% -> 9.6%), because every extra rung is another draw against")
+    print(
+        f"   depth raises RIGHT answers ({depth[0]['right']:.0%} -> "
+        f"{depth[-1]['right']:.0%}) but ALSO raises silently-WRONG"
+    )
+    print(
+        f"   ones ({depth[0]['wrong']:.1%} -> {depth[-1]['wrong']:.1%}), because every "
+        "extra rung is another draw against"
+    )
     print("   an imperfect verifier. It pays for both out of the SAME pool - the")
     print("   escalations - and escalation is the one tier that is never wrong.")
     print("   So the cascade converts a known unknown into a mix of right answers")
@@ -281,8 +313,8 @@ def main() -> None:
     print(f"   finish-ordered : {' -> '.join(by_finish)}\n")
     print(f"   {'q (per-rung error)':<22}{'latency-ord':>13}{'finish-ord':>13}{'saved':>10}")
     for qq in (0.20, 0.30, 0.50, 0.70):
-        a, _ = walk_cost(by_latency, qq, 0.25, resident, TRIALS // 10, SEED)
-        b, _ = walk_cost(by_finish, qq, 0.25, resident, TRIALS // 10, SEED)
+        a, _ = walk_cost(by_latency, qq, best_eps, resident, TRIALS // 10, SEED)
+        b, _ = walk_cost(by_finish, qq, best_eps, resident, TRIALS // 10, SEED)
         print(f"   {qq:<22.0%}{a:>12.2f}s{b:>12.2f}s{a - b:>9.2f}s")
     print("\n   The gap is small while the resident usually answers and grows with q,")
     print("   because it is only paid on the escalations that get past it. It is a")
@@ -298,8 +330,13 @@ def main() -> None:
     print("2. rho gates VALUE. Two rungs on shared weights are one rung with extra")
     print("   latency - the independence precondition, and the cascade violates it.")
     print("3. Depth is not free even when it works: it converts escalations into a")
-    print("   MIX of right answers and silent errors. With eps=0.25 the ladder buys")
-    print("   +20 points of right answers and +1.9 points of wrong ones.")
+    print(
+        f"   MIX of right answers and silent errors. With eps={best_eps:.2f} the ladder"
+    )
+    print(
+        f"   buys +{(depth[-1]['right'] - depth[0]['right']) * 100:.0f} points of right "
+        f"answers and +{(depth[-1]['wrong'] - depth[0]['wrong']) * 100:.1f} of wrong ones."
+    )
     print("4. The one tier that is always safe is the LAST: returning to the client")
     print("   is a genuinely independent solver, it is free, and it is never a")
     print("   silent error - it is an explicit hand-back. The cascade should be")

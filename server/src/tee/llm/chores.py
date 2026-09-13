@@ -24,6 +24,7 @@ import ast
 import re
 import time
 from collections import deque
+from collections.abc import Mapping
 from typing import Any
 
 from tee.kernel import local_llm
@@ -50,6 +51,8 @@ def record_reasoning(profile: str | None, text: str) -> None:
 def reasoning_log() -> list[tuple[str, int, str]]:
     """Read the local reasoning trace (profile, chars, text)."""
     return list(_REASONING_LOG)
+
+
 _probe_cache: dict[str, tuple[float, bool]] = {}
 
 _BOUNDARY = (
@@ -179,28 +182,31 @@ def _run(
 ) -> dict[str, Any] | None:
     """Shared chore body: gate, complete, validate, stamp - or None."""
     if thinking:
-        # Two independent conditions, and the first is a proof rather than a
-        # policy: at eps = 1 the verifier sees none of this chore's errors, so
-        # P(fail) = q for every N and widening cannot help by any amount of
-        # budget. The second is evidential - a ceiling is permission to
-        # measure, and no measurement has yet found a benefit.
+        # Two evidential conditions. NEITHER is a proof of impossibility - see
+        # the COVERAGE note above, corrected 2026-09-13 after external review.
+        # The first says a verifier-driven retry has nothing to trigger on
+        # here; the second says nothing has yet measured a benefit.
         ceiling = widening_ceiling(chore or "")
+        seeds = COVERAGE_SEEDS.get(chore or "", 0)
         if ceiling <= 0.0:
             raise TeeError(
                 "llm_widening_refused",
-                f"{chore or 'this chore'} has a widening ceiling of 0% - its verifier "
-                f"accepts every seeded wrong answer, so a thinking retry cannot "
-                f"improve it at any budget.",
-                fix="Strengthen the verifier first; re-measure with "
-                "test_a85_verifier_coverage.py.",
+                f"{chore or 'this chore'} has no measured verifier signal to retry on: "
+                f"its validator accepted all {seeds} seeded wrong answers, so a retry "
+                f"driven by that validator has nothing to trigger on. This is coverage "
+                f"of the seeded fault set, not a bound on what other methods could do.",
+                fix="Strengthen the verifier and re-measure with "
+                "test_a85_verifier_coverage.py, or bring a before/after row on task "
+                "correctness that does not depend on this validator.",
             )
         if chore not in THINKING_ALLOWED:
             raise TeeError(
                 "llm_widening_unproven",
-                f"{chore} may reach {ceiling:.0%} of its errors by widening, but no "
-                f"measurement shows thinking helps it.",
-                fix="Commit a before/after row, then add the chore to "
-                "chores.THINKING_ALLOWED.",
+                f"{chore} left {ceiling:.0%} of its {seeds} seeded faults detectable, but "
+                f"no measurement shows thinking helps it. Permission to measure is not "
+                f"evidence of benefit.",
+                fix="Commit a before/after row on independently judged task correctness "
+                "and cost, then add the chore to chores.THINKING_ALLOWED.",
             )
     if refine not in ("auto", "local", "off"):
         raise TeeError(
@@ -277,7 +283,11 @@ def _run(
     # would have handed the 35B an empty answer on every chore.
     from tee.engines.table import matching_floors
 
-    measured = matching_floors((cfg or {}).get("_state_dir"), resolved)
+    # ONE effective mode, used for the floor lookup and the wire below. The
+    # gate above has already refused a request this chore may not make, so
+    # this is exactly what the request carries.
+    mode = wire_thinking(chore, requested=thinking, resolved=resolved)
+    measured = matching_floors((cfg or {}).get("_state_dir"), resolved, thinking=mode)
     budget = max(int(max_tokens), machine.min_chore_tokens(resolved.get("profile"), measured))
     if _measure_exact_budget:
         # Only eng_audition's internal sweep requests this. Public chores keep
@@ -306,8 +316,9 @@ def _run(
                 # one calibration chore (6/6 -> 5/6). Zero chores are
                 # measured to benefit, so zero chores get it by default. The
                 # profile's flag still declares the ENGINE's capability, for
-                # callers outside the chore layer.
-                thinking=bool(thinking),
+                # callers outside the chore layer - see wire_thinking, which
+                # is the only place that difference is resolved.
+                thinking=mode,
                 json_mode=str(resolved.get("json_mode") or "auto"),
                 on_usage=_meter,
                 on_reasoning=thought.append,
@@ -369,6 +380,16 @@ def _identifiers(tree: ast.AST) -> set[str]:
         ):
             found.add(node.value)
     return found
+
+
+def _error_tokens(error: str) -> set[str]:
+    """Identifier-like tokens the supplied error evidence actually names.
+
+    This is the contract a repair is allowed to cite. It is deliberately the
+    RAW error text and nothing else: a rename is licensed by evidence the
+    caller supplied, never by the model's own say-so.
+    """
+    return set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", error or ""))
 
 
 def _line(value: Any, limit: int) -> str | None:
@@ -448,23 +469,45 @@ def repair_script(
             tree = validate_script(repaired)
         except TeeError:
             return None  # must parse and stay inside the script subset
-        if not any(
-            isinstance(n, (ast.Call, ast.Assign, ast.AugAssign)) for n in ast.walk(tree)
-        ):
+        if not any(isinstance(n, (ast.Call, ast.Assign, ast.AugAssign)) for n in ast.walk(tree)):
             return None  # a stub that does nothing is not a repair
-        # INTENT PRESERVATION. A correct repair may RENAME what broke
-        # (rotation= becomes rotation_euler), but it may not simply drop it.
-        # So every identifier the original had and the draft lost must still
-        # be echoed by some identifier in the draft. Deleting the argument
-        # leaves nothing containing "rotation"; re-expressing it does.
+        # INTENT PRESERVATION. A correct repair may RENAME what broke, but it
+        # may not simply drop it. A lost token must therefore be explained by
+        # ONE of two things:
+        #
+        #   (a) a surviving token it overlaps - rotation -> rotation_euler; or
+        #   (b) the supplied error evidence, which is the only contract the
+        #       chore is given. A spelling repair has no overlap at all
+        #       (tee_sttaus -> tee_status share no substring relation), so
+        #       rule (a) alone rejected correct, evidence-backed renames.
+        #       Found by review, 2026-09-13.
+        #
+        # (b) is deliberately narrow: the error must name BOTH the token being
+        # dropped and at least one token the repair introduces. A deletion
+        # introduces nothing, so it stays rejected however loudly the error
+        # names the field it deleted - which is what keeps the degenerate fix
+        # out.
+        #
+        # BLIND SPOT, stated rather than papered over: this cannot PAIR a
+        # dropped token with its replacement. An error naming several
+        # identifiers licenses a repair that renames one of them and quietly
+        # drops another. Neither rule is a proof of preserved intent; both are
+        # cheap necessary conditions. Semantic correctness is not established
+        # here - only that the draft parses and did not silence the error by
+        # deletion.
         try:
             before = _identifiers(ast.parse(code))
         except SyntaxError:
             before = set()  # the input was not parseable; nothing to preserve
         after = _identifiers(tree)
+        evidence = _error_tokens(error)
+        licensed = bool((after - before) & evidence)
         for lost in before - after:
-            if not any(lost in keep or keep in lost for keep in after):
-                return None
+            if any(lost in keep or keep in lost for keep in after):
+                continue
+            if licensed and lost in evidence:
+                continue
+            return None
         return {"repaired_code": repaired, "note": note}
 
     prompt = f"Failing script:\n```\n{code[:4000]}\n```\nValidation error:\n{error[:1000]}"
@@ -571,29 +614,75 @@ _FACT_KINDS = {"dimension", "material", "constraint", "preference", "note"}
 # eps = false-accept rate = the fraction of wrong answers the verifier waves
 # through. Detector coverage is c = 1 - eps.
 #
-# THE THRESHOLD. For per-attempt error q and N attempts, standby redundancy with
-# imperfect detection gives
+# WHAT A BLIND VERIFIER COSTS - a model, and what it does and does not license.
+#
+# Under standby redundancy with imperfect detection, an often-quoted form is
 #
 #     P(fail after N) = eps*q + (1 - eps)*q**N
 #
-# The first term is a FLOOR that no N ever crosses: errors the verifier cannot
-# see are never retried, because nothing knows to retry them. This is the
-# quantum threshold theorem's shape - concatenation buys nothing above the
-# threshold - and it yields a hard, quantitative gate:
+# and its first term is a FLOOR: errors the verifier cannot see are never
+# retried, because nothing knows to retry them. That qualitative shape is the
+# quantum threshold theorem's, and it is the useful part - concatenating an
+# unreliable check buys nothing above the threshold.
 #
-#     WIDENING CEILING = 1 - eps
-#       the largest fraction of this chore's errors that ANY widening
-#       mechanism (a thinking retry, best-of-N, more sampling) could ever
-#       remove, with unlimited budget.
+# CORRECTED 2026-09-13 (external review). That expression is ONE model with
+# unstated assumptions, not the general failure probability of repeated
+# attempts under imperfect detection, and it is not conservative. Read it as
+# "retry while the verifier rejects, up to N attempts, and count a false
+# accept or exhaustion as failure" and the recurrence is
 #
-# At eps = 1.0 the ceiling is ZERO: P(fail) = q for every N. For those chores
-# widening is not merely unproven, it is provably useless, and _run refuses it.
-# A ceiling above zero is PERMISSION TO MEASURE, never evidence of benefit -
-# and it is void if the widening itself raises q, which thinking was measured
-# to do on triage (traps 6/6 bare, 5/6 thinking).
+#     F_N = q*eps + q*(1 - eps)*F_(N-1),   F_1 = q
 #
-# eps is a LOWER BOUND: more seeds can only find more false accepts, never
-# fewer. So a ceiling is an optimistic cap on an unproven benefit.
+# which at q = eps = 0.5, N = 3 gives 0.34375 where the expression above gives
+# 0.3125. The asymptotic floors differ too: q*eps/(1 - q*(1 - eps)) = 0.333
+# against eps*q = 0.25. The simple form UNDERSTATES the floor - it was
+# optimistic about retries, not pessimistic. Correlated attempts need further
+# assumptions again, and the measured rung correlations here are not zero
+# (rho = 0.53 across families on 17 and 22 failures).
+#
+# So `widening_ceiling` is a DIAGNOSTIC, not a bound:
+#
+#     widening_ceiling(chore) = 1 - eps
+#       an optimistic, model-dependent estimate of how much of this chore's
+#       seeded error a verifier-driven retry could remove. At eps = 1.0 it is
+#       zero, meaning the seeded faults were ALL accepted, so a retry driven
+#       by THIS verifier had nothing to trigger on.
+#
+# Three things it does NOT establish, each of which the refusals below used to
+# assert and no longer do:
+#
+#   1. eps is not a population property. It is the false-accept fraction over
+#      the seeded fault set recorded in COVERAGE_SEEDS - a different or larger
+#      set moves it in either direction, and adding wrong answers the verifier
+#      DOES reject lowers it.
+#   2. A blind verifier does not prove that thinking cannot lower per-attempt
+#      error q. A retry policy driven by a validator and a different
+#      generation policy are different interventions; this measures only the
+#      first.
+#   3. A ceiling above zero is permission to MEASURE, never evidence of
+#      benefit - and it is void if the widening itself raises q, which
+#      thinking did on triage (traps 6/6 bare, 5/6 thinking).
+#
+# The gate below is therefore an EMPIRICAL ADOPTION GATE: thinking stays off
+# until a committed before/after row shows a gain on independently judged task
+# correctness at acceptable cost. A finite measurement can justify declining
+# adoption without proving universal uselessness, and that is all it claims.
+
+# How many seeded faults produced each figure in VERIFIER_COVERAGE. A bare
+# fraction reads as a property of the chore; with its denominator it reads as
+# what it is - coverage of a stated fault set at a stated sample size.
+# test_w0_review_corrections.py fails on a coverage figure with no count.
+COVERAGE_SEEDS: dict[str, int] = {
+    "phrase_deviation": 4,
+    "refine_extract": 3,
+    "structure_facts": 3,
+    "rerank": 3,
+    "triage": 3,
+    "repair_script": 5,
+    "explain_lint": 3,
+    "compress_recap": 3,
+}
+
 VERIFIER_COVERAGE: dict[str, float] = {
     # eps      chore              what the validator actually binds
     "phrase_deviation": 0.25,  # numerals survive per line; not their attachment
@@ -605,10 +694,17 @@ VERIFIER_COVERAGE: dict[str, float] = {
     # UPPER length bound and a deletion-based repair - the exact degenerate fix
     # its own system prompt warns about - shipped to the client. Now: must
     # parse under validate_script, must contain a call or assignment, and every
-    # intent-bearing token the original had must survive or be echoed by a
-    # rename. What remains uncaught is a repair that keeps every token and
-    # changes a VALUE, which is why this is 0.25 and not 0.
-    "repair_script": 0.25,
+    # intent-bearing token the original had must survive, be echoed by a
+    # rename, or be licensed by the supplied error evidence. What remains
+    # uncaught is a repair that keeps every token and changes a VALUE, which is
+    # why this is not 0.
+    #
+    # 0.25 over 4 seeds until the review round added a fifth (an argument
+    # discarded that the error never named, which the validator rejects). The
+    # figure MOVED, 0.25 -> 0.20, on a fault set that grew by one - which is
+    # the clearest possible demonstration that eps is coverage of a stated set
+    # and not a property of the chore.
+    "repair_script": 0.20,
     "explain_lint": 1.00,  # one non-empty line
     "compress_recap": 1.00,  # one non-empty line
 }
@@ -616,17 +712,49 @@ VERIFIER_COVERAGE: dict[str, float] = {
 
 # Chores permitted to opt into thinking. SHIPS EMPTY, on purpose.
 #
-# A ceiling above zero is permission to MEASURE, not evidence of benefit, and
-# nothing has yet measured a benefit: across every chore tested on 2026-09-13,
-# thinking was one measured harm, three measured no-ops at 2.8-4.0x cost, and
-# zero measured gains. Adding a name here requires a committed before/after row
-# AND a ceiling above zero; test_a85_verifier_coverage.py enforces the second
-# and will fail on a name that cannot pass the first.
+# THE ADOPTION GATE. A ceiling above zero is permission to MEASURE, not
+# evidence of benefit, and nothing has yet measured a benefit: across every
+# chore tested on 2026-09-13, thinking was one measured harm (triage, traps
+# 6/6 -> 5/6), three measured no-ops at 2.8-4.0x cost, and zero measured
+# gains. Those are finite results on small samples; they justify DECLINING
+# adoption, and they do not prove thinking is useless here.
+#
+# Adding a name requires all three:
+#   - a committed before/after row on independently judged task correctness,
+#     not on validator acceptance (the validator is what eps says is blind);
+#   - the cost delta, measured, and a stated regression criterion;
+#   - a ceiling above zero.
+# test_a85_verifier_coverage.py enforces the last and will fail on a name that
+# cannot pass the first two.
 THINKING_ALLOWED: frozenset[str] = frozenset()
 
 
+def wire_thinking(
+    chore: str | None, *, requested: bool | None, resolved: Mapping[str, Any]
+) -> bool:
+    """The thinking flag this request will ACTUALLY put on the wire.
+
+    Engine capability is not request mode. A profile's `thinking` says the
+    endpoint CAN deliberate; it never says this call will ask it to. Chores
+    default off and opt in, so a chore on `q27b-think` still sends thinking
+    off unless it asked.
+
+    Everything that records or looks up a measurement must agree on this one
+    value. It was measured on the wire mode and mislabelled with the profile
+    capability, so `q27b-think` filed every floor it measured under an
+    identity no request it makes ever has, and discarded them all. Found by
+    review, 2026-09-13.
+    """
+    return bool(requested) and bool(resolved.get("thinking"))
+
+
 def widening_ceiling(chore: str) -> float:
-    """1 - eps: the most any retry/thinking/sampling could ever buy here.
+    """1 - eps: an optimistic, model-dependent estimate, not a bound.
+
+    How much of this chore's SEEDED error a verifier-driven retry might
+    remove. It is not a population bound, and it says nothing about
+    interventions that change per-attempt error rather than retry on
+    rejection - see the COVERAGE note above.
 
     Unknown chores return 0.0 - an unmeasured verifier is treated as blind,
     so a new chore cannot inherit permission it never earned.

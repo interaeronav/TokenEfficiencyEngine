@@ -232,9 +232,7 @@ def complete_json(
             f"json_mode={json_mode!r} is not a mode.",
             fix="Use auto, on, or off.",
         )
-    send_json = json_mode == "on" or (
-        json_mode == "auto" and not json_mode_unsupported(url, model)
-    )
+    send_json = json_mode == "on" or (json_mode == "auto" and not json_mode_unsupported(url, model))
 
     def _kwargs(response_format: dict | None) -> dict:
         return dict(

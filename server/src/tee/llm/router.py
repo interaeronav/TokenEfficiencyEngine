@@ -185,8 +185,7 @@ def _learning_version(chore: str, call: Callable, cfg: dict[str, Any], engine: s
         # measured 6/6 vs 5/6 on the trap suite - so evidence gathered under
         # one must not be reused under the other.
         identity = {
-            k: resolved.get(k)
-            for k in ("profile", "model", "url", "adapters", "paid", "thinking")
+            k: resolved.get(k) for k in ("profile", "model", "url", "adapters", "paid", "thinking")
         }
     else:
         identity = {"profile": profile, "undeclared": True}
@@ -263,26 +262,37 @@ def _observe_hop(
     if service is None:
         return
     # A "verified" label is only worth learning from if the verifier that
-    # produced it can actually tell right from wrong. `verified=True` means
-    # nothing more than "this chore's validate() accepted", and we MEASURED
-    # (chores.VERIFIER_COVERAGE, 2026-09-13) that triage, explain_lint and
-    # compress_recap accept 100% of seeded wrong answers. For those, the label
-    # is uncorrelated with correctness - and a learner fed labels that are
-    # uncorrelated with correctness does not merely fail to improve, it
-    # acquires confident wrong orderings. Same threshold argument as the
-    # widening ceiling: below the coverage threshold, more evidence amplifies
-    # the error instead of averaging it out.
+    # produced it can tell right from wrong. `success=True` here means exactly
+    # one thing - "this chore's validate() accepted" - and that is SCHEMA
+    # ACCEPTANCE, never a semantic correctness label. It is recorded as such.
     #
-    # So the observation is still RECORDED - latency and coverage are real -
-    # but its success label is withheld. A80 already has this idiom: an
-    # unlabelled row carries a category and a NULL success (the A76 lesson
-    # that an unreachable engine supplies no quality label).
+    # For triage, explain_lint and compress_recap the seeded fault sets in
+    # test_a85_verifier_coverage.py were accepted in full (eps = 1.0 over 3
+    # seeds each), so acceptance there carries no information about
+    # correctness at all, and a learner fed labels uncorrelated with
+    # correctness does not merely fail to improve - it acquires confident
+    # wrong orderings. Those positives are withheld.
+    #
+    # THE RESIDUAL, stated rather than implied (external review, 2026-09-13):
+    # the positives that DO survive are not thereby correct. repair_script
+    # measured eps = 0.20 over 5 seeds, so roughly one accepted answer in five
+    # of the seeded wrong kinds is wrong and labelled a success. Those figures
+    # are coverage of a stated fault set, not population rates, and this
+    # threshold is a conservative default rather than a proof about what any
+    # verifier could achieve.
+    #
+    # The observation is still RECORDED - latency and coverage are real - but
+    # the success label is withheld. A80 already has this idiom: an unlabelled
+    # row carries a category and a NULL success (the A76 lesson that an
+    # unreachable engine supplies no quality label).
     from tee.llm.chores import widening_ceiling
 
     # ASYMMETRY, and the tests taught it: eps counts FALSE ACCEPTS. A blind
     # verifier's acceptance is uninformative, but its REJECTION is a true
     # rejection - it caught something so malformed that even a shape check
     # saw it. So negative labels survive; only the positive one is withheld.
+    # (A false REJECTION is a separate quantity this suite does not measure;
+    # the true-accept controls only show the correct answer is not rejected.)
     if success is True and widening_ceiling(chore) <= 0.0:
         success, category = None, "unverifiable"
     # Telemetry failures never change a result, refusal, or fallback.

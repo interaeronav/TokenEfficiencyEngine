@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
+
 from tee.architecture.model import ArchitectureError, Document
 from tee.architecture.service import ArchitectureService
 

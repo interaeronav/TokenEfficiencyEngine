@@ -37,6 +37,12 @@ TOKEN_RUNGS = (1024, 512, 384, 256, 192, 128, 96, 64)
 WARM_SAMPLES = 3
 
 
+# What `_chore` below asks for on the wire. It calls the chore layer without a
+# `thinking` argument, so it inherits the chore default: OFF. The audition row
+# records the mode measured, and this is the one place that says what it is.
+_CHORE_REQUESTS_THINKING: bool | None = None
+
+
 def _chore(cfg: dict[str, Any], max_tokens: int | None = None):
     """One triage against this endpoint, graded by triage's own validator.
 
@@ -179,7 +185,7 @@ def audition(
     cfg: dict[str, Any], *, engine: str, url: str, model: str, samples: int = WARM_SAMPLES
 ) -> dict[str, Any]:
     """A candidate engine row, measured. Never called for a paid profile."""
-    from tee.llm import profiles
+    from tee.llm import chores, profiles
 
     hop = _candidate_cfg(cfg, engine=engine, url=url, model=model)
     resolved = profiles.resolve(hop)
@@ -188,6 +194,18 @@ def audition(
         "url": resolved["url"],
         "model": resolved["model"],
         "adapters": resolved["adapters"],
+        # The mode this measurement is MEASURED AT, derived the same way the
+        # request derives it - not the profile's capability flag. `_chore`
+        # below passes no `thinking`, so this is off today even on a
+        # thinking-capable profile; if `_chore` ever opts in, change
+        # _CHORE_REQUESTS_THINKING beside it and the row follows.
+        #
+        # Omitting this key entirely was the bug: `matching_floors` read a
+        # missing key as False and compared it to the profile's True, so
+        # q27b-think discarded its own floor forever. Found by review.
+        "thinking": chores.wire_thinking(
+            "triage", requested=_CHORE_REQUESTS_THINKING, resolved=resolved
+        ),
         "measured_at": time.time(),
     }
 

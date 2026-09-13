@@ -2588,6 +2588,13 @@ engine, or trains an adapter on these weights.
 
 ## The widening ceiling: verifier coverage gates extra effort (2026-09-13, W0)
 
+> **PARTLY SUPERSEDED 2026-09-13** by "Verifier coverage is a diagnostic, not a
+> bound" at the end of this file. The measurements below stand and the gate
+> still behaves as described; the claims that a zero ceiling is a *proof* and
+> that `1 - eps` bounds what any mechanism could achieve do not. Read the
+> superseding entry first. (repair_script's eps below is also restated there:
+> 25% over 4 seeds became 20% over 5.)
+
 The owner asked for dynamic context-driven switching between thinking and no
 thinking. The answer, after measurement, is that the switch does not key on
 context at all. It keys on a static, measurable property of the chore's own
@@ -2650,3 +2657,65 @@ identifiers cannot see a dropped field.
 every ceiling is an optimistic cap on an unproven benefit. repair_script's 25%
 is the honest residue: a repair that keeps every token and changes a VALUE
 still passes.
+
+
+## Verifier coverage is a diagnostic, not a bound (2026-09-13, W0 review)
+
+External review by Codex found the W0 threshold argument overstated. It is
+right, and the correction matters more than the number: the earlier entry made
+an *impossibility* claim, and impossibility claims are the kind that stop
+people measuring.
+
+**What was wrong.** `P(fail after N) = eps*q + (1 - eps)*q**N` was presented as
+the failure probability of repeated attempts under imperfect detection. It is
+one model with unstated assumptions. Read it as "retry while the verifier
+rejects, up to N attempts, counting a false accept or exhaustion as failure"
+and the recurrence is `F_N = q*eps + q*(1 - eps)*F_(N-1)`, `F_1 = q`, which at
+q = eps = 0.5, N = 3 gives **0.34375** against the stated **0.3125**. The
+asymptotic floors differ too - `q*eps/(1 - q*(1 - eps))` = 0.333 against
+`eps*q` = 0.25.
+
+Note the direction: the simple form **understates** the floor. It was
+optimistic about retries, not conservative, so the error did not happen to fall
+on the safe side. Correlated attempts need further assumptions again, and the
+measured rung correlations are not zero (rho = 0.53 across families).
+
+**Three claims retired.**
+
+1. *eps is a lower bound on the population of errors.* It is not. It is the
+   false-accept fraction over a stated seeded fault set. Adding wrong answers
+   the validator REJECTS lowers it - demonstrated in this same round:
+   repair_script moved 0.25 (4 seeds) to **0.20 (5 seeds)** when the review's
+   discarded-argument control was added. Nothing about the validator changed
+   in that step.
+2. *A blind verifier proves widening cannot help.* It does not. A retry policy
+   driven by a validator and a generation policy that changes per-attempt
+   error q are different interventions; the seeded measurement bears only on
+   the first.
+3. *1 - eps is the most any mechanism could ever buy.* Model-dependent, and
+   only about verifier-driven retry.
+
+**What stands.** The qualitative shape - a verifier that cannot see an error
+class leaves a floor that retrying does not cross - is sound and is why the
+gate exists. Every seeded measurement stands as coverage of its stated fault
+set. The conservative defaults are unchanged: `THINKING_ALLOWED` still ships
+EMPTY and thinking is still off for every chore.
+
+**What changed in code.** The two refusals now cite what was measured and its
+sample count instead of asserting impossibility, `COVERAGE_SEEDS` records the
+denominator beside every eps, `widening_ceiling`'s docstring calls itself an
+optimistic model-dependent estimate, and the gate is documented as an
+**empirical adoption gate**: a name enters `THINKING_ALLOWED` on a committed
+before/after row on independently judged task correctness plus cost and a
+regression criterion - not on validator acceptance, which is the very thing eps
+says is blind. `test_w0_review_corrections.py` fails if a refusal message
+reacquires the words of a universal claim.
+
+**And a residual now stated out loud.** The router withholds a positive
+learning label only where the verifier is fully blind. The positives that
+survive are schema acceptance carrying that chore's measured false-accept
+fraction - not correctness labels. Nothing downstream may treat them as such.
+
+**A finite measurement can justify declining adoption without proving
+universal uselessness.** That is all this gate now claims, and it is enough to
+keep thinking off.

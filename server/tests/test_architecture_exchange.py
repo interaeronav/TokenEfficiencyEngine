@@ -7,6 +7,7 @@ import math
 from pathlib import Path
 
 import pytest
+
 from tee.architecture.exchange import export_ifc, preview, validate_ifc
 from tee.architecture.model import Document
 
@@ -227,6 +228,7 @@ def test_old_extract_elevation_attribute_matches_metre_geometry(tmp_path: Path) 
     ifc = pytest.importorskip("ifcopenshell")
     import ifcopenshell.util.placement
     import ifcopenshell.util.unit
+
     from tee.extract.ifc import export_ifc as old_export
 
     plan = {

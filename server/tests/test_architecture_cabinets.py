@@ -5,6 +5,7 @@ import math
 import random
 
 import pytest
+
 from tee.architecture.cabinets import nest, panels, schedule
 from tee.architecture.model import ArchitectureError, Document
 

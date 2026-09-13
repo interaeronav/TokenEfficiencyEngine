@@ -57,12 +57,20 @@ def save_measured(state_dir: str | Path | None, rows: dict[str, Any]) -> Path | 
     return p
 
 
-def matching_floors(state_dir: str | Path | None, resolved: dict[str, Any]) -> dict[str, Any]:
+def matching_floors(
+    state_dir: str | Path | None, resolved: dict[str, Any], *, thinking: bool
+) -> dict[str, Any]:
     """Only current floor measurements for this actual model/endpoint/adapter.
 
     A76's old sweep silently raised sub-256 budgets before sending them. Its
     low-floor claims therefore cannot lower a production chore's budget; A78
     records the exact-wire marker only on the corrected measurement path.
+
+    `thinking` is the REQUEST mode - what the calling chore will put on the
+    wire - and never the profile's capability flag. It is required, and
+    keyword-only, because defaulting it is precisely the bug this argument
+    exists to prevent: the caller must state the mode it is asking about.
+    Use `chores.wire_thinking` to derive it.
     """
     if resolved.get("paid"):
         return {}
@@ -83,7 +91,12 @@ def matching_floors(state_dir: str | Path | None, resolved: dict[str, Any]) -> d
         # A floor measured with thinking off does not describe the same
         # engine with thinking on - reasoning consumes the budget the floor
         # is about. Same reasoning as the adapters key below it.
-        if bool(row.get("thinking")) != bool(resolved.get("thinking")):
+        #
+        # Compared against the REQUEST mode, not `resolved["thinking"]`: that
+        # is the engine's capability, and comparing a measurement to a
+        # capability discarded every floor `q27b-think` ever measured, since
+        # its chores send thinking off while its profile declares it on.
+        if bool(row.get("thinking")) != bool(thinking):
             continue
         if (row.get("adapters") or None) != (resolved.get("adapters") or None):
             continue

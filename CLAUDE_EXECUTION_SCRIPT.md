@@ -1,5 +1,32 @@
 # TEE Master Execution Script
 
+**Current architecture build (owner, 2026-09-11):** follow
+`CLAUDE_A83_SCRIPT.md` for architectural drawing correctness, professional BIM
+depth and cabinet production benchmarked against Revit, Archicad, Rhino,
+SketchUp and Mozaik. The owner rejected A82's example quality. A82 is accepted
+on both actual clients; preserve it while developing in an isolated snapshot
+and prepare a new coordinated release only after verified acceptance gates.
+
+**Current build (owner, 2026-09-11 local / 2026-09-10 UTC):** follow
+`CLAUDE_A81_SCRIPT.md` for Cline and Aider documentation automation in any
+connected project, including TEE. The A79/A80 rollout is accepted by both
+clients and closed. Preserve its frozen deliveries; A81 uses a new upgrade
+packet. This request does not authorize an unrelated commit, push or release.
+
+**Standing upgrade protocol (owner, 2026-09-10):** whenever Claude or Codex
+initiates an extension/runtime upgrade, GPT-6 composes its coordination packet
+under `docs/upgrade-coordination-protocol.md`. Deliver the appropriate artifact
+or source packet to both clients from one verified payload, preserve continuity,
+and require both actual-client receipts before declaring completion. This rule
+applies to the packaging/update phases below, regardless of the initiating model.
+
+**Current coordination request (2026-09-10):** follow
+`CLAUDE_UPDATE_COORDINATION_SCRIPT.md` for the owner's handoff review and Claude
+return receipt. The downloaded brief is reference material. This request covers
+review, a Downloads delivery file and GitHub connectivity; it does not trigger
+the generic commit/push or installation steps below. A78–A80 source work and
+unrelated owner edits remain preserved under their recorded scope.
+
 **Audience:** Claude (Claude Code) running on the physical machine where Unreal
 Engine and/or Blender are installed.
 **Purpose:** Execute this script to build the Token Efficiency Engine (TEE) —
@@ -363,6 +390,29 @@ real MCP initialization, tool listing and read-only status/discovery calls;
 validate the plugin and confirm Codex reports it installed and enabled. Record
 the local paths, evidence and new-task pickup requirement in `docs/PROGRESS.md`.
 This is a local installation, not a version cut or a rerun of completed builds.
+
+### Owner-requested Formula One design study (2026-09-10)
+
+Use TEE as co-pilot for an original graphite, silver and electric-blue 2026
+Formula One car, with a modelled cockpit, photorealistic views and PDF delivery.
+Ground selected dimensional checks in the current official FIA rules. Build
+the scene in an isolated Blender file, preserve existing live scenes, and
+measure the model before rendering the full-resolution views. Use installed
+TEE wind-tunnel engines for a documented 300 km/h study if a valid case can be
+run; distinguish solver output, analytic calculations and illustrative arrows.
+Do not claim FIA certification or validated aerodynamic performance from a
+visual model or an unconverged solve. Deliver editable geometry, reproducible
+scripts, angle and cockpit renders, and a PDF with aerodynamic graphics,
+assumptions, sources and outstanding verification under `output/f1-2026/`.
+Record actual evidence in PROGRESS before ending the session.
+
+Owner addendum: include full editable concept CAD of the structure and frame,
+with an exact-solid STEP assembly of the survival cell, bulkheads, crash
+structures, suspension interfaces and stressed drivetrain placeholders. Include
+the structure, sections, exploded views, dimensions and a component schedule in
+the PDF package. Distinguish geometric completeness from unverified laminate,
+load, impact, fatigue and homologation engineering; do not call a visual shell
+a validated safety structure.
 
 ---
 
@@ -1733,3 +1783,87 @@ pixels and returns words, and only then budgeted JPEG into host context.
 4. Acceptance: offline unit tests (client payload/error paths, `look`
    composition, driver JSON parse) green; live `describe()` through the
    shim answers a known image correctly, lazy-start included.
+
+### Formula One study follow-up (same owner task, 2026-09-10)
+
+Revise the visible cockpit protection into a streamlined graphite fairing while
+preserving three mounting datums and a distinct structural core. Record that
+RV-HALO / PL-HALO and any aerodynamic benefit remain unverified; the existing
+CFD proxy excludes this feature. Extend the CAD assembly with the halo core
+and support. Expand the 300 km/h downforce report with numerical-window
+statistics and pressure/shear force-balance graphics, keeping final-iteration
+integrals separate from iteration-window averages. Regenerate affected views,
+PDFs and editable model files before delivery.
+
+### Formula One Fusion and video extension (owner request, 2026-09-10)
+
+Create a separate live Autodesk Fusion document, retain the exact structural
+STEP solids, import the complete visual exterior/cockpit/halo geometry with
+materials, and export a local Fusion archive. Identify imported mesh geometry
+and reference parameters accurately; do not imply native editable feature
+history for an imported mesh. Preserve the owner's other documents.
+Create a narrated 1080p MP4 demonstrating current 2026 changes, using the
+existing car renders and animated technical graphics. Ground it in FIA Section
+C Issue 20 and official FIA/F1 explanations; distinguish concept styling and
+preliminary CFD from rules. Include captions, transcript, source record and
+Fusion/video pages in the delivery package, inspect frames and verify outputs.
+
+### TEE model-efficiency campaign (owner request, 2026-09-10)
+
+Follow `CLAUDE_A78_SCRIPT.md` for the local-model/ChatGPT lane-driving campaign.
+The AETHER concept package is the quality reference; model parity is a measured
+acceptance question, never inferred from token savings or script replay.
+
+### CADAgent integration (owner request, 2026-09-10)
+
+Follow `CLAUDE_A79_SCRIPT.md`: research the downloaded CADAgent, then integrate
+its useful local modelling operations into the existing TEE Fusion lane.
+
+### Local machine learning and continuous improvement (owner, 2026-09-10)
+
+Follow `CLAUDE_A80_SCRIPT.md` for TEE-wide learning, including CADAgent: local
+observations, trained reliability/cost models, held-out evaluation, continuous
+updates and rollback within the existing capability and model-pin boundaries.
+
+### W0 thinking engine — external review correction round (Codex, 2026-09-13)
+
+Codex reviewed head `73a76e1` against `claude-change-summary.md` and returned four
+findings (`~/Downloads/claude-w0-review-response.md`). This is a **review handoff, not
+an execution packet and not release approval**; the standing GPT-6 coordination
+protocol still governs any later upgrade. No install, client restart, profile or
+model-configuration change, weight download, push or release is in scope. Thinking
+stays disabled by default throughout.
+
+Work the four in order, each with its own regression:
+
+1. **[P1] The candidate must be self-contained.** `c306138` committed
+   `test_blender_lessons.py` while its subject, `adapters/blender/guidance.py`,
+   stayed untracked, so a `git archive` of the head fails collection. Complete the
+   dependency rather than sweeping in other sessions' work, and add a test that
+   fails on any tracked module importing an untracked one. Report candidate results
+   separately from working-tree results.
+2. **[P2] `repair_script` must accept evidence-backed renames.** The intent-
+   preservation rule demands a substring relation between the lost and kept token;
+   a correct spelling repair (`tee_sttaus` → `tee_status`) has none and is rejected.
+   Admit renames the supplied error evidence licenses, keep every deletion control
+   failing, and **re-measure eps** for the chore afterwards.
+3. **[P2] Bind token floors to the mode actually executed.** `audition()` omits
+   `thinking` from its row while `matching_floors` compares the resolved profile's
+   flag, so `q27b-think` discards its own floor forever. Engine *capability* is not
+   request *mode*: derive one effective mode, stamp the measured row with it, look
+   floors up by it, and assert the **outbound wire flag**, not the config value.
+4. **[P2] Retire the universal widening claim.** `eps*q + (1-eps)*q**N` is one model
+   with unstated assumptions, not the general failure probability: for the
+   retry-until-N reading, `F_N = q*eps + q*(1-eps)*F_(N-1)` gives 0.34375 at
+   q = eps = 0.5, N = 3 where the stated form gives 0.3125 — and the stated form
+   **understates** the floor. A seeded false-accept fraction is coverage of a stated
+   fault set at a stated sample count, not a population bound, and a blind verifier
+   failing to catch errors does not prove thinking cannot lower per-attempt error.
+   Replace the impossibility claim with an empirical adoption gate; keep the
+   conservative default; supersede the old conclusions without deleting the
+   evidence. Check that no downstream learning path turns schema acceptance into a
+   semantic correctness label.
+
+Return to Codex: disposition, changed files, regression evidence, remaining
+limitations, and the exact tested source identity — saying plainly whether each
+number came from isolated committed source or the shared working tree.

@@ -1045,3 +1045,36 @@ Reproduce: `uv run --no-sync python ../benchmarks/measure_rung_correlation.py
 [--hard] --tasks N`. Not reproducible across machines - it measures the engines
 this one serves, and a rung that is not answering is scored as not-a-failure
 (A76: an unreachable engine supplies no quality label).
+
+### Review correction (Codex, 2026-09-13): the model was right, the prose was not
+
+An external review challenged the threshold claim these numbers sit under. The
+correction is worth recording precisely, because it lands in one place and not
+the other.
+
+**The simulator was already correct.** Its per-rung recurrence
+`P(wrong) = SUM_i [PROD_{j<i} (1-eps) q_j] * eps * q_i`, plus the exhausted
+branch, reproduces the reviewer's independent recurrence to the digit: at
+q = eps = 0.5 over three rungs, 0.328125 shipped wrong + 0.015625 exhausted =
+**0.34375**. What was wrong was the one-line summary carried in `chores.py`,
+`test_a85` and DECISIONS - `eps*q + (1-eps)*q**N` - which gives 0.3125 and
+**understates** the floor. **No simulation output above is invalidated**; the
+prose around it was corrected to match the model that produced it.
+
+**eps moved, and that is the point.** `repair_script` went from 0.25 (4 seeds)
+to **0.20 (5 seeds)** when the review's discarded-argument control was added.
+The validator did not change in that step - the fault set grew. A false-accept
+fraction is coverage of a stated fault set at a stated sample count, recorded
+in `chores.COVERAGE_SEEDS`, and is not a population bound.
+
+Re-running with the corrected eps moved section B/C figures and, in doing so,
+caught three numbers hardcoded in the script's own prose: it still named
+`phrase_deviation` "the best verifier measured" when `repair_script` at 20% now
+is, and quoted a depth trade of 7.7% -> 9.6% against its own table's 6.2% ->
+8.0%. All are now derived from the run. Current: the ladder buys **+22 points
+of right answers and +1.8 of wrong ones** at eps = 0.20.
+
+A cascade result bears only on retrying against this verifier. It says nothing
+about whether a different generation policy lowers per-attempt error q - that
+is a separate intervention needing its own measurement, and the reason thinking
+remains an empirical adoption question rather than a settled one.

@@ -6,6 +6,7 @@ import copy
 import json
 
 import pytest
+
 from tee.architecture.model import ArchitectureError
 from tee.architecture.rules import assess, coverage, validate_pack
 

@@ -5,6 +5,7 @@ import json
 import math
 
 import pytest
+
 from tee.architecture.model import MAX_HISTORY, ArchitectureError, Document
 
 

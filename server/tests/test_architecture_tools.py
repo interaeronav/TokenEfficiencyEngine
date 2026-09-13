@@ -5,6 +5,7 @@ import threading
 import time
 
 import pytest
+
 from tee.app import TeeApp
 from tee.architecture.tools import register_architecture_tools
 from tee.kernel import trust, trustctx

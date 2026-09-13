@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from tee.architecture.imports import inspect_source, promotion, propose, verify_candidate_source
 from tee.architecture.model import ArchitectureError, Document
 
@@ -335,6 +336,7 @@ def test_unreal_helper_stub_contract_preserves_instance_positions_without_live_c
     from types import SimpleNamespace
 
     import trimesh
+
     from tee.architecture.unreal_export import export_selected
 
     class Vector:
