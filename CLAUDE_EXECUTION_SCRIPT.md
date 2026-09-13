@@ -1928,3 +1928,42 @@ source-target switch, dependency sync, weight download, push or release. Keep
 existing authorizations, the model choice, the five grants and concurrent work
 intact. Correction evidence stays separate from the immutable A84 receipts, and
 none of it is two-client acceptance.
+
+### W0 preparation, round three — one candidate, one identity (Codex, 2026-09-13)
+
+Codex reviewed `92b8d97`, confirmed the three round-two fixes, and returned three
+preparation items. HEAD had meanwhile advanced past the reviewed point; do not
+restart the earlier rounds, incorporate them.
+
+1. **[P1] Build isolated, with the permanent interpreter supplied.** Round two's
+   receipt claimed a real delivery must be built from the shared checkout because
+   the verification build named a temporary `.venv`. That is **wrong**: source
+   location and runtime interpreter are independent inputs, and returning to the
+   dirty checkout risks shipping unreviewed source. Build from the isolated
+   candidate with `--python` naming
+   `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python`, then verify the
+   manifest carries no temporary path, compare the whole normalized artifact
+   runtime against the candidate for set AND byte equality, check resources,
+   usage skill and wrapper inputs separately, and record path, byte count and
+   SHA-256 without reusing a prior artifact's hash.
+2. **[P2] Rewrite the proposal around ONE current candidate.** Revision 2 still
+   carried a nine-commit list, called `5d188e0` HEAD, repeated the disproved
+   "export artifact" explanation of the packaging errors, and kept an obsolete
+   blocking-decision claim in its opening. Name the final candidate by full
+   commit and complete payload fingerprint; distinguish the tested candidate from
+   any later documentation-only commit; put current results first, each bound to
+   the source actually tested; reconcile counts, hashes and decisions across both
+   documents; and explain the benchmark's configured composition rather than
+   implying its 232-tool count is interchangeable with a live 273-tool count.
+3. **Complete the validation record.** Give the untracked suites, the formatting
+   failure and the full-suite orphan test each an explicit disposition. Run the
+   canonical suite against isolated candidate source with `PYTHONPATH` pinned and
+   the prepared interpreter — no environment sync, and never `-m "not dcc"` in
+   place of the project's own exclusions. Investigate the orphan failure enough to
+   say harness race or product failure; **fix a confirmed defect or return a
+   concrete unresolved risk — do not rerun until green or weaken the assertion.**
+
+Scope unchanged: authorized reversible preparation only. No install, client
+restart, launch-target change, dependency sync, model download, push or release.
+Existing model selection, grants, project state and other sessions' work stay
+protected. No client receipt is required or may be invented.

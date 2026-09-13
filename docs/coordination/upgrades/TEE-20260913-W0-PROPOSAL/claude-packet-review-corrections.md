@@ -4,7 +4,7 @@ From: Claude, 2026-09-13
 Repository: `/Users/john/TokenEfficiencyEngine`
 Input: `~/Downloads/claude-w0-packet-review-response.md`
 Reviewed HEAD: `dd5a2a5188ffa6f859c33e1839ed5d8811c61523`
-Corrected candidate: `92b8d97` (see the identity table)
+Corrected candidate: `63d9308` (see the identity table; supersedes `92b8d97` after the owner resolved both deferred items — §4b)
 
 All three findings are **accepted**. Finding 1 overturns a decision I took in
 the previous round and defended in the proposal, and the error was larger than
@@ -275,16 +275,144 @@ scope decision for the coordinator. Yours to include or leave.
 Full-suite and working-tree figures are in the identity table of the revised
 proposal, distinguished by scope.
 
+## 4b. Addendum — both deferred items resolved on the owner's instruction
+
+The two things §4 and §5 left for the coordinator were put back to the owner,
+who directed that both be fixed. Done, and the consequences recorded:
+
+**The payload format failure.** `tee/docagents/model_metadata.py` now passes
+`ruff format --check`. Whitespace only, and verified as such rather than
+assumed: the file's AST is identical before and after, and no line exceeds the
+configured 100. The candidate payload is therefore **11 files changed** against
+the accepted runtime, not 10, and the fingerprint moves to
+`397261a2…7ed22`. The eleventh delta is that cosmetic change and nothing else.
+Note the inversion this creates: **the candidate now passes both halves of
+`make lint`, which the accepted runtime does not.**
+
+**The untracked tests.** All nineteen are committed, with the transitive closure
+that makes them runnable — 2 benchmark modules and 6 fixtures. That closure was
+found by *running* them, not by reading imports, because two of its three layers
+are invisible to an import scan: a JSON suite opened by path, and four F1
+generator scripts loaded by file location. The last of those earns its place in
+the candidate rather than being harness-only: it proves the **packaged** Fusion
+recipes, which are shipped payload, still match their pure generators.
+
+Not swept in: the other 30 untracked files under `benchmarks/` are the Okongo
+architecture lane, carry 403 lint errors of their own, and are a dependency of
+nothing committed here.
+
+Lint on exactly what was committed is clean. Twelve import blocks sorted; in
+`run_a78_lane_quality.py`, a `B905` zip given the explicit `strict=False` that
+matches its existing semantics (the length is already checked on the line
+above), two long strings wrapped, and the three imports that must follow its
+`sys.path` insert marked `noqa: E402` with the reason. All behaviour-preserving.
+
+**One gap these nineteen do not close, and it should be in the packet:**
+`structural` ships nine modules and seven `st_*` tools with **no tests anywhere
+in the repo**. It is accepted, installed capability that nothing verifies.
+
+## 4c. Round three — build method, one identity, and the validation record
+
+A third review corrected three preparation items. All accepted.
+
+### [P1] The build method — my claim was wrong
+
+Round two's receipt said "a real delivery must be built from the real checkout"
+because the verification build named a temporary `.venv`. That is incorrect and
+the reasoning was backwards: **source location and runtime interpreter are
+independent inputs**, the builder takes `--python`, and going back to the shared
+checkout would risk including unreviewed source — the exact hazard the isolated
+candidate exists to avoid.
+
+Rebuilt correctly, from the isolated candidate with the permanent interpreter
+supplied:
+
+| | value |
+|---|---|
+| bytes | 1,317,831 |
+| sha256 | `5ada706cffea31c3c5d3634f32665be7509f6033a6172964e5df2949bc501097` |
+| manifest `command` | `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python` |
+| temporary path in launch command | none |
+| artifact runtime vs candidate | **set-equal and byte-equal**, 324 files |
+| artifact runtime vs accepted | 0 removed, 0 added, 11 changed |
+
+Resources checked separately: `icon.png`, `LICENSE`,
+`docs/small-model-workflows.md`, `skills/tee-usage/SKILL.md` and `launch.py` are
+identical to the installed copies. `README.md` differs by design — generated per
+build with version, interpreter and commit embedded. The prior artifact hash is
+superseded, not reused.
+
+### [P2] One identity
+
+`gpt6-packet-request.md` is rewritten rather than patched. It had accumulated a
+nine-commit list, `5d188e0` labelled HEAD, an opening that still announced a
+blocking decision its own §5 said had dissolved, and the disproved
+"artifact of exporting" explanation of the packaging errors. All gone. The
+document now names one candidate — `63d9308`, payload `397261a2…7ed22` — and
+states plainly that later commits are documentation only.
+
+It also now distinguishes the two tool counts instead of letting them sit
+side by side: **232** is `cli.attach_all` with one `FakeAdapter`, the benchmark's
+configured composition; **273** is a live client with its own adapters. Neither
+validates the other, and any count in the packet must name its composition.
+
+### The validation record, with a disposition for each item
+
+| item | disposition |
+|---|---|
+| formatting failure | **fixed**, and verified through the normal gates — `ruff check` and `ruff format --check` both clean on the candidate |
+| untracked restored-feature suites | **included** — 19 tests + 8 fixture/benchmark files, 665 passed |
+| `structural` coverage | **no tests exist anywhere**; unresolved, escalated |
+| full-suite orphan failure | **investigated, returned as a risk** — below |
+| canonical suite | **3,007 passed, 23 skipped, 141 deselected**, isolated, project default exclusions |
+
+Live tests omitted honestly: the 141 deselected are the project's own
+`dcc/ml/network/llm/cfd/fdm` exclusions. No live client, DCC or model was
+exercised.
+
+### The orphan-process failure — mechanism found, defect not confirmed
+
+`test_windtunnel_tools::test_an_orphaned_solver_is_named_and_can_be_stopped`
+failed once, on candidate `9342903`. The failed run is preserved. It was **not**
+rerun until green and its assertion was not weakened; the later green run is a
+different candidate (`63d9308`, 19 test files added) and is reported as such.
+
+The failure is not the timeout it looked like. `wt_status` returned
+`state == "cancelled"` where the test expects `"orphan"`:
+
+```
+assert ('cancelled' == 'orphan')
+```
+
+Reading the path, `out["state"]` is seeded from
+`prog.get("state") or run.get("state")` and the orphan branch is guarded by
+`if out["state"] == "running"`. So any seed other than `running` skips
+`orphan_check` entirely. The test's fixtures are **module-scoped** across 33
+tests sharing one case and run directory, which is where a stale `cancelled`
+can come from — consistent with this repo's recorded "a job reports cancelled
+while its worker is still writing files" hazard.
+
+Two hypotheses tested and **not** confirmed: a kill timeout (the assertion that
+failed is before any kill), and an exec race making the child's cmdline briefly
+unreadable — probed 12 times, 12/12 immediate matches, worst lag 8.4 ms.
+
+So: **most consistent with test isolation under load, not product behaviour —
+but the interleaving was not directly observed, so it is returned as an
+unresolved validation risk, not a fixed defect.**
+
+**One product-relevant observation from the investigation, worth a decision:**
+`wt_status` only looks for an orphan when the recorded state is already
+`running`. If a record says `cancelled` while the solver is in fact still
+alive — precisely the situation after a cancel that failed to kill — the status
+reports `cancelled` and never checks. The orphan detector is gated by the state
+it exists to correct. Whether that is intended semantics is not mine to decide,
+so it is raised rather than changed.
+
 ## 5. Remaining limitations
 
-- **Tests for the restored capabilities are still untracked.** The candidate now
-  ships `docagents`, `structural`, `learning/tools`, Blender/Fusion guidance and
-  recipes, while `test_docagents_*`, `test_learning_*`, `test_cadagent*`,
-  `test_a78_guidance` and `test_blender_lessons` remain uncommitted. The
-  capability is verified by registration and payload equality, **not** by its own
-  tests inside the candidate. Committing them is the obvious next step and I have
-  not taken it unilaterally, having just been corrected for a judgement call in
-  this area.
+- ~~Tests for the restored capabilities are still untracked.~~ **RESOLVED** —
+  see §4b. Nineteen test files and their eight-file closure are committed and
+  green. The residual is `structural`, which has no tests to commit.
 - **The verification artifact is not a deliverable** (§2).
 - **No live client check.** Registration was measured through `cli.attach_all`
   with a fake adapter, not through either real client.
@@ -299,8 +427,9 @@ proposal, distinguished by scope.
 |---|---|
 | branch | `claude/token-efficiency-engine-5jv1dj` |
 | baseline | accepted A84, `0e172448…fb252f`, 324 files |
-| corrected candidate payload | `e6efecb5…5b928`, 324 files (stable across the last two commits) |
-| verification artifact | `a3c654d7…4463b`, 1,317,977 bytes — **not a deliverable** |
+| final candidate | `63d93083596803f3676cdb17e8d6fe4f6d682a68` |
+| candidate payload | `397261a2…7ed22`, 324 files — 0 removed, 0 added, **11 changed** vs accepted |
+| verification artifact | `5ada706c…01097`, 1,317,831 bytes, built isolated with the permanent interpreter — **not a deliverable** |
 | declared version | `0.30.1` |
 | pushed | no |
 | working tree | still shared; other sessions' non-runtime work untouched |

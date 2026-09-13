@@ -1,271 +1,211 @@
-# GPT-6 — compose the execution packet for the W0 thinking-engine candidate
+# GPT-6 — compose the execution packet for the W0 candidate
 
-**REVISION 2, 2026-09-13.** Revision 1 was reviewed and corrected; see
-`claude-packet-review-corrections.md` for the full receipt. Three things in
-revision 1 were wrong and are fixed below: it proposed a candidate that
-**deleted 37 files and 35 registered tools from the accepted runtime**, it
-**could not be built at all**, and it described the **wrong bundle shape's**
-dependency behaviour. Sections 2, 3 and 5 are materially rewritten.
+**Revision 3, 2026-09-13.** Rewritten, not patched: revisions 1 and 2
+accumulated conflicting identities and two disproved explanations. This
+document describes **one** candidate. The correction history lives in
+`claude-packet-review-corrections.md`; nothing historical is repeated here as
+current.
 
-Prepared by Claude, 2026-09-13, for the owner to hand to GPT-6 / Codex.
+Prepared by Claude, initiating agent, for the owner to hand to GPT-6 / Codex.
 Repository: `/Users/john/TokenEfficiencyEngine`.
 Protocol: `docs/upgrade-coordination-protocol.md`, version 1.0.1.
 
-## Assignment
-
-This is a **stage A proposal** under §4 of the protocol, from the initiating
-agent. It is not a packet, not a release, and not a claim that anything is ready
-to install. Protocol 1.0.1 reserves packet authorship to you, and §1 makes
-completion mean two live client receipts — neither of which exists.
-
-**What I am asking for:** decide whether this candidate should become an update
-at all, and if so compose the execution packet — one frozen source identity, the
-appropriate delivery for each of the two client shapes, continuity checks and
-rollback, per §2 and §3.
-
-**One decision is blocking and is yours, not mine.** It is in §5 below. I found
-it, verified it is inherited rather than introduced, and deliberately did not
-fix it, because the correct value depends on what ships together.
-
-## Operating rules for this handoff
-
-- Existing authorization persists. Nothing here asks for new permissions.
-- Nothing has been installed, restarted, configured, downloaded, pushed or
-  released. `THINKING_ALLOWED` ships empty; thinking is off for every chore.
-- The 17-tool always-loaded contract is unchanged. No new always-loaded tools.
-- You own PROGRESS, DECISIONS and the RESULTS append during an update (§3,
-  shared-ledger decision). I have written to all three **outside** an update
-  window; if you open one, re-read them first — a parallel session is also
-  editing this branch.
-- Per §4A you inspect the actual client registrations yourself. I have
-  deliberately **not** enumerated the two client shapes as fact here: my
-  session did not inspect either installation, and a stale claim about what is
-  installed is exactly the failure this round was about.
-
-## 1. Source identity
+## 1. Identity — the one candidate
 
 | | value |
 |---|---|
-| branch | `claude/token-efficiency-engine-5jv1dj` |
-| HEAD | see the corrections receipt's identity table (revision 2) |
-| accepted baseline | A84 payload, `0e172448…fb252f`, 324 files |
-| candidate payload | `e6efecb5…5b928`, 324 files — 0 removed, 0 added, 10 changed vs accepted |
-| ahead of origin | **not pushed** |
-| declared package version | `0.30.1` (`server/pyproject.toml:4`) |
-| working tree | **NOT clean — 149 dirty paths** |
+| **candidate commit** | `63d93083596803f3676cdb17e8d6fe4f6d682a68` |
+| **runtime payload fingerprint** | `397261a262bc4a2d934ceb677a7299f2a66051ef963b91ae229a31c25727ed22` |
+| runtime files | 324 |
+| accepted A84 baseline | `0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f`, 324 files |
+| delta vs accepted | **0 removed, 0 added, 11 changed** |
+| declared version | `0.30.1` (`server/pyproject.toml:4`) |
+| branch | `claude/token-efficiency-engine-5jv1dj`, **not pushed** |
 
-Nine commits form the candidate, `73a76e1^..HEAD`:
+`63d9308` is the commit everything below was **tested at**. Commits after it in
+this directory are documentation only and do not touch the payload; §6 re-checks
+the fingerprint against the final tree so the packet can bind to a payload
+rather than to a commit message.
+
+The eleven changed files, complete:
 
 ```
-5d188e0  Record the W0 review corrections returned to Codex
-8776cc3  Expect q35b, not q27b-bare, among the skipped rungs
-589f2b0  Write IfcBuildingStorey.Elevation in project units, not metres
-8e46ec9  Match capability words, not substrings, in the no-GUI-tool assertion
-b35d274  Table the sixteen ak_ tools the architecture commit shipped untabled
-e8f6ff9  Return the A79 Blender-lessons test to its own lane, out of the W0 candidate
-0b188b5  W0 review: accept evidenced renames, bind floors to the executed mode, …
-b45c379  Complete the W0 candidate: commit what committed code already imports
-73a76e1  W0: a thinking engine, and a measured gate on when extra effort can help
+tee/architecture/drawings.py     tee/kernel/machine.py
+tee/docagents/model_metadata.py  tee/learning/service.py
+tee/engines/audition.py          tee/llm/chores.py
+tee/engines/table.py             tee/llm/profiles.py
+tee/kernel/local_llm.py          tee/llm/router.py
+tee/kernel/local_vlm.py
 ```
 
-**Mixed authorship you must account for (§2, "preserving uncommitted owner
-work").** `c306138` — one commit *before* this range, already in history — took
-three of a parallel session's in-flight files under version control at the
-owner's direction. `b45c379` then committed two more modules those files
-require. Four of the nine commits above touch files that session also edits
-(`kernel/trust.py`, `extract/ifc.py`, `tests/test_learning_router.py`,
-`tests/test_windtunnel_gui.py`). Every one was staged through a temporary index
-with the blob rebuilt from HEAD plus my hunk alone, so none of their changes
-rode along — but the *lineage* is mixed and git cannot separate it.
+Ten are the reviewed W0 and architecture work. The eleventh,
+`docagents/model_metadata.py`, is a whitespace-only formatting correction made
+on the owner's instruction — AST verified identical before and after.
 
-The remaining 149 dirty paths are theirs and are **not** in the candidate.
+## 2. Current results, each bound to the source tested
 
-## 2. What changed, and for whom
+All from a `git archive` of `63d9308` into a clean directory, `server/.venv`
+symlinked to the prepared repository venv **without provisioning it**,
+`PYTHONPATH` pinned to the export's `server/src`, and that venv's explicit
+interpreter.
 
-### Client-visible
+| check | result |
+|---|---|
+| canonical full suite | **3,007 passed, 23 skipped, 141 deselected, 0 failed** |
+| `ruff check src tests ../benchmarks` | **clean** |
+| `ruff format --check src tests` | **clean** (512 files) |
+| focused: corrections + mcpb build + canary | 30 passed, 1 skipped |
+| restored-feature suites | 665 passed |
+| verification build | succeeded; identity in §3 |
 
-- **The tool contract is unchanged**: 17 always-loaded, 2,129 tokens on the wire
-  (`benchmarks/RESULTS.md:202`). No new always-loaded tools.
-- **Chores can actually run.** The previous default profile pointed at `:8080`,
-  which does not answer, so every chore was degrading to its deterministic path.
-- **`response_format` is now negotiated per endpoint.** The two local backends
-  are inverted on it: MLX accepts and silently ignores it, vLLM refuses with
-  HTTP 400 unless `llguidance` is installed. TEE sent it unconditionally, so it
-  could not talk to the better backend at all.
-- **Four new error codes may reach a client** — measured by diffing the code
-  sets at `73a76e1^` and HEAD, not by reading the diff:
-  `llm_no_answer`, `vlm_no_answer`, `llm_widening_refused`,
-  `llm_widening_unproven`.
-- **Reasoning never reaches a client.** It is read from whichever field the
-  backend uses (`reasoning` on MLX, `reasoning_content` on vLLM), recorded, and
-  stripped. That is what makes a thinking engine free in tokens-per-task.
+The suite command is the project default. **Never substitute `-m "not dcc"`** —
+it replaces `addopts` rather than narrowing it. The real exclusion set is
+`-m 'not dcc and not ml and not network and not llm and not cfd and not fdm'`
+(`server/pyproject.toml:235`).
 
-### Machine-local, and will NOT travel with any package
+One skip in the focused set is by design: the self-containment regression
+compares tracked against untracked files and skips where there is no `.git`,
+which a `git archive` export has not.
 
-- `.tee/llm-profile.json` was switched from `q14b` to `q27b-think`. The prior
-  value is preserved at `.tee/llm-profile.json.bak-w0`.
-- Two model weight sets were deleted: `Qwen2.5-Coder-14B-Instruct-4bit`
-  (7.7 GB) and `Qwen3.5-9B-MLX-4bit` (5.6 GB) — `docs/PROGRESS.md:18013`. The
-  27B on `:8087` is intact. Re-downloading the 14B is the only costly rollback
-  step.
-- `.tee/config.toml` was not touched.
+**Both halves of `make lint` pass on this candidate — the accepted runtime does
+not.** `docagents/model_metadata.py` failed `ruff format --check` in the shipped
+product; the eleventh delta is that fix.
 
-A package installed on a machine without those endpoints will find the profile
-unreachable. Per A76's law that is *not* a failed verification, and the lane
-reports it as unreachable rather than as a quality signal — but it is worth
-stating in the packet.
+## 3. Verification artifact
 
-## 3. Evidence, and the method that matters
-
-**Verify the candidate the way an external review did, not the way I first
-did.** This working tree is dirty enough that a green suite here proves very
-little — the review caught, and I then found four more instances of, committed
-code depending on uncommitted work.
+Built from the **isolated candidate** with the permanent interpreter supplied
+explicitly. Source location and runtime interpreter are independent inputs, so
+this needs no return to the shared checkout — which would risk including
+unreviewed source.
 
 ```sh
-git archive <sha> | tar -x -C /tmp/cand         # clean export
-ln -s <repo>/server/.venv /tmp/cand/server/.venv  # the bundle builder needs one
+/Users/john/TokenEfficiencyEngine/server/.venv/bin/python \
+  packaging/build_local_mcpb.py \
+  --python /Users/john/TokenEfficiencyEngine/server/.venv/bin/python \
+  --out-dir ./verification-artifacts --build-dir ./verification-build
+```
+
+| | value |
+|---|---|
+| artifact | `tee-engine-0.30.1-local.mcpb` |
+| bytes | 1,317,831 |
+| sha256 | `5ada706cffea31c3c5d3634f32665be7509f6033a6172964e5df2949bc501097` |
+| manifest `command` | `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python` |
+| temporary export path in launch command | **none** |
+
+Payload comparison, which is the point rather than the ZIP write:
+
+- artifact runtime **== candidate source**, complete set and byte equality,
+  324 files, fingerprint `397261a2…7ed22`;
+- artifact vs accepted: 0 removed, 0 added, 11 changed.
+
+Resources, usage skill and wrapper inputs checked separately against the
+installed copies: `icon.png`, `LICENSE`, `docs/small-model-workflows.md`,
+`skills/tee-usage/SKILL.md` and `launch.py` are **identical to installed**.
+`README.md` differs by design — the builder generates it per build, embedding
+version, interpreter and commit.
+
+**This is a preparation artifact.** Not installed, not accepted, not a delivery.
+Its hash is recorded so a packet can bind to it or supersede it.
+
+## 4. What changes for a client
+
+- **The always-loaded contract is unchanged**: 17 tools, 2,129 wire tokens.
+- **Chores can actually run.** The previous default profile pointed at `:8080`,
+  which does not answer, so every chore degraded to its deterministic path.
+- **`response_format` is negotiated per endpoint.** The two local backends are
+  inverted on it — MLX accepts and ignores it, vLLM refuses with HTTP 400 unless
+  `llguidance` is present — so TEE could not reach the better backend at all.
+- **Four new error codes** may reach a client, measured by diffing the code sets
+  at `73a76e1^` and the candidate: `llm_no_answer`, `vlm_no_answer`,
+  `llm_widening_refused`, `llm_widening_unproven`.
+- **Reasoning never reaches a client.** Read from whichever field the backend
+  uses (`reasoning` on MLX, `reasoning_content` on vLLM), recorded, stripped.
+- **Thinking is off for every chore.** `THINKING_ALLOWED` ships empty.
+
+### Tool composition, and why two numbers are not interchangeable
+
+The candidate registers **232 virtual tools** under the benchmark's configured
+composition: `cli.attach_all` with a single `FakeAdapter`. That is what
+`run_surface_scenario` and the A77 canary measure, and what `RESULTS.md`
+records.
+
+Codex's live `tee_status` reported **273 progressive tools**. That is a
+different configuration — a real client with its own adapters and connections.
+**The two are not comparable and neither validates the other.** Any count in the
+packet must name its composition.
+
+RESULTS.md's current-corpus table already recorded 232; its prose block, which
+the canary reads, still said 199. Both now agree. Nothing was removed to reach
+it — the number moved **up**, because restoring the accepted runtime brought
+back 35 registered tools the earlier candidate had lost.
+
+## 5. Machine-local state, which no package carries
+
+- `.tee/llm-profile.json` switched `q14b` → `q27b-think`; prior value preserved
+  at `.tee/llm-profile.json.bak-w0`.
+- Two weight sets deleted: `Qwen2.5-Coder-14B-Instruct-4bit` (7.7 GB) and
+  `Qwen3.5-9B-MLX-4bit` (5.6 GB) — `docs/PROGRESS.md:18013`. The 27B on `:8087`
+  is intact. Re-downloading the 14B is the only costly rollback step.
+- `.tee/config.toml` untouched.
+
+### Dependency behaviour — the local shape, correctly
+
+| installed `server.type` | behaviour |
+|---|---|
+| `uv` (portable, `make mcpb`) | provisions a venv, `uv sync`, **deletes every extra** |
+| `python` (local, `make mcpb-local`) — **this Mac** | borrows `/Users/john/TokenEfficiencyEngine/server/.venv`, puts its own `src` first on `sys.path`, provisions nothing, runs no `uv sync`, **deletes nothing** |
+
+`packaging/build_local_mcpb.py:62-66` states this, and the build in §3 printed it
+again unprompted. **No dependency change is required by this candidate**: the
+restored files are pure-Python modules and data the accepted runtime already
+imports on that same interpreter. Portable provisioning hazards apply only if
+that different shape is selected.
+
+## 6. Reproducing this exactly
+
+```sh
+git archive 63d9308 | tar -x -C /tmp/cand
+ln -s /Users/john/TokenEfficiencyEngine/server/.venv /tmp/cand/server/.venv
 cd /tmp/cand/server
-PYTHONPATH=/tmp/cand/server/src python -m ruff check src tests ../benchmarks
-PYTHONPATH=/tmp/cand/server/src python -m pytest -q
+PYTHONPATH=/tmp/cand/server/src /Users/john/TokenEfficiencyEngine/server/.venv/bin/python \
+  -m ruff check src tests ../benchmarks
+PYTHONPATH=/tmp/cand/server/src /Users/john/TokenEfficiencyEngine/server/.venv/bin/python \
+  -m pytest -q
 ```
 
 The `PYTHONPATH` pin is load-bearing: without it the venv's editable install
 imports the dirty checkout and falsely validates the export.
 
-**Do not verify with `pytest -m "not dcc"`.** That REPLACES `addopts` rather
-than narrowing it. The real default is
-`-m 'not dcc and not ml and not network and not llm and not cfd and not fdm'`
-(`server/pyproject.toml:235`). I mis-measured this suite for most of a session
-on that mistake.
+## 7. Open items for the coordinator
 
-Results, each labelled by scope:
+1. **`structural` has no tests.** Nine modules and seven `st_*` tools, accepted
+   and installed, with nothing verifying them anywhere in the repo. Committing
+   existing files cannot fix this; it needs tests written, or the gap accepted
+   explicitly.
+2. **One intermittent test** — disposition in the receipt §4c. Investigated to a
+   mechanism, not to a confirmed defect, and returned as a validation risk
+   rather than rerun until green.
+3. **Version cut.** Currently `0.30.1`. Patch, minor, or not a release.
+4. **Whether to release at all.** The client-visible change is small; the case
+   for shipping is that chores currently point at a dead endpoint.
+5. **`llguidance`** in the vLLM environment would give genuine server-enforced
+   JSON for the first time. Not done, out of scope here.
 
-| scope | result |
-|---|---|
-| **`8776cc3`, isolated** — full suite | `make lint` clean; **1 failed, 2367 passed**, 23 skipped, 141 deselected, 4 errors |
-| **`5d188e0` (HEAD), isolated** — the delta only | 16 passed, 1 skipped |
-| **reviewed head `73a76e1`, isolated** | could not collect at all — `ImportError` |
-| **working tree** | **3008 passed**, 22 skipped, 141 deselected |
-
-Being exact about which sha carries which result, since that is the whole
-subject of this round: the **full** isolated suite was run at `8776cc3`. HEAD
-adds only this proposal's two sibling documents plus a 7-line widening of
-`test_w0_review_corrections.py`; that file was re-run against an isolated export
-of HEAD and passes. I have **not** re-run the full suite at `5d188e0`.
-
-One skip in that run is by design and worth knowing before you read it as a
-gap: the self-containment regression compares tracked against untracked files,
-so it skips when there is no `.git` — which a `git archive` export has not. It
-protects a checkout and a clone, not an export.
-
-The single candidate failure is §5. Four `test_local_mcpb_build` errors also
-appear in the isolated export; they are an artifact of exporting (the bundle
-builder wants a real checkout layout), identical at the reviewed head, and pass
-in the working tree.
-
-## 4. Why there were nine commits and not three
-
-An external review (Codex, `~/Downloads/claude-w0-review-response.md`) returned
-four findings against `73a76e1`. All four were accepted, reproduced before being
-changed, and are answered in
-`docs/coordination/upgrades/TEE-20260913-W0-PROPOSAL/claude-review-corrections.md`.
-Two are worth your attention when writing the packet's limitations:
-
-- **A recorded conclusion was wrong and is now superseded.** The W0 work claimed
-  `eps*q + (1-eps)*q**N` bounded what any retry could achieve. It is one model
-  with unstated assumptions and it *understates* the floor — the retry-until-N
-  recurrence gives 0.34375 at q = eps = 0.5, N = 3 where that form gives 0.3125.
-  DECISIONS now carries a superseding entry; the evidence is preserved.
-  The simulator itself was already correct, so no measured output was invalidated.
-- **Five further defects surfaced only under isolated verification**, and one was
-  release-blocking: `091eb77` registered sixteen `ak_*` tools with no trust-table
-  row, and this repo refuses to boot on an untabled tool. Another was a silent
-  factor of 1000 in IFC storey elevations. Both were green here and red on the
-  candidate.
-
-The general lesson, offered for the packet's continuity section: committed code
-can depend on uncommitted work through **at least four** routes — a plain
-import, a lazy import inside a function, a data file read by path, and a
-registry row in a shared file. Only the first fails collection.
-
-## 5. The blocking decision of revision 1 has dissolved
-
-Revision 1 asked you to choose between 197 and 199 virtual tools. That question
-was an artifact of a broken candidate and no longer exists.
-
-The candidate was missing **35 registered tools**, not 2: all 16 `ak_*`, 7
-`st_*`, 5 `doc_*`, 5 `learn_*` and 2 `lane_*`. Restoring the accepted runtime
-brings the settled composition to **232 virtual tools**, measured, and the
-always-loaded contract is unchanged at 17 / 2,129 wire tokens. RESULTS.md's
-current-corpus table already recorded 232; only its prose block, which the
-canary reads, still said 199. Both now agree.
-
-Nothing was removed to reach that number — the count moved **up** past the
-stale claim because capability came back. There is no deployment-scope removal
-for you to resolve.
-
-**What remains for you instead**, both smaller:
-
-- `tee/docagents/model_metadata.py` fails `ruff format --check`. I verified the
-  **accepted, installed payload fails the identical check**, so it is
-  pre-existing rather than introduced. One line. I did not fix it because it is
-  shipped payload byte-identical to what is accepted, and changing accepted
-  payload is your scope decision.
-- Tests for several restored capabilities remain untracked (§7).
-
-## 6. Other open decisions, none taken
-
-- **Version cut.** Currently `0.30.1`. Whether this candidate is a patch, a
-  minor, or not a release at all is the owner's and yours.
-- **Whether to release at all.** The client-visible change is small; the case
-  for shipping is that chores are currently pointed at a dead endpoint.
-- **`llguidance`.** Installing it in the vLLM environment would give TEE genuine
-  server-enforced JSON for the first time. Not done, not in scope here.
-- **The 14B re-download** (7.7 GB), only if rollback is wanted.
-
-## 7. What I have not done, explicitly
-
-No install, no client restart, no profile or model-configuration change beyond
-the machine-local switch recorded in §2, no weight download, no push, no
-release, no packet. No live-model measurement was taken in the correction round
-— all of its evidence is offline: fake endpoints, seeded faults, deterministic
-validators.
-
-**Not done, and flagged rather than decided:** tests for several restored
-capabilities are still untracked — `test_docagents_*`, `test_learning_*`,
-`test_cadagent*`, `test_a78_guidance`, `test_blender_lessons` and the
-`structural` lane's. The candidate ships those modules and verifies them by
-registration and payload equality, not by their own tests. Committing them is
-the obvious next step; I have not taken it unilaterally, having just been
-corrected for a judgement call in exactly this area.
-
-## 8. What the packet needs from §3 that I cannot supply
-
-Listed so nothing is assumed already done:
+## 8. What the packet still needs, which I cannot supply
 
 - The frozen release manifest and its separate `.sha256`, over the whole shipped
-  runtime tree normalized to the `tee/` prefix — not just `*.py`.
+  runtime tree normalized to `tee/`.
 - Each target's actual registration, wrapper version, interpreter, resolved
-  launch command and selected lanes, **re-inspected now** rather than taken from
-  the 2026-09-10 record.
-- The dependency inventory and required extras. **Corrected in revision 2:** the
-  "an `.mcpb` install rebuilds the venv and deletes the fleet extras" hazard is
-  the PORTABLE (`server.type: uv`) shape. This Mac has the LOCAL (`python`)
-  shape, which borrows `/Users/john/TokenEfficiencyEngine/server/.venv`,
-  provisions nothing and runs no `uv sync` — `packaging/build_local_mcpb.py:62-66`
-  says so, and the build printed it again unprompted. **No dependency change is
-  required by this candidate**; the restored files are pure-Python modules and
-  data the accepted runtime already imports on that same interpreter. Keep the
-  portable hazard conditional on selecting that shape.
-- `skills/tee-usage/SKILL.md`'s hash and verification of each client's copy —
-  it is modified in this working tree and therefore differs from HEAD.
-- Rollback artifacts per target, plus the machine-local restoration in §2, which
+  launch command and selected lanes, **re-inspected now**. Per §4A that
+  inspection is yours; this session inspected no installation, and a stale claim
+  about what is installed is the failure this preparation kept repeating.
+- Rollback artifacts per target, plus the machine-local restoration in §5, which
   no artifact carries.
 
-## Return
+## 9. Scope statement
 
-If you want changes to the candidate before it is packet-worthy, send them the
-way the last review came — findings with reproductions — and I will work them
-against the governing execution script, which already carries the W0 correction
-round as an amendment.
+Nothing was installed, restarted, re-targeted, dependency-synced, downloaded,
+pushed or released. One artifact was built for verification only. No client
+receipt exists, is claimed, or may be invented: both actual clients return their
+own acceptance during the later coordinated rollout.
