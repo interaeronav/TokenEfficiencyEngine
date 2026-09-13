@@ -15,7 +15,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from tee.adapters.blender import codegen
 from tee.adapters.blender.adapter import BlenderAdapter
 from tee.adapters.freecad import codegen as freecad_codegen
@@ -129,6 +128,27 @@ def test_freecad_ops_are_its_batch_actions():
     assert tuple(arms) == FreeCADAdapter(wire=_Silent()).vocab().ops
 
 
+def _fusion_delegated_kinds(emitter):
+    """Measure that every declared CADAgent kind reaches its emitter unchanged."""
+    observed = []
+    marker = ["delegated-emitter-result"]
+
+    def delegated(index, kind, name, props):
+        observed.append((index, kind, name, props))
+        return marker
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(fusion_codegen.cadagent, "emit", delegated)
+        for index, kind in enumerate(fusion_codegen.cadagent.PROPS):
+            props = {"dispatch_probe": index}
+            assert emitter(index, {"kind": kind, "name": "probe", "props": props}) is marker, (
+                f"{kind} no longer returns the CADAgent emitter result"
+            )
+            assert observed[-1] == (index, kind, "probe", props)
+    assert len(observed) == len(fusion_codegen.cadagent.PROPS)
+    return {row[1] for row in observed}
+
+
 def test_fusion_vocab_is_the_codegens_dispatch():
     """A69: the kinds the codegen dispatches, the ops compile_batch arms, the
     suffixes the ImportManager reads - and never the wire."""
@@ -137,9 +157,22 @@ def test_fusion_vocab_is_the_codegens_dispatch():
     vocab = FusionAdapter(wire=_Silent()).vocab()
     assert tuple(arms) == vocab.ops == fusion_codegen.OPS
     kinds = re.findall(r'if kind == "(\w+)":', inspect.getsource(fusion_codegen._emit_create))
+    delegated = _fusion_delegated_kinds(fusion_codegen._emit_create)
     assert vocab.kinds == fusion_codegen.KINDS
-    assert set(kinds) | {"component"} == set(vocab.kinds), "component is the fallthrough arm"
+    assert set(kinds) | delegated | {"component"} == set(vocab.kinds), (
+        "component is the fallthrough arm; CADAgent kinds must reach their delegated emitter"
+    )
     assert vocab.imports == tuple(fusion_codegen._IMPORT_OPTIONS) == fusion_codegen.IMPORT_SUFFIXES
+
+
+def test_fusion_vocab_gate_rejects_a_missing_delegated_route():
+    original = fusion_codegen._emit_create
+
+    def missing_shell(index, op):
+        return [] if op.get("kind") == "shell" else original(index, op)
+
+    with pytest.raises(AssertionError, match="shell no longer returns the CADAgent emitter result"):
+        _fusion_delegated_kinds(missing_shell)
 
 
 def test_every_shipped_lane_says_what_it_is_for():

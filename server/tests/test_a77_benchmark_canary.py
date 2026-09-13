@@ -30,6 +30,31 @@ def _quoted(pattern: str) -> int:
     return int(m.group(1).replace(",", ""))
 
 
+def _current_surface(text: str) -> dict[str, int | float]:
+    """Read the latest explicit corpus record; historical rows stay historical."""
+    records = [line for line in text.splitlines() if line.startswith("| Current served corpus")]
+    assert records, "RESULTS.md needs a current served corpus record from a fresh surface run"
+    match = re.fullmatch(
+        r"\| Current served corpus \([^)]+\) \| ([\d,]+) \| ([\d,]+) "
+        r"\| ([\d,]+) \| ([\d,]+) \| ([\d.]+)% \|",
+        records[-1],
+    )
+    assert match, "RESULTS.md's latest current served corpus record is malformed"
+    virtual, always, wire, flat, saving = match.groups()
+    return {
+        "n_virtual_tools": int(virtual.replace(",", "")),
+        "n_tools": int(always.replace(",", "")),
+        "wire_tokens": int(wire.replace(",", "")),
+        "flat_server_tokens": int(flat.replace(",", "")),
+        "saving": float(saving),
+    }
+
+
+@pytest.fixture(scope="module")
+def surface_claim():
+    return _current_surface(RESULTS.read_text())
+
+
 @pytest.fixture(scope="module")
 def surface():
     from run_benchmarks import run_surface_scenario
@@ -40,11 +65,12 @@ def surface():
     return row
 
 
-def test_the_always_loaded_surface_figure_is_still_true(surface):
+def test_the_always_loaded_surface_figure_is_still_true(surface, surface_claim):
     """+-2%. Tight on purpose: the one recorded regression moved it +96 tokens
     (A68 gave `adapter=` a description on eight tools), and a band wide enough
     to absorb that would not have caught it."""
-    claimed = _quoted(r"TEE always-loaded \(wire\) \| 17 \| \*\*([\d,]+)\*\*")
+    assert surface["n_tools"] == surface_claim["n_tools"]
+    claimed = surface_claim["wire_tokens"]
     actual = surface["wire_tokens"]
     assert abs(actual - claimed) / claimed < 0.02, (
         f"RESULTS.md says {claimed:,} wire tokens; measured {actual:,}. "
@@ -52,11 +78,11 @@ def test_the_always_loaded_surface_figure_is_still_true(surface):
     )
 
 
-def test_the_saving_is_computed_over_the_corpus_that_ships(surface):
+def test_the_saving_is_computed_over_the_corpus_that_ships(surface, surface_claim):
     """Exact, not banded: a tool count is an integer and any change to it is a
     fact, not noise. This is the assertion whose absence let the harness fall
     twelve lanes behind."""
-    tools = _quoted(r"the \*\*([\d,]+)\*\* tools they contribute live")
+    tools = surface_claim["n_virtual_tools"]
     assert surface["n_virtual_tools"] == tools, (
         f"RESULTS.md says {tools} virtual tools; a served TEE now has "
         f"{surface['n_virtual_tools']}. A lane was added or removed and the row "
@@ -64,13 +90,32 @@ def test_the_saving_is_computed_over_the_corpus_that_ships(surface):
     )
 
 
-def test_the_headline_saving_still_holds(surface):
-    """+-1 percentage point. A ratio over 30,000 tokens does not wobble."""
-    m = re.search(r"behind the meta-tools, a \*\*([\d.]+)%\*\* saving", RESULTS.read_text())
-    assert m, "the surface row no longer states a saving"
-    assert abs(surface["saving"] - float(m.group(1))) < 1.0, (
-        f"RESULTS.md claims {m.group(1)}%; measured {surface['saving']:.1f}%"
+def test_the_flat_corpus_token_cost_is_still_true(surface, surface_claim):
+    """+-2%, matching the wire-cost band; schema growth must be re-measured."""
+    claimed = surface_claim["flat_server_tokens"]
+    actual = surface["flat_server_tokens"]
+    assert abs(actual - claimed) / claimed < 0.02, (
+        f"RESULTS.md says {claimed:,} flat schema tokens; measured {actual:,}. "
+        "Re-run the surface scenario and append a current corpus record."
     )
+
+
+def test_the_headline_saving_still_holds(surface, surface_claim):
+    """+-1 percentage point. A ratio over 30,000 tokens does not wobble."""
+    claimed = surface_claim["saving"]
+    assert abs(surface["saving"] - claimed) < 1.0, (
+        f"RESULTS.md claims {claimed}%; measured {surface['saving']:.1f}%"
+    )
+
+
+def test_the_current_corpus_parser_requires_the_latest_declared_record():
+    first = "| Current served corpus (old) | 197 | 17 | 2,129 | 31,283 | 93.2% |"
+    latest = "| Current served corpus (new) | 204 | 17 | 2,129 | 31,903 | 93.3% |"
+    assert _current_surface(first + "\n" + latest)["n_virtual_tools"] == 204
+    with pytest.raises(AssertionError, match="current served corpus"):
+        _current_surface("Historical prose alone must not masquerade as a current measurement.")
+    with pytest.raises(AssertionError, match="latest current served corpus record is malformed"):
+        _current_surface(first + "\n| Current served corpus (new) | missing measurement |")
 
 
 @pytest.mark.parametrize(

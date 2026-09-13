@@ -122,12 +122,18 @@ def test_openvsp_gets_the_vsp3_and_a_case_without_one_is_refused(tmp_path):
     assert e.value.code == "wt_no_geometry"
 
 
-def test_an_application_the_lane_does_not_hand_to_is_refused_by_name(solved):
+def test_an_application_the_lane_does_not_hand_to_is_refused_by_name(solved, monkeypatch):
     app, cid = solved
+    monkeypatch.setattr(
+        app.registry._tools["wt_open"],
+        "handler",
+        lambda args: pytest.fail("unsupported application reached the GUI handoff"),
+    )
     with pytest.raises(TeeError) as e:
         call(app, "wt_open", case_id=cid, app="blender")
-    assert e.value.code == "wt_bad_action"
-    assert "paraview" in e.value.fix and "openvsp" in e.value.fix
+    assert e.value.code == "bad_argument_value"
+    assert e.value.message == "wt_open: 'app' is not an allowed value."
+    assert e.value.fix == "Choose one of: 'paraview', 'openvsp'."
 
 
 def test_paraview_absent_still_hands_back_the_state_it_wrote(solved, monkeypatch):

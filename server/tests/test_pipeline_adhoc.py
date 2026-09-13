@@ -95,16 +95,24 @@ def test_adhoc_needs_the_project_opt_in_and_the_grant(tmp_path):
     ungranted.shutdown()
 
 
-def test_a_command_string_is_refused(tmp_path):
+def test_a_command_string_is_refused(tmp_path, monkeypatch):
     app, _ = _app(tmp_path)
     trustctx.CALLER.set("live-turn")
-    with pytest.raises(TeeError) as excinfo:
-        app.registry.call("pipeline_adhoc", {"argv": "python build.py --all"})
-    # The schema refuses it before the handler; the refusal now carries a
-    # fix line, which it did not before this phase.
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            app.registry._tools["pipeline_adhoc"],
+            "handler",
+            lambda args: pytest.fail("command string reached the adhoc handler"),
+        )
+        with pytest.raises(TeeError) as excinfo:
+            app.registry.call("pipeline_adhoc", {"argv": "python build.py --all"})
+    # The schema names the bad field and the JSON value it expects, before
+    # the handler can run a command.
     assert excinfo.value.code == "bad_argument_type"
-    assert "must be array" in excinfo.value.message
-    assert "never one string" in excinfo.value.fix
+    assert excinfo.value.message == "pipeline_adhoc: 'argv' must be array, got str."
+    assert excinfo.value.fix == (
+        "Use the declared array value at argv. Arrays are JSON lists, not serialized strings."
+    )
 
     # and the handler refuses independently, so neither layer is load-bearing
     # alone (the runner would too - argv is validated there as well)

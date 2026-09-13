@@ -222,7 +222,7 @@ def test_conditions_tool_and_its_refusal(app):
 # -- the OpenFOAM loop ---------------------------------------------------------------
 
 
-def test_create_picks_the_engine_and_says_why(app):
+def test_create_picks_the_engine_and_says_why(app, monkeypatch):
     created = call(app, "wt_case", action="create", naca="0012", V_mps=30, aoa_deg=4)
     assert created["engine"] == "openfoam" and created["fidelity"]["chosen"] == "rans"
     assert "simpleFoam" in created["fidelity"]["reason"] and created["next"] == "wt_mesh"
@@ -234,9 +234,17 @@ def test_create_picks_the_engine_and_says_why(app):
     with pytest.raises(TeeError) as err:
         call(app, "wt_case", action="create", naca="0012", aoa_deg=4)
     assert err.value.code == "wt_bad_conditions"
-    with pytest.raises(TeeError) as err:
-        call(app, "wt_case", action="dance", case_id="wt_x")
-    assert err.value.code == "wt_bad_action"
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            app.registry._tools["wt_case"],
+            "handler",
+            lambda args: pytest.fail("unknown action reached the case handler"),
+        )
+        with pytest.raises(TeeError) as err:
+            call(app, "wt_case", action="dance", case_id="wt_x")
+    assert err.value.code == "bad_argument_value"
+    assert err.value.message == "wt_case: 'action' is not an allowed value."
+    assert err.value.fix == "Choose one of: 'create', 'adopt', 'show', 'list', 'stop'."
     with pytest.raises(TeeError) as err:
         call(app, "wt_case", action="show", case_id="wt_0000000000")
     assert err.value.code == "wt_unknown_case"
@@ -549,7 +557,7 @@ def test_a_failed_vspscript_names_its_last_lines(app, monkeypatch):
 # -- post-processing -----------------------------------------------------------------------------
 
 
-def test_probe_field_and_view_return_numbers_and_a_path_never_pixels(app, foam_case):
+def test_probe_field_and_view_return_numbers_and_a_path_never_pixels(app, foam_case, monkeypatch):
     line = call(
         app,
         "wt_probe_field",
@@ -574,9 +582,16 @@ def test_probe_field_and_view_return_numbers_and_a_path_never_pixels(app, foam_c
         and "mid-plane" in view["caption"]
     )
     assert "pixels" not in json.dumps(view) and not any(isinstance(v, bytes) for v in view.values())
+    monkeypatch.setattr(
+        app.registry._tools["wt_view"],
+        "handler",
+        lambda args: pytest.fail("unknown view reached the renderer"),
+    )
     with pytest.raises(TeeError) as err:
         call(app, "wt_view", case_id=foam_case, view="rainbow")
-    assert err.value.code == "wt_bad_view"
+    assert err.value.code == "bad_argument_value"
+    assert err.value.message == "wt_view: 'view' is not an allowed value."
+    assert err.value.fix == "Choose one of: 'pressure', 'velocity', 'cp', 'mesh', 'residuals'."
 
 
 def test_pvpython_failures_refuse_with_the_offscreen_fix(app, foam_case, monkeypatch):
@@ -589,13 +604,21 @@ def test_pvpython_failures_refuse_with_the_offscreen_fix(app, foam_case, monkeyp
     assert err.value.code == "wt_probe_failed"
 
 
-def test_exports_in_every_format_that_needs_no_extra(app, foam_case):
+def test_exports_in_every_format_that_needs_no_extra(app, foam_case, monkeypatch):
     for fmt in ("json", "csv", "md", "foam", "pipeline"):
         out = call(app, "wt_export", case_id=foam_case, format=fmt)
         assert out["format"] == fmt and Path(out["path"]).exists()
-    with pytest.raises(TeeError) as err:
-        call(app, "wt_export", case_id=foam_case, format="xlsx")
-    assert err.value.code == "wt_bad_format"
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            app.registry._tools["wt_export"],
+            "handler",
+            lambda args: pytest.fail("unsupported format reached the exporter"),
+        )
+        with pytest.raises(TeeError) as err:
+            call(app, "wt_export", case_id=foam_case, format="xlsx")
+    assert err.value.code == "bad_argument_value"
+    assert err.value.message == "wt_export: 'format' is not an allowed value."
+    assert err.value.fix == "Choose one of: 'json', 'csv', 'foam', 'md', 'pdf', 'vtu', 'pipeline'."
     try:
         import meshio  # noqa: F401
     except ImportError:

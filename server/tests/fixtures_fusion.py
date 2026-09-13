@@ -191,6 +191,13 @@ class PhysicalProperties:
         self.centerOfMass = centre
 
 
+class CalculationAccuracy:
+    LowCalculationAccuracy = 0
+    MediumCalculationAccuracy = 1
+    HighCalculationAccuracy = 2
+    VeryHighCalculationAccuracy = 3
+
+
 class Vector3D:
     def __init__(self, x=0.0, y=0.0, z=0.0):
         self.x, self.y, self.z = float(x), float(y), float(z)
@@ -320,6 +327,15 @@ class BRepBody(_Entity):
     @property
     def physicalProperties(self) -> PhysicalProperties:
         return PhysicalProperties(self.volume, self.area, Point3D(*(v / 2.0 for v in self.dims)))
+
+    def getPhysicalProperties(
+        self, accuracy: int = CalculationAccuracy.LowCalculationAccuracy
+    ) -> PhysicalProperties:
+        return self.physicalProperties
+
+    @property
+    def preciseBoundingBox(self) -> BoundingBox3D:
+        return self.boundingBox
 
     def deleteMe(self) -> bool:
         self.parentComponent._bodies.remove(self)
@@ -1717,6 +1733,15 @@ class Component:
         area = sum(b.area for b in self._bodies)
         return PhysicalProperties(volume, area, Point3D())
 
+    def getPhysicalProperties(
+        self, accuracy: int = CalculationAccuracy.LowCalculationAccuracy
+    ) -> PhysicalProperties:
+        return self.physicalProperties
+
+    @property
+    def preciseBoundingBox(self) -> BoundingBox3D:
+        return self.boundingBox
+
     @property
     def boundingBox(self) -> BoundingBox3D:
         dims = [0.0, 0.0, 0.0]
@@ -2062,6 +2087,7 @@ def _modules(app: Application) -> dict[str, types.ModuleType]:
     fusion = types.ModuleType("adsk.fusion")
     for name in (
         "Design",
+        "CalculationAccuracy",
         "DesignTypes",
         "FeatureHealthStates",
         "FeatureOperations",

@@ -137,5 +137,8 @@ def fake_llm_server(
     try:
         yield f"http://127.0.0.1:{server.server_address[1]}/v1", calls
     finally:
-        server.shutdown()
-        thread.join(timeout=5)
+        try:
+            server.shutdown()
+            thread.join(timeout=5)
+        finally:
+            server.server_close()

@@ -125,6 +125,6 @@ def test_the_kernel_adds_the_lane_hint_only_when_another_lane_is_served(tmp_path
             both.run_batch("blender", [{"op": "create", "kind": "extrude"}])
         assert err.value.code == "bad_kind"
         assert "Lanes that accept this batch: partkiln (pass adapter=partkiln)" in err.value.fix
-        assert "rolled back" in err.value.fix
+        assert "No batch operation or checkpoint was applied" in err.value.fix
     finally:
         both.shutdown()

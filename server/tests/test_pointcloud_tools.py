@@ -255,12 +255,18 @@ def test_unknown_cloud_id_refuses_with_the_fix(app):
     assert "pc_open" in (exc.value.fix or "")
 
 
-def test_bad_units_refuses_listing_the_real_ones(app, scan):
+def test_bad_units_refuses_listing_the_real_ones(app, scan, monkeypatch):
     path, _ = scan
+    monkeypatch.setattr(
+        app.registry._tools["pc_open"],
+        "handler",
+        lambda args: pytest.fail("invalid units reached the point-cloud opener"),
+    )
     with pytest.raises(TeeError) as exc:
         call(app, "pc_open", path=str(path), units="furlong")
-    assert exc.value.code == "pc_bad_units"
-    assert "mm" in (exc.value.fix or "")
+    assert exc.value.code == "bad_argument_value"
+    assert exc.value.message == "pc_open: 'units' is not an allowed value."
+    assert exc.value.fix == "Choose one of: 'm', 'cm', 'mm', 'ft', 'in'."
 
 
 def test_implausible_scale_is_called_a_units_error(app, scan):
@@ -271,13 +277,19 @@ def test_implausible_scale_is_called_a_units_error(app, scan):
     assert exc.value.code == "pc_implausible_scale"
 
 
-def test_unknown_stat_topic_refuses(app, scan):
+def test_unknown_stat_topic_refuses(app, scan, monkeypatch):
     path, _ = scan
     cid = call(app, "pc_open", path=str(path))["cloud_id"]
+    monkeypatch.setattr(
+        app.registry._tools["pc_stat"],
+        "handler",
+        lambda args: pytest.fail("unknown topic reached the point-cloud stats handler"),
+    )
     with pytest.raises(TeeError) as exc:
         call(app, "pc_stat", cloud_id=cid, what="vibes")
-    assert exc.value.code == "pc_unknown_stat"
-    assert "z_histogram" in (exc.value.fix or "")
+    assert exc.value.code == "bad_argument_value"
+    assert exc.value.message == "pc_stat: 'what' is not an allowed value."
+    assert exc.value.fix == "Choose one of: 'extent', 'density', 'z_histogram', 'plane_census'."
 
 
 # -- A9: headless ----------------------------------------------------------

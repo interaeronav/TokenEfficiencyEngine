@@ -85,12 +85,23 @@ def test_a_blind_host_extracts_without_ever_opening_the_file(tmp_path, monkeypat
     assert "4713" in captions[0]["text"], "the driver did not actually read the card"
 
 
-def test_an_unknown_driver_refuses_by_name(tmp_path):
+def test_an_unknown_driver_refuses_by_name(tmp_path, monkeypatch):
     app = _ingested(tmp_path)
-    with pytest.raises(TeeError) as e:
-        app.registry.call("ex_prepare", {"source": "card", "driver": "telepathy"})
-    assert e.value.code == "extract_bad_driver"
-    assert "in_band" in e.value.fix
+    # A78 enforces the advertised enum before entering the extraction handler.
+    # Keep the exact repair and the no-handler guarantee, not the old later code.
+    monkeypatch.setattr(
+        app.registry._tools["ex_prepare"],
+        "handler",
+        lambda args: pytest.fail("invalid driver reached the extraction handler"),
+    )
+    try:
+        with pytest.raises(TeeError) as e:
+            app.registry.call("ex_prepare", {"source": "card", "driver": "telepathy"})
+        assert e.value.code == "bad_argument_value"
+        assert e.value.message == "ex_prepare: 'driver' is not an allowed value."
+        assert e.value.fix == "Choose one of: 'in_band', 'local'."
+    finally:
+        app.shutdown()
 
 
 def test_an_unreachable_provider_refuses_with_both_ways_out(tmp_path, monkeypatch):

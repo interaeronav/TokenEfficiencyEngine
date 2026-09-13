@@ -294,12 +294,12 @@ def test_windtunnel_check_names_versions_or_the_install_lines(tmp_path, monkeypa
 
 
 def test_dev_checkout_command_never_syncs():
-    """A bare `uv run` syncs the venv to uv.lock, which removes every package
-    installed on top of the locked set - the fleet extras, and on the owner's
-    Mac the seamkiln lane itself (112 packages measured, 2026-09-10). An
-    emitted config of that shape took opencode down. The dev-checkout form
-    must therefore carry --no-sync, and it must sit between `run` and `tee`
-    so uv parses it as run's own flag."""
+    """A bare `uv run` re-locks at launch when pyproject.toml has drifted from
+    uv.lock (measured on uv 0.12.5, 2026-09-11) - resolver and network time
+    inside the client's spawn timeout - and an exact sync would remove every
+    package installed on top of the lock (the fleet extras; 112 on the
+    owner's Mac). The dev-checkout form must therefore carry --no-sync, and it
+    must sit between `run` and `tee` so uv parses it as run's own flag."""
     if not doctor._dev_checkout():
         pytest.skip("installed-package layout: no uv run form to check")
     for cmd in (
