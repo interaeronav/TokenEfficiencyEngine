@@ -650,6 +650,88 @@ accept, amend or discard, not an edit:
 > Separately recorded and unresolved: the adapter tests leak ~330 `tee-*`
 > directories per run, and the wind-tunnel orphan test is intermittent.
 
+## 4f. Round six — the wind-tunnel process lifecycle, and the intermittent explained
+
+GPT-6 accepted the purge corrections at `7c55183`, then investigated the suite
+failure I had left as an unresolved risk and found three defects. All are
+**inherited** — the code is byte-identical to accepted A84 `18666b3` — and all
+three were reproduced here before being accepted.
+
+### [P1] Saved metadata was treated as evidence about a live pid
+
+`orphan_check()` accepted a live process when its command line named the run
+directory **or the saved `run.json` argv did** — and the saved argv names it in
+every record ever written. So any live process holding that pid passed identity,
+and `kill_orphan()` would hand it to `kill_process_group`. On pid reuse that is
+an unrelated process group. The docstring one line above claimed "a reused pid
+would fail that check"; the fallback beside it defeated exactly that.
+
+Identity now comes only from **live** evidence, covering both launch shapes the
+lane really uses: the running process's own command line (OpenFOAM passes
+`-case <run_dir>`, through the wrapper and `mpirun` alike) or its working
+directory (every `RunSpec` sets `cwd=run_dir`). Unreadable evidence is
+`identity_unknown`, which never authorises a signal. `kill_orphan` revalidates
+**immediately before signalling** — the first check is a decision, not a licence.
+
+### [P2] A failed stop was persisted as a completed cancellation
+
+`kill_orphan()` wrote `state: cancelled`, `finished_at` and
+`killed_as_orphan: true` whatever `kill_process_group` returned, so a solver
+that survived was recorded as finished. `SolverRun.terminate()` had the same
+shape. A failed stop is now an **attempt**: `stop_failed`, state left `running`,
+nothing stamped finished.
+
+`wt_status` also only probed for an orphan when the record already said
+`running` — the detector gated by the state it exists to correct — so a stale
+cancellation hid a live process. It now reconciles live evidence over a recorded
+cancellation and says so in a note. Read-only, and the ETA is computed only
+while a run is genuinely progressing.
+
+### [P2] The intermittent is explained at the source, not waited out
+
+`wait_job()` returns on **public** state; the worker's `finally` still has a
+harvest, a store write and a `forget()` to do. The orphan test then reused the
+module-scoped case and its last run directory, so the previous test's finalizer
+overwrote `progress.json` with `cancelled` after this test wrote `running` —
+producing exactly the `cancelled` vs `orphan` assertion I reported in §4c and
+could not explain. GPT-6 reproduced the interleaving deterministically.
+
+The orphan scenario now builds **its own case and run directory**, and
+`wait_worker_done()` waits on `runner.RUNS` — empty for the case is the real
+completion signal, released by the worker's own `finally`.
+
+### Every new test checked for teeth
+
+- the three runner regressions **fail against `7c55183`** and pass here;
+- the barrier regression **fails when `wait_worker_done` is mutated to a no-op**.
+
+### Validation at the corrected identity
+
+| | value |
+|---|---|
+| candidate | `f20c9ee47b06da789bfab1e70cba5c34023b58d7` |
+| payload fingerprint | `11bb16153f2ed86406ad7a6317faa190cb860d8f3fe71c265c4265bdd4b1cac1` |
+| files / delta vs accepted | 325 — 0 removed, 1 added, **19 changed** |
+| targeted regressions | 102 passed, 22 skipped |
+| canonical suite | **3,053 passed, 45 skipped, 141 deselected, 0 failed** |
+| real workdirs deleted | **0**, namespace diffed before and after |
+| lint / format | clean / clean (516 files) |
+| artifact | 1,324,612 bytes, `93fe0bfc…68025`, payload byte-equal to source, resources identical to installed |
+
+**The orphan test passes here, and this time that means something**: its cause
+was removed, rather than a rerun happening to land on the right side. The §4c
+disposition is superseded by §4f.
+
+### Tool-response contract, as required
+
+`wt_status` can now return two additional keys — `stop_failed` (bool) and
+`identity` (a short string, only when a live process cannot be identified) — and
+a `note` when a recorded cancellation is contradicted by a live process. No new
+tool, no schema removal, no change to the 17 always-loaded tools. The additions
+are small strings on a response that is already digest-bounded, so the token
+budget is unaffected in any measurable way; `orphan` replaces `cancelled` in the
+one case where the old answer was simply wrong.
+
 ## 5. Remaining limitations
 
 - ~~Tests for the restored capabilities are still untracked.~~ **RESOLVED** —
@@ -661,9 +743,9 @@ accept, amend or discard, not an edit:
   their skips are real-engine gates**, so `openseespy`/`oofem` behaviour is
   unverified here and 54 focused checks are not structural engineering
   validation.
-- **One intermittent failure, live.** The wind-tunnel orphan test failed in the
-  `7c55183` canonical run having passed in the `47765b7` one. Disposition in
-  §4c; not rerun to green.
+- ~~One intermittent failure, live.~~ **RESOLVED at the source** — see §4f. The
+  cause was test isolation plus a status detector gated by the state it
+  corrects, both fixed; it now passes because the mechanism is gone.
 - **The suite leaks ~330 `tee-*` workdirs per run** (§4d). Separately recorded,
   unresolved.
 - **The verification artifact is not a deliverable** (§2).
@@ -680,9 +762,9 @@ accept, amend or discard, not an edit:
 |---|---|
 | branch | `claude/token-efficiency-engine-5jv1dj` |
 | baseline | accepted A84, `0e172448…fb252f`, 324 files |
-| final candidate | `7c55183ac07c7d72c960e0156ae2ad563aae7d27` (supersedes `47765b7`; the validator fix moved the payload) |
-| candidate payload | `77bbac850652175a884e00ea88b7fbd6862e12a670ac76884fa8eb5cb714492e`, 325 files — 0 removed, **1 added**, **17 changed** vs accepted |
-| verification artifact | `d52847fa58ac6af786bbb19f023aa6045aefd63227dd27325a5e78e3531ec7d8`, 1,322,720 bytes, absolute path in proposal §3 — **not a deliverable** |
+| final candidate | `f20c9ee47b06da789bfab1e70cba5c34023b58d7` (supersedes `7c55183`) |
+| candidate payload | `11bb16153f2ed86406ad7a6317faa190cb860d8f3fe71c265c4265bdd4b1cac1`, 325 files — 0 removed, **1 added**, **19 changed** vs accepted |
+| verification artifact | `93fe0bfccead11f420c35885a06d92fd256cf6cffedfae04f68629a15d168025`, 1,324,612 bytes, absolute path in proposal §3 — **not a deliverable** |
 | declared version | `0.30.1` |
 | pushed | no |
 | working tree | still shared; other sessions' non-runtime work untouched |
