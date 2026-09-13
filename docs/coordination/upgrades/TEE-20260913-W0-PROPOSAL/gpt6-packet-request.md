@@ -1,6 +1,6 @@
 # GPT-6 — compose the execution packet for the W0 candidate
 
-**Revision 4, 2026-09-13.** Rewritten, not patched: revisions 1 and 2
+**Revision 5, 2026-09-13.** Rewritten, not patched: revisions 1 and 2
 accumulated conflicting identities and two disproved explanations. This
 document describes **one** candidate. The correction history lives in
 `claude-packet-review-corrections.md`; nothing historical is repeated here as
@@ -19,15 +19,15 @@ Protocol: `docs/upgrade-coordination-protocol.md`, version 1.0.1.
 
 | | value |
 |---|---|
-| **candidate commit** | `47765b7` (full id in the receipt's identity table) |
-| **runtime payload fingerprint** | `d792b3397cac5b7a2807ea2f28a0812542de7600ca139cb6de3360f2e8625864` |
+| **candidate commit** | `7c55183ac07c7d72c960e0156ae2ad563aae7d27` |
+| **runtime payload fingerprint** | `77bbac850652175a884e00ea88b7fbd6862e12a670ac76884fa8eb5cb714492e` |
 | runtime files | 325 |
 | accepted A84 baseline | `0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f`, 324 files |
 | delta vs accepted | **0 removed, 1 added, 17 changed** |
 | declared version | `0.30.1` (`server/pyproject.toml:4`) |
 | branch | `claude/token-efficiency-engine-5jv1dj`, **not pushed** |
 
-`47765b7` is the commit everything below was **tested at**. Commits after it in
+`7c55183` is the commit everything below was **tested at**. Commits after it in
 this directory are documentation only and do not touch the payload.
 
 The one addition is `tee/kernel/workdirs.py`, the ownership and liveness check
@@ -39,32 +39,39 @@ scratch directory they own (`adapters/blender`, `adapters/fusion`,
 
 ## 2. Current results, each bound to the source tested
 
-All from a `git archive` of `63d9308` into a clean directory, `server/.venv`
-symlinked to the prepared repository venv **without provisioning it**,
-`PYTHONPATH` pinned to the export's `server/src`, and that venv's explicit
-interpreter.
+Every row is a `git archive` of **`7c55183ac07c7d72c960e0156ae2ad563aae7d27`** into a clean directory,
+`server/.venv` symlinked to the prepared repository venv **without provisioning
+it**, `PYTHONPATH` pinned to that export's `server/src`, and that venv's
+explicit interpreter. The export is not inside a git checkout — verified with
+`git rev-parse --show-toplevel`, which reports "not a git repository" — so no
+enclosing HEAD can be attributed to it.
 
-| check | result |
-|---|---|
-| canonical full suite | **3,035 passed, 45 skipped, 141 deselected, 0 failed** |
-| `ruff check src tests ../benchmarks` | **clean** |
-| `ruff format --check src tests` | **clean** (516 files) |
-| focused: purge + structural | 40 passed, 22 skipped |
-| restored-feature suites | 665 passed |
-| real workdirs deleted by the suite | **0**, recorded before and after |
-| verification build | succeeded; identity in §3 |
+| check | command | result |
+|---|---|---|
+| focused | `pytest tests/test_purge.py tests/test_structural*.py` | **54 passed, 22 skipped** |
+| canonical suite | `pytest -q` (project defaults) | **1 failed, 3,048 passed**, 45 skipped, 141 deselected |
+| lint | `ruff check src tests ../benchmarks` | **clean** |
+| format | `ruff format --check src tests` | **clean**, 516 files |
+| real workdirs deleted | namespace diffed before/after the suite | **0** |
+| verification build | §3 | succeeded |
 
-The 45 skips include 22 explicit real-engine gates in the recovered structural
-suites (`openseespy`, `oofem`): **native solver behaviour is unverified here.**
+**Each skip belongs to the command that produced it**, not to a carried-forward
+label:
+
+- the **22** in the focused row are explicit real-engine gates in the recovered
+  structural suites (`openseespy`, `oofem`) — **native solver behaviour is
+  unverified here**, and 54 checks are not structural engineering validation;
+- the canonical suite's skips include those same 22 plus the suite's ordinary
+  environment-gated skips;
+- the **self-containment** regression skips only in an export, because it
+  compares tracked against untracked files and a `git archive` has no `.git`.
+  It appears in the corrections/canary/mcpb set, **not** in the focused
+  purge+structural row above.
 
 The suite command is the project default. **Never substitute `-m "not dcc"`** —
 it replaces `addopts` rather than narrowing it. The real exclusion set is
 `-m 'not dcc and not ml and not network and not llm and not cfd and not fdm'`
 (`server/pyproject.toml:235`).
-
-One skip in the focused set is by design: the self-containment regression
-compares tracked against untracked files and skips where there is no `.git`,
-which a `git archive` export has not.
 
 **Both halves of `make lint` pass on this candidate — the accepted runtime does
 not.** `docagents/model_metadata.py` failed `ruff format --check` in the shipped
@@ -87,15 +94,16 @@ unreviewed source.
 | | value |
 |---|---|
 | artifact | `tee-engine-0.30.1-local.mcpb` |
-| bytes | 1,321,782 |
-| sha256 | `c3690fa627ed3d1d38b773746bb6c277126b1916348051f842a313976b0115b4` |
+| absolute path | `/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/66bb34fa-ea68-4af7-9b78-9a82a2737fc4/scratchpad/cand-7c55183/verification-artifacts/tee-engine-0.30.1-local.mcpb` |
+| bytes | 1,322,720 |
+| sha256 | `d52847fa58ac6af786bbb19f023aa6045aefd63227dd27325a5e78e3531ec7d8` |
 | manifest `command` | `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python` |
 | temporary export path in launch command | **none** |
 
 Payload comparison, which is the point rather than the ZIP write:
 
 - artifact runtime **== candidate source**, complete set and byte equality,
-  325 files, fingerprint `d792b339…25864`;
+  325 files, fingerprint `77bbac85…4492e`;
 - artifact vs accepted: 0 removed, 1 added, 17 changed.
 
 Resources, usage skill and wrapper inputs checked separately against the
@@ -164,7 +172,7 @@ that different shape is selected.
 ## 6. Reproducing this exactly
 
 ```sh
-git archive 47765b7 | tar -x -C /tmp/cand
+git archive 7c55183 | tar -x -C /tmp/cand
 ln -s /Users/john/TokenEfficiencyEngine/server/.venv /tmp/cand/server/.venv
 cd /tmp/cand/server
 PYTHONPATH=/tmp/cand/server/src /Users/john/TokenEfficiencyEngine/server/.venv/bin/python \

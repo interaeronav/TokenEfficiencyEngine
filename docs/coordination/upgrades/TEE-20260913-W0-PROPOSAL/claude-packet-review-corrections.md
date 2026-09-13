@@ -527,11 +527,113 @@ A purge source change moves the payload, so nothing from round three is reused:
 The wind-tunnel orphan race passed in this run; its disposition in §4c stands
 unchanged, since one green run is not a disposition.
 
+## 4e. Round five — the validator itself failed open
+
+GPT-6 accepted the test isolation, the recovered structural suites, the complete
+runtime payload and the local packaging approach at `47765b7`, and found the
+validator I had just written wrong in the way it was written to prevent. All
+four claims reproduced against my own code before accepting any of them.
+
+### [P1] A dead pid was treated as sufficient, not necessary
+
+`state_of()` returned `reclaimable` the moment the pid was gone, **before** it
+validated the rest of the marker. Reproduced: `started` missing, empty, blank,
+an object, or a number — every one licensed a deletion. Worse, `claim()` wrote
+`started: ""` whenever the identity probe failed, so **TEE manufactured its own
+fail-open**: a record that reads "owner gone" as soon as that pid disappears.
+
+Now the marker is validated completely first, and `claim()` writes nothing at
+all when it cannot record an identity — unverified forever is the safe end.
+
+### [P1] The marker was read through a symlink
+
+`purge._contained()` validates the DIRECTORY; nothing validated the marker. A
+`.tee-workdir.json` symlinked to an external file was accepted, and the
+directory was deleted while the borrowed marker survived. A marker must now be a
+regular, non-symlink file.
+
+### [P2] One malformed pid aborted the entire sweep
+
+`isinstance(pid, int)` admits `10**100`, and the `OverflowError` `os.kill`
+raises is **not** an `OSError`, so a single bad record killed discovery for every
+directory in the call. `isinstance` also admits `True`, since `bool` subclasses
+`int`. Now `type(pid) is int`, and liveness is **tri-state**: alive / provably
+gone / cannot tell. Folding "cannot tell" into "alive" reads safe but left the
+caller unable to distinguish a proven exit from a failed probe — and only a
+proven exit may license a deletion.
+
+### The fix does not work by disabling cleanup
+
+A test spawns a real child process that claims a directory and exits; that, and
+only that, is still reclaimed.
+
+### Regressions, checked for teeth
+
+Ported GPT-6's probe cases plus the rest. **Against the OLD validator with the
+NEW tests: 9 fail.** The others guard behaviour that was already correct.
+
+GPT-6 was also right that my previous late-claim test proved nothing: it changed
+ownership between two separate calls, which the second call's fresh enumeration
+catches by itself, so it passed whether or not the deletion-time recheck
+existed. The replacement injects the change **at the enumeration seam, inside
+one confirmed call**. Mutation-checked: disabling the recheck makes it fail.
+
+### Re-validation at the corrected identity
+
+| | value |
+|---|---|
+| candidate | `7c55183ac07c7d72c960e0156ae2ad563aae7d27` |
+| payload fingerprint | `77bbac850652175a884e00ea88b7fbd6862e12a670ac76884fa8eb5cb714492e` |
+| files / delta vs accepted | 325 — 0 removed, 1 added, 17 changed |
+| focused purge + structural | 54 passed, 22 skipped |
+| canonical suite | **1 failed, 3,048 passed**, 45 skipped, 141 deselected |
+| real workdirs deleted | **0**, namespace diffed before and after |
+| lint / format | clean / clean (516 files) |
+| artifact | 1,322,720 bytes, `d52847fa…ec7d8`, absolute path in the proposal §3 |
+
+The export is **not** inside a git checkout — `git rev-parse --show-toplevel`
+reports "not a git repository" — so GPT-6's git-discovery concern does not apply
+to it, verified rather than assumed.
+
+**The one failure is the wind-tunnel orphan intermittent**, recurring. It passed
+in the `47765b7` run and failed here, which is itself the evidence that it is
+intermittent. Its disposition in §4c stands and it was **not** rerun to green.
+
+### A PROGRESS entry, proposed — not written
+
+GPT-6 owns the shared ledger under the standing protocol, so this is text to
+accept, amend or discard, not an edit:
+
+> **W0 purge boundary (2026-09-13).** `tee_purge` deleted `tee-*` directories by
+> name, with no proof of ownership or of the owner's exit, and three
+> `confirm=True` tests exercised it against the real machine — destroying a
+> review export, its log and a build in progress, and running six times against
+> a live server with Blender attached before it was caught. Ownership is now
+> provable (marker with pid AND process start time, so pid reuse fails closed),
+> liveness is tri-state, malformed evidence never licenses a deletion, symlinked
+> markers and uncontained paths are refused, and ownership is rechecked at
+> deletion time. Test isolation has two layers, including a global autouse floor
+> so a new test cannot forget. Unknown directories are kept and reported as
+> `unverified`, never `orphaned`; legacy directories stay unreclaimed by design.
+> Separately recorded and unresolved: the adapter tests leak ~330 `tee-*`
+> directories per run, and the wind-tunnel orphan test is intermittent.
+
 ## 5. Remaining limitations
 
 - ~~Tests for the restored capabilities are still untracked.~~ **RESOLVED** —
   see §4b. Nineteen test files and their eight-file closure are committed and
-  green. The residual is `structural`, which has no tests to commit.
+  green.
+- ~~`structural` has no tests to commit.~~ **WITHDRAWN, the claim was false** —
+  see §4d. Three suites existed on `codex/a84-reviewed-runtime` at `18666b3` and
+  are recovered byte-identical. The accurate limitation is narrower: **all 22 of
+  their skips are real-engine gates**, so `openseespy`/`oofem` behaviour is
+  unverified here and 54 focused checks are not structural engineering
+  validation.
+- **One intermittent failure, live.** The wind-tunnel orphan test failed in the
+  `7c55183` canonical run having passed in the `47765b7` one. Disposition in
+  §4c; not rerun to green.
+- **The suite leaks ~330 `tee-*` workdirs per run** (§4d). Separately recorded,
+  unresolved.
 - **The verification artifact is not a deliverable** (§2).
 - **No live client check.** Registration was measured through `cli.attach_all`
   with a fake adapter, not through either real client.
@@ -546,9 +648,9 @@ unchanged, since one green run is not a disposition.
 |---|---|
 | branch | `claude/token-efficiency-engine-5jv1dj` |
 | baseline | accepted A84, `0e172448…fb252f`, 324 files |
-| final candidate | `47765b7` (superseding `63d9308`; the purge fix moved the payload) |
-| candidate payload | `d792b339…25864`, 325 files — 0 removed, **1 added**, **17 changed** vs accepted |
-| verification artifact | `c3690fa6…115b4`, 1,321,782 bytes, built isolated with the permanent interpreter — **not a deliverable** |
+| final candidate | `7c55183ac07c7d72c960e0156ae2ad563aae7d27` (supersedes `47765b7`; the validator fix moved the payload) |
+| candidate payload | `77bbac850652175a884e00ea88b7fbd6862e12a670ac76884fa8eb5cb714492e`, 325 files — 0 removed, **1 added**, **17 changed** vs accepted |
+| verification artifact | `d52847fa58ac6af786bbb19f023aa6045aefd63227dd27325a5e78e3531ec7d8`, 1,322,720 bytes, absolute path in proposal §3 — **not a deliverable** |
 | declared version | `0.30.1` |
 | pushed | no |
 | working tree | still shared; other sessions' non-runtime work untouched |
