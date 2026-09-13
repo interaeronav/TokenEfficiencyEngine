@@ -1,0 +1,70 @@
+{
+  "suite": "A78 lane control pilot",
+  "version": 1,
+  "frozen_at": "2026-09-10",
+  "purpose": "Fresh pilot tasks frozen before candidate guide use; not a statistically independent final holdout and not AETHER parity.",
+  "baseline_context": "TEE tee_batch accepts adapter='blender' or 'fusion' and ops, a list of JSON objects. An operation has op, optional kind/name/id, and props. It executes operations in order and returns created/modified/deleted entity IDs. Common ops include create, set and delete. Blender also offers assign_material; Fusion offers param_set. You must preserve unrelated entities. A successful request is not proof that geometry is correct. Use only typed operations; do not provide Python code. Return one JSON object with keys ops (the single batch to execute), verification (planned readback checks, not claims of checks already done), and claims with executed:false and validated:false. You have not executed anything. If you cannot express the task, return ops:[] and an explanation in abstention. The operator will execute the batch once and grade the actual app result. Do not invent additional tool calls or assume the scene is empty.",
+  "tasks": [
+    {
+      "id": "bl_dimensions",
+      "adapter": "blender",
+      "topic": "create",
+      "prompt": "The Blender scene contains a protected cube named KeepOriginal, id b9001. Create a separate rectangular solid named PilotPod with world dimensions 137 mm in X, 83 mm in Y and 41 mm in Z. Its center must be at X=0 mm, Y=100 mm, Z=20.5 mm so its bottom touches Z=0. Preserve KeepOriginal. Use an axis-aligned cube primitive with exact dimensions. The existing object is not a template to edit.",
+      "fixture_ids": {"b9001": "KeepOriginal"},
+      "target_name": "PilotPod",
+      "expected": {"dimensions_m": [0.137,0.083,0.041], "location_m": [0,0.1,0.0205]},
+      "tolerances": {"dimensions_m": 0.00001, "location_m": 0.00001}
+    },
+    {
+      "id": "bl_camera",
+      "adapter": "blender",
+      "topic": "camera",
+      "prompt": "The Blender scene contains a camera named ReviewCamera, id b9201, plus a protected object KeepOriginal, id b9001. Set the existing ReviewCamera lens to 71 mm, place its center at [1.4,-1.7,0.9] metres and aim its optical axis at [0.125,-0.075,0.2] metres. Make ReviewCamera the active render camera. Preserve KeepOriginal and do not create an extra camera. State the readback checks you would perform.",
+      "fixture_ids": {"b9001": "KeepOriginal", "b9201": "ReviewCamera"},
+      "target_name": "ReviewCamera",
+      "expected": {"lens_mm": 71, "location_m": [1.4,-1.7,0.9], "direction_error_degrees": 0, "active_camera": true, "camera_count": 1},
+      "tolerances": {"lens_mm": 0.0001, "location_m": 0.00001, "direction_error_degrees": 0.05}
+    },
+    {
+      "id": "bl_material",
+      "adapter": "blender",
+      "topic": "material",
+      "prompt": "The Blender scene contains mesh PilotPanel, id b9301, whose dimensions and transform must remain unchanged. KeepOriginal, id b9001, is protected and must also remain unchanged. Apply a Principled material named PilotBlue to PilotPanel with linear base-color RGB [0.012,0.19,0.62], metallic 0.63 and roughness 0.29. Replace its first material slot rather than renaming the mesh, recoloring the protected object, or merely changing viewport display color.",
+      "fixture_ids": {"b9001": "KeepOriginal", "b9301": "PilotPanel"},
+      "target_name": "PilotPanel",
+      "expected": {"material_name": "PilotBlue", "base_color": [0.012,0.19,0.62], "metallic": 0.63, "roughness": 0.29, "target_geometry_preserved": true},
+      "tolerances": {"base_color": 0.00001, "metallic": 0.00001, "roughness": 0.00001}
+    },
+    {
+      "id": "fu_plate",
+      "adapter": "fusion",
+      "topic": "sketch_extrude",
+      "prompt": "The active Fusion design is parametric and is not empty. It has protected sketch sk1 and protected solid b1 named KeepOriginal, which must not be edited, extruded or deleted. In one batch create a fresh XY rectangle sketch named PilotProfile with opposite corners [20,25] and [157,108] millimetres, then extrude that newly created profile 7 mm in +Z as a new body named PilotPlate. Do not assume a newly created entity gets sk1 or b1. The new plate must be a native solid, 137 x 83 x 7 mm, while all existing geometry remains unchanged.",
+      "fixture_ids": {"sk1": "KeepProfile", "b1": "KeepOriginal"},
+      "target_name": "PilotPlate",
+      "expected": {"dimensions_mm": [137,83,7], "volume_mm3": 79597, "solid": true, "new_solid_count": 1},
+      "tolerances": {"dimensions_mm": 0.001, "volume_mm3": 0.1}
+    },
+    {
+      "id": "fu_parameter",
+      "adapter": "fusion",
+      "topic": "parameters",
+      "prompt": "The active Fusion parametric design has a task-owned 40 x 30 mm plate named PilotDepthPlate. Its extrude expression is the user parameter pilot_depth, currently 9 mm. The user parameter is id param:pilot_depth. The document displays centimetres. Change only pilot_depth to 12.5 millimetres, preserving the 40 x 30 mm footprint, the parametric dependency and protected separate body KeepOriginal. The numerical expression must have an explicit length unit; do not type a unitless 12.5 into a centimetre document or create a replacement plate.",
+      "fixture_ids": {"param:pilot_depth": "pilot_depth", "b1": "KeepOriginal", "b2": "PilotDepthPlate"},
+      "target_name": "PilotDepthPlate",
+      "expected": {"dimensions_mm": [40,30,12.5], "volume_mm3": 15000, "solid": true, "parameter_value_mm": 12.5, "dependency_preserved": true, "new_solid_count": 0},
+      "tolerances": {"dimensions_mm": 0.001, "volume_mm3": 0.1, "parameter_value_mm": 0.0001}
+    },
+    {
+      "id": "fu_hole",
+      "adapter": "fusion",
+      "topic": "hole_fillet",
+      "prompt": "In a nonempty Fusion parametric design, protected sketch sk1 and solid b1 named KeepOriginal already exist. Create a new XY rectangle sketch named BoredProfile from [0,0] to [92,61] mm, extrude it 6.5 mm in +Z as a new body named BoredPlate, then make one 7.4 mm diameter through-hole at X=23, Y=19 mm on the new plate's top (+Z) face. Use the fresh body's reference, not b1. Keep all existing entities intact. The hole must remove actual material from the native solid; a drawn circle is insufficient.",
+      "fixture_ids": {"sk1": "KeepProfile", "b1": "KeepOriginal"},
+      "target_name": "BoredPlate",
+      "expected": {"dimensions_mm": [92,61,6.5], "solid": true, "new_solid_count": 1, "hole_count": 1, "hole_diameter_mm": 7.4, "hole_center_xy_mm": [23,19]},
+      "tolerances": {"dimensions_mm": 0.001, "hole_diameter_mm": 0.001, "hole_center_xy_mm": 0.001},
+      "volume_formula": {"width": 92, "height": 61, "depth": 6.5, "hole_diameter": 7.4}
+    }
+  ]
+}
