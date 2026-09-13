@@ -599,6 +599,38 @@ to it, verified rather than assumed.
 in the `47765b7` run and failed here, which is itself the evidence that it is
 intermittent. Its disposition in §4c stands and it was **not** rerun to green.
 
+### An adversarial sweep of the corrected validator, and one stated residual
+
+Seven further attacks, all on freshly created fixture-owned roots and never a
+real temp directory. Six resisted:
+
+| attack | result |
+|---|---|
+| the DIRECTORY is a symlink pointing outside the root | kept; the outside sentinel survives |
+| marker is a directory rather than a file | kept |
+| dangling symlink marker | kept |
+| pid 0 and negative pids | kept |
+| marker parses to a JSON list, not a dict | kept |
+| duplicate/extra JSON keys with a genuinely dead pid | deleted — correct |
+
+**The seventh is a residual worth stating, and I nearly let it pass as a green
+tick.** My own probe labelled it "ok" while the observed outcome was the
+deletion of a live directory; re-reading the assertion rather than the label is
+what caught it.
+
+Take a directory a live process has claimed — `state_of` says `active` — then
+overwrite its marker with a dead-owner record. `state_of` now says
+`reclaimable`, and a confirmed sweep deletes it while the owner is running.
+
+**The validator trusts the marker's CONTENT. There is no independent binding
+between a marker and whoever is actually using the directory.** Rewriting that
+marker requires write access to the directory, and anyone holding that could
+delete it directly, so this is not a privilege boundary — but it is the honest
+limit of what "proof of ownership" means here. Closing it would need liveness
+evidence independent of the marker (an `lsof`-class check of who holds the
+directory open), which is heavy, platform-specific and unreliable. Not attempted;
+recorded instead.
+
 ### A PROGRESS entry, proposed — not written
 
 GPT-6 owns the shared ledger under the standing protocol, so this is text to

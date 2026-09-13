@@ -195,13 +195,19 @@ imports the dirty checkout and falsely validates the export.
    and never clean up. The destructive purge had been masking it. They now carry
    ownership markers, so a later purge collects them legitimately once the test
    process exits — but the leak is real.
-3. **One intermittent test** — disposition in the receipt §4c. Investigated to a
+3. **The validator trusts the marker's content.** An adversarial sweep found no
+   new fail-open in six of seven attacks, but a marker rewritten in place with a
+   dead-owner record makes a *live* directory reclaimable. Write access to the
+   directory is required, and that already permits deletion, so it is not a
+   privilege boundary — it is the limit of what the marker can prove. Receipt
+   §4e.
+4. **One intermittent test** — disposition in the receipt §4c. Investigated to a
    mechanism, not to a confirmed defect, and returned as a validation risk
    rather than rerun until green.
-4. **Version cut.** Currently `0.30.1`. Patch, minor, or not a release.
-5. **Whether to release at all.** The client-visible change is small; the case
+5. **Version cut.** Currently `0.30.1`. Patch, minor, or not a release.
+6. **Whether to release at all.** The client-visible change is small; the case
    for shipping is that chores currently point at a dead endpoint.
-6. **`llguidance`** in the vLLM environment would give genuine server-enforced
+7. **`llguidance`** in the vLLM environment would give genuine server-enforced
    JSON for the first time. Not done, out of scope here.
 
 ## 8. What the packet still needs, which I cannot supply
