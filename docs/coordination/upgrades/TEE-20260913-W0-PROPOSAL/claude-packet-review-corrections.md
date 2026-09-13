@@ -732,6 +732,112 @@ are small strings on a response that is already digest-bounded, so the token
 budget is unaffected in any measurable way; `orphan` replaces `cancelled` in the
 one case where the old answer was simply wrong.
 
+## 4g. Round seven — the same defects, one layer out at the public callers
+
+GPT-6 accepted the helper-level fixes at `f20c9ee` and then showed that none of
+them reached the tools that call them. The caller-level state table was the
+acceptance criterion, and it was right to be: **a helper-only patch had left
+every downstream symptom in place.** All five findings reproduced before being
+accepted.
+
+### [P1] Identity by substring authorised the wrong run
+
+`run_001` matched its sibling `run_001-copy`; `run_100` matched `run_1000` — by
+cwd and by command line — and both reached the termination call. Rechecking the
+same wrong predicate twice does not make it right.
+
+Paths are now normalized and compared at **component boundaries**: cwd must
+EQUAL the run directory, and command evidence must name that exact directory or
+a file beneath it (the character after a match has to end the component). Linux
+gets real argv tokens from `/proc` and compares them exactly; macOS offers only
+a flattened string, so the boundary scan does that work — and paths containing
+spaces still match. Verified across the whole matrix, wrapper and `mpirun`
+shapes included.
+
+**A platform limit, stated rather than glossed:** on macOS a flattened command
+line cannot distinguish an argument from text *inside* one, so a path in a
+source comment reads as ownership there while Linux's real tokens reject it.
+My own positive fixture had been relying on exactly that comment form; it now
+uses `cwd`, a real launch shape.
+
+### [P2] The cancel hook announced completion and freed capacity
+
+`on_cancel` ignored `terminate()`'s return, wrote the run `cancelled` and
+released the machine reservation unconditionally — so a surviving solver kept
+burning cores while the ledger said that capacity was free, and status showed
+nothing wrong. A failed stop now keeps its run state **and** its reservation,
+records the attempt, and stays stoppable; the worker's `finally` still releases
+when the process really goes.
+
+### [P2] Stop and status turned uncertainty into "gone"
+
+`_stop()` raised `wt_no_orphan` — "nothing to stop" — for a **verified**
+survivor, contradicting the record the helper had just written. Status called
+`identity_unknown` **dead**, inventing a fact about a process it could not read.
+Four outcomes are now distinct: confirmed exit; verified survivor
+(`wt_stop_failed`, with an actionable next step); identity mismatch; identity
+unknown (`wt_identity_unknown`, state `unverified`). A confirmed later stop
+**retires** the earlier failure in both the store record and `progress.json` —
+it used to carry `stop_failed` through a successful retry forever.
+
+### [P2] The worker wait lied on timeout
+
+`wait_until` returns `None` rather than raising, and `wait_worker_done` ignored
+it — so a timed-out wait returned as though it had succeeded and the caller
+reused files the worker still held. It now raises, naming the pending worker,
+and its supported lifecycle point is documented: an empty registry is not a
+completion signal for work that has not registered yet.
+
+### Evidence corrections, all three accepted
+
+- **Changed files: nineteen, not seventeen.** The proposal's prose explained
+  seventeen and omitted `windtunnel/runner.py` and `windtunnel/tools.py`.
+- **The quoted targeted command was not the one that produced the result.** The
+  wildcard form collects 286 selected on the frozen candidate. The real
+  selection is six named files, now written out in the proposal with its log at
+  `scratchpad/targeted_36453a0.log`.
+- **"No measurable token change" was wrong.** Measured with `json.dumps(...,
+  sort_keys=True)` and TEE's own `estimate_tokens`, on one `wt_status` payload
+  with fixed ids:
+
+  | response | before | after | delta |
+  |---|---:|---:|---:|
+  | normal running run | 30 | 30 | **0** |
+  | failed stop | 21 | 26 | **+5** |
+  | unknown identity | 20 | 50 | **+30** |
+  | stale cancelled / live orphan | 21 | 74 | **+53** |
+
+  GPT-6 measured +40 on the last row; mine is +53 because my note string is
+  longer than the one they modelled. Either way the point stands and the earlier
+  claim was false: **truthful status costs tokens, and it is worth paying.** A
+  bounded response is not an unchanged one. The 17 always-loaded schemas are a
+  separate metric and are untouched.
+
+### Every new test checked for teeth
+
+**All eight new tests FAIL against `f20c9ee`** and pass here. Every
+mismatched-identity case intercepts `kill_process_group` and asserts **zero**
+termination calls, so no signal is ever sent to an unrelated process.
+
+### Validation at the corrected identity
+
+| | value |
+|---|---|
+| candidate | `36453a0a63e115aa7f4e424d67cfa509882b125a` |
+| payload fingerprint | `cb2e51210decb659911fd4d0eca33a9b3abdd54dc07befe03efebe8d222b3ca8` |
+| files / delta vs accepted | 325 — 0 removed, 1 added, 19 changed |
+| targeted (six named files) | **111 passed, 22 skipped** |
+| canonical suite | **3,062 passed, 45 skipped, 141 deselected, 0 failed** |
+| real workdirs deleted | **0**, namespace diffed before and after |
+| lint / format | clean / clean (516 files) |
+| artifact | 1,326,506 bytes, `19fd7776…05e96`, payload byte-equal to source, resources identical to installed |
+
+### New error codes for the contract summary
+
+`wt_stop_failed` and `wt_identity_unknown`, plus the `unverified` status state
+and the `stop_failed` / `identity` / `stop_recovered` fields. No new tool; the
+17 always-loaded are unchanged.
+
 ## 5. Remaining limitations
 
 - ~~Tests for the restored capabilities are still untracked.~~ **RESOLVED** —
@@ -762,9 +868,9 @@ one case where the old answer was simply wrong.
 |---|---|
 | branch | `claude/token-efficiency-engine-5jv1dj` |
 | baseline | accepted A84, `0e172448…fb252f`, 324 files |
-| final candidate | `f20c9ee47b06da789bfab1e70cba5c34023b58d7` (supersedes `7c55183`) |
-| candidate payload | `11bb16153f2ed86406ad7a6317faa190cb860d8f3fe71c265c4265bdd4b1cac1`, 325 files — 0 removed, **1 added**, **19 changed** vs accepted |
-| verification artifact | `93fe0bfccead11f420c35885a06d92fd256cf6cffedfae04f68629a15d168025`, 1,324,612 bytes, absolute path in proposal §3 — **not a deliverable** |
+| final candidate | `36453a0a63e115aa7f4e424d67cfa509882b125a` (supersedes `f20c9ee`) |
+| candidate payload | `cb2e51210decb659911fd4d0eca33a9b3abdd54dc07befe03efebe8d222b3ca8`, 325 files — 0 removed, **1 added**, **19 changed** vs accepted |
+| verification artifact | `19fd77764b4c138241df40cfb4a3634d56ec3576fdcbc80fc972ccf4e6d05e96`, 1,326,506 bytes, absolute path in proposal §3 — **not a deliverable** |
 | declared version | `0.30.1` |
 | pushed | no |
 | working tree | still shared; other sessions' non-runtime work untouched |

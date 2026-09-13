@@ -1,6 +1,6 @@
 # GPT-6 — compose the execution packet for the W0 candidate
 
-**Revision 6, 2026-09-13.** Rewritten, not patched: revisions 1 and 2
+**Revision 7, 2026-09-13.** Rewritten, not patched: revisions 1 and 2
 accumulated conflicting identities and two disproved explanations. This
 document describes **one** candidate. The correction history lives in
 `claude-packet-review-corrections.md`; nothing historical is repeated here as
@@ -19,27 +19,29 @@ Protocol: `docs/upgrade-coordination-protocol.md`, version 1.0.1.
 
 | | value |
 |---|---|
-| **candidate commit** | `f20c9ee47b06da789bfab1e70cba5c34023b58d7` |
-| **runtime payload fingerprint** | `11bb16153f2ed86406ad7a6317faa190cb860d8f3fe71c265c4265bdd4b1cac1` |
+| **candidate commit** | `36453a0a63e115aa7f4e424d67cfa509882b125a` |
+| **runtime payload fingerprint** | `cb2e51210decb659911fd4d0eca33a9b3abdd54dc07befe03efebe8d222b3ca8` |
 | runtime files | 325 |
 | accepted A84 baseline | `0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f`, 324 files |
 | delta vs accepted | **0 removed, 1 added, 19 changed** |
 | declared version | `0.30.1` (`server/pyproject.toml:4`) |
 | branch | `claude/token-efficiency-engine-5jv1dj`, **not pushed** |
 
-`f20c9ee` is the commit everything below was **tested at**. Commits after it in
+`36453a0` is the commit everything below was **tested at**. Commits after it in
 this directory are documentation only and do not touch the payload.
 
 The one addition is `tee/kernel/workdirs.py`, the ownership and liveness check
-the purge fix needs. Of the seventeen changed files, eleven are the reviewed W0
-and architecture work plus the owner-instructed formatting correction; the other
-six are the purge fix — `tee/purge.py` and the five producers that now mark the
-scratch directory they own (`adapters/blender`, `adapters/fusion`,
-`adapters/godot`, `adapters/freecad`, `assets/library`).
+the purge fix needs. The **nineteen** changed files are: eleven from the
+reviewed W0 and architecture work plus the owner-instructed formatting
+correction; six from the purge fix — `tee/purge.py` and the five producers that
+now mark the scratch directory they own (`adapters/blender`, `adapters/fusion`,
+`adapters/godot`, `adapters/freecad`, `assets/library`); and **two from the
+wind-tunnel process-lifecycle fix**, `windtunnel/runner.py` and
+`windtunnel/tools.py`, which revision 6 omitted from this explanation.
 
 ## 2. Current results, each bound to the source tested
 
-Every row is a `git archive` of **`f20c9ee47b06da789bfab1e70cba5c34023b58d7`** into a clean directory,
+Every row is a `git archive` of **`36453a0a63e115aa7f4e424d67cfa509882b125a`** into a clean directory,
 `server/.venv` symlinked to the prepared repository venv **without provisioning
 it**, `PYTHONPATH` pinned to that export's `server/src`, and that venv's
 explicit interpreter. The export is not inside a git checkout — verified with
@@ -48,12 +50,21 @@ enclosing HEAD can be attributed to it.
 
 | check | command | result |
 |---|---|---|
-| targeted | `pytest tests/test_windtunnel_*.py tests/test_purge.py tests/test_structural*.py` | **102 passed, 22 skipped** |
-| canonical suite | `pytest -q` (project defaults) | **3,053 passed**, 45 skipped, 141 deselected, **0 failed** |
+| targeted | `pytest` over the **six named files** below | **111 passed, 22 skipped** — log `scratchpad/targeted_36453a0.log` |
+| canonical suite | `pytest -q` (project defaults) | **3,062 passed**, 45 skipped, 141 deselected, **0 failed** |
 | lint | `ruff check src tests ../benchmarks` | **clean** |
 | format | `ruff format --check src tests` | **clean**, 516 files |
 | real workdirs deleted | namespace diffed before/after the suite | **0** |
 | verification build | §3 | succeeded |
+
+The **six named files** in the targeted row — the wildcard form quoted in
+revision 6 was not the selection that produced the result, it collects 286:
+
+```
+tests/test_windtunnel_runner.py  tests/test_structural.py
+tests/test_windtunnel_tools.py   tests/test_structural_runner_limits.py
+tests/test_purge.py              tests/test_structural_shutdown.py
+```
 
 **Each skip belongs to the command that produced it**, not to a carried-forward
 label:
@@ -94,16 +105,16 @@ unreviewed source.
 | | value |
 |---|---|
 | artifact | `tee-engine-0.30.1-local.mcpb` |
-| absolute path | `/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/66bb34fa-ea68-4af7-9b78-9a82a2737fc4/scratchpad/cand-f20c9ee/verification-artifacts/tee-engine-0.30.1-local.mcpb` |
-| bytes | 1,324,612 |
-| sha256 | `93fe0bfccead11f420c35885a06d92fd256cf6cffedfae04f68629a15d168025` |
+| absolute path | `/private/tmp/claude-501/-Users-john-TokenEfficiencyEngine/66bb34fa-ea68-4af7-9b78-9a82a2737fc4/scratchpad/cand-36453a0/verification-artifacts/tee-engine-0.30.1-local.mcpb` |
+| bytes | 1,326,506 |
+| sha256 | `19fd77764b4c138241df40cfb4a3634d56ec3576fdcbc80fc972ccf4e6d05e96` |
 | manifest `command` | `/Users/john/TokenEfficiencyEngine/server/.venv/bin/python` |
 | temporary export path in launch command | **none** |
 
 Payload comparison, which is the point rather than the ZIP write:
 
 - artifact runtime **== candidate source**, complete set and byte equality,
-  325 files, fingerprint `11bb1615…1cac1`;
+  325 files, fingerprint `cb2e5121…b3ca8`;
 - artifact vs accepted: 0 removed, 1 added, 19 changed.
 
 Resources, usage skill and wrapper inputs checked separately against the
@@ -149,12 +160,25 @@ back 35 registered tools the earlier candidate had lost.
 
 ### Tool-response contract
 
-`wt_status` may now return `stop_failed` (bool) and `identity` (a short string,
-only when a live process cannot be identified), plus a `note` when a recorded
-cancellation is contradicted by a live process. No new tool, nothing removed,
-the 17 always-loaded unchanged. Small strings on an already digest-bounded
-response, so no measurable token change — and `orphan` now replaces `cancelled`
-in the one case where the old answer was simply wrong.
+`wt_status` may now return `stop_failed`, `identity`, `stop_recovered` and a
+`note`, and a new `unverified` state; `wt_case action=stop` may raise
+**`wt_stop_failed`** or **`wt_identity_unknown`**. No new tool, nothing removed,
+the 17 always-loaded schemas unchanged.
+
+**Revision 6 claimed "no measurable token change". That was wrong.** Measured
+with `json.dumps(..., sort_keys=True)` and TEE's own `estimate_tokens`, over one
+`wt_status` payload with fixed ids and no adapter attached:
+
+| response | before | after | delta |
+|---|---|---:|---:|
+| normal running run | unchanged | 30 → 30 | **0** |
+| failed stop | new field | 21 → 26 | **+5** |
+| unknown identity | `dead` → `unverified` + reason | 20 → 50 | **+30** |
+| stale cancelled / live orphan | `cancelled` → `orphan` + note | 21 → 74 | **+53** |
+
+The ordinary path is unchanged; the cost falls only where the old answer was
+wrong. **That is a justified price for truthful information, not a free one** —
+a bounded response is not an unchanged one.
 
 ## 5. Machine-local state, which no package carries
 
@@ -181,7 +205,7 @@ that different shape is selected.
 ## 6. Reproducing this exactly
 
 ```sh
-git archive f20c9ee | tar -x -C /tmp/cand
+git archive 36453a0 | tar -x -C /tmp/cand
 ln -s /Users/john/TokenEfficiencyEngine/server/.venv /tmp/cand/server/.venv
 cd /tmp/cand/server
 PYTHONPATH=/tmp/cand/server/src /Users/john/TokenEfficiencyEngine/server/.venv/bin/python \
