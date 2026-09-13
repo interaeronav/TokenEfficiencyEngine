@@ -469,6 +469,23 @@ _EXPLICIT: dict[str, str] = {
     "pipeline_adopt": "write-state",
     "trust_grant": "write-policy",
     "tee_trust": "read-session",
+    # A82: headless architectural documents, not a DCC scene or a code escape hatch.
+    "ak_status": "read-state",
+    "ak_guide": "read-state",
+    "ak_create": "write-artifacts",
+    "ak_edit": "write-artifacts",
+    "ak_query": "read-state",
+    "ak_undo": "write-artifacts",
+    "ak_import": "write-artifacts",
+    "ak_candidates": "read-extract",
+    "ak_promote": "write-artifacts",
+    "ak_export": "write-artifacts",
+    "ak_check": "read-compute",
+    "ak_open": "call-engine",
+    "ak_ifc_reference": "write-artifacts",
+    "ak_ifc_query": "read-extract",
+    "ak_ids": "read-compute",
+    "ak_federate": "write-artifacts",
 }
 
 
