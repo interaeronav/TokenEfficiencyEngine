@@ -408,6 +408,125 @@ reports `cancelled` and never checks. The orphan detector is gated by the state
 it exists to correct. Whether that is intended semantics is not mine to decide,
 so it is raised rather than changed.
 
+## 4d. Round four — the suite was deleting live directories
+
+The most serious finding of the campaign, and mine to answer twice over: it is a
+product defect, and I ran the amplifier six times today.
+
+### What was happening
+
+`purge._temp_workdirs()` globbed `tee-*` directories in
+`tempfile.gettempdir()` **and** a hard-coded `/tmp`, and admitted every match.
+`workdirs` is in `DEFAULT_CATEGORIES` and `older_than_days` defaults to **0.0**,
+so age was no protection either. `test_purge.py`'s fixture isolates the project
+`.tee` tree, but discovery never consults `project_root`, so three
+`confirm=True` tests swept the real machine. Codex lost its review export, its
+pytest log and a build in progress to exactly this.
+
+**The product asserted what it never checked.** The category description says
+these cost "nothing - these belong to processes that have exited"; the
+docstring said "the processes that made them are gone, so there is no registry
+to consult". Both were assumptions. The long-lived producers — the blender,
+fusion, godot and freecad adapters and the asset library — hold their `mkdtemp`
+directory open for the whole life of a running server.
+
+### Impact on this machine, stated factually
+
+I ran the full suite six times today, 13:04 to 14:10, against a **live TEE
+server (pid 23740) with Blender attached**. Each run executed those three
+confirmed sweeps. I did not record the temp namespace beforehand, so **I cannot
+claim nothing of the owner's was destroyed.** What I can state: the surviving
+bridge workdir is stamped 14:23, after my last run, which is consistent with it
+having been swept and recreated. I have not attempted to reconstruct or remove
+anything, and I claim no recovery.
+
+### The fix
+
+`kernel/workdirs.py` gives a workdir three states, asymmetric on purpose:
+
+| state | evidence | treatment |
+|---|---|---|
+| `active` | our marker, owner still running | keep |
+| `reclaimable` | our marker, owner provably gone | candidate |
+| `unverified` | no marker, unreadable, or ambiguous | **keep, and say so** |
+
+Only `reclaimable` is ever deleted. Legacy directories therefore stay forever —
+the correct trade, since their existence is not permission to delete them and a
+wrong deletion is unrecoverable. PID reuse is why the marker records the owner's
+**start time** as well as its pid: a recycled pid reads `unverified`, never
+`reclaimable`. Missing or unreadable evidence fails closed.
+
+Also: containment and symlink refusal (following one turns purge into arbitrary
+path deletion), a re-check of ownership and liveness **at deletion time** rather
+than trusting the dry-run snapshot, and withheld directories reported as `kept`
+with a reason — "unverified", never "orphaned".
+
+### Test isolation, two layers
+
+`test_purge.py` gets an autouse fixture pointing discovery at a root it owns.
+`conftest.py` gets a global autouse floor pointing every *other* test at an
+empty owned directory, so a test that never thought about purge finds nothing —
+a new test cannot forget. Patching `TMPDIR` would not have sufficed: `/tmp` is
+named in the source.
+
+Five regressions, every one on freshly created fixture-owned directories and
+never a real temp root: an outside sentinel **plus a `tee-`prefixed decoy**
+that must both survive a confirmed sweep; unverified-is-kept-and-not-called-
+orphaned; recycled pid; symlink not followed; and ownership re-checked between
+dry run and delete.
+
+### Proof on the real machine
+
+The canonical suite was run once, with the temp namespace recorded before and
+after:
+
+```
+directories REMOVED by the run : 0
+the two pre-existing live dirs : both present
+```
+
+### A second finding the fix exposed
+
+With the sweep no longer running, the suite's own leak is visible: adapter tests
+construct Blender/Fusion/Godot adapters that `mkdtemp` and never clean up, and a
+single run leaves **~330** `tee-*` directories behind. The destructive purge had
+been masking this. They now carry ownership markers, so once the pytest process
+exits they are legitimately `reclaimable` and a purge will collect them
+properly — but the leak itself is real and worth a decision.
+
+### Structural tests — my claim was false
+
+I said they exist nowhere and must be written or the gap accepted. They are
+committed on the local branch `codex/a84-reviewed-runtime` at `18666b3`.
+Verified first that that branch's `structural/` and `kernel/jobs.py` are
+byte-identical to this candidate, then recovered the three files **byte-
+identical to the branch**, with provenance, without merging it or touching
+current source.
+
+Against candidate source: **23 passed, 22 skipped** — more than the 11 the
+review extracted, because it took two of the three suites. All 22 skips are
+explicit real-engine gates (`openseespy`, `oofem`), so **native solver behaviour
+remains unverified here, and 23 checks are not structural engineering
+validation.**
+
+### Re-validation at the new identity
+
+A purge source change moves the payload, so nothing from round three is reused:
+
+| | value |
+|---|---|
+| candidate | `47765b7` |
+| payload fingerprint | `d792b3397cac5b7a2807ea2f28a0812542de7600ca139cb6de3360f2e8625864` |
+| files | 325 (was 324) |
+| vs accepted | 0 removed, **1 added** (`kernel/workdirs.py`), **17 changed** |
+| focused purge + structural | 40 passed, 22 skipped |
+| canonical full suite | **3,035 passed, 45 skipped, 141 deselected, 0 failed** |
+| `ruff check` / `ruff format --check` | clean / clean (516 files) |
+| artifact | 1,321,782 bytes, `c3690fa6…115b4`, interpreter permanent, payload byte-equal to source |
+
+The wind-tunnel orphan race passed in this run; its disposition in §4c stands
+unchanged, since one green run is not a disposition.
+
 ## 5. Remaining limitations
 
 - ~~Tests for the restored capabilities are still untracked.~~ **RESOLVED** —
@@ -427,9 +546,9 @@ so it is raised rather than changed.
 |---|---|
 | branch | `claude/token-efficiency-engine-5jv1dj` |
 | baseline | accepted A84, `0e172448…fb252f`, 324 files |
-| final candidate | `63d93083596803f3676cdb17e8d6fe4f6d682a68` |
-| candidate payload | `397261a2…7ed22`, 324 files — 0 removed, 0 added, **11 changed** vs accepted |
-| verification artifact | `5ada706c…01097`, 1,317,831 bytes, built isolated with the permanent interpreter — **not a deliverable** |
+| final candidate | `47765b7` (superseding `63d9308`; the purge fix moved the payload) |
+| candidate payload | `d792b339…25864`, 325 files — 0 removed, **1 added**, **17 changed** vs accepted |
+| verification artifact | `c3690fa6…115b4`, 1,321,782 bytes, built isolated with the permanent interpreter — **not a deliverable** |
 | declared version | `0.30.1` |
 | pushed | no |
 | working tree | still shared; other sessions' non-runtime work untouched |
