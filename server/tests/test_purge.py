@@ -281,23 +281,169 @@ def test_a_symlink_named_like_a_workdir_is_never_followed(
 
 
 def test_ownership_is_rechecked_at_deletion_not_trusted_from_the_dry_run(
-    state, fixture_owned_workdir_roots
+    state, fixture_owned_workdir_roots, monkeypatch
 ):
-    """A dry run is evidence for a decision, never a licence to delete later:
-    a workdir can be claimed by a live owner between the listing and the sweep."""
+    """A dry run is evidence for a decision, never a licence to delete later.
+
+    This has to change ownership INSIDE one confirmed call, between enumeration
+    and deletion. An earlier version of this test changed it between two
+    separate calls, which the second call's fresh enumeration catches on its
+    own - so it passed without the deletion-time recheck existing at all. GPT-6
+    caught that; the seam is injected here instead.
+    """
     from tee.kernel import workdirs
 
-    d = fixture_owned_workdir_roots / "tee-claimed-late"
+    d = fixture_owned_workdir_roots / "tee-claimed-mid-call"
     d.mkdir()
     (d / "payload").write_text("x")
     workdirs.claim(d)
     marker = json.loads((d / workdirs.MARKER).read_text())
     (d / workdirs.MARKER).write_text(json.dumps({**marker, "pid": 2**22}))
 
-    dry = purge({"categories": ["workdirs"]}, project_root=state)
-    assert [Path(i["path"]).name for i in dry["items"]] == ["tee-claimed-late"]
+    real_temp_workdirs = purge_mod._temp_workdirs
 
-    workdirs.claim(d)  # a live process takes it over after the dry run
+    def enumerate_then_someone_claims_it():
+        found = real_temp_workdirs()
+        workdirs.claim(d)  # a live process takes it over, after enumeration
+        return found
+
+    monkeypatch.setattr(purge_mod, "_temp_workdirs", enumerate_then_someone_claims_it)
+
+    done = purge({"categories": ["workdirs"], "confirm": True}, project_root=state)
+    assert done["removed"] == 0, "the recheck must refuse a workdir claimed mid-call"
+    assert d.is_dir()
+    assert any("running" in k.get("why_kept", "") for k in done["kept"])
+
+
+# -- the ownership marker must be complete before it licenses anything ------
+
+
+@pytest.mark.parametrize(
+    ("label", "marker"),
+    [
+        ("started missing", {"schema": "tee-workdir-v1", "pid": 2**22}),
+        ("started empty", {"schema": "tee-workdir-v1", "pid": 2**22, "started": ""}),
+        ("started blank", {"schema": "tee-workdir-v1", "pid": 2**22, "started": "   "}),
+        ("started an object", {"schema": "tee-workdir-v1", "pid": 2**22, "started": {"a": 1}}),
+        ("started a number", {"schema": "tee-workdir-v1", "pid": 2**22, "started": 17}),
+        ("pid is a bool", {"schema": "tee-workdir-v1", "pid": True, "started": "x"}),
+        ("pid oversized", {"schema": "tee-workdir-v1", "pid": 10**100, "started": "x"}),
+        ("pid negative", {"schema": "tee-workdir-v1", "pid": -1, "started": "x"}),
+        ("pid a string", {"schema": "tee-workdir-v1", "pid": "123", "started": "x"}),
+        ("schema wrong", {"schema": "something-else", "pid": 2**22, "started": "x"}),
+    ],
+)
+def test_an_incomplete_marker_never_licenses_a_deletion(
+    state, fixture_owned_workdir_roots, label, marker
+):
+    """A dead pid is a NECESSARY condition for reclaiming, never a sufficient
+    one. The first version of the validator returned `reclaimable` as soon as
+    the pid was gone, before it had looked at the rest of the record, so every
+    marker below used to license a deletion. An oversized pid did worse: it
+    raised OverflowError out of `os.kill` and aborted the whole purge.
+    """
+    d = fixture_owned_workdir_roots / "tee-incomplete"
+    d.mkdir()
+    (d / "payload").write_text("x")
+    (d / ".tee-workdir.json").write_text(json.dumps(marker))
+
+    dry = purge({"categories": ["workdirs"]}, project_root=state)
+    assert dry["candidates"] == 0, f"{label} must not be a candidate"
+    assert [k["state"] for k in dry["kept"]] == ["unverified"]
+
+    done = purge({"categories": ["workdirs"], "confirm": True}, project_root=state)
+    assert done["removed"] == 0, f"{label} must not be deleted"
+    assert d.is_dir()
+    assert (d / "payload").is_file()
+
+
+def test_a_symlinked_marker_is_not_evidence_about_this_directory(
+    state, tmp_path, fixture_owned_workdir_roots
+):
+    """`read_text()` follows a symlink, so a marker pointing at an external file
+    used to be accepted - and the DIRECTORY got deleted while the marker it
+    borrowed survived. purge's containment check validates the directory, not
+    the marker."""
+    from tee.kernel import workdirs
+
+    external = tmp_path / "outside" / "borrowed.json"
+    external.parent.mkdir(parents=True)
+    external.write_text(json.dumps({"schema": workdirs.SCHEMA, "pid": 2**22, "started": "x"}))
+
+    d = fixture_owned_workdir_roots / "tee-borrowed-marker"
+    d.mkdir()
+    (d / "payload").write_text("x")
+    (d / workdirs.MARKER).symlink_to(external)
+
+    assert workdirs.state_of(d)["state"] == workdirs.UNVERIFIED
     done = purge({"categories": ["workdirs"], "confirm": True}, project_root=state)
     assert done["removed"] == 0
-    assert d.is_dir(), "the deletion-time recheck must see the new owner"
+    assert d.is_dir() and (d / "payload").is_file()
+    assert external.is_file()
+
+
+def test_one_malformed_marker_does_not_abort_the_sweep(state, fixture_owned_workdir_roots):
+    """An OverflowError out of `os.kill` used to kill discovery for every
+    directory in the call, so a single bad record disabled the whole lane."""
+    from tee.kernel import workdirs
+
+    bad = fixture_owned_workdir_roots / "tee-bad"
+    bad.mkdir()
+    (bad / workdirs.MARKER).write_text(
+        json.dumps({"schema": workdirs.SCHEMA, "pid": 10**100, "started": "x"})
+    )
+    good = fixture_owned_workdir_roots / "tee-good"
+    good.mkdir()
+    (good / "payload").write_text("x")
+    workdirs.claim(good)
+    marker = json.loads((good / workdirs.MARKER).read_text())
+    (good / workdirs.MARKER).write_text(json.dumps({**marker, "pid": 2**22}))
+
+    done = purge({"categories": ["workdirs"], "confirm": True}, project_root=state)
+    assert done["removed"] == 1, "the good candidate must still be reclaimed"
+    assert not good.exists()
+    assert bad.is_dir(), "the malformed one is kept, not deleted and not fatal"
+
+
+def test_claim_refuses_to_write_a_marker_it_cannot_complete(tmp_path, monkeypatch):
+    """`claim()` used to write `started: ""` whenever the identity probe failed,
+    which manufactured a record that reads as `owner gone` the moment the pid
+    disappears. No identity means no marker."""
+    from tee.kernel import workdirs
+
+    d = tmp_path / "tee-unidentifiable"
+    d.mkdir()
+    monkeypatch.setattr(workdirs, "_proc_start", lambda pid: "")
+    workdirs.claim(d)
+
+    assert not (d / workdirs.MARKER).exists(), "an incomplete marker must not be written"
+    assert workdirs.state_of(d)["state"] == workdirs.UNVERIFIED
+
+
+def test_a_validly_exited_owner_is_still_reclaimed(state, fixture_owned_workdir_roots):
+    """The fix must not work by disabling cleanup. A real child process claims
+    a directory and exits; that, and only that, is reclaimable."""
+    import subprocess
+    import sys
+
+    from tee.kernel import workdirs
+
+    d = fixture_owned_workdir_roots / "tee-really-abandoned"
+    d.mkdir()
+    (d / "payload").write_text("x")
+    src = str(Path(workdirs.__file__).resolve().parents[3])
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f"import sys; sys.path.insert(0, {src!r});"
+            f" from tee.kernel.workdirs import claim; claim({str(d)!r})",
+        ],
+        check=True,
+    )
+    assert (d / workdirs.MARKER).is_file(), "the child must have written a real marker"
+    assert workdirs.state_of(d)["state"] == workdirs.RECLAIMABLE
+
+    done = purge({"categories": ["workdirs"], "confirm": True}, project_root=state)
+    assert done["removed"] == 1
+    assert not d.exists()

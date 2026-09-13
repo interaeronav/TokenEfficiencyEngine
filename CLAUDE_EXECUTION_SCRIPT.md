@@ -2026,3 +2026,47 @@ Never reproduce the failure by confirming a sweep of a real temp root. Every
 destructive reproduction uses freshly created, fixture-owned directories only.
 Do not attempt to reconstruct or remove unknown temp contents, and do not claim
 recovery that has not been verified.
+
+### W0 round four, addendum — the ownership validator itself fails open (GPT-6)
+
+GPT-6 accepted the test isolation, the recovered structural suites, the complete
+runtime payload and the local packaging approach at `47765b7`, and found the new
+validator wrong in exactly the way it was written to prevent. Reproduced here
+before accepting; all four hold.
+
+1. **[P1] `state_of()` returns `reclaimable` before it validates the marker.**
+   The dead-pid branch returns first, so a marker whose `started` is missing,
+   empty, or not a string still admits the directory for deletion — and
+   `claim()` itself writes `started: ""` whenever `_proc_start()` cannot read an
+   identity, so TEE manufactures its own fail-open. Require a complete, valid
+   marker BEFORE any reclaimable return: a non-empty string identity, schema
+   checked, required fields present.
+2. **[P1] The marker is read through a symlink.** `marker.read_text()` follows
+   one, so a directory whose `.tee-workdir.json` points at an external marker is
+   accepted and deleted. `purge._contained()` validates the DIRECTORY, not the
+   marker. Require a regular, non-symlink marker file.
+3. **[P2] A malformed pid aborts the whole purge.** `isinstance(pid, int)`
+   admits `10**100`; `os.kill` then raises `OverflowError`, which is not an
+   `OSError` and is not caught, so one bad marker kills discovery for every
+   directory in the call. `isinstance` also admits `True`. Exclude booleans,
+   validate the type, and treat an unrepresentable or otherwise undeterminable
+   probe as `unverified` — never as evidence of exit. Keep the handling narrow
+   enough that real defects still surface.
+4. **Regressions at the deletion boundary.** Cover missing/empty/wrong-type
+   `started`, a symlinked marker, oversized and boolean pids, a live owner, a
+   validly exited owner, and pid reuse — through BOTH dry run and confirmed
+   purge, each reported as kept with no exception and no removal. Keep the
+   outside sentinel and the prefix decoy, and keep both isolation layers.
+   **The existing late-claim test does not prove what it claims:** it changes
+   ownership between two separate calls, which fresh enumeration catches on its
+   own. Inject the change at the enumeration seam, inside ONE confirmed call,
+   and assert the directory is kept with a reason.
+
+A source fix invalidates `d792b339…`: recompute the manifest, rebuild the
+artifact isolated with the permanent interpreter, and record an ABSOLUTE
+artifact path with its size and hash. Reconcile both documents onto one
+candidate — bind every result to the source that produced it, carry the full
+commit id and fingerprint in the current identity table, replace the stale
+"structural has no tests" limitation with the native-engine one, and attribute
+each skip to the command that produced it. Propose a PROGRESS entry rather than
+writing one: GPT-6 owns the shared ledger.

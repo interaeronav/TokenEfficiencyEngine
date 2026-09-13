@@ -28,6 +28,7 @@ cannot prove the owner is gone) rather than `reclaimable`.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import subprocess
@@ -66,15 +67,28 @@ def _proc_start(pid: int) -> str:
         return ""
 
 
-def _alive(pid: int) -> bool:
+def _alive(pid: int) -> bool | None:
+    """True alive, False provably gone, **None cannot tell**.
+
+    The third value is the whole point. An earlier version returned a bool and
+    folded "cannot tell" into "alive", which reads safe but is not: the caller
+    then had no way to distinguish a proven exit from a failed probe, and a
+    failed probe must never license a deletion.
+
+    `OverflowError` is why this is not just `except OSError`. A marker naming
+    10**100 makes `os.kill` raise it, and it is NOT an OSError - so one
+    malformed marker used to abort discovery for every directory in the call.
+    """
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
-        return False
-    except PermissionError:  # exists, owned by someone else
-        return True
+        return False  # the only proof of exit we accept
+    except PermissionError:
+        return True  # exists, owned by someone else
+    except (OverflowError, ValueError):
+        return None  # unrepresentable pid: cannot tell, so do not guess
     except OSError:
-        return True  # cannot tell -> assume alive, fail closed
+        return None  # cannot tell
     return True
 
 
@@ -84,52 +98,95 @@ def claim(path: str | Path) -> Path:
     is safe. Never let bookkeeping break the lane that needed the directory.
     """
     target = Path(path)
-    try:
-        pid = os.getpid()
+    pid = os.getpid()
+    started = _proc_start(pid)
+    if not started:
+        # No identity means no provable ownership. Writing the marker anyway
+        # would create a record that later reads as "owner gone" the moment the
+        # pid disappears, which is TEE manufacturing its own fail-open. Leave
+        # the directory unmarked: unverified forever is the safe end.
+        return target
+    with contextlib.suppress(OSError):
         (target / MARKER).write_text(
             json.dumps(
                 {
                     "schema": SCHEMA,
                     "pid": pid,
-                    "started": _proc_start(pid),
+                    "started": started,
                     "argv0": os.path.basename(sys.argv[0]) if sys.argv else "",
                 }
             )
         )
-    except OSError:
-        pass
     return target
 
 
 def state_of(path: str | Path) -> dict[str, Any]:
-    """`{state, reason, pid?}` for one candidate directory. Fails closed."""
+    """`{state, reason, pid?}` for one candidate directory. Fails closed.
+
+    ORDER MATTERS, and getting it wrong is how the first version fell over: it
+    returned `reclaimable` as soon as the pid was gone, BEFORE it had validated
+    the rest of the marker. A record with no `started`, an empty one, or an
+    object where a string belongs therefore licensed a deletion. The marker is
+    now validated COMPLETELY before any reclaimable return - a dead pid is a
+    necessary condition, never a sufficient one.
+    """
     target = Path(path)
     marker = target / MARKER
+
+    # A symlinked marker is not evidence about THIS directory: it is evidence
+    # about wherever it points, which an attacker or an accident chooses. The
+    # containment check in purge validates the directory, not the marker.
+    try:
+        if marker.is_symlink() or not marker.is_file():
+            if marker.is_symlink():
+                return {"state": UNVERIFIED, "reason": "ownership marker is a symlink"}
+            return {"state": UNVERIFIED, "reason": "no TEE ownership marker"}
+    except OSError:
+        return {"state": UNVERIFIED, "reason": "ownership marker unreadable"}
+
     try:
         raw = json.loads(marker.read_text())
-    except FileNotFoundError:
-        return {"state": UNVERIFIED, "reason": "no TEE ownership marker"}
     except (OSError, ValueError):
         return {"state": UNVERIFIED, "reason": "ownership marker unreadable"}
     if not isinstance(raw, dict) or raw.get("schema") != SCHEMA:
         return {"state": UNVERIFIED, "reason": "ownership marker not recognised"}
+
+    # `type(...) is int` rather than isinstance: bool is a subclass of int, and
+    # `pid: true` would otherwise probe pid 1.
     pid = raw.get("pid")
-    if not isinstance(pid, int) or pid <= 0:
-        return {"state": UNVERIFIED, "reason": "ownership marker names no pid"}
-    if not _alive(pid):
+    if type(pid) is not int or pid <= 0:
+        return {"state": UNVERIFIED, "reason": "ownership marker names no usable pid"}
+
+    # The recorded identity must be complete BEFORE liveness is consulted.
+    started = raw.get("started")
+    if not isinstance(started, str) or not started.strip():
+        return {
+            "state": UNVERIFIED,
+            "reason": "ownership marker records no process identity",
+            "pid": pid,
+        }
+
+    alive = _alive(pid)
+    if alive is None:
+        return {
+            "state": UNVERIFIED,
+            "reason": f"pid {pid} could not be probed; exit is not established",
+            "pid": pid,
+        }
+    if not alive:
         return {"state": RECLAIMABLE, "reason": f"owner pid {pid} is gone", "pid": pid}
+
     # The pid exists. Only a matching start time proves it is still OUR owner
     # and not a recycled number.
-    recorded = raw.get("started") or ""
     current = _proc_start(pid)
-    if recorded and current and recorded == current:
-        return {"state": ACTIVE, "reason": f"owner pid {pid} is running", "pid": pid}
-    if not recorded or not current:
+    if not current:
         return {
             "state": UNVERIFIED,
             "reason": f"pid {pid} exists and its identity cannot be confirmed",
             "pid": pid,
         }
+    if current == started:
+        return {"state": ACTIVE, "reason": f"owner pid {pid} is running", "pid": pid}
     return {
         "state": UNVERIFIED,
         "reason": f"pid {pid} was recycled; the original owner cannot be proven gone",
