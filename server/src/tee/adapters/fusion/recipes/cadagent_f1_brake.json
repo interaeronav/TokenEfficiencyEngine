@@ -1,0 +1,629 @@
+{
+  "topic": "cadagent_f1_brake",
+  "title": "F1-inspired disc with sixty radial cooling channels in staggered rows",
+  "intent": "Cut two independently driven radial channel seeds through an annulus, pattern their feature history into staggered rows, then change both diameters and verify the void geometry and the shifted centre of mass.",
+  "provenance": {
+    "kind": "original instructional geometry",
+    "source": "https://www.brembo.com/en/motorsport/formula1/ventilation-holes",
+    "accessed": "2026-09-10",
+    "source_supports": "Brembo describes radial internal ventilation channels, their progression from a single row to multiple rows, and the thermal/structural trade-off. Real discs have used hundreds and then over a thousand channels.",
+    "authored": "All dimensions, sixty-channel count, two-row layout, circular cross-sections, stagger and revision values here are authored for this lesson. They are not Brembo or team CAD and establish no current regulation compliance."
+  },
+  "ops": [
+    {
+      "op": "create",
+      "kind": "param",
+      "name": "A79B_channel_A",
+      "props": {
+        "value": "6 mm",
+        "units": "mm"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "param",
+      "name": "A79B_channel_B",
+      "props": {
+        "value": "6 mm",
+        "units": "mm"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "Brake disc outer stock",
+      "props": {
+        "plane": "XY",
+        "circles": [
+          [
+            0,
+            0,
+            140.0
+          ]
+        ]
+      },
+      "as": "stock"
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "name": "Authored ventilated annulus",
+      "props": {
+        "sketch": "@stock",
+        "distance": 28.0
+      },
+      "as": "disc"
+    },
+    {
+      "op": "create",
+      "kind": "hole",
+      "name": "Disc inner clearance",
+      "props": {
+        "body": "@disc",
+        "face": "+z",
+        "at": [
+          0,
+          0
+        ],
+        "diameter": 180.0,
+        "through": true
+      },
+      "as": "clearance"
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "Row A radial-channel seed",
+      "props": {
+        "plane": "YZ",
+        "circles": [
+          [
+            -7,
+            0,
+            3
+          ]
+        ],
+        "dims": [
+          {
+            "type": "diameter",
+            "of": [
+              "c0"
+            ],
+            "expression": "A79B_channel_A"
+          }
+        ]
+      },
+      "as": "row_a"
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "name": "Row A radial passage",
+      "props": {
+        "sketch": "@row_a",
+        "distance": 150,
+        "operation": "cut"
+      },
+      "as": "cut_a"
+    },
+    {
+      "op": "create",
+      "kind": "circular_pattern",
+      "name": "Thirty row A radial passages",
+      "props": {
+        "features": [
+          "@cut_a.feature"
+        ],
+        "axis": "z",
+        "count": 30,
+        "angle": 360
+      },
+      "as": "channels_a"
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "Row B radial-channel seed",
+      "props": {
+        "plane": "XZ",
+        "circles": [
+          [
+            0,
+            -21,
+            3
+          ]
+        ],
+        "dims": [
+          {
+            "type": "diameter",
+            "of": [
+              "c0"
+            ],
+            "expression": "A79B_channel_B"
+          }
+        ]
+      },
+      "as": "row_b"
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "name": "Row B radial passage",
+      "props": {
+        "sketch": "@row_b",
+        "distance": 150,
+        "operation": "cut"
+      },
+      "as": "cut_b"
+    },
+    {
+      "op": "create",
+      "kind": "circular_pattern",
+      "name": "Thirty row B radial passages",
+      "props": {
+        "features": [
+          "@cut_b.feature"
+        ],
+        "axis": "z",
+        "count": 30,
+        "angle": 360
+      },
+      "as": "channels_b"
+    },
+    {
+      "op": "set",
+      "id": "@stock",
+      "props": {
+        "visible": false
+      }
+    },
+    {
+      "op": "set",
+      "id": "@row_a",
+      "props": {
+        "visible": false
+      }
+    },
+    {
+      "op": "set",
+      "id": "@row_b",
+      "props": {
+        "visible": false
+      }
+    }
+  ],
+  "expected": {
+    "bodies": 1,
+    "components": 0,
+    "features": 6,
+    "bbox_mm": [
+      280.0,
+      280.0,
+      28.0
+    ],
+    "min_mm": [
+      -140.0,
+      -140.0,
+      0
+    ],
+    "max_mm": [
+      140.0,
+      140.0,
+      28.0
+    ],
+    "volume_mm3": 926762.2571630095,
+    "centre_of_mass_mm": [
+      0,
+      0,
+      14.0
+    ],
+    "stock_volume_mm3": 1011592.8344559134,
+    "removed_volume_mm3": 84830.57729290391,
+    "inner_void_cylinder_count": 60,
+    "rows": [
+      {
+        "row": "A",
+        "count": 30,
+        "diameter_mm": 6,
+        "radius_mm": 3.0,
+        "centre_height_mm": 7.0,
+        "seed_angle_deg": 0.0,
+        "angles_deg": [
+          0.0,
+          12.0,
+          24.0,
+          36.0,
+          48.0,
+          60.0,
+          72.0,
+          84.0,
+          96.0,
+          108.0,
+          120.0,
+          132.0,
+          144.0,
+          156.0,
+          168.0,
+          180.0,
+          192.0,
+          204.0,
+          216.0,
+          228.0,
+          240.0,
+          252.0,
+          264.0,
+          276.0,
+          288.0,
+          300.0,
+          312.0,
+          324.0,
+          336.0,
+          348.0
+        ],
+        "undirected_axis_angles_deg": [
+          0.0,
+          12.0,
+          24.0,
+          36.0,
+          48.0,
+          60.0,
+          72.0,
+          84.0,
+          96.0,
+          108.0,
+          120.0,
+          132.0,
+          144.0,
+          156.0,
+          168.0
+        ],
+        "faces_per_undirected_axis": 2,
+        "centreline_radial_interval_mm": [
+          90.0,
+          140.0
+        ],
+        "centreline_length_mm": 50.0,
+        "wall_generator_length_range_mm": [
+          50.0,
+          50.017867348751224
+        ],
+        "removed_volume_per_channel_mm3": 1413.8429548817319
+      },
+      {
+        "row": "B",
+        "count": 30,
+        "diameter_mm": 6,
+        "radius_mm": 3.0,
+        "centre_height_mm": 21.0,
+        "seed_angle_deg": 90.0,
+        "angles_deg": [
+          6.0,
+          18.0,
+          30.0,
+          42.0,
+          54.0,
+          66.0,
+          78.0,
+          90.0,
+          102.0,
+          114.0,
+          126.0,
+          138.0,
+          150.0,
+          162.0,
+          174.0,
+          186.0,
+          198.0,
+          210.0,
+          222.0,
+          234.0,
+          246.0,
+          258.0,
+          270.0,
+          282.0,
+          294.0,
+          306.0,
+          318.0,
+          330.0,
+          342.0,
+          354.0
+        ],
+        "undirected_axis_angles_deg": [
+          6.0,
+          18.0,
+          30.0,
+          42.0,
+          54.0,
+          66.0,
+          78.0,
+          90.0,
+          102.0,
+          114.0,
+          126.0,
+          138.0,
+          150.0,
+          162.0,
+          174.0
+        ],
+        "faces_per_undirected_axis": 2,
+        "centreline_radial_interval_mm": [
+          90.0,
+          140.0
+        ],
+        "centreline_length_mm": 50.0,
+        "wall_generator_length_range_mm": [
+          50.0,
+          50.017867348751224
+        ],
+        "removed_volume_per_channel_mm3": 1413.8429548817319
+      }
+    ],
+    "row_stagger_deg": 6,
+    "rim_cylinders": [
+      {
+        "radius_mm": 90.0,
+        "inner": true
+      },
+      {
+        "radius_mm": 140.0,
+        "inner": false
+      }
+    ],
+    "volume_formula": "pi*(140^2-90^2)*28 - 30*(V(dA/2)+V(dB/2))",
+    "channel_volume_formula": "V(r)=4*r^2*integral(t=0..pi/2, cos(t)^2*(sqrt(140^2-r^2*sin(t)^2)-sqrt(90^2-r^2*sin(t)^2)))",
+    "oracle_evaluation": "Composite Simpson integration after s=r*sin(t), 8192 panels; 4096-panel agreement better than 1e-8 mm3 per channel. The integral is the exact curved-rim intersection, its numeric evaluation is approximate.",
+    "volume_tolerance_mm3": 0.1,
+    "measurement_accuracy": {
+      "fusion": "getPhysicalProperties(CalculationAccuracy.VeryHighCalculationAccuracy)",
+      "step": "BRepGProp.VolumeProperties_s(shape, props, Eps=1e-10)",
+      "reason": "The default non-adaptive OCCT integral missed this exact curved-rim volume by 11.51 mm3 initially and 47.84 mm3 after revision in the independent constructed-solid probe. Adaptive integration agreed with the analytic oracle within 0.000061 mm3. A tighter check needs a tighter measurement."
+    }
+  },
+  "check": "Preflight, then run creation once in a separate empty parametric document. Measure one solid, six healthy features, the stock bounds and analytic volume. Identify exactly sixty reversed cylindrical faces of radius 3 mm at z=7/z21 with thirty directions per row and 6-degree stagger. Read the actual sketch circle world centres and cylinder axes: API-created YZ sketch local(-7,0) must be world(0,0,7); XZ local(0,-21) must be world(0,0,21). The two seeds cut along +x and +y. Opposite radial passages share the same infinite cylinder axis, so expect two faces per undirected axis; the channel mouths must open at both the 90 mm and 140 mm rims. Export STEP, independently measure it, reopen F3D and repeat the checks.",
+  "revision": {
+    "ops": [
+      {
+        "op": "param_set",
+        "name": "A79B_channel_A",
+        "expression": "7 mm"
+      },
+      {
+        "op": "param_set",
+        "name": "A79B_channel_B",
+        "expression": "8 mm"
+      }
+    ],
+    "expected": {
+      "bodies": 1,
+      "components": 0,
+      "features": 6,
+      "bbox_mm": [
+        280.0,
+        280.0,
+        28.0
+      ],
+      "min_mm": [
+        -140.0,
+        -140.0,
+        0
+      ],
+      "max_mm": [
+        140.0,
+        140.0,
+        28.0
+      ],
+      "volume_mm3": 878448.8535736335,
+      "centre_of_mass_mm": [
+        0,
+        0,
+        13.859143874270984
+      ],
+      "stock_volume_mm3": 1011592.8344559134,
+      "removed_volume_mm3": 133143.98088227992,
+      "inner_void_cylinder_count": 60,
+      "rows": [
+        {
+          "row": "A",
+          "count": 30,
+          "diameter_mm": 7,
+          "radius_mm": 3.5,
+          "centre_height_mm": 7.0,
+          "seed_angle_deg": 0.0,
+          "angles_deg": [
+            0.0,
+            12.0,
+            24.0,
+            36.0,
+            48.0,
+            60.0,
+            72.0,
+            84.0,
+            96.0,
+            108.0,
+            120.0,
+            132.0,
+            144.0,
+            156.0,
+            168.0,
+            180.0,
+            192.0,
+            204.0,
+            216.0,
+            228.0,
+            240.0,
+            252.0,
+            264.0,
+            276.0,
+            288.0,
+            300.0,
+            312.0,
+            324.0,
+            336.0,
+            348.0
+          ],
+          "undirected_axis_angles_deg": [
+            0.0,
+            12.0,
+            24.0,
+            36.0,
+            48.0,
+            60.0,
+            72.0,
+            84.0,
+            96.0,
+            108.0,
+            120.0,
+            132.0,
+            144.0,
+            156.0,
+            168.0
+          ],
+          "faces_per_undirected_axis": 2,
+          "centreline_radial_interval_mm": [
+            90.0,
+            140.0
+          ],
+          "centreline_length_mm": 50.0,
+          "wall_generator_length_range_mm": [
+            50.0,
+            50.024324467837744
+          ],
+          "removed_volume_per_channel_mm3": 1924.4594381201914
+        },
+        {
+          "row": "B",
+          "count": 30,
+          "diameter_mm": 8,
+          "radius_mm": 4.0,
+          "centre_height_mm": 21.0,
+          "seed_angle_deg": 90.0,
+          "angles_deg": [
+            6.0,
+            18.0,
+            30.0,
+            42.0,
+            54.0,
+            66.0,
+            78.0,
+            90.0,
+            102.0,
+            114.0,
+            126.0,
+            138.0,
+            150.0,
+            162.0,
+            174.0,
+            186.0,
+            198.0,
+            210.0,
+            222.0,
+            234.0,
+            246.0,
+            258.0,
+            270.0,
+            282.0,
+            294.0,
+            306.0,
+            318.0,
+            330.0,
+            342.0,
+            354.0
+          ],
+          "undirected_axis_angles_deg": [
+            6.0,
+            18.0,
+            30.0,
+            42.0,
+            54.0,
+            66.0,
+            78.0,
+            90.0,
+            102.0,
+            114.0,
+            126.0,
+            138.0,
+            150.0,
+            162.0,
+            174.0
+          ],
+          "faces_per_undirected_axis": 2,
+          "centreline_radial_interval_mm": [
+            90.0,
+            140.0
+          ],
+          "centreline_length_mm": 50.0,
+          "wall_generator_length_range_mm": [
+            50.0,
+            50.03177830433111
+          ],
+          "removed_volume_per_channel_mm3": 2513.673257955807
+        }
+      ],
+      "row_stagger_deg": 6,
+      "rim_cylinders": [
+        {
+          "radius_mm": 90.0,
+          "inner": true
+        },
+        {
+          "radius_mm": 140.0,
+          "inner": false
+        }
+      ],
+      "volume_formula": "pi*(140^2-90^2)*28 - 30*(V(dA/2)+V(dB/2))",
+      "channel_volume_formula": "V(r)=4*r^2*integral(t=0..pi/2, cos(t)^2*(sqrt(140^2-r^2*sin(t)^2)-sqrt(90^2-r^2*sin(t)^2)))",
+      "oracle_evaluation": "Composite Simpson integration after s=r*sin(t), 8192 panels; 4096-panel agreement better than 1e-8 mm3 per channel. The integral is the exact curved-rim intersection, its numeric evaluation is approximate.",
+      "volume_tolerance_mm3": 0.1,
+      "measurement_accuracy": {
+        "fusion": "getPhysicalProperties(CalculationAccuracy.VeryHighCalculationAccuracy)",
+        "step": "BRepGProp.VolumeProperties_s(shape, props, Eps=1e-10)",
+        "reason": "The default non-adaptive OCCT integral missed this exact curved-rim volume by 11.51 mm3 initially and 47.84 mm3 after revision in the independent constructed-solid probe. Adaptive integration agreed with the analytic oracle within 0.000061 mm3. A tighter check needs a tighter measurement."
+      }
+    },
+    "check": "In the same design, revise the two named parameters. Row A becomes thirty radius 3.5 mm void cylinders at z=7; row B becomes thirty radius 4 mm void cylinders at z=21. The diameter dimensions retain their parameter expressions. All six features stay healthy, bounds and channel directions stay fixed, removed volume rises, and centre of mass shifts below z14 because the upper row loses more stock. Verify the analytic volume and centre of mass, then repeat both export round trips."
+  },
+  "exports": [
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "step",
+        "out": "/absolute/output/cadagent_f1_brake.step"
+      }
+    },
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "f3d",
+        "out": "/absolute/output/cadagent_f1_brake.f3d"
+      }
+    }
+  ],
+  "export_evidence": {
+    "fusion_version": "2705.1.15",
+    "native_f3d_reopen": "passed; editable features and drivers retained",
+    "revised_fusion_step_volume_error_mm3": 12.8021874967,
+    "revised_fusion_step_exact_volume_match": false,
+    "exact_volume_tolerance_mm3": 0.1,
+    "finding": "Fusion STEP approximates the curved channel mouths. All sixty passages remain, but the revised export fails the unchanged analytic volume gate. Keep its approximate verdict separate from the passing native model.",
+    "independent_reference": "benchmarks/fixtures/build_f1_brake_reference.py rebuilds the authored dimensions using OCCT and checks every channel's shared-edge adjacency to both rims, volume and centre of mass after STEP readback. Run with the partkiln sidecar Python and --recipe PATH --out NEW_DIRECTORY. This is a separate ideal reference, never a repaired Fusion export."
+  },
+  "lessons": [
+    "A ventilation passage is radial and inside the disc. Axial perforations through the friction faces would be a different geometry and do not demonstrate this source's mechanism.",
+    "The circle is drawn in a root plane through the empty central opening; a 150 mm one-sided cut reaches beyond the 140 mm outer rim. No hole is started on a curved face, which the typed hole tool does not support.",
+    "A 30-instance full circle has 12-degree pitch. Seeds on orthogonal axes differ by 90 degrees, or seven and a half pitches, creating a 6-degree row stagger with existing root-plane operations.",
+    "Parameterise the sketch diameter before cutting and pattern the cut feature. Each revision propagates through its own sketch, cut and 29 dependent copies.",
+    "The annular rims trim a channel obliquely. pi*r^2*(outer_radius-inner_radius) is only an approximation; use the stated intersection integral to check volume independently.",
+    "Count inner cylindrical faces and verify their axes, row heights and radial mouths. Overall volume alone cannot tell a radial channel from another void with the same volume.",
+    "Request high-accuracy Fusion physical properties and adaptive STEP mass integration. The default OCCT volume overload uses exact surfaces but still approximates their integral; it measurably misses this check.",
+    "A precise integral of an approximate export is still the wrong geometry. Report the measured STEP volume error separately; retain the native F3D and original STEP, and label the independently rebuilt ideal reference."
+  ],
+  "limits": [
+    "This is a geometry lesson, not a brake design for manufacture, a thermal/structural simulation, or a validated carbon-carbon material model. No braking-performance or regulation-compliance claim follows from these solids.",
+    "The bell, floating attachment hardware, splines, caliper, pads, ducts and material assignment are omitted. Its central opening is a clearance boundary, not a completed mounting interface.",
+    "The count is deliberately reduced to sixty for a replayable lesson. Contemporary carbon-disc microchannel density and non-circular or curved passages are not reproduced.",
+    "The three sketch locations are authored numeric geometry; only the two channel diameters are driven. This lesson does not claim fully constrained sketches or a driven outside diameter/thickness.",
+    "Use an empty parametric root design with unused A79B_ parameter names. Cut operations intersect any body in their path; root-native pattern scope and no extra bodies are part of the setup.",
+    "Verify API sketch axes on the installed build before trusting the first seed. Sketch coordinates are local, and YZ/XZ labels do not mean local x/local y directly match the displayed world axes.",
+    "Aliases belong to the creation batch only; the revision uses stable parameter names. Replace /absolute/output with an existing absolute directory and export the whole design with no body-id of argument."
+  ]
+}

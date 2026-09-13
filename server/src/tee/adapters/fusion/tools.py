@@ -227,11 +227,34 @@ def register_fusion_tools(app: Any, adapter: FusionAdapter, docs_cache_dir=None)
             description=(
                 "Fusion bridge health: add-in reachable, Fusion version, the active document "
                 "and design type (parametric or direct), entity counts, the id map. Never "
-                "starts anything - the add-in is Fusion's to run."
+                "starts anything - the add-in is Fusion's to run. CADAgent shell/pattern "
+                "modelling: lane_guide(adapter='fusion', topic='cadagent'). Advanced enclosure, "
+                "flange, joint and F1 wing/brake/wishbone lessons: omit topic for the guide index."
             ),
             schema={"type": "object", "properties": {}},
             handler=probe,
-            tags=["fusion", "autodesk", "probe", "health", "bridge", "version", "document", "cad"],
+            tags=[
+                "fusion",
+                "autodesk",
+                "probe",
+                "health",
+                "bridge",
+                "version",
+                "document",
+                "cad",
+                "cadagent",
+                "shell",
+                "pattern",
+                "advanced",
+                "enclosure",
+                "flange",
+                "joint",
+                "f1",
+                "formula one",
+                "wing",
+                "brake",
+                "wishbone",
+            ],
             examples=[{}],
         ),
         VirtualTool(

@@ -28,11 +28,14 @@ keeps the map both ways. A listing prunes ids whose token no longer resolves.
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
 
 from tee.kernel.errors import TeeError
+
+from . import cadagent
 
 OPS = ("create", "set", "delete", "param_set", "import_file")
 KINDS = (
@@ -47,6 +50,7 @@ KINDS = (
     "chamfer",
     "revolve",
     "joint",
+    *cadagent.PROPS,
 )
 # A70 P2 (doc 71 section 10.2): a face is named by its outward normal.
 FACES = ("+x", "-x", "+y", "-y", "+z", "-z")
@@ -181,9 +185,11 @@ try:
             sid = "%s%d" % (prefix, n); _ids[sid] = token; _toks[token] = sid
         return sid
     def _forget(sid):
+        sid = _resolve(sid)
         token = _ids.pop(sid, None); _toks.pop(token, None); _kinds.pop(sid, None)
         _subs.pop(sid, None); _names.pop(sid, None)
     def _sub(skid, ref, index=-1):
+        skid = _resolve(skid, index)
         # a sketch-local address (doc 71 section 10.1): r0.bottom, l1.start, c0.center, p2, origin
         m = _subs.get(skid, {}); token = m.get(ref)
         if token is None:
@@ -287,7 +293,18 @@ try:
             b = _find(body, index)
         return adsk.fusion.JointGeometry.createByPlanarFace(
             _face(b, face, None, index), None, adsk.fusion.JointKeyPointTypes.CenterKeyPoint)
+    # Aliases belong to this request, never to the persistent document map.
+    _aliases = {}
+    def _resolve(sid, index=-1):
+        if isinstance(sid, str) and sid.startswith("@"):
+            value = _aliases.get(sid[1:])
+            if value is None:
+                raise _OpError(index, "no earlier alias %r in this batch" % sid,
+                               "fusion_unknown_alias")
+            return value
+        return sid
     def _find(sid, index=-1):
+        sid = _resolve(sid, index)
         if sid.startswith("param:"):
             p = _design.userParameters.itemByName(sid[6:])
             if p is None:
@@ -382,14 +399,25 @@ try:
 _BATCH_HEAD = """\
     created, modified, deleted, details = [], [], [], {}
     def _note(sid, kind, ent, parent=None):
+        sid = _resolve(sid)
+        parent = _resolve(parent) if parent else None
         row = {"name": _names.get(sid) or _name_of(kind, ent), "kind": _kinds.get(sid, kind)}
         if parent: row["parent"] = parent
         row.update(_summary(kind, ent)); details[sid] = row
     def _mark(sid, new):
+        sid = _resolve(sid)
         if new:
             if sid not in created: created.append(sid)
         elif sid not in created and sid not in modified:
             modified.append(sid)
+    def _alias_feature(name, feature, index):
+        # A feature can produce several solids. Never pick the first silently.
+        if feature.bodies.count != 1:
+            raise _OpError(index, "alias %r needs exactly one resulting body; use a single "
+                           "profile or read the returned body ids" % name, "fusion_alias_ambiguous")
+        body = feature.bodies.item(0)
+        _aliases[name] = _mint("b", body.entityToken)
+        _aliases[name + ".feature"] = _mint("f", feature.entityToken)
     def _mark_bodies(feature):
         for _i in range(feature.bodies.count):
             _b = feature.bodies.item(_i); _new = _b.entityToken not in _toks
@@ -430,13 +458,154 @@ def _bad(index: int, message: str, fix: str) -> TeeError:
 
 
 def _number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+# A78: one property vocabulary for host checks and compact lane guidance.
+_CREATE_PROPS = {
+    "sketch": {"plane", "rects", "circles", "lines", "points", "constraints", "dims"},
+    "extrude": {"sketch", "distance", "operation", "profile"},
+    "fillet": {"body", "radius", "edges"},
+    "component": set(),
+    "object": {"size"},  # legacy adapter-kit marker: no solid geometry is promised
+    "param": {"value", "units", "comment"},
+    "constraint": {"type", "sketch", "of"},
+    "dimension": {"type", "sketch", "of", "orientation", "expression", "text", "driving", "name"},
+    "hole": {
+        "type",
+        "diameter",
+        "cbore_diameter",
+        "cbore_depth",
+        "csink_diameter",
+        "csink_angle",
+        "point",
+        "body",
+        "face",
+        "at",
+        "through",
+        "depth",
+        "flip",
+    },
+    "chamfer": {"body", "distance", "edges"},
+    "revolve": {"sketch", "axis", "angle", "operation", "profile", "symmetric"},
+    "joint": {"one", "two", "motion", "axis", "slide", "angle", "offset", "flip"},
+}
+_ALIAS_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+_FEATURE_KINDS = {"extrude", "revolve", "fillet", "hole", "chamfer"}
+_FEATURE_KINDS.add("shell")
+# Patterns may affect many bodies. Their alias always addresses the feature.
+_PATTERN_KINDS = {"rectangular_pattern", "circular_pattern"}
+_CREATE_PROPS.update(cadagent.PROPS)
+_ALIAS_VARS = {
+    "sketch": "_sid",
+    "component": "_cid",
+    "param": "_pid",
+    "dimension": "_did",
+    "joint": "_jid",
+}
+
+
+def _unknown_props(
+    index: int, props: dict[str, Any], allowed: set[str] | tuple[str, ...], what: str
+) -> None:
+    extra = set(props) - set(allowed)
+    if extra:
+        raise _bad(
+            index,
+            f"Unknown {what} properties: {', '.join(sorted(extra))}",
+            f"Supported: {', '.join(sorted(allowed)) or 'none (a named empty component)'}. "
+            "lane_guide lists examples.",
+        )
+
+
+_REF_SHAPE = re.compile(
+    r"(?:[A-Za-z][A-Za-z0-9_:-]*|@[A-Za-z][A-Za-z0-9_]*(?:\.feature)?)"
+    r"(?:/[A-Za-z][A-Za-z0-9_.]*)?"
+)
+
+
+def _check_ref(index: int, value: Any, field: str) -> None:
+    if not isinstance(value, str) or not _REF_SHAPE.fullmatch(value):
+        raise _bad(
+            index,
+            f"{field} must be an entity-id/address string",
+            "Use a returned id such as sk1, a prior batch alias @profile, or a sketch "
+            "address @profile/r0.bl where supported. Never wrap the reference in a list/object.",
+        )
+
+
+def _entity_refs(op: dict[str, Any]) -> list[str]:
+    """Only address-bearing fields: literal names/expressions may contain @."""
+    props = op.get("props") or {}
+    values = [op.get("id")]
+    values.extend(props.get(k) for k in ("sketch", "body", "component", "point", "axis"))
+    for key in ("one", "two"):
+        side = props.get(key)
+        if isinstance(side, dict):
+            values.extend(side.get(k) for k in ("body", "component"))
+    if isinstance(props.get("of"), list):
+        values.extend(props["of"])
+    if isinstance(props.get("features"), list):
+        values.extend(props["features"])
+    return [v for v in values if isinstance(v, str) and v.startswith("@")]
+
+
+def _check_aliases(index: int, op: dict[str, Any], known: set[str]) -> None:
+    for ref in _entity_refs(op):
+        key = ref[1:].split("/", 1)[0]
+        if key not in known:
+            raise _bad(
+                index,
+                f"Alias {ref!r} is not defined by an earlier create in this batch",
+                (
+                    "Create with as:'profile', then reference '@profile'. "
+                    "Aliases do not survive a batch; never guess minted ids."
+                ),
+            )
+    if "as" not in op:
+        return
+    name = op["as"]
+    if op.get("op") != "create" or op.get("kind") == "constraint":
+        raise _bad(
+            index,
+            "as is only for creates that return an entity",
+            "A sketch constraint edits its sketch; alias the sketch instead.",
+        )
+    if not isinstance(name, str) or not _ALIAS_NAME.fullmatch(name):
+        raise _bad(
+            index,
+            "as needs a short letter-first alias",
+            "Use as:'profile' (letters, digits, underscores; no @).",
+        )
+    if name in known:
+        raise _bad(
+            index, f"Duplicate alias {name!r}", "Give each create its own alias within this batch."
+        )
+    known.add(name)
+    if op.get("kind") in _FEATURE_KINDS | _PATTERN_KINDS:
+        known.add(name + ".feature")
 
 
 def check_batch(ops: list[dict[str, Any]]) -> None:
     """Every refusal a script would have produced for a malformed op, raised
     here instead - no wire trip, no traceback (the Blender precedent)."""
+    if not isinstance(ops, list):
+        raise _bad(0, "ops must be a list", "Use [{op:'create',kind:'sketch',props:{...}}].")
+    aliases: set[str] = set()
     for index, op in enumerate(ops):
+        if not isinstance(op, dict):
+            raise _bad(index, "op must be an object", "Use {op,kind,name,props}.")
+        extra = set(op) - {"op", "kind", "name", "props", "id", "path", "expression", "as"}
+        if extra:
+            raise _bad(
+                index,
+                f"Unknown operation fields: {', '.join(sorted(extra))}",
+                "Use op, kind, name, props, id, path, expression or as.",
+            )
+        if "name" in op and (not isinstance(op["name"], str) or not op["name"].strip()):
+            raise _bad(
+                index, "name must be a nonempty string", "Use a descriptive name or omit name."
+            )
         action = str(op.get("op") or "")
         if action not in OPS:
             raise TeeError(
@@ -444,9 +613,14 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                 f"Unknown op '{action}' at batch index {index}.",
                 fix=f"Fusion accepts: {', '.join(OPS)}.",
             )
-        props = op.get("props") or {}
+        props = op.get("props", {})
         if not isinstance(props, dict):
             raise _bad(index, "props must be an object", "{op, kind, name, props: {...}}")
+        for field in ("sketch", "body", "component", "point", "axis"):
+            if field in props:
+                _check_ref(index, props[field], field)
+        if "name" in props and (not isinstance(props["name"], str) or not props["name"].strip()):
+            raise _bad(index, "props.name must be a nonempty string", "Use a descriptive name.")
         if action == "create":
             kind = str(op.get("kind") or "")
             if not kind or not kind.replace("_", "").isalnum():
@@ -455,10 +629,14 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                     f"A create needs a kind at batch index {index}.",
                     fix=f"Kinds: {', '.join(KINDS)}, or a plain word for a named component.",
                 )
+            _unknown_props(index, props, _CREATE_PROPS.get(kind, set()), kind)
             _check_create(index, kind, props)
         elif action in ("set", "delete"):
-            if not op.get("id"):
+            if action == "delete":
+                _unknown_props(index, props, (), action)
+            if not isinstance(op.get("id"), str) or not op["id"]:
                 raise _bad(index, f"{action} needs id", "tee_scene_summary lists ids")
+            _check_ref(index, op["id"], "id")
             if action == "set":
                 for key, value in props.items():
                     if key not in _SET_KEYS:
@@ -476,16 +654,34 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                         raise _bad(index, f"{key} is a number or an expression", '"30 deg"')
                     if key in ("rotation", "slide") and not _number(value):
                         raise _bad(index, f"{key} is a number", "rotation in deg, slide in mm")
-                    if key == "flipped" and not isinstance(value, bool):
-                        raise _bad(index, "flipped is true or false", '"flipped": true')
+                    if key in ("flipped", "visible", "suppressed") and not isinstance(value, bool):
+                        raise _bad(index, f"{key} is true or false", f'"{key}": true')
+                    if key == "expression" and (not isinstance(value, str) or not value.strip()):
+                        raise _bad(
+                            index, "expression must be a nonempty string", '"expression": "12 mm"'
+                        )
         elif action == "param_set":
+            if props:
+                raise _bad(
+                    index,
+                    "param_set takes top-level name and expression, not props",
+                    '{"op":"param_set","name":"width","expression":"120 mm"}; '
+                    "name is the parameter name without the param: prefix.",
+                )
             if not op.get("name") or op.get("expression") is None:
                 raise _bad(
                     index,
                     "param_set needs name and expression",
                     '{"op":"param_set","name":"width","expression":"120 mm"}',
                 )
+            if not isinstance(op["expression"], str) or not op["expression"].strip():
+                raise _bad(
+                    index,
+                    "param_set expression must be a nonempty string",
+                    '"expression": "12 mm" or "plate_t"',
+                )
         elif action == "import_file":
+            _unknown_props(index, props, {"scale"}, action)
             path = str(op.get("path") or "")
             ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
             if ext not in IMPORT_SUFFIXES:
@@ -496,6 +692,12 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                     "(obj/stl/glb) are not among them.",
                 )
             scale = props.get("scale")
+            if scale is not None and not _nums(scale, 3):
+                raise _bad(
+                    index,
+                    "scale must contain three finite numbers",
+                    "Drop scale: CAD files carry their own units.",
+                )
             if scale and any(abs(float(s) - 1.0) > 1e-9 for s in scale):
                 raise _bad(
                     index,
@@ -503,13 +705,16 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                     "Drop props.scale - STEP/IGES/SAT/f3d files declare their units.",
                 )
 
+        _check_aliases(index, op, aliases)
+
 
 def _nums(value: Any, n: int) -> bool:
     return isinstance(value, (list, tuple)) and len(value) == n and all(_number(v) for v in value)
 
 
 _ADDRESS = re.compile(
-    r"^(r\d+\.(bottom|top|left|right|bl|br|tl|tr)|l\d+(\.(start|end))?|c\d+(\.center)?|p\d+|origin)$"
+    "^(r\\d+\\.(bottom|top|left|right|bl|br|tl|tr)|l\\d+(\\.(start|end))?|c\\d+("
+    "\\.center)?|p\\d+|origin)$"
 )
 
 
@@ -560,6 +765,7 @@ def _refs(
 
 
 def _check_constraint(index: int, props: dict[str, Any], *, inline: bool) -> None:
+    _unknown_props(index, props, _CREATE_PROPS["constraint"], "constraint")
     ctype = str(props.get("type") or "")
     if ctype not in CONSTRAINTS:
         raise _bad(index, f"Unknown constraint type '{ctype}'", f"Types: {', '.join(CONSTRAINTS)}.")
@@ -567,6 +773,7 @@ def _check_constraint(index: int, props: dict[str, Any], *, inline: bool) -> Non
 
 
 def _check_dimension(index: int, props: dict[str, Any], *, inline: bool) -> None:
+    _unknown_props(index, props, _CREATE_PROPS["dimension"], "dimension")
     dtype = str(props.get("type") or "")
     if dtype not in DIMENSIONS:
         raise _bad(index, f"Unknown dimension type '{dtype}'", f"Types: {', '.join(DIMENSIONS)}.")
@@ -682,7 +889,7 @@ def _check_revolve(index: int, props: dict[str, Any]) -> None:
     if op not in OPERATIONS:
         raise _bad(index, f"Unknown operation '{op}'", f"Use: {', '.join(OPERATIONS)}.")
     profile = props.get("profile", "all")
-    if not (profile == "all" or (isinstance(profile, int) and profile >= 0)):
+    if not (profile == "all" or (type(profile) is int and profile >= 0)):
         raise _bad(index, "profile is 'all' or a profile index", 'e.g. "profile": 0')
 
 
@@ -695,6 +902,10 @@ def _check_joint(index: int, props: dict[str, Any]) -> None:
         side = props.get(which)
         if not isinstance(side, dict):
             raise _bad(index, f"A joint needs {which}: a side", example)
+        _unknown_props(index, side, {"component", "body", "face"}, f"joint {which}")
+        for field in ("body", "component"):
+            if field in side:
+                _check_ref(index, side[field], f"{which}.{field}")
         if not side.get("component") and not side.get("body"):
             raise _bad(
                 index,
@@ -719,6 +930,9 @@ def _check_joint(index: int, props: dict[str, Any]) -> None:
 
 
 def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
+    if kind in cadagent.PROPS:
+        cadagent.check(index, kind, props)
+        return
     if kind == "sketch":
         plane = str(props.get("plane") or "XY").upper()
         if plane not in PLANES:
@@ -786,7 +1000,7 @@ def _check_create(index: int, kind: str, props: dict[str, Any]) -> None:
         if op not in OPERATIONS:
             raise _bad(index, f"Unknown operation '{op}'", f"Use: {', '.join(OPERATIONS)}.")
         profile = props.get("profile", "all")
-        if not (profile == "all" or (isinstance(profile, int) and profile >= 0)):
+        if not (profile == "all" or (type(profile) is int and profile >= 0)):
             raise _bad(index, "profile is 'all' or a profile index", 'e.g. "profile": 0')
     elif kind == "fillet":
         radius = props.get("radius")
@@ -940,7 +1154,9 @@ def _emit_dimension(index: int, name: str | None, props: dict[str, Any]) -> list
     return lines
 
 
-def _emit_extrude(index: int, name: str, props: dict[str, Any]) -> list[str]:
+def _emit_extrude(
+    index: int, name: str, props: dict[str, Any], *, name_body: bool = False
+) -> list[str]:
     sketch = str(props["sketch"])
     distance = float(props["distance"])
     operation = OPERATIONS[str(props.get("operation") or "new_body")]
@@ -986,6 +1202,11 @@ def _emit_extrude(index: int, name: str, props: dict[str, Any]) -> list[str]:
             "        if _o.component.entityToken == _pc.entityToken:",
             '            _cid = _mint("c", _o.entityToken); _mark(_cid, True)',
             '            _note(_cid, "component", _o)',
+        ]
+    if name_body and operation in ("NewBodyFeatureOperation", "NewComponentFeatureOperation"):
+        lines += [
+            "    if _f.bodies.count == 1:",
+            f"        _f.bodies.item(0).name = {_lit(name)}",
         ]
     lines.append("    _mark_bodies(_f)")
     return lines
@@ -1217,6 +1438,8 @@ def _emit_create(index: int, op: dict[str, Any]) -> list[str]:
     kind = str(op.get("kind") or "")
     name = str(op.get("name") or f"{kind}{index}")
     props = dict(op.get("props") or {})
+    if kind in cadagent.PROPS:
+        return cadagent.emit(index, kind, name, props)
     if kind == "sketch":
         return _emit_sketch(index, name, props)
     if kind == "constraint":
@@ -1224,7 +1447,7 @@ def _emit_create(index: int, op: dict[str, Any]) -> list[str]:
     if kind == "dimension":
         return _emit_dimension(index, op.get("name"), props)
     if kind == "extrude":
-        return _emit_extrude(index, name, props)
+        return _emit_extrude(index, name, props, name_body=bool(op.get("name")))
     if kind == "fillet":
         return _emit_fillet(index, name, props)
     if kind == "hole":
@@ -1245,8 +1468,8 @@ def _emit_create(index: int, op: dict[str, Any]) -> list[str]:
 def _emit_set(index: int, op: dict[str, Any]) -> list[str]:
     sid = str(op["id"])
     lines = [
-        f"    _e = _find({_lit(sid)}, {index})",
-        f'    _k = "param" if {_lit(sid)}.startswith("param:") else _kind_of(_e)',
+        f"    _rid = _resolve({_lit(sid)}, {index}); _e = _find(_rid, {index})",
+        '    _k = "param" if _rid.startswith("param:") else _kind_of(_e)',
     ]
     for key, value in dict(op.get("props") or {}).items():
         if key == "name":
@@ -1318,7 +1541,7 @@ def _emit_delete(index: int, op: dict[str, Any]) -> list[str]:
         "    _ok = _e.deleteMe()",
         f"    if _ok is False: raise _OpError({index}, 'Fusion refused to delete %r' "
         f"% {_lit(sid)})",
-        f"    deleted.append({_lit(sid)}); _forget({_lit(sid)})",
+        f"    deleted.append(_resolve({_lit(sid)})); _forget({_lit(sid)})",
     ]
 
 
@@ -1366,6 +1589,17 @@ def compile_batch(ops: list[dict[str, Any]]) -> str:
         body.append(f"    # op {index}: {action}")
         if action == "create":
             body.extend(_emit_create(index, op))
+            alias = op.get("as")
+            if alias:
+                kind = str(op.get("kind"))
+                if kind in _PATTERN_KINDS:
+                    body.append(f"    _aliases[{_lit(alias)}] = _fid")
+                    body.append(f"    _aliases[{_lit(alias + '.feature')}] = _fid")
+                elif kind in _FEATURE_KINDS:
+                    body.append(f"    _alias_feature({_lit(alias)}, _f, {index})")
+                else:
+                    var = _ALIAS_VARS.get(kind, "_cid")
+                    body.append(f"    _aliases[{_lit(alias)}] = {var}")
         elif action == "set":
             body.extend(_emit_set(index, op))
         elif action == "delete":
@@ -1436,16 +1670,20 @@ SNAPSHOT_PROGRAM = (
     _tl = _design.timeline; _params = {}
     for _i in range(_design.allParameters.count):
         _p = _design.allParameters.item(_i); _params[str(_p.name)] = str(_p.expression)
-    result = {"marker": _tl.markerPosition, "count": _tl.count, "params": _params}
+    result = {"marker": _tl.markerPosition, "count": _tl.count, "params": _params,
+              "document_id": _dkey}
 """
     + _EPILOGUE
 )
 
 
-def restore_program(marker: int, params: dict[str, str]) -> str:
+def restore_program(marker: int, params: dict[str, str], document_id: str | None = None) -> str:
     return (
         _PRELUDE
         + f"""\
+    if {document_id is not None!r} and _dkey != {_lit(document_id)}:
+        raise _OpError(-1, "checkpoint belongs to another document; activate its original "
+                       "document before rollback", "fusion_checkpoint_document")
     _tl = _design.timeline
     if _tl.count > {int(marker)}:
         _tl.markerPosition = {int(marker)}; _tl.deleteAllAfterMarker()
@@ -1485,31 +1723,33 @@ def measure_program(of: str | None) -> str:
         _PRELUDE
         + f"""\
     _ent = {target}
+    # Explicit measurement pays for precision; compact scene summaries stay cheap.
+    # Rows 62-63: default properties and ordinary bounds can miss small geometry.
+    _accuracy = adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy
     if _ent.objectType.endswith("Occurrence"):
         # an occurrence is measured where it SITS: its bodies under occ.bRepBodies
         # are proxies in assembly context (rows 12, 47), so a joint that moved it
         # shows here - Component.physicalProperties would not move
         _bodies = [_ent.bRepBodies.item(_i) for _i in range(_ent.bRepBodies.count)]
         if not _bodies: raise _OpError(-1, "component %r has no bodies to measure" % {_lit(of)})
-        _vol = sum(float(b.physicalProperties.volume) for b in _bodies)
-        _area = sum(float(b.physicalProperties.area) for b in _bodies)
-        _mass = sum(float(b.physicalProperties.mass) for b in _bodies)
-        _cx = sum(float(b.physicalProperties.centerOfMass.x) * float(b.physicalProperties.mass)
-                  for b in _bodies)
-        _cy = sum(float(b.physicalProperties.centerOfMass.y) * float(b.physicalProperties.mass)
-                  for b in _bodies)
-        _cz = sum(float(b.physicalProperties.centerOfMass.z) * float(b.physicalProperties.mass)
-                  for b in _bodies)
+        _properties = [b.getPhysicalProperties(_accuracy) for b in _bodies]
+        _boxes = [b.preciseBoundingBox for b in _bodies]
+        _vol = sum(float(p.volume) for p in _properties)
+        _area = sum(float(p.area) for p in _properties)
+        _mass = sum(float(p.mass) for p in _properties)
+        _cx = sum(float(p.centerOfMass.x) * float(p.mass) for p in _properties)
+        _cy = sum(float(p.centerOfMass.y) * float(p.mass) for p in _properties)
+        _cz = sum(float(p.centerOfMass.z) * float(p.mass) for p in _properties)
         _m = _mass or 1.0
-        _lo = [min(float(getattr(b.boundingBox.minPoint, k)) for b in _bodies) for k in "xyz"]
-        _hi = [max(float(getattr(b.boundingBox.maxPoint, k)) for b in _bodies) for k in "xyz"]
+        _lo = [min(float(getattr(bb.minPoint, k)) for bb in _boxes) for k in "xyz"]
+        _hi = [max(float(getattr(bb.maxPoint, k)) for bb in _boxes) for k in "xyz"]
         result = {{"volume_mm3": round(_vol * 1000.0, 3), "area_mm2": round(_area * 100.0, 3),
                   "mass_kg": round(_mass, 6),
                   "centre_of_mass_mm": [_mm(_cx / _m), _mm(_cy / _m), _mm(_cz / _m)],
                   "bbox_mm": [_mm(_hi[i] - _lo[i]) for i in range(3)],
                   "bodies": len(_bodies), "of": {_lit(of or "root")}}}
     else:
-        _pp = _ent.physicalProperties; _bb = _ent.boundingBox
+        _pp = _ent.getPhysicalProperties(_accuracy); _bb = _ent.preciseBoundingBox
         result = {{"volume_mm3": round(float(_pp.volume) * 1000.0, 3),
                   "area_mm2": round(float(_pp.area) * 100.0, 3),
                   "mass_kg": round(float(_pp.mass), 6), "centre_of_mass_mm": _pt(_pp.centerOfMass),

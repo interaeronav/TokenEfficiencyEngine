@@ -1,0 +1,370 @@
+{
+  "topic": "cadagent_flange",
+  "title": "Revolved flanged hub with a driven bore and six mounting holes",
+  "intent": "Turn one closed stepped section into a coaxial solid; drill one central bore and one mounting seed; pattern the seed feature; revise two user parameters and measure every dependent hole.",
+  "ops": [
+    {
+      "op": "create",
+      "kind": "param",
+      "name": "A79F_bore_diameter",
+      "props": {
+        "value": "12 mm",
+        "units": "mm"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "param",
+      "name": "A79F_mount_diameter",
+      "props": {
+        "value": "6 mm",
+        "units": "mm"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "Flanged hub half section",
+      "as": "section",
+      "props": {
+        "plane": "XY",
+        "lines": [
+          [
+            0,
+            0,
+            32,
+            0
+          ],
+          [
+            32,
+            0,
+            32,
+            20
+          ],
+          [
+            32,
+            20,
+            8,
+            20
+          ],
+          [
+            8,
+            20,
+            8,
+            40
+          ],
+          [
+            8,
+            40,
+            0,
+            40
+          ],
+          [
+            0,
+            40,
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "op": "create",
+      "kind": "revolve",
+      "name": "Stepped hub revolution",
+      "as": "hub",
+      "props": {
+        "sketch": "@section",
+        "axis": "x",
+        "angle": 360,
+        "operation": "new_body"
+      }
+    },
+    {
+      "op": "set",
+      "id": "@hub",
+      "props": {
+        "name": "CADAgent driven flanged hub"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "hole",
+      "name": "Driven central bore",
+      "as": "bore",
+      "props": {
+        "body": "@hub",
+        "face": "+x",
+        "at": [
+          0,
+          0
+        ],
+        "diameter": 12,
+        "through": true
+      }
+    },
+    {
+      "op": "set",
+      "id": "@bore.feature",
+      "props": {
+        "expression": "A79F_bore_diameter"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "hole",
+      "name": "Driven mounting seed",
+      "as": "mount",
+      "props": {
+        "body": "@hub",
+        "face": "-x",
+        "at": [
+          30,
+          0
+        ],
+        "diameter": 6,
+        "through": true
+      }
+    },
+    {
+      "op": "set",
+      "id": "@mount.feature",
+      "props": {
+        "expression": "A79F_mount_diameter"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "circular_pattern",
+      "name": "Six mounting holes on 60 mm PCD",
+      "as": "mounts",
+      "props": {
+        "features": [
+          "@mount.feature"
+        ],
+        "axis": "x",
+        "count": 6,
+        "angle": 360
+      }
+    },
+    {
+      "op": "set",
+      "id": "@section",
+      "props": {
+        "visible": false
+      }
+    }
+  ],
+  "expected": {
+    "bodies": 1,
+    "components": 0,
+    "features": 4,
+    "bbox_mm": [
+      32,
+      80,
+      80
+    ],
+    "min_mm": [
+      0,
+      -40,
+      -40
+    ],
+    "max_mm": [
+      32,
+      40,
+      40
+    ],
+    "volume_mm3": 65395.392677125135,
+    "volume_formula": "pi * (40^2 * 8 + 20^2 * 24 - (12/2)^2 * 32 - 6 * (6/2)^2 * 8)",
+    "central_bore": {
+      "axis": "x",
+      "diameter_mm": 12,
+      "length_mm": 32,
+      "centre_yz_mm": [
+        0,
+        0
+      ]
+    },
+    "mount_holes": {
+      "axis": "x",
+      "count": 6,
+      "diameter_mm": 6,
+      "length_mm": 8,
+      "pitch_circle_diameter_mm": 60,
+      "centres_mm": [
+        [
+          0,
+          30,
+          0
+        ],
+        [
+          0,
+          15,
+          25.98076211353316
+        ],
+        [
+          0,
+          -15,
+          25.98076211353316
+        ],
+        [
+          0,
+          -30,
+          0
+        ],
+        [
+          0,
+          -15,
+          -25.98076211353316
+        ],
+        [
+          0,
+          15,
+          -25.98076211353316
+        ]
+      ]
+    },
+    "outer_cylinders": [
+      {
+        "axis": "x",
+        "radius_mm": 40,
+        "length_mm": 8
+      },
+      {
+        "axis": "x",
+        "radius_mm": 20,
+        "length_mm": 24
+      }
+    ]
+  },
+  "check": "Run lane_preflight on ops, then tee_batch(adapter='fusion', ops=ops) in a separate empty parametric design. Retain the actual body ID from the diff and use fu_measure(of=that ID), fu_design_stats and fu_params. Expect one solid, four healthy features, bbox [32,80,80] mm and volume 20816*pi mm3. Inspect cylindrical faces: the central bore is radius 6 mm; exactly six inner cylinders of radius 3 mm have the stated centres projected to the x=0 plane. This separates real drilled holes from outside cylindrical faces. Compare STEP readback against these analytic dimensions and volume.",
+  "revision": {
+    "ops": [
+      {
+        "op": "param_set",
+        "name": "A79F_bore_diameter",
+        "expression": "16 mm"
+      },
+      {
+        "op": "param_set",
+        "name": "A79F_mount_diameter",
+        "expression": "8 mm"
+      }
+    ],
+    "expected": {
+      "bodies": 1,
+      "components": 0,
+      "features": 4,
+      "bbox_mm": [
+        32,
+        80,
+        80
+      ],
+      "min_mm": [
+        0,
+        -40,
+        -40
+      ],
+      "max_mm": [
+        32,
+        40,
+        40
+      ],
+      "volume_mm3": 61524.95052790251,
+      "volume_formula": "pi * (40^2 * 8 + 20^2 * 24 - (16/2)^2 * 32 - 6 * (8/2)^2 * 8)",
+      "central_bore": {
+        "axis": "x",
+        "diameter_mm": 16,
+        "length_mm": 32,
+        "centre_yz_mm": [
+          0,
+          0
+        ]
+      },
+      "mount_holes": {
+        "axis": "x",
+        "count": 6,
+        "diameter_mm": 8,
+        "length_mm": 8,
+        "pitch_circle_diameter_mm": 60,
+        "centres_mm": [
+          [
+            0,
+            30,
+            0
+          ],
+          [
+            0,
+            15,
+            25.98076211353316
+          ],
+          [
+            0,
+            -15,
+            25.98076211353316
+          ],
+          [
+            0,
+            -30,
+            0
+          ],
+          [
+            0,
+            -15,
+            -25.98076211353316
+          ],
+          [
+            0,
+            15,
+            -25.98076211353316
+          ]
+        ]
+      },
+      "outer_cylinders": [
+        {
+          "axis": "x",
+          "radius_mm": 40,
+          "length_mm": 8
+        },
+        {
+          "axis": "x",
+          "radius_mm": 20,
+          "length_mm": 24
+        }
+      ]
+    },
+    "check": "Run the revision in the same document after creation. User parameter values must be 16 mm and 8 mm, with the original hole feature expressions still naming those parameters. The central bore must grow to radius 8 mm and all six mounting holes to radius 4 mm without creating or deleting a feature. Body bounds stay [32,80,80] mm and volume becomes 19584*pi mm3, a decrease of 1232*pi mm3. Recheck every cylinder centre and feature health; export and read back this revised solid."
+  },
+  "exports": [
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "step",
+        "out": "/absolute/output/cadagent_flange.step"
+      }
+    },
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "f3d",
+        "out": "/absolute/output/cadagent_flange.f3d"
+      }
+    }
+  ],
+  "lessons": [
+    "A six-line profile lies in XY; x is its length coordinate and y its radius. Its boundary touches the x axis and its interior never crosses it. A 360-degree x-axis revolve therefore produces one stepped solid.",
+    "The mounting seed starts on the unique -x face at x=0. For face -x, a two-coordinate at:[30,0] means world y=30,z=0; this avoids accidentally picking the farther +x hub end at x=32.",
+    "Set a hole feature's expression to the user parameter before creating the circular pattern. A later param_set then changes the seed and every patterned copy.",
+    "The circular pattern count includes the seed. Six instances at a full 360 degrees give distinct positions separated by 60 degrees.",
+    "Pattern the mounting-hole feature only. Patterning the revolve or central bore would duplicate coincident geometry.",
+    "A successful call is a claim; removed volume, individual bore centres and independent STEP readback are the evidence."
+  ],
+  "limits": [
+    "Use a separate empty parametric document with unused A79F_ parameter names. Existing bodies would contaminate whole-design measurement and through-hole scope.",
+    "The body and patterned feature must remain native to the root component; the x-axis pattern passes through the root origin.",
+    "Aliases are valid only inside the creation batch. The separate revision uses user parameter names and needs no guessed entity IDs.",
+    "The stepped outline uses explicit numeric coordinates; the driven revision covers the two bore diameters. This lesson does not claim a fully constrained section sketch.",
+    "Fillets, threads, taps and manufacturing fit are outside this example. The geometry is intentionally sharp so its exact volume is independently defensible.",
+    "Replace /absolute/output with an existing absolute output directory. STEP and F3D export the design, so omit of rather than supplying a body ID."
+  ]
+}

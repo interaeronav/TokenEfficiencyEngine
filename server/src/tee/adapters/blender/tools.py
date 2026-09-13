@@ -62,7 +62,10 @@ def register_blender_tools(
     docs = BlenderDocs(adapter, cache_dir=docs_cache_dir)
 
     def execute_python(args: dict[str, Any]) -> dict[str, Any]:
-        # Auto-checkpoint, then report a REAL diff (before/after entity
+        # Refuse stale/guarded Python before warming or writing a checkpoint.
+        # An unknown version may still need a read-only info probe.
+        adapter.validate_python(args["code"])
+        # Auto-checkpoint valid code, then report a REAL diff (before/after entity
         # compare) instead of invalidating the cache - the model keeps its
         # (epoch, revision) continuity and sees exactly what the code did.
         app.warm("blender")
@@ -94,9 +97,9 @@ def register_blender_tools(
                 name="bl_execute_python",
                 description=(
                     "Run arbitrary Python inside Blender (escape hatch; "
-                    "enabled via --allow-code-exec). Auto-checkpoints first; "
-                    "validates against known stale-API idioms for the "
-                    "connected version; assign a dict to `result` to return "
+                    "enabled via --allow-code-exec). Checks known stale-API "
+                    "idioms for the connected version before auto-checkpointing; "
+                    "refusals name the source lines. Assign a dict to `result` to return "
                     "data; the response reports the resulting scene diff. "
                     "Prefer typed tee_batch ops when they cover the task."
                 ),
@@ -124,11 +127,27 @@ def register_blender_tools(
                 "Cheap geometric checks in text (principle: text before "
                 "pixels): mesh/vert/poly counts, world-AABB overlapping "
                 "pairs, objects below ground plane. Use this to verify a "
-                "scene before ever requesting a screenshot."
+                "scene before requesting a screenshot. For executable CADAgent, F1, "
+                "house, texture and fabric lessons, ask lane_guide(adapter='blender')."
             ),
             schema={"type": "object", "properties": {}},
             handler=scene_stats,
-            tags=["blender", "verify", "geometry", "stats", "overlap"],
+            tags=[
+                "blender",
+                "verify",
+                "geometry",
+                "stats",
+                "overlap",
+                "cadagent",
+                "f1",
+                "wing",
+                "brake",
+                "wishbone",
+                "house",
+                "texture",
+                "fabric",
+                "lesson",
+            ],
         )
     )
 

@@ -12,6 +12,8 @@ and joined at shutdown.
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import marshal
 import threading
 import time
 import traceback
@@ -41,6 +43,7 @@ class _Job:
     qos: str = "standard"
     # Registry engine name when the submitter knows it (shadow-trace food).
     engine: str | None = None
+    learning_version: str | None = None  # compiled callable fingerprint, never task input
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"job": self.id, "label": self.label, "state": self.state}
@@ -69,6 +72,7 @@ class JobManager:
         self._counter = 0
         self._keep_finished = keep_finished
         self._stopping = False
+        self.completion_observer = None  # A80: scalar completion data, never job labels/results
         # K1/K3 knobs, set by configure(); defaults = today's behavior
         self._qos_enabled = False
         self._aging_s = DEFAULT_AGING_S
@@ -152,6 +156,10 @@ class JobManager:
                 qos=qos,
                 engine=engine,
             )
+            if self.completion_observer is not None:
+                code = getattr(fn, "__code__", None)
+                if code is not None:
+                    job.learning_version = hashlib.sha256(marshal.dumps(code)).hexdigest()
             self._jobs[job.id] = job
             # L2/FP-1: daemon threads do not inherit context, so the taint
             # this task carries would vanish across the hop and reach the
@@ -219,6 +227,7 @@ class JobManager:
                     continue  # cancelled while queued
                 job.state = "running"
             run_started = time.time()
+            learning_error = None
             try:
                 result = fn()
                 with self._lock:
@@ -226,12 +235,14 @@ class JobManager:
                         job.state = "done"
                         job.result = result
             except TeeError as exc:
+                learning_error = exc
                 fix = f" Fix: {exc.fix}" if exc.fix else ""
                 with self._lock:
                     if job.state == "running":  # a cancel wins over a late error
                         job.state = "error"
                         job.error = f"{exc.code}: {exc.message}{fix}"
             except Exception as exc:
+                learning_error = exc
                 with self._lock:
                     if job.state == "running":
                         job.state = "error"
@@ -247,6 +258,26 @@ class JobManager:
                     shadow.TaskDescriptor(id=job.id, kind="job", qos=job.qos, engine=job.engine),
                     {"outcome": job.state, "wall_s": round(job.finished_at - run_started, 1)},
                 )
+                if self.completion_observer is not None:
+                    # Learning cannot turn completed work into a failure.
+                    with contextlib.suppress(Exception):
+                        from tee.learning.hooks import _classification, result_outcome
+
+                        outcome = (
+                            result_outcome(job.result)
+                            if job.state == "done"
+                            else (
+                                _classification(learning_error)
+                                if job.state == "error" and learning_error is not None
+                                else (None, "cancelled")
+                            )
+                        )
+                        self.completion_observer(
+                            job.engine,
+                            max(0, job.finished_at - run_started) * 1000,
+                            job.learning_version,
+                            *outcome,
+                        )
 
     def status(self, job_id: str) -> dict[str, Any]:
         with self._lock:

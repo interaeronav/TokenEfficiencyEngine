@@ -1,0 +1,1297 @@
+{
+  "topic": "cadagent_f1_wing",
+  "title": "Formula One inspired Active Aero: two-element wing and articulated flap",
+  "intent": "Build closed cosine-sampled airfoil sections, preserve finite trailing edges, bind both extrusion spans to one driver, assemble at the actual hinge origin, then verify a span change and a collision-free flap sweep.",
+  "ops": [
+    {
+      "op": "create",
+      "kind": "param",
+      "name": "F1W_span",
+      "props": {
+        "value": "1000 mm",
+        "units": "mm"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "F1 fixed mainplane section",
+      "as": "main_section",
+      "props": {
+        "plane": "XY",
+        "lines": [
+          [
+            -420.0,
+            15.0,
+            -418.46008,
+            19.07653
+          ],
+          [
+            -418.46008,
+            19.07653,
+            -413.86665,
+            22.88527
+          ],
+          [
+            -413.86665,
+            22.88527,
+            -406.29832,
+            26.3687
+          ],
+          [
+            -406.29832,
+            26.3687,
+            -395.88457,
+            29.45227
+          ],
+          [
+            -395.88457,
+            29.45227,
+            -382.8036,
+            32.05646
+          ],
+          [
+            -382.8036,
+            32.05646,
+            -367.27922,
+            34.10996
+          ],
+          [
+            -367.27922,
+            34.10996,
+            -349.57706,
+            35.56156
+          ],
+          [
+            -349.57706,
+            35.56156,
+            -330.0,
+            36.38847
+          ],
+          [
+            -330.0,
+            36.38847,
+            -308.88302,
+            36.59995
+          ],
+          [
+            -308.88302,
+            36.59995,
+            -286.58743,
+            36.2359
+          ],
+          [
+            -286.58743,
+            36.2359,
+            -263.49471,
+            35.36134
+          ],
+          [
+            -263.49471,
+            35.36134,
+            -240.0,
+            34.05849
+          ],
+          [
+            -240.0,
+            34.05849,
+            -216.50529,
+            32.41825
+          ],
+          [
+            -216.50529,
+            32.41825,
+            -193.41257,
+            30.53293
+          ],
+          [
+            -193.41257,
+            30.53293,
+            -171.11698,
+            28.49142
+          ],
+          [
+            -171.11698,
+            28.49142,
+            -150.0,
+            26.3771
+          ],
+          [
+            -150.0,
+            26.3771,
+            -130.42294,
+            24.26809
+          ],
+          [
+            -130.42294,
+            24.26809,
+            -112.72078,
+            22.23862
+          ],
+          [
+            -112.72078,
+            22.23862,
+            -97.1964,
+            20.36046
+          ],
+          [
+            -97.1964,
+            20.36046,
+            -84.11543,
+            18.70308
+          ],
+          [
+            -84.11543,
+            18.70308,
+            -73.70168,
+            17.33195
+          ],
+          [
+            -73.70168,
+            17.33195,
+            -66.13335,
+            16.3052
+          ],
+          [
+            -66.13335,
+            16.3052,
+            -61.53992,
+            15.6691
+          ],
+          [
+            -61.53992,
+            15.6691,
+            -60.0,
+            15.4536
+          ],
+          [
+            -60.0,
+            15.4536,
+            -60.0,
+            14.5464
+          ],
+          [
+            -60.0,
+            14.5464,
+            -61.53992,
+            14.3309
+          ],
+          [
+            -61.53992,
+            14.3309,
+            -66.13335,
+            13.6948
+          ],
+          [
+            -66.13335,
+            13.6948,
+            -73.70168,
+            12.66805
+          ],
+          [
+            -73.70168,
+            12.66805,
+            -84.11543,
+            11.29692
+          ],
+          [
+            -84.11543,
+            11.29692,
+            -97.1964,
+            9.63954
+          ],
+          [
+            -97.1964,
+            9.63954,
+            -112.72078,
+            7.76138
+          ],
+          [
+            -112.72078,
+            7.76138,
+            -130.42294,
+            5.73191
+          ],
+          [
+            -130.42294,
+            5.73191,
+            -150.0,
+            3.6229
+          ],
+          [
+            -150.0,
+            3.6229,
+            -171.11698,
+            1.50858
+          ],
+          [
+            -171.11698,
+            1.50858,
+            -193.41257,
+            -0.53293
+          ],
+          [
+            -193.41257,
+            -0.53293,
+            -216.50529,
+            -2.41825
+          ],
+          [
+            -216.50529,
+            -2.41825,
+            -240.0,
+            -4.05849
+          ],
+          [
+            -240.0,
+            -4.05849,
+            -263.49471,
+            -5.36134
+          ],
+          [
+            -263.49471,
+            -5.36134,
+            -286.58743,
+            -6.2359
+          ],
+          [
+            -286.58743,
+            -6.2359,
+            -308.88302,
+            -6.59995
+          ],
+          [
+            -308.88302,
+            -6.59995,
+            -330.0,
+            -6.38847
+          ],
+          [
+            -330.0,
+            -6.38847,
+            -349.57706,
+            -5.56156
+          ],
+          [
+            -349.57706,
+            -5.56156,
+            -367.27922,
+            -4.10996
+          ],
+          [
+            -367.27922,
+            -4.10996,
+            -382.8036,
+            -2.05646
+          ],
+          [
+            -382.8036,
+            -2.05646,
+            -395.88457,
+            0.54773
+          ],
+          [
+            -395.88457,
+            0.54773,
+            -406.29832,
+            3.6313
+          ],
+          [
+            -406.29832,
+            3.6313,
+            -413.86665,
+            7.11473
+          ],
+          [
+            -413.86665,
+            7.11473,
+            -418.46008,
+            10.92347
+          ],
+          [
+            -418.46008,
+            10.92347,
+            -420.0,
+            15.0
+          ]
+        ]
+      }
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "name": "F1 fixed mainplane",
+      "as": "main",
+      "props": {
+        "sketch": "@main_section",
+        "distance": 1000,
+        "operation": "new_component"
+      }
+    },
+    {
+      "op": "set",
+      "id": "@main.feature",
+      "props": {
+        "expression": "F1W_span"
+      }
+    },
+    {
+      "op": "set",
+      "id": "@main_section",
+      "props": {
+        "visible": false
+      }
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "F1 active flap section",
+      "as": "flap_section",
+      "props": {
+        "plane": "XY",
+        "lines": [
+          [
+            -40.0,
+            0.0,
+            -39.31559,
+            1.81179
+          ],
+          [
+            -39.31559,
+            1.81179,
+            -37.27407,
+            3.50457
+          ],
+          [
+            -37.27407,
+            3.50457,
+            -33.91036,
+            5.05276
+          ],
+          [
+            -33.91036,
+            5.05276,
+            -29.28203,
+            6.42323
+          ],
+          [
+            -29.28203,
+            6.42323,
+            -23.46827,
+            7.58065
+          ],
+          [
+            -23.46827,
+            7.58065,
+            -16.56854,
+            8.49332
+          ],
+          [
+            -16.56854,
+            8.49332,
+            -8.70091,
+            9.13847
+          ],
+          [
+            -8.70091,
+            9.13847,
+            -0.0,
+            9.50599
+          ],
+          [
+            -0.0,
+            9.50599,
+            9.38533,
+            9.59998
+          ],
+          [
+            9.38533,
+            9.59998,
+            19.29448,
+            9.43818
+          ],
+          [
+            19.29448,
+            9.43818,
+            29.5579,
+            9.04948
+          ],
+          [
+            29.5579,
+            9.04948,
+            40.0,
+            8.47044
+          ],
+          [
+            40.0,
+            8.47044,
+            50.4421,
+            7.74144
+          ],
+          [
+            50.4421,
+            7.74144,
+            60.70552,
+            6.90352
+          ],
+          [
+            60.70552,
+            6.90352,
+            70.61467,
+            5.99618
+          ],
+          [
+            70.61467,
+            5.99618,
+            80.0,
+            5.05649
+          ],
+          [
+            80.0,
+            5.05649,
+            88.70091,
+            4.11915
+          ],
+          [
+            88.70091,
+            4.11915,
+            96.56854,
+            3.21716
+          ],
+          [
+            96.56854,
+            3.21716,
+            103.46827,
+            2.38243
+          ],
+          [
+            103.46827,
+            2.38243,
+            109.28203,
+            1.64581
+          ],
+          [
+            109.28203,
+            1.64581,
+            113.91036,
+            1.03642
+          ],
+          [
+            113.91036,
+            1.03642,
+            117.27407,
+            0.58009
+          ],
+          [
+            117.27407,
+            0.58009,
+            119.31559,
+            0.29738
+          ],
+          [
+            119.31559,
+            0.29738,
+            120.0,
+            0.2016
+          ],
+          [
+            120.0,
+            0.2016,
+            120.0,
+            -0.2016
+          ],
+          [
+            120.0,
+            -0.2016,
+            119.31559,
+            -0.29738
+          ],
+          [
+            119.31559,
+            -0.29738,
+            117.27407,
+            -0.58009
+          ],
+          [
+            117.27407,
+            -0.58009,
+            113.91036,
+            -1.03642
+          ],
+          [
+            113.91036,
+            -1.03642,
+            109.28203,
+            -1.64581
+          ],
+          [
+            109.28203,
+            -1.64581,
+            103.46827,
+            -2.38243
+          ],
+          [
+            103.46827,
+            -2.38243,
+            96.56854,
+            -3.21716
+          ],
+          [
+            96.56854,
+            -3.21716,
+            88.70091,
+            -4.11915
+          ],
+          [
+            88.70091,
+            -4.11915,
+            80.0,
+            -5.05649
+          ],
+          [
+            80.0,
+            -5.05649,
+            70.61467,
+            -5.99618
+          ],
+          [
+            70.61467,
+            -5.99618,
+            60.70552,
+            -6.90352
+          ],
+          [
+            60.70552,
+            -6.90352,
+            50.4421,
+            -7.74144
+          ],
+          [
+            50.4421,
+            -7.74144,
+            40.0,
+            -8.47044
+          ],
+          [
+            40.0,
+            -8.47044,
+            29.5579,
+            -9.04948
+          ],
+          [
+            29.5579,
+            -9.04948,
+            19.29448,
+            -9.43818
+          ],
+          [
+            19.29448,
+            -9.43818,
+            9.38533,
+            -9.59998
+          ],
+          [
+            9.38533,
+            -9.59998,
+            -0.0,
+            -9.50599
+          ],
+          [
+            -0.0,
+            -9.50599,
+            -8.70091,
+            -9.13847
+          ],
+          [
+            -8.70091,
+            -9.13847,
+            -16.56854,
+            -8.49332
+          ],
+          [
+            -16.56854,
+            -8.49332,
+            -23.46827,
+            -7.58065
+          ],
+          [
+            -23.46827,
+            -7.58065,
+            -29.28203,
+            -6.42323
+          ],
+          [
+            -29.28203,
+            -6.42323,
+            -33.91036,
+            -5.05276
+          ],
+          [
+            -33.91036,
+            -5.05276,
+            -37.27407,
+            -3.50457
+          ],
+          [
+            -37.27407,
+            -3.50457,
+            -39.31559,
+            -1.81179
+          ],
+          [
+            -39.31559,
+            -1.81179,
+            -40.0,
+            0.0
+          ]
+        ]
+      }
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "name": "F1 active flap",
+      "as": "flap",
+      "props": {
+        "sketch": "@flap_section",
+        "distance": 1000,
+        "operation": "new_component"
+      }
+    },
+    {
+      "op": "set",
+      "id": "@flap.feature",
+      "props": {
+        "expression": "F1W_span"
+      }
+    },
+    {
+      "op": "set",
+      "id": "@flap_section",
+      "props": {
+        "visible": false
+      }
+    }
+  ],
+  "bindings": {
+    "main_component": {
+      "kind": "component",
+      "body_name": "F1 fixed mainplane"
+    },
+    "flap_component": {
+      "kind": "component",
+      "body_name": "F1 active flap"
+    },
+    "wing_joint": {
+      "kind": "joint",
+      "name": "F1 active flap hinge"
+    }
+  },
+  "assembly": {
+    "ops": [
+      {
+        "op": "create",
+        "kind": "joint",
+        "name": "F1 active flap hinge",
+        "props": {
+          "one": {
+            "component": "{{main_component}}"
+          },
+          "two": {
+            "component": "{{flap_component}}"
+          },
+          "motion": "revolute",
+          "axis": "z",
+          "angle": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "components": 2,
+    "bodies": [
+      {
+        "name": "F1 fixed mainplane",
+        "volume_mm3": 10624486.9545424,
+        "min_mm": [
+          -420.0,
+          -6.59995,
+          0
+        ],
+        "max_mm": [
+          -60.0,
+          36.59995,
+          1000
+        ],
+        "bbox_mm": [
+          360.0,
+          43.1999,
+          1000
+        ]
+      },
+      {
+        "name": "F1 active flap",
+        "volume_mm3": 2098663.8503508996,
+        "min_mm": [
+          -40.0,
+          -9.59998,
+          0
+        ],
+        "max_mm": [
+          120.0,
+          9.59998,
+          1000
+        ],
+        "bbox_mm": [
+          160.0,
+          19.19996,
+          1000
+        ]
+      }
+    ],
+    "root_bodies": 0,
+    "joints": 1,
+    "span_mm": 1000,
+    "rotation_deg": 0,
+    "total_volume_mm3": 12723150.8048933,
+    "minimum_clearance_mm": 10
+  },
+  "revision": {
+    "ops": [
+      {
+        "op": "param_set",
+        "name": "F1W_span",
+        "expression": "1200 mm"
+      },
+      {
+        "op": "set",
+        "id": "{{wing_joint}}",
+        "props": {
+          "rotation": 25
+        }
+      }
+    ],
+    "expected": {
+      "components": 2,
+      "bodies": [
+        {
+          "name": "F1 fixed mainplane",
+          "volume_mm3": 12749384.345450882,
+          "min_mm": [
+            -420.0,
+            -6.59995,
+            0
+          ],
+          "max_mm": [
+            -60.0,
+            36.59995,
+            1200
+          ],
+          "bbox_mm": [
+            360.0,
+            43.1999,
+            1200
+          ]
+        },
+        {
+          "name": "F1 active flap",
+          "volume_mm3": 2518396.62042108,
+          "min_mm": [
+            -36.39772090937942,
+            -50.896903058750524,
+            0
+          ],
+          "max_mm": [
+            108.84213428596492,
+            18.928921752616187,
+            1200
+          ],
+          "bbox_mm": [
+            145.23985519534435,
+            69.82582481136672,
+            1200
+          ]
+        }
+      ],
+      "root_bodies": 0,
+      "joints": 1,
+      "span_mm": 1200,
+      "rotation_deg": 25,
+      "total_volume_mm3": 15267780.965871962,
+      "minimum_clearance_mm": 10
+    }
+  },
+  "motion_probe": {
+    "angles_deg": [
+      0,
+      5,
+      10,
+      15,
+      20,
+      25,
+      0,
+      25
+    ],
+    "continuous_interval_deg": [
+      0,
+      25
+    ],
+    "sample_step_deg": 5
+  },
+  "geometry": {
+    "profiles_mm": {
+      "F1 fixed mainplane": [
+        [
+          -420.0,
+          15.0
+        ],
+        [
+          -418.46008,
+          19.07653
+        ],
+        [
+          -413.86665,
+          22.88527
+        ],
+        [
+          -406.29832,
+          26.3687
+        ],
+        [
+          -395.88457,
+          29.45227
+        ],
+        [
+          -382.8036,
+          32.05646
+        ],
+        [
+          -367.27922,
+          34.10996
+        ],
+        [
+          -349.57706,
+          35.56156
+        ],
+        [
+          -330.0,
+          36.38847
+        ],
+        [
+          -308.88302,
+          36.59995
+        ],
+        [
+          -286.58743,
+          36.2359
+        ],
+        [
+          -263.49471,
+          35.36134
+        ],
+        [
+          -240.0,
+          34.05849
+        ],
+        [
+          -216.50529,
+          32.41825
+        ],
+        [
+          -193.41257,
+          30.53293
+        ],
+        [
+          -171.11698,
+          28.49142
+        ],
+        [
+          -150.0,
+          26.3771
+        ],
+        [
+          -130.42294,
+          24.26809
+        ],
+        [
+          -112.72078,
+          22.23862
+        ],
+        [
+          -97.1964,
+          20.36046
+        ],
+        [
+          -84.11543,
+          18.70308
+        ],
+        [
+          -73.70168,
+          17.33195
+        ],
+        [
+          -66.13335,
+          16.3052
+        ],
+        [
+          -61.53992,
+          15.6691
+        ],
+        [
+          -60.0,
+          15.4536
+        ],
+        [
+          -60.0,
+          14.5464
+        ],
+        [
+          -61.53992,
+          14.3309
+        ],
+        [
+          -66.13335,
+          13.6948
+        ],
+        [
+          -73.70168,
+          12.66805
+        ],
+        [
+          -84.11543,
+          11.29692
+        ],
+        [
+          -97.1964,
+          9.63954
+        ],
+        [
+          -112.72078,
+          7.76138
+        ],
+        [
+          -130.42294,
+          5.73191
+        ],
+        [
+          -150.0,
+          3.6229
+        ],
+        [
+          -171.11698,
+          1.50858
+        ],
+        [
+          -193.41257,
+          -0.53293
+        ],
+        [
+          -216.50529,
+          -2.41825
+        ],
+        [
+          -240.0,
+          -4.05849
+        ],
+        [
+          -263.49471,
+          -5.36134
+        ],
+        [
+          -286.58743,
+          -6.2359
+        ],
+        [
+          -308.88302,
+          -6.59995
+        ],
+        [
+          -330.0,
+          -6.38847
+        ],
+        [
+          -349.57706,
+          -5.56156
+        ],
+        [
+          -367.27922,
+          -4.10996
+        ],
+        [
+          -382.8036,
+          -2.05646
+        ],
+        [
+          -395.88457,
+          0.54773
+        ],
+        [
+          -406.29832,
+          3.6313
+        ],
+        [
+          -413.86665,
+          7.11473
+        ],
+        [
+          -418.46008,
+          10.92347
+        ]
+      ],
+      "F1 active flap": [
+        [
+          -40.0,
+          0.0
+        ],
+        [
+          -39.31559,
+          1.81179
+        ],
+        [
+          -37.27407,
+          3.50457
+        ],
+        [
+          -33.91036,
+          5.05276
+        ],
+        [
+          -29.28203,
+          6.42323
+        ],
+        [
+          -23.46827,
+          7.58065
+        ],
+        [
+          -16.56854,
+          8.49332
+        ],
+        [
+          -8.70091,
+          9.13847
+        ],
+        [
+          -0.0,
+          9.50599
+        ],
+        [
+          9.38533,
+          9.59998
+        ],
+        [
+          19.29448,
+          9.43818
+        ],
+        [
+          29.5579,
+          9.04948
+        ],
+        [
+          40.0,
+          8.47044
+        ],
+        [
+          50.4421,
+          7.74144
+        ],
+        [
+          60.70552,
+          6.90352
+        ],
+        [
+          70.61467,
+          5.99618
+        ],
+        [
+          80.0,
+          5.05649
+        ],
+        [
+          88.70091,
+          4.11915
+        ],
+        [
+          96.56854,
+          3.21716
+        ],
+        [
+          103.46827,
+          2.38243
+        ],
+        [
+          109.28203,
+          1.64581
+        ],
+        [
+          113.91036,
+          1.03642
+        ],
+        [
+          117.27407,
+          0.58009
+        ],
+        [
+          119.31559,
+          0.29738
+        ],
+        [
+          120.0,
+          0.2016
+        ],
+        [
+          120.0,
+          -0.2016
+        ],
+        [
+          119.31559,
+          -0.29738
+        ],
+        [
+          117.27407,
+          -0.58009
+        ],
+        [
+          113.91036,
+          -1.03642
+        ],
+        [
+          109.28203,
+          -1.64581
+        ],
+        [
+          103.46827,
+          -2.38243
+        ],
+        [
+          96.56854,
+          -3.21716
+        ],
+        [
+          88.70091,
+          -4.11915
+        ],
+        [
+          80.0,
+          -5.05649
+        ],
+        [
+          70.61467,
+          -5.99618
+        ],
+        [
+          60.70552,
+          -6.90352
+        ],
+        [
+          50.4421,
+          -7.74144
+        ],
+        [
+          40.0,
+          -8.47044
+        ],
+        [
+          29.5579,
+          -9.04948
+        ],
+        [
+          19.29448,
+          -9.43818
+        ],
+        [
+          9.38533,
+          -9.59998
+        ],
+        [
+          -0.0,
+          -9.50599
+        ],
+        [
+          -8.70091,
+          -9.13847
+        ],
+        [
+          -16.56854,
+          -8.49332
+        ],
+        [
+          -23.46827,
+          -7.58065
+        ],
+        [
+          -29.28203,
+          -6.42323
+        ],
+        [
+          -33.91036,
+          -5.05276
+        ],
+        [
+          -37.27407,
+          -3.50457
+        ],
+        [
+          -39.31559,
+          -1.81179
+        ]
+      ]
+    },
+    "section_area_mm2": {
+      "F1 fixed mainplane": 10624.4869545424,
+      "F1 active flap": 2098.6638503509
+    },
+    "panels_per_surface": 24,
+    "span_axis": "z",
+    "chord_axis": "x",
+    "height_axis": "y",
+    "hinge_mm": [
+      0,
+      0,
+      0
+    ],
+    "flap_hinge_chord_fraction": 0.25,
+    "relative_angle_sign": -1
+  },
+  "check": "Preflight and run ops in a separate empty parametric design. Resolve component IDs by the named bodies' parent IDs after tee_scene_summary refresh=true. Bind assembly.ops before preflight/execution; resolve wing_joint from that diff. Never substitute a body ID for its component or carry @aliases across batches.",
+  "revision_check": "Both spans must grow 1000 to 1200 mm with their extrusion expressions still F1W_span. Check each volume against polygon area times span. For every motion sample compare actual occurrence vertices in the mainplane frame to the rotated section, not just rotationValue. Require at least 10 mm physical clearance between elements and check the entire 0..25 degree interval with a conservative displacement bound.",
+  "lessons": [
+    "Four-digit symmetric thickness uses NASA TM 4741's -0.1015 trailing coefficient. The resulting trailing edge has finite thickness; the explicit last segment closes it.",
+    "These are 49-edge polygonal section solids. Their exact area is computed from the rounded 0.00001 mm coordinates accepted by the typed lane. They are reference CAD, not smooth production aero.",
+    "The mainplane sits upstream; the flap's quarter-chord hinge is at the origin. An origin joint cannot invent a different pivot location from the component origins.",
+    "A single span parameter drives both components. Root-native shell/pattern operations are not used on these component bodies.",
+    "With mainplane as joint side one and flap as side two, a positive joint rotation moves this flap clockwise in the mainplane XY frame. Use the measured -1 sign when comparing geometry; a reported rotation value alone does not fix handedness.",
+    "A positive continuous clearance bound proves only this rigid geometric sweep. It does not establish downforce, drag, stiffness or compliant aero behavior."
+  ],
+  "limits": [
+    "Original dimensions and symmetric reference sections, not a team's wing or FIA-approved design.",
+    "The 0 and 25 degree positions are teaching states, not prescribed Corner/Straight Mode angles.",
+    "No endplates, actuator, control law, carbon layup, aeroelasticity or structural validation. Neither component is grounded; inspect relative motion in the mainplane's frame."
+  ],
+  "sources": [
+    {
+      "title": "Formula 1: 2026 aerodynamics explained",
+      "url": "https://www.formula1.com/en/latest/article/2026-regulations-explained-all-you-need-to-know-about-f1s-new-aerodynamics.7IAt0auc32UkCEFE5ypkTB.7IAt0auc32UkCEFE5ypkTB"
+    },
+    {
+      "title": "NASA TM 4741, p.3: four-digit thickness distribution",
+      "url": "https://ntrs.nasa.gov/api/citations/19970008124/downloads/19970008124.pdf"
+    }
+  ],
+  "exports": [
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "step",
+        "out": "/absolute/output/cadagent_f1_wing.step"
+      }
+    },
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "f3d",
+        "out": "/absolute/output/cadagent_f1_wing.f3d"
+      }
+    }
+  ]
+}

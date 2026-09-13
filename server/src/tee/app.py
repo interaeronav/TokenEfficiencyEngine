@@ -188,6 +188,9 @@ class TeeApp:
         self.registry.served = lambda: set(self.adapters)
         self.response_log = ResponseLog()
         self.config = ProjectConfig.load(project_root)
+        from tee.learning.service import LearningService
+
+        self.learning = LearningService(self.project_root, self.config.learning)
         self.registry.disabled = set(self.config.disabled_tools)
         # A43 L1: what this project may do, and WHICH FILE said so. Naming
         # the loaded path in every refusal is what closes SI-B17, where an
@@ -237,11 +240,18 @@ class TeeApp:
         self._web = None  # lazy WebLookupService (A34)
         self.gateway = None  # GatewayService when [gateway] backends exist (A37)
         from tee.boards import register_board_tools
+        from tee.kernel.guidance import register_guidance_tools
         from tee.kernel.meter import register_session_tools
         from tee.kernel.trust_tools import register_trust_tools
 
         register_session_tools(self)  # report_savings + handoff (A37 P6)
+        register_guidance_tools(self)  # A78: offline contracts, no core-tool growth
         register_trust_tools(self)  # tee_trust: the kernel's visibility (A43)
+        from tee.learning.hooks import install as install_learning
+        from tee.learning.tools import register_learning_tools
+
+        register_learning_tools(self)
+        install_learning(self)
 
         # A45 P2: the headless fleet. Registration is metadata only - no
         # solver, CAD kernel or imaging library is imported until a tool is
@@ -276,6 +286,7 @@ class TeeApp:
         cfg = dict(self.config.llm or {})
         cfg["_state_dir"] = str(self.project_root / ".tee")
         cfg["_grants"] = self.registry.grants  # A43: the paid-engine gate
+        cfg["_learning"] = self.learning  # A80: local, per-project numeric learner
         return cfg
 
     @property
@@ -691,6 +702,44 @@ class TeeApp:
         checkpoint: bool = True,
         routed: str | None = None,
     ) -> dict[str, Any]:
+        from tee.learning.hooks import observe
+
+        # The outer virtual observer suppresses this when a tool wraps a batch.
+        # Direct tee_batch/script batches still produce one observation.
+        lane = adapter_name if adapter_name in self.adapters else "unknown"
+        return observe(
+            self,
+            context="batch",
+            choice=lane,
+            version=lambda: self._batch_learning_version(lane),
+            invoke=lambda: self._run_batch(
+                adapter_name, ops, label, checkpoint=checkpoint, routed=routed
+            ),
+        )
+
+    def _batch_learning_version(self, lane: str) -> str:
+        import hashlib
+        import marshal
+
+        from tee.learning.hooks import _cached_version
+
+        adapter = self.adapters.get(lane)
+        function = getattr(getattr(adapter, "execute", None), "__code__", None)
+        code = marshal.dumps(function) if function is not None else b"unknown"
+        return (
+            "batch-v1-"
+            + hashlib.sha256(code + _cached_version(self, lane).encode()).hexdigest()[:32]
+        )
+
+    def _run_batch(
+        self,
+        adapter_name: str,
+        ops: list[dict[str, Any]],
+        label: str | None = None,
+        *,
+        checkpoint: bool = True,
+        routed: str | None = None,
+    ) -> dict[str, Any]:
         """checkpoint=False is for callers that already hold an enclosing
         checkpoint and roll back on any raise (the script lane): the inner
         checkpoint+restore is then redundant work - on UE it doubled the
@@ -700,6 +749,19 @@ class TeeApp:
         `routed` is the Route.how the caller resolved; on a multi-lane server
         the reply always carries `adapter` (Law 5: the reply says where the
         state is) and, when the kernel decided by content, `routed`."""
+        from tee.kernel.guidance import preflight
+
+        # Invalid arguments must cost no connection, snapshot or rollback.
+        # Optional adapter hooks preserve the third-party adapter contract.
+        try:
+            preflight(self, adapter_name, ops)
+        except TeeError as exc:
+            hint = self._other_lanes_hint(adapter_name, ops, exc)
+            raise TeeError(
+                exc.code,
+                exc.message,
+                fix=f"{exc.fix or ''}{hint} No batch operation or checkpoint was applied.".strip(),
+            ) from exc
         adapter = self.adapter(adapter_name)
         self.warm(adapter_name)
         cache = self.cache(adapter_name)
@@ -973,6 +1035,13 @@ class TeeApp:
 
         shadow.RECORDER.disable()
         self.jobs.shutdown()
+        structural = getattr(self, "structural", None)
+        if structural is not None:
+            structural.close()
+        architecture_gui = getattr(self, "architecture_gui", None)
+        if architecture_gui is not None:
+            architecture_gui.close()
+        self.learning.close()
         if self.gateway is not None:
             with contextlib.suppress(Exception):
                 self.gateway.shutdown()

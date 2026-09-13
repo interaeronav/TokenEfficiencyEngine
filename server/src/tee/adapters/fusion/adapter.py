@@ -136,6 +136,15 @@ class FusionAdapter:
             )
         return out
 
+    def guide(self, topic: str | None = None) -> dict[str, Any]:
+        from .guidance import guide
+
+        return guide(topic)
+
+    def preflight(self, ops: list[dict[str, Any]]) -> None:
+        """Validate batch shape without contacting the application."""
+        codegen.check_batch(ops)
+
     # -- execute -----------------------------------------------------------
 
     def execute(self, batch: list[dict[str, Any]]) -> Diff:
@@ -185,13 +194,20 @@ class FusionAdapter:
             "marker": int(state["marker"]),
             "count": int(state["count"]),
             "params": dict(state.get("params") or {}),
+            "document_id": state.get("document_id"),
             "restores": "timeline+parameters: what was created after this point is deleted and "
             "every parameter expression is put back; entities deleted since, sketch geometry "
             "edited in place, and user parameters added since are not restored",
         }
 
     def restore(self, payload: dict[str, Any]) -> None:
-        self.run(codegen.restore_program(int(payload["marker"]), dict(payload.get("params") or {})))
+        self.run(
+            codegen.restore_program(
+                int(payload["marker"]),
+                dict(payload.get("params") or {}),
+                payload.get("document_id"),
+            )
+        )
 
     # -- capture -------------------------------------------------------------
 

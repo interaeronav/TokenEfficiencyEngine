@@ -26,6 +26,67 @@ _TYPE_CHECKS: dict[str, type | tuple[type, ...]] = {
 }
 
 
+def _validate_argument(name: str, path: str, spec: dict[str, Any], value: Any) -> None:
+    """Validate the declared subset, reporting one precise repair location.
+
+    Optional null handling retains the existing registry contract. Nested
+    objects remain open unless their schema explicitly closes them.
+    """
+    if value is None:
+        return
+    expected = spec.get("type")
+    check = _TYPE_CHECKS.get(expected) if isinstance(expected, str) else None
+    if check is not None:
+        valid = isinstance(value, check)
+        if isinstance(value, bool) and expected in ("integer", "number"):
+            valid = False
+        if not valid:
+            raise TeeError(
+                "bad_argument_type",
+                f"{name}: '{path}' must be {expected}, got {type(value).__name__}.",
+                fix=f"Use the declared {expected} value at {path}. "
+                "Arrays are JSON lists, not serialized strings.",
+            )
+    if "enum" in spec and value not in spec["enum"]:
+        choices = ", ".join(repr(v) for v in spec["enum"])
+        raise TeeError(
+            "bad_argument_value",
+            f"{name}: '{path}' is not an allowed value.",
+            fix=f"Choose one of: {choices}.",
+        )
+    if isinstance(value, list):
+        maximum = spec.get("maxItems")
+        if isinstance(maximum, int) and len(value) > maximum:
+            raise TeeError(
+                "bad_argument_value",
+                f"{name}: '{path}' exceeds {maximum} items.",
+                fix=f"Limit {path} to {maximum} items per call.",
+            )
+        item_schema = spec.get("items")
+        if isinstance(item_schema, dict):
+            for index, item in enumerate(value):
+                _validate_argument(name, f"{path}[{index}]", item_schema, item)
+    if isinstance(value, dict):
+        props = spec.get("properties", {})
+        for key in spec.get("required", []):
+            if key not in value:
+                raise TeeError(
+                    "missing_argument",
+                    f"{name}: required argument '{path}.{key}' is missing.",
+                    fix=f"Add {key} to {path}; tee_describe_tool(name='{name}') shows its schema.",
+                )
+        for key, item in value.items():
+            child = props.get(key)
+            if isinstance(child, dict):
+                _validate_argument(name, f"{path}.{key}", child, item)
+            elif spec.get("additionalProperties") is False:
+                raise TeeError(
+                    "unknown_argument",
+                    f"{name}: unknown argument '{path}.{key}'.",
+                    fix=f"Known fields at {path}: {', '.join(sorted(props)) or '(none)'}.",
+                )
+
+
 @dataclass
 class VirtualTool:
     name: str
@@ -81,6 +142,8 @@ class ToolRegistry:
         # A68: the served lanes, for search's tie-break; set by the app. None
         # means "no app": every lane counts as served.
         self.served: Callable[[], set[str]] | None = None
+        # A80: one optional execution observer; no payload logging or policy.
+        self.observer: Callable[[VirtualTool | None, Callable[[], Any]], Any] | None = None
 
     @property
     def grants(self) -> trust.Grants:
@@ -242,24 +305,29 @@ class ToolRegistry:
         return payload
 
     def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
-        tool = self._require(name)
-        self._validate(tool, args or {})
-        self._trust(tool)
-        result = tool.handler(args or {})
-        if self.audit_log is not None:
-            self.audit_log.record(
-                f"virtual:{name}",
-                result,
-                capability=tool.capability,
-                caller=trustctx.caller(),
-                taint=trustctx.taint(),
-            )
-        # A capability whose RESULTS are untrusted content taints this task
-        # from here on: a KB passage or a fetched page may inform an answer,
-        # but it may never go on to cause a side effect (research 62).
-        if tool.capability in trust.TAINT_SOURCES:
-            trustctx.add_taint(f"{tool.capability}:{name}")
-        return result
+        def invoke() -> dict[str, Any]:
+            tool = self._require(name)
+            self._validate(tool, args or {})
+            self._trust(tool)
+            result = tool.handler(args or {})
+            if self.audit_log is not None:
+                self.audit_log.record(
+                    f"virtual:{name}",
+                    result,
+                    capability=tool.capability,
+                    caller=trustctx.caller(),
+                    taint=trustctx.taint(),
+                )
+            # A capability whose RESULTS are untrusted content taints this task
+            # from here on: a KB passage or a fetched page may inform an answer,
+            # but it may never go on to cause a side effect (research 62).
+            if tool.capability in trust.TAINT_SOURCES:
+                trustctx.add_taint(f"{tool.capability}:{name}")
+            return result
+
+        if self.observer is not None:
+            return self.observer(self._tools.get(name), invoke)
+        return invoke()
 
     def _trust(self, tool: VirtualTool) -> None:
         """The ONE check (L4). Denials that are safety-critical raise now;
@@ -330,7 +398,7 @@ class ToolRegistry:
         return tool
 
     def _validate(self, tool: VirtualTool, args: dict[str, Any]) -> None:
-        """Minimal JSON-schema subset validation: required keys + basic types.
+        """Declared JSON-schema subset: required keys, types, enums and arrays.
         One short error naming the exact problem (P7)."""
         props: dict[str, Any] = tool.schema.get("properties", {})
         for key in tool.schema.get("required", []):
@@ -348,18 +416,4 @@ class ToolRegistry:
                     f"{tool.name}: unknown argument '{key}'.",
                     fix=f"Known arguments: {', '.join(sorted(props)) or '(none)'}.",
                 )
-            expected = spec.get("type")
-            check = _TYPE_CHECKS.get(expected) if expected else None
-            if check is not None and value is not None:
-                ok = isinstance(value, check)
-                # bool is an int subclass; don't accept True for integer/number
-                if ok and isinstance(value, bool) and expected in ("integer", "number"):
-                    ok = False
-                if not ok:
-                    raise TeeError(
-                        "bad_argument_type",
-                        f"{tool.name}: '{key}' must be {expected}, got {type(value).__name__}.",
-                        fix=f"Schema: tee_describe_tool(name='{tool.name}'). An "
-                        "array argument is a LIST of values, never one string "
-                        "containing them.",
-                    )
+            _validate_argument(tool.name, key, spec, value)

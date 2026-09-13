@@ -783,12 +783,17 @@ def serve_command(
     if project:
         tail += ["--project", project]
     if _dev_checkout():
-        # --no-sync is load-bearing, not tidy: a bare `uv run` syncs the venv
-        # to uv.lock first, and that removes every package installed ON TOP
-        # of the locked set - which is where the fleet extras live by design
-        # (docs/setup-fleet.md). Measured on the owner's Mac 2026-09-10:
-        # 112 packages would go, seamkiln itself included; an emitted config
-        # of this shape took opencode down (docs/astra-script.md).
+        # --no-sync is load-bearing, not tidy. Measured on uv 0.12.5
+        # (2026-09-11): a bare `uv run` syncs INEXACTLY - it keeps packages
+        # installed on top of the lock - but it RE-LOCKS at launch whenever
+        # pyproject.toml has drifted from uv.lock, which a dev checkout does
+        # constantly: network and resolver time spent inside the client's
+        # spawn timeout. `uv sync` (exact by default) is the call that removes
+        # the on-top packages - 112 on the owner's Mac, seamkiln included -
+        # so a launch line must never be one that can reach it either. The
+        # dev checkout always has its venv (doctor ran from it), so skipping
+        # the sync entirely is safe here; it is NOT safe for the portable
+        # bundle, whose first launch may have to provision (--frozen there).
         return ["uv", "--directory", str(server_dir()), "run", "--no-sync", "tee", *tail]
     # a plain `tee` on PATH is usually coreutils tee - only trust a
     # sibling of this interpreter (venv/pipx layout; no resolve(): the

@@ -1,0 +1,189 @@
+{
+  "topic": "cadagent_joint",
+  "title": "Revolute lever: assemble, drive and measure real component motion",
+  "intent": "Build a two-component mechanism, locate its face-centre joint with clearance, then prove that driving the joint changes the lever's world geometry while preserving its solid volume.",
+  "preconditions": [
+    "Use a separate empty demonstration design. All lengths are mm and all angles are degrees.",
+    "Preflight the complete ops list, execute it as one Fusion batch, and retain its returned entity IDs. Names label the example; they are not entity IDs."
+  ],
+  "lessons": [
+    "new_component produces an occurrence containing the solid. A body alias addresses the body, not the occurrence; retain created IDs and use the joint's between row or a refreshed tee_scene_summary to identify the occurrences for measurement.",
+    "A planar-face joint uses the selected face's centre. This is a central lever pivot, not an arbitrary point or edge joint. The 60 by 12 rectangle exposes rotation that a circular disc would conceal.",
+    "The requested joint value is a claim. Measure the lever occurrence in assembly context before and after motion: a native body's local bounds alone cannot establish that the assembly moved.",
+    "A 2 mm gap separates the base top and lever bottom. Check their actual Z extents before accepting the assembly; a joint can be valid while its solids intersect.",
+    "For these opposing planar faces, flip:true aligns the face frames so offset:2 produces the measured 2 mm gap. Without the flip, Fusion returned a healthy joint but placed the lever inside the base. Verify actual relative geometry, not the offset value alone."
+  ],
+  "ops": [
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "A79 pivot base profile",
+      "as": "base_profile",
+      "props": {
+        "plane": "XY",
+        "rects": [
+          [
+            -20,
+            -15,
+            20,
+            15
+          ]
+        ]
+      }
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "name": "A79 pivot base",
+      "as": "base",
+      "props": {
+        "sketch": "@base_profile",
+        "distance": 8,
+        "operation": "new_component"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "name": "A79 lever profile",
+      "as": "lever_profile",
+      "props": {
+        "plane": "XY",
+        "rects": [
+          [
+            -30,
+            -6,
+            30,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "name": "A79 lever",
+      "as": "lever",
+      "props": {
+        "sketch": "@lever_profile",
+        "distance": 4,
+        "operation": "new_component"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "joint",
+      "name": "A79 central revolute pivot",
+      "as": "pivot",
+      "props": {
+        "one": {
+          "body": "@base",
+          "face": "+z"
+        },
+        "two": {
+          "body": "@lever",
+          "face": "-z"
+        },
+        "motion": "revolute",
+        "axis": "z",
+        "angle": 0,
+        "offset": 2,
+        "flip": true
+      }
+    }
+  ],
+  "bindings": {
+    "joint_id": {
+      "kind": "joint",
+      "name": "A79 central revolute pivot"
+    }
+  },
+  "checks": {
+    "body_count": 2,
+    "root_body_count": 0,
+    "component_count": 2,
+    "joint_count": 1,
+    "total_volume_mm3": 12480,
+    "base": {
+      "volume_mm3": 9600,
+      "bbox_mm": [
+        40,
+        30,
+        8
+      ]
+    },
+    "lever": {
+      "volume_mm3": 2880,
+      "bbox_mm": [
+        60,
+        12,
+        4
+      ]
+    },
+    "clearance_mm": 2,
+    "rotation_deg": 0,
+    "tolerance_mm": 0.001,
+    "relative_volume_tolerance": 1e-06,
+    "health": "No feature or joint errors/warnings. Every body is solid. Verify actual relative extents and component ownership; counts alone do not pass this recipe.",
+    "frame": "BBox dimensions above are the created solids' native dimensions. Clearance and motion are measured in the base occurrence's frame. No occurrence is grounded by this typed recipe; do not assume a fixed world transform."
+  },
+  "revision": {
+    "intent": "Drive the lever through 45 degrees while preserving the pivot, base and clearance.",
+    "ops": [
+      {
+        "op": "set",
+        "id": "{{joint_id}}",
+        "props": {
+          "rotation": 45
+        }
+      }
+    ],
+    "check": "Resolve {{joint_id}} using bindings before preflight/execution. The joint must read rotation_deg=45. Measure both occurrences before and after, and compare the lever relative to the base. In that frame the lever XY bounds change from [60,12] to [50.911688,50.911688] mm within 0.001 mm; thickness remains 4 mm. The lever remains 2880 mm3, the base remains 9600 mm3, their centre-to-centre distance and 2 mm face clearance remain fixed. Where the base occurrence is unchanged, fu_measure on the lever must directly report [50.911688,50.911688,4] mm. Otherwise transform the geometry into the base frame before comparing. A changed joint value with unchanged relative assembly geometry fails.",
+    "expected": {
+      "rotation_deg": 45,
+      "lever_bbox_mm": [
+        50.91168824543142,
+        50.91168824543142,
+        4
+      ],
+      "lever_volume_mm3": 2880,
+      "total_volume_mm3": 12480,
+      "lever_bbox_frame": "base occurrence"
+    }
+  },
+  "motion_probe": {
+    "ops": [
+      {
+        "op": "set",
+        "id": "{{joint_id}}",
+        "props": {
+          "rotation": 90
+        }
+      }
+    ],
+    "check": "At 90 degrees the lever bounds in the base occurrence frame must measure [12,60,4] mm with 2880 mm3 volume and unchanged relative centre/clearance. A return to 0 degrees must recover [60,12,4]. Retain every sample, including failures; do not infer the sweep from one readback."
+  },
+  "scope": "This is a kinematic demonstration, not a load, stress, bearing, fastening or manufacturability validation. It demonstrates a central revolute constraint with clearance; no physical pivot pin or bearing is modelled. The typed lane does not ground either occurrence, so verify relative motion without claiming an anchored world frame.",
+  "references": [
+    "docs/research/71-fusion-lane.md sections 10.5 and 10.6; verified API rows 12, 43-47 and 50",
+    "CLAUDE_A79_SCRIPT.md P4"
+  ],
+  "id_resolution": "Resolve joint_id from the actual created IDs and details or a refreshed tee_scene_summary. If the kernel trims kind/name as echoes, the returned joint row's between/rotation_deg fields establish the association. The ordered between IDs identify the base and lever occurrences. Never guess j1 or use @pivot in a later batch.",
+  "exports": [
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "step",
+        "out": "/absolute/output/cadagent_joint.step"
+      }
+    },
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "f3d",
+        "out": "/absolute/output/cadagent_joint.f3d"
+      }
+    }
+  ],
+  "export_check": "Choose local absolute output paths and export the whole design, omitting of. Independently read STEP: two solids total 12480 mm3 in the sampled assembly position. Reopen F3D in a separate document and verify the two occurrences and revolute joint; STEP carries geometry, while F3D retains the native mechanism. Entity IDs belong to their document and must be rediscovered after reopening."
+}

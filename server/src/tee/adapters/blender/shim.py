@@ -13,10 +13,21 @@ make because their training data spans many Blender versions.
 from __future__ import annotations
 
 import re
+from bisect import bisect_right
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypedDict
 
 Version = tuple[int, int, int]
+_MAX_HIT_LINES = 8
+
+
+class FirewallHit(TypedDict):
+    code: str
+    hint: str
+    lines: list[int]
+    occurrences: int
+    line_count: int
 
 
 @dataclass(frozen=True)
@@ -176,15 +187,45 @@ def strip_comments(code: str) -> str:
     return "".join(lines)
 
 
-def firewall_check(code: str, version: Version) -> list[dict[str, str]]:
-    """Return one {code, hint} entry per stale idiom found in `code` for the
-    connected Blender `version`. Empty list = clean. Comments are ignored;
-    string literals are screened (that is where engine ids live)."""
+def firewall_check(code: str, version: Version) -> list[FirewallHit]:
+    """Return one hit per stale idiom, with bounded source locations.
+
+    `lines` holds the first eight distinct one-based lines; `occurrences` and
+    `line_count` count every match and distinct line. Comments are blanked,
+    preserving source offsets; strings are screened because engine ids live
+    there. No source text is returned. Empty list = clean for this version.
+    """
     stripped = strip_comments(code)
-    hits: list[dict[str, str]] = []
+    newlines = [match.start() for match in re.finditer("\n", stripped)]
+    hits: list[FirewallHit] = []
     for fault in _F:
-        if fault.applies(version) and fault.pattern.search(stripped):
-            hits.append({"code": fault.code, "hint": fault.hint})
+        if not fault.applies(version):
+            continue
+        lines: list[int] = []
+        occurrences = line_count = 0
+        previous_line = 0
+        for match in fault.pattern.finditer(stripped):
+            occurrences += 1
+            # A multiline pattern may consume blank lines before its first
+            # token (e.g. the bgl import rule). Locate that token, not padding.
+            matched = match.group()
+            start = match.start() + len(matched) - len(matched.lstrip())
+            line = bisect_right(newlines, start) + 1
+            if line != previous_line:
+                line_count += 1
+                previous_line = line
+                if len(lines) < _MAX_HIT_LINES:
+                    lines.append(line)
+        if occurrences:
+            hits.append(
+                {
+                    "code": fault.code,
+                    "hint": fault.hint,
+                    "lines": lines,
+                    "occurrences": occurrences,
+                    "line_count": line_count,
+                }
+            )
     return hits
 
 

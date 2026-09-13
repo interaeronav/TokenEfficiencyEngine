@@ -140,6 +140,8 @@ def instructions(app: Any) -> str:
             "Token Efficiency Engine: one server, several lanes, none of them the hub. "
             "Reads return compact summaries and diffs, never full dumps; mutations run as "
             "checkpointed batches.",
+            "New lane? Call lane_guide via tee_call for units and examples; "
+            "lane_preflight checks a draft offline before tee_batch.",
             f"Lanes served: {lane_lines(with_purpose)}.",
             (
                 f"Declared default lane: {default} (only for a batch several lanes accept)."

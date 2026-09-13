@@ -83,6 +83,7 @@ SIDE_EFFECTING: frozenset[str] = frozenset(
         "front-backend",
         "run-declared-step",
         "run-adhoc",
+        "run-doc-agent",  # A81: explicit authority for external documentation workers
         "exec-code",
         # A45 P2: driving a local headless service (Orthanc, Cube, a trading
         # research daemon). It can change that service's state, and whatever
@@ -112,6 +113,7 @@ NEVER_GRANTABLE: frozenset[str] = frozenset({"place-order"})
 HIGH_RISK: frozenset[str] = frozenset(
     {
         "run-adhoc",
+        "run-doc-agent",
         "exec-code",
         "write-config",
         "write-policy",
@@ -263,6 +265,14 @@ _EXPLICIT: dict[str, str] = {
     # are call-engine, tabled one line at a time. JSBSim is LGPL-2.0-or-later
     # and used in-process in that child; the wheel's own CLI is GPL-3 and is
     # never invoked (docs/DECISIONS.md, 2026-09-07).
+    # A84: individual rows, no st_ family grant. Solvers run out of process.
+    "st_status": "read-state",
+    "st_model": "write-artifacts",
+    "st_query": "read-state",
+    "st_solve": "call-engine",
+    "st_result": "read-state",
+    "st_from_bim": "read-state",
+    "st_environment": "read-state",
     "fd_probe": "read-compute",  # version probe only; never loads an aircraft
     "fd_aircraft": "write-artifacts",  # writes aircraft + engine XML on disk
     "fd_trim": "call-engine",  # a JSBSim child process
@@ -282,6 +292,9 @@ _EXPLICIT: dict[str, str] = {
     "eng_reconcile": "read-compute",  # cache only; the digest never probes
     "eng_audition": "call-engine",  # drives a real engine, as a ledger job
     "eng_adopt": "write-state",
+    # A78: metadata and host-only validation; neither may touch a DCC.
+    "lane_guide": "read-session",
+    "lane_preflight": "read-session",
     # --- always-loaded MCP surface (17) ---
     "tee_status": "read-session",
     "tee_recall": "read-state",
@@ -469,6 +482,18 @@ _EXPLICIT: dict[str, str] = {
     "pipeline_adopt": "write-state",
     "trust_grant": "write-policy",
     "tee_trust": "read-session",
+    "learn_status": "read-session",
+    "learn_recommend": "read-compute",
+    "learn_feedback": "write-state",
+    "learn_evaluate": "write-state",
+    "learn_control": "write-state",
+    # A81: external coding agents can execute host commands. An inert output
+    # grant must never authorize the worker that generates those outputs.
+    "doc_status": "read-state",
+    "doc_prepare": "write-artifacts",
+    "doc_run": "run-doc-agent",
+    "doc_diff": "read-extract",  # generated prose is untrusted, like extracted text
+    "doc_apply": "write-artifacts",
     # A82: headless architectural documents, not a DCC scene or a code escape hatch.
     "ak_status": "read-state",
     "ak_guide": "read-state",

@@ -182,6 +182,18 @@ def _attach_pipeline(app, project: str) -> None:
     register_run_tools(app, Path(project))
 
 
+def _attach_docagents(app, project: str) -> None:
+    from tee.docagents.tools import register_documentation_tools
+
+    register_documentation_tools(app, Path(project))
+
+
+def _attach_architecture(app, project: str) -> None:
+    from tee.architecture.tools import register_architecture_tools
+
+    register_architecture_tools(app, Path(project))
+
+
 def _attach_capture(app, project: str, extract_store) -> None:
     """Register the reality-capture lane (A42 T2): ingest rides the extract
     store; reconstruct gates loudly on disk, engine presence and set size."""
@@ -210,6 +222,13 @@ def _attach_windtunnel(app, project: str) -> None:
     from tee.windtunnel.tools import register_windtunnel_tools
 
     register_windtunnel_tools(app, Path(project))
+
+
+def _attach_structural(app, project: str) -> None:
+    """A84: register structural tools even when external solvers are absent."""
+    from tee.structural.tools import register_structural_tools
+
+    register_structural_tools(app, Path(project))
 
 
 def _attach_flightdyn(app, project: str) -> None:
@@ -374,8 +393,11 @@ LANE_ATTACHMENTS: tuple[str, ...] = (
     "pointcloud",
     "windtunnel",
     "flightdyn",
+    "structural",
     "engines",
     "pipeline",
+    "docagents",
+    "architecture",
     "pins",
     "design",
     "senses",

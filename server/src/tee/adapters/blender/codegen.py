@@ -14,6 +14,7 @@ bridge error); the only operator used is undo_push in GUI sessions.
 from __future__ import annotations
 
 import json
+import math
 from typing import Any
 
 from tee.kernel.errors import TeeError
@@ -50,6 +51,10 @@ def _ent(o):
     if o.type == "LIGHT" and o.data is not None:
         d["light_type"] = o.data.type.lower()
         d["energy"] = round(float(o.data.energy), 2)
+    if o.type == "CAMERA" and o.data is not None:
+        d["lens_mm"] = round(float(o.data.lens), 4)
+        d["active"] = bpy.context.scene.camera == o
+        d["rotation_euler"] = [round(float(v), 6) for v in o.rotation_euler]
     return d
 
 def _link(obj):
@@ -142,10 +147,14 @@ def _assign_material(obj, params):
     mat = bpy.data.materials.get(name)
     if mat is None:
         mat = bpy.data.materials.new(name)
-    if bpy.app.version < (5, 0, 0):
-        # nodes are always-on since 5.0; the property write is a 6.0
-        # hard-removal target (#140111, decision A24) - legacy 4.x only
+    # A78 live 5.2.0 probe has a node tree already; older/lazy materials may
+    # need enabling. Test the object, not a version label.
+    if mat.node_tree is None:
+        if not hasattr(mat, "use_nodes"):
+            raise ValueError("material has no node tree and this Blender cannot enable it")
         mat.use_nodes = True
+    if mat.node_tree is None:
+        raise ValueError("Blender did not create the material node tree")
     bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
     if bsdf is None:
         bsdf = mat.node_tree.nodes.new("ShaderNodeBsdfPrincipled")
@@ -202,6 +211,19 @@ def _import_file(op):
 _SETTABLE = ("location", "rotation_euler", "scale", "hide_viewport", "hide_render")
 
 def _apply_props(obj, props):
+    # Same reference-verified camera API as program_capture_look (A51).
+    # Type/degeneracy checks precede ALL changes to this object.
+    if any(k in props for k in ("lens", "target", "active")) and obj.type != "CAMERA":
+        raise ValueError("lens/target/active apply only to a camera")
+    if any(k in props for k in ("energy", "color", "light_type")) and obj.type != "LIGHT":
+        raise ValueError("energy/color/light_type apply only to a light")
+    if "target" in props:
+        from mathutils import Vector
+        if obj.parent is not None or props.get("parent"):
+            raise ValueError("target aims an unparented camera; remove its parent first")
+        direction = Vector(props["target"]) - Vector(props.get("location", obj.location))
+        if direction.length <= 1e-9:
+            raise ValueError("camera target must differ from its location")
     for key in _SETTABLE:
         if key in props:
             setattr(obj, key, props[key])
@@ -209,7 +231,10 @@ def _apply_props(obj, props):
         obj.name = str(props["name"])
     if "parent" in props:
         ref = props["parent"]
-        obj.parent = _find(ref) if ref else None
+        parent = _find(ref) if ref else None
+        if ref and parent is None:
+            raise ValueError("parent id %r was not found" % ref)
+        obj.parent = parent
     if "dimensions" in props:
         # obj.dimensions writes scale from the bound_box, which is stale for
         # meshes built this same batch - derive scale from real vertex extents
@@ -223,11 +248,25 @@ def _apply_props(obj, props):
                     obj.scale[axis] = float(target[axis]) / (hi - lo)
         else:
             obj.dimensions = target
+    if "lens" in props:
+        obj.data.lens = float(props["lens"])
+    if "target" in props:
+        obj.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
+    if "active" in props:
+        if props["active"]: bpy.context.scene.camera = obj
+        elif bpy.context.scene.camera == obj: bpy.context.scene.camera = None
+    if "light_type" in props:
+        obj.data.type = str(props["light_type"]).upper()
+    if "energy" in props:
+        obj.data.energy = float(props["energy"])
+    if "color" in props:
+        obj.data.color = props["color"]
 """
 
 BATCH_INTERPRETER = """
 _created, _modified, _deleted = [], [], []
 _touched = {}
+_camera_before = bpy.context.scene.camera
 
 for _i, _op in enumerate(_OPS):
     _kind = _op.get("op")
@@ -274,6 +313,14 @@ for _i, _op in enumerate(_OPS):
             _modified.remove(_eid)
     else:
         raise ValueError("unknown op %r (batch index %d)" % (_kind, _i))
+
+# Changing the active camera changes the old camera's readback as well.
+if _camera_before is not None and bpy.context.scene.camera != _camera_before:
+    if _camera_before in list(bpy.data.objects):
+        _old_camera_id = _uid(_camera_before)
+        if _old_camera_id not in _created and _old_camera_id not in _modified:
+            _modified.append(_old_camera_id)
+        _touched[_old_camera_id] = _camera_before
 
 # details are read AFTER one depsgraph update - dimensions/bounds of objects
 # built or scaled this batch are stale until then
@@ -350,31 +397,232 @@ CREATE_KINDS = (
 IMPORT_SUFFIXES = ("gltf", "glb", "obj", "fbx")
 
 
-def check_batch(ops: list[dict[str, Any]]) -> None:
-    """Refuse an op the interpreter would raise on, as a rule-6 TeeError.
+# A78: the host validates exactly the properties the interpreter consumes.
+TRANSFORM_PROPERTIES = frozenset(
+    {
+        "name",
+        "location",
+        "rotation_euler",
+        "scale",
+        "dimensions",
+        "parent",
+        "hide_render",
+        "hide_viewport",
+    }
+)
+CAMERA_PROPERTIES = frozenset({"lens", "target", "active"})
+LIGHT_PROPERTIES = frozenset({"light_type", "energy", "color"})
+MATERIAL_PROPERTIES = frozenset(
+    {"material", "base_color", "metallic", "roughness", "emission_color", "emission_strength"}
+)
+CREATE_PROPERTIES = {
+    "cube": {"size"},
+    "plane": {"size"},
+    "uv_sphere": {"radius", "segments"},
+    "ico_sphere": {"radius", "subdivisions"},
+    "cylinder": {"radius", "depth", "segments"},
+    "cone": {"radius", "radius_top", "depth", "segments"},
+    "torus": {"radius", "minor_radius", "segments", "minor_segments"},
+    "monkey": set(),
+    "empty": set(),
+    "camera": CAMERA_PROPERTIES,
+    "light": LIGHT_PROPERTIES,
+}
+_MODEL_PROPERTIES = {
+    "wall_with_openings": {"start", "end", "length", "height", "thickness", "level_z", "openings"},
+    "slab": {"polygon", "holes", "thickness", "top_z"},
+    "roof": {"kind", "footprint", "base_z", "pitch_deg", "thickness", "ridge_axis"},
+    "stairs": {"rise_total", "riser_max", "tread", "width"} | TRANSFORM_PROPERTIES,
+    "opening_cut": {"solver", "center", "size", "apply"},
+    "array_along": {"count", "step"},
+    "profile_extrude": {"profile", "depth"} | TRANSFORM_PROPERTIES,
+    "param_set": {"modifier", "values"},
+}
 
-    Before A68 an unknown op reached Blender, raised a Python ValueError and
-    came back as `blender_error` plus a compacted traceback whose fix said
-    "roll back with tee_rollback" - nothing named the lane that accepts it.
-    Now the refusal is structured, costs no wire trip, and the kernel can
-    append the lanes that would accept the batch."""
+
+def _bad(index: int, message: str, fix: str) -> TeeError:
+    return TeeError("bad_op", f"batch[{index}]: {message}.", fix=fix)
+
+
+def _number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _vector(value: Any, count: int) -> bool:
+    return (
+        isinstance(value, (list, tuple)) and len(value) == count and all(_number(v) for v in value)
+    )
+
+
+def _check_props(index: int, verb: str, kind: str, props: dict[str, Any]) -> None:
+    if verb == "create":
+        allowed = TRANSFORM_PROPERTIES | CREATE_PROPERTIES[kind]
+    elif verb == "set":
+        allowed = TRANSFORM_PROPERTIES | CAMERA_PROPERTIES | LIGHT_PROPERTIES
+    elif verb == "assign_material":
+        allowed = MATERIAL_PROPERTIES
+    elif verb == "import_file":
+        allowed = TRANSFORM_PROPERTIES
+    elif verb == "delete":
+        allowed = frozenset()
+    else:
+        allowed = _MODEL_PROPERTIES[verb]
+    extra = set(props) - allowed
+    if extra:
+        raise _bad(
+            index,
+            (
+                f"unknown properties {', '.join(sorted(extra))} for {verb} "
+                f"{kind if verb == 'create' else ''}"
+            ).rstrip(),
+            "Use only: "
+            + (", ".join(sorted(allowed)) or "no properties")
+            + "; lane_guide lists examples and units.",
+        )
+    for key in ("location", "rotation_euler", "scale", "dimensions", "target", "step", "center"):
+        if key in props and not _vector(props[key], 3):
+            raise _bad(
+                index,
+                f"{key} must be three finite numbers",
+                f'"{key}": [0, 0, 1]; lengths in m, rotation_euler in rad',
+            )
+    for key in ("dimensions",):
+        if key in props and any(v < 0 for v in props[key]):
+            raise _bad(index, f"{key} cannot be negative", "Use nonnegative extents in metres.")
+    for key in ("hide_render", "hide_viewport", "active", "apply"):
+        if key in props and not isinstance(props[key], bool):
+            raise _bad(index, f"{key} must be boolean", f'"{key}": true or false')
+    for key in ("name", "parent", "material", "modifier"):
+        if key in props and not (
+            isinstance(props[key], str) or (key == "parent" and props[key] is None)
+        ):
+            raise _bad(
+                index, f"{key} must be a string", "Use an entity id for parent; null removes it."
+            )
+    positive = {
+        "radius",
+        "minor_radius",
+        "depth",
+        "lens",
+        "length",
+        "height",
+        "thickness",
+        "rise_total",
+        "riser_max",
+        "tread",
+        "width",
+    }
+    if verb != "opening_cut":
+        positive.add("size")
+    for key in positive:
+        if key in props and (not _number(props[key]) or props[key] <= 0):
+            raise _bad(
+                index,
+                f"{key} must be positive and finite",
+                "Lengths use metres; camera lens uses millimetres.",
+            )
+    for key in ("energy", "emission_strength", "radius_top"):
+        if key in props and (not _number(props[key]) or props[key] < 0):
+            raise _bad(index, f"{key} must be finite and nonnegative", f'"{key}": 1')
+    for key in ("metallic", "roughness"):
+        if key in props and (not _number(props[key]) or not 0 <= props[key] <= 1):
+            raise _bad(index, f"{key} must be in [0,1]", f'"{key}": 0.5')
+    for key in ("base_color", "emission_color", "color"):
+        if key in props:
+            value = props[key]
+            lengths = (3,) if key == "color" else (3, 4)
+            if not any(_vector(value, n) for n in lengths) or any(not 0 <= v <= 1 for v in value):
+                raise _bad(
+                    index,
+                    f"{key} must be RGB{'/RGBA' if key != 'color' else ''} values in [0,1]",
+                    f'"{key}": [0.2, 0.3, 0.4]',
+                )
+    for key, low, high in (
+        ("segments", 3, 4096),
+        ("minor_segments", 3, 4096),
+        ("subdivisions", 0, 6),
+        ("count", 1, 10000),
+    ):
+        if key in props and (type(props[key]) is not int or not low <= props[key] <= high):
+            raise _bad(
+                index,
+                f"{key} must be an integer in [{low},{high}]",
+                f'"{key}": {max(low, 16) if key != "subdivisions" else 2}',
+            )
+    if "light_type" in props and (
+        not isinstance(props["light_type"], str)
+        or props["light_type"].upper() not in {"POINT", "SUN", "SPOT", "AREA"}
+    ):
+        raise _bad(index, "light_type must be POINT, SUN, SPOT or AREA", '"light_type": "AREA"')
+    if "target" in props:
+        if "rotation_euler" in props:
+            raise _bad(
+                index,
+                "target and rotation_euler conflict",
+                "Choose one: aim at target, or set an Euler rotation in radians.",
+            )
+        if props.get("parent"):
+            raise _bad(
+                index,
+                "target requires an unparented camera",
+                "Omit parent when aiming the camera at a world point.",
+            )
+        location = props.get("location", [0, 0, 0] if verb == "create" else None)
+        if location is not None and all(
+            abs(a - b) <= 1e-9 for a, b in zip(location, props["target"], strict=True)
+        ):
+            raise _bad(
+                index, "camera target equals its location", "Place the camera away from the target."
+            )
+
+
+def check_batch(ops: list[dict[str, Any]]) -> None:
+    """Pure host preflight; invalid shape never asks Blender to checkpoint."""
+    if not isinstance(ops, list):
+        raise _bad(0, "ops must be a list", "Use [{op:'create',kind:'cube',props:{...}}].")
     for i, op in enumerate(ops):
+        if not isinstance(op, dict):
+            raise _bad(i, "op must be an object", "Use {op, kind, name, props}.")
+        if set(op) - {"op", "kind", "name", "props", "id", "path"}:
+            raise _bad(
+                i,
+                "unknown operation fields",
+                "Use op, kind, name, props, id, path; Blender has no same-batch aliases.",
+            )
+        if "name" in op and (not isinstance(op["name"], str) or not op["name"].strip()):
+            raise _bad(i, "name must be a nonempty string", "Use a descriptive name or omit name.")
         verb = op.get("op")
         if verb not in BASE_OPS and verb not in _MODELING_OPS:
             raise TeeError(
                 "bad_op",
                 f"batch[{i}]: Blender has no op {verb!r}.",
-                fix=f"Blender ops: {', '.join(BASE_OPS)}; modeling ops: "
-                f"{', '.join(_MODELING_OPS)}.",
+                fix=f"Blender ops: {', '.join(BASE_OPS)}; "
+                f"modeling ops: {', '.join(_MODELING_OPS)}.",
             )
-        if verb == "create":
-            kind = op.get("kind", "cube")
-            if kind not in CREATE_KINDS:
-                raise TeeError(
-                    "bad_kind",
-                    f"batch[{i}]: Blender cannot create kind {kind!r}.",
-                    fix=f"Blender kinds: {', '.join(CREATE_KINDS)} (omit kind for a cube).",
-                )
+        kind = op.get("kind", "cube")
+        if verb == "create" and kind not in CREATE_KINDS:
+            raise TeeError(
+                "bad_kind",
+                f"batch[{i}]: Blender cannot create kind {kind!r}.",
+                fix=f"Blender kinds: {', '.join(CREATE_KINDS)} (omit kind for a cube).",
+            )
+        props = op.get("props", {})
+        if not isinstance(props, dict):
+            raise _bad(i, "props must be an object", '"props": {"location": [0,0,0]}')
+        if verb in (
+            "set",
+            "delete",
+            "assign_material",
+            "opening_cut",
+            "array_along",
+            "param_set",
+        ) and not isinstance(op.get("id"), str):
+            raise _bad(
+                i,
+                f"{verb} needs an entity id",
+                "Read ids from tee_scene_summary or the preceding batch diff.",
+            )
+        _check_props(i, verb, kind, props)
         if verb == "import_file":
             path = str(op.get("path", ""))
             ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
@@ -382,8 +630,8 @@ def check_batch(ops: list[dict[str, Any]]) -> None:
                 raise TeeError(
                     "bad_op",
                     f"batch[{i}]: Blender cannot import {ext or 'a file with no suffix'!r}.",
-                    fix=f"import_file takes {', '.join(IMPORT_SUFFIXES)}; export glb from the "
-                    "source lane.",
+                    fix=f"import_file takes {', '.join(IMPORT_SUFFIXES)}; "
+                    "export glb from the source lane.",
                 )
 
 

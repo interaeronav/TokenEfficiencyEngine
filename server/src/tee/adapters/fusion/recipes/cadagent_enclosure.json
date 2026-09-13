@@ -1,0 +1,414 @@
+{
+  "topic": "cadagent_enclosure",
+  "title": "Parametric ventilated enclosure",
+  "intent": "Anchor and fully constrain a footprint; drive an extrusion, shell it, pattern vents, revise width/depth and prove the design recomputes.",
+  "ops": [
+    {
+      "op": "create",
+      "kind": "param",
+      "props": {
+        "value": "120 mm",
+        "units": "mm"
+      },
+      "name": "A79E_width"
+    },
+    {
+      "op": "create",
+      "kind": "param",
+      "props": {
+        "value": "80 mm",
+        "units": "mm"
+      },
+      "name": "A79E_height"
+    },
+    {
+      "op": "create",
+      "kind": "param",
+      "props": {
+        "value": "30 mm",
+        "units": "mm"
+      },
+      "name": "A79E_depth"
+    },
+    {
+      "op": "create",
+      "kind": "sketch",
+      "props": {
+        "rects": [
+          [
+            0,
+            0,
+            120,
+            80
+          ]
+        ],
+        "constraints": [
+          {
+            "type": "coincident",
+            "of": [
+              "r0.bl",
+              "origin"
+            ]
+          },
+          {
+            "type": "horizontal",
+            "of": [
+              "r0.bottom"
+            ]
+          },
+          {
+            "type": "horizontal",
+            "of": [
+              "r0.top"
+            ]
+          },
+          {
+            "type": "vertical",
+            "of": [
+              "r0.left"
+            ]
+          },
+          {
+            "type": "vertical",
+            "of": [
+              "r0.right"
+            ]
+          }
+        ],
+        "dims": [
+          {
+            "type": "distance",
+            "of": [
+              "r0.bl",
+              "r0.br"
+            ],
+            "orientation": "horizontal",
+            "expression": "A79E_width"
+          },
+          {
+            "type": "distance",
+            "of": [
+              "r0.bl",
+              "r0.tl"
+            ],
+            "orientation": "vertical",
+            "expression": "A79E_height"
+          }
+        ]
+      },
+      "name": "Enclosure footprint",
+      "as": "footprint"
+    },
+    {
+      "op": "create",
+      "kind": "extrude",
+      "props": {
+        "sketch": "@footprint",
+        "distance": 30
+      },
+      "name": "Enclosure blank",
+      "as": "blank"
+    },
+    {
+      "op": "set",
+      "id": "@blank.feature",
+      "props": {
+        "expression": "A79E_depth"
+      }
+    },
+    {
+      "op": "create",
+      "kind": "shell",
+      "props": {
+        "body": "@blank",
+        "remove_faces": [
+          "+z"
+        ],
+        "inside": 3
+      },
+      "name": "Three millimetre enclosure",
+      "as": "shell"
+    },
+    {
+      "op": "create",
+      "kind": "hole",
+      "props": {
+        "body": "@blank",
+        "face": "-z",
+        "at": [
+          20,
+          20
+        ],
+        "diameter": 6,
+        "through": true
+      },
+      "name": "Vent seed",
+      "as": "vent"
+    },
+    {
+      "op": "create",
+      "kind": "rectangular_pattern",
+      "props": {
+        "features": [
+          "@vent.feature"
+        ],
+        "axis": "x",
+        "count": 5,
+        "spacing": 20,
+        "axis2": "y",
+        "count2": 3,
+        "spacing2": 20
+      },
+      "name": "Fifteen base vents",
+      "as": "vents"
+    },
+    {
+      "op": "set",
+      "id": "@footprint",
+      "props": {
+        "visible": false
+      }
+    }
+  ],
+  "expected": {
+    "bodies": 1,
+    "root_bodies": 1,
+    "components": 0,
+    "bbox_mm": [
+      120,
+      80,
+      30
+    ],
+    "min_mm": [
+      0,
+      0,
+      0
+    ],
+    "volume_mm3": 58955.65497529614,
+    "sketch_fully_constrained": true,
+    "mount_holes": {
+      "axis": "z",
+      "diameter_mm": 6,
+      "centres_mm": [
+        [
+          20,
+          20,
+          0
+        ],
+        [
+          20,
+          40,
+          0
+        ],
+        [
+          20,
+          60,
+          0
+        ],
+        [
+          40,
+          20,
+          0
+        ],
+        [
+          40,
+          40,
+          0
+        ],
+        [
+          40,
+          60,
+          0
+        ],
+        [
+          60,
+          20,
+          0
+        ],
+        [
+          60,
+          40,
+          0
+        ],
+        [
+          60,
+          60,
+          0
+        ],
+        [
+          80,
+          20,
+          0
+        ],
+        [
+          80,
+          40,
+          0
+        ],
+        [
+          80,
+          60,
+          0
+        ],
+        [
+          100,
+          20,
+          0
+        ],
+        [
+          100,
+          40,
+          0
+        ],
+        [
+          100,
+          60,
+          0
+        ]
+      ]
+    }
+  },
+  "check": "fu_measure on the returned new body: 120x80x30 mm, exact expected volume; fully constrained footprint. Check all fifteen real 6 mm bores through the 3 mm floor at the declared coordinates.",
+  "revision": {
+    "ops": [
+      {
+        "op": "param_set",
+        "name": "A79E_width",
+        "expression": "140 mm"
+      },
+      {
+        "op": "param_set",
+        "name": "A79E_depth",
+        "expression": "40 mm"
+      }
+    ],
+    "expected": {
+      "bodies": 1,
+      "root_bodies": 1,
+      "components": 0,
+      "bbox_mm": [
+        140,
+        80,
+        40
+      ],
+      "min_mm": [
+        0,
+        0,
+        0
+      ],
+      "volume_mm3": 79835.65497529613,
+      "sketch_fully_constrained": true,
+      "mount_holes": {
+        "axis": "z",
+        "diameter_mm": 6,
+        "centres_mm": [
+          [
+            30,
+            20,
+            0
+          ],
+          [
+            30,
+            40,
+            0
+          ],
+          [
+            30,
+            60,
+            0
+          ],
+          [
+            50,
+            20,
+            0
+          ],
+          [
+            50,
+            40,
+            0
+          ],
+          [
+            50,
+            60,
+            0
+          ],
+          [
+            70,
+            20,
+            0
+          ],
+          [
+            70,
+            40,
+            0
+          ],
+          [
+            70,
+            60,
+            0
+          ],
+          [
+            90,
+            20,
+            0
+          ],
+          [
+            90,
+            40,
+            0
+          ],
+          [
+            90,
+            60,
+            0
+          ],
+          [
+            110,
+            20,
+            0
+          ],
+          [
+            110,
+            40,
+            0
+          ],
+          [
+            110,
+            60,
+            0
+          ]
+        ]
+      }
+    },
+    "check": "Width and depth change actual geometry to 140x80x40 mm; the 3 mm floor/walls remain. On the measured Fusion build the face-positioned vent seed follows the face centre: widening by 20 mm shifts the whole grid by +10 mm in x. Revised x centres are 30,50,70,90,110 mm; y remains 20,40,60 mm. The grid stays centred, with unchanged 20 mm spacing."
+  },
+  "limits": [
+    "Use a new empty parametric document; parameter names must be unique in that document.",
+    "Shell thickness and pattern spacing are numeric feature inputs here; the guide does not claim parameter bindings for them.",
+    "This is a modelling lesson, not a strength, thermal or fabrication-clearance certification."
+  ],
+  "teaching": [
+    "Constrain the footprint before downstream features. A coordinate alone is not a design constraint.",
+    "Bind the extrusion expression to the named parameter before shelling.",
+    "Drill the stable exterior bottom face (-z), not the top rim of an open shell.",
+    "Pattern the feature via @vent.feature; a pattern alias refers to its feature.",
+    "A hole position is evaluated on its support face. Verify downstream positions after resizing: this width revision shifts the vent grid with the face centre, despite the footprint remaining anchored.",
+    "Validate each revision with geometry and re-open the exported archive."
+  ],
+  "exports": [
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "step",
+        "out": "/absolute/output/enclosure.step"
+      }
+    },
+    {
+      "name": "fu_export",
+      "args": {
+        "format": "f3d",
+        "out": "/absolute/output/enclosure.f3d"
+      }
+    }
+  ]
+}

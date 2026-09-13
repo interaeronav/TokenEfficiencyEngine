@@ -72,6 +72,15 @@ class BlenderAdapter:
             purpose="3D scene: model, materials, physics, render (pixels)",
         )
 
+    def guide(self, topic: str | None = None) -> dict[str, Any]:
+        from .guidance import guide
+
+        return guide(topic)
+
+    def preflight(self, ops: list[dict[str, Any]]) -> None:
+        """Validate batch shape without contacting the application."""
+        codegen.check_batch(ops)
+
     def list_entities(self) -> list[Entity]:
         data = self._call(codegen.program_list_entities())
         return [_to_entity(e) for e in data["entities"]]
@@ -168,9 +177,13 @@ class BlenderAdapter:
 
     # -- escape hatch (used by the bl_execute_python virtual tool) ---------
 
-    def execute_python(self, code: str, timeout: float | None = None) -> dict[str, Any]:
-        """Run arbitrary Python in Blender, guarded by the version firewall.
-        The caller (virtual tool) is responsible for checkpointing first."""
+    def validate_python(self, code: str) -> None:
+        """Check the existing execution guards before a scene checkpoint.
+
+        A cached version needs no application call; discovering an unknown
+        version may make a read-only info request. This is not a proof that
+        the program will execute successfully or produce correct geometry.
+        """
         for banned in _EXEC_DENYLIST:
             if banned in code:
                 raise TeeError(
@@ -182,12 +195,28 @@ class BlenderAdapter:
         hits = firewall_check(code, version)
         if hits:
             hints = "; ".join(h["hint"] for h in hits[:3])
+            locations = []
+            for hit in hits:
+                lines = ", ".join(map(str, hit["lines"]))
+                if hit["line_count"] > len(hit["lines"]):
+                    lines += f" (+{hit['line_count'] - len(hit['lines'])} more lines)"
+                locations.append(
+                    f"{hit['code']} ({hit['occurrences']} occurrence(s); lines {lines})"
+                )
             raise TeeError(
                 "stale_api",
                 f"Code uses {len(hits)} API idiom(s) invalid on Blender "
-                f"{'.'.join(map(str, version))}: " + ", ".join(h["code"] for h in hits) + ".",
+                f"{'.'.join(map(str, version))}: " + "; ".join(locations) + ".",
                 fix=hints,
             )
+
+    def execute_python(self, code: str, timeout: float | None = None) -> dict[str, Any]:
+        """Run Python guarded by the version firewall, including direct calls.
+
+        The virtual tool also validates before creating its checkpoint.
+        Direct callers remain responsible for their own checkpoint.
+        """
+        self.validate_python(code)
         response = self.wire.execute(code, strict_json=False, timeout=timeout)
         if response.get("status") != "ok":
             raise TeeError(
