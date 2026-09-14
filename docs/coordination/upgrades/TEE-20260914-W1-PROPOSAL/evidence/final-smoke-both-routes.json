@@ -1,0 +1,549 @@
+{
+ "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+ "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+ "routes": {
+  "8-bit Optimized-Quality": {
+   "model": "claude-qwen-27b-8bit",
+   "endpoint": "http://127.0.0.1:8089/v1"
+  },
+  "4-bit Optimized-Speed": {
+   "model": "claude-qwen-27b-4bit",
+   "endpoint": "http://127.0.0.1:8087/v1"
+  }
+ },
+ "owner_settings": {
+  "chore_thinking": "on",
+  "chore_deadline_s": 180.0,
+  "chore_task_tokens": 12000
+ },
+ "records": [
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "triage",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    1353
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 396,
+   "reasoning_chars_in_result": 1353,
+   "outcome": {
+    "chore": "triage",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 9.8
+  },
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "repair_script",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1536,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    157
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 130,
+   "reasoning_chars_in_result": 157,
+   "outcome": {
+    "chore": "repair_script",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 2.76
+  },
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "explain_lint",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 512,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    342
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 135,
+   "reasoning_chars_in_result": 342,
+   "outcome": {
+    "chore": "explain_lint",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 2.71
+  },
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "refine_extract",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    461
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 156,
+   "reasoning_chars_in_result": 461,
+   "outcome": {
+    "chore": "refine_extract",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 2.62
+  },
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "structure_facts",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    1068
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 472,
+   "reasoning_chars_in_result": 1068,
+   "outcome": {
+    "chore": "structure_facts",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 9.16
+  },
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "compress_recap",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 512,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    320
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 110,
+   "reasoning_chars_in_result": 320,
+   "outcome": {
+    "chore": "compress_recap",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 2.47
+  },
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "rerank",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    745
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 210,
+   "reasoning_chars_in_result": 745,
+   "outcome": {
+    "chore": "rerank",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 4.86
+  },
+  {
+   "route": "8-bit Optimized-Quality",
+   "declared_model": "claude-qwen-27b-8bit",
+   "declared_endpoint": "http://127.0.0.1:8089/v1",
+   "wire_model": "claude-qwen-27b-8bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "phrase_deviation",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    857
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 286,
+   "reasoning_chars_in_result": 857,
+   "outcome": {
+    "chore": "phrase_deviation",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 6.31
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "triage",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 2560,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    1841
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 507,
+   "reasoning_chars_in_result": 1841,
+   "outcome": {
+    "chore": "triage",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 11.09
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "repair_script",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1536,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    413
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 198,
+   "reasoning_chars_in_result": 413,
+   "outcome": {
+    "chore": "repair_script",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 3.81
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "explain_lint",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 512,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    341
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 133,
+   "reasoning_chars_in_result": 341,
+   "outcome": {
+    "chore": "explain_lint",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 2.48
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "refine_extract",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    467
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 155,
+   "reasoning_chars_in_result": 467,
+   "outcome": {
+    "chore": "refine_extract",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 2.82
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "structure_facts",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    938
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 435,
+   "reasoning_chars_in_result": 938,
+   "outcome": {
+    "chore": "structure_facts",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 7.95
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "compress_recap",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 512,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    308
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 110,
+   "reasoning_chars_in_result": 308,
+   "outcome": {
+    "chore": "compress_recap",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 2.56
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "rerank",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    783
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 215,
+   "reasoning_chars_in_result": 783,
+   "outcome": {
+    "chore": "rerank",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 4.95
+  },
+  {
+   "route": "4-bit Optimized-Speed",
+   "declared_model": "claude-qwen-27b-4bit",
+   "declared_endpoint": "http://127.0.0.1:8087/v1",
+   "wire_model": "claude-qwen-27b-4bit",
+   "wire_endpoint": "http://127.0.0.1:4000/v1",
+   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "chore": "phrase_deviation",
+   "request_mode": "on",
+   "wire_thinking": true,
+   "reasoning_effort": null,
+   "effective_cap": 1024,
+   "task_deadline_s": 180.0,
+   "valid": true,
+   "attempts": 1,
+   "reasoning_chars": [
+    784
+   ],
+   "finish": [
+    "stop"
+   ],
+   "tokens": 270,
+   "reasoning_chars_in_result": 784,
+   "outcome": {
+    "chore": "phrase_deviation",
+    "requested_mode": "on",
+    "effective_mode": "on",
+    "completed": true
+   },
+   "error": null,
+   "elapsed_s": 5.8
+  }
+ ]
+}
