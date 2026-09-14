@@ -1,0 +1,318 @@
+{
+ "fixtures_version": "w1-fixtures-1",
+ "source": "/Users/john/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/src",
+ "payload_fingerprint": "df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7",
+ "owner_setting_supported": false,
+ "public_chores_accept_thinking": false,
+ "requested_setting": "unset",
+ "per_call_thinking": null,
+ "route": {
+  "model": "claude-qwen-27b-4bit",
+  "url": "http://127.0.0.1:4000/v1"
+ },
+ "records": [
+  {
+   "fixture": "triage/trap_kwarg",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 70,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 1.54
+  },
+  {
+   "fixture": "triage/trap_attr",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 101,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 2.22
+  },
+  {
+   "fixture": "triage/ctrl_none",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 66,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 1.59
+  },
+  {
+   "fixture": "triage/ctrl_enum",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": false,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 86,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 1.79
+  },
+  {
+   "fixture": "rerank/wall",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 29,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.8
+  },
+  {
+   "fixture": "rerank/drape",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 29,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.79
+  },
+  {
+   "fixture": "rerank/level",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 29,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.73
+  },
+  {
+   "fixture": "rerank/extrude",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 29,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.71
+  },
+  {
+   "fixture": "repair_script/wrong_key",
+   "chore": "repair_script",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 500,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 77,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 1.38
+  },
+  {
+   "fixture": "refine_extract/cover",
+   "chore": "refine_extract",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 38,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.79
+  },
+  {
+   "fixture": "structure_facts/slab",
+   "chore": "structure_facts",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 500,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 267,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 3.74
+  },
+  {
+   "fixture": "phrase_deviation/numbers",
+   "chore": "phrase_deviation",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": false,
+   "effective_cap": 400,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 33,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.78
+  },
+  {
+   "fixture": "compress_recap/scene",
+   "chore": "compress_recap",
+   "shape_ok": true,
+   "task_graded": false,
+   "task_ok": null,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 19,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.5
+  },
+  {
+   "fixture": "explain_lint/e501",
+   "chore": "explain_lint",
+   "shape_ok": true,
+   "task_graded": false,
+   "task_ok": null,
+   "wire_thinking": false,
+   "effective_cap": 256,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 24,
+   "reasoning_chars": [
+    0
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 0.71
+  }
+ ],
+ "totals": {
+  "task_correct": "11/12",
+  "shape_ok": "14/14",
+  "tokens_total": 897,
+  "retries": 0,
+  "elapsed_s": 18.1,
+  "thinking_on_wire": 0,
+  "degraded": 0
+ }
+}

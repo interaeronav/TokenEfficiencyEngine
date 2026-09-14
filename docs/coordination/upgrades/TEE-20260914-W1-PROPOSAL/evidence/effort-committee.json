@@ -1,0 +1,635 @@
+{
+ "model": "claude-qwen-27b-4bit",
+ "records": [
+  {
+   "i": 0,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 2,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 4,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 6,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 8,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 10,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 12,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 14,
+   "want": "grounded",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 16,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 18,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 20,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 22,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 24,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 26,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 28,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 30,
+   "want": "grounded",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 32,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 34,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 36,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 38,
+   "want": "grounded",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 40,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 42,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 44,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 46,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 48,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 50,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 52,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 54,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 56,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 58,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 60,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 62,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 64,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 66,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 68,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 70,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 72,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "grounded",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 74,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 76,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 78,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 80,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 82,
+   "want": "grounded",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "grounded",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 84,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 86,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 88,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 90,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 92,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 94,
+   "want": "grounded",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 96,
+   "want": "grounded",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 98,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": null
+   }
+  },
+  {
+   "i": 100,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 102,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 104,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 106,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 108,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 110,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 112,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 114,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 116,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 118,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 120,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 122,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 124,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 126,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 128,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 130,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": "grounded"
+   }
+  },
+  {
+   "i": 132,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 134,
+   "want": "grounded",
+   "votes": {
+    "low": "grounded",
+    "medium": "grounded",
+    "high": null
+   }
+  },
+  {
+   "i": 136,
+   "want": "grounded",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  },
+  {
+   "i": 138,
+   "want": "needs_verification",
+   "votes": {
+    "low": "needs_verification",
+    "medium": "needs_verification",
+    "high": "needs_verification"
+   }
+  }
+ ]
+}

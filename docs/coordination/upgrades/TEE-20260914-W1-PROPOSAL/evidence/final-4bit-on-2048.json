@@ -1,0 +1,511 @@
+{
+ "baseline": {
+  "source": "/Users/john/Library/Application Support/Claude/Claude Extensions/local.mcpb.interaeronav.token-efficiency-engine/src",
+  "payload_fingerprint": "df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7",
+  "requested_setting": "unset",
+  "totals": {
+   "task_correct": "11/12",
+   "shape_ok": "14/14",
+   "tokens_total": 897,
+   "retries": 0,
+   "elapsed_s": 18.1,
+   "thinking_on_wire": 0,
+   "degraded": 0
+  }
+ },
+ "current": {
+  "source": "/Users/john/tee-w1-candidate/server/src",
+  "payload_fingerprint": "28e25e2a32632338826e0cdcde1c01c3fe6bbed8a44003ca147055e7b4619cb6",
+  "requested_setting": "on",
+  "totals": {
+   "task_correct": "11/12",
+   "shape_ok": "14/14",
+   "tokens_total": 5488,
+   "retries": 0,
+   "elapsed_s": 101.3,
+   "thinking_on_wire": 14,
+   "degraded": 0
+  }
+ },
+ "regressions": [],
+ "deltas": [
+  {
+   "fixture": "triage/trap_kwarg",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 437,
+   "elapsed_s": 8.46,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "triage/trap_attr",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 533,
+   "elapsed_s": 10.66,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "triage/ctrl_none",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 281,
+   "elapsed_s": 5.18,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "triage/ctrl_enum",
+   "task": "False -> False",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 1567,
+   "elapsed_s": 29.86,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "rerank/wall",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 291,
+   "elapsed_s": 4.91,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "rerank/drape",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 206,
+   "elapsed_s": 3.23,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "rerank/level",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 184,
+   "elapsed_s": 3.11,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "rerank/extrude",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 179,
+   "elapsed_s": 3.14,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "repair_script/wrong_key",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 121,
+   "elapsed_s": 2.05,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "refine_extract/cover",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 117,
+   "elapsed_s": 1.67,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "structure_facts/slab",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 168,
+   "elapsed_s": 2.91,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "phrase_deviation/numbers",
+   "task": "True -> True",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 237,
+   "elapsed_s": 3.76,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "compress_recap/scene",
+   "task": "None -> None",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 161,
+   "elapsed_s": 2.66,
+   "wire": "False -> True"
+  },
+  {
+   "fixture": "explain_lint/e501",
+   "task": "None -> None",
+   "shape": "True -> True",
+   "finish": [
+    "stop"
+   ],
+   "regressed": false,
+   "regression_kind": null,
+   "tokens": 109,
+   "elapsed_s": 1.61,
+   "wire": "False -> True"
+  }
+ ],
+ "current_records": [
+  {
+   "fixture": "triage/trap_kwarg",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 2048,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 507,
+   "reasoning_chars": [
+    1841
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 10.0
+  },
+  {
+   "fixture": "triage/trap_attr",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 2048,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 634,
+   "reasoning_chars": [
+    2362
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 12.88
+  },
+  {
+   "fixture": "triage/ctrl_none",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 2048,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 347,
+   "reasoning_chars": [
+    1124
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 6.77
+  },
+  {
+   "fixture": "triage/ctrl_enum",
+   "chore": "triage",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": false,
+   "wire_thinking": true,
+   "effective_cap": 2048,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 1653,
+   "reasoning_chars": [
+    5892
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 31.65
+  },
+  {
+   "fixture": "rerank/wall",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1024,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 320,
+   "reasoning_chars": [
+    1150
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 5.71
+  },
+  {
+   "fixture": "rerank/drape",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1024,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 235,
+   "reasoning_chars": [
+    766
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 4.02
+  },
+  {
+   "fixture": "rerank/level",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1024,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 213,
+   "reasoning_chars": [
+    691
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 3.84
+  },
+  {
+   "fixture": "rerank/extrude",
+   "chore": "rerank",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1024,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 208,
+   "reasoning_chars": [
+    700
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 3.85
+  },
+  {
+   "fixture": "repair_script/wrong_key",
+   "chore": "repair_script",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1536,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 198,
+   "reasoning_chars": [
+    413
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 3.43
+  },
+  {
+   "fixture": "refine_extract/cover",
+   "chore": "refine_extract",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1024,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 155,
+   "reasoning_chars": [
+    467
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 2.46
+  },
+  {
+   "fixture": "structure_facts/slab",
+   "chore": "structure_facts",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1024,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 435,
+   "reasoning_chars": [
+    938
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 6.65
+  },
+  {
+   "fixture": "phrase_deviation/numbers",
+   "chore": "phrase_deviation",
+   "shape_ok": true,
+   "task_graded": true,
+   "task_ok": true,
+   "wire_thinking": true,
+   "effective_cap": 1024,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 270,
+   "reasoning_chars": [
+    784
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 4.54
+  },
+  {
+   "fixture": "compress_recap/scene",
+   "chore": "compress_recap",
+   "shape_ok": true,
+   "task_graded": false,
+   "task_ok": null,
+   "wire_thinking": true,
+   "effective_cap": 512,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 180,
+   "reasoning_chars": [
+    577
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 3.16
+  },
+  {
+   "fixture": "explain_lint/e501",
+   "chore": "explain_lint",
+   "shape_ok": true,
+   "task_graded": false,
+   "task_ok": null,
+   "wire_thinking": true,
+   "effective_cap": 512,
+   "attempts": 1,
+   "retries": 0,
+   "tokens_total": 133,
+   "reasoning_chars": [
+    341
+   ],
+   "finish": [
+    "stop"
+   ],
+   "degraded": null,
+   "error": null,
+   "elapsed_s": 2.32
+  }
+ ]
+}
