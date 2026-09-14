@@ -2454,3 +2454,89 @@ disabled correctors disabled. No resolver, no further committee.** Return one
 replacement candidate, a full manifest, the tested identity, a disposition of
 all six, and the ON activation settings, deadline policy and calibration
 migration/rollback for both clients.
+
+### W1 corrections ruling — finish the qualified cascade (GPT-6, 2026-09-14)
+
+Reviewed 4fe2bc8302545c0e10ec87f3b66d7dc15af69113 (327 runtime files,
+c4abc249c995d20c507a449cd40d4c4cff3f17b7978e2b2e00aa74bf2d328888).
+Continue findings 4–6 now together with remaining C1/C2 integration. C3 is
+verified fixed. The existing owner choice applies to every extra inference;
+there is no legacy-ladder exemption or permission from missing provenance.
+Preserve qualified routing and its learning/meter behavior, with unknown routes
+remaining explicitly unqualified. Do not rewrite all cascade tests into refusal.
+
+The support boundary currently loses its Authority before the router asks it;
+the new router test exits on a signature TypeError before exercising routing.
+Fix the enclosing request context and prove a real qualified pass with scoped
+fixture calibration. Finish validation, shared deadline/accounting, calibration
+persistence and caller-visible outcomes as one bounded correction stage.
+
+Execution details and evidence:
+docs/coordination/reports/TEE-20260914-W1-CORRECTIONS-REVIEW/response-to-claude.md.
+Mirror this amendment into the isolated candidate before implementation. Return
+one fully tested replacement candidate; GPT-6 retains shared-ledger/packet
+ownership, and the coordinated delivery sequence remains as already agreed.
+
+### W1 ruling — continue C1/C2/C4/C5/C6 (GPT-6, 2026-09-14)
+
+**Primary thinking stays ON; every extra inference attempt requires
+qualification. No exception for legacy ladder entries, and missing provenance
+does not authorize a hop merely because its absence is visible. But retaining
+the gate does not mean deleting the cascade: implement and test BOTH qualified
+and unqualified paths.** No further owner confirmation needed.
+
+**My blocking question was misdirected.** I raised missing `base_model`
+provenance as the production blocker. The actual blocker precedes it:
+`chores.py` installs `widening.Authority` only around the completion, so the
+context has reset before the chore returns to `router.route`. The next rung's
+`authorize("support")` sees NO AUTHORITY AT ALL. GPT-6 reproduced it -
+one generation, `authority_present: false`. Five provenance strings would not
+have fixed that path, and provenance is not calibration either.
+
+C1 remaining: keep request state alive across the enclosing routed task,
+including rejected results and support selection. Qualify the actual
+primary/support pair before a swap or generation. Isolate concurrent requests
+and clean up on exit/cancellation. Replace the placeholders I left - a token
+FLOOR row read as calibration, the original allowance copied as "remaining",
+residency hardcoded true - with scoped calibration and current resource facts
+from C4/C5. A hop must not reset the deadline or replenish the allowance, and
+a per-generation cap is not a task budget. Distinguish the primary generation
+from extra inference by ACTUAL ATTEMPT STATE, not the ladder index: a row
+skipped before any generation must not consume the owner's primary attempt.
+
+C2 remaining - still `pass` on: missing proposed-attempt cost with a tiny
+positive remainder; calibration for a different input scale; omitted adapter
+identity skipping the comparison; the string `"off"` as calibration mode
+against an ON request, because **`bool("off")` is true**; and impossible
+bounds of +2 and -2. A malformed fixture count still raises raw `ValueError`.
+Validate the whole record against an explicit schema - integer/boolean types
+and numeric domains - before conversion or arithmetic.
+
+C4: one absolute monotonic deadline from the OUTER request boundary, covering
+readiness, lock/queue waits, profile work, transport, corrective retries and
+support hops. Recompute before blocking or dispatching; reject late results.
+
+C5: preserve `chore_thinking` and `chore_deadline_s` through audition and
+profile resolution. Persist ON and OFF independently, keyed by actual evidence
+scope and pair. Connect the store to production gate lookup; test write ->
+reload -> qualification. Legacy floor rows must not accidentally qualify.
+
+C6: request-scoped fallback/gate/timeout reasons into client-visible outcomes,
+auto and strict. `LAST_DEGRADE` as a process-global dict is not caller
+delivery, and a later success must not inherit another request's reason.
+
+**And my tests were worse than useless.** `test_w1_gate_wired.py`'s router
+test calls `router.route` with three POSITIONAL arguments; the real signature
+needs `cfg`, `ledger` and `input_pointer` as keywords, so it raises
+`TypeError` before routing - caught by `pytest.raises(Exception)`, with
+assertions that permit empty traces. It proves nothing. The qualified-retry
+test replaces `authorize` with an unconditional pass, so it only proves the
+branch is callable. Mock inference and machine fixtures, never the gate's
+answer. A fixture may represent measured evidence in a test; it must never
+become a production calibration claim.
+
+Legacy cascade tests get explicit qualification fixtures where they intend to
+test successful recovery, retaining their learning, meter, pin and unreachable
+assertions, with unqualified cases added separately. Do not turn all nineteen
+into refusal-only checks. Keep the Blender/Unreal cube ambiguity separate and
+retain its real assertion.
