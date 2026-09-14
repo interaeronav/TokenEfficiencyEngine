@@ -18063,3 +18063,987 @@ triage LoRA to the 27B was considered and declined by the owner: mlx_lm loads
 the model fine (28.9 GB peak, 23 tok/s, so it is feasible), but the adapter
 exists to fix a 14B failure the 27B does not have, and its data is r2 against a
 r4 prompt.
+
+
+### 2026-09-13 — Codex review of Claude W0 summary (no upgrade)
+
+Reviewed the three commits ending at 73a76e1 against the supplied Downloads
+change summary, focusing on W0 runtime changes and source completeness. Focused
+working-tree checks: test_w0_thinking_engine.py, test_a85_verifier_coverage.py
+and test_llm_router.py: 45 passed in 22.39 s. This is not full-suite or
+architecture acceptance. An isolated git archive with PYTHONPATH pinned to its
+source fails collection of test_blender_lessons.py: the imported Blender guidance
+module is untracked and absent from that commit. Reproduced a valid tee_sttaus
+to tee_status repair rejected by the new substring-preservation gate, and an
+audition row discarded by matching_floors for q27b-think because the row omits
+thinking while the resolved profile declares it true (chores actually run false).
+The claimed universal widening ceiling also requires revision: a finite seeded
+false-accept fraction is not a lower bound, and thinking may change per-attempt
+error independently of verifier coverage. No runtime fixes, installation, model
+calls, configuration changes or release were performed.
+
+
+### 2026-09-13 — Codex review of W0 packet request (proposal only)
+
+Reviewed Downloads/gpt6-packet-request.md against protocol 1.0.1, candidate
+5d188e0 and current HEAD dd5a2a5 (proposal-only addition). No update window,
+freeze, installation or rollout was initiated. Actual Codex tee_status reports
+273 progressive tools, q27b-think, the main project, preserved five grants and
+no active jobs/checkpoints. Read-only inspection of Claude's installed local
+Python bundle confirms the shared borrowed interpreter. Its 324-file normalized
+payload hash is 0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f,
+identical to the accepted A84 manifest; 37 of those runtime files are absent
+from candidate 5d188e0, including CADAgent, documentation agents, learning and
+structural modules. A candidate must reconcile accepted feature continuity;
+choosing a 197/199 benchmark row alone cannot do that.
+
+Pinned-source isolated checks of test_w0_review_corrections.py,
+test_local_mcpb_build.py and test_a77_benchmark_canary.py: 23 passed, 1 skipped,
+1 failed, 4 errors in 2.28 s. The correction regressions pass; the self-containment
+test skips without .git. The failure reproduces the 199/197 canary. The packaging
+setup error is a missing required bundle input, docs/small-model-workflows.md,
+not a need for Git metadata or a real checkout layout. The current local Python
+MCPB does not provision/sync its borrowed environment; the packet request's
+unqualified dependency-wipe claim belongs to the portable shape. No application
+source, configuration, dependencies or installed client payload was changed.
+
+
+### 2026-09-13 — W0 packet-review response delivered to owner
+
+Prepared /Users/john/Downloads/claude-w0-packet-review-response.md for the owner
+to hand to Claude. It assigns correction of accepted-runtime continuity, the
+missing local-bundle input and the portable/local dependency-plan distinction,
+with reproduction details and acceptance checks. This is a correction script,
+not a frozen execution packet; no install, restart or runtime change was made.
+
+
+### 2026-09-13 — Codex review of W0 revision-2 proposal and correction receipt
+
+Reviewed the two revised Downloads documents against candidate 92b8d97; HEAD
+b76bdff adds documentation/execution-script changes. An isolated git archive
+reproduces the claimed 324-file runtime fingerprint
+e6efecb5a0cba5da001cd80aadd3ef964c68aa8baad360257bda02086a75b928.
+Against the accepted A84 payload: zero files added/removed, ten changed; the
+shared usage skill matches the installed copy. The previous runtime-completeness,
+missing packaging-input and local/portable dependency-description findings are
+resolved in the corrected candidate/receipt.
+
+The three focused files (W0 corrections, local MCPB build, A77 canary) pass
+30 tests with one .git-dependent skip in 2.42 s on isolated 92b8d97 source. A
+review-only build from that same export, explicitly passing the permanent
+repository venv via --python, succeeds and preserves the candidate payload hash.
+Its manifest correctly names /Users/john/TokenEfficiencyEngine/server/.venv/bin/python.
+Thus the receipt's instruction to return to the real checkout for delivery is
+unnecessary and risks selecting mutable source. The revised proposal still
+contains the old nine-commit candidate list, prior results labeled HEAD and the
+disproved packaging-export explanation; these need reconciliation before freeze.
+The reported inherited model_metadata.py formatting failure reproduces; restored
+feature test coverage and the recorded full-suite failure still need an explicit
+validation disposition. No full-suite pass, actual-client upgrade acceptance,
+installation or release is claimed. Only review evidence was generated.
+
+
+### 2026-09-13 — Final W0 preparation script delivered to owner
+
+Prepared /Users/john/Downloads/claude-w0-final-preparation-script.md for Claude.
+It covers isolated builds with the permanent interpreter, current candidate and
+evidence reconciliation, and completion of the validation record. The script
+incorporates intervening commit b3977a2, which already applies the formatting
+correction, and calls for a new payload fingerprint rather than reusing 92b8d97
+identity. No installation, restart, dependency or runtime edit was performed.
+
+
+### 2026-09-13 — Codex review of W0 revision-3 proposal
+
+Reviewed candidate 63d93083596803f3676cdb17e8d6fe4f6d682a68; HEAD cc29490
+adds documentation/execution-script changes only. Isolated source reproduces
+324 files and fingerprint 397261a262bc4a2d934ceb677a7299f2a66051ef963b91ae229a31c25727ed22;
+zero files added/removed and eleven changed vs accepted A84. Shared skill matches.
+Ruff check passes; format check passes all 512 files. An isolated verification
+build with the permanent interpreter succeeds and has the same runtime payload.
+The preceding isolated-build, stale proposal and missing restored-test fixes
+are present.
+
+Two further findings require reconciliation. First, structural tests do exist on
+local branch codex/a84-reviewed-runtime at 18666b3ac2f31891467d116f7660aa2e3d6648aa:
+server/tests/test_structural.py, test_structural_runner_limits.py and
+test_structural_shutdown.py. Its structural runtime and kernel/jobs.py are
+identical to the candidate. Extracted runner-limit/shutdown tests pass 11 checks
+in 1.28 s against candidate source; the native solver tests were not run. The
+proposal's claim that no structural tests exist anywhere is incorrect.
+
+Second, the review's full-suite invocation hit inherited unisolated purge tests.
+server/tests/test_purge.py calls purge(confirm=True) while _temp_workdirs scans
+the REAL system temp roots for tee-* directories. The active isolated review
+export, redirected test log and verification artifact disappeared during that
+run. The process exited 1 before the attempted stop could be issued; no full-suite
+pass is independently claimed and no rerun was performed. A subsequent dry-run
+control confirmed that purge selects the current process's active tee-* workdir
+without checking ownership/liveness. That control requested no deletion and was
+cleaned up only by its own TemporaryDirectory context. Scope of other matching
+temp directories affected by the earlier test run was not established. Tests
+need fixture-scoped discovery, and the product's active-workdir protection needs
+review. No source fix, installation or client restart was performed.
+
+
+### 2026-09-13 — Purge/structural correction script delivered to owner
+
+Prepared /Users/john/Downloads/claude-w0-purge-and-structural-corrections.md for
+Claude. It assigns fixture-scoped purge testing before further full-suite runs,
+verified ownership/inactivity checks for product workdir deletion, recovery of
+existing structural tests from 18666b3, and renewed candidate/build validation.
+The script forbids reproducing confirmed deletion against real system temp roots.
+No correction, cleanup, installation or restart was executed in this handoff.
+
+
+### 2026-09-13 — W0 revision 4 reviewed; marker validation corrections handed to Claude
+
+Reviewed Downloads proposal revision 4 and correction receipt against an isolated
+export of 47765b7047cd821e0907956a5acc4a34c84bfba2. The 325-file runtime hashes to
+d792b3397cac5b7a2807ea2f28a0812542de7600ca139cb6de3360f2e8625864; installed Claude
+still hashes to accepted A84 0e172448d05b14a0a714bbecd4c79b0ba24cc9caa48bf9dd5db57f9680fb252f
+(324 files). Delta: 0 removed, 1 added, 17 changed. All three recovered structural
+test files are byte-identical to 18666b3. Independent focused tests: 40 passed,
+22 skipped; ruff check passes and format check passes 516 files. An independent
+local build uses the permanent interpreter and has complete runtime byte/set
+equality and matching installed resources. The full suite was not rerun here.
+
+Review remains corrections-required: workdirs.state_of returns reclaimable for
+an exited PID before validating started. Missing, empty and object-valued started
+fields each led to deletion of a disposable fixture directory. A symlinked marker
+also led to fixture-directory deletion; its external target and outside sentinel
+survived. PID 10**100 raises OverflowError through state_of and both purge modes.
+Valid live/dead controls behaved correctly. The retained probe pins candidate
+imports and patches discovery to newly created fixture roots only; no system
+temp roots were enumerated or pre-existing directories deleted by these probes.
+
+Claude response script delivered by shared files at
+/Users/john/Downloads/claude-w0-round-four-review-response.md and
+docs/coordination/reports/TEE-20260913-W0-R4-REVIEW/claude-response.md.
+The accompanying review-receipt.json records matching bytes and input hashes;
+there was no direct Claude chat message or acknowledgment. The script requests
+complete marker validation, conservative PID error handling, meaningful boundary
+regressions, correction of remaining current-document contradictions and renewed
+validation at the corrected identity. Evidence and preserved input copies live
+under output/reviews/20260913-w0-r4/. No TEE source change, installation, restart,
+dependency sync, live cleanup, push or release was performed in this review.
+
+
+### 2026-09-13 — W0 revision 5 purge review closed; wind-tunnel findings reproduced
+
+Reviewed candidate 7c55183ac07c7d72c960e0156ae2ad563aae7d27 and Claude's later
+marker-overwrite addendum (documentation commit 86a9410). Independent full payload
+fingerprint is 77bbac850652175a884e00ea88b7fbd6862e12a670ac76884fa8eb5cb714492e,
+325 files, 0 removed / 1 added / 17 changed versus independently rehashed installed
+Claude A84. Original reported MCPB bytes verified: 1,322,720 bytes, SHA-256
+d52847fa58ac6af786bbb19f023aa6045aefd63227dd27325a5e78e3531ec7d8, complete runtime
+set/byte equality, permanent interpreter and matching required resources.
+Independent checks: purge/structural 54 passed, 22 skipped; wind-tunnel runner
+11 passed; ruff check and format check (516 files) pass. The old marker probe
+now keeps every malformed/symlink/oversized-PID fixture without exception, keeps
+a valid live owner and reclaims a valid exited owner. Prior purge findings are
+resolved under the documented intact-marker assumption; arbitrary marker
+replacement remains a disclosed trust limitation, not a new lsof requirement.
+
+The candidate remains corrections-required for the declared wind-tunnel risk.
+Claude's full-suite log was inspected and preserved: 1 failed, 3048 passed,
+45 skipped, 141 deselected; the full suite was not rerun here. Investigation
+reproduced three issues. (1) orphan_check's saved-argv alternative overrides a
+mismatched observed command line, and kill_orphan reaches termination for that
+PID. The signal function was replaced by a recorder, so no mismatched process
+was signalled. (2) kill_orphan persists cancelled/finished/killed_as_orphan even
+when termination returns false; status checks process liveness only from recorded
+running state. (3) a deterministic finalizer barrier confirms wait_job returns
+cancelled before the old worker finishes; reuse of its run directory for the
+orphan fixture then permits the old finalizer to overwrite orphan progress with
+cancelled. This recreates the reported state mismatch while the new owned orphan
+is alive. It is controlled reproduction, not a historical execution trace.
+The runner/status/job source is unchanged from accepted 18666b3: these findings
+are inherited, not regressions introduced by the purge patch.
+
+All process probes used fresh fixture paths and owned disposable children,
+with mismatch signalling intercepted. Script for Claude:
+/Users/john/Downloads/claude-w0-round-five-review-response.md, mirrored at
+docs/coordination/reports/TEE-20260913-W0-R5-REVIEW/claude-response.md.
+The script requests current-process identity checks, truthful stop/status state,
+fixture isolation and actual finalization evidence, then renewed candidate
+validation and a rebuilt manifest/artifact. Evidence, input snapshots, original
+artifact copy and review receipt are retained under output/reviews/20260913-w0-r5/
+and the shared report directory. No source fix, installation, restart, dependency
+sync, live cleanup, push or release was performed. No direct Claude message or
+acceptance receipt is claimed.
+
+
+### 2026-09-13 — W0 revision 6 reviewed; caller-level lifecycle gaps remain
+
+Reviewed isolated f20c9ee47b06da789bfab1e70cba5c34023b58d7, fingerprint
+11bb16153f2ed86406ad7a6317faa190cb860d8f3fe71c265c4265bdd4b1cac1. Complete runtime:
+325 files; 0 removed, 1 added, 19 changed versus independently rehashed installed
+Claude A84. Original reported MCPB verified: 1,324,612 bytes, SHA-256
+93fe0bfccead11f420c35885a06d92fd256cf6cffedfae04f68629a15d168025, runtime set/byte
+equality, permanent interpreter and matching required resources. Independent
+six-file targeted run: 102 passed, 22 skipped in 10.31s; ruff check and format
+check pass (516 files). Claude's canonical log was inspected and preserved:
+3053 passed, 45 skipped, 141 deselected, no failures; full suite not rerun here.
+
+Saved-argv fallback removal and isolated orphan fixture are present; accepted
+purge corrections remain. Further fixture-only probes found remaining issues:
+(1) cwd and command-line substring matching admits run_001-copy for run_001;
+both reach intercepted termination despite belonging to a sibling directory.
+No mismatched child was signalled. (2) The real cancellation hook ignores failed
+termination, persists cancelled, releases the machine reservation and fails to
+expose the live runner's stop_failed flag; the owned fake solver remains alive.
+(3) Public orphan stop says wt_no_orphan / pid gone / Nothing to stop on failed
+termination, status says dead with identity_unknown for a live process, and a
+successful retry retains stop_failed as current state. (4) wait_worker_done
+returns normally on timeout while a registry entry remains. All child cleanup
+was limited to processes created by these probes.
+
+Evidence claims also need correction: the proposal's wildcard command collects
+286 selected / 307 total with 21 deselected, not the six-file 102-pass selection.
+A controlled fixed-ID status fixture measured with json.dumps and TEE's own
+estimator increases from 19 to 59 estimated tokens between 7c55183 and f20c9ee;
+truthful status has a justified cost, rather than no measurable change.
+
+Response script written to
+/Users/john/Downloads/claude-w0-round-six-review-response.md and mirrored at
+docs/coordination/reports/TEE-20260913-W0-R6-REVIEW/claude-response.md.
+It requests exact path identity, complete caller-level failure propagation and
+resource accounting, truthful uncertainty/retry state, explicit wait timeout,
+correct commands/measurements and renewed corrected-candidate validation.
+Evidence, copied original artifact, input snapshots and probes are retained in
+output/reviews/20260913-w0-r6/; the shared review receipt records script/input
+checksums. No source fix, client installation/restart, dependency sync, cleanup
+of existing state, push or release occurred. No direct Claude chat message or
+acceptance receipt is claimed.
+
+
+### 2026-09-13 — W0 revision 7 reviewed; two residual fixes and response evidence remain
+
+Reviewed isolated 36453a0a63e115aa7f4e424d67cfa509882b125a, fingerprint
+cb2e51210decb659911fd4d0eca33a9b3abdd54dc07befe03efebe8d222b3ca8: 325 runtime
+files, 0 removed, 1 added, 19 changed against independently rehashed installed
+A84. Original MCPB verified: 1,326,506 bytes, SHA-256
+19fd77764b4c138241df40cfb4a3634d56ec3576fdcbc80fc972ccf4e6d05e96, complete
+runtime set/byte equality, permanent interpreter and matching resources.
+Independent six-file focused tests: 111 passed, 22 skipped in 10.66s; lint and
+format pass (516 files). Inspected/preserved Claude canonical log: 3062 passed,
+45 skipped, 141 deselected, zero failures in 205.90s; not rerun here.
+
+Verified improvements include retained reservation after failed cancellation,
+visible failure state, truthful orphan stop errors and unknown identity,
+successful orphan retry retirement, ordinary suffix-collision rejection and
+worker-wait timeout assertion. Purge acceptance and recorded limitations stand.
+
+Two defects remain in owned-fixture probes: (P1) on this Mac, flattened command
+text accepts a path inside Python source, a run_001/../different-run path, and
+a single run_001 copy sibling argument. Cwd mismatches in all three, yet each
+reaches intercepted termination once. No mismatched process was signalled.
+(P2) failed cancellation followed by public wt_case stop succeeds in-process,
+exits the child and finalizes the worker, but store and wt_status retain
+stop_failed=true. Capacity is correctly released after exit.
+
+The token table's helper constructs responses by hand and misstates what
+f20c9ee emitted. Actual _Lane.status calls at f20c9ee and 36453a0 under identical
+fixed fixtures, using estimate_tokens(dict), measure normal 30->30, failed
+in-process stop 21->26, unknown identity 49->50 and stale cancellation/live
+orphan 61->74. These are payload estimates, without an MCP envelope or native
+solver, and a different baseline from the previous review's comparison.
+
+Bounded response script saved to
+/Users/john/Downloads/claude-w0-round-seven-review-response.md and mirrored at
+docs/coordination/reports/TEE-20260913-W0-R7-REVIEW/claude-response.md.
+Receipt records identities and script/input checksums; source export, probes,
+logs, artifact, input snapshots and actual response measurements retained in
+output/reviews/20260913-w0-r7/. No product source fix, client install/restart,
+dependency sync, cleanup of existing state, push or release performed. Delivery
+is a file handoff; no direct Claude chat message or client acceptance claimed.
+
+
+### 2026-09-13 — W0 revision 8 accepted for coordinated packet preparation
+
+Reviewed isolated e6f95663274bcd74c754bf2aa1028ef4650bbca4, runtime fingerprint
+df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7: 325 files,
+0 removed, 1 added, 19 changed against independently rehashed installed A84.
+Original MCPB verified: 1,327,902 bytes, SHA-256
+59de72c626590aa326309d386eff3230478c2cca119c7cb7312c17bec8e0cbb6, complete
+runtime set/byte equality, permanent interpreter and matching required resources.
+Subsequent 930ed8f changes only proposal/corrections documents.
+
+Independent focused tests: 119 passed, 22 skipped in 11.48s; lint and format
+pass (516 files). Inspected/preserved Claude canonical log: 3070 passed,
+45 skipped, 141 deselected, 418 warnings in 212.85s; not rerun here.
+
+Both blocking findings are closed in reproduced public/identity paths. Mac real
+argv is available; source-comment, ../ escape and space-sibling arguments plus
+ordinary suffix controls all refuse with zero termination calls. A controlled
+unavailable-argv/cwd case with misleading flattened text remains unknown and
+refuses termination. Failed cancellation retains the reservation; successful
+public in-process retry exits the owned child, completes the worker, clears the
+stored/current failure and releases capacity. Actual status estimates reproduce
+30->30, 21->26, 49->50 and 61->74 against f20c9ee using fixed fixtures and
+estimate_tokens(dict), without an MCP envelope or native solver.
+
+Response script accepts the candidate for packet preparation and requests only
+three prose corrections: exact token deltas, symlink-alias-specific cwd claim,
+and stop_recovered as persisted metadata rather than a current wt_status field.
+No new runtime campaign or repeat suite requested. Native structural skips,
+fixture-directory leak and intact-marker trust assumption remain documented.
+GPT-6 still owns the actual-client inspections, frozen release manifest,
+deliveries, rollback/continuity checks and coordinated packet. Neither client
+is claimed upgraded or accepted by this review.
+
+Script: /Users/john/Downloads/claude-w0-round-eight-review-response.md,
+mirrored at docs/coordination/reports/TEE-20260913-W0-R8-REVIEW/claude-response.md.
+Shared receipt records identities/checksums/disposition. Evidence retained in
+output/reviews/20260913-w0-r8/. No product source fix, install/restart/retargeting,
+dependency sync, existing-state cleanup, push or release performed. File handoff
+only; no direct Claude message or acknowledgment claimed.
+
+
+### 2026-09-13 — W0 documentation closeout; packet-preparation acceptance stands
+
+Reviewed updated proposal and corrections through 4i at b756a4b. Rehashed all
+325 tracked HEAD runtime files against the previously accepted e6f9566 manifest:
+fingerprint df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7
+unchanged. Original and preserved MCPB both retain SHA-256
+59de72c626590aa326309d386eff3230478c2cca119c7cb7312c17bec8e0cbb6. Changes since
+the tested source affect the execution script and two review documents only.
+No suite rerun for documentation-only changes; prior validation remains.
+
+Three requested prose corrections addressed. No new product blocker. Two minor
+wording clarifications supplied verbatim in the closeout: stale-cancelled
+reconciliation already existed at f20c9ee; successful in-process retry records
+recovery in memory/case store, while orphan retry can also record it in run.json
+and progress.json. No runtime change, rebuild, repeat suite or further
+correction-review cycle requested for these edits. Acceptance for coordinated
+packet preparation stands; installation/release and actual-client acceptance
+remain pending.
+
+Closeout script: /Users/john/Downloads/claude-w0-final-documentation-closeout.md.
+Mirror, input snapshots and receipt:
+docs/coordination/reports/TEE-20260913-W0-DOC-CLOSEOUT/.
+Review/script only; no product source edit, build, install/restart, dependency
+sync, existing-state cleanup, push or release. No direct Claude chat message.
+
+
+### 2026-09-13 — W0 correction review closed; no further Claude script required
+
+Reviewed final documentation closeout at 9873979. Both last wording corrections
+are present: f20c9ee already reconciled stale cancellation, and the two retry
+paths' recovery records are distinguished. No remaining finding in this review;
+acceptance for coordinated packet preparation stands.
+
+Recomputed complete HEAD runtime manifest: 325 files, byte-identical to reviewed
+e6f9566, fingerprint df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+Original and preserved MCPB unchanged, SHA-256
+59de72c626590aa326309d386eff3230478c2cca119c7cb7312c17bec8e0cbb6. Changes since
+the candidate are documentation only; no tests or package build repeated.
+Receipt and final input snapshots:
+docs/coordination/reports/TEE-20260913-W0-REVIEW-CLOSED/.
+
+No additional correction script or Claude message required or sent. The next
+stage is the GPT-6 coordinated update packet. Deployment and receipts from both
+actual clients remain pending. This review changed no runtime, client
+installation/registration, dependencies or existing operational state, and
+performed no push or release.
+
+
+### 2026-09-13 — Final acceptance response prepared for Claude
+
+At the owner's request, saved the final review acceptance message to
+/Users/john/Downloads/response-to-claude-w0-accepted.md and mirrored it at
+docs/coordination/reports/TEE-20260913-W0-REVIEW-CLOSED/response-to-claude.md.
+Acceptance is for packet preparation; no further correction work assigned.
+Delivery receipt records the checksum and file handoff. No direct Claude chat
+message or acknowledgment is claimed. No runtime or client state changed.
+
+
+### 2026-09-13 — Claude update reported and installed W0 payload verified
+
+Owner reported "claude is updated". Independently inspected the installed Claude
+Desktop extension: all 325 runtime files match reviewed e6f9566, fingerprint
+df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+Manifest, launcher, icon, licence, workflow document and usage skill match the
+reviewed local MCPB. Manifest version 0.30.1; borrowed permanent interpreter
+/Users/john/TokenEfficiencyEngine/server/.venv/bin/python.
+
+Recorded installation as verified by filesystem evidence and owner report.
+No actual-Claude tool-call acceptance receipt obtained in this check, and Codex
+acceptance was not checked; two-client completion is not claimed. This observation
+is subsequent evidence, not a retroactively created pre-install execution packet.
+Receipt: docs/coordination/reports/TEE-20260913-W0-REVIEW-CLOSED/20260913T220220Z-claude-installation-observed.json.
+No runtime or client state changed by this verification.
+
+
+### 2026-09-13 — Codex connection inspected after Claude update
+
+For the owner's ChatGPT/Codex update question, verified the Codex tee@personal
+wrapper launches the permanent source interpreter and current project. Its
+325-file on-disk runtime matches reviewed e6f9566 / df974f78…a90b7. The wrapper
+label remains 0.30.0; that label is not the runtime identity. Actual Codex
+tee_status succeeds, reports 273 progressive tools and no active jobs. It does
+not attest every already-imported module's revision; a reconnect loads current
+source. No replacement Claude MCPB is needed for this source plugin.
+
+Claude's installed-file verification is recorded separately. No reconnect,
+restart, installation, configuration change or two-client completion claimed.
+Connection observation: docs/coordination/reports/TEE-20260913-W0-REVIEW-CLOSED/20260913T220337Z-codex-connection-observed.json.
+
+
+### 2026-09-13 — TEE verified through the reconnected Codex client
+
+Owner requested "verify TEE" after the reconnect instruction. Actual client
+status, discovery, schema and virtual-tool invocation succeed. Core surface is
+17 tools; this composition registers 273 progressive tools. Project root is
+/Users/john/TokenEfficiencyEngine; no active jobs. Blender, Fusion, partkiln and
+seamkiln are connected. Unreal remains offline, as before the reconnect.
+
+Codex source and Claude installation each contain the reviewed 325-file runtime,
+fingerprint df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+Codex server PID 90344 started at 17:05:06 local, after all current runtime file
+modification times, using the configured source interpreter and launcher. This
+combines disk identity, fresh process and actual-client calls; no in-memory
+module fingerprint is claimed.
+
+Engine discovery finds the active gateway at :4000 answering and the old :8080
+endpoint offline. A real eng_ask call to the selected local claude-qwen-27b route
+returns content, HTTP 200, finish_reason stop in 1.062 seconds, with no thinking
+tags detected. Thus selected-route liveness is supported by content, not just
+its listing. eng_scan refreshed its ordinary local cache.
+
+Codex post-restart functional verification passed. Claude's installed-file
+verification and owner report remain distinct from an actual-Claude tool-call
+receipt; two-client completion is not claimed. No source, launcher/config or
+package edit, install/restart, DCC mutation, push or release occurred. Prior
+source suite results were not rerun for this live connection check.
+Receipt: docs/coordination/reports/TEE-20260913-W0-REVIEW-CLOSED/20260913T220835Z-codex-post-restart-verification.json.
+
+
+### 2026-09-13 — Canonical Codex verification receipt provided for Claude
+
+At the owner's request, packaged the existing 22:08:35Z actual-client evidence
+as a canonical Markdown receipt: docs/coordination/reports/TEE-20260913-W0-REVIEW-CLOSED/20260913T221039Z-codex-verification-receipt-for-claude.md.
+Downloads copy: /Users/john/Downloads/codex-tee-verification-receipt-for-claude.md. Matching copies and checksum recorded in the
+delivery record. Stage is reconnected / functional verification passed.
+No frozen W0 release-manifest checksum was available, so formal protocol
+acceptance and two-party completion are explicitly not claimed. Claude's own
+actual-client evidence remains pending; its installation already matches.
+No verification calls repeated, no runtime/client settings changed, and no
+direct Claude chat message or acknowledgment claimed.
+
+
+### 2026-09-14 — W1 proposal reviewed; measurement correction script supplied
+
+Owner requested review and a response script for Claude, then confirmed
+/Users/john/Downloads/TEE-W1-proposal-for-gpt6.md as the intended input. Its
+checksum matches the repository proposal and preserved review snapshot.
+
+Decision: correct the evidence before a runtime candidate. Installed W0's eight
+public chores all request thinking OFF; a mocked installed-source probe confirms
+this and verifies that explicit rerank thinking is refused before completion.
+Claude's helper bypasses the chore layer and forces thinking ON at 8,000 tokens;
+its reported current-cap truncation counts were inferred, not measured. The
+helper also changes prompts, omits task validators and overwrites usage across
+retries. The review reproduced the accounting defect with a mocked 100+200 token
+retry retaining only 200. Auto-mode fallback and strict-mode errors differ.
+
+Custom profiles 27b/27b4bit do receive the default 256-token floor, but calibration
+changes need explicit identity and scope: eng_adopt persists rows keyed by engine,
+so two mode rows would overwrite, and eligible new ENGINES rows enter the router
+ladder by default. A throughput estimate does not bound blocking across retries.
+The response answers Claude's four design questions and assigns a bounded public-
+path measurement revision, with laboratory thinking evidence kept identifiable.
+No global cap increase, production thinking enablement or runtime change accepted.
+
+Source checkout and Claude installation each match the reviewed 325-file W0
+runtime, fingerprint df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+Review-only completions were mocked; no live model quality or backend compliance
+claim, full-suite rerun, runtime/configuration edit, installation, reconnect,
+calibration adoption, dependency sync, commit or push occurred.
+
+Claude's actual-client W0 receipt has now arrived. Its JSON checksum was verified
+as 2256f3efccd7a27f12764dcb29a4bfce041931b63d15795606a0b0227d2a6d10. Both clients
+have supplied functional evidence at the same runtime fingerprint; the missing
+frozen W0 release-manifest checksum remains a historical protocol limitation.
+No retroactive pre-install packet or formal two-party completion is claimed.
+
+Response: /Users/john/Downloads/claude-w1-proposal-review-response.md, mirrored at
+docs/coordination/reports/TEE-20260914-W1-REVIEW/claude-response.md. Review receipt
+is in that report directory; input snapshots, probe and evidence are under
+output/reviews/20260914-w1/. File handoff only; no direct Claude chat delivery.
+
+
+### 2026-09-14 — Owner selects thinking ON; W1 direction superseded
+
+John directed: "as an owner I need thinking on". Recorded explicit owner-selected
+thinking ON as the W1 requirement for the eight local chores, triage included.
+This supersedes the earlier measurement-only disposition and empirical adoption
+veto. Measurement corrections remain factual; budgets, correctness and latency
+are now implementation/verification work rather than a vote on the owner's mode.
+
+Appended the owner direction to CLAUDE_EXECUTION_SCRIPT.md after finding that
+Claude had already added the preceding measurement-only addendum. Revised handoff:
+docs/coordination/reports/TEE-20260914-W1-REVIEW/owner-thinking-on-script.md;
+Downloads copy: /Users/john/Downloads/claude-w1-thinking-on-owner-script.md.
+It assigns isolated candidate preparation, explicit mode propagation through all
+public chores, adequate budgets, calibration that retains both modes, retry
+accounting, deadlines and real backend/client verification. Validation and trust
+controls remain; no silent fallback to thinking OFF is authorized.
+
+Only the plan and handoff documents changed in this turn. Thinking has not yet
+been enabled in either running client. Candidate preparation and the coordinated
+W1 delivery with both actual-client receipts remain outstanding. Prior response
+and receipts are preserved as history; no direct Claude chat delivery claimed.
+
+
+### 2026-09-14 — Supporting engine rows and threshold gate scope confirmed
+
+John added a supporting engine row and quantum-threshold-inspired gating, then
+explicitly confirmed primary thinking stays ON while extra retries and support
+escalation are gated. Revised the same owner handoff and execution addendum,
+and recorded this superseding decision in DECISIONS.md. Actual served profiles
+need supporting registry rows, with registration distinct from automatic
+qualification and no duplicate alias rungs.
+
+Checked the local threshold/correlation code and primary quantum-theorem papers.
+The handoff calls for an empirical TEE gate with explicit evidence identities,
+verifier errors, conditional recovery, correlated failures, budgets and honest
+pass/fail/unmeasured states; no direct transfer of a quantum noise threshold to
+LLMs is claimed. Proposed statistical criteria are labeled as engineering
+defaults. Retry coverage includes corrective generations below the chore layer.
+
+Final owner script: /Users/john/Downloads/claude-w1-thinking-on-owner-script.md.
+No runtime change or live inference in this document revision. Implementation,
+candidate validation, coordinated delivery and both-client activation remain.
+
+
+### 2026-09-14 — W1 candidate f559187 reviewed; six corrections returned
+
+Owner supplied /Users/john/Downloads/TEE-W1-candidate-receipt.md and requested
+review and a response to Claude. Independently verified the clean candidate
+worktree at f559187b8f6fe97b7ddb4fdb8272b2c0640906b2: 327 files, fingerprint
+ccb68328dc1f0e9fbff36c84d83b3d0e8f1ebae2fbd0e6ee80be026e6d40d774, 2 added / 4
+changed / 0 removed against W0. Source-manifest file SHA-256:
+1b0e0cbd8bb50ed5c0bf0da7db81df5a3287002fdc590767a0d0048586f3ccf0.
+Shared Codex source and installed Claude payload remain the 325-file W0 identity
+df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+
+Independently ran four W1 test files plus verifier-coverage and W0-correction
+tests against the pinned candidate: 170 passed in 18.61 s. Additional public-path
+probes found: corrective JSON and router support each issue two calls with zero
+gate calls; mismatched/NaN/future/unknown-kind calibration can pass; explicit ON
+on an incapable profile sends OFF; lock waiting and late valid responses evade
+the deadline; audition drops per-profile ON/deadline settings while adoption
+still cannot retain both modes; ordinary auto failures have no caller-visible
+reason. Deadline evidence includes actual urllib I/O to a local fixture: 30 ms
+configured, 91 ms accepted. No real model was called by the review.
+
+Disposition: changes required, with primary thinking ON retained. Appended the
+bounded correction stage to CLAUDE_EXECUTION_SCRIPT.md. Response and review
+receipt: docs/coordination/reports/TEE-20260914-W1-CANDIDATE-REVIEW/. Shared
+proposal-directory response: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-candidate-review-response.md.
+Downloads: /Users/john/Downloads/claude-w1-candidate-review-response.md.
+Evidence and reproducible probes: output/reviews/20260914-w1-candidate/.
+
+Inspected Claude's full-suite log (3189 passed / 44 skipped / 141 deselected /
+1 failed, Blender/Unreal cube-routing ambiguity); did not rerun that entire suite
+or independently repeat the claimed W0 baseline reproductions. Long model studies
+were not repeated. Requested final-identity smoke evidence and correction of
+stale receipt identities. No runtime, owner configuration, calibration, package,
+installation or launcher change, reconnect, commit or push by this review.
+Delivery is a file handoff; direct Claude chat delivery is not claimed.
+
+### 2026-09-14 — W1 partial corrections reviewed; continue ruling returned
+
+Owner supplied /Users/john/Downloads/TEE-W1-for-chatgpt.md for review/reply.
+Verified clean isolated candidate 4fe2bc8302545c0e10ec87f3b66d7dc15af69113:
+327 runtime files, c4abc249c995d20c507a449cd40d4c4cff3f17b7978e2b2e00aa74bf2d328888.
+Both shared source and installed Claude source remain 325-file W0,
+df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+
+Independent targeted tests: 102 passed / 1 failed across gate-wired,
+owner-thinking and widening-gate files. The failure is an ON-mode floor mock
+returning True rather than a mapping; preserve its assertion and fix the mock.
+Claude's reported full suite (26 failed / 3180 passed) was not rerun here.
+Independent public-path probes confirm explicit ON/unavailable refuses before
+completion (C3 fixed) and corrective denial spends one generation. Support's
+Authority expires before the router checks it (C1 partial); the new support
+test instead catches a signature TypeError and accepts empty observations.
+C2 still permits missing proposed costs, wrong input scope, omitted adapter
+binding, string OFF-as-True and impossible favorable bounds; malformed counts
+raise ValueError. Evidence: output/reviews/20260914-w1-corrections/.
+
+Ruling: continue original C4–C6 now with remaining C1/C2 integration, preserving
+C3. Apply the existing owner gate to all extra inference, retain qualified
+cascade behavior, and leave unsupported/unmeasured routes explicitly
+unqualified. No legacy exemption or fabricated provenance. Shared execution
+plan amended and interpretation recorded in DECISIONS. Review remains changes
+required; candidate acceptance and coordinated deployment are outstanding.
+
+Response/receipt: docs/coordination/reports/TEE-20260914-W1-CORRECTIONS-REVIEW/.
+Downloads: /Users/john/Downloads/claude-w1-corrections-ruling.md.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-corrections-ruling.md.
+Review used mocked inference and local fixtures; no runtime/configuration edits,
+calibration adoption, model calls, package, installation, reconnect, commit or
+push. File delivery only; no direct Claude chat delivery is claimed.
+
+### 2026-09-14 — W1 interim 71cd76b reviewed; C1/C4 remain partial
+
+Owner requested review and a Claude script for TEE-W1-progress-for-chatgpt.md.
+Verified clean commit 71cd76b5805b14ddec6a70812a26e855840fd81e, 327 runtime
+files, fingerprint 325e54261890ff03581e484ebec458c5ebbb78a51d80c2b38d9b4cf5376e14b9.
+Shared Codex source and installed Claude source independently remain 325-file
+W0 fingerprint df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+
+The enclosing Authority now reaches the support gate (verified public path).
+C1/C4 are still partial: 30 ms configured accepted after 125 ms lock wait,
+74 ms readiness wait and 90 ms actual local HTTP; generation was dispatched
+with negative task time. A confirmed pre-inference refusal increments generation
+and blocks the next primary; corrective qualification sees generations=0 and
+primary=unknown. Usage callback reported 123 completion tokens and recorded spend,
+but the task charged zero and retained its full 1000-token allowance. Routed
+calibration lookup is absent; allowance/residency defaults are not measured facts.
+
+Independent five-file W1 run: 133 passed / 1 failed in 0.41 s. Failure is
+llm_bad_json instead of llm_deadline on the slow malformed first response.
+Claude's 42-pass/7-fail router count was not independently rerun here. C2/C5/C6
+remain open as declared, C3's fix is retained. This is an interim review, not
+candidate acceptance. The prior owner contract is unchanged; Claude should
+continue all outstanding work through one completed candidate without another
+policy approval round trip.
+
+Response/receipt: docs/coordination/reports/TEE-20260914-W1-PROGRESS-REVIEW/.
+Downloads: /Users/john/Downloads/claude-w1-progress-review-script.md.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-progress-review-script.md.
+Manifest, input snapshot, raw focused log and reproducible probes:
+output/reviews/20260914-w1-progress/. Shared execution script amended. No runtime
+or configuration edit, real model call, calibration adoption, build, install,
+reconnect, commit or push. File handoff only; direct Claude chat delivery is
+not claimed.
+
+### 2026-09-14 — W1 C4 report reviewed against advancing candidate
+
+Owner supplied TEE-W1-c4-for-chatgpt.md for review and a Claude script. Reported
+9a7e272a1df41d48b28be4210240f837d51c2412 independently matches 327 files,
+3f606a64a93d25ac0566c70637e7dc6c1020ca985e5b9522358e6dfdb40bf5e9.
+Candidate advanced through cc25a2c to 4f4ed18813bdd9908ed973ad6b55e9a3b33b36c3
+during review. Exported immutable server snapshots to avoid mixing evidence;
+newest reviewed runtime is 328 files,
+09675b13922266eb21ffb35236b56024e0b4c1d8eda47c3cc70bf61ac2776b9d.
+Both observed client source trees remain W0 325-file fingerprint
+df974f783145a49c435355e702339cb4836c14e0be44646bd86b288a960a90b7.
+
+Independent tests: reported 9a7e272, 166 passed in 11.03 s; intermediate
+cc25a2c, 267 passed / 1 failed in 21.95 s; newest 4f4ed18 targeted deadline,
+qualification, outcome and learning-router files, 74 passed / 1 failed in
+8.62 s. Failure is a stale exact router-result key set omitting outcome.
+Full server suite and live-model smoke not independently rerun.
+
+Latest pinned reproductions: timed lock refuses near 31 ms for a 30 ms limit,
+but a slow HTTP response holds the lock beyond 100 ms and returns only at
+453 ms; readiness expiry raises ValueError, outer-only expiry TypeError, and
+direct local-only deadline accepts a late valid answer. Reasoning-only output
+with 123 usage tokens and an ambiguous read timeout each permit a second HTTP
+request with zero gate calls. Retry usage reuses the first attempt's value;
+unknown usage reserves 512 against a 4096 cap. A real qualified corrective gate
+refuses finite time because its cost was the previous remaining-time snapshot.
+Supporting route/mode and verifier identity remain unbound in a pure-gate
+fixture. The actual llm_triage handler still reports no model running for
+llm_no_answer; new outcome helpers have not reached production consumers.
+
+Response credits the new C2/C5/C6 work and directs the remaining original
+corrections without another owner policy decision. C1/C4 remain partial; primary
+ON and verified C3 stand. Candidate is not accepted for deployment. Plan amended.
+Response/receipt: docs/coordination/reports/TEE-20260914-W1-C4-REVIEW/.
+Downloads: /Users/john/Downloads/claude-w1-c4-review-script.md.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-c4-review-script.md.
+Snapshots, source manifests, commands/logs and reproducible probes:
+output/reviews/20260914-w1-c4/. Mocked inference/state and local HTTP only;
+no candidate/production runtime edit, configuration change, real model call,
+calibration adoption, build, install, reconnect, commit or push. File handoff
+only; no direct Claude chat delivery is claimed.
+
+Handoff observation: dd113b660f380e489d8da505061228b598284c1a corrects the
+learning-router outcome-key assertion reported above. Inspected the test diff;
+no runtime file changed from 4f4ed18, and no amended-test rerun is claimed.
+Response updated to credit that fix rather than ask Claude to repeat it.
+
+### 2026-09-14 — Owner-authorized autonomous Downloads handoff
+
+Owner requested autonomous pickup of Claude's updates in Downloads and response
+scripts/updates written back there. Created active thread heartbeat
+review-claude-tee-updates-in-downloads, every 10 minutes. The workflow and hash
+ledger live in docs/coordination/downloads-handoff/. It detects new/replaced
+content, skips our own outputs and unchanged historical inputs, reviews against
+the active script/evidence, and saves dated responses/receipts plus a fixed
+latest-response alias in Downloads. It stays quiet without an actionable change.
+
+Handoff note: /Users/john/Downloads/TEE-Downloads-handoff.md.
+Latest reply: /Users/john/Downloads/claude-tee-latest-response.md.
+Status: /Users/john/Downloads/TEE-autonomous-review-status.md.
+The initial latest reply is the existing C4 review, not a new review. No newer
+incoming report was present in the initial scan. Production/candidate runtime
+changes are outside this monitor's review-and-file-handoff scope; the existing
+upgrade protocol and owner decisions remain in effect. No direct Claude chat
+delivery is claimed.
+
+### 2026-09-14 — Autonomous W1 boundaries review, 60df597
+
+Downloads heartbeat picked up TEE-W1-boundaries-for-chatgpt.md and its revised
+60df597 report during review. Pinned both commits: fe6dcea, 328-file payload
+ef0ba039ad5e4699b876cf197a8a4c1233b8289056f0ca2ff78b53df8ac328d0,
+223 focused tests passed in 10.15 s; 60df597, 328-file payload
+0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276,
+232 passed in 10.77 s. Latest input SHA-256:
+7611419b4a142afcf8b30856789068ecef060eb43d4b2463b6373ec25f791df1.
+
+Credited reasoning-only and ambiguous-timeout accounting/gating, qualified
+finite retries and per-attempt usage, and new C6 consumers. Three remaining
+production defects reproduced on BOTH snapshots: buffered HTTP waits overrun
+absolute deadlines, including headers/readiness/error bodies; HTTP 500 bypasses
+support/compatibility qualification and accounting; a correction on support B
+uses original A->A evidence. On 60df597, a 30 ms response took 465 ms and held
+the lock beyond 100 ms; a valid 100 ms pause inside 300 ms instead spun and failed.
+
+Claude's two-route smoke checksum matches; inspected 16/16 valid ON records
+at 60df597, not independently rerun. Delivered W0 run2 log contains the six
+reported failures; first named baseline log is incomplete. No full suite or
+live model inference by reviewer. Continue existing corrections, primary ON
+and original owner contract unchanged; no deployment acceptance.
+
+Response/receipt: docs/coordination/reports/TEE-20260914T181104Z-W1-BOUNDARIES-REVIEW/.
+Downloads: claude-tee-response-20260914T181104Z.md and
+TEE-review-receipt-20260914T181104Z.json, with latest alias/status updated.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-boundaries-review-script.md.
+Evidence: output/reviews/20260914T181104Z-w1-boundaries/.
+No candidate/production runtime edit, configuration change, calibration adoption,
+build, install, restart, commit or push. File handoff only.
+
+### 2026-09-14 — Autonomous W1 round-two review, 8f73bd2
+
+Reviewed stable Downloads report TEE-W1-boundaries-round2-for-chatgpt.md,
+SHA-256 1d1388ad216e958fd2c2329a21518f25dadaae782602d914eb71cba9f7bdeaa3.
+Pinned commit 8f73bd2c41c14c47be2257cf563ab9beaef8b217; independently hashed
+328-file payload 972e4717f8057985e9c42529a48f1ffb66544b684116a263e09cdc78ecd90c3a.
+All eight W1 files plus test_spend_a45: 261 passed in 15.52 s. Changed-file
+Ruff passed. No independent full-suite or live-model run.
+
+Previous concrete probes now pass: 30 ms continuous completion ends at 34 ms
+with lock free at 100 ms, valid paused body succeeds without spinning, slow
+headers/error body bounded, HTTP 500 gated/charged, B correction asks for B->B.
+Three residuals reproduced: legitimate pre-inference 400 consumes a false 1024
+token charge and blocks qualified recovery; B->B correction inherits A's budget
+(actual persisted 1024 evidence permits a 2560-token retry while 2560 evidence
+is refused); readiness deadline reported/cached as unreachable for 30 seconds,
+preventing a later adequately budgeted request until the fixture cache clears.
+
+Inspected Claude's new 8f73bd2 smoke: 16 valid ON, one-attempt records, matching
+identity; checksum 78a7455b9fb9c5f96e6ee4a5ac9aa3fbeb7b184186ff297c14a7e91edcf47de7.
+Completed W0 run1 summary and run2 log now name the same six failures.
+Both observed client runtime trees remain the 325-file W0 payload.
+
+Response/receipt: docs/coordination/reports/TEE-20260914T184634Z-W1-ROUND2-REVIEW/.
+Downloads: claude-tee-response-20260914T184634Z.md and
+TEE-review-receipt-20260914T184634Z.json, latest alias/status updated.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-round2-review-script.md.
+Evidence: output/reviews/20260914T184634Z-w1-round2/.
+Continue bounded original corrections; primary ON and owner decisions unchanged.
+No runtime/config/client edit, owner-state calibration adoption, build, install,
+restart, commit, push or direct Claude message. Isolated fixture stores only.
+
+### 2026-09-14 — Completed 8f73bd2 suite evidence received
+
+Autonomous Downloads delta review of revised round-two report SHA-256
+0cb068b83a34ed18ff37ddf4110952640b268ac185380bd33340826b8d07b7fc.
+New delivered suite-8f73bd2.log ends 3347 passed / 6 failed / 52 skipped /
+100 deselected, 1018.95 s; SHA-256
+4233f758d941dbc0951884b6dda3602f262176ef6ebdca608c1b2c1fe4adce69.
+Six failed names match both supplied W0 baseline artifacts. Smoke checksum
+unchanged from the previous review; 16 valid one-attempt ON records and complete
+outcomes, consistent identity. Inspected delivered evidence only; no independent
+test or live-model rerun. Existing three corrections from the 18:46 review remain
+open. Further dirty candidate edits are observed, not accepted or reviewed here.
+
+Acknowledgment/receipt: docs/coordination/reports/TEE-20260914T190534Z-W1-EVIDENCE-UPDATE/.
+Downloads: claude-tee-response-20260914T190534Z.md and
+TEE-review-receipt-20260914T190534Z.json. Latest alias/status updated; active
+implementation script remains claude-tee-response-20260914T184634Z.md.
+Evidence: output/reviews/20260914T190534Z-w1-evidence-update/.
+No new campaign or owner ruling; no runtime/config/install changes. File handoff.
+
+### 2026-09-14 — Autonomous 817f655 scope/dispatch review
+
+Reviewed TEE-W1-round2-for-chatgpt.md, SHA-256
+c94ce97bb46ecdcc50572fd8ab50c74e5fae2505aa844b22a334b06c0a1cdd94.
+Pinned 817f655f87efee905e2351c0aa0ad3e92f117db2; independent 328-file payload
+65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8.
+273 passed in 19.23 s across the eight W1 files plus test_spend_a45; changed-file
+Ruff passed. No independent full suite or live model execution.
+
+Prior concrete cases now pass: legitimate compatibility accounting/correction,
+408 reservation without retry/cache, wrong-cap B corrective evidence refused and
+exact evidence accepted, readiness deadline truthful with next-caller reprobe.
+Two residuals reproduced: ordinary refine_extract(max_tokens=800) qualifies a
+1024 support cap but dispatches 1200, can spend 1600 against 1500 task tokens,
+and refuses exact 1200 evidence even with ample budget; unrelated structured
+400/422 messages/context error mentioning response_format triggers the JSON-mode
+compatibility retry and caches a false capability result.
+
+Inspected 16 valid ON one-attempt completed smoke records at 817f655, checksum
+ee1046afeac3a6485da587290af580b9b109cc93377914753ab8c198a08a33b9.
+Full suite at this identity still undelivered when checked. Continue the same
+bounded corrections, primary ON and owner decisions unchanged; no acceptance.
+
+Response/receipt: docs/coordination/reports/TEE-20260914T191904Z-W1-SCOPE-REVIEW/.
+Downloads: claude-tee-response-20260914T191904Z.md and
+TEE-review-receipt-20260914T191904Z.json; latest alias/status updated.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-scope-review-script.md.
+Evidence: output/reviews/20260914T191904Z-w1-scope/.
+No runtime/config/client changes, owner-state calibration adoption, build,
+install, restart, commit, push or direct Claude message. Fixture stores only.
+
+Handoff evidence completion (same review): the revised report arrived before
+final delivery, SHA-256 a6ddb8346b49de66d2325b06deabeaa64f114658acd926367b514beb2394c9f9.
+Delivered suite-817f655.log inspected: 3359 passed / 6 failed / 52 skipped /
+100 deselected, 1005.38 s; checksum
+ef2736198501d8cdad83ff4b5149a1065cdc2a58eab20333bbeaad0255697c21.
+Six failure names match W0 and 8f73bd2. Response/receipt include this evidence;
+the two independently reproduced dispatch/compatibility gaps remain open.
+
+
+### 2026-09-14 — Autonomous d4460de dispatch/tool-handler review
+
+Reviewed TEE-W1-scope-for-chatgpt.md, SHA-256
+8e4a59518aa92f9f9f6ed1dd832a8eb5f97d1fca2436d23dc283026ab4916ce1.
+Pinned d4460dea978a084389bd6e67b6112bf9e8d674d5; independent 328-file payload
+d7209215a1311590a0bc86f71f3cf69ce8033b90dc9efe98596eee51c867ffce.
+297 passed in 22.68 s across eight W1 files plus spend/router tests; changed-file
+Ruff passed. Previous actual support-cap and unrelated parameter-error controls
+now pass; prior accounting, cap-match and deadline/readiness controls retained.
+
+Two integration defects independently reproduced: registered llm_explain keeps
+unknown/model identity, so the same persisted record qualifies direct recovery
+but refuses the public tool's retry; nested string/list HTTP error values raise
+raw AttributeError before dispatch accounting. Bounded continuation only, with
+positive registered-handler and transport/accounting controls requested.
+
+Inspected supplied d4460de smoke: 16 valid ON, one-attempt completed records,
+checksum 103fa74580ac1beca2948472daa022c869c3008c81e9853080e647d0c9c37afb.
+Final suite log undelivered when checked. No independent full/live rerun.
+Response/receipt: docs/coordination/reports/TEE-20260914T193834Z-W1-DISPATCH-REVIEW/.
+Downloads: claude-tee-response-20260914T193834Z.md and
+TEE-review-receipt-20260914T193834Z.json; latest alias/status updated.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-dispatch-review-script.md.
+Evidence: output/reviews/20260914T193834Z-w1-dispatch/.
+Primary ON and existing owner decisions preserved; no deployment acceptance.
+No runtime/config/client edits, owner-state calibration adoption, package,
+installation, restart, commit, push or direct Claude message. Fixture stores only.
+
+
+### 2026-09-14 — Autonomous 14fb65f handler/recognizer review
+
+Reviewed new dispatch report (c725c620249d5a4988455026ce2a7bb26ed0592e79ce174951bcb5ca72bb4583)
+and completed prior-scope evidence update (61159207ce0d4eadef4417cf9ca35e09ae40704b4bb45ae5f478c37ed3123e62).
+Pinned 14fb65f249e37c55e157c26baa4f3eac4306be47; 328-file payload
+c50261a4fbacf2623a0419750f3d8eeac39311cff56c2d501998114d09af10c8.
+311 focused tests passed in 28.06 s; changed-file Ruff passed.
+Both previous runtime defects fixed: fixed persisted records qualify registered
+explain/triage recovery, and AUTO error shapes retain typed outcomes/accounting.
+Prior dispatch-cap, identity, compatibility and deadline controls remain passing.
+No new runtime defect found. One validation correction: seven new shape tests
+all pass with zero recognizer calls because json_mode is off; use actual AUTO
+unknown/refusal controls, fixed expected handler records and accurate report text.
+Remove obsolete triage-pins-OFF comment; primary thinking remains ON.
+
+Received d4460de suite: 3375 passed / six W0-matched failed names, 52 skipped,
+100 deselected, 1016.47 s; checksum
+10a117926cc0a1e4cb79a3106c4a3c9d05f4f4ad192f19242dbba87cb46ea978.
+Inspected 14fb65f smoke: 16/16 valid ON, one-attempt completed records; checksum
+904b9f4fc9ba981733c1d7988c8e752d75aba026b7c0a97e6dd7f704fb3c1c3c.
+14fb65f full-suite log still undelivered; no independent full/live rerun.
+
+Response/receipt: docs/coordination/reports/TEE-20260914T200004Z-W1-HANDLER-REVIEW/.
+Downloads: claude-tee-response-20260914T200004Z.md and
+TEE-review-receipt-20260914T200004Z.json; latest alias/status updated.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-handler-review-script.md.
+Evidence: output/reviews/20260914T200004Z-w1-handler/.
+No runtime/config/client changes, owner-state calibration adoption, package,
+installation, restart, commit, push or direct Claude message. Fixture stores only.
+
+
+### 2026-09-14 — Autonomous 6ba5508 validation closeout review
+
+Reviewed TEE-W1-handler-for-chatgpt.md, SHA-256
+709faf8026c68f97cc5c7c51f20019ad4537e9f744a89fcbb8c7cdcf0a9346b2.
+Pinned 6ba550891b720cae7d92c8c62c549d93860ed230; 328-file payload
+ff817154ae62ba7799bf24b783780f8eebb1cd9f893525eb09f43813ec02a4af.
+Only source change from reviewed 14fb65f is the triage comment; parsed AST is
+identical and the other 327 payload files are byte-identical. Tests changed.
+295 W1 tests passed in 24.55 s; changed-file Ruff passed. Verified AUTO error
+reachability, unknown/refusal/accounting controls, exception/fallback behavior,
+fixed expected handler calibration and corrected ON-policy documentation.
+All outstanding review corrections verified; no new actionable code finding.
+
+Supplied 6ba5508 smoke inspected: 16/16 valid ON, one-attempt completed records;
+checksum 8e9e26c66c2f45dd4e20ab6053bab24844521ede61b6ab575149288b19aa99ee.
+Completed 6ba5508 full-suite log pending. Claude disclosed 14fb65f full suite
+cancelled/superseded after source edits began; no completed result claimed and
+no request to reconstruct it. Preserve prior smoke and suite attribution.
+Next: full suite on fixed source, candidate closeout, GPT-6 upgrade packet.
+Response/receipt: docs/coordination/reports/TEE-20260914T201734Z-W1-VALIDATION-REVIEW/.
+Downloads: claude-tee-response-20260914T201734Z.md and
+TEE-review-receipt-20260914T201734Z.json; latest alias/status updated.
+Shared handoff: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/gpt6-validation-review-script.md.
+Evidence: output/reviews/20260914T201734Z-w1-validation/.
+No runtime/config/client changes, owner-state calibration adoption, build,
+installation, restart, commit, push or direct Claude message. No full/live rerun.
+
+### 2026-09-14 — W1 candidate 6ba5508: review corrections closed, suite evidence complete (Claude)
+
+Claude's side of the W1 coordination ledger. Candidate
+`6ba550891b720cae7d92c8c62c549d93860ed230`, 328-file payload
+`ff817154ae62ba7799bf24b783780f8eebb1cd9f893525eb09f43813ec02a4af`.
+Receipt: docs/coordination/upgrades/TEE-20260914-W1-PROPOSAL/candidate-receipt.md.
+
+ALL SIX original findings disposed, and nine further GPT-6 review rounds closed
+on their own pinned snapshots (4fe2bc8 -> 6ba5508). The defects that mattered
+most were not the first ones: two rounds' fixes CREATED the next round's
+defects - making every HTTP error `Dispatched` began charging a legitimate 400
+for inference that never happened, and bounding the readiness probe turned a
+30 ms task timeout into a cached 30-second claim that a live endpoint was down.
+A fix that relocates a defect is still a defect.
+
+Final-identity evidence, each result tied to its own commit:
+- full suite at 6ba5508: 6 failed, 3394 passed, 52 skipped, 100 deselected,
+  1017.62 s. evidence/suite-6ba5508.log, SHA-256
+  e0cbf58b3f07d336b81ab5ce119f028bcfc5c78106f5e10171078d90277a1899, header
+  carrying identity, payload and invocation; worktree clean before and after.
+- two-route smoke at 6ba5508: 16/16 valid, thinking ON, one attempt each,
+  SHA-256 8e9e26c66c2f45dd4e20ab6053bab24844521ede61b6ab575149288b19aa99ee
+  (independently matched by GPT-6).
+- 817f655: 3359/6. d4460de: 3375/6. 14fb65f: suite cancelled/superseded after
+  source edits began, no completed result claimed; its smoke stands.
+- The six failures are environmental, reproduced TWICE on an isolated
+  `git archive e6f9566` W0 export (846 s and 867 s, same six names).
+
+BEHAVIOUR CHANGE FOR THE PACKET, stated as a reduction: absent calibration
+removes W0's unqualified recovery paths - W0 retried unparseable JSON
+unconditionally and escalated the ladder ungated, and at this candidate both
+are refused on any machine without a record, which today is every machine.
+`llm_widening_refused` and `llm_widening_unproven` are retired codes. A routed
+response gains an `outcome` key; degraded tool/capture/web responses gain a
+compact fallback reason.
+
+PRACTICE, adopted from GPT-6's suggestion: measure from an isolated
+`git archive` export, never the live worktree. Two measurements were lost this
+session without it - a W0 log copied mid-write, and a 17-minute suite whose
+tree was edited underneath it.
+
+No package, installation, client restart, launcher change, dependency sync,
+model download, cleanup, push or release. Shared Codex source and the installed
+Claude extension remain the 325-file W0 payload. No calibration adopted into
+the owner's .tee/. Real local inference only for the smokes, against the
+owner's own two servers through the :4000 shim. Candidate closeout, the upgrade
+packet and both actual-client receipts remain outstanding; no client acceptance
+is claimed.
