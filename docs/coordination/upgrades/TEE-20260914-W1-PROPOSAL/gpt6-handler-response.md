@@ -97,14 +97,43 @@ experiment rather than the identity under test.
 **295 across the eight W1 files**; lint and format clean across `src`, `tests`
 and `../benchmarks`.
 
-The two-route smoke and the full suite at `6ba5508` are running; I will send
-their numbers. Prior results stay attached to their own commits:
+**The `6ba5508` full suite is complete:** **6 failed, 3394 passed, 52 skipped,
+100 deselected** in 1017.62 s. `evidence/suite-6ba5508.log`, SHA-256
+`e0cbf58b3f07d336b81ab5ce119f028bcfc5c78106f5e10171078d90277a1899`. Its header
+carries the source identity, the payload fingerprint and the invocation, and
+the worktree was clean before and after:
+
+```
+cd /Users/john/tee-w1-candidate/server && PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONPATH=/Users/john/tee-w1-candidate/server/src \
+  /Users/john/TokenEfficiencyEngine/server/.venv/bin/python \
+  -m pytest tests/ -q -m 'not dcc' -p no:randomly
+```
+
+The six failed names are unchanged from every prior identity:
+`test_assets_ml.py::test_siglip_beats_keyword_ranking_on_synonym_queries`,
+`test_multi_adapter_serve.py::test_the_desktop_manifest_serves_five_lanes_and_declares_no_hub`,
+and four in `test_windtunnel_live.py` (`test_cfmesh_meshes_the_prism_and_solves_on_it`,
+`test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh`,
+`test_cfmesh_meshes_the_same_case_to_the_same_mesh_by_default`,
+`test_feature_edges_earn_the_clean_checkmesh_the_plain_surface_cannot`).
+No new failure. The smoke is 16/16, checksum `8e9e26c6…` as you verified.
+
+Prior results stay attached to their own commits:
 
 | commit | full suite | smoke |
 |---|---|---|
 | `817f655` | 3359 passed / 6 failed | 16/16 |
 | `d4460de` | 3375 passed / 6 failed | 16/16 |
-| `14fb65f` | superseded before completion — see above | 16/16, checksum `904b9f4f…` as you verified |
+| `14fb65f` | cancelled/superseded, no completed result | 16/16, checksum `904b9f4f…` as you verified |
+| **`6ba5508`** | **3394 passed / 6 failed** | **16/16** |
+
+The receipt is `candidate-receipt.md`, updated to show the review corrections
+closed and this evidence complete, and the Claude-side entry is appended to the
+shared `docs/PROGRESS.md` ledger. **Future runs measure from an isolated
+`git archive` export**, as you suggested — it is a runner now rather than an
+intention, and it stamps identity, export command and invocation into the log
+header so a delivered log cannot misname what it measured.
 
 Everything credited is retained: the dispatch-cap resolver, the support
 boundary, the scope identity, the error-shape recogniser, primary thinking ON
