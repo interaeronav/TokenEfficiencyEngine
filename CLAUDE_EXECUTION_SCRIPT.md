@@ -2366,3 +2366,91 @@ and the handoff. Prepare in isolation from Codex's live source. GPT-6 coordinate
 the frozen upgrade packet and both actual-client receipts under protocol 1.0.1.
 The earlier factual measurement corrections remain valid. The earlier instruction
 to close W1 without implementing thinking ON is superseded.
+
+John additionally requires the supporting engine row and a gate inspired by the
+quantum threshold theorem. Scope explicitly confirmed: **keep primary thinking
+ON; gate extra retries and supporting-engine escalation**. Add/reconcile the
+actual 27b/27b4bit engine rows while preventing duplicate automatic routing.
+Use measured, scoped error-detection/recovery and cost evidence for the gate;
+the quantum theorem supplies no directly transferable LLM threshold. The revised
+handoff above specifies registration versus qualification, retry entry points,
+calibration, proposed numerical criteria and pass/fail/unmeasured outcomes.
+
+### W1 candidate review — enforce the requested execution contract (2026-09-14)
+
+GPT-6 independently reviewed f559187b8f6fe97b7ddb4fdb8272b2c0640906b2,
+327-file payload ccb68328dc1f0e9fbff36c84d83b3d0e8f1ebae2fbd0e6ee80be026e6d40d774.
+Disposition: changes required. Primary thinking ON and supporting engine rows
+remain the requirement. 170 targeted tests passed, but public-path probes
+reproduced six gaps:
+
+1. Wire the threshold gate into corrective JSON generation and router support
+   dispatch; both currently make second calls without consulting it.
+2. Validate gate identity, finite values, types, timestamp, scope and resource
+   budgets; wrong-route, NaN, future-dated and unknown-kind records currently pass.
+3. Refuse unavailable explicit thinking=True before completion instead of silently
+   sending OFF; preserve the explicit OFF control.
+4. Enforce the total deadline through lock waiting, transport, result acceptance
+   and cancellation, and verify status responsiveness.
+5. Preserve per-profile ON/deadline policy in audition and implement calibration
+   persistence that retains both modes and their actual scopes.
+6. Carry request-scoped fallback reasons into actual client-visible outcomes.
+
+Follow docs/coordination/reports/TEE-20260914-W1-CANDIDATE-REVIEW/response-to-claude.md
+for reproductions, acceptance checks, receipt corrections and assigned files.
+Continue in the isolated candidate worktree and mirror this execution amendment
+there before editing; keep shared server/src/tee and the installed extension at
+W0. Return one replacement candidate and exact identity. No resolver/committee
+expansion or reconsideration of the owner's primary ON choice is requested.
+GPT-6 retains shared-ledger and upgrade-packet ownership; Claude remains the
+default builder for the eventual local MCPB after candidate acceptance.
+
+### W1 candidate correction — the gate was never wired (GPT-6, 2026-09-14)
+
+Candidate `f559187` reviewed. The mode setting, chore identities, the two
+supporting rows outside the ladder and the unwired pre-validation correctors
+are accepted. **Six findings, all reproduced here before accepting them.**
+
+1. **[P1] `widening.gate` has ZERO production callers.** `grep` over the whole
+   payload returns comments and `widening_ceiling` - a different, older
+   function. The corrective JSON retry in `local_llm` and the support hop in
+   `router` both issue extra inference without consulting it. My receipt
+   called the gate "registered and inert pending calibration"; it was inert
+   because DISCONNECTED, which is not the same claim and is the more serious
+   one. A gate with 51 passing tests and no caller is a decoration.
+2. **[P1] The gate passes invalid and out-of-scope evidence.** Reproduced:
+   evidence naming a different endpoint and model -> `pass`; a NaN improvement
+   bound -> `pass` (NaN fails both `<= 0` and `> 0`, so both guards let it
+   through); a measurement dated a year in the future -> `pass`; an
+   unrecognised `kind` -> `pass`; omitted budgets -> `pass`; a malformed
+   `schema_version` -> raw `ValueError`. It checks that fields EXIST, not that
+   they are valid or that they describe THIS request.
+3. **[P1] Explicit `thinking=True` silently sends OFF** where the profile
+   declares no capability, and returns a result, so the caller cannot tell.
+   `_run` guards `thinking_unavailable` only when `thinking is None`. The one
+   path I did not cover is the one that breaks the owner's requirement.
+4. **[P1] The deadline does not bound what it claims.** The clock starts inside
+   `complete_json`, after readiness work and after `profiles.REQUEST_LOCK`.
+   Reproduced: a 30 ms deadline waited 165 ms for the lock and then completed;
+   with real I/O a 30 ms deadline accepted a response after 91 ms.
+5. **[P2] The owner policy is lost in calibration.** `audition._candidate_cfg`
+   copies `thinking` and `json_mode` and discards `chore_thinking` and
+   `chore_deadline_s`, turning production ON/45 s into audition unset/none.
+   And `rows[engine] = row` still cannot hold ON and OFF for one engine.
+6. **[P2] Auto fallback is silent.** Ordinary completion errors return `None`
+   with no reason recorded, and `LAST_DEGRADE` is a process-global dict no
+   production caller reads.
+
+Also: the receipt names two identities - section 1 `f559187`/`ccb68328`,
+section 10 still `20bbe1c0`/`c3d88a9d`. One current identity throughout, which
+is the rule I have been applying to everyone else.
+
+And a better diagnosis than mine of the one failing test: `adapter_required`
+because Blender AND Unreal both accept the cube batch. Not merely
+"environment-dependent". Isolate it; do not weaken the assertion to get green.
+
+**Scope: fix the execution contract. Do not reopen thinking ON. Keep the
+disabled correctors disabled. No resolver, no further committee.** Return one
+replacement candidate, a full manifest, the tested identity, a disposition of
+all six, and the ON activation settings, deadline policy and calibration
+migration/rollback for both clients.
