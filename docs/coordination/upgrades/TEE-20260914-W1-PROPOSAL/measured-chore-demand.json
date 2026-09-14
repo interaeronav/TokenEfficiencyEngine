@@ -1,0 +1,107 @@
+{
+ "repair_script": {
+  "current_cap": 500,
+  "generated": [
+   100,
+   131,
+   195,
+   216,
+   698
+  ],
+  "max": 698,
+  "median": 195,
+  "median_wall_s": 4.9,
+  "max_wall_s": 17.0,
+  "answered": "5/5"
+ },
+ "explain_lint": {
+  "current_cap": 160,
+  "generated": [
+   90,
+   136,
+   152,
+   160,
+   265
+  ],
+  "max": 265,
+  "median": 152,
+  "median_wall_s": 4.1,
+  "max_wall_s": 7.3,
+  "answered": "5/5"
+ },
+ "refine_extract": {
+  "current_cap": 500,
+  "generated": [
+   175,
+   273,
+   287,
+   292,
+   443
+  ],
+  "max": 443,
+  "median": 287,
+  "median_wall_s": 6.5,
+  "max_wall_s": 10.3,
+  "answered": "5/5"
+ },
+ "structure_facts": {
+  "current_cap": 500,
+  "generated": [
+   279,
+   363,
+   387,
+   410,
+   574
+  ],
+  "max": 574,
+  "median": 387,
+  "median_wall_s": 9.3,
+  "max_wall_s": 15.3,
+  "answered": "5/5"
+ },
+ "compress_recap": {
+  "current_cap": 160,
+  "generated": [
+   108,
+   119,
+   130,
+   140,
+   142
+  ],
+  "max": 142,
+  "median": 130,
+  "median_wall_s": 3.6,
+  "max_wall_s": 3.8,
+  "answered": "5/5"
+ },
+ "rerank": {
+  "current_cap": 200,
+  "generated": [
+   299,
+   322,
+   389,
+   397,
+   496
+  ],
+  "max": 496,
+  "median": 389,
+  "median_wall_s": 11.0,
+  "max_wall_s": 13.2,
+  "answered": "5/5"
+ },
+ "phrase_deviation": {
+  "current_cap": 400,
+  "generated": [
+   330,
+   338,
+   344,
+   368,
+   477
+  ],
+  "max": 477,
+  "median": 344,
+  "median_wall_s": 8.6,
+  "max_wall_s": 13.1,
+  "answered": "5/5"
+ }
+}
