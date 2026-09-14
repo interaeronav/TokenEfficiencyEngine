@@ -1,0 +1,923 @@
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  6%]
+........................................................................ [  8%]
+........................................ss.............................. [ 10%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+.......................................Fs..s............................ [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+........................................................................ [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 31%]
+........................................s............................... [ 34%]
+......................................................s................. [ 36%]
+................................sssss...................s....s.......sss [ 38%]
+ss....................................................................s. [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 46%]
+........................................................................ [ 48%]
+........................................................................ [ 51%]
+........................................................................ [ 53%]
+........................................................................ [ 55%]
+........................................................................ [ 57%]
+.......ssssss.........................F................................. [ 59%]
+........................................................................ [ 61%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+......................................................s................. [ 72%]
+........................................................................ [ 74%]
+.......................................................................F [ 76%]
+........sssssssssssssss..sssss..ss...................................... [ 78%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 89%]
+........................................................................ [ 91%]
+........................................................................ [ 93%]
+..................s...........FFFF...................................... [ 95%]
+........................................................................ [ 97%]
+........................................................................ [ 99%]
+..                                                                       [100%]
+[trust] shadow-band denials across the suite: 5 {'front-backend': 4, 'write-scene': 1}
+
+=================================== FAILURES ===================================
+_____________ test_siglip_beats_keyword_ranking_on_synonym_queries _____________
+
+self = <tee.assets.embed.SiglipTextEmbedder object at 0x1219baf10>
+
+    def _ensure_model(self) -> None:
+        if self._model is not None:
+            return
+        try:
+>           import torch
+E           ModuleNotFoundError: No module named 'torch'
+
+src/tee/assets/embed.py:56: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/pytest-of-john/pytest-377/test_siglip_beats_keyword_rank0')
+
+    @pytest.mark.ml
+    def test_siglip_beats_keyword_ranking_on_synonym_queries(tmp_path):
+        pool = [
+            row("sofa", "Grey fabric sofa", ["couch", "living room"]),
+            row("armchair", "Leather armchair", ["chair", "lounge"]),
+            row("stool", "Oak bar stool", ["seat", "kitchen"]),
+            row("lamp", "Brass floor lamp", ["lighting", "standing"]),
+            row("chandelier", "Crystal chandelier", ["ceiling", "lighting"]),
+            row("table", "Oak dining table", ["dining", "wood"]),
+            row("rug", "Persian rug", ["carpet", "floor"]),
+            row("fridge", "Steel refrigerator", ["kitchen", "appliance"]),
+        ]
+        cases = [
+            {
+                "query": "seating",
+                "rows": pool,
+                "relevant": ["test:sofa", "test:armchair", "test:stool"],
+            },
+            {
+                "query": "something to light the room",
+                "rows": pool,
+                "relevant": ["test:lamp", "test:chandelier"],
+            },
+            {"query": "soft floor covering", "rows": pool, "relevant": ["test:rug"]},
+            {"query": "cold food storage", "rows": pool, "relevant": ["test:fridge"]},
+        ]
+        embedder = SiglipTextEmbedder(cache_dir=tmp_path / "cache")
+>       report = evaluate(embedder, cases)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_assets_ml.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/tee/assets/embed.py:181: in evaluate
+    semantic = embedder.score_rows(str(case["query"]), rows)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/assets/embed.py:136: in score_rows
+    vectors = self.embed([query, *texts])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/assets/embed.py:99: in embed
+    self._ensure_model()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tee.assets.embed.SiglipTextEmbedder object at 0x1219baf10>
+
+    def _ensure_model(self) -> None:
+        if self._model is not None:
+            return
+        try:
+            import torch
+            from transformers import AutoModel, AutoTokenizer
+        except ImportError as exc:  # pragma: no cover - env-dependent
+>           raise RuntimeError(
+                "semantic asset ranking needs the [assets-embed] extra (torch, transformers)"
+            ) from exc
+E           RuntimeError: semantic asset ranking needs the [assets-embed] extra (torch, transformers)
+
+src/tee/assets/embed.py:59: RuntimeError
+_______ test_the_desktop_manifest_serves_five_lanes_and_declares_no_hub ________
+
+serve = <test_multi_adapter_serve._Serve object at 0x124055f50>
+
+    def test_the_desktop_manifest_serves_five_lanes_and_declares_no_hub(serve):
+        """The manifest serves blender, partkiln, seamkiln, fusion and unreal and
+        declares NO default (A68): an existing Desktop batch of Blender kinds still
+        lands on Blender - by content, not by position - and a partkiln batch lands
+        on partkiln without naming it. Fusion joined the manifest by the owner's
+        decision of 2026-09-07, after A71 verified the lane live.
+    
+        Unreal joined on 2026-09-08, also by the owner's decision. It had been the
+        odd one out: the lane was complete and passing (50 unit tests, live tests
+        skipping cleanly), UE 5.8.1 was installed with Epic's ModelContextProtocol
+        plugin, and OkongoSim enabled TeeToolset - but the manifest never named the
+        adapter, so 19 long-tail tools were unreachable from every Desktop session:
+        12 `ue_*` plus the 7 `pin_*` that `_attach_pins` gates on unreal. Nothing
+        was broken; the lane was simply never asked for.
+    
+        Both are bridge lanes, so on a machine with nothing running they are
+        disconnected rather than absent - and, measured here, unreal's wildcard
+        vocab (kinds=None, kind_optional) does NOT make the existing batches
+        ambiguous: cube, part and drape route exactly as they did before."""
+        args = json.loads(MANIFEST.read_text())["server"]["mcp_config"]["args"]
+        names = [args[i + 1] for i, flag in enumerate(args) if flag == "--adapter"]
+        assert names == ["blender", "partkiln", "seamkiln", "fusion", "unreal"]
+        assert "--default-adapter" not in args
+    
+        assert serve(*[word for name in names for word in ("--adapter", name)]) == 0
+        app = serve.app
+        assert list(app.adapters) == names
+        assert app.default_adapter is None
+        cube = [{"op": "create", "kind": "cube", "name": "Cube"}]
+        part = [{"op": "create", "kind": "part", "name": "bracket"}]
+>       assert app.route_batch(cube, None) == Route("blender", "kind")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_multi_adapter_serve.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tee.app.TeeApp object at 0x121caf310>
+ops = [{'op': 'create', 'kind': 'cube', 'name': 'Cube'}], adapter = None
+
+    def route_batch(self, ops: list[dict[str, Any]], adapter: str | None) -> Route:
+        """Which lane a batch goes to, and why (A68: no lane is the hub).
+    
+        An explicit adapter= is honoured as given. On a single-lane server
+        the sole lane takes everything, so its payloads never change. On a
+        multi-lane server an omitted adapter= resolves by CONTENT: an op that
+        names an entity goes where that entity lives; a create goes where its
+        kind is made; any other verb goes where it is accepted. One lane that
+        takes every op wins and the reply says so. Several: the declared
+        default breaks the tie if one was declared (Law 19), else the refusal
+        names them (SI-B6). None: the refusal names, per op, the lanes that
+        would take it."""
+        if adapter is not None:
+            return Route(adapter, None)
+        served = list(self.adapters)
+        if len(served) <= 1:
+            return Route(self.resolve_adapter(None), "sole")
+        vocabs = {name: self.vocab(name) for name in served}
+        per_op: list[tuple[str, set[str]]] = []
+        warmed = False
+        for index, op in enumerate(ops):
+            verb = op.get("op")
+            eid = op.get("id")
+            if eid is not None:
+                if not warmed:  # a cold cache holds nothing; warm() is a no-op afterwards
+                    for name in served:
+                        with contextlib.suppress(Exception):
+                            self.warm(name)
+                    warmed = True
+                holders = {n for n in served if self.caches[n].get(str(eid)) is not None}
+                if not holders:
+                    raise TeeError(
+                        "unknown_entity",
+                        f"batch[{index}]: no entity '{eid}' in any served lane "
+                        f"({', '.join(served)}).",
+                        fix="tee_scene_summary(adapter=<lane>) lists ids; refresh=true if the "
+                        "lane changed outside TEE. Or pass adapter= to pin the lane.",
+                    )
+                per_op.append(("id", holders))
+                continue
+            takers = {n for n, v in vocabs.items() if v.accepts(op)}
+            if not takers:
+                raise self._no_lane_for(index, op, vocabs)
+            per_op.append(("kind" if verb == "create" else "op", takers))
+        candidates = set(served)
+        for _, takers in per_op:
+            candidates &= takers
+        if len(candidates) > 1:
+            # A69: route where the work can run. Fusion's vocabulary overlaps
+            # partkiln's on sketch/extrude/fillet, so a closed Fusion must not
+            # make every adapter-less sketch ambiguous; both live IS ambiguous.
+            live = {name for name in candidates if self._connected(name)}
+            if live and len(live) < len(candidates):
+                candidates = live
+        if len(candidates) == 1:
+            lane = next(iter(candidates))
+            how = next(k for k in ("id", "kind", "op") if any(kk == k for kk, _ in per_op))
+            return Route(lane, how)
+        if candidates:
+            if self.default_adapter in candidates:
+                return Route(self.default_adapter, "default")
+            names = ", ".join(sorted(candidates))
+>           raise TeeError(
+                "adapter_required",
+                f"{len(candidates)} lanes accept this batch: {names}.",
+                fix="Pass adapter=<lane>; tee_status lists each lane's ops and kinds. An "
+                "operator can declare a tie-breaker with `tee serve --default-adapter NAME`.",
+            )
+E           tee.kernel.errors.TeeError: 2 lanes accept this batch: blender, unreal.
+
+src/tee/app.py:430: TeeError
+_______________ test_metering_never_breaks_the_chore_it_measures _______________
+
+prompt = 'hi', system = None, url = 'http://x/v1', model = 'm', max_tokens = 500
+temperature = 0.0, reasoning_effort = None, timeout = 120.0, deadline_at = None
+response_format = None, adapters = None, thinking = False
+on_usage = <function test_metering_never_breaks_the_chore_it_measures.<locals>.boom at 0x120dc3e20>
+on_reasoning = None
+
+    def complete(
+        prompt: str,
+        *,
+        system: str | None = None,
+        url: str = DEFAULT_URL,
+        model: str = DEFAULT_MODEL,
+        max_tokens: int = 500,
+        temperature: float = 0.0,
+        reasoning_effort: str | None = None,
+        timeout: float = 120.0,
+        deadline_at: float | None = None,
+        response_format: dict | None = None,
+        adapters: str | None = DEFAULT_ADAPTERS,
+        thinking: bool = False,
+        on_usage: Callable[[dict, int, float], None] | None = None,
+        on_reasoning: Callable[[str], None] | None = None,
+    ) -> str:
+        """One chore completion: deterministic, budgeted, thinking per-profile.
+    
+        `on_usage(payload, bytes_sent, seconds)` is called after a successful
+        reply so the caller can meter it (A45 P1). The client stays ignorant of
+        money: it reports what the provider said and what went on the wire.
+    
+        `on_reasoning(text)` receives the model's deliberation when the backend
+        returns any. It is deliberately a side channel: reasoning is recorded
+        for audit and training, and NEVER returned to the client - that is what
+        makes thinking free in the metric TEE is judged by."""
+        messages: list[dict] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        body: dict = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": messages,
+            # Per-profile (W0). Servers that don't know the flag are covered
+            # by the inline-<think> capture below.
+            "chat_template_kwargs": {"enable_thinking": bool(thinking)},
+        }
+        # W1: the MITIGATION CONTROL. The server carries a global default
+        # (--reasoning-effort medium here) and TEE never spoke to it, so every
+        # chore got one setting whatever its task. Measured 2026-09-14: error is
+        # NOT monotone in effort - on triage's enum control both 27B builds are
+        # correct at low and default effort and WRONG at high, the 4-bit running
+        # to `length` with 10,839 characters of reasoning and no answer. Effort is
+        # therefore a dial with a crossover, not a quality slider.
+        if reasoning_effort:
+            body["reasoning_effort"] = str(reasoning_effort)
+        if response_format:
+            body["response_format"] = response_format
+        if adapters:
+            body["adapters"] = adapters
+        encoded = json.dumps(body).encode()
+        request = urllib.request.Request(
+            f"{url}/chat/completions",
+            data=encoded,
+            headers={"Content-Type": "application/json", "Authorization": "Bearer local"},
+        )
+        started = time.monotonic()
+        # The socket timeout bounds ONE operation; `deadline_at` bounds the whole
+        # exchange, including a body that arrives in slices.
+        if deadline_at is not None:
+            timeout = max(0.001, min(timeout, deadline_at - started))
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(_read_bounded(response, deadline_at) or b"{}")
+        except urllib.error.HTTPError as exc:
+            detail = exc.read()[:200].decode(errors="replace")
+            # The server answered, so the request was dispatched - a 400 on a
+            # transport parameter is refused BEFORE inference and is classified as
+            # such by the caller, which knows what it sent.
+            raise TeeError(
+                "llm_failed",
+                f"The local model rejected the request ({exc.code}): {detail}",
+                fix="Check the endpoint log; chores fall back to their deterministic paths.",
+            ) from exc
+        except Dispatched:
+            raise
+        except (urllib.error.URLError, OSError) as exc:
+            # PRE-INFERENCE only when the connection never came up. A timeout, a
+            # reset or a short read after the request went out may have generated
+            # a complete answer we then lost.
+            cause = getattr(exc, "reason", exc)
+            # errno 61/111 connection refused, 2 no such file (a unix socket),
+            # -2/-3/8 DNS failures: the connection never came up, so nothing was
+            # generated. Everything else after a send is ambiguous.
+            pre = isinstance(cause, ConnectionRefusedError | FileNotFoundError) or (
+                isinstance(cause, OSError) and getattr(cause, "errno", None) in (61, 111, 2, -2, -3, 8)
+            )
+            if pre and not isinstance(cause, TimeoutError):
+                raise TeeError(
+                    "llm_unreachable", f"No local model at {url} ({exc}).", fix=_UNREACHABLE_FIX
+                ) from exc
+            # A LIVE endpoint reported as absent was the wrong answer: when the
+            # socket fired because the deadline squeezed its timeout, the cause is
+            # the deadline, and saying "no local model" sends the caller to start a
+            # stack that is already running (found by audit, 2026-09-14).
+            if deadline_at is not None and time.monotonic() >= deadline_at - 0.002:
+                raise Dispatched(
+                    "llm_deadline",
+                    f"the deadline was reached during the request to {url} "
+                    f"({time.monotonic() - started:.3f}s elapsed); whether the model "
+                    f"generated an answer is unknown.",
+                    fix="Raise chore_deadline_s, lower the generation allowance, or "
+                    "accept the deterministic path.",
+                ) from exc
+            raise Dispatched(
+                "llm_unreachable",
+                f"The request to {url} was sent and then failed ({exc}); whether the "
+                f"model generated an answer is unknown.",
+                fix=_UNREACHABLE_FIX,
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise Dispatched(
+                "llm_bad_response",
+                f"The local model's reply was not JSON ({exc}).",
+                fix="Check the endpoint log.",
+            ) from exc
+        if on_usage is not None:
+            # metering must never break the chore it is measuring
+            with contextlib.suppress(Exception):
+                on_usage(payload, len(encoded), time.monotonic() - started)
+        try:
+>           message = payload["choices"][0]["message"]
+                      ^^^^^^^^^^^^^^^^^^
+E           KeyError: 'choices'
+
+src/tee/kernel/local_llm.py:292: KeyError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x120e70e50>
+
+    def test_metering_never_breaks_the_chore_it_measures(monkeypatch):
+        """A meter that raises must not take the answer down with it."""
+        calls = {"n": 0}
+    
+        def boom(*a, **k):
+            calls["n"] += 1
+            raise RuntimeError("meter exploded")
+    
+        class FakeResp:
+            def __enter__(self):
+                return self
+    
+            def __exit__(self, *a):
+                return False
+    
+            def read(self):
+                return b""
+    
+        payload = {"choices": [{"message": {"content": "hello"}}], "usage": {}}
+        monkeypatch.setattr(local_llm.json, "load", lambda r: payload)
+        monkeypatch.setattr(local_llm.urllib.request, "urlopen", lambda *a, **k: FakeResp())
+>       text = local_llm.complete("hi", url="http://x/v1", model="m", on_usage=boom)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_spend_a45.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+prompt = 'hi', system = None, url = 'http://x/v1', model = 'm', max_tokens = 500
+temperature = 0.0, reasoning_effort = None, timeout = 120.0, deadline_at = None
+response_format = None, adapters = None, thinking = False
+on_usage = <function test_metering_never_breaks_the_chore_it_measures.<locals>.boom at 0x120dc3e20>
+on_reasoning = None
+
+    def complete(
+        prompt: str,
+        *,
+        system: str | None = None,
+        url: str = DEFAULT_URL,
+        model: str = DEFAULT_MODEL,
+        max_tokens: int = 500,
+        temperature: float = 0.0,
+        reasoning_effort: str | None = None,
+        timeout: float = 120.0,
+        deadline_at: float | None = None,
+        response_format: dict | None = None,
+        adapters: str | None = DEFAULT_ADAPTERS,
+        thinking: bool = False,
+        on_usage: Callable[[dict, int, float], None] | None = None,
+        on_reasoning: Callable[[str], None] | None = None,
+    ) -> str:
+        """One chore completion: deterministic, budgeted, thinking per-profile.
+    
+        `on_usage(payload, bytes_sent, seconds)` is called after a successful
+        reply so the caller can meter it (A45 P1). The client stays ignorant of
+        money: it reports what the provider said and what went on the wire.
+    
+        `on_reasoning(text)` receives the model's deliberation when the backend
+        returns any. It is deliberately a side channel: reasoning is recorded
+        for audit and training, and NEVER returned to the client - that is what
+        makes thinking free in the metric TEE is judged by."""
+        messages: list[dict] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        body: dict = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": messages,
+            # Per-profile (W0). Servers that don't know the flag are covered
+            # by the inline-<think> capture below.
+            "chat_template_kwargs": {"enable_thinking": bool(thinking)},
+        }
+        # W1: the MITIGATION CONTROL. The server carries a global default
+        # (--reasoning-effort medium here) and TEE never spoke to it, so every
+        # chore got one setting whatever its task. Measured 2026-09-14: error is
+        # NOT monotone in effort - on triage's enum control both 27B builds are
+        # correct at low and default effort and WRONG at high, the 4-bit running
+        # to `length` with 10,839 characters of reasoning and no answer. Effort is
+        # therefore a dial with a crossover, not a quality slider.
+        if reasoning_effort:
+            body["reasoning_effort"] = str(reasoning_effort)
+        if response_format:
+            body["response_format"] = response_format
+        if adapters:
+            body["adapters"] = adapters
+        encoded = json.dumps(body).encode()
+        request = urllib.request.Request(
+            f"{url}/chat/completions",
+            data=encoded,
+            headers={"Content-Type": "application/json", "Authorization": "Bearer local"},
+        )
+        started = time.monotonic()
+        # The socket timeout bounds ONE operation; `deadline_at` bounds the whole
+        # exchange, including a body that arrives in slices.
+        if deadline_at is not None:
+            timeout = max(0.001, min(timeout, deadline_at - started))
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(_read_bounded(response, deadline_at) or b"{}")
+        except urllib.error.HTTPError as exc:
+            detail = exc.read()[:200].decode(errors="replace")
+            # The server answered, so the request was dispatched - a 400 on a
+            # transport parameter is refused BEFORE inference and is classified as
+            # such by the caller, which knows what it sent.
+            raise TeeError(
+                "llm_failed",
+                f"The local model rejected the request ({exc.code}): {detail}",
+                fix="Check the endpoint log; chores fall back to their deterministic paths.",
+            ) from exc
+        except Dispatched:
+            raise
+        except (urllib.error.URLError, OSError) as exc:
+            # PRE-INFERENCE only when the connection never came up. A timeout, a
+            # reset or a short read after the request went out may have generated
+            # a complete answer we then lost.
+            cause = getattr(exc, "reason", exc)
+            # errno 61/111 connection refused, 2 no such file (a unix socket),
+            # -2/-3/8 DNS failures: the connection never came up, so nothing was
+            # generated. Everything else after a send is ambiguous.
+            pre = isinstance(cause, ConnectionRefusedError | FileNotFoundError) or (
+                isinstance(cause, OSError) and getattr(cause, "errno", None) in (61, 111, 2, -2, -3, 8)
+            )
+            if pre and not isinstance(cause, TimeoutError):
+                raise TeeError(
+                    "llm_unreachable", f"No local model at {url} ({exc}).", fix=_UNREACHABLE_FIX
+                ) from exc
+            # A LIVE endpoint reported as absent was the wrong answer: when the
+            # socket fired because the deadline squeezed its timeout, the cause is
+            # the deadline, and saying "no local model" sends the caller to start a
+            # stack that is already running (found by audit, 2026-09-14).
+            if deadline_at is not None and time.monotonic() >= deadline_at - 0.002:
+                raise Dispatched(
+                    "llm_deadline",
+                    f"the deadline was reached during the request to {url} "
+                    f"({time.monotonic() - started:.3f}s elapsed); whether the model "
+                    f"generated an answer is unknown.",
+                    fix="Raise chore_deadline_s, lower the generation allowance, or "
+                    "accept the deterministic path.",
+                ) from exc
+            raise Dispatched(
+                "llm_unreachable",
+                f"The request to {url} was sent and then failed ({exc}); whether the "
+                f"model generated an answer is unknown.",
+                fix=_UNREACHABLE_FIX,
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise Dispatched(
+                "llm_bad_response",
+                f"The local model's reply was not JSON ({exc}).",
+                fix="Check the endpoint log.",
+            ) from exc
+        if on_usage is not None:
+            # metering must never break the chore it is measuring
+            with contextlib.suppress(Exception):
+                on_usage(payload, len(encoded), time.monotonic() - started)
+        try:
+            message = payload["choices"][0]["message"]
+            text = message.get("content") or ""
+        except (KeyError, IndexError, TypeError) as exc:
+>           raise Dispatched(
+                "llm_bad_response",
+                "The local model returned no text content.",
+                fix="Check the endpoint log (a wrong --model name answers empty on some servers).",
+            ) from exc
+E           tee.kernel.local_llm.Dispatched: The local model returned no text content.
+
+src/tee/kernel/local_llm.py:295: Dispatched
+________________ test_cfmesh_meshes_the_prism_and_solves_on_it _________________
+
+app = <tee.app.TeeApp object at 0x149d831d0>
+prism_stl = PosixPath('/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/pytest-of-john/pytest-377/a740/prism.stl')
+
+    def test_cfmesh_meshes_the_prism_and_solves_on_it(app, prism_stl):
+        """The integration P2 existed to prove, and the defect it found first.
+    
+        A patch in a cfMesh case is an STL `solid`, so the first attempt - one
+        `farfield` solid - meshed perfectly and stopped `simpleFoam` dead at
+        "Cannot find patchField entry for farfield". The box carries blockMesh's
+        own patch names now, and this test fails the moment that regresses.
+        """
+        _need("openfoam")
+>       out = _mesh_and_solve(app, prism_stl, "cfmesh")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_windtunnel_live.py:595: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_windtunnel_live.py:577: in _mesh_and_solve
+    status = wait_job(app, call(app, "wt_mesh", **args)["job"], timeout_s=2400)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_windtunnel_live.py:68: in call
+    return app.registry.call(tool, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/kernel/registry.py:329: in call
+    return self.observer(self._tools.get(name), invoke)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/learning/hooks.py:160: in virtual
+    return observe(
+src/tee/learning/hooks.py:127: in observe
+    result = invoke()
+             ^^^^^^^^
+src/tee/kernel/registry.py:312: in invoke
+    result = tool.handler(args or {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1398: in mesh
+    return digest(self._mesh_3d(rec, args))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1438: in _mesh_3d
+    mesher, why = self._pick_mesher(asked)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tee.windtunnel.tools._Lane object at 0x11de93a50>, asked = 'cfmesh'
+
+    def _pick_mesher(self, asked: str) -> tuple[str, str]:
+        """Which 3-D mesher runs, and WHY - `auto` is a measurement, not a taste.
+    
+        Measured on the campaign's prism (doc 74 sections 2.7 and 2.8, both
+        arms solved, not just meshed): cfMesh meshes it in 4.1 s against 11.1 s,
+        in 36,768 cells against 46,160, converges where snappy stalls on the
+        same 200-iteration budget, and leaves 0.00004 of the lift a symmetric
+        section at zero incidence cannot have where snappy leaves 0.07458. No
+        arm of A74 measured snappy ahead of it on a 3-D body, including with a
+        hole cut in the body - so `auto` picks cfMesh wherever the install has
+        it, and the one thing that can send it back to snappy is cfMesh not
+        being there.
+    
+        An install without `cartesianMesh` is not a defect of the case, so
+        `auto` falls back and SAYS SO in the row; asking for cfMesh by name on
+        such a machine refuses by name instead (A74 law 1) rather than quietly
+        meshing with something else.
+        """
+        if asked == "snappy":
+            return "snappy", ""
+        probed = self._probe if self._probe is not None else self.probe({})
+        found = probed.get("engines", {}).get("openfoam", {})
+        if found.get("cfmesh"):
+            return "cfmesh", MESHER_REASON["cfmesh"] if asked == "auto" else ""
+        if asked == "cfmesh":
+>           raise TeeError(
+                "wt_cfmesh_absent",
+                f"This OpenFOAM install has no cartesianMesh ({found.get('version') or 'unknown'}"
+                f" at {found.get('path') or 'unknown path'}).",
+                fix="cfMesh ships inside openfoam.com's distribution from v1806 - install that "
+                "build (wt_probe names the line), or use mesher=snappy, which needs nothing "
+                "extra. Nothing is downloaded for you.",
+            )
+E           tee.kernel.errors.TeeError: This OpenFOAM install has no cartesianMesh (v2606 at /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam).
+
+src/tee/windtunnel/tools.py:790: TeeError
+______ test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh ______
+
+app = <tee.app.TeeApp object at 0x149d831d0>
+prism_stl = PosixPath('/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/pytest-of-john/pytest-377/a740/prism.stl')
+
+    def test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh(app, prism_stl):
+        """The acceptance, and the honest version of it.
+    
+        A NACA 0012 at alpha 0 must produce ZERO lift, so any Cl at all is the
+        mesh's asymmetry rather than the flow's. Measured 2026-09-07 on the same
+        case: snappy 0.07458, cfMesh from a plain STL 0.01194, and cfMesh from the
+        feature-edge FMS this lane now writes **0.00004** - which is zero to every
+        decimal a 200-iteration RANS run can defend. The ratio against snappy is
+        the claim; the absolute band below is a guard against nonsense, set two
+        orders above what was measured so it cannot start reporting the weather.
+    
+        The scatter deserves its own sentence. Before OMP_NUM_THREADS=1 became the
+        default, three runs of this case gave 0.0013, 0.0093 and 0.0119, because a
+        threaded cfMesh built a different mesh each time. The band was first set at
+        0.01 from the first of those - which is how a threshold ends up measuring
+        whichever run happened to be luckiest.
+        """
+        _need("openfoam")
+>       cf = getattr(app, "_a74_cfmesh", None) or _mesh_and_solve(app, prism_stl, "cfmesh")
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_windtunnel_live.py:625: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_windtunnel_live.py:577: in _mesh_and_solve
+    status = wait_job(app, call(app, "wt_mesh", **args)["job"], timeout_s=2400)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_windtunnel_live.py:68: in call
+    return app.registry.call(tool, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/kernel/registry.py:329: in call
+    return self.observer(self._tools.get(name), invoke)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/learning/hooks.py:160: in virtual
+    return observe(
+src/tee/learning/hooks.py:127: in observe
+    result = invoke()
+             ^^^^^^^^
+src/tee/kernel/registry.py:312: in invoke
+    result = tool.handler(args or {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1398: in mesh
+    return digest(self._mesh_3d(rec, args))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1438: in _mesh_3d
+    mesher, why = self._pick_mesher(asked)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tee.windtunnel.tools._Lane object at 0x11de93a50>, asked = 'cfmesh'
+
+    def _pick_mesher(self, asked: str) -> tuple[str, str]:
+        """Which 3-D mesher runs, and WHY - `auto` is a measurement, not a taste.
+    
+        Measured on the campaign's prism (doc 74 sections 2.7 and 2.8, both
+        arms solved, not just meshed): cfMesh meshes it in 4.1 s against 11.1 s,
+        in 36,768 cells against 46,160, converges where snappy stalls on the
+        same 200-iteration budget, and leaves 0.00004 of the lift a symmetric
+        section at zero incidence cannot have where snappy leaves 0.07458. No
+        arm of A74 measured snappy ahead of it on a 3-D body, including with a
+        hole cut in the body - so `auto` picks cfMesh wherever the install has
+        it, and the one thing that can send it back to snappy is cfMesh not
+        being there.
+    
+        An install without `cartesianMesh` is not a defect of the case, so
+        `auto` falls back and SAYS SO in the row; asking for cfMesh by name on
+        such a machine refuses by name instead (A74 law 1) rather than quietly
+        meshing with something else.
+        """
+        if asked == "snappy":
+            return "snappy", ""
+        probed = self._probe if self._probe is not None else self.probe({})
+        found = probed.get("engines", {}).get("openfoam", {})
+        if found.get("cfmesh"):
+            return "cfmesh", MESHER_REASON["cfmesh"] if asked == "auto" else ""
+        if asked == "cfmesh":
+>           raise TeeError(
+                "wt_cfmesh_absent",
+                f"This OpenFOAM install has no cartesianMesh ({found.get('version') or 'unknown'}"
+                f" at {found.get('path') or 'unknown path'}).",
+                fix="cfMesh ships inside openfoam.com's distribution from v1806 - install that "
+                "build (wt_probe names the line), or use mesher=snappy, which needs nothing "
+                "extra. Nothing is downloaded for you.",
+            )
+E           tee.kernel.errors.TeeError: This OpenFOAM install has no cartesianMesh (v2606 at /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam).
+
+src/tee/windtunnel/tools.py:790: TeeError
+_________ test_cfmesh_meshes_the_same_case_to_the_same_mesh_by_default _________
+
+app = <tee.app.TeeApp object at 0x149d831d0>
+prism_stl = PosixPath('/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/pytest-of-john/pytest-377/a740/prism.stl')
+
+    def test_cfmesh_meshes_the_same_case_to_the_same_mesh_by_default(app, prism_stl):
+        """The reproducibility the default buys, on the real binary.
+    
+        Threaded, cfMesh answered 7c260615fd23772e and cc2a2a95b348336a to the same
+        question (2026-09-07). snappy answered b0b9f5b5b90059d8 twice. A mesh hash
+        that changes for the same input cannot do the job this lane gives it - it
+        travels with every coefficient, and same-mesh deltas are the first-class
+        claim - so `wt_mesh mesher=cfmesh` pins OMP_NUM_THREADS=1 and pays about
+        25 % of a few seconds for an answer that repeats.
+        """
+        _need("openfoam")
+        hashes = []
+        for _ in range(2):
+            cid = call(app, "wt_case", action="create", stl=str(prism_stl), V_mps=20)["case_id"]
+            status = wait_job(
+                app,
+>               call(app, "wt_mesh", case_id=cid, mesher="cfmesh", base_cell_m=0.15, layers=2)["job"],
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                timeout_s=1200,
+            )
+
+tests/test_windtunnel_live.py:661: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_windtunnel_live.py:68: in call
+    return app.registry.call(tool, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/kernel/registry.py:329: in call
+    return self.observer(self._tools.get(name), invoke)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/learning/hooks.py:160: in virtual
+    return observe(
+src/tee/learning/hooks.py:127: in observe
+    result = invoke()
+             ^^^^^^^^
+src/tee/kernel/registry.py:312: in invoke
+    result = tool.handler(args or {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1398: in mesh
+    return digest(self._mesh_3d(rec, args))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1438: in _mesh_3d
+    mesher, why = self._pick_mesher(asked)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tee.windtunnel.tools._Lane object at 0x11de93a50>, asked = 'cfmesh'
+
+    def _pick_mesher(self, asked: str) -> tuple[str, str]:
+        """Which 3-D mesher runs, and WHY - `auto` is a measurement, not a taste.
+    
+        Measured on the campaign's prism (doc 74 sections 2.7 and 2.8, both
+        arms solved, not just meshed): cfMesh meshes it in 4.1 s against 11.1 s,
+        in 36,768 cells against 46,160, converges where snappy stalls on the
+        same 200-iteration budget, and leaves 0.00004 of the lift a symmetric
+        section at zero incidence cannot have where snappy leaves 0.07458. No
+        arm of A74 measured snappy ahead of it on a 3-D body, including with a
+        hole cut in the body - so `auto` picks cfMesh wherever the install has
+        it, and the one thing that can send it back to snappy is cfMesh not
+        being there.
+    
+        An install without `cartesianMesh` is not a defect of the case, so
+        `auto` falls back and SAYS SO in the row; asking for cfMesh by name on
+        such a machine refuses by name instead (A74 law 1) rather than quietly
+        meshing with something else.
+        """
+        if asked == "snappy":
+            return "snappy", ""
+        probed = self._probe if self._probe is not None else self.probe({})
+        found = probed.get("engines", {}).get("openfoam", {})
+        if found.get("cfmesh"):
+            return "cfmesh", MESHER_REASON["cfmesh"] if asked == "auto" else ""
+        if asked == "cfmesh":
+>           raise TeeError(
+                "wt_cfmesh_absent",
+                f"This OpenFOAM install has no cartesianMesh ({found.get('version') or 'unknown'}"
+                f" at {found.get('path') or 'unknown path'}).",
+                fix="cfMesh ships inside openfoam.com's distribution from v1806 - install that "
+                "build (wt_probe names the line), or use mesher=snappy, which needs nothing "
+                "extra. Nothing is downloaded for you.",
+            )
+E           tee.kernel.errors.TeeError: This OpenFOAM install has no cartesianMesh (v2606 at /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam).
+
+src/tee/windtunnel/tools.py:790: TeeError
+_____ test_feature_edges_earn_the_clean_checkmesh_the_plain_surface_cannot _____
+
+app = <tee.app.TeeApp object at 0x149d831d0>
+prism_stl = PosixPath('/private/var/folders/gd/nk7fdxmn0xxbkfx5fnwr7f6h0000gn/T/pytest-of-john/pytest-377/a740/prism.stl')
+
+    def test_feature_edges_earn_the_clean_checkmesh_the_plain_surface_cannot(app, prism_stl):
+        """A74 P3's acceptance: `checkMesh` passes CLEAN, without widening anything.
+    
+        cfMesh rounds a sharp trailing edge off into skew cells unless it is told
+        where the edges are. Measured 2026-09-07 on this prism: from the plain STL,
+        max skewness 5.5497203 with twelve faces flagged and `checkMesh` FAILING;
+        from the FMS `surfaceFeatureEdges -angle 30` writes, 2.0995350 and a clean
+        pass, for 0.4 s and 1,584 fewer cells. 45 degrees also passes and is worse
+        (2.2391098). `edgeMeshRefinement` - cfMesh's own key for refining along
+        those edges - was tried and killed `cartesianMesh` with rc=1, so it is not
+        shipped (doc 74 section 2.8).
+    
+        Both halves are asserted because skew is one of `TOLERATED_CHECKS`: a mesh
+        that FAILS this check would still run under that tolerance, which is
+        exactly what A74 law 4 forbids buying the pass with.
+        """
+        _need("openfoam")
+>       cf = getattr(app, "_a74_cfmesh", None) or _mesh_and_solve(app, prism_stl, "cfmesh")
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_windtunnel_live.py:716: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_windtunnel_live.py:577: in _mesh_and_solve
+    status = wait_job(app, call(app, "wt_mesh", **args)["job"], timeout_s=2400)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_windtunnel_live.py:68: in call
+    return app.registry.call(tool, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/kernel/registry.py:329: in call
+    return self.observer(self._tools.get(name), invoke)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/learning/hooks.py:160: in virtual
+    return observe(
+src/tee/learning/hooks.py:127: in observe
+    result = invoke()
+             ^^^^^^^^
+src/tee/kernel/registry.py:312: in invoke
+    result = tool.handler(args or {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1398: in mesh
+    return digest(self._mesh_3d(rec, args))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+src/tee/windtunnel/tools.py:1438: in _mesh_3d
+    mesher, why = self._pick_mesher(asked)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tee.windtunnel.tools._Lane object at 0x11de93a50>, asked = 'cfmesh'
+
+    def _pick_mesher(self, asked: str) -> tuple[str, str]:
+        """Which 3-D mesher runs, and WHY - `auto` is a measurement, not a taste.
+    
+        Measured on the campaign's prism (doc 74 sections 2.7 and 2.8, both
+        arms solved, not just meshed): cfMesh meshes it in 4.1 s against 11.1 s,
+        in 36,768 cells against 46,160, converges where snappy stalls on the
+        same 200-iteration budget, and leaves 0.00004 of the lift a symmetric
+        section at zero incidence cannot have where snappy leaves 0.07458. No
+        arm of A74 measured snappy ahead of it on a 3-D body, including with a
+        hole cut in the body - so `auto` picks cfMesh wherever the install has
+        it, and the one thing that can send it back to snappy is cfMesh not
+        being there.
+    
+        An install without `cartesianMesh` is not a defect of the case, so
+        `auto` falls back and SAYS SO in the row; asking for cfMesh by name on
+        such a machine refuses by name instead (A74 law 1) rather than quietly
+        meshing with something else.
+        """
+        if asked == "snappy":
+            return "snappy", ""
+        probed = self._probe if self._probe is not None else self.probe({})
+        found = probed.get("engines", {}).get("openfoam", {})
+        if found.get("cfmesh"):
+            return "cfmesh", MESHER_REASON["cfmesh"] if asked == "auto" else ""
+        if asked == "cfmesh":
+>           raise TeeError(
+                "wt_cfmesh_absent",
+                f"This OpenFOAM install has no cartesianMesh ({found.get('version') or 'unknown'}"
+                f" at {found.get('path') or 'unknown path'}).",
+                fix="cfMesh ships inside openfoam.com's distribution from v1806 - install that "
+                "build (wt_probe names the line), or use mesher=snappy, which needs nothing "
+                "extra. Nothing is downloaded for you.",
+            )
+E           tee.kernel.errors.TeeError: This OpenFOAM install has no cartesianMesh (v2606 at /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam).
+
+src/tee/windtunnel/tools.py:790: TeeError
+=============================== warnings summary ===============================
+tests/test_fleet_solve.py: 416 warnings
+  /Users/john/TokenEfficiencyEngine/server/.venv/lib/python3.11/site-packages/pulp/pulp.py:318: DeprecationWarning: Constructing LpVariable(name, ...) directly is deprecated; in PuLP 4.0 use prob.add_variable(name, lowBound, upBound, cat=...). Variables are then attached to the model when created.
+    _v4_deprecation(msg, stacklevel=2)
+
+tests/test_fleet_solve.py::test_every_backend_agrees_on_the_reference_optimum[cbc]
+  /Users/john/TokenEfficiencyEngine/server/.venv/lib/python3.11/site-packages/pulp/apis/coin_api.py:70: DeprecationWarning: PULP_CBC_CMD is deprecated and will be removed in PuLP 4.0. Install CBC with `pip install pulp[cbc]` and use COIN_CMD instead.
+    v4_deprecation(PULP_CBC_CMD_DEPRECATION_MSG, stacklevel=stacklevel)
+
+tests/test_pdf_lane.py::test_merge_then_delete_then_stamp
+  /Users/john/TokenEfficiencyEngine/server/.venv/lib/python3.11/site-packages/pypdf/_page.py:1311: DeprecationWarning: Calling `PageObject.replace_contents()` for pages not assigned to a writer is deprecated and will be removed in pypdf 7.0.0. Attach the page to the writer first or use `PdfWriter(clone_from=...)` directly. The existing approach has proved being unreliable.
+    self.replace_contents(ContentStream(new_content_array, self.pdf))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_assets_ml.py::test_siglip_beats_keyword_ranking_on_synonym_queries
+FAILED tests/test_multi_adapter_serve.py::test_the_desktop_manifest_serves_five_lanes_and_declares_no_hub
+FAILED tests/test_spend_a45.py::test_metering_never_breaks_the_chore_it_measures
+FAILED tests/test_windtunnel_live.py::test_cfmesh_meshes_the_prism_and_solves_on_it
+FAILED tests/test_windtunnel_live.py::test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh
+FAILED tests/test_windtunnel_live.py::test_cfmesh_meshes_the_same_case_to_the_same_mesh_by_default
+FAILED tests/test_windtunnel_live.py::test_feature_edges_earn_the_clean_checkmesh_the_plain_surface_cannot
+7 failed, 3330 passed, 52 skipped, 100 deselected, 418 warnings in 1029.70s (0:17:09)

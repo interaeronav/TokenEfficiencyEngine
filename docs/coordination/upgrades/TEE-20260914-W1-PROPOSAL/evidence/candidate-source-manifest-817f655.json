@@ -1,8 +1,8 @@
 {
  "algorithm": "tee-payload-v1",
- "fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+ "fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
  "file_count": 328,
- "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
+ "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
  "files": [
   {
    "path": "tee/__init__.py",
@@ -1081,8 +1081,8 @@
   },
   {
    "path": "tee/kernel/local_llm.py",
-   "bytes": 28070,
-   "sha256": "b8173930ca33878a5966df1ee97c7fcc3168d37df675f7eb59a096125a061b03"
+   "bytes": 36648,
+   "sha256": "033ae82167ad32c32f18c42f40fdd2f6b1885658f9a2391c4e195f3c13be7e48"
   },
   {
    "path": "tee/kernel/local_vlm.py",
@@ -1186,13 +1186,13 @@
   },
   {
    "path": "tee/llm/calibration.py",
-   "bytes": 8728,
-   "sha256": "ac2fad471e31325fea7a97c1da7b647bb32c420ff50875632cb7531112e6a687"
+   "bytes": 8826,
+   "sha256": "2a457e8e71042a121c15a647e41eb7a0e9909212eb9f7fb9d2c609e87e4b7d64"
   },
   {
    "path": "tee/llm/chores.py",
-   "bytes": 65823,
-   "sha256": "bd089a3c67d704b0f3f4c9800d82fc77fea178626986ad3391a5109d4586e0b6"
+   "bytes": 67237,
+   "sha256": "d280abfc3d0953e9fe4d6a234ce87b9004b4b68789007db951fbd3c47fa35c71"
   },
   {
    "path": "tee/llm/profiles.py",
@@ -1201,8 +1201,8 @@
   },
   {
    "path": "tee/llm/router.py",
-   "bytes": 32258,
-   "sha256": "9a2cb1f33e23b52fda74a1f1d94b5edd98195d07d8a4a8b375540835ae820963"
+   "bytes": 32538,
+   "sha256": "b7acbcb35c7c33ce3bcc3b0e6afdc859951e262e83f1f8f2e374bec9bfafcb6f"
   },
   {
    "path": "tee/llm/syndrome.py",
@@ -1216,8 +1216,8 @@
   },
   {
    "path": "tee/llm/widening.py",
-   "bytes": 64575,
-   "sha256": "2b1e0d796edc213f830f57141b59c94b45891b3335848ec68fea2bc155169388"
+   "bytes": 68957,
+   "sha256": "cdf2cc5a5ebad3b6f6e47f53cd5ce237f457fef2d754bc2f7d2b92b92e5c957f"
   },
   {
    "path": "tee/pdf.py",

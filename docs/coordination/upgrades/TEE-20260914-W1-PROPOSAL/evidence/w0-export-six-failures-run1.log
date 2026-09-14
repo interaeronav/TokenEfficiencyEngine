@@ -1,0 +1,14 @@
+            )
+E           tee.kernel.errors.TeeError: This OpenFOAM install has no cartesianMesh (v2606 at /Applications/OpenFOAM-v2606.app/Contents/Resources/etc/openfoam).
+
+src/tee/windtunnel/tools.py:790: TeeError
+=========================== short test summary info ============================
+FAILED tests/test_assets_ml.py::test_siglip_beats_keyword_ranking_on_synonym_queries
+FAILED tests/test_multi_adapter_serve.py::test_the_desktop_manifest_serves_five_lanes_and_declares_no_hub
+FAILED tests/test_windtunnel_live.py::test_cfmesh_meshes_the_prism_and_solves_on_it
+FAILED tests/test_windtunnel_live.py::test_the_symmetric_section_at_zero_incidence_has_no_lift_on_cfmesh
+FAILED tests/test_windtunnel_live.py::test_cfmesh_meshes_the_same_case_to_the_same_mesh_by_default
+FAILED tests/test_windtunnel_live.py::test_feature_edges_earn_the_clean_checkmesh_the_plain_surface_cannot
+6 failed, 16 passed, 1 skipped in 846.07s (0:14:06)
+
+[exited with code 0]

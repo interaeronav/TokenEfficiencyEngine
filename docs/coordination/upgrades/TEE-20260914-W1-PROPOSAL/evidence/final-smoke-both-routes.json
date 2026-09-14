@@ -1,6 +1,6 @@
 {
- "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
- "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+ "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+ "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
  "routes": {
   "8-bit Optimized-Quality": {
    "model": "claude-qwen-27b-8bit",
@@ -23,8 +23,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "triage",
    "request_mode": "on",
    "wire_thinking": true,
@@ -48,7 +48,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 9.8
+   "elapsed_s": 9.62
   },
   {
    "route": "8-bit Optimized-Quality",
@@ -56,8 +56,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "repair_script",
    "request_mode": "on",
    "wire_thinking": true,
@@ -81,7 +81,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 2.76
+   "elapsed_s": 2.71
   },
   {
    "route": "8-bit Optimized-Quality",
@@ -89,8 +89,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "explain_lint",
    "request_mode": "on",
    "wire_thinking": true,
@@ -114,7 +114,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 2.71
+   "elapsed_s": 2.67
   },
   {
    "route": "8-bit Optimized-Quality",
@@ -122,8 +122,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "refine_extract",
    "request_mode": "on",
    "wire_thinking": true,
@@ -147,7 +147,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 2.62
+   "elapsed_s": 2.52
   },
   {
    "route": "8-bit Optimized-Quality",
@@ -155,8 +155,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "structure_facts",
    "request_mode": "on",
    "wire_thinking": true,
@@ -180,7 +180,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 9.16
+   "elapsed_s": 8.87
   },
   {
    "route": "8-bit Optimized-Quality",
@@ -188,8 +188,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "compress_recap",
    "request_mode": "on",
    "wire_thinking": true,
@@ -213,7 +213,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 2.47
+   "elapsed_s": 2.35
   },
   {
    "route": "8-bit Optimized-Quality",
@@ -221,8 +221,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "rerank",
    "request_mode": "on",
    "wire_thinking": true,
@@ -246,7 +246,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 4.86
+   "elapsed_s": 4.45
   },
   {
    "route": "8-bit Optimized-Quality",
@@ -254,8 +254,8 @@
    "declared_endpoint": "http://127.0.0.1:8089/v1",
    "wire_model": "claude-qwen-27b-8bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "phrase_deviation",
    "request_mode": "on",
    "wire_thinking": true,
@@ -279,7 +279,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 6.31
+   "elapsed_s": 5.79
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -287,8 +287,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "triage",
    "request_mode": "on",
    "wire_thinking": true,
@@ -312,7 +312,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 11.09
+   "elapsed_s": 9.66
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -320,8 +320,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "repair_script",
    "request_mode": "on",
    "wire_thinking": true,
@@ -345,7 +345,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 3.81
+   "elapsed_s": 3.22
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -353,8 +353,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "explain_lint",
    "request_mode": "on",
    "wire_thinking": true,
@@ -378,7 +378,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 2.48
+   "elapsed_s": 2.11
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -386,8 +386,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "refine_extract",
    "request_mode": "on",
    "wire_thinking": true,
@@ -411,7 +411,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 2.82
+   "elapsed_s": 2.38
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -419,8 +419,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "structure_facts",
    "request_mode": "on",
    "wire_thinking": true,
@@ -444,7 +444,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 7.95
+   "elapsed_s": 6.26
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -452,8 +452,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "compress_recap",
    "request_mode": "on",
    "wire_thinking": true,
@@ -477,7 +477,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 2.56
+   "elapsed_s": 2.0
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -485,8 +485,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "rerank",
    "request_mode": "on",
    "wire_thinking": true,
@@ -510,7 +510,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 4.95
+   "elapsed_s": 3.78
   },
   {
    "route": "4-bit Optimized-Speed",
@@ -518,8 +518,8 @@
    "declared_endpoint": "http://127.0.0.1:8087/v1",
    "wire_model": "claude-qwen-27b-4bit",
    "wire_endpoint": "http://127.0.0.1:4000/v1",
-   "commit": "60df5972384b9dc9e1ae2336a447c75342b93f60",
-   "payload_fingerprint": "0cfd3bbed3ef91aa3f4b9aa4a539d56dc9860022b1d2c3ffa9082d27db538276",
+   "commit": "817f655f87efee905e2351c0aa0ad3e92f117db2",
+   "payload_fingerprint": "65ce876650c829a68c964072b3c4abf7ca1ea39b292cde7fa20ef09de12e58f8",
    "chore": "phrase_deviation",
    "request_mode": "on",
    "wire_thinking": true,
@@ -543,7 +543,7 @@
     "completed": true
    },
    "error": null,
-   "elapsed_s": 5.8
+   "elapsed_s": 4.33
   }
  ]
 }
