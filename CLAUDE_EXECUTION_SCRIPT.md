@@ -2283,3 +2283,86 @@ survives branch movement in this shared checkout. **Acceptance is for packet
 preparation only** — it authorises no installation and no publication, and both
 actual-client receipts remain outstanding. Do not start further W0 work from
 this script; a new runtime change would be a new candidate with its own review.
+
+### W1 — chore budgets: MEASUREMENT ONLY (GPT-6, 2026-09-14)
+
+Revision 1 of the W1 proposal was reviewed and **not accepted**: the cap
+increases and the automatic dual-mode sweep are refused on the evidence given.
+No runtime change is authorised by this addendum. W0 `e6f9566` stays installed
+and untouched.
+
+**What revision 1 got wrong, verified in the installed source, not taken on
+report:**
+
+1. **Shipped chores request thinking OFF and cannot request it ON.**
+   `THINKING_ALLOWED` is `frozenset()` and `_run` gates on it, raising
+   `llm_widening_unproven` for any chore that asks. `wire_thinking` returns
+   `requested and resolved["thinking"]`, so a profile declaring the capability
+   never enables it for a chore. My helper called `local_llm.complete_json`
+   directly with `thinking=True` - a **laboratory** path production cannot
+   take. Every consumption figure in revision 1 describes that path.
+2. **The truncation counts were inferred, never observed.** Every helper call
+   used `max_tokens=8000` and I compared consumption against the caps. No run
+   at the actual cap exists. "rerank is truncated on 100% of inputs" is
+   unsupported; "five thinking-on generations exceeded 256 tokens" is what the
+   data shows.
+3. **The helper did not reproduce the chore contracts.** It bypassed validators
+   and changed prompts. `refine_extract` is not a fixed 500 - it sends
+   `min(2 * max_tokens, 1200)`; `phrase_deviation` takes a list of facts, not
+   prose.
+4. **The usage accounting was wrong.** The callback overwrote on each attempt,
+   so a retry's usage replaced the first instead of aggregating.
+5. **`eng_adopt` writes `engines.json`.** It does not merely print a line -
+   `save_measured` persists it, and one mode would overwrite another under the
+   same engine key. `_ladder` also auto-includes eligible new rows, so adding
+   an alias to attach a floor can add routing attempts.
+
+**And the project had already measured this.** `_run`'s own comment records
+thinking as 2.8-4.0x the cost, indistinguishable on the three chores with real
+verifiers (8/8 either way) and WORSE on the calibration chore (6/6 -> 5/6):
+*"Zero chores are measured to benefit, so zero chores get it by default."*
+Revision 1 argued to widen a budget for a mode that was disabled after
+measurement. I had read that function and still contradicted it.
+
+**The bounded work this addendum authorises, and nothing more:**
+
+- Pin the INSTALLED W0 source explicitly and assert the imported module's
+  origin; record the runtime fingerprint, resolved route and effective request
+  mode. Fix the reproduction command - revision 1's `INSTALLED_SRC` was
+  undefined and its output pointed at an ephemeral scratch directory.
+- Run the five rerank fixtures through the **real public chore** at production
+  prompts, budgets and validation. Record requested mode and any backend
+  reasoning counts; never infer backend compliance from a request flag.
+  Distinguish strict `refine='local'` diagnostics from ordinary `auto`
+  fallback, and a failed refinement from a failed user task.
+- One structured record per fixture AND per attempt: identities, route,
+  requested mode, literal and effective cap, finish reason, content presence,
+  parse/validator/task verdicts, error code, retries, aggregated token counts,
+  elapsed. Unreported fields marked unknown. Reasoning text stays out of the
+  handoff.
+- Expand only on a REPRODUCED failure, one factor at a time. Measure both
+  quantisations or limit the recommendation to the one measured.
+- Return revision 2 plus a receipt: corrected conclusion, per-fixture
+  evidence, an accounting self-check, and either the smallest justified patch
+  design or **"no production change justified"**. Do not modify
+  `THINKING_ALLOWED`, profile defaults or the production gate to run any
+  comparison. GPT-6 retains the coordination ledger.
+
+Closing W1 as an investigation with no runtime change is an acceptable and
+expected outcome.
+
+### W1 owner direction — thinking ON (2026-09-14)
+
+John subsequently directed: **"as an owner I need thinking on"**. This takes
+precedence over the preceding measurement-only disposition and earlier W0/W1
+adoption rules that require demonstrated benefit before permitting thinking.
+Implement explicit owner-selected thinking ON for all eight local chores,
+including triage. Measurements set the budget and verify behavior; they do not
+reopen the owner's choice. Keep validation and trust controls intact.
+
+Follow `docs/coordination/reports/TEE-20260914-W1-REVIEW/owner-thinking-on-script.md`
+for candidate preparation, ON/OFF calibration, accounting, deadlines, validation
+and the handoff. Prepare in isolation from Codex's live source. GPT-6 coordinates
+the frozen upgrade packet and both actual-client receipts under protocol 1.0.1.
+The earlier factual measurement corrections remain valid. The earlier instruction
+to close W1 without implementing thinking ON is superseded.
